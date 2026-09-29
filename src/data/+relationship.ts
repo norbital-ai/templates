@@ -82,11 +82,43 @@ export default relationship({
 		to: 'statutory_contributions',
 		inverse: 'employment_statutory_facts'
 	},
+	'sss_contribution_months.employee_id': {
+		to: 'employees',
+		inverse: 'sss_contribution_months',
+		owned: true
+	},
+	'ph_maternity_cases.employee_id': { to: 'employees', inverse: 'ph_maternity_cases' },
+	'ph_maternity_cases.employment_id': { to: 'employments', inverse: 'ph_maternity_cases' },
+	'ph_maternity_movements.ph_maternity_case_id': {
+		to: 'ph_maternity_cases',
+		inverse: 'ph_maternity_movements'
+	},
+	'ph_maternity_movements.ph_maternity_pay_plan_id': {
+		to: 'ph_maternity_pay_plans',
+		inverse: 'ph_maternity_movements',
+		optional: true
+	},
+	'ph_maternity_pay_plans.ph_maternity_case_id': {
+		to: 'ph_maternity_cases',
+		inverse: 'ph_maternity_pay_plans',
+		owned: true
+	},
+	'ph_maternity_pay_plans.supersedes_plan_id': {
+		to: 'ph_maternity_pay_plans',
+		inverse: 'superseded_by',
+		optional: true
+	},
+	'ph_maternity_pay_cutoffs.ph_maternity_pay_plan_id': {
+		to: 'ph_maternity_pay_plans',
+		inverse: 'ph_maternity_pay_cutoffs',
+		owned: true
+	},
 	'employment_wage_periods.employment_id': {
 		to: 'employments',
 		inverse: 'employment_wage_periods',
 		owned: true
 	},
+	'presence_periods.employee_id': { to: 'employees', inverse: 'presence_periods', owned: true },
 	'payment_holds.employment_id': { to: 'employments', inverse: 'payment_holds', owned: true },
 
 	// ── time ──
@@ -151,6 +183,42 @@ export default relationship({
 	'payroll_runs.settings_id': { to: 'jurisdiction_settings', inverse: 'payroll_runs' },
 	'payslips.payroll_run_id': { to: 'payroll_runs', inverse: 'payslips', owned: true },
 	'payslips.employment_id': { to: 'employments', inverse: 'payslips' },
+	/** The event which completed the last frozen obligation on this payslip. */
+	'payslips.settled_by_payment_event_id': {
+		to: 'payment_events',
+		inverse: 'completed_payslips',
+		optional: true
+	},
+	'vn_noncontract_settlements.company_id': {
+		to: 'companies',
+		inverse: 'vn_noncontract_settlements'
+	},
+	'vn_noncontract_settlements.employee_id': {
+		to: 'employees',
+		inverse: 'vn_noncontract_settlements'
+	},
+	/** Exactly one priced obligation owns a tranche; settled cash keeps its source alive. */
+	'payable_tranches.settlement': {
+		to: ['payslips', 'vn_noncontract_settlements'],
+		inverse: 'payable_tranches',
+		owned: true
+	},
+	'payment_events.company_id': { to: 'companies', inverse: 'payment_events' },
+	'payment_events.employee_id': { to: 'employees', inverse: 'payment_events' },
+	'payment_allocations.payment_event_id': {
+		to: 'payment_events',
+		inverse: 'payment_allocations',
+		owned: true
+	},
+	'payment_allocations.payable_tranche_id': {
+		to: 'payable_tranches',
+		inverse: 'payment_allocations'
+	},
+	'vn_payment_tax_facts.payment_event_id': {
+		to: 'payment_events',
+		inverse: 'vn_payment_tax_facts',
+		owned: true
+	},
 	'payslip_wage_periods.payslip_id': {
 		to: 'payslips',
 		inverse: 'payslip_wage_periods',

@@ -560,6 +560,25 @@
 										oninput={(event) => editUnit(index, { reference: event.currentTarget.value })}
 									/></label
 								>
+								<Labelled label={t('renderer.unit_assessments.paid_on')}>
+									<DateInput
+										value={row.paid_on ?? null}
+										{disabled}
+										onChange={(paid_on) => editUnit(index, { paid_on })}
+									/>
+								</Labelled>
+								<label>
+									<input
+										type="checkbox"
+										checked={row.withhold_below_threshold_requested === true}
+										{disabled}
+										onchange={(event) =>
+											editUnit(index, {
+												withhold_below_threshold_requested: event.currentTarget.checked
+											})}
+									/>
+									{t('renderer.unit_assessments.withhold_below_threshold_requested')}
+								</label>
 								<Button {disabled} onclick={() => editUnit(index, null)}
 									>{t('renderer.unit_assessments.remove')}</Button
 								>
@@ -573,7 +592,7 @@
 									...current,
 									unit_assessments: [
 										...(current.unit_assessments ?? []),
-										{ period: '', gross: 0, units: 1, reference: '' }
+										{ period: '', gross: 0, units: 1, reference: '', paid_on: null }
 									]
 								})}>{t('renderer.unit_assessments.add')}</Button
 						>
@@ -586,9 +605,36 @@
 					value={current.reason}
 					{disabled}
 					placeholder={t('component.why_out_of_scope')}
-					oninput={(event) => emit({ kind: 'NOT_REGISTERED', reason: event.currentTarget.value })}
+					oninput={(event) => emit({ ...current, reason: event.currentTarget.value })}
 				/>
 			</Labelled>
+			<Labelled label="Declaration reference" class="text-sm font-medium">
+				<Input
+					value={current.declaration_reference ?? ''}
+					{disabled}
+					placeholder={t('component.authority_reference')}
+					oninput={(event) =>
+						emit({ ...current, declaration_reference: event.currentTarget.value })}
+				/>
+			</Labelled>
+			<Column span="all">
+				<Stack gap="xs">
+					<span class="text-sm font-medium">{t('renderer.statutory_fact_status.elections')}</span>
+					<ElectionsEditor
+						view={{
+							mode: 'edit',
+							name: `${view.name}.elections`,
+							value: current.elections ?? {},
+							disabled,
+							onChange: (elections) => {
+								const { elections: _prior, ...rest } = current;
+								emit(elections === null ? rest : { ...rest, elections });
+							}
+						}}
+						declarations={scheme.current?.elections ?? []}
+					/>
+				</Stack>
+			</Column>
 		{/if}
 	</Grid>
 {/if}

@@ -12,6 +12,8 @@ const f = customField({
 				child_birthdate: { kind: 'text' },
 				child_deathdate: { kind: 'text', optional: true },
 				child_confinement_date: { kind: 'text', optional: true },
+				estimated_delivery_date: { kind: 'text', optional: true },
+				adoption_eligibility_date: { kind: 'text', optional: true },
 				relationship: { kind: 'enum', values: ['CHILD', 'STEPCHILD', 'ADOPTED', 'LEGAL_WARD'] },
 				effective_range: { kind: 'period', of: 'instant', optional: true },
 				citizenship: { kind: 'text', optional: true },
@@ -46,4 +48,12 @@ f.validate((children) => {
 		)
 	)
 		return 'A confinement date must be a valid date on or before the child’s birth.';
+	if (
+		!children.every(
+			(child) =>
+				(child.estimated_delivery_date == null || isCalendarDate(child.estimated_delivery_date)) &&
+				(child.adoption_eligibility_date == null || isCalendarDate(child.adoption_eligibility_date))
+		)
+	)
+		return 'An estimated delivery or adoption eligibility date must be a valid date.';
 });

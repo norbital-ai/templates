@@ -26,15 +26,25 @@ for (const version of versions) {
 		(row) => row.settings_id === version.id && row.code === 'SHARED_PARENTAL_LEAVE'
 	);
 	assert.ok(row);
-	const profiles = [{ date: '2026-03-31', pool: 6 }];
-	if (version.effective_range.start >= '2026-04-01')
-		profiles.push({ date: '2026-04-01', pool: 10 });
+	// CDCA Second Schedule para 5 is in force from 1 Apr 2025, so every version holds both pools.
+	const profiles = [
+		{ date: '2026-03-31', pool: 6 },
+		{ date: '2026-04-01', pool: 10 }
+	];
 	for (const { date, pool } of profiles)
 		for (const weeks of [-1, 0, 1, pool / 2, pool])
 			test(`SG catalogue ${row.id}: ${date}, allocated weeks ${weeks}`, () => {
 				// -1 is the documented context value for a missing declaration; zero
 				// remains an actual allocation. Context mapping has its own probe below.
-				const context = { event: { date, child_shared_weeks: weeks } };
+				const context = {
+					event: {
+						kind: 'BIRTH',
+						date,
+						estimated_delivery_date: '',
+						adoption_eligibility_date: '',
+						child_shared_weeks: weeks
+					}
+				};
 				const band = row.entitlement.bands.find((candidate) =>
 					engine.evaluate(candidate.eligibility || 'true', context)
 				);
@@ -44,6 +54,33 @@ for (const version of versions) {
 				assert.equal(actual, (weeks === -1 ? pool / 2 : weeks) * 7);
 			});
 }
+
+test('SG SPL cohort uses EDD or adoption eligibility, with an absent date defaulting to event date', () => {
+	const row = rows.find((candidate) => candidate.code === 'SHARED_PARENTAL_LEAVE')!;
+	const weeks = (event: Record<string, unknown>) => {
+		const band = row.entitlement.bands.find((candidate) =>
+			engine.evaluate(candidate.eligibility || 'true', { event })
+		)!;
+		return typeof band.days === 'number' ? band.days : engine.evaluate(band.days, { event });
+	};
+	const birth = {
+		kind: 'BIRTH',
+		date: '2026-03-31',
+		adoption_eligibility_date: '',
+		child_shared_weeks: -1
+	};
+	assert.equal(weeks({ ...birth, estimated_delivery_date: '' }), 21);
+	assert.equal(weeks({ ...birth, estimated_delivery_date: '2026-04-01' }), 35);
+	assert.equal(
+		weeks({
+			...birth,
+			kind: 'ADOPTION',
+			estimated_delivery_date: '',
+			adoption_eligibility_date: '2026-04-01'
+		}),
+		35
+	);
+});
 
 test('SG catalogue context: a missing allocation has the documented default', async () => {
 	const { EXPRESSION_CONTEXTS } = await import('../src/lib/expressions/contexts.ts');

@@ -21,8 +21,9 @@ import { calculateFamilyAssessments } from '../../../lib/payroll/families.js';
 import { refuse } from '../../../lib/refuse.js';
 import type { PayrollWorld } from '../world.js';
 import { live } from './effective.js';
-import { periodHalf } from './dates.js';
-import { pickConfiguration, type Configuration } from './configuration.js';
+import { daysBetween, periodHalf } from './dates.js';
+import { coversDate } from './effective.js';
+import { assertProfileWorksites, pickConfiguration, type Configuration } from './configuration.js';
 import { gatherRun, type GatheredRun } from './gather.js';
 import {
 	periodGrammarFault,
@@ -56,7 +57,7 @@ import {
  * change and leave nothing on the run to explain the difference. Bump this when the payroll
  * algorithm changes in a way a settled payslip's reader would need to know.
  */
-export const CALCULATION_VERSION = '2026-09-payroll-minimum-wage-payment' as const;
+export const CALCULATION_VERSION = '2026-09-my-results-wage-top-up' as const;
 
 /** What one build produced, and what the run's transform returns alongside its own columns. */
 type PayrollRunGraph = {
@@ -107,17 +108,24 @@ export function gatherPayrollRun(options: {
 	readonly world: PayrollWorld;
 	readonly companyId: string;
 	readonly period: string;
+	readonly payDueDate?: string | undefined;
 }): PreparedRun {
-	const { world, companyId, period } = options;
+	const { world, companyId, period, payDueDate } = options;
 	const company = live(world.companies).find((row) => row.id === companyId);
 	if (!company) refuse(`Company ${companyId} does not exist.`);
 	// The wrong grammar (months at a monthly company, halves at a semi-monthly one) is refused
 	// here, naming the company's frequency, before a window is resolved.
 	const fault = periodGrammarFault(period, company);
 	if (fault != null) refuse(fault);
-	const window = resolveWindow(period, company);
+	const window = resolveWindow(period, company, payDueDate);
 	const configuration = pickConfiguration({ world, companyId, window });
-	return { period, window, configuration, gathered: gatherRun({ world, configuration, window }) };
+	assertProfileWorksites(configuration, world, window);
+	return {
+		period,
+		window,
+		configuration,
+		gathered: gatherRun({ world, configuration, window, payDueDate })
+	};
 }
 
 /**
@@ -131,6 +139,40 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	// 2 — VALIDATE
 	const issues: RunIssue[] = validateConfiguration(configuration);
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
+	if (configuration.jurisdiction.jurisdiction_code === 'MY') {
+		const coveredStates = new Set([
+			'JOHOR',
+			'KEDAH',
+			'KELANTAN',
+			'MELAKA',
+			'NEGERI_SEMBILAN',
+			'PAHANG',
+			'PERAK',
+			'PERLIS',
+			'PULAU_PINANG',
+			'SELANGOR',
+			'TERENGGANU',
+			'KUALA_LUMPUR',
+			'PUTRAJAYA',
+			'LABUAN'
+		]);
+		for (const bundle of prepared.gathered.bundles) {
+			if (bundle.employedDays == null) continue;
+			for (const day of daysBetween(bundle.employedDays.start, bundle.employedDays.end)) {
+				const state = bundle.terms.find((term) =>
+					coversDate(term.effective_range, day)
+				)?.worksite_state;
+				if (state === 'SABAH' || state === 'SARAWAK')
+					refuse(
+						`${bundle.employment.employee_number}: ${state} worksite on ${day} needs its Labour Ordinance payroll profile.`
+					);
+				if (!coveredStates.has(state ?? ''))
+					refuse(
+						`${bundle.employment.employee_number}: record a supported Peninsular Malaysia or Labuan worksite state on employment terms for ${day} before payroll.`
+					);
+			}
+		}
+	}
 	// A floor that substitutes itself for the agreed wage (TW 最低工資法 §5) re-rates the terms
 	// before anything is measured, so pay, proration and every rate derived from it read the floor.
 	const raised = raiseToMinimumWage(configuration, prepared.gathered.bundles);
@@ -170,6 +212,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			bundles: gathered.bundles,
 			measured: measuredContracts.map(({ measured }) => measured),
 			charges: chargesByEmployment,
+			headcountCitizens: gathered.headcountCitizens,
 			asOf: window.salary.end
 		}),
 		...finalPayIssues({ configuration, bundles: gathered.bundles, payDate: window.payDate })
@@ -254,10 +297,19 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			settledOvertimeHours: measured.settledOvertimeHours,
 			inLieuSlices: measured.inLieuSlices,
 			overtimeDays: measured.periodOvertimeDays,
-			minimumWage: windowMinimumWage(
-				configuration,
-				measured.bundle.employedDays ?? measured.bundle.window.salary
-			),
+			minimumWage:
+				measured.bundle.employedDays == null &&
+				measured.bundle.arrearsFor == null &&
+				measured.bundle.deferral == null
+					? 0
+					: windowMinimumWage(
+							configuration,
+							measured.bundle.employedDays ??
+								measured.bundle.arrearsFor?.days ??
+								measured.bundle.deferral!.days,
+							measured.bundle.termsHistory,
+							employment.employee_number
+						),
 			// The captured inputs: every source the run read, whether or not it produced money. The
 			// pins are the settlement lock, so zero-value sources ride with the payslip too — except a
 			// repayment the guard dropped, which no slip recovered.

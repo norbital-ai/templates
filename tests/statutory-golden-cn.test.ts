@@ -9,7 +9,7 @@
  *   medical 9% / 2% under 沪医保规〔2025〕2号 and 〔2026〕2号 (CN-SH06); unemployment 0.5% / 0.5% to
  *   31 December 2025 (CN-SH06); injury employer-only by assigned class rate (CN-SH07). Kunming base
  *   4,357–21,789 (2025) and 4,403–22,017 (2026, CN-KM03); pension 16% / 8% (CN-KM25); medical 7%
- *   employer (CN-KM04; the employee 2% is implied, not stated); maternity 0.9% employer (CN-KM32);
+ *   employer (CN-KM04; the employee 2% is in Yunnan Government Order 86 art.6); maternity 0.9% employer (CN-KM32);
  *   unemployment 0.7% / 0.3% to 31 December 2025 (CN-KM27); injury employer-only (CN-KM26).
  * - Housing fund: Shanghai 2,690–37,302 (CN-SH09) then 2,740–37,731 (CN-SH40), equal 5–7%; Kunming cap
  *   32,470 (2025) and 32,543 (2026), equal 5–12% (CN-KM05, CN-KM20). Each side is rounded to the whole
@@ -55,6 +55,9 @@ import { id, leaveContext, submission, timeOff } from './helpers/manual-leave-co
 
 const SH = 'CN-shanghai';
 const KM = 'CN-kunming';
+const KM_WUHUA = '云南省/昆明市/五华区';
+const KM_FUMIN = '云南省/昆明市/富民县';
+const KM_MOHAN = '云南省/西双版纳傣族自治州/勐腊县/磨憨镇';
 
 const SH_2025_FACTS = {
 	injury_rate: 0.2,
@@ -93,6 +96,7 @@ const person = (key: string, wage: number, extra: Extra = {}) => {
 		wage,
 		citizenship: 'CITIZEN',
 		tax_residency: 'RESIDENT',
+		...(key.startsWith('KM-') || key.startsWith(`${KM}-`) ? { worksite: KM_WUHUA } : {}),
 		...rest,
 		registrations: {
 			PENSION: { kind: 'REGISTERED', elections: { contribution_base: base ?? wage } },
@@ -453,30 +457,20 @@ test('Shanghai — a negative cumulative balance withholds nothing; there is no 
 });
 
 test('Shanghai — the 3% / 10% seam of the annual table is ceiling-inclusive (CN-N38)', () => {
-	const uninsured = (key: string, wage: number) => ({
-		key,
-		wage,
-		citizenship: 'CITIZEN',
-		tax_residency: 'RESIDENT',
-		registrations: Object.fromEntries(
-			['PENSION', 'MEDICAL', 'UNEMPLOYMENT', 'INJURY', 'HOUSING_FUND'].map((code) => [
-				code,
-				{ kind: 'NOT_REGISTERED' }
-			])
-		)
-	});
+	const retired = (key: string, wage: number) =>
+		person(key, wage, { age: 60, receiving_pension: true });
 	const book = assessStatutory({
 		code: SH,
 		period: '2026-01',
 		region: 'SHANGHAI',
 		companyFacts: SH_2026_FACTS,
 		people: [
-			uninsured('T-41000', 41_000),
-			uninsured('T-41000.01', 41_000.01),
-			uninsured('T-41010', 41_010)
+			retired('T-41000', 41_000),
+			retired('T-41000.01', 41_000.01),
+			retired('T-41010', 41_010)
 		]
 	});
-	// With no insurance: 41,000 − 5,000 = 36,000 → 3% = 1,080.00; 36,000.01 → 1,080 + 0.001 → 1,080.00;
+	// A working pensioner has no contribution deductions: 41,000 − 5,000 = 36,000 → 3% = 1,080.00; 36,000.01 → 1,080 + 0.001 → 1,080.00;
 	// 36,010 → 1,080 + 1.00 = 1,081.00.
 	expectStatutory(book, 'T-41000', 'IIT', 1080, 0);
 	expectStatutory(book, 'T-41000.01', 'IIT', 1080, 0);
@@ -659,15 +653,38 @@ test('Shanghai — first wage income in July deducts from January; the 60,000 el
 
 // ─────────────────────────────────── Shanghai: pay ────────────────────────────────────────────────
 
-/** A punch from `start` to `end` on `date`, in Shanghai's +08:00 frame. */
-const punch = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+/** `HH:MM` one hour later, for the break that separates two worked intervals. */
+const anHourLater = (time: string) => {
+	const minutes = (Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)) + 60) % 1440;
+	return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+};
+/**
+ * A punch from `start` to `end` on `date`, in Shanghai's +08:00 frame. `mealStart` names the hour the
+ * shift's break is taken: only a gap between worked intervals proves it, so a break the punches do not
+ * show is worked time (PRC Labour Law art.36, art.41/44 hours; `work_rules.breaks`).
+ */
+const punch = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	start: string,
+	end: string,
+	mealStart?: string
+) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
+	const at = (from: string, to: string) => ({
+		start: `${date}T${from}:00+08:00`,
+		end: `${date}T${to}:00+08:00`
+	});
 	world.work_days.push({
 		id: `wd-${key}-${date}`,
 		employment_id: employment.id,
 		work_date: date,
 		shift_definition_id: null,
-		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		worked_intervals:
+			mealStart == null
+				? [at(start, end)]
+				: [at(start, mealStart), at(anHourLater(mealStart), end)],
 		approval_id: null
 	});
 };
@@ -693,10 +710,10 @@ test('Shanghai — overtime at 150% / 200% / 300% on the 21.75-day hour (CN-N01,
 				published_at: '2025-11-04T00:00:00.000Z',
 				approval_id: null
 			});
-			punch(world, 'SH-21750', '2026-01-01', '09:00', '18:00'); // statutory holiday: the shift, 8 h net of its break
-			punch(world, 'SH-21750', '2026-01-05', '09:00', '20:00'); // Monday: 10 worked, 2 beyond
+			punch(world, 'SH-21750', '2026-01-01', '09:00', '18:00', '13:00'); // statutory holiday: the shift, 8 h net of its break
+			punch(world, 'SH-21750', '2026-01-05', '09:00', '20:00', '13:00'); // Monday: 10 worked, 2 beyond
 			punch(world, 'SH-21750', '2026-01-10', '09:00', '17:00'); // Saturday rest day, 8 h
-			punch(world, 'SH-4350', '2026-01-05', '09:00', '20:00');
+			punch(world, 'SH-4350', '2026-01-05', '09:00', '20:00', '13:00');
 		}
 	);
 	// 21,750 ÷ 21.75 = 1,000 a day, ÷ 8 = 125 an hour (CN-N02). Holiday 8 × 125 × 300% = 3,000 on top
@@ -1283,17 +1300,84 @@ test('Kunming — September 2026 at the 4,403 floor matches the county HRSS exam
 });
 
 test('Kunming — a fund base under the new-account floor refuses while the existing-account floor is unsettled (CN-KM05)', () => {
-	assert.throws(
-		() =>
-			assessStatutory({
-				code: KM,
-				period: '2025-12',
-				region: 'CATEGORY_I',
-				companyFacts: KM_2025_FACTS,
-				people: [person('KM-HF-2100', 10_000, { hfBase: 2_100 })]
-			}),
-		/floor/
+	for (const [period, facts, base] of [
+		['2025-12', KM_2025_FACTS, 2_100],
+		['2026-01', KM_2026_FACTS, 2_100],
+		['2026-09', KM_2026_FACTS, 2_200]
+	] as const)
+		assert.throws(
+			() =>
+				assessStatutory({
+					code: KM,
+					period,
+					region: 'CATEGORY_I',
+					companyFacts: facts,
+					people: [person(`KM-HF-LOW-${period}`, 10_000, { hfBase: base })]
+				}),
+			/floor/
+		);
+});
+
+test('Kunming — Mo Han uses category III wage floors and refuses uncertified housing-fund thresholds (CN-KM02, KM05)', () => {
+	const versions = settingsVersions(KM);
+	assert.deepEqual(
+		versions.map((version) => [
+			version.work_rules.wages.by_region[KM_MOHAN],
+			version.work_rules.wages.hourly_by_region[KM_MOHAN]
+		]),
+		[
+			[1870, 19],
+			[1870, 19],
+			[1970, 20]
+		]
 	);
+	for (const [period, facts, lowBase] of [
+		['2025-12', KM_2025_FACTS, 1800],
+		['2026-01', KM_2026_FACTS, 1800],
+		['2026-09', KM_2026_FACTS, 1900]
+	] as const)
+		for (const base of [lowBase, 10_000])
+			assert.throws(
+				() =>
+					assessStatutory({
+						code: KM,
+						period,
+						region: 'CATEGORY_III',
+						companyFacts: facts,
+						people: [
+							person(`MOHAN-${period}-${base}`, 10_000, { hfBase: base, worksite: KM_MOHAN })
+						]
+					}),
+				/Mo Han housing-fund category-III floor/
+			);
+});
+
+test('Kunming — one company selects each worker’s district wage and fund floor from recorded worksite (CN-KM01, KM05)', () => {
+	const book = assessStatutory({
+		code: KM,
+		period: '2025-12',
+		region: 'CATEGORY_I',
+		companyFacts: KM_2025_FACTS,
+		people: [
+			person('KM-WUHUA', 10_000, { hfBase: 2_170, worksite: KM_WUHUA }),
+			person('KM-FUMIN', 10_000, { hfBase: 2_020, worksite: KM_FUMIN })
+		]
+	});
+	expectStatutory(book, 'KM-WUHUA', 'HOUSING_FUND', 260, 260);
+	expectStatutory(book, 'KM-FUMIN', 'HOUSING_FUND', 242, 242);
+	const run = (wage: number, site: string, fundBase: number, region = 'CATEGORY_I') =>
+		buildStatutory({
+			code: KM,
+			period: '2025-12',
+			region,
+			companyFacts: KM_2025_FACTS,
+			people: [person('KM-SITE-PROBE', wage, { base: 4_500, hfBase: fundBase, worksite: site })]
+		});
+	assert.equal(run(2_050, KM_FUMIN, 2_020).slips.get('KM-SITE-PROBE')!.gross, 2050);
+	assert.throws(() => run(2_050, KM_WUHUA, 2_170), /MINIMUM_WAGE_BELOW.*2170/);
+	assert.throws(() => run(10_000, KM_FUMIN, 2_000), /declared housing-fund base is below/);
+	assert.throws(() => run(10_000, '云南省/昆明市/不存在区', 10_000), /cannot price.*不存在区/);
+	assert.throws(() => run(10_000, '', 10_000, KM_WUHUA), /unrecorded worksite/);
 });
 
 test('Kunming — 2,170 in a category I district passes in August and is blocked in September 2026 (CN-KM01, KM02)', () => {
@@ -1326,8 +1410,9 @@ for (const [code, region, facts] of [
 			{ code, period: '2026-01', region, companyFacts: facts, people: [person(key, 21_750)] },
 			(world) => {
 				// Friday 2 January 09:00–22:00: 4 beyond the day (元旦 on the 1st is not planted).
-				punch(world, key, '2026-01-02', '09:00', '22:00');
-				for (const day of JANUARY_OT_DAYS) punch(world, key, `2026-01-${day}`, '09:00', '21:00');
+				punch(world, key, '2026-01-02', '09:00', '22:00', '13:00');
+				for (const day of JANUARY_OT_DAYS)
+					punch(world, key, `2026-01-${day}`, '09:00', '21:00', '13:00');
 				punch(world, key, '2026-01-17', '09:00', '13:00'); // Saturday rest day: 4 h at 200%
 			}
 		);
@@ -1567,7 +1652,7 @@ test('Kunming — overtime at 150% / 200% on the 21.75-day hour (CN-N01, N02, KM
 			people: [person('KM-21750', 21_750)]
 		},
 		(world) => {
-			punch(world, 'KM-21750', '2026-01-05', '09:00', '20:00'); // Monday: 2 beyond
+			punch(world, 'KM-21750', '2026-01-05', '09:00', '20:00', '13:00'); // Monday: 2 beyond
 			punch(world, 'KM-21750', '2026-01-10', '09:00', '17:00'); // Saturday rest day, 8 h
 		}
 	);
@@ -2135,7 +2220,15 @@ function maternityMonth(
 	period: string,
 	region: string,
 	companyFacts: Record<string, number>,
-	cases: ReadonlyArray<{ key: string; wage: number; from: string; to: string; allowance: number }>
+	cases: ReadonlyArray<{
+		key: string;
+		wage: number;
+		from: string;
+		to: string;
+		allowance: number;
+		/** The share of the benefit the employer owes itself (MATERNITY_BENEFIT_EMPLOYER). */
+		employerShare?: number;
+	}>
 ) {
 	return buildStatutory(
 		{
@@ -2170,6 +2263,8 @@ function maternityMonth(
 					reference: `ML-${index}`,
 					from_date: entry.from,
 					to_date: entry.to,
+					event_kind: 'BIRTH',
+					event_date: entry.from,
 					half_day_start: false,
 					half_day_end: false,
 					days: dates.length,
@@ -2188,6 +2283,15 @@ function maternityMonth(
 					approval_id: null
 				});
 				adhoc(world, entry.key, 'MATERNITY_ALLOWANCE_OFFSET', entry.allowance, entry.to, code);
+				if (entry.employerShare != null)
+					adhoc(
+						world,
+						entry.key,
+						'MATERNITY_BENEFIT_EMPLOYER',
+						entry.employerShare,
+						entry.to,
+						code
+					);
 			}
 		}
 	);
@@ -2236,7 +2340,45 @@ test('Kunming — the employer tops the allowance up to the wage (CN-KM32, owner
 test('every CN version seeds MATERNITY_ALLOWANCE_OFFSET', () => {
 	for (const code of [SH, KM] as const)
 		for (const version of settingsVersions(code))
-			rowIn(adhocCatalogue(code), version.id, 'MATERNITY_ALLOWANCE_OFFSET');
+			for (const row of [
+				'MATERNITY_ALLOWANCE_OFFSET',
+				'MATERNITY_BENEFIT_EMPLOYER',
+				'NO_WRITTEN_CONTRACT_WAGE',
+				'EARLY_RETIREMENT_SUBSIDY',
+				'INTERNAL_RETIREMENT_SUBSIDY'
+			])
+				rowIn(adhocCatalogue(code), version.id, row);
+});
+
+test('China — internal-retirement subsidy and this month’s wage share one tax base and rate (1999 No.58 art.1)', () => {
+	for (const [code, region, companyFacts] of [
+		[SH, 'SHANGHAI', SH_2026_FACTS],
+		[KM, 'CATEGORY_I', KM_2026_FACTS]
+	] as const) {
+		const key = `${code}-INTERNAL`;
+		const slip = buildStatutory(
+			{ code, period: '2026-01', region, companyFacts, people: [person(key, 10_000)] },
+			(world) => {
+				world.employments.find((row) => row.employee_number === key)!.exit_facts = {
+					iit164_internal_retirement_months: 24
+				};
+				adhoc(world, key, 'INTERNAL_RETIREMENT_SUBSIDY', 120_000, '2026-01-20', code);
+			}
+		).slips.get(key)!;
+		// 国税发〔1999〕58号 art.1: the one-off spread over the 24 months to statutory age is merged
+		// with this month's wage to choose the rate — 10,000 + 120,000 ÷ 24 − 5,000 = 10,000, the
+		// 10% rung — and that rate is charged on wage plus the whole one-off less the 5,000 monthly
+		// deduction: 125,000 × 10% − 210 = 12,290. STA's annual-settlement FAQ (Shanxi 2021, Q20)
+		// then takes off the wage's own monthly tax so only the subsidy is charged: 10,000 − 5,000 =
+		// 5,000 taxable is 3,000 at 3% (90) plus 2,000 at 10% (200) = 290. 12,290 − 290 = 12,000.
+		// The wage stays in ordinary cumulative IIT: STA 2018 No.61 art.6 withholds on the ANNEX table 1
+		// annual scale (3% to 36,000, 10% to 144,000…), not the monthly one. Shanghai's 1,750 of
+		// employee social insurance and housing fund leaves 10,000 − 1,750 − 5,000 = 3,250 taxable,
+		// so 3% = 97.50; this golden once withheld 115 there, the monthly scale's 3,250 × 10% − 210.
+		// Kunming's recorded contributions leave 2,770, 3% = 83.10 — inside the 3% rung either way.
+		assert.deepEqual(charge(slip, 'IIT_INTERNAL_RETIREMENT'), [130_000, 12_000, 0]);
+		assert.deepEqual(charge(slip, 'IIT'), [10_000, code === SH ? 97.5 : 83.1, 0]);
+	}
 });
 
 test('every CN version seeds SEVERANCE_PAY, IIT_SEVERANCE and the LCL exit facts', () => {
@@ -2244,6 +2386,8 @@ test('every CN version seeds SEVERANCE_PAY, IIT_SEVERANCE and the LCL exit facts
 		for (const version of settingsVersions(code)) {
 			rowIn(adhocCatalogue(code), version.id, 'SEVERANCE_PAY');
 			rowIn(contributionSchemes(code), version.id, 'IIT_SEVERANCE');
+			rowIn(contributionSchemes(code), version.id, 'IIT_EARLY_RETIREMENT');
+			rowIn(contributionSchemes(code), version.id, 'IIT_INTERNAL_RETIREMENT');
 			assert.deepEqual(
 				(version.exit_facts as { key: string }[]).map((fact) => fact.key),
 				[
@@ -2253,7 +2397,9 @@ test('every CN version seeds SEVERANCE_PAY, IIT_SEVERANCE and the LCL exit facts
 					'lcl47_average_monthly_wage',
 					'lcl97_pre2008_months',
 					'lcl97_pre2008_compensation',
-					'lcl10_transferred_service_months'
+					'lcl10_transferred_service_months',
+					'iit164_early_retirement_years',
+					'iit164_internal_retirement_months'
 				],
 				`${code} ${version.name}`
 			);
@@ -2439,6 +2585,409 @@ test('Shanghai — 育儿假: 5 days for each child under three, in each year fr
 			['5', 'ineligible'],
 			version.name
 		);
+	}
+});
+
+// ─────────────────────────────────── Both cities: the employer's own maternity share (round 6) ─────
+
+const employerShareOf = (slip: BuiltPayslip | undefined) =>
+	slip!.adjustments.find((row) => row.component_code === 'MATERNITY_BENEFIT_EMPLOYER')?.amount ?? 0;
+
+test('Shanghai — under 12 / 9 insured months the employer advances the fund’s missing twelfths; above 300% it pays the excess (CN-SH14, SH21)', () => {
+	// 沪医保规〔2026〕5号 (read on shanghai.gov.cn 28 Sep 2026) item 3(1): allowance = the unit's
+	// prior-year monthly average ÷ 30 × leave days; item 4(1) para.2: under 12 cumulative and 9
+	// consecutive insured months the fund pays months ÷ 12 of it, the unit 先行垫付 the rest; item 4(2)
+	// para.1: the part of the unit average above 300% of the city average is the unit's.
+	// The August 2026 window 21 July–20 August: 31 calendar days, every weekday on maternity leave.
+	// SH-MAT-ADV at 12,000, unit average 15,000, 6 months insured: allowance 15,000 ÷ 30 × 31 =
+	// 15,500; the fund pays 6/12 = 7,750 to her, the unit advances 7,750. The offset takes back the
+	// 12,000 leave wage (never above it), the unit's line pays 7,750: gross 7,750, IIT base 0 (both the
+	// offset and the advance are outside it, 财税〔2008〕8号); with the fund's 7,750 she has 15,500.
+	// SH-MAT-EXC at 50,000: the fund paid 38,000 at the 300% cap, the unit average above it owes
+	// 8,500 more (agency figures), allowance 46,500 < 50,000: the offset takes 46,500, the unit's
+	// line pays 8,500: gross 50,000 − 46,500 + 8,500 = 12,000; with the fund's 38,000 she has her wage.
+	const { slips } = maternityMonth(SH, '2026-08', 'SHANGHAI', SH_2026_FACTS, [
+		{
+			key: 'SH-MAT-ADV',
+			wage: 12_000,
+			from: '2026-07-21',
+			to: '2026-08-20',
+			allowance: 15_500,
+			employerShare: 7_750
+		},
+		{
+			key: 'SH-MAT-EXC',
+			wage: 50_000,
+			from: '2026-07-21',
+			to: '2026-08-20',
+			allowance: 46_500,
+			employerShare: 8_500
+		}
+	]);
+	const adv = slips.get('SH-MAT-ADV')!;
+	assert.equal(offsetOf(adv), 12_000);
+	assert.equal(employerShareOf(adv), 7_750);
+	assert.equal(adv.gross, 7_750);
+	assert.equal(charge(adv, 'IIT')[0], 0);
+	const exc = slips.get('SH-MAT-EXC')!;
+	assert.equal(offsetOf(exc), 46_500);
+	assert.equal(employerShareOf(exc), 8_500);
+	assert.equal(exc.gross, 12_000);
+	assert.equal(charge(exc, 'IIT')[0], 3_500);
+});
+
+test('Kunming — an employer that did not enrol pays the allowance and the 1,000 nutrition grant itself (CN-KM32 item 3)', () => {
+	// Kunming rules of 17 July 2024 item 3: a unit that did not enrol pays every benefit at the
+	// standard. Allowance (item 2(8)): unit prior-year average 10,000 ÷ 30 × 31 days = 10,333.33;
+	// nutrition grant (item 2(13)): 1,000 for a single birth. KM-MAT-UNINS at 12,000, the window
+	// wholly on leave: the offset takes back 10,333.33, the unit's line pays 10,333.33 + 1,000 =
+	// 11,333.33: gross 12,000 − 10,333.33 + 11,333.33 = 13,000 = the wage (the top-up default) + the
+	// grant. IIT base: 12,000 − 10,333.33 = 1,666.67 (the benefit line is exempt, 财税〔2008〕8号).
+	const { slips } = maternityMonth(KM, '2026-08', 'CATEGORY_I', KM_2026_FACTS, [
+		{
+			key: 'KM-MAT-UNINS',
+			wage: 12_000,
+			from: '2026-07-21',
+			to: '2026-08-20',
+			allowance: 10_333.33,
+			employerShare: 11_333.33
+		}
+	]);
+	const slip = slips.get('KM-MAT-UNINS')!;
+	assert.equal(offsetOf(slip), 10_333.33);
+	assert.equal(employerShareOf(slip), 11_333.33);
+	assert.equal(slip.gross, 13_000);
+	assert.equal(charge(slip, 'IIT')[0], 1_666.67);
+});
+
+// ─────────────────────────────────── Both cities: no written contract (LCL art.82, round 6) ────────
+
+const secondWageOf = (slip: BuiltPayslip | undefined) =>
+	slip!.adjustments.find((row) => row.component_code === 'NO_WRITTEN_CONTRACT_WAGE')?.amount ?? 0;
+
+test('both cities — no written contract: a second wage from the day after the first month to the day before signing, at most eleven months (CN-N41, LCL art.82, Regulation arts.6–7)', () => {
+	// 实施条例 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, read 28 Sep 2026) art.6 para.2:
+	// 起算时间为用工之日起满一个月的次日，截止时间为补订书面劳动合同的前一日; art.7: at one year, to the day
+	// before it. The line is raised on the day the contract is concluded (or the anniversary).
+	// Hired 1 Jan 2026, signed 16 Apr 2026: 1 Feb – 15 Apr = 2 months and 15 of April's 30 days =
+	// 2.5 × 10,000 = 25,000. Hired 1 Apr, signed 20 Apr: inside the first month, nothing.
+	// Hired 1 Sep 2025, never signed: at the anniversary, 1 Oct 2025 – 31 Aug 2026 = 11 months =
+	// 110,000 (art.7), never 12.
+	const cases = [
+		{
+			code: SH,
+			period: '2026-04',
+			region: 'SHANGHAI',
+			facts: SH_2026_FACTS,
+			key: 'SH-NWC',
+			hire: '2026-01-01',
+			signed: '2026-04-16',
+			owed: 25_000
+		},
+		{
+			code: SH,
+			period: '2026-04',
+			region: 'SHANGHAI',
+			facts: SH_2026_FACTS,
+			key: 'SH-NWC-EARLY',
+			hire: '2026-04-01',
+			signed: '2026-04-20',
+			owed: 0
+		},
+		{
+			code: SH,
+			period: '2026-09',
+			region: 'SHANGHAI',
+			facts: SH_2026_FACTS,
+			key: 'SH-NWC-YEAR',
+			hire: '2025-09-01',
+			signed: '2026-09-01',
+			owed: 110_000
+		},
+		{
+			code: KM,
+			period: '2026-04',
+			region: 'CATEGORY_I',
+			facts: KM_2026_FACTS,
+			key: 'KM-NWC',
+			hire: '2026-01-01',
+			signed: '2026-04-16',
+			owed: 25_000
+		},
+		{
+			code: KM,
+			period: '2026-09',
+			region: 'CATEGORY_I',
+			facts: KM_2026_FACTS,
+			key: 'KM-NWC-YEAR',
+			hire: '2025-09-01',
+			signed: '2026-09-01',
+			owed: 110_000
+		}
+	] as const;
+	for (const row of cases) {
+		const { slips } = buildStatutory(
+			{
+				code: row.code,
+				period: row.period,
+				region: row.region,
+				companyFacts: row.facts,
+				people: [person(row.key, 10_000, { hire_date: row.hire })]
+			},
+			(world) => adhoc(world, row.key, 'NO_WRITTEN_CONTRACT_WAGE', 0, row.signed, row.code)
+		);
+		assert.equal(secondWageOf(slips.get(row.key)), row.owed, row.key);
+	}
+});
+
+test('Shanghai — a worker who will not sign after the first month is ended with art.47 compensation (CN-N41, Regulation art.6 para.1)', () => {
+	// 实施条例 art.6 para.1: 劳动者不与用人单位订立书面劳动合同的，用人单位应当书面通知劳动者终止劳动关系，
+	// 并依照劳动合同法第四十七条的规定支付经济补偿. Hired 1 Jan 2026, ended 30 June 2026: 6 months =
+	// 一年 under art.47 → 1 × 22,000.
+	const { slips } = severance(SH, '2026-06', 'SHANGHAI', SH_2026_FACTS, [
+		{
+			key: 'SH-SEV-REG6',
+			wage: 22_000,
+			hire: '2026-01-01',
+			exit: '2026-06-30',
+			ground: 'REG_6',
+			average: 12_577
+		}
+	]);
+	assert.equal(severancePaid(slips.get('SH-SEV-REG6')), 22_000);
+});
+
+// ─────────────────────────────────── Both cities: probation and the open-ended contract (LCL arts.19–20, 82–83, round 7) ──
+
+const lineOf = (slip: BuiltPayslip | undefined, code: string) =>
+	slip!.adjustments.find((row) => row.component_code === code)?.amount ?? 0;
+
+/** One contract with its probation and open-ended facts on the terms, and one line raised on `raised`. */
+function contractLine(
+	row: {
+		readonly code: typeof SH | typeof KM;
+		readonly period: string;
+		readonly key: string;
+		readonly wage: number;
+		readonly hire: string;
+		readonly end?: string;
+		readonly probationEnd?: string;
+		readonly after?: number;
+		readonly due?: string;
+		readonly raised: string;
+	},
+	line: string
+) {
+	const { slips } = buildStatutory(
+		{
+			code: row.code,
+			period: row.period,
+			region: row.code === SH ? 'SHANGHAI' : 'CATEGORY_I',
+			companyFacts: row.code === SH ? SH_2026_FACTS : KM_2026_FACTS,
+			people: [
+				person(row.key, row.wage, {
+					hire_date: row.hire,
+					...(row.end == null ? {} : { exit_date: row.end, employment_type: 'CONTRACT' })
+				})
+			]
+		},
+		(world) => {
+			const employment = world.employments.find((item) => item.employee_number === row.key)!;
+			const terms = world.employment_terms.find((item) => item.employment_id === employment.id)!;
+			Object.assign(terms, {
+				probation_end: row.probationEnd ?? null,
+				post_probation_wage: row.after ?? null,
+				open_ended_due_on: row.due ?? null
+			});
+			adhoc(world, row.key, line, 0, row.raised, row.code);
+			world.adhoc_requests!.at(-1)!.pay_period = row.period;
+		}
+	);
+	return lineOf(slips.get(row.key), line);
+}
+
+test('both cities — probation served beyond the art.19 limit is paid as damages at the wage after probation (CN-N41, LCL arts.19, 83)', () => {
+	// LCL (samr.gov.cn, re-read 29 Sep 2026) art.19: a term of 1 to under 3 years allows at most
+	// 2 months, 3 years or open-ended 6, under 3 months none; art.83: 以劳动者试用期满月工资为标准，
+	// 按已经履行的超过法定试用期的期间 支付赔偿金. Raised on the probation's last day.
+	// 1-year term (2026-01-01 – 2026-12-31 = 12 months → limit 2), probation to 31 Mar = 3 months,
+	// wage after probation 10,000: (3 − 2) × 10,000 = 10,000.
+	// Same term, probation to 16 Mar: 2 months + 16 of March's 31 days = 2.516129 → 0.516129 ×
+	// 10,000 = 5,161.29.
+	// Open-ended, probation to 30 June = 6 months: at the limit, 0.
+	// 2-month term (to 28 Feb → limit 0), probation to 31 Jan = 1 month, no separate wage recorded
+	// (owner rule: the contract wage 10,000): 1 × 10,000 = 10,000.
+	for (const code of [SH, KM] as const) {
+		const base = { code, wage: 8_000, hire: '2026-01-01', after: 10_000 };
+		assert.equal(
+			contractLine(
+				{
+					...base,
+					period: '2026-03',
+					key: `${code}-P83`,
+					end: '2026-12-31',
+					probationEnd: '2026-03-31',
+					raised: '2026-03-31'
+				},
+				'PROBATION_EXCESS_DAMAGES'
+			),
+			10_000,
+			code
+		);
+		assert.equal(
+			contractLine(
+				{
+					...base,
+					period: '2026-03',
+					key: `${code}-P83-PART`,
+					end: '2026-12-31',
+					probationEnd: '2026-03-16',
+					raised: '2026-03-16'
+				},
+				'PROBATION_EXCESS_DAMAGES'
+			),
+			5_161.29,
+			code
+		);
+		assert.equal(
+			contractLine(
+				{
+					...base,
+					period: '2026-06',
+					key: `${code}-P83-OPEN`,
+					probationEnd: '2026-06-30',
+					raised: '2026-06-30'
+				},
+				'PROBATION_EXCESS_DAMAGES'
+			),
+			0,
+			code
+		);
+		assert.equal(
+			contractLine(
+				{
+					code,
+					period: '2026-01',
+					key: `${code}-P83-SHORT`,
+					wage: 10_000,
+					hire: '2026-01-01',
+					end: '2026-02-28',
+					probationEnd: '2026-01-31',
+					raised: '2026-01-31'
+				},
+				'PROBATION_EXCESS_DAMAGES'
+			),
+			10_000,
+			code
+		);
+	}
+});
+
+test('both cities — a probation wage under 80% of the agreed wage is owed as arrears (CN-N41, LCL art.20, Regulation art.15)', () => {
+	// Regulation art.15 (xzfg.moj.gov.cn, re-read 29 Sep 2026): 不得低于劳动合同约定工资的80%.
+	// Open-ended, probation 1 Jan – 31 Mar = 3 months, agreed 10,000 → floor 8,000.
+	// Paid 7,000: (8,000 − 7,000) × 3 = 3,000. Paid 8,000: 0.
+	for (const code of [SH, KM] as const) {
+		const base = {
+			code,
+			period: '2026-03',
+			hire: '2026-01-01',
+			after: 10_000,
+			probationEnd: '2026-03-31',
+			raised: '2026-03-31'
+		};
+		assert.equal(
+			contractLine({ ...base, key: `${code}-P20`, wage: 7_000 }, 'PROBATION_WAGE_SHORTFALL'),
+			3_000,
+			code
+		);
+		assert.equal(
+			contractLine({ ...base, key: `${code}-P20-AT`, wage: 8_000 }, 'PROBATION_WAGE_SHORTFALL'),
+			0,
+			code
+		);
+	}
+});
+
+test('both cities — an open-ended contract not concluded when due pays a second wage from that day (CN-N41, LCL arts.14, 82 para.2)', () => {
+	// LCL art.82 para.2: 自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. Hired 1 Jan 2016,
+	// ten years' service on 1 Jan 2026 (art.14 para.2(1)), due recorded 1 Jan 2026; the open-ended
+	// contract concluded 16 Apr, the line raised 15 Apr: 1 Jan – 15 Apr = 3 months + 15 of April's
+	// 30 days = 3.5 × 10,000 = 35,000. A due date later than the request refuses: the liability runs
+	// FROM the day the contract fell due, so a request dated before it states a liability that cannot
+	// have arisen — the line was settled at nothing before this workstream, which read a determination
+	// the contract does not carry as a nil one.
+	for (const code of [SH, KM] as const) {
+		const base = {
+			code,
+			period: '2026-04',
+			wage: 10_000,
+			hire: '2016-01-01',
+			raised: '2026-04-15'
+		};
+		assert.equal(
+			contractLine({ ...base, key: `${code}-OE`, due: '2026-01-01' }, 'OPEN_ENDED_CONTRACT_WAGE'),
+			35_000,
+			code
+		);
+		assert.throws(
+			() =>
+				contractLine(
+					{ ...base, key: `${code}-OE-LATER`, due: '2026-05-01' },
+					'OPEN_ENDED_CONTRACT_WAGE'
+				),
+			/OPEN_ENDED_CONTRACT_WAGE: record an open_ended_due_on from service start through the liability event date/,
+			code
+		);
+	}
+});
+
+// ─────────────────────────────────── Both cities: early retirement (财税〔2018〕164号 5(2), round 6) ──
+
+test('both cities — an early-retirement subsidy is spread over the actual years to statutory age on the annual table (CN-N39)', () => {
+	// 164号 item 5(2) (STA copy https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202364/content.html):
+	// tax = {[(subsidy ÷ years) − 60,000] × rate − QD} × years, alone; 60,000 is IIT Law art.6(1).
+	// 500,000 over 4 years: 125,000 − 60,000 = 65,000 → 10% − 2,520 = 3,980 × 4 = 15,920.
+	// 240,000 over 4: 60,000 − 60,000 = 0 → nothing. The 3% / 10% seam over 2 years: 192,000 →
+	// 36,000 × 3% = 1,080 × 2 = 2,160; 192,002 → 36,001 × 10% − 2,520 = 1,080.10 × 2 = 2,160.20.
+	// Unrecorded years refuse.
+	const run = (code: typeof SH | typeof KM, amount: number, years: number | null) => {
+		const key = `${code}-ER`;
+		const book = buildStatutory(
+			{
+				code,
+				period: '2026-06',
+				region: code === SH ? 'SHANGHAI' : 'CATEGORY_I',
+				companyFacts: code === SH ? SH_2026_FACTS : KM_2026_FACTS,
+				people: [
+					person(key, 20_000, {
+						hire_date: '2010-01-01',
+						exit_date: '2026-06-30',
+						exit_reason: 'RETIREMENT'
+					})
+				]
+			},
+			(world) => {
+				const employment = world.employments.find((row) => row.employee_number === key)!;
+				(employment as { exit_facts?: Record<string, unknown> }).exit_facts = {
+					lcl_termination_ground: 'ART_44_2_3',
+					...(years == null ? {} : { iit164_early_retirement_years: years })
+				};
+				adhoc(world, key, 'EARLY_RETIREMENT_SUBSIDY', amount, '2026-06-30', code);
+				// The exit day is past the cutoff: the leaver's final payslip settles it.
+				world.adhoc_requests!.at(-1)!.pay_period = '2026-06';
+			}
+		);
+		return book;
+	};
+	for (const code of [SH, KM] as const) {
+		const tax = (amount: number, years: number) =>
+			charge(run(code, amount, years).slips.get(`${code}-ER`)!, 'IIT_EARLY_RETIREMENT');
+		assert.deepEqual(tax(500_000, 4), [500_000, 15_920, 0], code);
+		assert.deepEqual(tax(240_000, 4), [240_000, 0, 0], code);
+		assert.deepEqual(tax(192_000, 2), [192_000, 2_160, 0], code);
+		assert.deepEqual(tax(192_002, 2), [192_002, 2_160.2, 0], code);
+		assert.throws(() => run(code, 500_000, null), /iit164_early_retirement_years/, code);
 	}
 });
 

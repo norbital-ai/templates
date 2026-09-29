@@ -16,6 +16,8 @@ export default model({
 		proration: { kind: 'custom', of: 'payslip_proration' },
 		statutory: { kind: 'custom', of: 'payslip_statutory' },
 		adjustments: { kind: 'custom', of: 'payslip_adjustments' },
+		/** An event-ledger slip can be settled only through its frozen payable tranches. */
+		payment_mode: { kind: 'enum', values: ['LEGACY', 'EVENT_LEDGER'], default: 'LEGACY' },
 		status: {
 			kind: 'state',
 			initial: 'DRAFT',

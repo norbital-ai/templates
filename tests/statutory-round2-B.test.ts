@@ -5,8 +5,9 @@
  *   Regulations 1980 reg.6(2), EA s.2 wages).
  * - TW 平均工資 from the payslips, the 施行細則 §2 periods left out (勞基法 §2(4); 勞動部
  *   台(83)勞動二字第25564號 for the month).
- * - ID THR of a daily-paid worker on the average wage received (Permenaker 6/2016 art.3(3)–(4)).
- * - ID BPJS wage of a daily-paid worker: the day × 25 (PP 44/2015 art.19(3), PP 46/2015 art.17(3)).
+ * - ID daily-paid THR is blocked in a saved run until its BPJS Kesehatan monthly wage is sealed.
+ * - ID BPJS daily ×25 basis remains sealed for employment schemes, but a complete saved run
+ *   refuses until the independent Kesehatan monthly basis is sealed.
  * - MY s.60E(3B): unpaid leave over thirty days in twelve months is out of the leave ladder's service.
  *
  * Every figure is derived by hand in the comment beside it.
@@ -226,60 +227,64 @@ test('TW — 平均工資 is six months’ wages paid, the 施行細則 §2 sick
 	assert.equal(paidLine(slips.get('TW-LEAVER')!, 'SEVERANCE_PAY'), 213_628);
 });
 
-test('ID — a daily-paid worker’s THR is the average monthly wage received (Permenaker 6/2016 art.3(3)–(4))', () => {
-	// Hired 10 June 2025 on 200,000 a day; THR for Idulfitri raised 13 March 2026: 9 completed months
+test('ID — a daily-paid worker’s THR run refuses an unsealed BPJS Kesehatan monthly wage', () => {
+	// Hired 10 June 2025 on 320,000 a day (above the DKI floor); THR for Idulfitri raised
+	// 13 March 2026: 9 completed months
 	// → 9/12 of one month's wage (art.3(1)(b)). Under twelve months, one month's wage is the average
 	// received each month of service (art.3(4)): June 2025 covers 21 of its 30 days (0.7 of a month)
-	// and paid 3,000,000; July 2025 – February 2026 paid 4,400,000, 4,200,000, 4,400,000, 4,600,000,
-	// 4,000,000, 4,400,000, 4,200,000 and 3,800,000 = 34,000,000.
-	// Average: 37,000,000 ÷ 8.7 = 4,252,873.563218. THR: × 0.75 = 3,189,655.172414 → 3,189,655.17.
+	// and paid 4,800,000; July 2025 – February 2026 paid 7,040,000, 6,720,000, 7,040,000,
+	// 7,360,000, 6,400,000, 7,040,000, 6,720,000 and 6,040,000 = 54,360,000.
+	// Average: 59,160,000 ÷ 8.7 = 6,800,000. The resulting THR would be 5,100,000, but the
+	// saved run cannot be priced before its Kesehatan monthly contribution wage is established.
 	const paid = [
-		4_400_000, 4_200_000, 4_400_000, 4_600_000, 4_000_000, 4_400_000, 4_200_000, 3_800_000
+		7_040_000, 6_720_000, 7_040_000, 7_360_000, 6_400_000, 7_040_000, 6_720_000, 6_040_000
 	];
-	const { slips } = buildStatutory(
-		{
-			code: 'ID',
-			period: '2026-03',
-			region: 'Provinsi DKI Jakarta',
-			riskClass: 'II',
-			people: [
+	assert.throws(
+		() =>
+			buildStatutory(
 				{
-					key: 'ID-DAILY',
-					wage: 200_000,
-					pay_frequency: 'DAILY',
-					religion: 'ISLAM',
-					hire_date: '2025-06-10'
+					code: 'ID',
+					period: '2026-03',
+					region: 'Provinsi DKI Jakarta',
+					riskClass: 'II',
+					people: [
+						{
+							key: 'ID-DAILY',
+							wage: 320_000,
+							pay_frequency: 'DAILY',
+							religion: 'ISLAM',
+							hire_date: '2025-06-10'
+						}
+					]
+				},
+				(world) => {
+					const months = Object.keys(monthsAt('2025-07', '2026-02', 0));
+					priorWages(world, 'ID-DAILY', {
+						'2025-06': 4_800_000,
+						...Object.fromEntries(months.map((month, index) => [month, paid[index]!]))
+					});
+					raise(world, 'ID', 'ID-DAILY', 'THR', '2026-03-13');
 				}
-			]
-		},
-		(world) => {
-			const months = Object.keys(monthsAt('2025-07', '2026-02', 0));
-			priorWages(world, 'ID-DAILY', {
-				'2025-06': 3_000_000,
-				...Object.fromEntries(months.map((month, index) => [month, paid[index]!]))
-			});
-			raise(world, 'ID', 'ID-DAILY', 'THR', '2026-03-13');
-		}
+			),
+		/BPJS Kesehatan monthly contribution wage for daily or hourly terms is not sealed/
 	);
-	assert.equal(paidLine(slips.get('ID-DAILY')!, 'THR'), 3_189_655.17);
 });
 
-test('ID — BPJS reads a daily wage as the day × 25 whatever days were paid (PP 44/2015 art.19(3), PP 46/2015 art.17(3))', () => {
+test('ID — a daily BPJS run refuses before an unsealed Kesehatan monthly basis is charged', () => {
 	// 200,000 a day × 25 = 5,000,000. JHT (PP 46/2015 art.16): 2% = 100,000, 3.7% = 185,000.
 	// JKM (PP 44/2015 art.18(1)): 0.30% = 15,000. JKK group II (art.16(1)(b)): 0.54% = 27,000.
-	// JP (PP 45/2015 art.29(1)) has no daily rule: the month's wage as paid, which is not 5,000,000.
-	const book = assessStatutoryUnvalidated({
-		code: 'ID',
-		period: '2026-04',
-		region: 'Provinsi DKI Jakarta',
-		riskClass: 'II',
-		people: [{ key: 'ID-DAILY', wage: 200_000, pay_frequency: 'DAILY', age: 40 }]
-	});
-	const jht = chargeOf(book, 'ID-DAILY', 'JHT');
-	assert.deepEqual([jht.base, jht.employee, jht.employer], [5_000_000, 100_000, 185_000]);
-	assert.equal(chargeOf(book, 'ID-DAILY', 'JKM').employer, 15_000);
-	assert.equal(chargeOf(book, 'ID-DAILY', 'JKK').employer, 27_000);
-	assert.notEqual(chargeOf(book, 'ID-DAILY', 'JP').base, 5_000_000);
+	// The independent Kesehatan base is not fixed by those employment-insurance conversion rules.
+	assert.throws(
+		() =>
+			assessStatutoryUnvalidated({
+				code: 'ID',
+				period: '2026-04',
+				region: 'Provinsi DKI Jakarta',
+				riskClass: 'II',
+				people: [{ key: 'ID-DAILY', wage: 200_000, pay_frequency: 'DAILY', age: 40 }]
+			}),
+		/BPJS Kesehatan monthly contribution wage for daily or hourly terms is not sealed/
+	);
 });
 
 for (const code of ['MY', 'MY-nihon'] as const)

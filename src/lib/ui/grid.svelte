@@ -38,6 +38,7 @@
 	 */
 	import { Button, cn, Combobox, Input } from '@norbital-ai/ui';
 	import { Scroll } from '@norbital-ai/ui/layout';
+	import type { Snippet } from 'svelte';
 
 	let {
 		rows = $bindable(),
@@ -49,6 +50,8 @@
 		emptyMessage,
 		createRow,
 		onChange,
+		rowDetails,
+		removeRowLabel = 'Remove',
 		class: className
 	}: {
 		rows: TRow[];
@@ -60,6 +63,8 @@
 		emptyMessage?: string;
 		createRow?: () => TRow;
 		onChange?: (rows: TRow[]) => void;
+		rowDetails?: Snippet<[TRow, number]>;
+		removeRowLabel?: string;
 		getRowId?: (row: TRow) => string;
 		bounded?: boolean;
 		class?: string;
@@ -164,12 +169,19 @@
 								variant="ghost"
 								size="sm"
 								{disabled}
-								aria-label="Remove"
+								aria-label={removeRowLabel}
 								onclick={() => commit(rows.filter((_, at) => at !== index))}>×</Button
 							>
 						</td>
 					{/if}
 				</tr>
+				{#if rowDetails}
+					<tr
+						><td colspan={columns.length + (mode === 'edit' ? 1 : 0)} class="px-1 pb-2">
+							{@render rowDetails(row, index)}
+						</td></tr
+					>
+				{/if}
 			{/each}
 		</tbody>
 	</table>

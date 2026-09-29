@@ -39,7 +39,6 @@ import {
 	termPatternRow
 } from '../../../lib/scheduling/work-pattern.js';
 import { normalizedWorkedIntervals, type WorkDayLike } from './overtime.js';
-import { derivedBreakMinutes } from '../../../lib/scheduling/rest-break.js';
 import { decodeNumber } from '../../wire.js';
 import { dateKey } from '../../iso-day.js';
 import * as Predicate from 'effect/Predicate';
@@ -94,19 +93,12 @@ type ExportLine = {
 	readonly family: FamilyPayItem['family'];
 };
 
-function timestampHours(
-	row: Omit<WorkDayLike, 'break_minutes'>,
-	grantedBreakMinutes: number
-): number {
-	const clocked = {
-		...row,
-		break_minutes: derivedBreakMinutes(row.worked_intervals, grantedBreakMinutes)
-	};
-	const elapsed = normalizedWorkedIntervals(clocked).reduce(
+function timestampHours(row: Omit<WorkDayLike, 'break_minutes'>): number {
+	const elapsed = normalizedWorkedIntervals(row).reduce(
 		(total, interval) => total + (interval.end - interval.start) / 3_600_000,
 		0
 	);
-	return Math.max(0, elapsed - clocked.break_minutes / 60);
+	return elapsed;
 }
 
 /**
@@ -364,9 +356,6 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 				const shift = codeId == null ? null : shiftById.get(codeId);
 				return shift == null ? [] : [{ date, code: shift.code, shift }];
 			});
-			const grantedBreakByDate = new Map(
-				scheduled.map((day) => [day.date, workWindow(day.shift.variant)?.break_minutes ?? 0])
-			);
 			const account = employment?.bank;
 			if (payslip.net > 0 && account != null) {
 				const outstanding = shortfallsByEmployment.get(payslip.employment_id)?.find((row) => {
@@ -504,15 +493,7 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 								: total,
 						0
 					),
-					actualHours: runTimes.reduce(
-						(total, row) =>
-							total +
-							timestampHours(
-								row,
-								grantedBreakByDate.get(requiredDateKey(row.work_date, 'work_days.work_date')) ?? 0
-							),
-						0
-					),
+					actualHours: runTimes.reduce((total, row) => total + timestampHours(row), 0),
 					shiftCodes: [...new Set(scheduled.map((day) => day.code))].toSorted()
 				},
 				gross: payslip.gross,

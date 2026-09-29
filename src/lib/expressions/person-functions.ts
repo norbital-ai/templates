@@ -110,6 +110,10 @@ export type PersonHistory = {
 	readonly as_of: string;
 	readonly through: string;
 	readonly wages: Readonly<Record<string, Readonly<Record<string, number>>>> | null;
+	readonly piece_wages: ReadonlyArray<{
+		readonly date: string;
+		readonly amount: number | null;
+	}> | null;
 	readonly leave: ReadonlyArray<{
 		readonly code: string;
 		readonly from: string;
@@ -129,6 +133,29 @@ export const CONTRACT = 'CONTRACT';
  * minimum wage — Σ days × floor, as each payslip's trace recorded them.
  */
 export const OVERTIME_FLOOR_DAYS = 'OVERTIME_FLOOR_DAYS:';
+
+/** Wages earned over the last N recorded piece-rate workdays, including the final day. */
+export function pieceWagesLastWorkdays(employment: unknown, days: unknown): number {
+	const history = (employment as Stint).history;
+	if (history?.piece_wages == null)
+		throw new Error('Piece-rate severance needs recorded workday earnings.');
+	const count = Number(days);
+	if (!Number.isInteger(count) || count <= 0)
+		throw new Error('Piece-rate severance needs a positive working-day count.');
+	const rows = history.piece_wages
+		.filter((row) => row.date <= history.through)
+		.toSorted((a, b) => b.date.localeCompare(a.date));
+	if (rows.length < count)
+		throw new Error(
+			`Piece-rate severance needs ${count} recorded workdays; ${rows.length} are available.`
+		);
+	const last = rows.slice(0, count);
+	if (last.some((row) => row.amount == null))
+		throw new Error(
+			'Piece-rate severance needs complete earnings or explicit absence for every last workday.'
+		);
+	return last.reduce((sum, row) => sum + row.amount!, 0);
+}
 
 type Stint = { service_start?: unknown; exit_date?: unknown; history?: PersonHistory };
 

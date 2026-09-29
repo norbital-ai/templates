@@ -97,7 +97,12 @@ function reservedOf(item: PricedItem): ReservedLine | null {
 			return item.bucket === 'ABSENCE' ? 'NO_PAY_LEAVE' : 'ENCASHMENT';
 		return null;
 	}
-	if (component.output === 'salary') return 'BASE';
+	if (
+		component.output === 'salary' ||
+		component.output === 'salary_top_up' ||
+		component.output === 'guard_normal_supplement'
+	)
+		return 'BASE';
 	if (component.output === 'absence') return 'ABSENCE';
 	if (component.output === 'night') return 'NIGHT_PREMIUM';
 	return 'OVERTIME';
@@ -135,14 +140,20 @@ export function accumulatePayslip(options: {
 	const countsTowardOf = new Map<string, readonly string[]>();
 	const lines: AccumulationLine[] = [];
 	for (const item of options.items) {
-		// A display line is not money; only the night wage is read, as a magnitude of its own.
+		// The Work display line (the night wage) is read only as a magnitude of its own.
 		if (
 			item.catalogueComponent.family === 'WORK' &&
 			item.catalogueComponent.output === 'night_wage'
 		)
 			magnitudes.NIGHT_WAGE += item.amount;
-		// Information is not money; no scheme charges it.
-		if (item.amount === 0 || item.bucket === 'INFORMATION') continue;
+		// A DISPLAY class is printed, never paid: it stays out of gross and net (SETTLE sums buckets)
+		// but counts toward the schemes it lists — MY BIK/VOLA is Y1 and "shall not appear in the pay
+		// slip … as gross salary" (MTD spec 2026 E(12)).
+		if (
+			item.amount === 0 ||
+			(item.bucket === 'INFORMATION' && item.catalogueComponent.family === 'WORK')
+		)
+			continue;
 		const effect = effectOf(item);
 		const reserved = reservedOf(item);
 		const code = catalogueCode(item);

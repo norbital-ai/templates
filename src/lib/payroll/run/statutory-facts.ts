@@ -31,9 +31,15 @@ export function realignStatutoryFacts(
 		facts.map((fact) => fact.statutory_contribution_id).filter((id) => !pickedIds.has(id))
 	);
 	if (foreign.size === 0) return [...facts];
+	// Chinese city schemes have separate local registrations; align revisions within one city only.
 	const sameJurisdiction = new Set(
 		world.jurisdiction_settings
-			.filter((row) => row.jurisdiction_code === configuration.jurisdiction.jurisdiction_code)
+			.filter(
+				(row) =>
+					row.jurisdiction_code === configuration.jurisdiction.jurisdiction_code &&
+					(configuration.jurisdiction.jurisdiction_code !== 'CN' ||
+						row.code === configuration.jurisdiction.code)
+			)
 			.map((row) => row.id)
 	);
 	const codeById = new Map(

@@ -31,8 +31,11 @@ function rehireWorld() {
 	});
 	for (const day of world.work_days) {
 		if (String(day.work_date) >= '2026-01-16') day.employment_id = 'new-contract';
+		// The shift's granted 60 minutes, punched as a gap — a break owed and not taken is worked
+		// time, and an unbroken 07:30-16:00 would price half an hour outside ordinary paid work.
 		day.worked_intervals = [
-			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:00:00+08:00` }
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T12:30:00+08:00` },
+			{ start: `${day.work_date}T13:30:00+08:00`, end: `${day.work_date}T16:00:00+08:00` }
 		];
 	}
 	clearAllowances(world);

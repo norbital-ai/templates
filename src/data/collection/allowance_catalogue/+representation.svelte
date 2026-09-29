@@ -17,6 +17,7 @@
 				label={bolt.t('component.npl_prorates')}
 				help={bolt.t('component.npl_prorates_hint')}
 			/>
+			<Field name="outpatient_sick_pay" label={bolt.t('component.outpatient_sick_pay')} />
 			<Field name="owed" label={bolt.t('component.owed')} help={bolt.t('component.owed_hint')} />
 		{/if}
 	{/snippet}

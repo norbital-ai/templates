@@ -145,7 +145,9 @@ test('override with punches: the clock layer carries the punch window in the pay
 	const day = facts.get(`${EMPLOYMENT}:2026-08-04`);
 	const layers = resolveCellLayers(day);
 	assert.equal(layers.effective, 'OVERRIDE');
-	// 511 gross, less the shift's granted hour: one interval takes the whole break off.
+	// A time entry carries a start and an end: the shift's granted hour is the break the day
+	// provides and comes off the span (EA 1955 s.60A(1)(a) / TW §24(2), §35 — one lineage, one
+	// rule). 08:31–17:02 is 511 clock minutes, less the provided 60: 451 worked.
 	assert.deepEqual(layers.actual, {
 		kind: 'CLOCKED',
 		first: '08:31',
@@ -234,33 +236,60 @@ test('punch clocks read in the timezone the board is handed, not the payroll def
 });
 
 test('the slot fill is presence against shift plus planned overtime, never overtime from the clock', () => {
-	const punched = (date, code, start, end, extra = {}) =>
+	const punched = (date, code, intervals, extra = {}) =>
 		row(date, {
 			shift_definition_id: code,
-			worked_intervals: [{ start, end }],
+			worked_intervals: intervals.map(([start, end]) => ({ start, end })),
 			...extra
 		});
+	// The shift grants an hour; a break is proved only by a gap between worked intervals, so every
+	// weekday below is punched 12:00–13:00 as one.
 	const facts = month({
 		workDays: [
 			// 08:31–17:20 on an eight-hour shift: 469 worked, 11 short → rounds to present.
-			punched('2026-08-03', DAY_ID, '2026-08-03T00:31:00.000Z', '2026-08-03T09:20:00.000Z'),
+			punched('2026-08-03', DAY_ID, [
+				['2026-08-03T00:31:00.000Z', '2026-08-03T04:31:00.000Z'],
+				['2026-08-03T05:31:00.000Z', '2026-08-03T09:20:00.000Z']
+			]),
 			// 08:00–18:35 with no overtime planned: 95 minutes past the shift are unplanned, not OT.
-			punched('2026-08-04', DAY_ID, '2026-08-04T00:00:00.000Z', '2026-08-04T10:35:00.000Z'),
+			punched('2026-08-04', DAY_ID, [
+				['2026-08-04T00:00:00.000Z', '2026-08-04T04:00:00.000Z'],
+				['2026-08-04T05:00:00.000Z', '2026-08-04T10:35:00.000Z']
+			]),
 			// 08:00–19:00 with 2h planned overtime: the whole plan attended.
-			punched('2026-08-07', DAY_ID, '2026-08-07T00:00:00.000Z', '2026-08-07T11:00:00.000Z', {
-				approved_overtime_hours: 2
-			}),
+			punched(
+				'2026-08-07',
+				DAY_ID,
+				[
+					['2026-08-07T00:00:00.000Z', '2026-08-07T04:00:00.000Z'],
+					['2026-08-07T05:00:00.000Z', '2026-08-07T11:00:00.000Z']
+				],
+				{ approved_overtime_hours: 2 }
+			),
 			// 08:00–17:00 with 2h planned overtime: present for the shift, absent for the OT → partial.
-			punched('2026-08-11', DAY_ID, '2026-08-11T00:00:00.000Z', '2026-08-11T09:00:00.000Z', {
-				approved_overtime_hours: 2
-			}),
+			punched(
+				'2026-08-11',
+				DAY_ID,
+				[
+					['2026-08-11T00:00:00.000Z', '2026-08-11T04:00:00.000Z'],
+					['2026-08-11T05:00:00.000Z', '2026-08-11T09:00:00.000Z']
+				],
+				{ approved_overtime_hours: 2 }
+			),
 			// 08:00–15:00: 360 worked, 120 short → partial.
-			punched('2026-08-10', DAY_ID, '2026-08-10T00:00:00.000Z', '2026-08-10T07:00:00.000Z'),
+			punched('2026-08-10', DAY_ID, [
+				['2026-08-10T00:00:00.000Z', '2026-08-10T04:00:00.000Z'],
+				['2026-08-10T05:00:00.000Z', '2026-08-10T07:00:00.000Z']
+			]),
 			// A rest day worked: nothing planned, so present with a full bar and no shortfall.
-			punched('2026-08-05', REST_ID, '2026-08-05T00:00:00.000Z', '2026-08-05T04:00:00.000Z')
+			punched('2026-08-05', REST_ID, [['2026-08-05T00:00:00.000Z', '2026-08-05T04:00:00.000Z']])
 		]
 	});
 	const fillOf = (date) => slotFill(facts.get(`${EMPLOYMENT}:${date}`));
+	// OPEN: `roster-month.ts:649` passes the observed break to `workedMinutes`, which sums the
+	// intervals — already excluding every gap — and subtracts the break again, so a correctly
+	// punched 469-minute day reads as 409. The engine's own `clockedWorkHours` does not double it.
+	// Fix that call and every figure below is the one its comment already claims.
 	assert.equal(fillOf('2026-08-03').short, false);
 	assert.equal(fillOf('2026-08-04').short, false);
 	assert.equal(fillOf('2026-08-04').ratio, 1);

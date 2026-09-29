@@ -33,8 +33,8 @@ export default model({
 		 * submitted with CPF are floored, foreign employees' levy is paid as it is).
 		 */
 		remittance_rounding_when: { kind: 'text', default: '' },
-		/** A registration failure cannot waive a liability where the dated law still requires assessment. */
-		unregistered_action: { kind: 'enum', values: ['SKIP', 'ASSESS'], default: 'SKIP' },
+		/** How an explicit NOT_REGISTERED fact affects liability when its legal meaning is known. */
+		unregistered_action: { kind: 'enum', values: ['SKIP', 'ASSESS', 'REFUSE'], default: 'REFUSE' },
 		/** COMPANY: this scheme reads employer facts and ignores per-employment registration rows. */
 		registration_subject: { kind: 'enum', values: ['PERSON', 'COMPANY'], default: 'PERSON' },
 		/** Whether a declared opening follows the person or this employer's annual ceiling. */

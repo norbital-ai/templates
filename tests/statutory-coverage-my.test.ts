@@ -2,14 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { assessStatutory, expectStatutory } from './fixtures/statutory-world.ts';
 
-const OUT = { kind: 'NOT_REGISTERED' } as const;
+const COVERED = { kind: 'REGISTERED' } as const;
 const otherSchemes = {
-	EPF: OUT,
-	EPF_PR: OUT,
-	EPF_NON_CITIZEN: OUT,
-	PCB: OUT,
-	HRDF: OUT,
-	SKBBK: OUT
+	EPF: COVERED,
+	EPF_PR: COVERED,
+	EPF_NON_CITIZEN: COVERED,
+	PCB: COVERED,
+	HRDF: COVERED
 };
 
 // Act 4 First Schedule 12(i); Act 800 First Schedule 9; PERKESO Circular 3/2024.
@@ -32,8 +31,8 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 				citizenship: 'CITIZEN',
 				registrations: {
 					...otherSchemes,
-					SOCSO: OUT,
-					EIS: OUT,
+					SOCSO: COVERED,
+					EIS: COVERED,
 					[row.scheme]: { kind: 'REGISTERED', first_contribution_due_on: null }
 				}
 			}))
@@ -59,7 +58,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 					receiving_pension: row.pension,
 					registrations: {
 						...otherSchemes,
-						EIS: OUT,
+						EIS: COVERED,
 						SOCSO: {
 							kind: 'REGISTERED',
 							first_contribution_due_on: row.first,
@@ -88,7 +87,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 					hire_date: '2026-01-01',
 					registrations: {
 						...otherSchemes,
-						EIS: OUT,
+						EIS: COVERED,
 						SOCSO: { kind: 'REGISTERED', first_contribution_due_on: first }
 					}
 				}))
@@ -112,7 +111,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 					hire_date: '2026-01-01',
 					registrations: {
 						...otherSchemes,
-						SOCSO: OUT,
+						SOCSO: COVERED,
 						EIS: { kind: 'REGISTERED', first_contribution_due_on: first }
 					}
 				}))
@@ -140,8 +139,8 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 								birth_date: birth,
 								registrations: {
 									...otherSchemes,
-									SOCSO: OUT,
-									EIS: OUT,
+									SOCSO: COVERED,
+									EIS: COVERED,
 									[scheme]: { kind: 'REGISTERED', first_contribution_due_on: null }
 								}
 							}
@@ -166,8 +165,8 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 									birth_date: birth,
 									registrations: {
 										...otherSchemes,
-										SOCSO: OUT,
-										EIS: OUT,
+										SOCSO: COVERED,
+										EIS: COVERED,
 										[scheme]: { kind: 'REGISTERED', first_contribution_due_on: first }
 									}
 								}

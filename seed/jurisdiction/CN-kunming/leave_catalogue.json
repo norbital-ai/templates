@@ -57,7 +57,7 @@
 		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (产假及生育假)",
-		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): a lawful birth extends the maternity leave by 60 days of 生育假. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The Kunming maternity allowance (register CN-KM32) is outside this row.",
+		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 云南省人口与计划生育条例 (third amendment 17 January 2022, https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): a lawful birth extends the maternity leave by 60 days of 生育假. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The Kunming maternity allowance (register CN-KM32) is outside this row.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\", \"MISCARRIAGE_UNDER_4M\", \"MISCARRIAGE_4M\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -101,7 +101,7 @@
 		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave (护理假)",
-		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): the father of a lawful birth has 30 days of 护理假.",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022, https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): the father of a lawful birth has 30 days of 护理假.",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -125,7 +125,7 @@
 		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave (婚假)",
-		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): staff of every unit type who register a marriage have 15 more days. The seed grants the national three (the discretionary maximum) plus fifteen: 18 calendar days.",
+		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 云南省人口与计划生育条例 (third amendment 17 January 2022, https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): staff of every unit type who register a marriage have 15 more days. The seed grants the national three (the discretionary maximum) plus fifteen: 18 calendar days.",
 		"eligibility": "event.kind == \"MARRIAGE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -149,7 +149,7 @@
 		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave (育儿假)",
-		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022; controlling text http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html, unreachable 28 Sep 2026 — clause read on the Yunnan Department of Justice copy https://sft.yn.gov.cn/yfzs/pages_1_3173.aspx): a parent of a lawfully born or adopted child under three has 10 days of 育儿假 a year from their unit, 15 where two or more children are under three; art.35 counts the leave as attendance at normal pay. The year is the calendar year and the days do not carry over; they end when the child turns three (楚雄市卫生健康局 guidance, 18 Sep 2023, https://www.cxs.gov.cn/info/9025/254978.htm). Each parent holds the days separately; whether the other parent’s leave is taken is not a condition. The lawful-birth test is the operator’s record (register CN-KM12).",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022; Yunnan NPC Standing Committee consolidated text https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html): a parent of a lawfully born or adopted child under three has 10 days of 育儿假 a year from their unit, 15 where two or more children are under three; art.35 counts the leave as attendance at normal pay. The year is the calendar year and the days do not carry over; they end when the child turns three (楚雄市卫生健康局 guidance, 18 Sep 2023, https://www.cxs.gov.cn/info/9025/254978.htm). Each parent holds the days separately; whether the other parent’s leave is taken is not a condition. The lawful-birth test is the operator’s record (register CN-KM12).",
 		"eligibility": "children.under(3) >= 1",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -167,6 +167,58 @@
 			]
 		},
 		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "613fbe55-dba2-5863-8b7d-b6dc38dc5fb8",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "FAMILY_PLANNING_PROCEDURE_LEAVE",
+		"name": "Family-planning procedure leave (计划生育手术假)",
+		"authority": "云南省人口与计划生育条例 (third amendment promulgated 17 January 2022), arts.19 and 35: leave is in calendar days and working days inside it are paid. IUD insertion/removal 7 days; tubal ligation/reversal 30; vasectomy/reversal 15; remedial procedure after contraception failure 15 days before 4 months of pregnancy or 42 at 4 months or more. IUD insertion or tubal ligation during maternity leave extends it. Calendar charging, maternity overlap and procedure evidence remain open (register CN-KM31). https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html",
+		"eligibility": "event.kind in [\"IUD_INSERTION\", \"IUD_REMOVAL\", \"TUBAL_LIGATION\", \"VASECTOMY\", \"TUBAL_REVERSAL\", \"VAS_REVERSAL\", \"CONTRACEPTION_FAILURE_UNDER_4M\", \"CONTRACEPTION_FAILURE_4M_PLUS\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"IUD_INSERTION\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"IUD_REMOVAL\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"TUBAL_LIGATION\"",
+					"days": 30
+				},
+				{
+					"eligibility": "event.kind == \"VASECTOMY\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"TUBAL_REVERSAL\"",
+					"days": 30
+				},
+				{
+					"eligibility": "event.kind == \"VAS_REVERSAL\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"CONTRACEPTION_FAILURE_UNDER_4M\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"CONTRACEPTION_FAILURE_4M_PLUS\"",
+					"days": 42
+				}
+			]
+		},
+		"evidence": "REQUIRED",
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
@@ -230,7 +282,7 @@
 		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (产假及生育假)",
-		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): a lawful birth extends the maternity leave by 60 days of 生育假. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The Kunming maternity allowance (register CN-KM32) is outside this row.",
+		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 云南省人口与计划生育条例 (third amendment 17 January 2022, https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): a lawful birth extends the maternity leave by 60 days of 生育假. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The Kunming maternity allowance (register CN-KM32) is outside this row.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\", \"MISCARRIAGE_UNDER_4M\", \"MISCARRIAGE_4M\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -274,7 +326,7 @@
 		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave (护理假)",
-		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): the father of a lawful birth has 30 days of 护理假.",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022, https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): the father of a lawful birth has 30 days of 护理假.",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -298,7 +350,7 @@
 		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave (婚假)",
-		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): staff of every unit type who register a marriage have 15 more days. The seed grants the national three (the discretionary maximum) plus fifteen: 18 calendar days.",
+		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 云南省人口与计划生育条例 (third amendment 17 January 2022, https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): staff of every unit type who register a marriage have 15 more days. The seed grants the national three (the discretionary maximum) plus fifteen: 18 calendar days.",
 		"eligibility": "event.kind == \"MARRIAGE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -322,7 +374,7 @@
 		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave (育儿假)",
-		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022; controlling text http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html, unreachable 28 Sep 2026 — clause read on the Yunnan Department of Justice copy https://sft.yn.gov.cn/yfzs/pages_1_3173.aspx): a parent of a lawfully born or adopted child under three has 10 days of 育儿假 a year from their unit, 15 where two or more children are under three; art.35 counts the leave as attendance at normal pay. The year is the calendar year and the days do not carry over; they end when the child turns three (楚雄市卫生健康局 guidance, 18 Sep 2023, https://www.cxs.gov.cn/info/9025/254978.htm). Each parent holds the days separately; whether the other parent’s leave is taken is not a condition. The lawful-birth test is the operator’s record (register CN-KM12).",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022; Yunnan NPC Standing Committee consolidated text https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html): a parent of a lawfully born or adopted child under three has 10 days of 育儿假 a year from their unit, 15 where two or more children are under three; art.35 counts the leave as attendance at normal pay. The year is the calendar year and the days do not carry over; they end when the child turns three (楚雄市卫生健康局 guidance, 18 Sep 2023, https://www.cxs.gov.cn/info/9025/254978.htm). Each parent holds the days separately; whether the other parent’s leave is taken is not a condition. The lawful-birth test is the operator’s record (register CN-KM12).",
 		"eligibility": "children.under(3) >= 1",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -340,6 +392,58 @@
 			]
 		},
 		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "b4b42e2f-66fb-53e0-8467-469b53f30a6e",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "FAMILY_PLANNING_PROCEDURE_LEAVE",
+		"name": "Family-planning procedure leave (计划生育手术假)",
+		"authority": "云南省人口与计划生育条例 (third amendment promulgated 17 January 2022), arts.19 and 35: leave is in calendar days and working days inside it are paid. IUD insertion/removal 7 days; tubal ligation/reversal 30; vasectomy/reversal 15; remedial procedure after contraception failure 15 days before 4 months of pregnancy or 42 at 4 months or more. IUD insertion or tubal ligation during maternity leave extends it. Calendar charging, maternity overlap and procedure evidence remain open (register CN-KM31). https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html",
+		"eligibility": "event.kind in [\"IUD_INSERTION\", \"IUD_REMOVAL\", \"TUBAL_LIGATION\", \"VASECTOMY\", \"TUBAL_REVERSAL\", \"VAS_REVERSAL\", \"CONTRACEPTION_FAILURE_UNDER_4M\", \"CONTRACEPTION_FAILURE_4M_PLUS\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"IUD_INSERTION\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"IUD_REMOVAL\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"TUBAL_LIGATION\"",
+					"days": 30
+				},
+				{
+					"eligibility": "event.kind == \"VASECTOMY\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"TUBAL_REVERSAL\"",
+					"days": 30
+				},
+				{
+					"eligibility": "event.kind == \"VAS_REVERSAL\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"CONTRACEPTION_FAILURE_UNDER_4M\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"CONTRACEPTION_FAILURE_4M_PLUS\"",
+					"days": 42
+				}
+			]
+		},
+		"evidence": "REQUIRED",
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
@@ -403,7 +507,7 @@
 		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (产假及生育假)",
-		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): a lawful birth extends the maternity leave by 60 days of 生育假. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The Kunming maternity allowance (register CN-KM32) is outside this row.",
+		"authority": "女职工劳动保护特别规定 (State Council Order 619, from 28 April 2012, https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) art.7: 98 days of maternity leave, up to 15 before the birth; 15 more for a difficult birth and 15 more for each additional infant; a miscarriage under four months of pregnancy 15 days, at four months or more 42 days. 云南省人口与计划生育条例 (third amendment 17 January 2022, https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): a lawful birth extends the maternity leave by 60 days of 生育假. Each infant beyond the second adds another 15 days, counted as the recorded children born on the event date (`children.multiple_born_on(event.date)`); a multiple birth with fewer than two recorded is refused. The Kunming maternity allowance (register CN-KM32) is outside this row.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\", \"MISCARRIAGE_UNDER_4M\", \"MISCARRIAGE_4M\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -447,7 +551,7 @@
 		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave (护理假)",
-		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): the father of a lawful birth has 30 days of 护理假.",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022, https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): the father of a lawful birth has 30 days of 护理假.",
 		"eligibility": "employee.gender == \"MALE\" && employee.marital_status == \"MARRIED\" && event.kind in [\"BIRTH\", \"DIFFICULT_BIRTH\", \"MULTIPLE_BIRTH\", \"DIFFICULT_MULTIPLE_BIRTH\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -471,7 +575,7 @@
 		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
 		"code": "MARRIAGE_LEAVE",
 		"name": "Marriage leave (婚假)",
-		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 云南省人口与计划生育条例 (third amendment 17 January 2022, http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): staff of every unit type who register a marriage have 15 more days. The seed grants the national three (the discretionary maximum) plus fifteen: 18 calendar days.",
+		"authority": "国劳总薪字〔1980〕29号: one to three paid days of marriage leave at the unit’s discretion (register CN-N51); 云南省人口与计划生育条例 (third amendment 17 January 2022, https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html) art.18, with art.35 (every leave in the regulation is calendar days; working days inside it are paid): staff of every unit type who register a marriage have 15 more days. The seed grants the national three (the discretionary maximum) plus fifteen: 18 calendar days.",
 		"eligibility": "event.kind == \"MARRIAGE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -495,7 +599,7 @@
 		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
 		"code": "CHILDCARE_LEAVE",
 		"name": "Childcare leave (育儿假)",
-		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022; controlling text http://ynswsjkw.yn.gov.cn/html/2022/faguiguizhangxin_0121/11292.html, unreachable 28 Sep 2026 — clause read on the Yunnan Department of Justice copy https://sft.yn.gov.cn/yfzs/pages_1_3173.aspx): a parent of a lawfully born or adopted child under three has 10 days of 育儿假 a year from their unit, 15 where two or more children are under three; art.35 counts the leave as attendance at normal pay. The year is the calendar year and the days do not carry over; they end when the child turns three (楚雄市卫生健康局 guidance, 18 Sep 2023, https://www.cxs.gov.cn/info/9025/254978.htm). Each parent holds the days separately; whether the other parent’s leave is taken is not a condition. The lawful-birth test is the operator’s record (register CN-KM12).",
+		"authority": "云南省人口与计划生育条例 (third amendment 17 January 2022; Yunnan NPC Standing Committee consolidated text https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html): a parent of a lawfully born or adopted child under three has 10 days of 育儿假 a year from their unit, 15 where two or more children are under three; art.35 counts the leave as attendance at normal pay. The year is the calendar year and the days do not carry over; they end when the child turns three (楚雄市卫生健康局 guidance, 18 Sep 2023, https://www.cxs.gov.cn/info/9025/254978.htm). Each parent holds the days separately; whether the other parent’s leave is taken is not a condition. The lawful-birth test is the operator’s record (register CN-KM12).",
 		"eligibility": "children.under(3) >= 1",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -513,6 +617,58 @@
 			]
 		},
 		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "42429f3a-ab99-50c7-844f-9d1c057b5b36",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "FAMILY_PLANNING_PROCEDURE_LEAVE",
+		"name": "Family-planning procedure leave (计划生育手术假)",
+		"authority": "云南省人口与计划生育条例 (third amendment promulgated 17 January 2022), arts.19 and 35: leave is in calendar days and working days inside it are paid. IUD insertion/removal 7 days; tubal ligation/reversal 30; vasectomy/reversal 15; remedial procedure after contraception failure 15 days before 4 months of pregnancy or 42 at 4 months or more. IUD insertion or tubal ligation during maternity leave extends it. Calendar charging, maternity overlap and procedure evidence remain open (register CN-KM31). https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html",
+		"eligibility": "event.kind in [\"IUD_INSERTION\", \"IUD_REMOVAL\", \"TUBAL_LIGATION\", \"VASECTOMY\", \"TUBAL_REVERSAL\", \"VAS_REVERSAL\", \"CONTRACEPTION_FAILURE_UNDER_4M\", \"CONTRACEPTION_FAILURE_4M_PLUS\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"IUD_INSERTION\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"IUD_REMOVAL\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"TUBAL_LIGATION\"",
+					"days": 30
+				},
+				{
+					"eligibility": "event.kind == \"VASECTOMY\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"TUBAL_REVERSAL\"",
+					"days": 30
+				},
+				{
+					"eligibility": "event.kind == \"VAS_REVERSAL\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"CONTRACEPTION_FAILURE_UNDER_4M\"",
+					"days": 15
+				},
+				{
+					"eligibility": "event.kind == \"CONTRACEPTION_FAILURE_4M_PLUS\"",
+					"days": 42
+				}
+			]
+		},
+		"evidence": "REQUIRED",
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,

@@ -297,6 +297,8 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		dueThrough: options.salary.end,
 		currency,
 		absenceRate: work.absenceRate,
+		absenceHourlyRate: work.absenceHourlyRate,
+		outpatientSickExcludedRate: work.outpatientSickExcludedRate,
 		encashmentRate: (entry) =>
 			leaveEncashmentRate({
 				bundle,
@@ -406,12 +408,38 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		unpaidDaysIn,
 		instalments: rateTerms.pay_frequency === 'SEMI_MONTHLY' ? 2 : 1,
 		rates: { ordinaryDay: dayWage, ordinaryHour: hourlyRate },
+		unpaidSalary: () =>
+			Math.max(
+				0,
+				salaryBase() -
+					absenceOf(measuredLeave.adjustments) -
+					absenceOf(workAttendance.adjustments) -
+					adjustments.reduce(
+						(sum, row) =>
+							row.catalogueComponent.code === 'KASAMBAHAY_FORFEITURE' ? sum + row.amount : sum,
+						0
+					)
+			),
 		subject,
 		note: (issue: RunIssue) => notes.push(issue)
 	};
 	const steps = [
 		...prepareWorkSteps(stepOptions),
-		...prepareAllowanceSteps(stepOptions),
+		...prepareAllowanceSteps({
+			...stepOptions,
+			unpaidDaysIn: (window) => {
+				const span =
+					window.start <= options.salary.start && window.end >= options.salary.end
+						? attendance
+						: window;
+				return (
+					unpaidLeaveDays(bundle.leave, span, true) +
+					workAttendance.absentDays
+						.filter((day) => day.date >= span.start && day.date <= span.end)
+						.reduce((total, day) => total + day.days, 0)
+				);
+			}
+		}),
 		// The requests arrive in query order; their code is the inferred, deterministic order.
 		...prepareMoneySteps({ ...stepOptions, requests: periodEntries }).toSorted((a, b) =>
 			a.item.code === b.item.code
@@ -425,7 +453,6 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const component = step.item;
 		const running = (componentAmounts.get(component.code) ?? 0) + measured.amount;
 		componentAmounts.set(component.code, running);
-		if (settlementBucket(component.destination, component.direction) === 'INFORMATION') continue;
 		base.push(...measured.base);
 		proration.push(...measured.proration);
 		adjustments.push(...measured.adjustments);
@@ -734,6 +761,19 @@ export function prepareFamilyHistory(
 		yearEarned: earnedYearToDate(options),
 		yearQuantityPayments: earnedQuantityPaymentsYearToDate(options),
 		earnedByMonth: earnedByMonth(options),
+		paidWagesByMonth: new Map(
+			[
+				...earnedByMonth({
+					...options,
+					payslips: options.payslips.filter(
+						(slip) => slip.status === 'PAID' && slip.paid_at != null
+					)
+				})
+			].map(([employeeId, months]) => [
+				employeeId,
+				new Map([...months].map(([month, codes]) => [month, codes.get(WAGES) ?? 0]))
+			])
+		),
 		payslipWageMonths: payslipWageMonths(options),
 		priorOvertimeHours: priorOvertimeHours(options),
 		priorInLieu: priorInLieu(options),
@@ -1087,6 +1127,7 @@ export function calculateFamilyAssessments(options: {
 		readonly projection: ReturnType<typeof payProjection>;
 		readonly yearEarned: ReadonlyMap<string, number>;
 		readonly earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, number>>;
+		readonly paidWagesByMonth: ReadonlyMap<string, number>;
 	}> = [];
 	const taxYearStartMonth = configuration.jurisdiction.payroll.tax_year_start_month;
 
@@ -1105,6 +1146,8 @@ export function calculateFamilyAssessments(options: {
 		const projection = payProjection(period, taxYearStartMonth, bundle.window);
 		const yearEarned = gathered.yearEarned.get(bundle.employment.employee_id) ?? new Map();
 		const earnedByMonth = gathered.earnedByMonth.get(bundle.employment.employee_id) ?? new Map();
+		const paidWagesByMonth =
+			gathered.paidWagesByMonth.get(bundle.employment.employee_id) ?? new Map();
 		const wages = calculateFamilies({
 			bundle,
 			configuration: atWorksite(configuration, bundle.termsHistory),
@@ -1160,6 +1203,7 @@ export function calculateFamilyAssessments(options: {
 			projection,
 			yearEarned,
 			earnedByMonth,
+			paidWagesByMonth,
 			// These are committed calculation dates, not the future horizon of an entitlement or tax projection.
 			termsThrough: [
 				[
@@ -1191,7 +1235,7 @@ export function calculateFamilyAssessments(options: {
 	// concerns and an undecided cell is reported as the issue it is rather than thrown from the grid.
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
 	const measuredContracts = measuredRuns.map(
-		({ projection, yearEarned, earnedByMonth, ...run }) => ({
+		({ projection, yearEarned, earnedByMonth, paidWagesByMonth, ...run }) => ({
 			...run,
 			...prepareContributionAssessment({
 				measured: run.measured,
@@ -1209,6 +1253,7 @@ export function calculateFamilyAssessments(options: {
 				headcountCitizens: gathered.headcountCitizens,
 				yearEarned,
 				earnedByMonth,
+				paidWagesByMonth,
 				monthPrior: gathered.monthPrior.get(
 					`${run.measured.bundle.employment.employee_id}:${period.slice(0, 7)}`
 				)

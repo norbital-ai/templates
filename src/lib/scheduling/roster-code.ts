@@ -12,6 +12,7 @@ export type WorkWindow = {
 	readonly start_time: string;
 	readonly end_time: string;
 	readonly break_minutes: number;
+	readonly break_start_time: string | null;
 	readonly crosses_midnight: boolean;
 	readonly elapsed_minutes: number;
 	readonly paid_minutes: number;
@@ -60,6 +61,7 @@ function deriveWindow(value: Extract<RosterCodeVariant, { kind: 'WORK' }>): Work
 		start_time: variant.start_time,
 		end_time: variant.end_time,
 		break_minutes: variant.break_minutes,
+		break_start_time: variant.break_start_time ?? null,
 		crosses_midnight: crossesMidnight,
 		elapsed_minutes: elapsed,
 		paid_minutes: elapsed - variant.break_minutes

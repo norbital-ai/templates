@@ -12,6 +12,7 @@
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
 	import { PlainDate } from '@norbital-ai/std/date';
+	import { Decimal } from '@norbital-ai/std/decimal';
 	import { Combobox, DateInput, Input } from '@norbital-ai/ui';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import HalfDayRangePicker, {
@@ -20,6 +21,8 @@
 	} from '../../ui/leave/half-day-range-picker.svelte';
 	import { todayKey } from '../../ui/calendar.js';
 	import { leaveWindowOf } from '../../leave/entitlement.js';
+	import { readRange } from '../../payroll/run/effective.js';
+	import { dateKey } from '../../iso-day.js';
 	import { addDays } from '../../../lib/payroll/run/dates.js';
 	import { numberFrom } from '../../ui/renderer-input.js';
 	import { plain } from '../../wire.js';
@@ -62,6 +65,8 @@
 			employment_id: employmentId,
 			catalogue_id: catalogueId,
 			calendar_month: calendarMonth,
+			hours: fields.hours == null ? null : Decimal.fromNumber(fields.hours, 3),
+			no_pay_origin: fields.no_pay_origin ?? null,
 			range: {
 				start: { ...range.start, date: PlainDate(range.start.date) },
 				end: { ...range.end, date: PlainDate(range.end.date) }
@@ -124,6 +129,7 @@
 						bolt.get('leave_catalogue', catalogueId, {
 							code: true,
 							unit: true,
+							is_npl: true,
 							entitlement: true,
 							pay_fraction: true
 						})
@@ -132,6 +138,18 @@
 	);
 	const catalogue = $derived(
 		catalogueStore?.current == null ? undefined : plain(catalogueStore.current)
+	);
+	const employmentStore = $derived(
+		disabled || employmentId == null
+			? null
+			: fromStore(bolt.live(bolt.get('employments', employmentId, { effective_range: true })))
+	);
+	const hireDate = $derived(
+		dateKey(readRange(employmentStore?.current?.effective_range)?.start) || undefined
+	);
+	const needsHireDate = $derived(
+		catalogue?.entitlement?.year_anchor === 'SERVICE_ANNIVERSARY' &&
+			(hireDate == null || hireDate.slice(5) === '02-29')
 	);
 	const originalOptions = $derived(
 		(originals?.current?.rows ?? [])
@@ -182,8 +200,18 @@
 	function selectKind(kind: LeaveActivityKind | null): void {
 		if (!kind || kind === activity) return;
 		const on = todayKey();
-		const period = catalogue?.entitlement ?? 1;
-		const window = leaveWindowOf(on, period);
+		const rule = catalogue?.entitlement;
+		const period =
+			rule == null
+				? 1
+				: {
+						year_start_month: rule.year_start_month,
+						availability: rule.availability,
+						proration: rule.proration,
+						...(rule.year_anchor == null ? {} : { year_anchor: rule.year_anchor })
+					};
+		if (needsHireDate) return;
+		const window = leaveWindowOf(on, period, hireDate);
 		const common = { effective_on: on, reason: null };
 		switch (kind) {
 			case 'TIME_OFF':
@@ -201,7 +229,7 @@
 				});
 				break;
 			case 'CARRY_FORWARD': {
-				const source = leaveWindowOf(addDays(window.start, -1), period);
+				const source = leaveWindowOf(addDays(window.start, -1), period, hireDate);
 				emit({
 					...emptyActivityFields(),
 					...common,
@@ -261,11 +289,18 @@
 				class="w-full"
 				options={kinds}
 				value={activity}
-				{disabled}
+				disabled={disabled || needsHireDate}
 				aria-label={t('leave.activity')}
 				onChange={selectKind}
 			/>
 		</Column>
+	{/if}
+	{#if catalogue?.entitlement?.year_anchor === 'SERVICE_ANNIVERSARY' && hireDate?.slice(5) === '02-29'}
+		<Column span="all"
+			><p class="text-xs text-destructive" role="alert">
+				{t('leave.leap_anniversary_unsupported')}
+			</p></Column
+		>
 	{/if}
 	{#if activity === 'TIME_OFF'}
 		<Column span="all">
@@ -286,19 +321,42 @@
 			{#if preview?.issues[0]?.message}<p class="text-xs text-destructive" role="alert">
 					{preview.issues[0].message}
 				</p>{/if}
+			{#if preview?.unit === 'HOUR' && preview.remaining_hours != null}
+				<p class="text-meta">
+					{t('component.leave_hours_remaining', { hours: preview.remaining_hours })}
+				</p>
+			{/if}
 			{#if preview?.certificate_required}<p class="text-meta">
 					{t('component.leave_certificate_required')}
 				</p>{/if}
 		</Column>
-		{#if catalogue?.unit === 'HOUR'}
+		{#if catalogue?.unit === 'HOUR' || preview?.unit === 'HOUR'}
 			<Labelled label={t('leave.hours')} class="text-sm font-medium">
 				<Input
 					type="number"
-					step="0.5"
-					min="0.5"
+					step="0.001"
+					min="0.001"
 					value={fields.hours ?? ''}
 					{disabled}
 					oninput={(event) => emit({ hours: numberFrom(event.currentTarget.value, 0) || null })}
+				/>
+			</Labelled>
+		{/if}
+		{#if catalogue?.is_npl === true}
+			<Labelled label={t('leave.no_pay_origin')} class="text-sm font-medium">
+				<Combobox
+					class="w-full"
+					placeholder="—"
+					options={[
+						{ value: 'EMPLOYEE_REQUESTED' as const, label: t('leave.no_pay_employee_requested') },
+						{ value: 'OTHER' as const, label: t('leave.no_pay_other') }
+					]}
+					value={fields.no_pay_origin ?? null}
+					{disabled}
+					onChange={(next) =>
+						emit({
+							no_pay_origin: next === 'EMPLOYEE_REQUESTED' || next === 'OTHER' ? next : null
+						})}
 				/>
 			</Labelled>
 		{/if}
@@ -419,7 +477,25 @@
 				</p>{/if}
 			<Column span="all"><p class="text-meta">{t('leave.reversal_hint')}</p></Column>
 		{/if}
-		{#if activity !== 'REVERSAL'}
+		{#if activity === 'ENCASHMENT' && fields.encash_hours != null}
+			<Labelled label={t('leave.hours')} class="text-sm font-medium">
+				<Input
+					type="number"
+					step="0.001"
+					min="0.001"
+					value={fields.encash_hours}
+					{disabled}
+					oninput={(event) => {
+						const value = event.currentTarget.value;
+						emit(
+							value === ''
+								? { encash_hours: null, encash_days: 0, days: 0 }
+								: { encash_hours: numberFrom(value, 0), encash_days: null, days: null }
+						);
+					}}
+				/>
+			</Labelled>
+		{:else if activity !== 'REVERSAL'}
 			<Labelled label={t('component.days')} class="text-sm font-medium">
 				<Input
 					type="number"
@@ -430,7 +506,42 @@
 					oninput={(event) => {
 						const days = numberFrom(event.currentTarget.value, 0);
 						if (activity === 'ENCASHMENT') emit({ days, encash_days: days });
-						else emit({ days });
+						else emit({ days, hours: null });
+					}}
+				/>
+			</Labelled>
+		{/if}
+		{#if activity === 'ENCASHMENT' && fields.encash_hours == null}
+			<Labelled label={t('leave.hours')} class="text-sm font-medium">
+				<Input
+					type="number"
+					step="0.001"
+					min="0.001"
+					value=""
+					{disabled}
+					oninput={(event) => {
+						const value = event.currentTarget.value;
+						if (value !== '')
+							emit({ encash_hours: numberFrom(value, 0), encash_days: null, days: null });
+					}}
+				/>
+			</Labelled>
+		{/if}
+		{#if activity === 'CARRY_FORWARD' || activity === 'ADJUSTMENT'}
+			<Labelled label={t('leave.hours')} class="text-sm font-medium">
+				<Input
+					type="number"
+					step="0.001"
+					min={activity === 'CARRY_FORWARD' ? '0.001' : undefined}
+					value={fields.hours ?? ''}
+					{disabled}
+					oninput={(event) => {
+						const hours = event.currentTarget.value;
+						emit(
+							hours === ''
+								? { hours: null, days: activity === 'ADJUSTMENT' ? 0 : null }
+								: { hours: numberFrom(hours, 0), days: null }
+						);
 					}}
 				/>
 			</Labelled>

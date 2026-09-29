@@ -25,7 +25,7 @@ import { calculateFamilyAssessments } from '../../src/lib/payroll/families.ts';
 import { prepareWorkContext } from '../../src/lib/payroll/work.ts';
 import { atWorksite } from '../../src/lib/payroll/run/configuration.ts';
 import { dailyWorkedHours, nightWindowHours } from '../../src/lib/payroll/run/overtime.ts';
-import { derivedBreakMinutes, restBreakAssessment } from '../../src/lib/scheduling/rest-break.ts';
+import { providedBreakMinutes } from '../../src/lib/scheduling/rest-break.ts';
 import { roundMinute } from '../../src/lib/payroll/run/rounding.ts';
 import { addDays, completedYears, inclusiveDays } from '../../src/lib/payroll/run/dates.ts';
 import { offsetMinutesFor } from '../../src/lib/timezone.ts';
@@ -117,6 +117,8 @@ export type Person = {
 	readonly children?: number;
 	readonly grade?: string;
 	readonly statutory_work_category?: string;
+	readonly hazardous_work?: boolean;
+	readonly weather_dependent_piece?: boolean;
 	/** `employment.classification`; `EA_COVERED` unless stated. */
 	readonly work_classification?: string;
 	readonly hire_date?: string;
@@ -125,7 +127,12 @@ export type Person = {
 	readonly minimum_wage_2026_area_reclassified?: boolean | null;
 	/** The worksite and its sector a daily minimum-wage table names (TH Notice 14). */
 	readonly worksite?: string | null;
+	readonly worksite_state?: string | null;
 	readonly worksite_sector?: string | null;
+	readonly worksite_sector_edition?: string | null;
+	readonly id_foreign_prior_indonesia_work?: 'NONE' | 'ANY' | null;
+	readonly id_foreign_prior_work_reviewed_on?: string | null;
+	readonly id_foreign_prior_work_reference?: string | null;
 	/** The last employed day; the fixture closes the employment and its terms on it. */
 	readonly exit_date?: string;
 	/** `employments.exit_reason`, the separation bands' gate. */
@@ -139,11 +146,20 @@ export type Person = {
 			string,
 			{
 				readonly kind: string;
+				readonly declaration_reference?: string;
 				/** Force the declaration person-wide or bind it to this synthetic employment. */
 				readonly scope?: 'EMPLOYMENT' | 'PERSON';
 				readonly rate_override?: number | null;
 				readonly first_contribution_due_on?: string | null;
 				readonly elections?: Readonly<Record<string, boolean | number | string>>;
+				readonly unit_assessments?: ReadonlyArray<{
+					readonly period: string;
+					readonly gross: number;
+					readonly units: number;
+					readonly reference: string;
+					readonly paid_on?: string;
+					readonly withhold_below_threshold_requested?: boolean;
+				}>;
 				readonly deduction_claims?: ReadonlyArray<{
 					period: string;
 					category: string;
@@ -303,18 +319,15 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 	const versions = settingsVersions(code);
 	const jurisdictionCode = versions[0]!.jurisdiction_code;
 	const schemes = contributionSchemes(code);
-	// Padding employments stand outside every scheme: they count toward a HEADCOUNT band but
-	// charge nothing, relieve nothing, and always settle positive on their token wage.
+	// Padding employments are ordinary registered workers: they count toward a HEADCOUNT band
+	// and their token wage is also subject to its own payroll schemes.
 	const padding: Person[] = Array.from(
 		{ length: Math.max(0, (options.headcount ?? 0) - options.people.length) },
 		(_, index) => ({
 			key: `PAD-${index}`,
 			// Thailand's Notice 14 blocks a token wage: 12,000 is Bangkok's THB400 × 30.
-			wage: code === 'TH' ? 12_000 : 1,
-			citizenship: 'CITIZEN',
-			registrations: Object.fromEntries(
-				schemes.map((scheme) => [scheme.code, { kind: 'NOT_REGISTERED' }])
-			)
+			wage: code === 'TH' ? 12_000 : code === 'MY' || code === 'MY-nihon' ? 1_700 : 1,
+			citizenship: 'CITIZEN'
 		})
 	);
 	const people = [...options.people, ...padding];
@@ -370,6 +383,24 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		approval_id: null
 	}));
 
+	const phRegion = options.region ?? 'IV-A';
+	const phWorksite = phRegion.startsWith('NCR')
+		? 'NCR/Manila'
+		: phRegion === 'IV-A-1ST'
+			? 'Batangas/Rosario'
+			: phRegion === 'IV-A-RECLASSIFIED-1ST'
+				? 'Cavite/Noveleta'
+				: phRegion === 'IV-A-2ND-5TH'
+					? 'Cavite/Amadeo'
+					: phRegion.startsWith('IV-A')
+						? 'Cavite/Bacoor'
+						: null;
+	const phSector =
+		phRegion === 'NCR-AGRI-SMALL'
+			? 'AGRICULTURE'
+			: phRegion === 'IV-A-RETAIL-SMALL'
+				? 'RETAIL_SERVICE'
+				: 'OTHER_NONAGRI';
 	const terms = people.map((person, index) => ({
 		id: `b0000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
 		employment_id: employmentIds[index]!,
@@ -388,9 +419,49 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 					? false
 					: person.minimum_wage_2026_area_reclassified
 				: null,
-		// A Thai worksite is recorded (Notice 14 prices every normal day at it); Bangkok unless stated.
-		worksite: person.worksite === undefined ? (code === 'TH' ? 'Bangkok' : null) : person.worksite,
-		worksite_sector: person.worksite_sector ?? null,
+		// PH synthetic worlds name an exact seeded site; a person's override remains explicit.
+		worksite:
+			person.worksite === undefined
+				? code === 'TH'
+					? 'Bangkok'
+					: code === 'ID'
+						? options.region === undefined
+							? 'Provinsi DKI Jakarta'
+							: options.region
+						: code === 'PH'
+							? phWorksite
+							: code === 'CN-shanghai'
+								? 'SHANGHAI'
+								: null
+				: person.worksite,
+		ph_worksite_source_reference: code === 'PH' ? 'FIXTURE-WORKSITE' : null,
+		ph_worksite_source_file: code === 'PH' ? 'fixture-worksite.pdf' : null,
+		worksite_state:
+			person.worksite_state === undefined
+				? code === 'MY' || code === 'MY-nihon'
+					? 'KUALA_LUMPUR'
+					: null
+				: person.worksite_state,
+		// OSS KBLI 2020 62019 is other computer programming; no seeded ID sector order lists it.
+		worksite_sector:
+			person.worksite_sector === undefined
+				? code === 'ID'
+					? '62019'
+					: code === 'PH' && person.employment_type !== 'DOMESTIC'
+						? phSector
+						: null
+				: person.worksite_sector,
+		ph_sector_source_reference: code === 'PH' ? 'FIXTURE-SECTOR' : null,
+		ph_sector_source_file: code === 'PH' ? 'fixture-sector.pdf' : null,
+		worksite_sector_edition:
+			person.worksite_sector_edition === undefined
+				? code === 'ID'
+					? '2020'
+					: null
+				: person.worksite_sector_edition,
+		id_foreign_prior_indonesia_work: person.id_foreign_prior_indonesia_work ?? null,
+		id_foreign_prior_work_reviewed_on: person.id_foreign_prior_work_reviewed_on ?? null,
+		id_foreign_prior_work_reference: person.id_foreign_prior_work_reference ?? null,
 		ordinary_hours_per_week:
 			person.ordinary_hours_per_week ??
 			(code === 'TW' && person.employment_type === 'PART_TIME' ? 20 : null),
@@ -408,6 +479,9 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				: person.comparable_full_time_presence,
 		work_classification: person.work_classification ?? 'EA_COVERED',
 		statutory_work_category: person.statutory_work_category ?? 'NON_MANUAL',
+		hazardous_work: person.hazardous_work ?? false,
+		...(code === 'TH' ? { th_pregnancy_status: person.th_pregnancy_status ?? 'NOT_PREGNANT' } : {}),
+		weather_dependent_piece: person.weather_dependent_piece ?? false,
 		employment_type: person.employment_type ?? 'PERMANENT',
 		// VN, ID, TW, SG and CN refuse an unrecorded citizenship; synthetic cases there are citizens unless stated.
 		residency_status:
@@ -449,6 +523,17 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		department: null,
 		job_title: 'Fixture',
 		grade: person.grade ?? null,
+		// Synthetic ID company scale and individual notice; tests remove or alter these to probe refusal.
+		...(code === 'ID'
+			? {
+					id_wage_scale_grade: 'FIXTURE',
+					id_wage_scale_basic_minimum: Math.max(1, person.wage),
+					id_wage_scale_effective_on: person.hire_date ?? '2015-01-01',
+					id_wage_scale_notice_on: person.hire_date ?? '2015-01-01',
+					id_wage_scale_reference: 'FIXTURE-SCALE',
+					id_wage_scale_evidence_file: 'fixture-scale-and-grade-notice.pdf'
+				}
+			: {}),
 		payroll_group: null,
 		paid_rest_days: false,
 		shift_pattern_id: PATTERN_ID,
@@ -505,6 +590,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 			const insuredAmount = taiwanInsuredAmount(person, scheme.code);
 			const employmentScoped =
 				(code === 'SG' && scheme.code === 'SDL') ||
+				(code === 'VN' && scheme.code === 'PIT') ||
 				declared?.scope === 'EMPLOYMENT' ||
 				(declared?.scope !== 'PERSON' &&
 					scheme.elections.some(
@@ -528,6 +614,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				status: {
 					kind: declared?.kind ?? 'REGISTERED',
 					reference_number: 'FIXTURE',
+					declaration_reference: declared?.declaration_reference,
 					rate_override: declared?.rate_override ?? null,
 					elections: {
 						...(insuredAmount == null ? {} : { insured_amount: insuredAmount }),
@@ -540,6 +627,13 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 									sdl_student_class: 'NONE'
 								}
 							: {}),
+						...((code === 'MY' || code === 'MY-nihon') && person.citizenship === 'FOREIGNER'
+							? scheme.code === 'EIS'
+								? { mykas_resident: false }
+								: scheme.code === 'EPF' || scheme.code === 'EPF_NON_CITIZEN'
+									? { member_before_1998: false }
+									: {}
+							: {}),
 						// Synthetic unpaid-leave cases explicitly state whether continuation was agreed.
 						...(code === 'VN' && scheme.code === 'SI' ? { continue_si_unpaid: false } : {}),
 						// Synthetic VN and ID cases declare what those versions require of every employee:
@@ -547,6 +641,14 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 						// and tax identity at 1 January (ID) — the values the family record would suggest.
 						...(code === 'VN' && scheme.code === 'UI' ? { pension_qualified: false } : {}),
 						...(code === 'VN' && scheme.code === 'UNION_DUES' ? { union_member: false } : {}),
+						...(code === 'VN' && scheme.code === 'PIT'
+							? {
+									eligible_dependents: person.children ?? 0,
+									...(person.children != null && person.children > 0
+										? { dependents_registration_reference: 'FIXTURE-DEPENDANTS' }
+										: {})
+								}
+							: {}),
 						...(code === 'ID' && scheme.code === 'PPH21'
 							? {
 									recipient_class: 'REGULAR_EMPLOYEE',
@@ -576,6 +678,9 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 						? {}
 						: { deduction_claims: declared.deduction_claims }),
 					...(declared?.child_claims == null ? {} : { child_claims: declared.child_claims }),
+					...(declared?.unit_assessments == null
+						? {}
+						: { unit_assessments: declared.unit_assessments }),
 					...(declared?.opening == null ? {} : { opening: declared.opening }),
 					// Synthetic registration and liability dates remain independent inputs.
 					since: person.hire_date ?? '2015-01-01',
@@ -592,6 +697,14 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 			});
 		}
 
+	const phCompanyFacts = {
+		small_establishment: false,
+		retirement_exempt_establishment: false,
+		ph_wage_one_establishment: true,
+		ph_wage_worker_count: phRegion === 'IV-A-RETAIL-SMALL' ? 10 : 20,
+		minimum_wage_exemption_approved: true,
+		...options.companyFacts
+	};
 	return {
 		companies: [
 			{
@@ -604,7 +717,14 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				pay_frequency: options.payFrequency ?? 'MONTHLY',
 				// A Philippine entity is in CALABARZON unless the test says otherwise: the wage order the
 				// seeded salaries are built on (IVA-22), and the floor RA 9504's exemption reads.
-				region: options.region ?? (code === 'PH' ? 'IV-A' : null),
+				region:
+					options.region === undefined
+						? code === 'PH'
+							? 'IV-A'
+							: code === 'ID'
+								? 'Provinsi DKI Jakarta'
+								: null
+						: options.region,
 				risk_class: options.riskClass ?? null,
 				// PH declares both establishment-size exemptions as required entity facts.
 				facts:
@@ -623,21 +743,29 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 								...options.companyFacts
 							}
 						: code === 'PH'
-							? {
-									small_establishment: false,
-									retirement_exempt_establishment: false,
-									// The seam goldens price wages below the floor, which refuses a run unless the
-									// board has exempted the establishment (RA 6727 s.4(c)); a floor golden sets false.
-									minimum_wage_exemption_approved: true,
-									...options.companyFacts
-								}
+							? phCompanyFacts
 							: code === 'SG'
 								? { sdl_individual_employer: false, ...options.companyFacts }
-								: (options.companyFacts ?? {}),
+								: code === 'ID'
+									? { enterprise_size_class: 'OTHER', ...options.companyFacts }
+									: (options.companyFacts ?? {}),
 				effective_range: RANGE,
 				approval_id: null
 			}
 		],
+		company_facts:
+			code === 'PH'
+				? [
+						{
+							company_id: COMPANY_ID,
+							facts: phCompanyFacts,
+							effective_range: RANGE,
+							ph_wage_class_source_reference: 'FIXTURE-ESTABLISHMENT-COUNT',
+							ph_wage_class_source_file: 'fixture-establishment-count.pdf',
+							approval_id: null
+						}
+					]
+				: [],
 		jurisdiction_settings: versions,
 		statutory_contributions: schemes,
 		loan_catalogue: [],
@@ -650,7 +778,13 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				company_id: COMPANY_ID,
 				code: 'DAY',
 				name: 'Day',
-				variant: { kind: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 },
+				variant: {
+					kind: 'WORK',
+					start_time: '09:00',
+					end_time: '18:00',
+					break_minutes: 60,
+					...(code === 'TH' ? { break_start_time: '13:00' } : {})
+				},
 				effective_range: RANGE,
 				approval_id: null
 			},
@@ -884,7 +1018,7 @@ export type BuiltPayslip = ReturnType<typeof buildPayrollRun>['payslip_payroll_r
  * The resolved schedule is the engine's own (`prepareWorkContext`), so the boundary is the day the
  * run will price — shift, holiday and pattern included — and never a fixture's idea of a normal day.
  */
-function keyClockOverruns(prepared: PreparedRun, code: string): void {
+function keyClockOverruns(prepared: PreparedRun): void {
 	for (const bundle of prepared.gathered.bundles) {
 		const punched = bundle.workDays.filter((entry) => entry.worked_intervals != null);
 		if (punched.length === 0) continue;
@@ -901,35 +1035,29 @@ function keyClockOverruns(prepared: PreparedRun, code: string): void {
 			const workDate = String(entry.work_date).slice(0, 10);
 			const day = work.schedule.get(workDate);
 			if (day == null) continue;
-			const clocked = {
-				...entry,
-				break_minutes: derivedBreakMinutes(entry.worked_intervals, day.shift?.break_minutes ?? 0)
-			};
 			const offset = offsetMinutesFor(configuration.jurisdiction.payroll.timezone, workDate);
-			const observed = dailyWorkedHours(clocked, day, offset);
-			// A rest, off or holiday day plans every worked hour, less a statutory break the day owed
-			// and did not take where the statute says it is not work (ID ps.79(2)(a)). Not in Taiwan:
-			// 勞基法 §24(2) pays every hour worked on a 休息日, and a §35 break owed and not taken is a
-			// breach the run reports (`restBreak`), not unpaid time; production deducts nothing (TW-D3).
-			// ponytail: lineage-gated; the ID/PH/VN goldens still price the deduction production never
-			// makes — drop the whole block once those lineages are re-verified.
+			// The same break rule the run prices with, so the plan and the guard agree. A time entry
+			// is a span: the break the day provides comes off it, and the rule a night shift owes is
+			// the longer one where the hours fall inside the regime's night window.
 			const night = configuration.nightPremium;
 			const measuredNight =
-				night == null ? null : nightWindowHours(clocked, night, day.shift, offset);
-			const shortfall = restBreakAssessment({
-				intervals: entry.worked_intervals ?? [],
-				breakMinutes: clocked.break_minutes,
-				breaks: configuration.breaks,
-				overtimeHours: observed,
-				nightHours: measuredNight == null ? 0 : measuredNight.ordinary + measuredNight.overtime,
-				person: work.subject
-			});
-			const unpaid =
-				code !== 'TW' && shortfall.rule?.counts_as_worked_time === false
-					? (shortfall.shortfallMinutes ?? 0) / 60
-					: 0;
+				night == null || entry.worked_intervals == null
+					? { ordinary: 0, overtime: 0 }
+					: nightWindowHours(entry, night, day.shift, offset);
+			const clocked = {
+				...entry,
+				break_minutes: providedBreakMinutes({
+					intervals: entry.worked_intervals,
+					shiftMinutes: day.shift?.break_minutes ?? 0,
+					breaks: configuration.breaks,
+					person: work.subject,
+					nightHours: measuredNight.ordinary + measuredNight.overtime
+				})
+			};
+			const observed = dailyWorkedHours(clocked, day, offset);
+			// A rest, off or holiday day plans every worked hour, less the break the day provides.
 			entry.approved_overtime_hours = roundMinute(
-				Math.max(0, day.dayType === 'ORDINARY' ? observed - day.normalHours : observed - unpaid)
+				Math.max(0, day.dayType === 'ORDINARY' ? observed - day.normalHours : observed)
 			);
 			planned.set(workDate, entry);
 		}
@@ -989,7 +1117,7 @@ export function buildStatutory(
 		companyId: COMPANY_ID,
 		period: options.period
 	});
-	keyClockOverruns(prepared, options.code);
+	keyClockOverruns(prepared);
 	recordPriced(options.code, prepared);
 	const built = buildPayrollRun(prepared);
 	const numbers = new Map(
@@ -1033,7 +1161,7 @@ export function assessStatutoryUnvalidated(
 		companyId: COMPANY_ID,
 		period: options.period
 	});
-	keyClockOverruns(prepared, options.code);
+	keyClockOverruns(prepared);
 	recordPriced(options.code, prepared);
 	const { measuredContracts, chargesByEmployment, companyCharges } = calculateFamilyAssessments({
 		configuration: prepared.configuration,

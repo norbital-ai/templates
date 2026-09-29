@@ -34,6 +34,236 @@ const catalogue = (
 	});
 };
 
+test('calendar-day leave charges holidays and rest days inside its full span', () => {
+	const context = leaveContext();
+	context.holidays.push({
+		id: id(18),
+		company_id: id(3),
+		date: '2026-03-07',
+		name: 'Holiday',
+		kind: 'PUBLIC_HOLIDAY',
+		replaces: null,
+		given_to: 'EVERYONE',
+		worksite: null,
+		published_at: '2026-01-01T00:00:00.000Z'
+	});
+	context.shifts.push({
+		id: id(20),
+		company_id: id(3),
+		code: 'REST',
+		effective_range: { start: '2025-01-01', end: null },
+		variant: { kind: 'REST' }
+	});
+	context.workDays.push({
+		id: id(19),
+		employment_id: id(1),
+		work_date: '2026-03-08',
+		shift_definition_id: id(20)
+	});
+	catalogue(context, {
+		id: id(21),
+		code: 'CALENDAR_MATERNITY',
+		entitlement: {
+			availability: 'PER_EVENT',
+			proration: 'NONE',
+			year_start_month: 1,
+			calendar_days: true,
+			bands: [{ eligibility: '', days: 120 }]
+		}
+	});
+	const plan = planLeaveActivity(
+		context,
+		{
+			...submission(timeOff('2026-03-06', '2026-03-09'), 'CAL-MAT'),
+			catalogue_id: id(21),
+			event_kind: 'BIRTH',
+			event_date: '2026-03-06'
+		},
+		id(22)
+	);
+	assert.deepEqual(
+		plan.charges.map((charge) => charge.date),
+		['2026-03-06', '2026-03-07', '2026-03-08', '2026-03-09']
+	);
+	assert.equal(plan.charges[1]?.holiday_id, id(18));
+	assert.equal(plan.charges[2]?.shift_definition_id, id(20));
+});
+
+test('calendar-day leave charges unrostered days without inventing a shift', () => {
+	const context = leaveContext();
+	context.patterns[0]!.pattern = {
+		expectation: {
+			days_per_week: 5,
+			minimum_paid_minutes_per_week: null,
+			maximum_paid_minutes_per_week: null
+		}
+	};
+	catalogue(context, {
+		id: id(21),
+		code: 'CALENDAR_MATERNITY',
+		entitlement: {
+			availability: 'PER_EVENT',
+			proration: 'NONE',
+			year_start_month: 1,
+			calendar_days: true,
+			bands: [{ eligibility: '', days: 120 }]
+		}
+	});
+	const plan = planLeaveActivity(
+		context,
+		{
+			...submission(timeOff('2026-03-06', '2026-03-09'), 'CAL-UNROSTERED'),
+			catalogue_id: id(21),
+			event_kind: 'BIRTH',
+			event_date: '2026-03-06'
+		},
+		id(22)
+	);
+	assert.deepEqual(
+		plan.charges.map((charge) => charge.shift_definition_id),
+		[null, null, null, null]
+	);
+	assert.equal(plan.days, 4);
+});
+
+test('calendar-day leave refuses a half-day before approval', () => {
+	const context = leaveContext();
+	catalogue(context, {
+		id: id(21),
+		code: 'CALENDAR_MATERNITY',
+		entitlement: {
+			availability: 'PER_EVENT',
+			proration: 'NONE',
+			year_start_month: 1,
+			calendar_days: true,
+			bands: [{ eligibility: '', days: 120 }]
+		}
+	});
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{
+					...submission({ ...timeOff('2026-03-02'), half_day_start: true }, 'CAL-HALF'),
+					catalogue_id: id(21),
+					event_kind: 'BIRTH',
+					event_date: '2026-03-02'
+				},
+				id(22)
+			)
+		),
+		/counts whole calendar days; a half-day leave cannot be approved/
+	);
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{
+					...submission({ ...timeOff('2026-03-02', '2026-03-03'), half_day_end: true }, 'CAL-END'),
+					catalogue_id: id(21),
+					event_kind: 'BIRTH',
+					event_date: '2026-03-02'
+				},
+				id(23)
+			)
+		),
+		/counts whole calendar days; a half-day leave cannot be approved/
+	);
+});
+
+test('a calendar maternity event split across entries cannot settle with missing weekend days', () => {
+	const context = leaveContext();
+	catalogue(context, {
+		id: id(21),
+		code: 'CALENDAR_MATERNITY',
+		entitlement: {
+			availability: 'PER_EVENT',
+			proration: 'NONE',
+			year_start_month: 1,
+			calendar_days: true,
+			bands: [{ eligibility: '', days: 120 }]
+		}
+	});
+	const first = planLeaveActivity(
+		context,
+		{
+			...submission(timeOff('2026-03-06'), 'CAL-FRI'),
+			catalogue_id: id(21),
+			event_kind: 'BIRTH',
+			event_date: '2026-03-06'
+		},
+		id(22)
+	);
+	assert.match(
+		refusalOf(() =>
+			withLeaveDeductionEligibility(
+				{
+					entries: [{ ...first, id: id(22), approval_id: null, event_date: null }],
+					catalogues: context.catalogues,
+					captures: [],
+					schemes: []
+				},
+				{
+					employment: context.employments[0]!,
+					servicePeriods: [{ start: '2025-01-01', end: null }],
+					employee: context.employees[0]! as never,
+					configuration: {
+						company: { id: id(3), settings_code: 'TEST', facts: {} },
+						recordedCompanyFacts: {},
+						companyFactRevisions: [],
+						lineageVersions: context.versions
+					} as never,
+					statutoryFacts: [],
+					terms: context.terms as never
+				}
+			)
+		),
+		/Per-event leave requires the dated event/
+	);
+	context.entries.push({ ...first, id: id(22), approval_id: null });
+	const second = planLeaveActivity(
+		context,
+		{
+			...submission(timeOff('2026-03-09'), 'CAL-MON'),
+			catalogue_id: id(21),
+			event_kind: 'BIRTH',
+			event_date: '2026-03-06'
+		},
+		id(23)
+	);
+	context.entries.push({ ...second, id: id(23), approval_id: null });
+	assert.deepEqual(
+		context.entries.flatMap((row) => row.charges.map((charge) => charge.date)),
+		['2026-03-06', '2026-03-09']
+	);
+	assert.match(
+		refusalOf(() =>
+			withLeaveDeductionEligibility(
+				{
+					entries: context.entries,
+					catalogues: context.catalogues,
+					captures: [],
+					schemes: []
+				},
+				{
+					employment: context.employments[0]!,
+					servicePeriods: [{ start: '2025-01-01', end: null }],
+					employee: context.employees[0]! as never,
+					configuration: {
+						company: { id: id(3), name: 'Fixture', settings_code: 'TEST', region: null, facts: {} },
+						recordedCompanyFacts: {},
+						companyFactRevisions: [],
+						lineageVersions: context.versions
+					} as never,
+					statutoryFacts: [],
+					terms: context.terms as never
+				}
+			)
+		),
+		/CALENDAR_MATERNITY cannot settle: 2026-03-07 is missing from the calendar leave event/
+	);
+});
+
 test('a PER_EVENT row grants its band per event, reads the event, and stops at the lifetime cap', () => {
 	const context = leaveContext();
 	catalogue(context, {
@@ -57,6 +287,19 @@ test('a PER_EVENT row grants its band per event, reads the event, and stops at t
 		event_date: from,
 		...extra
 	});
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{
+					...submission(birth('2026-03-02', '2026-03-02', { event_date: null }), 'B0'),
+					catalogue_id: id(20)
+				},
+				id(37)
+			)
+		),
+		/Per-event leave requires the dated event/
+	);
 	const plan = planLeaveActivity(
 		context,
 		{ ...submission(birth('2026-03-02', '2026-03-06'), 'B1'), catalogue_id: id(20) },
@@ -137,7 +380,7 @@ test('a PER_EVENT row grants its band per event, reads the event, and stops at t
 				id(35)
 			)
 		),
-		/cannot be approved/
+		/Per-event leave requires the dated event/
 	);
 });
 
@@ -300,7 +543,14 @@ test('a lifetime cap in days counts every leave year and the person’s other em
 			planLeaveActivity(
 				context,
 				{
-					...submission({ ...timeOff('2026-06-01', '2026-06-02'), event_kind: 'BIRTH' }, 'P1'),
+					...submission(
+						{
+							...timeOff('2026-06-01', '2026-06-02'),
+							event_kind: 'BIRTH',
+							event_date: '2026-06-01'
+						},
+						'P1'
+					),
 					catalogue_id: id(28)
 				},
 				id(65)
@@ -380,7 +630,11 @@ test('a public holiday enclosed by no-pay leave is charged where the version say
 	unpaid(plain);
 	const kept = planLeaveActivity(
 		plain,
-		{ ...submission(timeOff('2026-04-15', '2026-04-17'), 'N1'), catalogue_id: id(31) },
+		{
+			...submission(timeOff('2026-04-15', '2026-04-17'), 'N1'),
+			catalogue_id: id(31),
+			no_pay_origin: 'EMPLOYEE_REQUESTED'
+		},
 		id(80)
 	);
 	assert.deepEqual(
@@ -394,7 +648,11 @@ test('a public holiday enclosed by no-pay leave is charged where the version say
 	unpaid(sg);
 	const charged = planLeaveActivity(
 		sg,
-		{ ...submission(timeOff('2026-04-15', '2026-04-17'), 'N2'), catalogue_id: id(31) },
+		{
+			...submission(timeOff('2026-04-15', '2026-04-17'), 'N2'),
+			catalogue_id: id(31),
+			no_pay_origin: 'EMPLOYEE_REQUESTED'
+		},
 		id(81)
 	);
 	assert.deepEqual(
@@ -409,7 +667,11 @@ test('a public holiday enclosed by no-pay leave is charged where the version say
 	// A range that ends on the holiday does not enclose it: the leave must stand on both sides.
 	const edge = planLeaveActivity(
 		sg,
-		{ ...submission(timeOff('2026-04-15', '2026-04-16'), 'N3'), catalogue_id: id(31) },
+		{
+			...submission(timeOff('2026-04-15', '2026-04-16'), 'N3'),
+			catalogue_id: id(31),
+			no_pay_origin: 'EMPLOYEE_REQUESTED'
+		},
 		id(82)
 	);
 	assert.deepEqual(

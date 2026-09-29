@@ -82,6 +82,9 @@ import {
 	expressionEngine
 } from '../src/lib/expressions/evaluate.ts';
 import { personContext } from '../src/lib/payroll/run/eligibility.ts';
+import { evaluateLeavePreview } from '../src/lib/leave/preview.ts';
+import { planLeaveActivity } from '../src/lib/leave/activity.ts';
+import { leaveContext } from './helpers/manual-leave-context.ts';
 
 const TH = 'TH';
 const citizen = (key: string, wage: number, extra: Record<string, unknown> = {}) => ({
@@ -132,17 +135,57 @@ const holiday = (date: string, name: string) => ({
 	published_at: '2025-12-01T00:00:00.000Z',
 	approval_id: null
 });
-/** A punch from `start` to `end` on `date`, on Bangkok's +07:00 clock. */
-const punch = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+/** A Thai timecard: the midday hour is timed, and a long day takes 20 minutes before overtime. */
+const punch = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	start: string,
+	end: string,
+	approvedHours?: number
+) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
+	const clock = (time: string) => `${date}T${time}:00+07:00`;
+	const endMinute = Number(end.slice(0, 2)) * 60 + Number(end.slice(3, 5));
+	const long = start === '09:00' && endMinute >= 20 * 60;
+	const actualEnd = long
+		? `${String(Math.floor((endMinute + 20) / 60)).padStart(2, '0')}:${String((endMinute + 20) % 60).padStart(2, '0')}`
+		: end;
+	const intervals =
+		start === '09:00' && endMinute >= 14 * 60
+			? [
+					{ start: clock(start), end: clock('13:00') },
+					{ start: clock('14:00'), end: clock(long ? '18:00' : end) },
+					...(long ? [{ start: clock('18:20'), end: clock(actualEnd) }] : [])
+				]
+			: [{ start: clock(start), end: clock(end) }];
 	world.work_days.push({
 		id: `wd-${key}-${date}`,
 		employment_id: employment.id,
 		work_date: date,
 		shift_definition_id: null,
-		worked_intervals: [{ start: `${date}T${start}:00+07:00`, end: `${date}T${end}:00+07:00` }],
+		worked_intervals: intervals,
+		approved_overtime_hours: approvedHours ?? 0,
+		overtime_consented_at: `${date}T00:00:00+07:00`,
 		approval_id: null
 	});
+};
+/** A seven-hour normal day reaches its overtime boundary at 17:00. */
+const punchSeven = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	end: string,
+	approvedHours: number
+) => {
+	punch(world, key, date, '09:00', end, approvedHours);
+	const minute = Number(end.slice(0, 2)) * 60 + Number(end.slice(3, 5)) + 20;
+	const finish = `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`;
+	world.work_days.at(-1)!.worked_intervals = [
+		{ start: `${date}T09:00:00+07:00`, end: `${date}T13:00:00+07:00` },
+		{ start: `${date}T14:00:00+07:00`, end: `${date}T17:00:00+07:00` },
+		{ start: `${date}T17:20:00+07:00`, end: `${date}T${finish}:00+07:00` }
+	];
 };
 const withLeaveCatalogue = (world: PayrollWorld) => {
 	if (!world.leave_catalogue.some((row) => String(row.code) === 'ANNUAL_LEAVE'))
@@ -373,7 +416,16 @@ test('Thailand — Employee Welfare Fund 0.25% each side from 1 October 2026, te
 		citizen('EWF-20000', 20_000),
 		citizen('EWF-60000', 60_000),
 		citizen('EWF-PVD', 20_000, {
-			registrations: { EWF: { kind: 'REGISTERED', elections: { provident_fund_member: true } } }
+			registrations: {
+				EWF: {
+					kind: 'REGISTERED',
+					elections: {
+						provident_fund_member: true,
+						provident_fund_registration_reference: 'PVD-plan-7',
+						provident_fund_membership_reference: 'PVD-member-9'
+					}
+				}
+			}
 		})
 	];
 	const october = assessStatutory({ code: TH, period: '2026-10', people, headcount: 10 });
@@ -388,6 +440,63 @@ test('Thailand — Employee Welfare Fund 0.25% each side from 1 October 2026, te
 	// September 2026: no contribution yet — the version before 1 October has no EWF scheme.
 	const september = assessStatutory({ code: TH, period: '2026-09', people, headcount: 10 });
 	expectStatutorySkipped(september, 'EWF-20000', 'EWF');
+});
+
+test('Thailand — EWF voluntary membership below ten workers and provident-fund exclusion need dated evidence', () => {
+	const voluntary = citizen('EWF-VOLUNTARY', 20_000, {
+		registrations: {
+			EWF: {
+				kind: 'REGISTERED',
+				elections: {
+					voluntary_ewf_member: true,
+					voluntary_ewf_consent_reference: 'worker-and-employer-consent-7',
+					voluntary_ewf_certificate_reference: 'DLPW-certificate-9'
+				}
+			}
+		}
+	});
+	const assessed = assessStatutory({
+		code: TH,
+		period: '2026-10',
+		headcount: 9,
+		people: [voluntary]
+	});
+	expectStatutory(assessed, 'EWF-VOLUNTARY', 'EWF', 50, 50);
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: TH,
+				period: '2026-10',
+				headcount: 9,
+				people: [
+					citizen('EWF-VOLUNTARY', 20_000, {
+						registrations: {
+							EWF: {
+								kind: 'REGISTERED',
+								elections: { voluntary_ewf_member: true }
+							}
+						}
+					})
+				]
+			}),
+		/Voluntary EWF worker and employer consent reference is required/
+	);
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: TH,
+				period: '2026-10',
+				headcount: 10,
+				people: [
+					citizen('EWF-PVD-MISSING', 20_000, {
+						registrations: {
+							EWF: { kind: 'REGISTERED', elections: { provident_fund_member: true } }
+						}
+					})
+				]
+			}),
+		/Qualifying provident fund registration reference is required/
+	);
 });
 
 test('Thailand — the Employee Welfare Fund steps to 0.50% each side on 1 October 2031 (rate regulation B.E.2568 cl.3)', () => {
@@ -630,6 +739,94 @@ test('Thailand — December 2025: days before 7 December are priced from the pre
 	assert.deepEqual(charge(slip, 'SSO'), [58_000, 750, 750]);
 });
 
+test('Thailand — one maternity event crossing the No.9 commencement requires transition review at approval and payroll', () => {
+	// Gazette Act No.9 s.2: https://ratchakitcha.soc.go.th/documents/89818.pdf. It gives no
+	// express rule for a pregnancy already on leave when the 98/45 limits become 120/60.
+	const pre = '2025-12-06';
+	const post = '2025-12-07';
+	const event = '2025-12-07';
+	const row = (date: string) =>
+		rowIn(leaveCatalogue(TH), settingsIdOn(TH, date), 'MATERNITY_LEAVE');
+	const context = leaveContext();
+	context.companies[0]!.settings_code = TH;
+	context.versions = [...settingsVersions(TH)] as never;
+	context.catalogues = [...leaveCatalogue(TH)] as never;
+	const request = (date: string, reference: string) => ({
+		employment_id: context.employments[0]!.id,
+		catalogue_id: row(date),
+		reference,
+		from_date: date,
+		to_date: date,
+		days: null,
+		event_kind: 'BIRTH',
+		event_date: event
+	});
+	assert.throws(
+		() => planLeaveActivity(context, { ...request(pre, 'CROSS'), to_date: post }, 'th-cross'),
+		/MATERNITY_LEAVE.*2025-12-07.*transition/i
+	);
+	const first = planLeaveActivity(context, request(pre, 'PRE'), 'th-pre');
+	context.entries.push({ ...first, id: 'th-pre', approval_id: null } as never);
+	assert.throws(
+		() => planLeaveActivity(context, request(post, 'POST'), 'th-post'),
+		/MATERNITY_LEAVE.*2025-12-07.*transition/i
+	);
+	const postOnly = leaveContext();
+	postOnly.companies[0]!.settings_code = TH;
+	postOnly.versions = [...settingsVersions(TH)] as never;
+	postOnly.catalogues = [...leaveCatalogue(TH)] as never;
+	assert.doesNotThrow(() =>
+		planLeaveActivity(postOnly, request(post, 'POST-ONLY'), 'th-post-only')
+	);
+	assert.throws(
+		() =>
+			buildStatutory(
+				{
+					code: TH,
+					period: '2025-12',
+					people: [citizen('CROSS-ML', 62_000, { gender: 'FEMALE' })]
+				},
+				(world) => {
+					withLeaveCatalogue(world);
+					const employment = world.employments.find(
+						(person) => person.employee_number === 'CROSS-ML'
+					)!;
+					const term = world.employment_terms.find(
+						(person) => person.employment_id === employment.id
+					)!;
+					for (const [index, date] of [pre, post].entries())
+						world.leave_entries.push({
+							id: `th-transition-${index}`,
+							employment_id: employment.id,
+							catalogue_id: row(date),
+							leave_code: 'MATERNITY_LEAVE',
+							reference: `TRANSITION-${index}`,
+							from_date: date,
+							to_date: date,
+							days: 1,
+							effective_on: date,
+							event_kind: 'BIRTH',
+							event_date: event,
+							allocations: [],
+							charges: [
+								{
+									date,
+									days: 1,
+									catalogue_id: row(date),
+									employment_term_id: term.id,
+									holiday_id: null,
+									shift_definition_id: null,
+									work_day_id: null
+								}
+							],
+							approval_id: null
+						} as never);
+				}
+			),
+		/MATERNITY_LEAVE.*2025-12-07.*transition/i
+	);
+});
+
 test('Thailand — s.41/s.59 as amended by No.9: 120 days of maternity leave, the first 60 paid (TH-LEAVE-01)', () => {
 	// Council of State consolidation: s.41 para.1 up to 120 days for one pregnancy, para.3 holidays
 	// counted; s.59 wages for the leave days but not more than 60. Leave 11 January–10 May 2026 is
@@ -640,11 +837,17 @@ test('Thailand — s.41/s.59 as amended by No.9: 120 days of maternity leave, th
 	// 44,000 × 12 = 528,000 − 100,000 − 60,000 − 875 × 12 = 357,500 → 7,500 + 57,500 × 10% =
 	// 13,250 ÷ 12 = 1,104.1666… → 1,104.16.
 	const { slips } = buildStatutory(
-		{ code: TH, period: '2026-03', people: [citizen('ML', 62_000, { gender: 'FEMALE' })] },
+		{
+			code: TH,
+			period: '2026-03',
+			people: [
+				citizen('ML', 62_000, { gender: 'FEMALE' }),
+				citizen('ML-DAILY', 800, { gender: 'FEMALE', pay_frequency: 'DAILY' }),
+				citizen('ML-HOURLY', 100, { gender: 'FEMALE', pay_frequency: 'HOURLY' })
+			]
+		},
 		(world) => {
 			withLeaveCatalogue(world);
-			const employment = world.employments.find((row) => row.employee_number === 'ML')!;
-			const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
 			const dates: string[] = [];
 			for (let day = Date.UTC(2026, 0, 11); day <= Date.UTC(2026, 4, 10); day += 86_400_000)
 				dates.push(new Date(day).toISOString().slice(0, 10));
@@ -657,38 +860,45 @@ test('Thailand — s.41/s.59 as amended by No.9: 120 days of maternity leave, th
 			const blocks = Object.values(
 				Object.groupBy(dates, (date) => String(cuts.filter((cut) => date >= cut).length))
 			) as string[][];
-			for (const [index, block] of blocks.entries())
-				world.leave_entries.push({
-					id: `e3000000-0000-4000-8000-00000000000${index}`,
-					employment_id: employment.id,
-					catalogue_id: row(block[0]!),
-					leave_code: 'MATERNITY_LEAVE',
-					reference: `ML-${index}`,
-					from_date: block[0]!,
-					to_date: block.at(-1)!,
-					half_day_start: false,
-					half_day_end: false,
-					days: block.length,
-					effective_on: block[0]!,
-					event_kind: 'BIRTH',
-					event_date: '2026-02-01',
-					reason: 'ลาเพื่อคลอดบุตร',
-					allocations: [],
-					charges: block.map((date) => ({
-						date,
-						days: 1,
-						catalogue_id: row(date),
-						employment_term_id: term.id,
-						holiday_id: null,
-						shift_definition_id: null,
-						work_day_id: null
-					})),
-					approval_id: null
-				} as never);
+			for (const [personIndex, key] of ['ML', 'ML-DAILY', 'ML-HOURLY'].entries()) {
+				const employment = world.employments.find((row) => row.employee_number === key)!;
+				const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+				for (const [index, block] of blocks.entries())
+					world.leave_entries.push({
+						id: `e3000000-0000-4000-8000-${String(personIndex * 10 + index).padStart(12, '0')}`,
+						employment_id: employment.id,
+						catalogue_id: row(block[0]!),
+						leave_code: 'MATERNITY_LEAVE',
+						reference: `ML-${index}`,
+						from_date: block[0]!,
+						to_date: block.at(-1)!,
+						half_day_start: false,
+						half_day_end: false,
+						days: block.length,
+						effective_on: block[0]!,
+						event_kind: 'BIRTH',
+						event_date: '2026-02-01',
+						reason: 'ลาเพื่อคลอดบุตร',
+						allocations: [],
+						charges: block.map((date) => ({
+							date,
+							days: 1,
+							catalogue_id: row(date),
+							employment_term_id: term.id,
+							holiday_id: null,
+							shift_definition_id: null,
+							work_day_id: null
+						})),
+						approval_id: null
+					} as never);
+			}
 		}
 	);
 	const slip = slips.get('ML')!;
 	assert.equal(slip.gross, 44_000);
+	// The March salary window includes all 31 calendar leave days; this cutoff deducts 12–20 March.
+	assert.equal(slips.get('ML-DAILY')?.gross, 17_600);
+	assert.equal(slips.get('ML-HOURLY')?.gross, 17_600);
 	assert.deepEqual(charge(slip, 'SSO'), [44_000, 875, 875]);
 	assert.deepEqual(charge(slip, 'PIT'), [44_000, 1_104.16, 0]);
 	// Every version cites the Council of State LPA consolidation, never the Ministry's 2019 copy.
@@ -703,9 +913,276 @@ test('Thailand — s.41/s.59 as amended by No.9: 120 days of maternity leave, th
 		);
 });
 
+test('Thailand — piece-paid maternity refuses until the s.60 prior-period wage is available', () => {
+	assert.throws(
+		() =>
+			buildStatutory(
+				{
+					code: TH,
+					period: '2026-03',
+					people: [
+						citizen('ML-PIECE', 800, {
+							gender: 'FEMALE',
+							pay_frequency: 'DAILY',
+							statutory_work_category: 'PIECE_RATE'
+						})
+					]
+				},
+				(world) => {
+					withLeaveCatalogue(world);
+					const employment = world.employments.find((row) => row.employee_number === 'ML-PIECE')!;
+					const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+					const date = '2026-03-08';
+					const catalogue_id = rowIn(leaveCatalogue(TH), settingsIdOn(TH, date), 'MATERNITY_LEAVE');
+					world.leave_entries.push({
+						id: 'e3000000-0000-4000-8000-000000000100',
+						employment_id: employment.id,
+						catalogue_id,
+						leave_code: 'MATERNITY_LEAVE',
+						reference: 'ML-PIECE',
+						from_date: date,
+						to_date: date,
+						half_day_start: false,
+						half_day_end: false,
+						days: 1,
+						effective_on: date,
+						event_kind: 'BIRTH',
+						event_date: date,
+						allocations: [],
+						charges: [
+							{
+								date,
+								days: 1,
+								catalogue_id,
+								employment_term_id: term.id,
+								holiday_id: null,
+								shift_definition_id: null,
+								work_day_id: null
+							}
+						],
+						approval_id: null
+					} as never);
+				}
+			),
+		/preceding wage-period average required by Thai LPA s\.60/
+	);
+});
+
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // Overtime and holiday work (TH-WORK-02, -05, -06)
 // ─────────────────────────────────────────────────────────────────────────────────────────────
+
+test('Thailand — under-18 work needs a timed rest and cannot include overtime or holiday work (LPA ss.46, 48)', () => {
+	// Official LPA ss.46 and 48: https://www.mol.go.th/wp-content/uploads/sites/2/2018/03/301.pdf.
+	const settle = (
+		override?: readonly [string, string, string, string],
+		extraWork?: 'OVERTIME' | 'HOLIDAY' | 'SHORT_NO_REST'
+	) =>
+		buildStatutory(
+			{ code: TH, period: '2026-01', people: [citizen('MINOR-REST', 12_000, { age: 17 })] },
+			(world) => {
+				for (
+					let instant = Date.UTC(2025, 11, 21);
+					instant <= Date.UTC(2026, 0, 31);
+					instant += 86_400_000
+				) {
+					const date = new Date(instant).toISOString().slice(0, 10);
+					const weekday = new Date(instant).getUTCDay();
+					if (weekday === 0 || weekday === 6) continue;
+					punch(world, 'MINOR-REST', date, '09:00', '13:00');
+					const row = world.work_days.at(-1)!;
+					row.worked_intervals = [
+						{
+							start: `${date}T09:00:00+07:00`,
+							end: `${date}T${override?.[0] === date ? override[1] : '13:00'}:00+07:00`
+						},
+						{
+							start: `${date}T${override?.[0] === date ? override[2] : '14:00'}:00+07:00`,
+							end: `${date}T${override?.[0] === date ? override[3] : '18:00'}:00+07:00`
+						}
+					];
+				}
+				if (extraWork === 'OVERTIME') {
+					const date = '2026-01-05';
+					const day = world.work_days.find((row) => row.work_date === date)!;
+					day.worked_intervals = [
+						...(day.worked_intervals ?? []),
+						{ start: `${date}T19:00:00+07:00`, end: `${date}T20:00:00+07:00` }
+					];
+				}
+				if (extraWork === 'SHORT_NO_REST') {
+					const date = '2026-01-05';
+					world.work_days.find((row) => row.work_date === date)!.worked_intervals = [
+						{ start: `${date}T09:00:00+07:00`, end: `${date}T13:00:00+07:00` }
+					];
+				}
+				if (extraWork === 'HOLIDAY') punch(world, 'MINOR-REST', '2026-01-10', '09:00', '13:00');
+			}
+		);
+	assert.equal(settle().slips.get('MINOR-REST')!.gross, 12_000);
+	assert.throws(
+		() => settle(['2026-01-05', '13:01', '14:01', '18:00']),
+		/continuous 60-minute rest.*four hours/i
+	);
+	assert.throws(
+		() => settle(['2026-01-05', '13:00', '13:30', '17:30']),
+		/continuous 60-minute rest.*four hours/i
+	);
+	assert.throws(
+		() => settle(undefined, 'SHORT_NO_REST'),
+		/continuous 60-minute rest on the Thai under-18 workday/i
+	);
+	assert.throws(() => settle(undefined, 'OVERTIME'), /cannot work overtime.*under 18/i);
+	assert.throws(() => settle(undefined, 'HOLIDAY'), /cannot work on a Thai holiday.*under 18/i);
+	assert.throws(
+		() =>
+			buildStatutory({
+				code: TH,
+				period: '2026-01',
+				people: [citizen('MINOR-UNRECORDED', 12_000, { age: 17 })]
+			}),
+		/timed work and rest records/i
+	);
+});
+
+test('Thailand — s.27 needs timed rest, prior agreement for split breaks and 20 minutes before long overtime', () => {
+	// LPA s.27: https://www.mol.go.th/wp-content/uploads/sites/2/2018/03/301.pdf.
+	const run = (
+		change: 'NO_TIME' | 'LATE' | 'OVER_TWO' | 'SPLIT' | 'SHORT_PRE_OT' | 'VALID_PRE_OT',
+		agreement?: string
+	) =>
+		buildStatutory(
+			{ code: TH, period: '2026-01', people: [citizen('ADULT-REST', 24_000)] },
+			(world) => {
+				if (change === 'NO_TIME' || change === 'LATE') {
+					const shift = world.shift_definitions.find((row) => row.code === 'DAY')!;
+					shift.variant = {
+						kind: 'WORK',
+						start_time: '09:00',
+						end_time: '18:00',
+						break_minutes: 60,
+						...(change === 'LATE' ? { break_start_time: '15:00' } : {})
+					};
+					return;
+				}
+				const date = '2026-01-05';
+				punch(
+					world,
+					'ADULT-REST',
+					date,
+					'09:00',
+					change === 'SPLIT' || change === 'OVER_TWO' ? '18:00' : '21:00',
+					change === 'SPLIT' || change === 'OVER_TWO' ? 0 : 3
+				);
+				const day = world.work_days.at(-1)!;
+				if (change === 'SPLIT') {
+					day.worked_intervals = [
+						{ start: `${date}T09:00:00+07:00`, end: `${date}T11:00:00+07:00` },
+						{ start: `${date}T11:30:00+07:00`, end: `${date}T13:30:00+07:00` },
+						{ start: `${date}T14:00:00+07:00`, end: `${date}T18:00:00+07:00` }
+					];
+					day.th_split_break_agreed_at = agreement ?? null;
+				}
+				if (change === 'OVER_TWO')
+					day.worked_intervals = [
+						{ start: `${date}T09:00:00+07:00`, end: `${date}T11:00:00+07:00` },
+						{ start: `${date}T14:00:00+07:00`, end: `${date}T18:00:00+07:00` }
+					];
+				if (change === 'SHORT_PRE_OT')
+					day.worked_intervals = [
+						{ start: `${date}T09:00:00+07:00`, end: `${date}T13:00:00+07:00` },
+						{ start: `${date}T14:00:00+07:00`, end: `${date}T18:00:00+07:00` },
+						{ start: `${date}T18:05:00+07:00`, end: `${date}T21:05:00+07:00` }
+					];
+			}
+		);
+	assert.throws(
+		() => run('NO_TIME'),
+		/over five consecutive hours without a timed Thai s\.27 break/i
+	);
+	assert.throws(() => run('LATE'), /over five consecutive hours without a timed Thai s\.27 break/i);
+	assert.throws(() => run('OVER_TWO'), /Thai s\.27 wage treatment for rest over two hours/i);
+	assert.throws(() => run('SPLIT'), /prior split-break agreement/i);
+	assert.throws(() => run('SPLIT', '2026-01-05T10:00:00+07:00'), /prior split-break agreement/i);
+	assert.equal(run('SPLIT', '2026-01-04T12:00:00+07:00').slips.get('ADULT-REST')!.gross, 24_000);
+	assert.throws(() => run('SHORT_PRE_OT'), /timed 20-minute rest before Thai overtime/i);
+	assert.deepEqual(workLines(run('VALID_PRE_OT').slips.get('ADULT-REST')!), [
+		['2026-01-05', 'OT-1.5X', 3, 450]
+	]);
+});
+
+test('Thailand — under-18 night work requires prior written Director-General permission (LPA s.47)', () => {
+	const run = (grantedAt: string | null, reference: string | null) =>
+		buildStatutory(
+			{ code: TH, period: '2026-01', people: [citizen('MINOR-NIGHT', 12_000, { age: 17 })] },
+			(world) => {
+				for (
+					let instant = Date.UTC(2025, 11, 21);
+					instant <= Date.UTC(2026, 0, 31);
+					instant += 86_400_000
+				) {
+					const date = new Date(instant).toISOString().slice(0, 10);
+					const weekday = new Date(instant).getUTCDay();
+					if (weekday === 0 || weekday === 6) continue;
+					punch(world, 'MINOR-NIGHT', date, '09:00', '18:00');
+				}
+				const night = {
+					...world.shift_definitions[0]!,
+					id: 'th-minor-night',
+					code: 'MINOR-NIGHT',
+					variant: {
+						kind: 'WORK',
+						start_time: '21:00',
+						end_time: '06:00',
+						break_minutes: 60,
+						break_start_time: '01:00'
+					}
+				};
+				world.shift_definitions.push(night as never);
+				const date = '2026-01-05';
+				const day = world.work_days.find((row) => row.work_date === date)!;
+				day.shift_definition_id = night.id;
+				day.worked_intervals = [
+					{ start: `${date}T21:00:00+07:00`, end: `2026-01-06T01:00:00+07:00` },
+					{ start: `2026-01-06T02:00:00+07:00`, end: `2026-01-06T06:00:00+07:00` }
+				];
+				day.th_minor_night_permission_granted_at = grantedAt;
+				day.th_minor_night_permission_reference = reference;
+			}
+		);
+	assert.throws(() => run(null, null), /prior written Thai Director-General permission/i);
+	assert.throws(
+		() => run('2026-01-05T22:30:00+07:00', 'DG-123'),
+		/prior written Thai Director-General permission/i
+	);
+	assert.equal(run('2026-01-04T12:00:00+07:00', 'DG-123').slips.get('MINOR-NIGHT')!.gross, 12_000);
+});
+
+test('Thailand — pregnancy status gates night, holiday and overtime work (LPA s.39/1)', () => {
+	// https://www.mol.go.th/wp-content/uploads/sites/2/2018/03/301.pdf, s.39/1.
+	const run = (status: 'PREGNANT' | 'NOT_PREGNANT' | null, holiday = false) =>
+		buildStatutory(
+			{
+				code: TH,
+				period: '2026-01',
+				people: [citizen('PREGNANT-WORK', 24_000, { gender: 'FEMALE' })]
+			},
+			(world) => {
+				world.employment_terms[0]!.th_pregnancy_status = status;
+				if (holiday) punch(world, 'PREGNANT-WORK', '2026-01-10', '09:00', '18:00', 8);
+				else punch(world, 'PREGNANT-WORK', '2026-01-05', '09:00', '21:00', 3);
+			}
+		);
+	assert.throws(() => run(null), /dated Thai pregnancy status/i);
+	assert.throws(() => run('PREGNANT'), /supported Thai s\.39\/1 role and health evidence/i);
+	assert.throws(
+		() => run('PREGNANT', true),
+		/cannot perform Thai night or holiday work while pregnant/i
+	);
+	assert.deepEqual(workLines(run('NOT_PREGNANT').slips.get('PREGNANT-WORK')!), [
+		['2026-01-05', 'OT-1.5X', 3, 450]
+	]);
+});
 
 test('Thailand — s.61 1.5×, s.62(1) +1× holiday work, s.63 3× holiday overtime at monthly ÷ 30 ÷ 8 (s.68)', () => {
 	// 24,000 a month: s.68 hourly rate 24,000 ÷ (30 × 8) = 100.
@@ -713,9 +1190,9 @@ test('Thailand — s.61 1.5×, s.62(1) +1× holiday work, s.63 3× holiday overt
 		{ code: TH, period: '2026-01', people: [citizen('OT-24K', 24_000)] },
 		(world) => {
 			world.jurisdiction_holidays.push(holiday('2026-01-01', 'New Year’s Day'));
-			punch(world, 'OT-24K', '2026-01-05', '09:00', '21:00'); // Monday: 11 worked, 3 beyond the day
-			punch(world, 'OT-24K', '2026-01-10', '09:00', '18:00'); // Saturday weekly holiday: 9 worked
-			punch(world, 'OT-24K', '2026-01-01', '09:00', '18:00'); // traditional holiday: the normal day
+			punch(world, 'OT-24K', '2026-01-05', '09:00', '21:00', 3); // Monday: 11 worked, 3 beyond the day
+			punch(world, 'OT-24K', '2026-01-10', '09:00', '18:00', 9); // Saturday weekly holiday: 9 worked
+			punch(world, 'OT-24K', '2026-01-01', '09:00', '18:00', 8); // traditional holiday: the normal day
 		}
 	);
 	const slip = slips.get('OT-24K')!;
@@ -738,6 +1215,70 @@ test('Thailand — s.61 1.5×, s.62(1) +1× holiday work, s.63 3× holiday overt
 	assert.deepEqual(charge(slip, 'PIT'), [26_350, 0, 0]);
 });
 
+test('Thailand — guarding duty uses the 2009/2026 overtime cutover on 24 April 2026 (TH-WORK-03)', () => {
+	// 24,000 ÷ 30 ÷ 8 = 100/hour. The 2009 regulation paid one ordinary hour for each
+	// overtime hour; the 2025 regulation starts after 365 days on 24 April 2026 and requires
+	// 1.25× on a workday or 2.5× for holiday overtime. Holiday first-eight-hour pay stays s.62.
+	// Each day's hours settle in the payslip whose own attendance window (21st–20th) holds them,
+	// so 18 April is a 2026-04 payslip and 23–25 April a 2026-05 one.
+	const guard = (period: string, days: ReadonlyArray<readonly [string, string, number]>) =>
+		buildStatutory(
+			{
+				code: TH,
+				period,
+				people: [citizen('GUARD', 24_000, { statutory_work_category: 'GUARD_DUTY' })]
+			},
+			(world) => {
+				for (const [date, end, approved] of days) {
+					punch(world, 'GUARD', date, '09:00', end);
+					world.work_days.at(-1)!.approved_overtime_hours = approved;
+				}
+			}
+		).slips.get('GUARD')!;
+	const under2009 = guard('2026-04', [['2026-04-18', '18:00', 9]]);
+	const after2026 = guard('2026-05', [
+		['2026-04-23', '21:00', 3],
+		['2026-04-24', '21:00', 3],
+		['2026-04-25', '18:00', 9]
+	]);
+	assert.deepEqual(
+		[...workLines(under2009), ...workLines(after2026)],
+		[
+			['2026-04-18', 'GUARD-HOL-OT-1.0X', 1, 100],
+			['2026-04-18', 'HOL-1.0X', 8, 800],
+			['2026-04-23', 'GUARD-OT-1.0X', 3, 300],
+			['2026-04-24', 'GUARD-OT-1.25X', 3, 375],
+			['2026-04-25', 'GUARD-HOL-OT-2.5X', 1, 250],
+			['2026-04-25', 'HOL-1.0X', 8, 800]
+		]
+	);
+});
+
+test('Thailand — on a seven-hour normal day the s.68 hour is monthly ÷ (30 × 7) and the eighth hour is s.61 overtime (TH-WORK-05)', () => {
+	// s.68: the hourly rate of a monthly wage is monthly ÷ (30 × the normal working hours a day); s.5
+	// overtime is work beyond the normal working hours. A roster of 09:00–17:00 less a one-hour break
+	// is a seven-hour normal day (the day s.23 caps hazardous work at). 21,000 ÷ (30 × 7) = 100.
+	// Monday 5 January 2026 09:00–21:00 less the break: 11 worked, 4 beyond the day, 4 × 1.5 × 100.
+	const { slips } = buildStatutory(
+		{ code: TH, period: '2026-01', people: [citizen('SEVEN-H', 21_000)] },
+		(world) => {
+			for (const row of world.shift_definitions)
+				if (row.variant.kind === 'WORK')
+					row.variant = {
+						kind: 'WORK',
+						start_time: '09:00',
+						end_time: '17:00',
+						break_minutes: 60,
+						break_start_time: '13:00'
+					};
+			punchSeven(world, 'SEVEN-H', '2026-01-05', '21:00', 4);
+		}
+	);
+	const slip = slips.get('SEVEN-H')!;
+	assert.deepEqual(workLines(slip), [['2026-01-05', 'OT-1.5X', 4, 600]]);
+	assert.equal(slip.gross, 21_600);
+});
+
 test('Thailand — overtime is withheld as an occasional payment (P.96/2543 cl.1(5)), and s.65(1) managers earn no overtime', () => {
 	// 60,000 (hourly 250): Monday 5 January 2026 09:00–21:00, three hours at 1.5 × 250 = 1,125.
 	// PIT: regular 34,925; with the overtime 721,125 → 550,625 net → 27,500 + 50,625 × 15% =
@@ -752,9 +1293,12 @@ test('Thailand — overtime is withheld as an occasional payment (P.96/2543 cl.1
 			]
 		},
 		(world) => {
-			punch(world, 'OT-60K', '2026-01-05', '09:00', '21:00');
-			punch(world, 'OT-MGR', '2026-01-05', '09:00', '21:00');
-			punch(world, 'OT-MGR', '2026-01-10', '09:00', '18:00');
+			punch(world, 'OT-60K', '2026-01-05', '09:00', '21:00', 3);
+			// s.65(1): the manager's hours are stated — eleven on the Monday, eight on the weekly
+			// holiday — and the plan records them. s.65(1)/s.66 gives the manager no s.61–63
+			// entitlement, so nothing is priced for them.
+			punch(world, 'OT-MGR', '2026-01-05', '09:00', '21:00', 3);
+			punch(world, 'OT-MGR', '2026-01-10', '09:00', '18:00', 8);
 		}
 	);
 	const slip = slips.get('OT-60K')!;
@@ -775,7 +1319,7 @@ test('Thailand — a daily-paid employee working the weekly holiday is paid 2× 
 			period: '2026-01',
 			people: [citizen('DAILY', 800, { pay_frequency: 'DAILY', worksite: 'Bangkok' })]
 		},
-		(world) => punch(world, 'DAILY', '2026-01-10', '09:00', '17:00')
+		(world) => punch(world, 'DAILY', '2026-01-10', '09:00', '17:00', 8)
 	);
 	assert.deepEqual(workLines(slips.get('DAILY')!), [['2026-01-10', 'HOL-2.0X', 8, 1_600]]);
 });
@@ -969,13 +1513,13 @@ test('Thailand — s.119 cause and the s.118 para.3–4 fixed-term exemption rem
 });
 
 test('Thailand — s.67 pays the year’s annual leave on exit only for an employer termination not for a s.119 cause', () => {
-	// Carried-forward leave (paid on every exit) is by agreement and not modelled, so a resignation
-	// or a for-cause dismissal pays nothing from the year; every employer termination does.
+	// Current-year leave is limited to eligible employer termination; agreed carry is paid on every exit.
 	for (const version of settingsVersions(TH)) {
 		const annual = leaveCatalogue(TH).find(
 			(row) => row.settings_id === version.id && row.code === 'ANNUAL_LEAVE'
 		)!;
 		assert.equal(annual.encash_on_exit, true);
+		assert.equal(annual.entitlement.encash_carry_on_exit_when, '');
 		const when = annual.entitlement.encash_on_exit_when as string;
 		const exit = (reason: string, facts: Record<string, boolean> = {}) =>
 			evaluateBoolean(expressionEngine, when, {
@@ -1448,6 +1992,490 @@ test('Thailand — a monthly wage meets Notice 14 at the daily rate × 30 (TH-WA
 		() => yala([citizen('M-YALA-LOW', 10_109.99, { worksite: 'Yala' })]),
 		/M-YALA-LOW is paid 336\.9997 a day .* of 337/
 	);
+});
+
+test('Thailand — a transfer between worksites holds each day to the floor of the site the terms record that day (TH-WAGE-01, -02)', () => {
+	// Notice 14 cl.20 (no employer pays less than the rate) is owed per day at the day's workplace:
+	// cl.3 Mueang Chiang Mai THB380, cl.7 the rest of Chiang Mai THB357. A daily THB370 contract
+	// moved on Monday 16 February 2026: February's Mon–Fri days 2–13 (10) at one site, 16–27 (10) at
+	// the other. 370 ≥ 357 at Mae Rim; 370 < 380 on each of the ten Mueang days, whichever way the
+	// move runs; THB380 meets both.
+	const moved = (key: string, wage: number, before: string, after: string) =>
+		buildStatutory(
+			{
+				code: TH,
+				period: '2026-02',
+				people: [citizen(key, wage, { pay_frequency: 'DAILY', worksite: before })]
+			},
+			(world) => {
+				const old = world.employment_terms[0]!;
+				world.employment_terms.push({
+					...old,
+					id: 'b0000000-0000-4000-8000-00000000a0f2',
+					worksite: after,
+					effective_range: { start: '2026-02-16', end: null }
+				});
+				old.effective_range = { start: old.effective_range.start, end: '2026-02-15' };
+			}
+		).warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW'));
+	const maeRim = 'Chiang Mai/Mae Rim';
+	const mueang = 'Chiang Mai/Mueang Chiang Mai';
+	assert.throws(
+		() => moved('TO-MUEANG', 370, maeRim, mueang),
+		/TO-MUEANG is paid 370 a day on 10 normal working day\(s\) from 2026-02-16, below the Chiang Mai\/Mueang Chiang Mai daily minimum wage of 380/
+	);
+	assert.throws(
+		() => moved('FROM-MUEANG', 370, mueang, maeRim),
+		/FROM-MUEANG is paid 370 a day on 10 normal working day\(s\) from 2026-02-02, below the Chiang Mai\/Mueang Chiang Mai daily minimum wage of 380/
+	);
+	assert.deepEqual(moved('BOTH-380', 380, maeRim, mueang), []);
+});
+
+test('Thailand — one person working several sites in the same week is held to each work day’s own site (TH-WAGE-01, -02)', () => {
+	// Notice 14 cl.20 is owed per day at the workplace the day was worked: cl.3 Mueang Chiang Mai
+	// THB380, cl.7 the rest of Chiang Mai THB357. The terms record Mae Rim; `work_days.worksite`
+	// records Monday 2 February 2026 at Mueang and Tuesday 3 February at Mae Rim (a planned day, no
+	// punch: the Mon–Fri pattern stands). THB370: 370 ≥ 357 on every Mae Rim day, 370 < 380 on the
+	// one Mueang day only. THB380 meets both; a work-day site the table does not name refuses.
+	const sites = (key: string, wage: number, days: Record<string, string>) =>
+		buildStatutory(
+			{
+				code: TH,
+				period: '2026-02',
+				people: [citizen(key, wage, { pay_frequency: 'DAILY', worksite: 'Chiang Mai/Mae Rim' })]
+			},
+			(world) => {
+				const employment = world.employments.find((row) => row.employee_number === key)!;
+				for (const [date, worksite] of Object.entries(days))
+					world.work_days.push({
+						id: `wd-${key}-${date}`,
+						employment_id: employment.id,
+						work_date: date,
+						shift_definition_id: null,
+						worked_intervals: null,
+						worksite,
+						approval_id: null
+					});
+			}
+		).warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW'));
+	const week = {
+		'2026-02-02': 'Chiang Mai/Mueang Chiang Mai',
+		'2026-02-03': 'Chiang Mai/Mae Rim'
+	};
+	assert.throws(
+		() => sites('SPLIT-370', 370, week),
+		/SPLIT-370 is paid 370 a day on 1 normal working day\(s\) from 2026-02-02, below the Chiang Mai\/Mueang Chiang Mai daily minimum wage of 380/
+	);
+	assert.deepEqual(sites('SPLIT-380', 380, week), []);
+	assert.throws(
+		() => sites('SPLIT-BARE', 400, { '2026-02-02': 'Chiang Mai' }),
+		/record the worksite on 2026-02-02/
+	);
+});
+
+test('Thailand — hazardous work has a seven-hour day and 42-hour week (LPA s.23)', () => {
+	const run = (rosterHours: number) =>
+		buildStatutory(
+			{ code: TH, period: '2026-01', people: [citizen('HAZ', 21_000, { hazardous_work: true })] },
+			(world) => {
+				for (const row of world.shift_definitions)
+					if (row.code === 'DAY')
+						row.variant = {
+							kind: 'WORK',
+							start_time: '09:00',
+							end_time: `${String(10 + rosterHours).padStart(2, '0')}:00`,
+							break_minutes: 60,
+							break_start_time: '13:00'
+						};
+				punchSeven(world, 'HAZ', '2026-01-05', '21:00', 4);
+			}
+		);
+	assert.throws(() => run(8), /normal|hazardous|7 hour/i);
+	const slip = run(7).slips.get('HAZ')!;
+	assert.deepEqual(
+		workLines(slip).filter((row) => row[1] === 'OT-1.5X'),
+		[['2026-01-05', 'OT-1.5X', 4, 600]]
+	);
+});
+
+test('Thailand — inherited seven-day patterns cannot exceed the 48/42-hour normal week (LPA s.23)', () => {
+	for (const version of settingsVersions(TH)) {
+		const limits = version.work_rules.limits;
+		assert.equal(limits.find((row) => row.key === 'ordinary_normal_week')?.max_hours, 48);
+		assert.equal(limits.find((row) => row.key === 'hazardous_normal_week')?.max_hours, 42);
+	}
+	const run = (hours: number, hazardous: boolean) =>
+		buildStatutory(
+			{
+				code: TH,
+				period: '2026-01',
+				people: [citizen('WEEK', 24_000, { hazardous_work: hazardous })]
+			},
+			(world) => {
+				const day = world.shift_definitions.find((row) => row.code === 'DAY')!;
+				day.variant = {
+					kind: 'WORK',
+					start_time: '09:00',
+					end_time: `${String(9 + hours).padStart(2, '0')}:00`,
+					break_minutes: 0
+				};
+				const pattern = world.shift_patterns[0]!.pattern as { days: { roster_code_id: string }[] };
+				pattern.days = Array.from({ length: 7 }, () => ({ roster_code_id: day.id }));
+			}
+		);
+	assert.throws(() => run(8, false), /56\.00 normal hours.*48-hour limit "ordinary_normal_week"/);
+	assert.throws(() => run(7, true), /49\.00 normal hours.*42-hour limit "hazardous_normal_week"/);
+	assert.throws(() => run(6, false), /7 consecutive worked days.*weekly_holiday permits 6/);
+});
+
+test('Thailand — a nine-hour normal day needs prior agreement and a shorter day in the week (LPA s.23)', () => {
+	const run = (agreement: string | null, tuesdayHours: number) =>
+		buildStatutory(
+			{ code: TH, period: '2026-01', people: [citizen('REDISTRIBUTED', 24_000)] },
+			(world) => {
+				const monday = {
+					...world.shift_definitions[0]!,
+					id: 'shift-nine',
+					code: 'NINE',
+					variant: {
+						kind: 'WORK',
+						start_time: '09:00',
+						end_time: '19:00',
+						break_minutes: 60,
+						break_start_time: '13:00'
+					}
+				};
+				const tuesday = {
+					...world.shift_definitions[0]!,
+					id: 'shift-short',
+					code: 'SHORT',
+					variant: {
+						kind: 'WORK',
+						start_time: '09:00',
+						end_time: `${String(10 + tuesdayHours).padStart(2, '0')}:00`,
+						break_minutes: 60,
+						break_start_time: '13:00'
+					}
+				};
+				world.shift_definitions.push(monday, tuesday);
+				const pattern = world.shift_patterns[0]!.pattern as { days: { roster_code_id: string }[] };
+				pattern.days[0] = { roster_code_id: monday.id };
+				pattern.days[1] = { roster_code_id: tuesday.id };
+				// The nine-hour day, its 13:00–14:00 break taken. An agreed ninth hour is ordinary
+				// working time, so only the unagreed day plans it as overtime.
+				punch(world, 'REDISTRIBUTED', '2026-01-05', '09:00', '19:00', agreement == null ? 1 : 0);
+				const day = world.work_days.at(-1)!;
+				day.worked_intervals = [
+					{ start: '2026-01-05T09:00:00+07:00', end: '2026-01-05T13:00:00+07:00' },
+					{ start: '2026-01-05T14:00:00+07:00', end: '2026-01-05T19:00:00+07:00' }
+				];
+				if (agreement != null) day.normal_hours_redistribution_agreed_at = agreement;
+			}
+		);
+	assert.deepEqual(workLines(run('2026-01-04T12:00:00+07:00', 7).slips.get('REDISTRIBUTED')!), []);
+	assert.deepEqual(workLines(run(null, 7).slips.get('REDISTRIBUTED')!), [
+		['2026-01-05', 'OT-1.5X', 1, 150]
+	]);
+	assert.throws(() => run('2026-01-05T10:00:00+07:00', 7), /prior worker agreement/);
+	assert.throws(() => run('2026-01-04T12:00:00+07:00', 8), /shorter-day hours to offset/);
+});
+
+test('Thailand — a guard may agree a normal day above eight hours from 24 April 2026 only within the 48-hour week', () => {
+	const run = (frequency: 'MONTHLY' | 'HOURLY', agreement: string) =>
+		buildStatutory(
+			{
+				code: TH,
+				period: '2026-04',
+				people: [
+					citizen('GUARD-DAY', frequency === 'MONTHLY' ? 24_000 : 100, {
+						pay_frequency: frequency,
+						statutory_work_category: 'GUARD_DUTY'
+					})
+				]
+			},
+			(world) => {
+				const long = {
+					...world.shift_definitions[0]!,
+					id: 'guard-twelve',
+					code: 'GUARD-TWELVE',
+					variant: {
+						kind: 'WORK',
+						start_time: '09:00',
+						end_time: '22:00',
+						break_minutes: 60,
+						break_start_time: '13:00'
+					}
+				};
+				world.shift_definitions.push(long as never);
+				punch(world, 'GUARD-DAY', '2026-04-27', '09:00', '22:00');
+				// Twelve hours inside the 09:00–22:00 shift, the hour of s.27 rest split into two
+				// half hours by the prior agreement the split needs.
+				const day = world.work_days.at(-1)!;
+				day.shift_definition_id = long.id;
+				day.normal_hours_redistribution_agreed_at = agreement;
+				day.th_split_break_agreed_at = '2026-04-26T12:00:00+07:00';
+				day.worked_intervals = [
+					{ start: '2026-04-27T09:00:00+07:00', end: '2026-04-27T13:00:00+07:00' },
+					{ start: '2026-04-27T13:30:00+07:00', end: '2026-04-27T17:30:00+07:00' },
+					{ start: '2026-04-27T18:00:00+07:00', end: '2026-04-27T22:00:00+07:00' }
+				];
+			}
+		);
+	assert.deepEqual(
+		workLines(run('MONTHLY', '2026-04-26T12:00:00+07:00').slips.get('GUARD-DAY')!),
+		[]
+	);
+	assert.throws(() => run('MONTHLY', '2026-04-27T10:00:00+07:00'), /prior worker agreement/);
+	assert.deepEqual(workLines(run('HOURLY', '2026-04-26T12:00:00+07:00').slips.get('GUARD-DAY')!), [
+		['2026-04-27', 'GUARD_NORMAL_SUPPLEMENT', 4, 500]
+	]);
+});
+
+test('Thailand — a non-monthly guard’s additional normal-day compensation enters SSO and EWF wage bases', () => {
+	// October 2026 has 22 weekdays: 176 normal hours, plus four on the agreed 12-hour Monday.
+	// Hourly THB60 earns THB10,800 ordinary base; the regulation adds 4 × 60 × 1.25 = 300.
+	const slip = buildStatutory(
+		{
+			code: TH,
+			period: '2026-10',
+			headcount: 10,
+			people: [
+				citizen('GUARD-HOUR', 60, {
+					pay_frequency: 'HOURLY',
+					statutory_work_category: 'GUARD_DUTY'
+				})
+			]
+		},
+		(world) => {
+			const long = {
+				...world.shift_definitions[0]!,
+				id: 'guard-october-twelve',
+				code: 'GUARD-OCTOBER-TWELVE',
+				variant: {
+					kind: 'WORK',
+					start_time: '09:00',
+					end_time: '22:00',
+					break_minutes: 60,
+					break_start_time: '13:00'
+				}
+			};
+			world.shift_definitions.push(long as never);
+			punch(world, 'GUARD-HOUR', '2026-10-26', '09:00', '22:00');
+			// Twelve hours inside the 09:00–22:00 shift, the hour of s.27 rest split into two
+			// half hours by the prior agreement the split needs.
+			const day = world.work_days.at(-1)!;
+			day.shift_definition_id = long.id;
+			day.normal_hours_redistribution_agreed_at = '2026-10-25T12:00:00+07:00';
+			day.th_split_break_agreed_at = '2026-10-25T12:00:00+07:00';
+			day.worked_intervals = [
+				{ start: '2026-10-26T09:00:00+07:00', end: '2026-10-26T13:00:00+07:00' },
+				{ start: '2026-10-26T13:30:00+07:00', end: '2026-10-26T17:30:00+07:00' },
+				{ start: '2026-10-26T18:00:00+07:00', end: '2026-10-26T22:00:00+07:00' }
+			];
+		}
+	).slips.get('GUARD-HOUR')!;
+	assert.deepEqual(workLines(slip), [['2026-10-26', 'GUARD_NORMAL_SUPPLEMENT', 4, 300]]);
+	assert.equal(slip.gross, 11_100);
+	assert.deepEqual(charge(slip, 'SSO'), [11_100, 555, 555]);
+	assert.deepEqual(charge(slip, 'EWF'), [11_100, 27.75, 27.75]);
+});
+
+test('Thailand — each overtime or holiday-work occasion needs prior worker consent (LPA ss.24–25)', () => {
+	const run = (consent: string | null) =>
+		buildStatutory(
+			{ code: TH, period: '2026-01', people: [citizen('CONSENT', 24_000)] },
+			(world) => {
+				punch(world, 'CONSENT', '2026-01-05', '09:00', '21:00', 3);
+				world.work_days.at(-1)!.overtime_consented_at = consent;
+			}
+		);
+	assert.throws(() => run(null), /worker’s prior consent/);
+	assert.throws(() => run('2026-01-05T10:00:00+07:00'), /worker’s prior consent/);
+	assert.deepEqual(workLines(run('2026-01-05T08:00:00+07:00').slips.get('CONSENT')!), [
+		['2026-01-05', 'OT-1.5X', 3, 450]
+	]);
+});
+
+test('Thailand — s.24–25 consent exceptions require a saved reason and apply only to their day', () => {
+	const run = (
+		date: string,
+		exception: string | null,
+		reference: string | null,
+		emergency = false
+	) =>
+		buildStatutory(
+			{ code: TH, period: '2026-01', people: [citizen('EXCEPTION', 24_000)] },
+			(world) => {
+				punch(world, 'EXCEPTION', date, '09:00', date === '2026-01-10' ? '18:00' : '21:00');
+				const row = world.work_days.at(-1)!;
+				row.approved_overtime_hours = date === '2026-01-10' ? 8 : 3;
+				row.overtime_consented_at = null;
+				row.th_consent_exception = exception as never;
+				row.th_consent_exception_reference = reference;
+				row.emergency_cause = emergency;
+			}
+		);
+	assert.deepEqual(
+		workLines(
+			run('2026-01-05', 'CONTINUOUS_DAMAGE_IF_STOPPED', 'production-log-7').slips.get('EXCEPTION')!
+		),
+		[['2026-01-05', 'OT-1.5X', 3, 450]]
+	);
+	assert.deepEqual(
+		workLines(run('2026-01-10', 'HOLIDAY_HOTEL', 'hotel-licence-9').slips.get('EXCEPTION')!),
+		[['2026-01-10', 'HOL-1.0X', 8, 800]]
+	);
+	assert.throws(
+		() => run('2026-01-05', 'HOLIDAY_HOTEL', 'hotel-licence-9'),
+		/holiday-work exception on an ordinary day/
+	);
+	assert.throws(
+		() => run('2026-01-05', 'CONTINUOUS_DAMAGE_IF_STOPPED', null),
+		/needs evidence for the Thai consent exception/
+	);
+	assert.throws(() => run('2026-01-05', null, null, true), /worker’s prior consent/);
+	assert.deepEqual(
+		workLines(run('2026-01-05', 'EMERGENCY', 'emergency-report-7').slips.get('EXCEPTION')!),
+		[['2026-01-05', 'OT-1.5X', 3, 450]]
+	);
+});
+
+test('Thailand — overtime and holiday work together cannot exceed 36 hours in a week (LPA s.26, MR No.3)', () => {
+	for (const version of settingsVersions(TH))
+		assert.equal(
+			version.work_rules.limits.find((row) => row.key === 'combined_overtime_holiday_week')
+				?.max_hours,
+			36
+		);
+	const run = (hours: number[]) =>
+		buildStatutory(
+			{ code: TH, period: '2026-01', people: [citizen('WEEK-OT', 24_000)] },
+			(world) => {
+				for (const [index, worked] of hours.entries()) {
+					const date = `2026-01-${String(5 + index).padStart(2, '0')}`;
+					world.jurisdiction_holidays.push(holiday(date, `Holiday ${index + 1}`));
+					// `punch` writes the 13:00–14:00 gap when the day runs past 14:00, so a day of N
+					// hours runs to 09:00 + N hours plus the gap. A shorter day is one continuous
+					// span: the shift's provided 60 minutes come off it (there is no gap to show).
+					const minutes = 9 * 60 + worked * 60 + (worked > 4 ? 60 : 0);
+					punch(
+						world,
+						'WEEK-OT',
+						date,
+						'09:00',
+						`${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+					);
+					world.work_days.at(-1)!.approved_overtime_hours = worked;
+				}
+			}
+		);
+	assert.doesNotThrow(() => run([9, 9, 9, 9]));
+	// Four nine-hour holiday stints show the 13:00–14:00 gap, so the shift's 60-minute grant is
+	// already accounted and each stays nine: 36, exactly at the ceiling. The fifth day's two clocked
+	// hours are one continuous span with no gap, so the provided 60 minutes come off — one hour
+	// net — and 36 + 1 = 37.00 crosses the 36-hour limit.
+	assert.throws(() => run([9, 9, 9, 9, 2]), /37\.00 overtime and holiday hours.*36-hour limit/);
+});
+
+test('Thailand — piece-rate severance pays wages earned on the last thirty workdays (LPA s.118(1))', () => {
+	const key = 'PIECE-SEV';
+	const run = (missingDay?: string) =>
+		buildStatutory(
+			{
+				code: TH,
+				period: '2026-01',
+				people: [
+					citizen(key, 500, {
+						pay_frequency: 'DAILY',
+						statutory_work_category: 'PIECE_RATE',
+						hire_date: '2025-09-01',
+						exit_date: '2026-01-20',
+						exit_reason: 'RETRENCHMENT'
+					})
+				]
+			},
+			(world) => {
+				const employment = world.employments.find((row) => row.employee_number === key)!;
+				for (
+					let day = new Date('2025-12-01T00:00:00Z');
+					day <= new Date('2026-01-20T00:00:00Z');
+					day.setUTCDate(day.getUTCDate() + 1)
+				) {
+					if (day.getUTCDay() === 0 || day.getUTCDay() === 6) continue;
+					const date = day.toISOString().slice(0, 10);
+					if (date === missingDay) continue;
+					world.work_days.push({
+						id: `wd-${key}-${date}`,
+						employment_id: employment.id,
+						work_date: date,
+						shift_definition_id: null,
+						worked_intervals: null,
+						piece_units: date === '2026-01-20' ? 2 : 1,
+						piece_unit_rate: 500,
+						approval_id: null
+					});
+				}
+				adhoc(world, key, 'SEVERANCE_PAY', 0, '2026-01-20', 'd0000000-0000-4000-8000-0000000008f1');
+			}
+		);
+	const slip = run().slips.get(key)!;
+	assert.equal(
+		slip.adjustments.find((row) => row.component_code === 'SEVERANCE_PAY')?.amount,
+		15_500
+	);
+	assert.throws(
+		() => run('2025-12-30'),
+		/Piece-rate severance needs complete earnings or explicit absence for every last workday/
+	);
+});
+
+test('Thailand — a 35-hour contract uses seven hours for both overtime and the s.68 divisor', () => {
+	const slip = buildStatutory(
+		{
+			code: TH,
+			period: '2026-01',
+			people: [citizen('H7', 21_000, { ordinary_hours_per_week: 35 })]
+		},
+		(world) => punchSeven(world, 'H7', '2026-01-05', '21:00', 4)
+	).slips.get('H7')!;
+	assert.deepEqual(
+		workLines(slip).filter((row) => row[1] === 'OT-1.5X'),
+		[['2026-01-05', 'OT-1.5X', 4, 600]]
+	);
+});
+
+test('Thailand — s.32: a medical certificate may be asked for from the third working day of sick leave (TH-LEAVE-06)', () => {
+	// LPA s.32 (unchanged by No.2–No.9; the Ministry's copy of the consolidation, read 28 Sep 2026):
+	// "ลาป่วยตั้งแต่สามวันทำงานขึ้นไป" — three working days or more. Two working days ask for none,
+	// three do, on every sealed version's SICK_LEAVE row (every day of the helper's pattern works).
+	for (const version of settingsVersions(TH)) {
+		const row = leaveCatalogue(TH).find(
+			(entry) => entry.settings_id === version.id && entry.code === 'SICK_LEAVE'
+		) as { evidence_after_days: number | null } | undefined;
+		assert.ok(row, `${version.name}: no SICK_LEAVE`);
+		const context = leaveContext();
+		context.catalogues[0]!.evidence_after_days = row.evidence_after_days;
+		context.catalogues[0]!.entitlement = {
+			availability: 'UNLIMITED',
+			proration: 'NONE',
+			year_start_month: 1,
+			bands: []
+		};
+		const days = (end: string) =>
+			evaluateLeavePreview(context, {
+				employment_id: context.employments[0]!.id,
+				catalogue_id: context.catalogues[0]!.id,
+				calendar_month: '2026-04',
+				range: {
+					start: { date: '2026-04-15', half: 'FIRST' },
+					end: { date: end, half: 'SECOND' }
+				}
+			});
+		assert.equal(days('2026-04-16').chargeable_days, 2);
+		assert.equal(days('2026-04-16').certificate_required, false, version.name);
+		assert.equal(days('2026-04-17').chargeable_days, 3);
+		assert.equal(days('2026-04-17').certificate_required, true, version.name);
+	}
 });
 
 test('Thailand — s.70: a resignation is paid on the agreed payday, an employer termination within three days (TH-HR-30)', () => {

@@ -94,6 +94,26 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Whole calendar months since residency began, for a ladder that moves the month after an anniversary'
 	},
 	{
+		path: 'employee.presence_recorded',
+		description:
+			'Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections'
+	},
+	{
+		path: 'employee.presence_days',
+		description:
+			'Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a))'
+	},
+	{
+		path: 'employee.presence_linked_days',
+		description:
+			'Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b))'
+	},
+	{
+		path: 'employee.presence_years_90',
+		description:
+			'Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii))'
+	},
+	{
 		path: 'employment.type',
 		description:
 			'PERMANENT | CONTRACT | PROBATION | INTERN | CONSULTANT | PART_TIME | APPRENTICE | DOMESTIC'
@@ -149,6 +169,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'employment.exit_date', description: 'Last day of work, or empty while open' },
 	{
+		path: 'employment.days_to_exit',
+		description:
+			'Calendar days from the rule date to the exit date: 0 on the exit day or while open. A leave rule reads it on each day charged (TW 勞基法 §16(2): only inside the notice, `employment.days_to_exit < employment.exit_facts.notice_days_given`)'
+	},
+	{
 		path: 'employment.open_ended',
 		description:
 			'Whether the contract states no end; a fixed-term contract’s end is its `exit_date`'
@@ -186,6 +211,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'employment.earned_monthly_average(months)',
 		description:
 			'The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out'
+	},
+	{
+		path: 'employment.piece_wages_last_workdays(days)',
+		description:
+			'Earned units times unit rate on the last `days` piece-rate workdays through the final service day; refuses when a scheduled recent workday lacks earnings or explicit absence (TH LPA s.118)'
 	},
 	{
 		path: 'employment.earned_monthly_average(months, excluded)',
@@ -239,7 +269,7 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'terms.fixed_allowances',
 		description:
-			'The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme'
+			'The allowances on the contract in force on the rule date, summed, less the classes `work_rules.wage_excluded_allowances` names (MY EA s.2 “wages” (c): travelling); on a scheme’s own expression, those counting toward that scheme'
 	},
 	{
 		path: 'terms.monthly_wage',
@@ -264,12 +294,24 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'terms.workman', description: 'Statutory work category starts with MANUAL_LABOUR' },
 	{ path: 'terms.statutory_work_category', description: 'Statutory work category of the terms' },
 	{
+		path: 'terms.hazardous_work',
+		description: 'Ministerial Regulation hazardous work (TH LPA s.23)'
+	},
+	{
+		path: 'terms.weather_dependent_piece',
+		description: 'Weather-dependent piece work uses twelve paid months for ID JKK, JKM and JHT'
+	},
+	{
 		path: 'terms.worksite',
 		description: 'The worksite the terms record: a province or province/locality, or empty'
 	},
 	{
 		path: 'terms.worksite_sector',
 		description: 'The worksite sector the terms record (ID: the five-digit KBLI), or empty'
+	},
+	{
+		path: 'terms.worksite_sector_edition',
+		description: 'The KBLI edition of an ID worksite sector (2020 or 2025), or empty'
 	},
 	{
 		path: 'terms.department',
@@ -304,6 +346,21 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		description: 'Date residency began as `YYYY-MM-DD`, or empty when unrecorded'
 	},
 	{ path: 'terms.notice_days', description: 'Notice days the contract states, 0 when none' },
+	{
+		path: 'terms.probation_months',
+		description:
+			'Months of the agreed probation served, hire through its last day (`employment_terms.probation_end`) or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83)'
+	},
+	{
+		path: 'terms.post_probation_wage',
+		description:
+			'The wage the contract agrees for after the probation, 0 when unrecorded (CN LCL art.20: the probation wage is at least 80% of it; art.83: damages are priced on it)'
+	},
+	{
+		path: 'terms.open_ended_overdue_months',
+		description:
+			'Months from the day an open-ended contract should have been concluded (`employment_terms.open_ended_due_on`) through the rule date inclusive, a part month by its days; 0 when unrecorded or not yet due (CN LCL art.82 para.2)'
+	},
 	{ path: 'terms.ordinary_hours_per_week', description: 'Roster-measured working week, hours' },
 	{
 		path: 'terms.comparable_full_time_daily_hours',
@@ -442,6 +499,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'event.child_index',
 		description: 'Which recorded child the event concerns, 1-based; 0 when none'
 	},
+	{
+		path: 'event.wife_prior_living_biological_children',
+		description:
+			'Wife’s prior living biological children at this birth, or -1 when unrecorded (VN Decree 168/2026 art.2(1)(b))'
+	},
 	{ path: 'event.date', description: 'The day of the event, or empty' },
 	{
 		path: 'event.child_citizenship',
@@ -460,6 +522,16 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'event.prior_employment_days',
 		description:
 			'Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded'
+	},
+	{
+		path: 'event.estimated_delivery_date',
+		description:
+			'The named child’s estimated delivery date as certified by a medical practitioner (SG CDCA s.2), or empty'
+	},
+	{
+		path: 'event.adoption_eligibility_date',
+		description:
+			'The eligibility date of the application to adopt the named child (SG CDCA s.2: the application date for a citizen or PR child, else the dependant’s pass issue date), or empty'
 	},
 	{
 		path: 'period.unpaid_full_days',
@@ -511,7 +583,11 @@ const PERSON_BLANK = {
 		disabled: false,
 		race: '',
 		religion: '',
-		residency_months: 0
+		residency_months: 0,
+		presence_recorded: false,
+		presence_days: 0,
+		presence_linked_days: 0,
+		presence_years_90: 0
 	},
 	employment: {
 		type: '',
@@ -525,6 +601,7 @@ const PERSON_BLANK = {
 		service_years: 0,
 		service_start: '',
 		exit_date: '',
+		days_to_exit: 0,
 		open_ended: true,
 		contract_months: 0,
 		contract_days: 0,
@@ -532,7 +609,7 @@ const PERSON_BLANK = {
 		exit_facts: {},
 		exit_fact_keys: [],
 		absent_days_12m: 0,
-		history: { as_of: '', through: '', wages: null, leave: null }
+		history: { as_of: '', through: '', wages: null, piece_wages: null, leave: null }
 	},
 	terms: {
 		basic_salary: 0,
@@ -544,9 +621,12 @@ const PERSON_BLANK = {
 		monthly_wage_6m_average: 0,
 		workman: false,
 		statutory_work_category: '',
+		hazardous_work: false,
+		weather_dependent_piece: false,
 		statutory_wages: 0,
 		worksite: '',
 		worksite_sector: '',
+		worksite_sector_edition: '',
 		department: '',
 		payroll_group: '',
 		paid_rest_days: false,
@@ -556,6 +636,9 @@ const PERSON_BLANK = {
 		tax_residency: '',
 		residency_since: '',
 		notice_days: 0,
+		probation_months: 0,
+		post_probation_wage: 0,
+		open_ended_overdue_months: 0,
 		ordinary_hours_per_week: 0,
 		comparable_full_time_daily_hours: 0,
 		comparable_full_time_presence: '',
@@ -602,11 +685,14 @@ const PERSON_BLANK = {
 		kind: '',
 		relationship: '',
 		child_index: 0,
+		wife_prior_living_biological_children: -1,
 		date: '',
 		child_citizenship: '',
 		child_age: -1,
 		child_shared_weeks: -1,
-		prior_employment_days: 0
+		prior_employment_days: 0,
+		estimated_delivery_date: '',
+		adoption_eligibility_date: ''
 	}
 };
 
@@ -624,6 +710,7 @@ const PERIOD_FIELDS: readonly ContextField[] = [
 	{ path: 'month', description: 'The pay month, 1–12' },
 	{ path: 'start', description: 'First day of the pay period' },
 	{ path: 'end', description: 'Last day of the pay period' },
+	{ path: 'pay_date', description: 'Scheduled day this payroll run pays income' },
 	{ path: 'index', description: 'Which instalment of the month this period is' },
 	{ path: 'instalments', description: 'Instalments the month is paid in' },
 	{
@@ -652,6 +739,7 @@ const PERIOD_BLANK = {
 	month: 1,
 	start: '',
 	end: '',
+	pay_date: '',
 	index: 1,
 	instalments: 1,
 	month_factor: 1,
@@ -689,7 +777,16 @@ const SCHEME_FIELDS: readonly ContextField[] = [
 	{
 		path: 'registration_status',
 		description:
-			'REGISTERED, NOT_REGISTERED or UNDECLARED when no effective statutory declaration exists'
+			'The declaration priced by this rule (a historical covered standing when an insured period ended)'
+	},
+	{
+		path: 'current_registration_status',
+		description:
+			'The declaration at assessment end; registration_status may instead be a covered historical standing priced for earlier days'
+	},
+	{
+		path: 'declaration_reference',
+		description: 'The supporting reference for a documented NOT_REGISTERED election'
 	},
 	{
 		path: 'year_to_date.base',
@@ -725,6 +822,29 @@ const SCHEME_FIELDS: readonly ContextField[] = [
 		path: 'first_year',
 		description:
 			'Earliest tax year in which one of this employer’s earlier slips charged a base on this scheme, 0 when none — ID PP 68/2009 art.6 counts the third calendar year from the first severance part'
+	},
+	{
+		path: 'dependent_months',
+		description:
+			'Sum of registered eligible dependant counts over the tax year’s twelve months; required for an authorised annual finalisation (VN Decree 253/2026 art.48)'
+	},
+	{
+		path: 'trailing_3m.base',
+		description:
+			'Average paid wages in the last three calendar months of this employment, across tax years (ID PP 44/2015 art.19(4))'
+	},
+	{
+		path: 'trailing_3m.months',
+		description: 'Months of this employment in the three-month lookback'
+	},
+	{
+		path: 'trailing_12m.base',
+		description:
+			'Average paid wages in the last twelve calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5))'
+	},
+	{
+		path: 'trailing_12m.months',
+		description: 'Months of this employment in the twelve-month lookback'
 	},
 	{
 		path: 'projection.payslips_remaining',
@@ -1206,6 +1326,11 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		{ path: 'entry.window.end', description: 'Standing allowance window end' },
 		{ path: 'entry.captures.remaining', description: 'Amount still to settle' },
 		{ path: 'rates.ordinary_day', description: 'Ordinary day rate for the entry date' },
+		{
+			path: 'entry.unpaid_salary',
+			description:
+				'Salary earned but unpaid on this final payslip, before tax and statutory deductions (PH RA 10361 s.32)'
+		},
 		{ path: 'rates.ordinary_hour', description: 'Ordinary hour rate for the entry date' },
 		{ path: 'limits.<key>', description: 'Evaluated work limit, net worked hours' },
 		...periodFields('period.'),
@@ -1231,6 +1356,7 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		person: personBlank(),
 		entry: {
 			amount: 0,
+			unpaid_salary: 0,
 			days: 0,
 			hours: 0,
 			quantity: 0,
@@ -1464,9 +1590,14 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 			code: '',
 			assessment_period: 'PAY_PERIOD',
 			registration_status: 'UNDECLARED',
+			current_registration_status: 'UNDECLARED',
+			declaration_reference: '',
 			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0, rebate: 0 },
 			last_year: { base: 0, employee: 0, employer: 0 },
 			first_year: 0,
+			dependent_months: 0,
+			trailing_3m: { base: 0, months: 0 },
+			trailing_12m: { base: 0, months: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',
@@ -1565,9 +1696,14 @@ const SCHEME_CONTEXT: ExpressionContext = {
 			deduction: 0,
 			assessment_period: 'PAY_PERIOD',
 			registration_status: 'UNDECLARED',
+			current_registration_status: 'UNDECLARED',
+			declaration_reference: '',
 			year_to_date: { base: 0, employee: 0, employer: 0, ordinary: 0, rebate: 0 },
 			last_year: { base: 0, employee: 0, employer: 0 },
 			first_year: 0,
+			dependent_months: 0,
+			trailing_3m: { base: 0, months: 0 },
+			trailing_12m: { base: 0, months: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',

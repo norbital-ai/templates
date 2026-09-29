@@ -39,7 +39,8 @@ export function contractAllowanceClass(
  * wage the "one month's wage" a statute defines as basic plus fixed allowances (ID THR and the
  * BPJS bases, VN's insurance salary, MY's termination benefit). Where a scheme asks, only the
  * classes that count toward it (VN's insurance-equivalent allowance is on the contract but
- * enters no insurance base); a person-site reader takes them all.
+ * enters no insurance base); a person-site reader takes them all but the version's
+ * `wage_excluded_allowances`.
  */
 export function contractAllowancesOn(
 	bundle: EmploymentBundle,
@@ -51,13 +52,17 @@ export function contractAllowancesOn(
 ): number {
 	const terms = bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf));
 	if (terms == null) return 0;
+	// Outside a scheme the sum is the statute's wage, less the classes it excludes
+	// (`work_rules.wage_excluded_allowances`; MY EA s.2 "wages" (c): any travelling allowance).
+	const wageExcluded = scheme == null ? (configuration.work?.wage_excluded_allowances ?? []) : [];
+	const excluded = [...wageExcluded, ...exclude];
 	return listedAllowances(terms).reduce((sum, listed) => {
 		const component = contractAllowanceClass(configuration, listed.catalogue_id);
 		if (
 			component == null ||
 			component.destination !== 'PAY' ||
 			component.direction !== 'ADD' ||
-			exclude.includes(component.code)
+			excluded.includes(component.code)
 		)
 			return sum;
 		if (

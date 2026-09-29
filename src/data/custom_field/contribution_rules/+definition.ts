@@ -14,6 +14,7 @@ const f = customField({
 				employee: { kind: 'text' },
 				employer: { kind: 'text' },
 				per_unit: { kind: 'bool', optional: true },
+				payment_occasion: { kind: 'bool', optional: true },
 				rebate: { kind: 'text', optional: true },
 				deduction: { kind: 'text', optional: true },
 				refusal: { kind: 'text', optional: true },

@@ -14,10 +14,17 @@ const f = customField({
 				values: ['UPFRONT', 'MONTHLY', 'UNLIMITED', 'PER_EVENT', 'CREDITED']
 			},
 			year_start_month: { kind: 'int', min: 1, max: 12 },
+			year_anchor: {
+				kind: 'enum',
+				values: ['CALENDAR', 'SERVICE_ANNIVERSARY'],
+				optional: true
+			},
+			auto_carry_one_year: { kind: 'bool', optional: true },
 			proration: {
 				kind: 'enum',
 				values: ['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'HALF_MONTHS', 'CALENDAR_DAYS']
 			},
+			calendar_days: { kind: 'bool', optional: true },
 			lifetime_events: { kind: 'int', min: 1, optional: true },
 			consumes_after_days: { kind: 'number', min: 0, optional: true },
 			lifetime_days: { kind: 'json', optional: true },
@@ -28,6 +35,7 @@ const f = customField({
 			},
 			child_years: { kind: 'bool', optional: true },
 			rolling_months: { kind: 'int', min: 1, optional: true },
+			weekly_days: { kind: 'number', min: 0, optional: true },
 			rounding: {
 				kind: 'enum',
 				values: ['HALF_DAY', 'WHOLE_DAY', 'WHOLE_DAY_DOWN', 'EXACT'],
@@ -36,7 +44,9 @@ const f = customField({
 			minimum_days: { kind: 'number', min: 0, optional: true },
 			qualifies_window: { kind: 'bool', optional: true },
 			encash_on_exit_when: { kind: 'text', optional: true },
+			encash_carry_on_exit_when: { kind: 'text', optional: true },
 			scale: { kind: 'text', optional: true },
+			outpatient_sick_excludes_shift_allowance: { kind: 'bool', optional: true },
 			bands: {
 				kind: 'list',
 				of: { kind: 'object', fields: { eligibility: { kind: 'text' }, days: { kind: 'json' } } }

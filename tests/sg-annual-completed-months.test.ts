@@ -19,6 +19,7 @@ const catalogues: {
 // This probe does not close the separate no-pay, forfeiture or mid-month release cases.
 const annual = catalogues.filter((entry) => entry.code === 'ANNUAL_LEAVE');
 assert.ok(annual.length > 0, 'SG annual-leave catalogue rows must be present');
+assert.ok(annual.every((row) => row.entitlement.year_anchor === 'SERVICE_ANNIVERSARY'));
 for (const row of annual) {
 	for (const [hireDate, expected] of [
 		['2026-01-15', 3],
@@ -35,7 +36,7 @@ for (const row of annual) {
 				});
 			const result = computedEntitlement({
 				rule: row.entitlement,
-				window: leaveWindowOf(exitDate, row.entitlement),
+				window: leaveWindowOf(exitDate, row.entitlement, hireDate),
 				asOf: exitDate,
 				hireDate,
 				exitDate,

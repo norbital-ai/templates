@@ -49,6 +49,12 @@
 			label: t(`leave.availability.${value}`)
 		}))
 	);
+	const yearAnchorOptions = $derived(
+		(['CALENDAR', 'SERVICE_ANNIVERSARY'] as const).map((value) => ({
+			value,
+			label: t(`leave.year_anchor.${value}`)
+		}))
+	);
 	const roundingOptions = $derived(
 		(['HALF_DAY', 'WHOLE_DAY', 'WHOLE_DAY_DOWN', 'EXACT'] as const).map((value) => ({
 			value,
@@ -102,16 +108,38 @@
 				}}
 			/>
 		</Labelled>
-		<Labelled label={t('leave.year_start_month')} class="text-sm font-medium">
-			<Input
-				type="number"
-				min="1"
-				max="12"
-				step="1"
-				value={current.year_start_month}
+		<Labelled label={t('leave.year_anchor')} class="text-sm font-medium">
+			<Combobox
+				class="w-64 max-w-full"
+				size="sm"
+				options={yearAnchorOptions}
+				value={current.year_anchor ?? 'CALENDAR'}
 				{disabled}
-				oninput={(event) =>
-					emit({ ...current, year_start_month: numberFrom(event.currentTarget.value, 1) })}
+				onChange={(year_anchor) => {
+					if (year_anchor) emit({ ...current, year_anchor });
+				}}
+			/>
+		</Labelled>
+		{#if current.year_anchor !== 'SERVICE_ANNIVERSARY'}
+			<Labelled label={t('leave.year_start_month')} class="text-sm font-medium">
+				<Input
+					type="number"
+					min="1"
+					max="12"
+					step="1"
+					value={current.year_start_month}
+					{disabled}
+					oninput={(event) =>
+						emit({ ...current, year_start_month: numberFrom(event.currentTarget.value, 1) })}
+				/>
+			</Labelled>
+		{/if}
+		<Labelled label={t('leave.auto_carry_one_year')} class="text-sm font-medium">
+			<Checkbox
+				checked={current.auto_carry_one_year === true}
+				{disabled}
+				onCheckedChange={(auto_carry_one_year) =>
+					emit({ ...current, auto_carry_one_year: auto_carry_one_year === true })}
 			/>
 		</Labelled>
 		{#if current.availability !== 'UNLIMITED'}
@@ -167,6 +195,23 @@
 									: text
 					});
 				}}
+			/>
+		</Labelled>
+		<Labelled label={t('leave.weekly_days')} class="text-sm font-medium">
+			<Input
+				type="number"
+				min="0.5"
+				step="0.5"
+				value={current.weekly_days ?? ''}
+				{disabled}
+				oninput={(event) =>
+					emit({
+						...current,
+						weekly_days:
+							event.currentTarget.value.trim() === ''
+								? null
+								: Math.max(0.5, numberFrom(event.currentTarget.value, 0.5))
+					})}
 			/>
 		</Labelled>
 		<Labelled label={t('leave.minimum_days')} class="text-sm font-medium">

@@ -9,7 +9,8 @@ import { refuse } from '../../../lib/refuse.js';
  * least twice a month); a monthly company runs `YYYY-MM`, and the wrong grammar is refused by name.
  * There a MONTHLY employment is paid once, in the second half. `cadenceWindow` answers per cadence
  * (null when it pays nothing in the period); `resolveWindow` is the envelope the run records. Every
- * period pays on its last calendar day.
+ * period's settlement date defaults to its last calendar day. A run may record a separate
+ * contractual pay due date without moving that settlement date.
  */
 
 import { Number as EffectNumber } from 'effect';
@@ -48,7 +49,13 @@ export function weeklyInstalments(period: string): readonly PayInstalment[] {
 	if (sunday < bounds.start) sunday = addDays(sunday, 7);
 	while (sunday <= bounds.end) {
 		const week = { start: addDays(sunday, -6), end: sunday };
-		weeks.push({ sequence: weeks.length + 1, salary: week, attendance: week, payDate: sunday });
+		weeks.push({
+			sequence: weeks.length + 1,
+			salary: week,
+			attendance: week,
+			payDate: sunday,
+			payDueDate: sunday
+		});
 		sunday = addDays(sunday, 7);
 	}
 	return weeks;
@@ -91,6 +98,7 @@ type PayInstalment = {
 	/** The work days those wages cover. */
 	readonly attendance: DayRange;
 	readonly payDate: string;
+	readonly payDueDate: string;
 };
 
 export type PayrollWindow = {
@@ -103,6 +111,8 @@ export type PayrollWindow = {
 	/** The work days the wages cover; time entries and leave days are selected by this. */
 	readonly attendance: DayRange;
 	readonly payDate: string;
+	/** Contractual wage due date, for rules selected by when wages become payable. */
+	readonly payDueDate: string;
 	/**
 	 * Every pay event this window settles, in order. One for a cadence window, and then `salary`,
 	 * `attendance` and `payDate` above are exactly that instalment. A run window at a semi-monthly
@@ -182,8 +192,8 @@ function semiMonthlyInstalments(period: string): readonly [PayInstalment, PayIns
 	const second = { start: monthDay(year, monthIndex, 16), end: bounds.end };
 	return [
 		// The days an instalment reads are the days it pays for.
-		{ sequence: 1, salary: first, attendance: first, payDate: first.end },
-		{ sequence: 2, salary: second, attendance: second, payDate: second.end }
+		{ sequence: 1, salary: first, attendance: first, payDate: first.end, payDueDate: first.end },
+		{ sequence: 2, salary: second, attendance: second, payDate: second.end, payDueDate: second.end }
 	];
 }
 
@@ -194,7 +204,8 @@ function monthlyInstalment(period: string, cutoffDay: number): PayInstalment {
 		sequence: 1,
 		salary: bounds,
 		attendance: attendanceWindow(period, cutoffDay),
-		payDate: bounds.end
+		payDate: bounds.end,
+		payDueDate: bounds.end
 	};
 }
 
@@ -238,8 +249,11 @@ export function periodGrammarFault(
 function envelope(
 	period: string,
 	payFrequency: PayFrequency,
-	instalments: readonly PayInstalment[]
+	instalments: readonly PayInstalment[],
+	payDueDate?: string
 ): PayrollWindow {
+	const dated =
+		payDueDate == null ? instalments : instalments.map((one) => ({ ...one, payDueDate }));
 	const span = (ranges: readonly DayRange[]): DayRange => ({
 		start: ranges.reduce(
 			(earliest, one) => (one.start < earliest ? one.start : earliest),
@@ -256,7 +270,11 @@ function envelope(
 			(latest, one) => (one.payDate > latest ? one.payDate : latest),
 			instalments[0]!.payDate
 		),
-		instalments
+		payDueDate: dated.reduce(
+			(latest, one) => (one.payDueDate > latest ? one.payDueDate : latest),
+			dated[0]!.payDueDate
+		),
+		instalments: dated
 	};
 }
 
@@ -275,7 +293,8 @@ function envelope(
 export function cadenceWindow(
 	period: string,
 	company: PayCalendarCompany,
-	payFrequency: PayFrequency
+	payFrequency: PayFrequency,
+	payDueDate?: string
 ): PayrollWindow | null {
 	const cutoffDay = assertDayOfMonth(company.pay_cutoff_day, 'Company pay cutoff day');
 	const fault = periodGrammarFault(period, company);
@@ -294,7 +313,7 @@ export function cadenceWindow(
 					? 2
 					: null;
 		if (last != null && half !== last) return null;
-		return envelope(period, payFrequency, [monthlyInstalment(period, cutoffDay)]);
+		return envelope(period, payFrequency, [monthlyInstalment(period, cutoffDay)], payDueDate);
 	}
 	if (!paysOn(company, payFrequency))
 		throw new Error(
@@ -303,10 +322,10 @@ export function cadenceWindow(
 		);
 	if (payFrequency === 'WEEKLY') {
 		const week = weeklyInstalments(period)[(half ?? 1) - 1];
-		return week == null ? null : envelope(period, payFrequency, [week]);
+		return week == null ? null : envelope(period, payFrequency, [week], payDueDate);
 	}
 	const [first, second] = semiMonthlyInstalments(period);
-	return envelope(period, payFrequency, [half === 1 ? first : second]);
+	return envelope(period, payFrequency, [half === 1 ? first : second], payDueDate);
 }
 
 /**
@@ -319,7 +338,11 @@ export function cadenceWindow(
  * pays at the month end. The grammar is checked here too, so a period the company cannot run
  * never yields a window.
  */
-export function resolveWindow(period: string, company: PayCalendarCompany): PayrollWindow {
+export function resolveWindow(
+	period: string,
+	company: PayCalendarCompany,
+	payDueDate?: string
+): PayrollWindow {
 	const fault = periodGrammarFault(period, company);
 	if (fault != null) throw new Error(fault);
 	const own: PayFrequency =
@@ -328,9 +351,9 @@ export function resolveWindow(period: string, company: PayCalendarCompany): Payr
 			: 'MONTHLY';
 	const cadences: PayFrequency[] = own === 'MONTHLY' ? ['MONTHLY'] : [own, 'MONTHLY'];
 	const instalments = cadences.flatMap(
-		(cadence) => cadenceWindow(period, company, cadence)?.instalments ?? []
+		(cadence) => cadenceWindow(period, company, cadence, payDueDate)?.instalments ?? []
 	);
-	return envelope(period, own, instalments);
+	return envelope(period, own, instalments, payDueDate);
 }
 
 /** The cadence a default pay period is resolved for: the company, and the employment's frequency. */

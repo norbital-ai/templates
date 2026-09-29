@@ -70,8 +70,13 @@ const run = (saturday: string, consent = false) => {
 			]
 		},
 		(world) => {
-			// Ten weekdays 09:00–22:00 less the one-hour break: 12 worked, 4 extended — 40 in all.
-			for (const day of WEEKDAYS) punch(world, `2026-01-${day}`, [['09:00', '22:00']]);
+			// Ten weekdays 09:00–22:00 less the one-hour break, taken 13:00–14:00: 12 worked, 4
+			// extended — 40 in all.
+			for (const day of WEEKDAYS)
+				punch(world, `2026-01-${day}`, [
+					['09:00', '13:00'],
+					['14:00', '22:00']
+				]);
 			// A 休息日 of 10 hours in three runs under four hours (no §35 break owed): 3.5 + 3.5 + 3.
 			punch(world, `2026-01-${saturday}`, [
 				['08:00', '11:30'],

@@ -10,8 +10,10 @@
 
 import { addDays } from '../../../lib/payroll/run/dates.js';
 import {
+	observedPlan,
 	overtimeHeadroom,
 	plannedDay,
+	type ObservedDays,
 	type OvertimeMaximum,
 	type RosterCodeFacts
 } from '../../scheduling/work-limits.js';
@@ -35,8 +37,8 @@ export function windowOvertime(options: {
 	/** The roster code the pattern projects on a date with no explicit one. */
 	readonly projected: (date: string) => string | null;
 	readonly codeById: ReadonlyMap<string, RosterCodeFacts>;
-	/** The dates the person observes a company holiday on (`observedHolidayDates`). */
-	readonly holidays: ReadonlySet<string>;
+	/** The person's days as payroll resolves them (`observedDays`). */
+	readonly observed: ObservedDays;
 	readonly limits: HeadroomOptions['limits'];
 	readonly cutoffDay: number;
 }): OvertimeMaximum | null {
@@ -47,12 +49,14 @@ export function windowOvertime(options: {
 		const own = date === options.date;
 		const explicit = own ? options.draft.codeId : (stored?.shift_definition_id ?? null);
 		days.push({
-			...plannedDay({
-				date,
-				rosterCodeId: explicit ?? options.projected(date),
-				codeById: options.codeById
-			}),
-			holiday: options.holidays.has(date),
+			...observedPlan(
+				plannedDay({
+					date,
+					rosterCodeId: explicit ?? options.projected(date),
+					codeById: options.codeById
+				}),
+				options.observed
+			),
 			emergency: own ? options.draft.emergency : stored?.emergency === true,
 			// The day's own figure does not enter its maximum: every other day's does.
 			approved_overtime_hours: own ? 0 : (stored?.approved ?? 0)

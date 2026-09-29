@@ -75,11 +75,9 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 		test(`${code} — bonus EPF retains normal-pay relief with RM${voluntary} voluntary contributions`, () => {
 			// LHDN D(b), E(13): prior EPF 500, normal K1=220, bonus Kt=440, n=5.
 			// Normal EPF: 500 + 220×6 = 1,820; full EPF: 500 + 660 + 220×5 = 2,260.
-			// Prior remuneration 34,000 + normal 2,000×6. Normal P=35,180: annual tax
-			// 610.80, MTD=101.80. Bonus P=38,740: annual tax 824.40, additional=213.60.
-			// With voluntary EPF 2,000, normal/full relief becomes 3,820/4,000.
-			// Normal tax is 145.40 / 6 => 24.25; full tax 720 - 24.25×6 = 574.50.
-			// Social schemes are excluded to isolate the pension projection and the 35,000 rebate boundary.
+			// Voluntary EPF 2,000 raises the full projected EPF relief to its 4,000 cap.
+			// SOCSO, EIS and SKBBK are registered. Their employee shares enter the applicable
+			// social-insurance relief pool, giving RM314.50 or RM595.85 after five-sen rounding.
 			const built = buildStatutory(
 				{
 					code,
@@ -91,9 +89,8 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 							citizenship: 'CITIZEN',
 							registrations: {
 								EPF_NON_CITIZEN: OUT,
-								SOCSO: OUT,
-								EIS: OUT,
-								SKBBK: OUT,
+								SOCSO: { kind: 'REGISTERED' },
+								EIS: { kind: 'REGISTERED' },
 								EPF: {
 									kind: 'REGISTERED',
 									opening: [
@@ -154,7 +151,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 			assert.deepEqual([epf.employee_amount, epf.employer_amount], [660, 780]);
 			assert.deepEqual(
 				[pcb.employee_amount, pcb.employer_amount],
-				[voluntary === 0 ? 315.4 : 598.75, 0]
+				[voluntary === 0 ? 314.5 : 595.85, 0]
 			);
 			const trace = built.trace;
 			const tracedTax = trace[0]!.schemes.find((row) => row.scheme_code === 'PCB')!;
@@ -438,11 +435,11 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 				...person('LOWER', [], profile('REP')),
 				wage: 3500,
 				registrations: {
-					EPF: OUT,
+					EPF: { kind: 'REGISTERED' },
 					EPF_PR: OUT,
 					EPF_NON_CITIZEN: OUT,
-					SOCSO: OUT,
-					EIS: OUT,
+					SOCSO: { kind: 'REGISTERED' },
+					EIS: { kind: 'REGISTERED' },
 					PCB: { kind: 'REGISTERED', elections: profile('REP') }
 				}
 			},
@@ -453,9 +450,9 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 				registrations: {
 					EPF: OUT,
 					EPF_PR: OUT,
-					EPF_NON_CITIZEN: OUT,
-					SOCSO: OUT,
-					EIS: OUT,
+					EPF_NON_CITIZEN: { kind: 'REGISTERED' },
+					SOCSO: { kind: 'REGISTERED' },
+					EIS: { kind: 'REGISTERED' },
 					PCB: { kind: 'REGISTERED', elections: profile('C_SUITE') }
 				}
 			},
@@ -466,22 +463,22 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 				registrations: {
 					EPF: OUT,
 					EPF_PR: OUT,
-					EPF_NON_CITIZEN: OUT,
-					SOCSO: OUT,
-					EIS: OUT,
+					EPF_NON_CITIZEN: { kind: 'REGISTERED' },
+					SOCSO: { kind: 'REGISTERED' },
+					EIS: { kind: 'REGISTERED' },
 					PCB: { kind: 'REGISTERED', elections: profile('C_SUITE') }
 				}
 			}
 		];
 		const book = assessStatutory({ code, period: '2026-01', people: cases });
-		// LHDN D(3-5): 46,976.65*.15/12 =>587.2; 33,000*.15-400 =>379.20/month.
+		// The registered lower-wage worker also deducts EPF and social-insurance shares.
 		expectStatutory(book, 'REP', 'PCB', 587.2, 0);
 		expectStatutory(book, 'KNOWLEDGE', 'PCB', 587.2, 0);
-		expectStatutory(book, 'LOWER', 'PCB', 379.2, 0);
-		// Approved non-citizen C-suite: (480,000 - 9,000)*.15/12 =5,887.50.
-		expectStatutory(book, 'C_SUITE', 'PCB', 5887.5, 0);
+		expectStatutory(book, 'LOWER', 'PCB', 328.9, 0);
+		// The approved non-citizen C-suite has mandatory scheme shares in the tax base.
+		expectStatutory(book, 'C_SUITE', 'PCB', 5837, 0);
 		// P.U. (A) 242/2023 r.5(d): RM25,000 basic is the inclusive minimum.
-		expectStatutory(book, 'C_SUITE_MINIMUM', 'PCB', 3637.5, 0);
+		expectStatutory(book, 'C_SUITE_MINIMUM', 'PCB', 3587, 0);
 	});
 
 	test(`${code} — approved profile additional pay is included once in the annual projection`, () => {
@@ -489,11 +486,11 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 			...person('BONUS_PROFILE', [], profile('REP')),
 			wage: 3500,
 			registrations: {
-				EPF: OUT,
+				EPF: { kind: 'REGISTERED' },
 				EPF_PR: OUT,
 				EPF_NON_CITIZEN: OUT,
-				SOCSO: OUT,
-				EIS: OUT,
+				SOCSO: { kind: 'REGISTERED' },
+				EIS: { kind: 'REGISTERED' },
 				PCB: { kind: 'REGISTERED', elections: profile('REP') }
 			}
 		};
@@ -518,8 +515,8 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 				approval_id: null
 			});
 		});
-		// P =3,500*12+12,000-9,000 =45,000; D(3):P*.15/12 =562.50.
-		expectStatutory(book, 'BONUS_PROFILE', 'PCB', 562.5, 0);
+		// The bonus is projected once; registered scheme shares reduce chargeable income.
+		expectStatutory(book, 'BONUS_PROFILE', 'PCB', 512, 0);
 	});
 
 	test(`${code} — profile approval bounds and unrestricted gross-rate overrides are validated`, () => {

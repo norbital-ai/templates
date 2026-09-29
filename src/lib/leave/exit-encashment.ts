@@ -37,8 +37,9 @@ export function exitEncashments(options: {
 				reference,
 				from_date: summary.window.start,
 				to_date: summary.window.end,
-				days: summary.available,
-				encash_days: summary.available,
+				...(summary.unit === 'HOUR'
+					? { encash_hours: summary.available }
+					: { days: summary.available, encash_days: summary.available }),
 				effective_on: options.exitDate,
 				due_on: options.exitDate,
 				reason: options.reason

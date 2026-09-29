@@ -447,10 +447,11 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -944,10 +945,11 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -1441,10 +1443,11 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -1936,10 +1939,11 @@
 		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -2433,10 +2437,11 @@
 		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -2930,10 +2935,11 @@
 		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -3425,10 +3431,11 @@
 		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -3922,10 +3929,11 @@
 		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -4419,10 +4427,11 @@
 		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -4916,10 +4925,11 @@
 		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -5413,10 +5423,11 @@
 		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -5908,10 +5919,11 @@
 		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -6405,10 +6417,11 @@
 		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []
@@ -6902,10 +6915,11 @@
 		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
 		"code": "JOB_SEARCH_LEAVE",
 		"name": "謀職假 (job-search leave)",
-		"authority": "勞基法 §16(2): during the notice period of a §11 termination the worker may take up to two days a week of paid leave to look for work; not metered beyond the notice period.",
-		"eligibility": "employment.exit_date != \"\" && employment.exit_reason == \"REDUNDANCY\"",
+		"authority": "勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間，請假期間之工資照給 — paid leave to look for work after the §16(1) notice of an employer termination under §11 or the §13 proviso; §20 applies the same periods. Corrected in place 2026-09-28 (round 6, a transcription error in every version): the grant followed exit_reason REDUNDANCY alone; it now follows the notice ground as SEVERANCE_PAY’s notice pay does (`exit_facts.lsa_termination_ground`, else REDUNDANCY or RETRENCHMENT read as §11). Corrected in place 2026-09-29 (a transcription omission in every version): the two-working-day weekly limit is `weekly_days` 2, counted Monday to Sunday, and a day is granted only inside the notice — fewer calendar days before exit_date than `exit_facts.notice_days_given` (the days from the day after notice to the last working day, 民法 §120(2); register TW-LEAVE-08). No recorded actual notice means no §16(2) leave, because the worker has not been shown to have received the preceding §16(1) notice.",
+		"eligibility": "employment.exit_date != \"\" && (\"lsa_termination_ground\" in employment.exit_facts && employment.exit_facts.lsa_termination_ground != \"\" ? employment.exit_facts.lsa_termination_ground in [\"ARTICLE_11\", \"ARTICLE_13_PROVISO\", \"ARTICLE_20\"] : employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"]) && \"notice_days_given\" in employment.exit_fact_keys && employment.exit_facts.notice_days_given > 0.0 && employment.days_to_exit < employment.exit_facts.notice_days_given",
 		"entitlement": {
 			"availability": "UNLIMITED",
+			"weekly_days": 2,
 			"year_start_month": 1,
 			"proration": "NONE",
 			"bands": []

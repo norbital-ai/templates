@@ -65,6 +65,16 @@
 							{/snippet}
 						</Field>
 					</Column>
+					{#if settingsCodeOf(form.get('company_id') ?? record?.company_id) === 'PH'}
+						<Field
+							name="ph_wage_class_source_reference"
+							label="Establishment and worker-count source reference"
+						/>
+						<Field
+							name="ph_wage_class_source_file"
+							label="Establishment and worker-count source file"
+						/>
+					{/if}
 				</Grid>
 			</FormSection>
 		{/snippet}

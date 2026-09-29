@@ -82,6 +82,16 @@ c.transform(async (inputs, ctx) => {
 			input.settings_id,
 			`Leave ${row.code ?? ''}`
 		);
+		if (row.code === 'ANNUAL_LEAVE' && versions.get(row.settings_id ?? '')?.code === 'SG') {
+			if (row.entitlement?.year_anchor !== 'SERVICE_ANNIVERSARY')
+				ctx.refuse('SG annual leave must use the employment service anniversary.');
+			if (row.entitlement?.auto_carry_one_year !== true)
+				ctx.refuse('SG annual leave must remain available through the next service year.');
+			if (!['COMPLETED_MONTHS', 'NONE'].includes(row.entitlement?.proration ?? ''))
+				ctx.refuse('SG annual leave must count completed service months or grant the full year.');
+			if (row.entitlement?.rounding !== 'WHOLE_DAY')
+				ctx.refuse('SG annual leave must round a partial-year grant to a whole day.');
+		}
 		const fault = (problem: string | null | undefined, what = '') => {
 			if (problem != null) ctx.refuse(`${what}${problem}`);
 		};
@@ -103,6 +113,12 @@ c.transform(async (inputs, ctx) => {
 		fault(
 			compileEligibility(row.entitlement?.encash_on_exit_when ?? ''),
 			'Exit pay-out condition: '
+		);
+		fault(
+			compileEligibility(
+				row.entitlement?.encash_carry_on_exit_when ?? row.entitlement?.encash_on_exit_when ?? ''
+			),
+			'Carried leave exit pay-out condition: '
 		);
 		const lifetime = row.entitlement?.lifetime_days;
 		if (Predicate.isString(lifetime))

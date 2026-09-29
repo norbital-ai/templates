@@ -171,7 +171,7 @@ statutoryFacts.transform(async (inputs, { existing, db, refuse }) => {
 				references.add(reference);
 			}
 		}
-		const elections = claims?.elections ?? {};
+		const elections = status?.elections ?? {};
 		if (Object.keys(elections).length > 0) {
 			if (scheme == null)
 				return refuse('The statutory contribution this fact names no longer exists.');

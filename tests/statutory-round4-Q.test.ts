@@ -166,7 +166,12 @@ test('VN D12: the authorised finalisation re-prices the whole resident year and 
 
 const NIGHT_SHIFT_ID = 'c0000000-0000-4000-8000-0000000000e1';
 
-/** One ordinary night shift, 22:00 to 07:00 with an hour's break: eight hours, all at night. */
+/**
+ * One ordinary night shift, 22:00 to 07:00 with an hour's break. The punch is one span,
+ * 22:00–06:00, and the shift's provided hour is deducted from it: seven of the eight paid hours are
+ * worked. The seven sit wholly inside the 22:00–06:00 night window, so the statement's night hours
+ * and night wage are the whole day and none of it is overtime.
+ */
 function nightShift(world: PayrollWorld, date: string) {
 	const [year, month, day] = date.split('-').map(Number);
 	const next = new Date(Date.UTC(year!, month! - 1, day! + 1)).toISOString().slice(0, 10);
@@ -184,22 +189,22 @@ function nightShift(world: PayrollWorld, date: string) {
 		employment_id: world.employments[0]!.id,
 		work_date: date,
 		shift_definition_id: NIGHT_SHIFT_ID,
-		worked_intervals: [{ start: `${date}T22:00:00+07:00`, end: `${next}T07:00:00+07:00` }],
+		worked_intervals: [{ start: `${date}T22:00:00+07:00`, end: `${next}T06:00:00+07:00` }],
 		approval_id: null
 	});
 }
 
 for (const [period, date, wage, residency, base, tax, derivation] of [
-	// January 2026, 22 weekdays: 35,200,000 ÷ 22 ÷ 8 = 200,000 an hour; 8 night hours = 1,600,000,
-	// premium 30% = 480,000. Insurance: SI 2,816,000 + HI 528,000 + UI 352,000 = 3,696,000.
+	// January 2026, 22 weekdays: 35,200,000 ÷ 22 ÷ 8 = 200,000 an hour; 7 night hours = 1,400,000,
+	// premium 30% = 420,000. Insurance: SI 2,816,000 + HI 528,000 + UI 352,000 = 3,696,000.
 	[
 		'2026-01',
 		'2026-01-12',
 		35_200_000,
 		'RESIDENT',
-		33_600_000,
-		940_400,
-		'resident from tax year 2026: 35,200,000 − the 1,600,000 night wage = 33,600,000; − 3,696,000 − 15,500,000 = 14,404,000 → 500,000 + 10% × 4,404,000 = 940,400'
+		33_800_000,
+		960_400,
+		'resident from tax year 2026: 35,200,000 − the 1,400,000 night wage = 33,800,000; − 3,696,000 − 15,500,000 = 14,604,000 → 500,000 + 10% × 4,604,000 = 960,400'
 	],
 	[
 		'2026-01',
@@ -217,18 +222,18 @@ for (const [period, date, wage, residency, base, tax, derivation] of [
 		'2026-07-06',
 		36_800_000,
 		'NON_RESIDENT',
-		35_200_000,
-		7_040_000,
-		'non-resident from 1 July 2026: 36,800,000 − 1,600,000 = 35,200,000 × 20% = 7,040,000'
+		35_400_000,
+		7_080_000,
+		'non-resident from 1 July 2026: 36,800,000 − 1,400,000 = 35,400,000 × 20% = 7,080,000'
 	],
 	[
 		'2026-07',
 		'2026-07-06',
 		36_800_000,
 		'RESIDENT',
-		35_200_000,
-		1_083_600,
-		'resident: 35,200,000 − 3,864,000 − 15,500,000 = 15,836,000 → 500,000 + 10% × 5,836,000 = 1,083,600'
+		35_400_000,
+		1_103_600,
+		'resident: 35,400,000 − 3,864,000 − 15,500,000 = 16,036,000 → 500,000 + 10% × 6,036,000 = 1,103,600'
 	],
 	// December 2025, 23 weekdays: 36,800,000 ÷ 23 ÷ 8 = 200,000; Circular 111/2013 art.3(1)(i).
 	[
@@ -256,9 +261,9 @@ for (const [period, date, wage, residency, base, tax, derivation] of [
 			slip.adjustments
 				.filter((row) => row.component_code === code)
 				.map((row) => [row.quantity, row.amount, row.bucket]);
-		assert.deepEqual(line('NIGHT_PREMIUM'), [[8, 480_000, 'EARNING']]);
+		assert.deepEqual(line('NIGHT_PREMIUM'), [[7, 420_000, 'EARNING']]);
 		// The statement art.26(1) ¶2 asks for: the night hours and the night wage paid.
-		assert.deepEqual(line('NIGHT_WAGE'), [[8, 1_600_000, 'INFORMATION']]);
+		assert.deepEqual(line('NIGHT_WAGE'), [[7, 1_400_000, 'INFORMATION']]);
 		const pit = slip.statutory.find((row) => row.scheme_code === 'PIT')!;
 		assert.deepEqual([pit.base_amount, pit.employee_amount], [base, tax]);
 	});
@@ -310,6 +315,8 @@ test('VN and ID D15: every election, entity fact and departure input is required
 		for (const version of versions) {
 			// A cash-out profile's `required_facts` stop the cash-out by name when unrecorded.
 			const atUse = new Set<string>(version.work_rules.encashment?.required_facts ?? []);
+			// ID Kesehatan refuses an undeclared enterprise size; statutory-coverage-id tests that path.
+			if (lineage === 'ID') atUse.add('enterprise_size_class');
 			for (const field of [...(version.facts ?? []), ...(version.exit_facts ?? [])])
 				if (!settled(field) && !atUse.has(field.key))
 					undeclared.push(`${start(version)} ${field.key}`);
@@ -352,25 +359,45 @@ test('ID D16: PPh 21 no longer reads the current family record, and THR no longe
 		assert.equal(row.eligibility.includes('religion'), false);
 });
 
-test('ID D15: a resident without the declared tax identity withholds no PPh 21 and warns (UU PPh art.21(5a))', () => {
-	const run = buildStatutory(
-		{
+test('ID D15: a resident who has not declared the tax identity cannot settle PPh 21 at zero (UU PPh art.21(5a))', () => {
+	// This used to assert that withholding settled at nothing and only warned. UU PPh art.21(5a) and
+	// the sealed scheme's own note agree: a recipient with neither an NPWP nor a NIK usable as one
+	// is withheld at a rate 20% higher, "not with no tax; the declarations this scheme reads are still
+	// required". A record that never declared which of the two it is cannot be read, so the run
+	// refuses by name instead of quietly underwithholding. The declared case is the next test.
+	const build = () =>
+		buildStatutory(
+			{
+				code: 'ID',
+				period: '2026-03',
+				region: 'Provinsi DKI Jakarta',
+				riskClass: 'II',
+				people: [{ key: 'ID-NO-ID', wage: 10_000_000 }]
+			},
+			(world) => {
+				for (const fact of world.employment_statutory_facts)
+					delete fact.status.elections?.no_tax_id;
+			}
+		);
+	assert.throws(
+		build,
+		/PPH21: Declare the employee’s year-start PTKP marital status and dependants, and whether an NPWP or usable NIK is held/,
+		'an undeclared tax identity refuses the run rather than withholding nothing'
+	);
+	// The same person who declares the missing registry is withheld on, at 1.2 times the rate the
+	// declared-holding case pays.
+	const declared = chargeOf(
+		assessStatutoryUnvalidated({
 			code: 'ID',
 			period: '2026-03',
 			region: 'Provinsi DKI Jakarta',
 			riskClass: 'II',
 			people: [{ key: 'ID-NO-ID', wage: 10_000_000 }]
-		},
-		(world) => {
-			for (const fact of world.employment_statutory_facts) delete fact.status.elections?.no_tax_id;
-		}
+		}),
+		'ID-NO-ID',
+		'PPH21'
 	);
-	assert.equal(
-		run.slips.get('ID-NO-ID')!.statutory.find((row) => row.scheme_code === 'PPH21')
-			?.employee_amount ?? 0,
-		0
-	);
-	assert.match(run.warnings.join('\n'), /ID-NO-ID: PPH21: .*NPWP or NIK, not declared/);
+	assert.ok(declared.employee > 0);
 });
 
 test('ID D15: a declared missing tax identity withholds 20% more (UU PPh art.21(5a))', () => {

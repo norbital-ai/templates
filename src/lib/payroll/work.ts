@@ -1,4 +1,4 @@
-import type { WorkRules } from '../datatypes/work_rules.js';
+import { isRestLimit, type WorkRules } from '../datatypes/work_rules.js';
 import type { ShiftPattern } from './run/configuration.js';
 /** Work owns schedules, contracted wages, attendance, and the rates supplied to Leave. */
 import { refuse } from '../refuse.js';
@@ -27,7 +27,9 @@ import {
 	monthBounds,
 	monthDay,
 	monthKey,
+	completedYears,
 	requiredDateKey,
+	weekStart,
 	type IsoDate,
 	addDays
 } from '../../lib/payroll/run/dates.js';
@@ -59,7 +61,11 @@ import {
 	type RateTerms
 } from '../../lib/payroll/run/ordinary-rate.js';
 import { prorationSegment } from '../../lib/payroll/run/proration.js';
-import { contractAllowancesOn, listedAllowances } from './contract-allowances.js';
+import {
+	contractAllowanceClass,
+	contractAllowancesOn,
+	listedAllowances
+} from './contract-allowances.js';
 import { cents } from '../../lib/payroll/run/rounding.js';
 import { resolveSchedule } from '../../lib/payroll/run/schedule.js';
 import { applicableLimits } from '../scheduling/work-limits.js';
@@ -70,13 +76,15 @@ import {
 	validateDailyWorkLimit,
 	validateOpenWorkDays,
 	validateOvertimeLimits,
+	validateUnplannedOvertime,
 	validateRosteredExpectations,
 	rosteredWorkCodeMaps,
 	type RunIssue
 } from '../../lib/payroll/run/validate.js';
 import { leaveCoverage, unpaidLeaveDays } from '../leave/payroll.js';
+import { activeTimeOff } from '../leave/activity.js';
 import { previousWagePeriodOrdinaryRate } from './reference-wages.js';
-import { countryOf } from '../jurisdiction_settings.js';
+import { countryOf, settingsInForce } from '../jurisdiction_settings.js';
 import {
 	patternAnchor,
 	patternDaysPerWeek,
@@ -86,8 +94,41 @@ import {
 	termPatternRow,
 	type PatternWorkload
 } from '../scheduling/work-pattern.js';
-import { rosterCodeKind, workWindow } from '../scheduling/roster-code.js';
-import { derivedBreakMinutes } from '../scheduling/rest-break.js';
+import { clockMinutes, rosterCodeKind, workWindow } from '../scheduling/roster-code.js';
+import { providedBreakMinutes } from '../scheduling/rest-break.js';
+
+/**
+ * The hours a punched day falls inside the regime's night window, for a break rule that owes a
+ * longer rest at night (VN BLLĐ 2019 art.109(1)). Zero where the regime states no window.
+ */
+function nightHoursFor(
+	entry: {
+		readonly work_date: unknown;
+		readonly worked_intervals?:
+			readonly { readonly start: string; readonly end: string | null }[] | null | undefined;
+	},
+	day:
+		| {
+				readonly shift: {
+					readonly start_time: string;
+					readonly end_time: string;
+					readonly crosses_midnight: boolean;
+				} | null;
+		  }
+		| null
+		| undefined,
+	night: { readonly from: string; readonly to: string } | null | undefined,
+	offset: number
+): number {
+	if (night == null || day == null) return 0;
+	const measured = nightWindowHours(
+		entry as Parameters<typeof nightWindowHours>[0],
+		night,
+		day.shift as Parameters<typeof nightWindowHours>[2],
+		offset
+	);
+	return measured.ordinary + measured.overtime;
+}
 import type {
 	Measurement,
 	MeasureComponentOptions,
@@ -97,6 +138,7 @@ import type {
 	PayRange
 } from './family.js';
 import { baseLine, settlementBucket } from './family.js';
+import { bindingMinimumWage, minimumWageCovers } from './contribution.js';
 import * as Predicate from 'effect/Predicate';
 
 /** Work resolves its catalogue from the version's rules. */
@@ -348,7 +390,7 @@ function asRateTerms(
 	const hours =
 		fixedWeek && Number.isFinite(normalWeekHours)
 			? normalWeekHours
-			: Math.min(rostered, normalDayHours * days, normalWeekHours);
+			: Math.min(contractWeek, rostered, normalDayHours * days, normalWeekHours);
 	return {
 		base_salary: { value: salary, currency: terms.currency },
 		pay_frequency: frequency,
@@ -403,7 +445,11 @@ export function prepareWorkContext(
 	// The statute's normal day, where the version states one (`work_rules.normal_hours`): a shift
 	// longer than it is a normal day plus overtime. Read over the person on the closing terms.
 	const normalHoursRule = (configuration.work.normal_hours ?? '').trim();
-	const normalHoursCap =
+	const normalHoursCapOn = (
+		terms: EmploymentBundle['terms'][number],
+		workload: PatternWorkload,
+		date: IsoDate
+	) =>
 		normalHoursRule === ''
 			? Number.POSITIVE_INFINITY
 			: evaluatePersonNumber(
@@ -411,19 +457,20 @@ export function prepareWorkContext(
 					personContext({
 						employee: bundle.employee,
 						employment: employmentForPerson(),
-						terms: closingTerms,
+						terms,
 						week: {
 							ordinary_hours_per_week:
-								closingWorkload.work_days > 0
-									? closingWorkload.average_weekly_paid_minutes / 60
-									: (closingTerms.ordinary_hours_per_week ?? 0),
-							working_days_per_week: termsDaysPerWeek(closingTerms, configuration)
+								workload.work_days > 0
+									? workload.average_weekly_paid_minutes / 60
+									: (terms.ordinary_hours_per_week ?? 0),
+							working_days_per_week: termsDaysPerWeek(terms, configuration)
 						},
 						children: bundle.children,
 						company: configuration.company,
-						asOf: options.salary.end
+						asOf: date
 					})
 				);
+	const normalHoursCap = normalHoursCapOn(closingTerms, closingWorkload, options.salary.end);
 	// The week the version builds the hourly rate on, where it states one (SG EA Fourth Schedule:
 	// 52 × 44 for a monthly-rated full-time employee); a version whose hour is the day over the daily normal
 	// hours (MY s.60I(1)(b)) states none.
@@ -437,6 +484,12 @@ export function prepareWorkContext(
 		configuration.work.part_time_week_hours_below ?? null
 	);
 	const currency = rateTerms.base_salary.currency;
+	const thaiWorkDays =
+		configuration.jurisdiction.jurisdiction_code === 'TH'
+			? new Map(
+					bundle.workDays.map((day) => [requiredDateKey(day.work_date, 'work_days.work_date'), day])
+				)
+			: null;
 	const scheduleTermsAt = (date: IsoDate) => {
 		const row =
 			bundle.termsHistory.find((candidate) => coversDate(candidate.effective_range, date)) ??
@@ -447,6 +500,9 @@ export function prepareWorkContext(
 			workDays: bundle.workDays,
 			window: complianceWindow
 		});
+		const dayCap = normalHoursCapOn(row, workload, date);
+		const redistribution = thaiWorkDays?.get(date)?.normal_hours_redistribution_agreed_at != null;
+		const guardDay = row.statutory_work_category === 'GUARD_DUTY' && date >= '2026-04-24';
 		const patternRow = termPatternRow(row, configuration.patternById);
 		return {
 			work_pattern: patternRow?.pattern ?? null,
@@ -455,19 +511,24 @@ export function prepareWorkContext(
 			// clocked day): the contract's stated day, else the roster's usual day, else the
 			// statute's — never a figure of the engine's.
 			normal_daily_hours: Math.min(
-				normalHoursCap,
+				dayCap,
 				workload.work_days > 0
 					? workload.paid_minutes / workload.work_days / 60
-					: contractDayHours(row, termsDaysPerWeek(row, configuration), normalHoursCap)
+					: contractDayHours(row, termsDaysPerWeek(row, configuration), dayCap)
 			),
 			// A rostered shift is its own normal day up to the statute's (and the contract's stated
 			// day where it states one) — never up to the roster's average: a roster mixing 7.5-hour
 			// and 9-hour shifts averages 8.2, and every 9-hour shift was earning an hour of overtime
 			// MY s.60A(1)'s proviso does not owe.
-			shift_day_hours: Math.min(
-				normalHoursCap,
-				statedDayHours(row, termsDaysPerWeek(row, configuration)) ?? Number.POSITIVE_INFINITY
-			)
+			shift_day_hours:
+				redistribution && row.hazardous_work !== true
+					? guardDay
+						? 48
+						: 9
+					: Math.min(
+							dayCap,
+							statedDayHours(row, termsDaysPerWeek(row, configuration)) ?? Number.POSITIVE_INFINITY
+						)
 		};
 	};
 	const schedule = resolveSchedule({
@@ -478,7 +539,148 @@ export function prepareWorkContext(
 		rosters: bundle.rosters,
 		configuration
 	});
+	for (const [date, day] of schedule) {
+		const terms = bundle.termsHistory.find((row) => coversDate(row.effective_range, date));
+		if (terms?.hazardous_work !== true || day.shift == null) continue;
+		if (day.shift.paid_minutes / 60 > 7)
+			refuse(
+				`${bundle.employment.employee_number} has a ${day.shift.paid_minutes / 60}-hour hazardous normal shift on ${date}; the limit is 7 hours.`
+			);
+	}
+	const weeklyNormalLimits =
+		configuration.jurisdiction.jurisdiction_code === 'TH'
+			? configuration.limits.filter(
+					(limit) => limit.measure === 'NORMAL_HOURS' && limit.period === 'WEEK'
+				)
+			: [];
+	let weeklySchedule = new Map<IsoDate, ScheduledDay>();
+	if (weeklyNormalLimits.length > 0) {
+		const employment = employmentDates(bundle.employment);
+		const first = weekStart(complianceWindow.start);
+		const last = addDays(weekStart(complianceWindow.end), 6);
+		const weeklyWindow = {
+			start: employment.hire > first ? employment.hire : first,
+			end: employment.exit != null && employment.exit < last ? employment.exit : last
+		};
+		weeklySchedule =
+			weeklyWindow.start <= weeklyWindow.end
+				? resolveSchedule({
+						window: weeklyWindow,
+						dates: daysBetween(weeklyWindow.start, weeklyWindow.end),
+						terms: scheduleTermsAt,
+						workDays: bundle.workDays,
+						rosters: bundle.rosters,
+						configuration
+					})
+				: new Map<IsoDate, ScheduledDay>();
+		const weeks = new Map<
+			string,
+			{
+				hours: number;
+				redistributed: number;
+				shorter: number;
+				limits: Map<string, (typeof weeklyNormalLimits)[number]>;
+			}
+		>();
+		for (const [date, day] of weeklySchedule) {
+			if (day.shift == null || day.dayType !== 'ORDINARY') continue;
+			const terms = termsAt(bundle, date);
+			const week = weekStart(date);
+			const totals = weeks.get(week) ?? {
+				hours: 0,
+				redistributed: 0,
+				shorter: 0,
+				limits: new Map<string, (typeof weeklyNormalLimits)[number]>()
+			};
+			totals.hours += day.normalHours;
+			if (day.normalHours > 8) {
+				const guardDay = terms.statutory_work_category === 'GUARD_DUTY' && date >= '2026-04-24';
+				const agreement = thaiWorkDays?.get(date)?.normal_hours_redistribution_agreed_at;
+				const shiftStart =
+					Date.parse(`${date}T00:00:00.000Z`) -
+					offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date) * 60_000 +
+					clockMinutes(day.shift.start_time) * 60_000;
+				if (agreement == null || !(Date.parse(agreement) < shiftStart))
+					refuse(
+						`${bundle.employment.employee_number} needs a prior worker agreement for the redistributed normal day on ${date}.`
+					);
+				if (!guardDay && !['MONTHLY', 'SEMI_MONTHLY'].includes(terms.pay_frequency))
+					refuse(
+						`${bundle.employment.employee_number} needs a separately priced 1.5× supplement for normal hours above eight on ${date}.`
+					);
+				if (!guardDay) totals.redistributed += day.normalHours - 8;
+			} else totals.shorter += 8 - day.normalHours;
+			const person = personContext({
+				employee: bundle.employee,
+				employment: employmentForPerson(),
+				terms,
+				week: {
+					ordinary_hours_per_week: decodeNumber(terms.ordinary_hours_per_week ?? 0),
+					working_days_per_week: termsDaysPerWeek(terms, configuration)
+				},
+				children: bundle.children,
+				company: configuration.company,
+				asOf: date
+			});
+			for (const limit of applicableLimits(weeklyNormalLimits, person))
+				totals.limits.set(limit.key, limit);
+			weeks.set(week, totals);
+		}
+		for (const [week, totals] of weeks) {
+			if (totals.redistributed > totals.shorter + 1e-9)
+				refuse(
+					`${bundle.employment.employee_number} has ${totals.redistributed.toFixed(2)} redistributed normal hours above eight in the week of ${week}, but only ${totals.shorter.toFixed(2)} shorter-day hours to offset them.`
+				);
+			for (const limit of [...totals.limits.values()].toSorted(
+				(left, right) => left.max_hours - right.max_hours
+			))
+				if (totals.hours > limit.max_hours + 1e-9)
+					refuse(
+						`${bundle.employment.employee_number} has ${totals.hours.toFixed(2)} normal hours in the week of ${week}, above the ${limit.max_hours}-hour limit "${limit.key}".`
+					);
+		}
+	}
 
+	const thaiRest =
+		configuration.jurisdiction.jurisdiction_code === 'TH'
+			? configuration.work.limits.find(isRestLimit)
+			: undefined;
+	if (thaiRest != null) {
+		const employment = employmentDates(bundle.employment);
+		const before = addDays(complianceWindow.start, -thaiRest.max_days);
+		const first = employment.hire > before ? employment.hire : before;
+		const last =
+			employment.exit != null && employment.exit < complianceWindow.end
+				? employment.exit
+				: complianceWindow.end;
+		const plannedByDate = new Map(
+			bundle.workDays.map((row) => [
+				requiredDateKey(row.work_date, 'work_days.work_date'),
+				row.shift_definition_id
+			])
+		);
+		let run = 0;
+		let runStart = '';
+		for (const date of first <= last ? daysBetween(first, last) : []) {
+			const term = termsAt(bundle, date);
+			const pattern = termPatternRow(term, configuration.patternById);
+			const codeId =
+				plannedByDate.get(date) ??
+				patternRosterCodeId(pattern?.pattern ?? null, date, patternAnchor(pattern));
+			const code = codeId == null ? null : configuration.shiftById.get(codeId);
+			if (codeId != null && code == null) refuse(`Roster code ${codeId} is missing on ${date}.`);
+			const kind = code == null ? null : rosterCodeKind(code.variant);
+			if (kind === 'REST') run = 0;
+			if (kind === 'WORK') {
+				if (run === 0) runStart = date;
+				run += 1;
+			}
+			if (run > thaiRest.max_days && date >= complianceWindow.start)
+				refuse(
+					`${bundle.employment.employee_number} has ${run} consecutive worked days from ${runStart} through ${date}; ${thaiRest.key} permits ${thaiRest.max_days} before a REST day.`
+				);
+		}
+	}
 	// Proration asks how many days the person was meant to work, not how many they attended. Source
 	// rosters mark an approved leave day OFF because there is no shift to clock; using that mark as
 	// the divisor makes a whole-month absence have zero working days and therefore no price. Remove
@@ -487,6 +689,146 @@ export function prepareWorkContext(
 	// salary proration needs the whole calendar month even though overtime only reads the cutoff
 	// attendance window, and deferred joiners can ask for the previous month.
 	const coverage = leaveCoverage(bundle.leave, complianceWindow);
+	if (configuration.jurisdiction.jurisdiction_code === 'TH') {
+		const born = dateKey(bundle.employee.date_of_birth);
+		const employment = employmentDates(bundle.employment);
+		for (const [date, day] of schedule) {
+			if (
+				date < employment.hire ||
+				(employment.exit != null && date > employment.exit) ||
+				!(
+					(date >= wageDays.start && date <= wageDays.end) ||
+					(date >= attendance.start && date <= attendance.end)
+				)
+			)
+				continue;
+			const intervals = thaiWorkDays?.get(date)?.worked_intervals;
+			const expected =
+				day.dayType === 'ORDINARY' &&
+				day.shift != null &&
+				day.normalHours * (1 - (coverage.days[date] ?? 0)) > 0;
+			if (!expected && (intervals?.length ?? 0) === 0) continue;
+			if (born === '')
+				refuse(
+					`${bundle.employment.employee_number} needs a birth date to check Thai young-worker hours on ${date}.`
+				);
+			const offset = offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date);
+			const workSpans =
+				intervals == null
+					? expected && day.shift != null
+						? [
+								{
+									start:
+										Date.parse(`${date}T00:00:00.000Z`) -
+										offset * 60_000 +
+										clockMinutes(day.shift.start_time) * 60_000,
+									end:
+										Date.parse(`${date}T00:00:00.000Z`) -
+										offset * 60_000 +
+										(clockMinutes(day.shift.start_time) + day.shift.elapsed_minutes) * 60_000
+								}
+							]
+						: []
+					: intervals.map((interval) => ({
+							start: Date.parse(interval.start),
+							end: Date.parse(interval.end ?? '')
+						}));
+			const firstNightWork = firstThaiNight(workSpans, date, offset);
+			const workedHours =
+				intervals == null && expected && day.shift != null
+					? day.shift.paid_minutes / 60
+					: workSpans.reduce((sum, span) => sum + (span.end - span.start) / 3_600_000, 0);
+			const holidayWork = day.dayType !== 'ORDINARY' && workSpans.length > 0;
+			const overtimeWork = day.dayType === 'ORDINARY' && workedHours > day.normalHours + 1e-9;
+			if (Number.isFinite(firstNightWork) || holidayWork || overtimeWork) {
+				const pregnancy = termsAt(bundle, date).th_pregnancy_status;
+				if (pregnancy == null)
+					refuse(
+						`${bundle.employment.employee_number} needs a dated Thai pregnancy status before night, overtime or holiday work on ${date}.`
+					);
+				if (pregnancy === 'PREGNANT')
+					refuse(
+						Number.isFinite(firstNightWork) || holidayWork
+							? `${bundle.employment.employee_number} cannot perform Thai night or holiday work while pregnant (${date}).`
+							: `${bundle.employment.employee_number} needs supported Thai s.39/1 role and health evidence before pregnant working-day overtime on ${date}.`
+					);
+			}
+			if (completedYears(born, date) >= 18) {
+				validateThaiAdultRest({
+					date,
+					day,
+					workDay: thaiWorkDays?.get(date),
+					assumed: expected,
+					offsetMinutes: offset,
+					employeeNumber: bundle.employment.employee_number
+				});
+				continue;
+			}
+			if (expected && intervals == null)
+				refuse(
+					`${bundle.employment.employee_number} needs timed work and rest records for the Thai under-18 shift on ${date}.`
+				);
+			if (intervals == null || intervals.length === 0) continue;
+			if (day.dayType !== 'ORDINARY')
+				refuse(
+					`${bundle.employment.employee_number} cannot work on a Thai holiday while under 18 (${date}).`
+				);
+			const spans = intervals
+				.map((interval) => ({
+					start: Date.parse(interval.start),
+					end: Date.parse(interval.end ?? '')
+				}))
+				.toSorted((left, right) => left.start - right.start);
+			const firstNight = firstThaiNight(spans, date, offset);
+			const nightPermission = thaiWorkDays?.get(date);
+			if (
+				Number.isFinite(firstNight) &&
+				(!nightPermission?.th_minor_night_permission_reference?.trim() ||
+					nightPermission.th_minor_night_permission_granted_at == null ||
+					!(Date.parse(nightPermission.th_minor_night_permission_granted_at) < firstNight))
+			)
+				refuse(
+					`${bundle.employment.employee_number} needs prior written Thai Director-General permission for under-18 night work on ${date}.`
+				);
+			let workedSinceRest = 0;
+			let workedTotal = 0;
+			let hadHourRest = false;
+			let totalRestMinutes = 0;
+			let previousEnd = -Infinity;
+			for (const span of spans) {
+				if (!Number.isFinite(span.start) || !Number.isFinite(span.end) || span.end <= span.start)
+					refuse(
+						`${bundle.employment.employee_number} needs closed timed work intervals on ${date}.`
+					);
+				const gapMinutes = Number.isFinite(previousEnd) ? (span.start - previousEnd) / 60_000 : 0;
+				totalRestMinutes += gapMinutes;
+				if (gapMinutes >= 60) {
+					workedSinceRest = 0;
+					hadHourRest = true;
+				}
+				const hours = (span.end - span.start) / 3_600_000;
+				workedSinceRest += hours;
+				workedTotal += hours;
+				if (workedSinceRest > 4 + 1e-9)
+					refuse(
+						`${bundle.employment.employee_number} needs a continuous 60-minute rest after at most four hours of Thai under-18 work on ${date}.`
+					);
+				previousEnd = span.end;
+			}
+			if (totalRestMinutes > 120 + 1e-9)
+				refuse(
+					`${bundle.employment.employee_number} needs Thai s.27 wage treatment for rest over two hours on ${date}.`
+				);
+			if (!hadHourRest)
+				refuse(
+					`${bundle.employment.employee_number} needs a continuous 60-minute rest on the Thai under-18 workday ${date}.`
+				);
+			if (workedTotal > day.normalHours + 1e-9)
+				refuse(
+					`${bundle.employment.employee_number} cannot work overtime in Thailand while under 18 (${date}).`
+				);
+		}
+	}
 	const takenLeaveDates = new Set(Object.keys(coverage.days));
 	const prorationWorkDays = bundle.workDays.filter(
 		(row) => !takenLeaveDates.has(requiredDateKey(row.work_date, 'work_days.work_date'))
@@ -634,10 +976,7 @@ export function prepareWorkContext(
 			asOf: date
 		};
 		const datedPerson = personContext(personInput);
-		const cap =
-			normalHoursRule === ''
-				? Number.POSITIVE_INFINITY
-				: evaluatePersonNumber(normalHoursRule, datedPerson);
+		const cap = normalHoursCapOn(term, workload, date);
 		const datedTerms = asRateTerms(
 			term,
 			workload,
@@ -712,7 +1051,7 @@ export function prepareWorkContext(
 			term,
 			workload,
 			termsDaysPerWeek(term, configuration),
-			normalHoursCap,
+			normalHoursCapOn(term, workload, charge.date),
 			normalWeekCap,
 			configuration.work.part_time_week_hours_below ?? null
 		);
@@ -720,10 +1059,15 @@ export function prepareWorkContext(
 			throw new Error('Leave absence rate has a different currency from payroll.');
 		if (terms.pay_frequency === 'DAILY') return terms.base_salary.value;
 		if (terms.pay_frequency === 'HOURLY') {
-			const shift = configuration.shiftById.get(charge.shift_definition_id);
+			const shift =
+				charge.shift_definition_id == null
+					? null
+					: configuration.shiftById.get(charge.shift_definition_id);
 			const hours = shift == null ? null : workWindow(shift.variant);
-			if (hours == null) throw new Error('Hourly Leave requires its captured working shift.');
-			return (terms.base_salary.value * hours.paid_minutes) / 60;
+			const normal = terms.ordinary_hours_per_week / terms.working_days_per_week;
+			if (hours == null && !(normal > 0))
+				throw new Error('Hourly calendar Leave needs positive normal daily hours.');
+			return terms.base_salary.value * (hours == null ? normal : hours.paid_minutes / 60);
 		}
 		return absenceDayRate({
 			terms,
@@ -732,6 +1076,112 @@ export function prepareWorkContext(
 			period,
 			workingDaysIn
 		});
+	};
+	const absenceHourlyRate = (charge: LeaveCharge): number => {
+		const term = bundle.termsHistory.find(
+			(row) => row.id === charge.employment_term_id && coversDate(row.effective_range, charge.date)
+		);
+		if (!term) refuse(`Hourly Leave has no captured employment terms on ${charge.date}.`);
+		if (term.currency !== currency) refuse('Hourly Leave has a different currency from payroll.');
+		const workload = termsWorkload({
+			terms: term,
+			configuration,
+			workDays: bundle.workDays,
+			window: monthBounds(monthKey(charge.date))
+		});
+		const weeklyHours = term.ordinary_hours_per_week ?? workload.average_weekly_paid_minutes / 60;
+		const days = termsDaysPerWeek(term, configuration);
+		if (!(weeklyHours > 0) || !(days > 0))
+			refuse('Hourly Leave needs positive contracted weekly hours and working days.');
+		const grossExcluded = configuration.work.gross_excluded_allowances ?? [];
+		for (const listed of listedAllowances(term)) {
+			const component = contractAllowanceClass(configuration, listed.catalogue_id);
+			if (
+				listed.amount > 0 &&
+				component?.destination === 'PAY' &&
+				component.direction === 'ADD' &&
+				(component.npl_prorates ?? configuration.jurisdiction.payroll.allowance_npl_prorates) ===
+					false &&
+				!grossExcluded.includes(component.code)
+			)
+				refuse(`Hourly Leave needs gross-rate classification for allowance ${component.code}.`);
+		}
+		const allowances = contractAllowancesOn(
+			bundle,
+			configuration,
+			charge.date,
+			undefined,
+			grossExcluded
+		);
+		const allowanceHour = (12 * allowances) / (52 * weeklyHours);
+		const basic = term.base_salary;
+		const frequency = payFrequency(term.pay_frequency);
+		if (frequency === 'HOURLY') return basic + allowanceHour;
+		if (frequency === 'DAILY') return basic / (weeklyHours / days) + allowanceHour;
+		if (frequency === 'WEEKLY') return basic / weeklyHours + allowanceHour;
+		return (12 * basic) / (52 * weeklyHours) + allowanceHour;
+	};
+	const outpatientSickExcludedRate = (charge: LeaveCharge): number => {
+		const term = bundle.termsHistory.find(
+			(row) => row.id === charge.employment_term_id && coversDate(row.effective_range, charge.date)
+		);
+		if (!term) refuse(`Outpatient sick leave has no captured employment terms on ${charge.date}.`);
+		if (term.currency !== currency)
+			refuse('Outpatient sick leave has a different currency from payroll.');
+		if (
+			configuration.catalogueComponents.some(
+				(component) =>
+					component.family === 'ALLOWANCE' &&
+					component.owed === true &&
+					component.destination === 'PAY' &&
+					component.direction === 'ADD' &&
+					component.outpatient_sick_pay !== 'INCLUDE'
+			)
+		)
+			refuse('Outpatient sick leave needs an owed allowance priced before its shift exclusion.');
+		let excluded = 0;
+		for (const listed of listedAllowances(term)) {
+			const component = contractAllowanceClass(configuration, listed.catalogue_id);
+			if (
+				listed.amount <= 0 ||
+				component?.destination !== 'PAY' ||
+				component.direction !== 'ADD' ||
+				(configuration.work.gross_excluded_allowances ?? []).includes(component.code)
+			)
+				continue;
+			if (component.outpatient_sick_pay == null)
+				refuse(
+					`Outpatient sick leave needs allowance ${component.code} classified as included or excluded.`
+				);
+			if (component.outpatient_sick_pay === 'EXCLUDE') {
+				if (component.eligibility.trim() !== '')
+					refuse(
+						`Outpatient sick leave needs allowance ${component.code} eligibility priced first.`
+					);
+				if (
+					component.bands.length > 0 &&
+					(component.bands.length !== 1 ||
+						component.bands[0]?.when !== '' ||
+						component.bands[0]?.amount !== 'entry.amount' ||
+						component.bands[0]?.limit != null)
+				)
+					refuse(`Outpatient sick leave needs the priced amount of allowance ${component.code}.`);
+				excluded += listed.amount;
+			}
+		}
+		if (excluded === 0) return 0;
+		const workload = termsWorkload({
+			terms: term,
+			configuration,
+			workDays: bundle.workDays,
+			window: monthBounds(monthKey(charge.date))
+		});
+		const divisor =
+			charge.hours == null
+				? termsDaysPerWeek(term, configuration)
+				: (term.ordinary_hours_per_week ?? workload.average_weekly_paid_minutes / 60);
+		if (!(divisor > 0)) refuse('Outpatient sick leave needs normal contractual days or hours.');
+		return (12 * excluded) / (52 * divisor);
 	};
 
 	const workedOn = new Set(
@@ -767,6 +1217,13 @@ export function prepareWorkContext(
 			if (day.worked_intervals != null && day.worked_intervals.length > 0) return [];
 			const date = requiredDateKey(day.work_date, 'work_days.work_date');
 			if (date < window.start || date > window.end) return [];
+			if (
+				configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
+				day.piece_units != null &&
+				termsAt(bundle, date).base_salary <= 0 &&
+				termsAt(bundle, date).statutory_work_category === 'PIECE_RATE'
+			)
+				return [];
 			const uncovered = 1 - (coverage.days[date] ?? 0);
 			if (uncovered <= 0) return [];
 			const scheduled = schedule.get(date);
@@ -795,12 +1252,17 @@ export function prepareWorkContext(
 		ratesOn,
 		complianceWindow,
 		schedule,
+		/** The terms a schedule reads per day; the same reader outside the resolved window. */
+		scheduleTermsAt,
+		weeklySchedule,
 		coverage,
 		workingDaysIn,
 		isOrdinaryWorkingDay,
 		absenceDayWage,
 		subject,
-		absenceRate
+		absenceRate,
+		absenceHourlyRate,
+		outpatientSickExcludedRate
 	};
 }
 
@@ -869,6 +1331,114 @@ function contractDayHours(
 	);
 }
 
+/** First Thai 22:00–06:00 instant worked on this work date, or Infinity. */
+function firstThaiNight(
+	spans: readonly { readonly start: number; readonly end: number }[],
+	date: IsoDate,
+	offsetMinutes: number
+): number {
+	const midnight = Date.parse(`${date}T00:00:00.000Z`) - offsetMinutes * 60_000;
+	const windows = [
+		{ start: midnight - 2 * 3_600_000, end: midnight + 6 * 3_600_000 },
+		{ start: midnight + 22 * 3_600_000, end: midnight + 30 * 3_600_000 }
+	];
+	return Math.min(
+		...spans.flatMap((span) =>
+			windows.flatMap((window) =>
+				span.end > window.start && span.start < window.end
+					? [Math.max(span.start, window.start)]
+					: []
+			)
+		)
+	);
+}
+
+/** TH LPA s.27: verify break timing from saved punches, or a timed shift when work is presumed. */
+function validateThaiAdultRest(options: {
+	readonly date: IsoDate;
+	readonly day: ScheduledDay;
+	readonly workDay: EmploymentBundle['workDays'][number] | undefined;
+	readonly assumed: boolean;
+	readonly offsetMinutes: number;
+	readonly employeeNumber: string;
+}): void {
+	const { date, day, workDay, offsetMinutes, employeeNumber } = options;
+	const actual = workDay?.worked_intervals;
+	if (actual != null && actual.length === 0) return;
+	const shift = day.shift;
+	const midnight = Date.parse(`${date}T00:00:00.000Z`) - offsetMinutes * 60_000;
+	const shiftStart = shift == null ? 0 : midnight + clockMinutes(shift.start_time) * 60_000;
+	let spans =
+		actual == null
+			? options.assumed && shift != null
+				? [{ start: shiftStart, end: shiftStart + shift.elapsed_minutes * 60_000 }]
+				: []
+			: actual.map((interval) => ({
+					start: Date.parse(interval.start),
+					end: Date.parse(interval.end ?? '')
+				}));
+	spans = spans.toSorted((left, right) => left.start - right.start);
+	for (const [index, span] of spans.entries())
+		if (
+			!Number.isFinite(span.start) ||
+			!Number.isFinite(span.end) ||
+			span.end <= span.start ||
+			(index > 0 && span.start < spans[index - 1]!.end)
+		)
+			refuse(`${employeeNumber} needs closed, non-overlapping Thai work intervals on ${date}.`);
+	if (actual == null && shift?.break_start_time != null && spans.length === 1) {
+		const shiftClock = clockMinutes(shift.start_time);
+		let breakClock = clockMinutes(shift.break_start_time);
+		if (breakClock < shiftClock) breakClock += 1440;
+		const breakStart = midnight + breakClock * 60_000;
+		const breakEnd = breakStart + shift.break_minutes * 60_000;
+		if (spans[0]!.start < breakStart && breakEnd < spans[0]!.end)
+			spans = [
+				{ start: spans[0]!.start, end: breakStart },
+				{ start: breakEnd, end: spans[0]!.end }
+			];
+	}
+	const gaps = spans.slice(1).map((span, index) => (span.start - spans[index]!.end) / 60_000);
+	const gapMinutes = gaps.reduce((sum, minutes) => sum + minutes, 0);
+	if (gapMinutes > 120 + 1e-9 || (actual == null && shift != null && shift.break_minutes > 120))
+		refuse(`${employeeNumber} needs Thai s.27 wage treatment for rest over two hours on ${date}.`);
+	const workedHours = spans.reduce((sum, span) => sum + (span.end - span.start) / 3_600_000, 0);
+	const firstStart = spans[0]?.start ?? Number.POSITIVE_INFINITY;
+	if (workedHours > 5 + 1e-9) {
+		if (spans.some((span) => span.end - span.start > 5 * 3_600_000 + 1e-6))
+			refuse(
+				`${employeeNumber} worked over five consecutive hours without a timed Thai s.27 break on ${date}.`
+			);
+		if (gapMinutes < 60 - 1e-9)
+			refuse(`${employeeNumber} needs a timed hour of Thai s.27 rest on ${date}.`);
+		if (
+			!gaps.some((minutes) => minutes >= 60) &&
+			(workDay?.th_split_break_agreed_at == null ||
+				!(Date.parse(workDay.th_split_break_agreed_at) < firstStart))
+		)
+			refuse(
+				`${employeeNumber} needs a prior split-break agreement for Thai s.27 rest on ${date}.`
+			);
+	}
+	if (day.dayType !== 'ORDINARY' || workedHours - day.normalHours < 2 - 1e-9) return;
+	let normalLeft = day.normalHours * 3_600_000;
+	for (const [index, span] of spans.entries()) {
+		const duration = span.end - span.start;
+		if (normalLeft > duration) {
+			normalLeft -= duration;
+			continue;
+		}
+		const normalEnd = span.start + normalLeft;
+		const overtimeStart =
+			normalLeft < duration ? normalEnd : (spans[index + 1]?.start ?? normalEnd);
+		if (overtimeStart - normalEnd < 20 * 60_000)
+			refuse(
+				`${employeeNumber} needs a timed 20-minute rest before Thai overtime of at least two hours on ${date}.`
+			);
+		break;
+	}
+}
+
 /** Price Work attendance using the money families' prepared period totals for wage coverage. */
 export function calculateWorkAttendance(
 	options: Pick<
@@ -885,6 +1455,8 @@ export function calculateWorkAttendance(
 		wageDays,
 		complianceWindow,
 		schedule,
+		scheduleTermsAt,
+		weeklySchedule,
 		coverage,
 		subject,
 		rateTerms,
@@ -900,6 +1472,87 @@ export function calculateWorkAttendance(
 	// worked. A day carrying nothing but a plan was not confirmed, so `deriveDailyOvertime` pays its
 	// `approved_overtime_hours` and `incentive_hours` only where the clock shows it was worked.
 	const attendedDays = bundle.workDays.filter((day) => day.worked_intervals != null);
+	if (configuration.jurisdiction.jurisdiction_code === 'TH') {
+		const ceiling = configuration.limits.find(
+			(limit) => limit.key === 'combined_overtime_holiday_week' && limit.period === 'WEEK'
+		);
+		if (ceiling == null || ceiling.measure !== 'ALL_OVERTIME_HOURS')
+			refuse('Thailand needs its combined weekly overtime and holiday-work limit.');
+		const weeklyHours = new Map<string, number>();
+		for (const entry of bundle.workDays) {
+			const date = requiredDateKey(entry.work_date, 'work_days.work_date');
+			const day = weeklySchedule.get(date);
+			if (day == null) continue;
+			if (decodeNumber(entry.incentive_hours ?? 0) > 0)
+				refuse(
+					`${bundle.employment.employee_number} has incentive hours on ${date}; Thai work above a statutory ceiling must be refused.`
+				);
+			if (entry.worked_intervals == null || entry.worked_intervals.length === 0) continue;
+			const clocked = {
+				...entry,
+				break_minutes: providedBreakMinutes({
+					intervals: entry.worked_intervals,
+					shiftMinutes: day.shift?.break_minutes ?? 0,
+					breaks: configuration.breaks,
+					person: subject,
+					nightHours: nightHoursFor(
+						entry,
+						day,
+						configuration.nightPremium,
+						offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date)
+					)
+				})
+			};
+			const worked = dailyWorkedHours(
+				clocked,
+				day,
+				offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date)
+			);
+			const premium = day.dayType === 'ORDINARY' ? Math.max(0, worked - day.normalHours) : worked;
+			if (premium <= 1e-9) continue;
+			// LPA s.65(1) and its equivalents: where the version's own overtime rule excludes this
+			// person, the hours past the normal day are ordinary work, not unapproved overtime, so
+			// there is nothing to plan.
+			if (!isEligible(configuration.work.overtime_when, subject)) continue;
+			const planned = decodeNumber(entry.approved_overtime_hours ?? 0);
+			if (planned + 1e-9 < premium)
+				refuse(
+					`${bundle.employment.employee_number} worked ${premium.toFixed(2)} overtime or holiday hours on ${date}, but only ${planned.toFixed(2)} are approved for pay.`
+				);
+			const firstStart = Math.min(
+				...entry.worked_intervals.map((interval) => Date.parse(interval.start))
+			);
+			const consentException = entry.th_consent_exception;
+			if (consentException != null) {
+				if (!entry.th_consent_exception_reference?.trim())
+					refuse(
+						`${bundle.employment.employee_number} needs evidence for the Thai consent exception on ${date}.`
+					);
+				if (
+					consentException.startsWith('HOLIDAY_') &&
+					!['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'].includes(day.dayType)
+				)
+					refuse(
+						`${bundle.employment.employee_number} cannot use a Thai holiday-work exception on an ordinary day (${date}).`
+					);
+			}
+			if (
+				consentException == null &&
+				(entry.overtime_consented_at == null ||
+					!(Date.parse(entry.overtime_consented_at) < firstStart))
+			)
+				refuse(
+					`${bundle.employment.employee_number} needs the worker’s prior consent for overtime or holiday work on ${date}.`
+				);
+			const week = weekStart(date);
+			weeklyHours.set(week, (weeklyHours.get(week) ?? 0) + premium);
+		}
+		for (const [week, worked] of weeklyHours)
+			if (worked > ceiling.max_hours + 1e-9)
+				refuse(
+					`${bundle.employment.employee_number} worked ${worked.toFixed(2)} overtime and holiday hours in the week of ${week}, above the ${ceiling.max_hours}-hour limit "${ceiling.key}".`
+				);
+	}
 	// Overtime settles in the window the hours fall in: this employment's own attendance window.
 	const overtimeAttendance = attendance;
 	const overtimeDays: DailyOvertime[] = [];
@@ -924,11 +1577,22 @@ export function calculateWorkAttendance(
 		if (!day) continue;
 		// Attendance is priced as it happened: the break rule belongs to the schedule gate
 		// (`work_rules.breaks`), not to the money.
-		// The break is derived, never stored: the shift's granted break less the gaps the punches
-		// already show. `deriveDailyOvertime` reads it off the entry like every other clock fact.
+		// The break a normal day provides comes from the work pattern; where the statute owes a longer
+		// mandatory rest break that minimum governs, and a gap the day already shows is not taken twice.
 		const clocked = {
 			...entry,
-			break_minutes: derivedBreakMinutes(entry.worked_intervals, day.shift?.break_minutes ?? 0)
+			break_minutes: providedBreakMinutes({
+				intervals: entry.worked_intervals,
+				shiftMinutes: day.shift?.break_minutes ?? 0,
+				breaks: configuration.breaks,
+				person: subject,
+				nightHours: nightHoursFor(
+					entry,
+					day,
+					configuration.nightPremium,
+					offsetMinutesFor(configuration.jurisdiction.payroll.timezone, workDate)
+				)
+			})
 		};
 		const offset = offsetMinutesFor(configuration.jurisdiction.payroll.timezone, workDate);
 		const daily = deriveDailyOvertime(
@@ -940,6 +1604,16 @@ export function calculateWorkAttendance(
 			subject
 		);
 		const worked = daily?.totalWorkHours ?? dailyWorkedHours(clocked, day, offset);
+		// EA 1955 s.60A(3)(a): overtime is work "in excess of the normal hours", not the clock-out
+		// past the rostered window. A person rostered 09:00–18:00 who works 11:00–20:00 has worked
+		// their eight normal hours, so the ordinary half is the normal day bounded by what they
+		// actually worked. This is the same quantity the Thai premium guard above measures.
+		const ordinary =
+			day.dayType === 'ORDINARY' && day.shift != null ? Math.min(day.normalHours, worked) : 0;
+		// A time entry is a clock reading: a departure past the shift is reported by
+		// `validateUnplannedOvertime` as a warning, not refused here. Refusing the whole run over a
+		// plan/clock delta hid every other settlement, and `work_days` keys planned hours in
+		// half-hour steps a stray minute could never be expressed in.
 		if (
 			worked > 0 &&
 			(day.dayType === 'PUBLIC_HOLIDAY' || day.dayType === 'SPECIAL_HOLIDAY') &&
@@ -1053,6 +1727,41 @@ export function calculateWorkAttendance(
 			terms: { ...dated.terms, statutory_wages: statutoryWages.value }
 		});
 	};
+	if (configuration.jurisdiction.code === 'MY-nihon') {
+		const lastEmployed = employmentDates(bundle.employment).exit;
+		for (const day of bandDays) {
+			if (
+				day.date < overtimeAttendance.start ||
+				day.date > overtimeAttendance.end ||
+				day.dayType !== 'REST_DAY' ||
+				day.workedHours <= 0 ||
+				day.emergency ||
+				!paymentEligibleOn(day.date)
+			)
+				continue;
+			for (
+				let later = addDays(day.date, 1);
+				later <= addDays(weekStart(day.date), 6);
+				later = addDays(later, 1)
+			) {
+				if (lastEmployed != null && later > lastEmployed) break;
+				const next =
+					schedule.get(later) ??
+					resolveSchedule({
+						window: { start: later, end: later },
+						dates: [later],
+						terms: scheduleTermsAt,
+						workDays: bundle.workDays,
+						rosters: bundle.rosters,
+						configuration
+					}).get(later);
+				if (next?.restDay)
+					refuse(
+						`${bundle.employment.employee_number}: ${day.date} is an earlier contractual rest day; its work needs the statutory 104-hour overtime count while preserving the company's rest-day rate.`
+					);
+			}
+		}
+	}
 	const pricedBandDays = bandDays.filter(
 		(day) =>
 			day.date >= overtimeAttendance.start &&
@@ -1171,10 +1880,13 @@ export function calculateWorkAttendance(
 					const offset = offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date);
 					const clocked = {
 						...entry,
-						break_minutes: derivedBreakMinutes(
-							entry.worked_intervals,
-							priced?.shift?.break_minutes ?? 0
-						)
+						break_minutes: providedBreakMinutes({
+							intervals: entry.worked_intervals,
+							shiftMinutes: priced?.shift?.break_minutes ?? 0,
+							breaks: configuration.breaks,
+							person: subject,
+							nightHours: nightHoursFor(entry, priced, nightPremium, offset)
+						})
 					};
 					// Overtime is the day's planned hours beyond its normal ones. A scheduled day nobody
 					// planned overtime on has none; a day with no shift is overtime past its normal hours,
@@ -1257,6 +1969,82 @@ export function calculateWorkAttendance(
 		catalogueComponents: configuration.catalogueComponents,
 		currency: options.work.currency
 	});
+	const guardNormalComponent = configuration.catalogueComponents.find(
+		(component) => component.family === 'WORK' && component.output === 'guard_normal_supplement'
+	);
+	const guardNormalRows: MeasuredAdjustment[] = [];
+	if (configuration.jurisdiction.jurisdiction_code === 'TH')
+		for (const [date, day] of weeklySchedule) {
+			if (date < wageDays.start || date > wageDays.end || day.shift == null) continue;
+			const terms = termsAt(bundle, date);
+			if (
+				terms.statutory_work_category !== 'GUARD_DUTY' ||
+				date < '2026-04-24' ||
+				['MONTHLY', 'SEMI_MONTHLY'].includes(terms.pay_frequency) ||
+				day.normalHours <= 8
+			)
+				continue;
+			const workedDay = bundle.workDays.find(
+				(entry) => requiredDateKey(entry.work_date, 'work_days.work_date') === date
+			);
+			if (day.dayType !== 'ORDINARY') {
+				if ((workedDay?.worked_intervals?.length ?? 0) > 0)
+					refuse(
+						`${bundle.employment.employee_number} needs Thai guard holiday normal-hour compensation on ${date}.`
+					);
+				continue;
+			}
+			if (guardNormalComponent == null || workedDay == null)
+				refuse(
+					`${bundle.employment.employee_number} needs a recorded work day for Thai guard normal-hour compensation on ${date}.`
+				);
+			if (
+				activeTimeOff(bundle.leave.entries).some((entry) =>
+					entry.charges.some((charge) => charge.date === date)
+				)
+			)
+				refuse(
+					`${bundle.employment.employee_number} needs Thai guard leave-hour compensation on ${date}.`
+				);
+			const intervals = workedDay.worked_intervals;
+			const worked =
+				intervals == null
+					? day.normalHours
+					: intervals.length === 0
+						? 0
+						: dailyWorkedHours(
+								{
+									...workedDay,
+									break_minutes: providedBreakMinutes({
+										intervals,
+										shiftMinutes: day.shift.break_minutes,
+										breaks: configuration.breaks,
+										person: subject,
+										nightHours: nightHoursFor(
+											workedDay,
+											day,
+											configuration.nightPremium,
+											offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date)
+										)
+									})
+								},
+								day,
+								offsetMinutesFor(configuration.jurisdiction.payroll.timezone, date)
+							);
+			const hours = Math.max(0, Math.min(worked, day.normalHours) - 8);
+			if (hours === 0) continue;
+			const rate = ratesOn(date).ordinaryHour * 1.25;
+			guardNormalRows.push({
+				input: { family: 'WORK_DAY', id: workedDay.id },
+				catalogueComponent: guardNormalComponent,
+				bucket: settlementBucket(guardNormalComponent.destination, guardNormalComponent.direction),
+				label: 'GUARD_NORMAL_SUPPLEMENT',
+				amount: cents(hours * rate, options.work.currency),
+				quantity: hours,
+				rate,
+				statutoryRuleKey: 'TH_GUARD_NORMAL_SUPPLEMENT'
+			});
+		}
 	// Time off elected in lieu of overtime pay: bands honouring the election stand aside and leave
 	// those hours unpriced. Each band slice they left is credited at what it would have paid, in
 	// the order the hours were worked, and the run keeps the balance (TW 勞基法 §32-1).
@@ -1362,6 +2150,7 @@ export function calculateWorkAttendance(
 	];
 	const adjustments = [
 		...bandRows,
+		...guardNormalRows,
 		...(nightPremium == null
 			? []
 			: measureNightPremium({
@@ -1383,7 +2172,19 @@ export function calculateWorkAttendance(
 			...attendedDays.flatMap((day) => {
 				const date = requiredDateKey(day.work_date, 'work_days.work_date');
 				return date >= lockSpan.start && date <= lockSpan.end ? [day.id] : [];
-			})
+			}),
+			...(configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true
+				? bundle.workDays.flatMap((day) => {
+						const date = requiredDateKey(day.work_date, 'work_days.work_date');
+						return day.piece_units != null &&
+							date >= wageDays.start &&
+							date <= wageDays.end &&
+							termsAt(bundle, date).base_salary <= 0 &&
+							termsAt(bundle, date).statutory_work_category === 'PIECE_RATE'
+							? [day.id]
+							: [];
+					})
+				: [])
 		])
 	];
 	return {
@@ -1598,6 +2399,8 @@ function measureWorkComponent(
 		| 'period'
 		| 'workingDaysIn'
 		| 'rates'
+		| 'subject'
+		| 'note'
 	>
 ): Measurement | null {
 	const definition = options.component.definition;
@@ -1619,24 +2422,301 @@ function measureWorkComponent(
 	// days. MONTHLY, SEMI_MONTHLY and WEEKLY never land here: salary prorated over the
 	// employment span, less unpaid days, exactly as before.
 	const closingFrequency = payFrequency(termsOn(options.employed.end).pay_frequency);
+	const calendarMaternity = new Set(
+		options.configuration.jurisdiction.jurisdiction_code === 'TH'
+			? activeTimeOff(options.bundle.leave.entries).flatMap((entry) =>
+					entry.leave_code === 'MATERNITY_LEAVE'
+						? entry.charges
+								.filter((charge) =>
+									options.bundle.leave.catalogues.some(
+										(row) =>
+											row.id === charge.catalogue_id && row.entitlement.calendar_days === true
+									)
+								)
+								.map((charge) => charge.date)
+						: []
+				)
+			: []
+	);
 
 	/**
 	 * A `SCHEDULE` component is the contracted wage: the terms walk below, with the row's base
 	 * salary as the figure — or, for a DAILY or HOURLY contract, the units earned.
 	 */
+	const resultsOnly =
+		options.configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
+		termsOn(options.employed.end).statutory_work_category === 'PIECE_RATE' &&
+		termsOn(options.employed.end).base_salary <= 0;
+	const thaiPiece =
+		options.configuration.jurisdiction.jurisdiction_code === 'TH' &&
+		termsOn(options.employed.end).statutory_work_category === 'PIECE_RATE';
+	const myTaskOnly =
+		options.configuration.jurisdiction.jurisdiction_code === 'MY' &&
+		termsOn(options.employed.end).statutory_work_category === 'TASK_BASIS' &&
+		termsOn(options.employed.end).base_salary <= 0;
+	if (
+		myTaskOnly &&
+		(activeTimeOff(options.bundle.leave.entries).some((entry) =>
+			entry.charges.some(
+				(charge) => charge.date >= options.employed.start && charge.date <= options.employed.end
+			)
+		) ||
+			daysBetween(options.employed.start, options.employed.end).some(
+				(date) =>
+					options.configuration.holidays.has(date) ||
+					options.bundle.workDays.some(
+						(day) =>
+							dateKey(day.work_date) === date &&
+							((day.worked_intervals?.length ?? 0) > 0 ||
+								decodeNumber(day.approved_overtime_hours ?? 0) > 0 ||
+								decodeNumber(day.incentive_hours ?? 0) > 0)
+					)
+			))
+	)
+		refuse(
+			`${options.bundle.employment.employee_number}: task, trip or commission pay with leave, holiday, clocked work or overtime needs a statutory wage-rate calculation before this month can be settled.`
+		);
 	const measureSchedule = (): Measurement | null =>
-		closingFrequency === 'DAILY' || closingFrequency === 'HOURLY'
-			? measureEarned()
-			: measureContractSegments({
-					component: options.component,
-					bundle: options.bundle,
-					configuration: options.configuration,
-					salary: options.salary,
-					employed: options.employed,
-					contracted: options.contracted,
-					workingDaysIn: options.workingDaysIn,
-					contractOf: (terms) => terms.base_salary
-				});
+		thaiPiece || resultsOnly
+			? measurePieceEarned()
+			: closingFrequency === 'DAILY' || closingFrequency === 'HOURLY'
+				? measureEarned()
+				: measureContractSegments({
+						component: options.component,
+						bundle: options.bundle,
+						configuration: options.configuration,
+						salary: options.salary,
+						employed: options.employed,
+						contracted: options.contracted,
+						workingDaysIn: options.workingDaysIn,
+						contractOf: (terms) => terms.base_salary
+					});
+
+	/** Results wages are earned on each recorded workday, at that day's units and unit rate. */
+	const measurePieceEarned = (): Measurement => {
+		if (
+			resultsOnly &&
+			activeTimeOff(options.bundle.leave.entries).some((entry) =>
+				entry.charges.some(
+					(charge) => charge.date >= options.employed.start && charge.date <= options.employed.end
+				)
+			)
+		)
+			refuse(
+				`${options.bundle.employment.employee_number}: piece-paid leave needs an evidenced wage valuation before this month can be settled.`
+			);
+		if (
+			[...calendarMaternity].some(
+				(date) => date >= options.employed.start && date <= options.employed.end
+			)
+		)
+			refuse(
+				`${options.bundle.employment.employee_number} has calendar maternity leave while paid by piece; the preceding wage-period average required by Thai LPA s.60 is not available for this leave payment.`
+			);
+		let earned = 0;
+		for (const date of daysBetween(options.employed.start, options.employed.end)) {
+			const terms = termsOn(date);
+			if (
+				terms.statutory_work_category !== termsOn(options.employed.end).statutory_work_category ||
+				(resultsOnly && terms.base_salary > 0)
+			)
+				refuse(
+					`${options.bundle.employment.employee_number} changes results-pay category or basic wages inside ${options.period}.`
+				);
+			const day = options.bundle.workDays.find((row) => dateKey(row.work_date) === date);
+			if (
+				resultsOnly &&
+				(options.configuration.holidays.has(date) ||
+					day?.worked_intervals != null ||
+					decodeNumber(day?.approved_overtime_hours ?? 0) > 0 ||
+					decodeNumber(day?.incentive_hours ?? 0) > 0)
+			)
+				refuse(
+					`${options.bundle.employment.employee_number}: piece-paid holiday, clocked work or overtime on ${date} needs a statutory wage-rate calculation before this month can be settled.`
+				);
+			const pattern = termPatternRow(terms, options.configuration.patternById);
+			const codeId =
+				day?.shift_definition_id ??
+				patternRosterCodeId(pattern?.pattern ?? null, date, patternAnchor(pattern));
+			const scheduledWork =
+				codeId != null &&
+				rosterCodeKind(options.configuration.shiftById.get(codeId)?.variant) === 'WORK';
+			if (resultsOnly && day?.piece_units != null && !scheduledWork)
+				refuse(
+					`${options.bundle.employment.employee_number}: piece work on ${date} is outside an ordinary scheduled day; its rest-day rate is not available.`
+				);
+			if (resultsOnly ? day?.piece_units == null : !scheduledWork && day?.piece_units == null)
+				continue;
+			if (day?.piece_units == null || day.piece_unit_rate == null)
+				refuse(
+					`${options.bundle.employment.employee_number} needs piece units and unit rate on ${date}.`
+				);
+			earned += decodeNumber(day.piece_units) * decodeNumber(day.piece_unit_rate);
+		}
+		const amount = cents(earned, currency);
+		return {
+			amount,
+			base: [baseLine(options.component, bucket, amount)],
+			proration: [],
+			adjustments: []
+		};
+	};
+
+	const measureResultsFloor = (): Measurement | null => {
+		if (!resultsOnly && !myTaskOnly) return null;
+		const month = monthBounds(options.period.slice(0, 7));
+		if (
+			options.salary.start !== month.start ||
+			options.salary.end !== month.end ||
+			options.bundle.window?.attendance.start !== month.start ||
+			options.bundle.window.attendance.end !== month.end ||
+			options.bundle.employedDays?.start !== month.start ||
+			options.bundle.employedDays.end !== month.end ||
+			options.bundle.arrearsFor != null
+		)
+			refuse(
+				`${options.bundle.employment.employee_number}: results pay needs a full calendar month on the same attendance and salary window, with no earlier-month arrears.`
+			);
+		const firstVersion = settingsInForce(
+			options.configuration.lineageVersions,
+			options.configuration.jurisdiction.code,
+			month.start
+		);
+		const lastVersion = settingsInForce(
+			options.configuration.lineageVersions,
+			options.configuration.jurisdiction.code,
+			month.end
+		);
+		if (
+			options.configuration.lineageVersions.length > 0 &&
+			(firstVersion == null || lastVersion == null || firstVersion.id !== lastVersion.id)
+		)
+			refuse('A results-pay minimum wage changes inside this calendar month.');
+		if (!minimumWageCovers(options.configuration, options.subject)) return null;
+		const floor = cents(
+			bindingMinimumWage(options.configuration, options.subject, month.end),
+			currency
+		);
+		if (floor <= 0) return null;
+		let earned: number;
+		if (myTaskOnly) {
+			if (options.subject.terms.fixed_allowances !== 0)
+				refuse(
+					`${options.bundle.employment.employee_number}: fixed allowances on task, trip or commission terms need a sourced minimum-wage classification before the monthly comparator can run.`
+				);
+			if (
+				daysBetween(month.start, month.end).some((date) => {
+					const terms = termsOn(date);
+					return (
+						terms.statutory_work_category !== 'TASK_BASIS' ||
+						terms.base_salary > 0 ||
+						terms.pay_frequency !== 'MONTHLY'
+					);
+				}) ||
+				options.bundle.workDays.some(
+					(day) =>
+						dateKey(day.work_date) >= month.start &&
+						dateKey(day.work_date) <= month.end &&
+						day.piece_units != null
+				)
+			)
+				refuse(
+					`${options.bundle.employment.employee_number}: task, trip and commission results need monthly terms and typed wage requests; piece-unit workday amounts do not identify their statutory earning class.`
+				);
+			const codes = [
+				'TASK_MONTHLY_WAGE',
+				'TRIP_MONTHLY_WAGE',
+				'COMMISSION_MONTHLY',
+				'COMMISSION_IRREGULAR'
+			];
+			const attestations = options.bundle.payRequests.filter(
+				(request) =>
+					request.family === 'ADHOC' &&
+					request.catalogueComponent.code === 'RESULTS_ZERO_MONTH' &&
+					(request.pay_period === monthKey(month.start) ||
+						(request.event_date >= month.start && request.event_date <= month.end))
+			);
+			if (attestations.length > 0) {
+				const attestation = attestations[0]!;
+				if (
+					attestations.length !== 1 ||
+					options.bundle.payRequests.some(
+						(request) =>
+							request.family === 'ADHOC' &&
+							codes.includes(request.catalogueComponent.code) &&
+							(request.pay_period === monthKey(month.start) ||
+								(request.event_date >= month.start && request.event_date <= month.end))
+					) ||
+					attestation.event_date !== month.end ||
+					attestation.pay_period !== monthKey(month.start) ||
+					decodeNumber(attestation.amount) !== 0 ||
+					attestation.sign !== 1 ||
+					attestation.evidence_file == null ||
+					attestation.approval_id != null ||
+					attestation.captured
+				)
+					refuse(
+						`${options.bundle.employment.employee_number}: one evidenced zero-results attestation dated ${month.end}, paid in ${monthKey(month.start)}, must stand alone before the monthly minimum can be assessed.`
+					);
+				earned = 0;
+			} else {
+				const requests = options.bundle.payRequests.filter(
+					(request) =>
+						request.family === 'ADHOC' &&
+						codes.includes(request.catalogueComponent.code) &&
+						request.pay_period === monthKey(month.start) &&
+						request.approval_id == null &&
+						!request.captured
+				);
+				if (requests.length === 0)
+					refuse(
+						`${options.bundle.employment.employee_number}: task, trip and commission wages cannot be verified against the Malaysian monthly minimum wage until their payable amounts and contribution treatment are recorded as distinct earnings.`
+					);
+				for (const request of requests)
+					if (
+						request.event_date < month.start ||
+						request.event_date > month.end ||
+						request.sign !== 1 ||
+						request.evidence_file == null
+					)
+						refuse(
+							`${options.bundle.employment.employee_number}: ${request.catalogueComponent.code} needs positive evidenced wages earned and paid in ${monthKey(month.start)} before the monthly minimum can be assessed.`
+						);
+				earned = cents(
+					requests.reduce((total, request) => total + decodeNumber(request.amount), 0),
+					currency
+				);
+			}
+		} else {
+			if (
+				!options.bundle.workDays.some(
+					(day) =>
+						dateKey(day.work_date) >= month.start &&
+						dateKey(day.work_date) <= month.end &&
+						day.piece_units != null
+				)
+			)
+				refuse(
+					`${options.bundle.employment.employee_number}: record actual piece units, including zero, before assessing this results-pay month.`
+				);
+			earned = measurePieceEarned().amount;
+		}
+		const amount = cents(Math.max(0, floor - earned), currency);
+		if (amount === 0) return null;
+		options.note({
+			code: 'MINIMUM_WAGE_TOP_UP',
+			severity: 'WARNING',
+			message: `${options.bundle.employment.employee_number}: ${earned} in ${myTaskOnly ? 'task, trip or commission' : 'piece'} earnings plus ${amount} minimum-wage top-up meets the ${floor} monthly floor.`,
+			collection: 'employment_terms',
+			recordId: termsOn(options.employed.end).id
+		});
+		return {
+			amount,
+			base: [baseLine(options.component, bucket, amount)],
+			proration: [],
+			adjustments: []
+		};
+	};
 
 	/**
 	 * Earned base pay for one DAILY- or HOURLY-paid month.
@@ -1675,13 +2755,28 @@ function measureWorkComponent(
 			const codeId =
 				planByDate.get(date) ??
 				patternRosterCodeId(patternRow?.pattern ?? null, date, patternAnchor(patternRow));
-			if (codeId == null) continue;
-			const code = options.configuration.shiftById.get(codeId);
-			if (code == null)
+			const code = codeId == null ? null : options.configuration.shiftById.get(codeId);
+			if (codeId != null && code == null)
 				throw new Error(`Schedule on ${date} names roster code ${codeId}, which does not exist.`);
-			if (!coversDate(code.effective_range, date))
+			if (code != null && !coversDate(code.effective_range, date))
 				throw new Error(`Roster code ${code.code} is not effective on ${date}.`);
-			if (rosterCodeKind(code.variant) !== 'WORK') continue;
+			if (code == null || rosterCodeKind(code.variant) !== 'WORK') {
+				if (calendarMaternity.has(date)) {
+					const rateTerms = asRateTerms(
+						dayTerms,
+						termsWorkload({
+							terms: dayTerms,
+							configuration: options.configuration,
+							workDays: options.bundle.workDays,
+							window: monthBounds(monthKey(date))
+						}),
+						termsDaysPerWeek(dayTerms, options.configuration),
+						dayTerms.hazardous_work === true ? 7 : 8
+					);
+					exact += ordinaryDayWage(rateTerms, 1);
+				}
+				continue;
+			}
 			const shift = { ...workWindow(code.variant)!, id: code.id, code: code.code };
 			const scheduledHours = shift.paid_minutes / 60;
 			// Leave covers its reserved share of ordinary hours, including an explicitly empty punch.
@@ -1714,7 +2809,18 @@ function measureWorkComponent(
 							ordinaryWorkedHours(
 								{
 									...actual,
-									break_minutes: derivedBreakMinutes(intervals, shift.break_minutes)
+									break_minutes: providedBreakMinutes({
+										intervals,
+										shiftMinutes: shift.break_minutes,
+										breaks: options.configuration.breaks,
+										person: options.subject,
+										nightHours: nightHoursFor(
+											{ ...actual, work_date: date },
+											{ shift },
+											options.configuration.nightPremium,
+											offsetMinutesFor(options.configuration.jurisdiction.payroll.timezone, date)
+										)
+									})
 								},
 								shift,
 								offsetMinutesFor(options.configuration.jurisdiction.payroll.timezone, date)
@@ -1737,12 +2843,15 @@ function measureWorkComponent(
 	switch (definition.source) {
 		case 'SCHEDULE':
 			return measureSchedule();
+		case 'RESULTS_FLOOR':
+			return measureResultsFloor();
 		case 'ENTRY':
 			throw new Error('Work cannot measure a money-entry component.');
 		// Priced by the rules from work days (`measureOvertime`), never by the catalogue walk: the
 		// row exists so the opt-ins of derived overtime live where every other opt-in does.
 		case 'ABSENCE':
 		case 'DERIVED_OVERTIME':
+		case 'DERIVED_NORMAL':
 			return null;
 		default: {
 			const _exhaustive: never = definition;
@@ -1954,7 +3063,7 @@ function settleTimeOffInLieu(options: {
 	if (options.credits.length === 0 && options.prior.length === 0)
 		return { slices: [], adjustments: [], overdrawn: 0 };
 	const through = bundle.window.salary.end;
-	const exit = employmentDates(bundle.employment).exit;
+	const { hire, exit } = employmentDates(bundle.employment);
 	const leaving = exit != null && exit <= through;
 	const asOf = leaving ? exit : through;
 	const year = bundle.leave.catalogues.find((row) => row.code === rules.year_leave_code);
@@ -1964,7 +3073,7 @@ function settleTimeOffInLieu(options: {
 		);
 	const months = evaluatePersonNumber(rules.expiry_months, options.person);
 	const expiryOf = (date: IsoDate) => {
-		const yearEnd = leaveWindowOf(date, year.entitlement).end;
+		const yearEnd = leaveWindowOf(date, year.entitlement, hire).end;
 		if (months <= 0) return yearEnd;
 		const agreed = addDays(
 			monthDay(
@@ -1997,7 +3106,10 @@ function settleTimeOffInLieu(options: {
 	const hoursOf = (entry: (typeof bundle.leave.entries)[number]) =>
 		entry.charges.map((charge) => {
 			if (entry.hours != null) return { date: charge.date, hours: entry.hours };
-			const shift = options.shiftById.get(charge.shift_definition_id);
+			const shift =
+				charge.shift_definition_id == null
+					? null
+					: options.shiftById.get(charge.shift_definition_id);
 			const window = shift == null ? null : workWindow(shift.variant);
 			if (window == null)
 				refuse(
@@ -2153,6 +3265,19 @@ export function validateWorkResult(options: {
 	const { attendance } = bundle;
 	const ownDays = measured.overtimeDays.filter(
 		(day) => day.date >= attendance.start && day.date <= attendance.end
+	);
+	const plannedByWorkDayId = new Map(
+		bundle.workDays.map((row) => [
+			String(row.id),
+			decodeNumber(row.approved_overtime_hours ?? 0) + decodeNumber(row.incentive_hours ?? 0)
+		])
+	);
+	issues.push(
+		...validateUnplannedOvertime({
+			employeeNumber: bundle.employment.employee_number,
+			days: ownDays,
+			plannedByWorkDayId
+		})
 	);
 	for (const limit of measured.limits) {
 		if (limit.period !== 'DAY') continue;

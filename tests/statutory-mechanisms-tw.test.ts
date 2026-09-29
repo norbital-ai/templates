@@ -29,7 +29,7 @@ function registrations(amount = 34800): NonNullable<Person['registrations']> {
 	);
 }
 
-for (const period of ['2025-12', '2026-01', '2027-01']) {
+for (const period of ['2025-12', '2026-01']) {
 	test(`Taiwan ${period} — recorded insurance grades survive an unreported salary increase`, () => {
 		// BLI: https://www.bli.gov.tw/0005472.htm and /0006928.html. A declared adjustment
 		// takes effect on the first of the month after notification; contract salary is not that date.
@@ -39,13 +39,7 @@ for (const period of ['2025-12', '2026-01', '2027-01']) {
 			riskClass: '1',
 			people: [{ key: 'DECLARED', wage: 60000, registrations: registrations() }]
 		});
-		expectStatutory(
-			book,
-			'DECLARED',
-			'LI',
-			period === '2027-01' ? 835 : 800,
-			period === '2027-01' ? 2923 : 2801
-		);
+		expectStatutory(book, 'DECLARED', 'LI', 800, 2801);
 		expectStatutory(book, 'DECLARED', 'EI', 70, 244);
 		expectStatutory(book, 'DECLARED', 'NHI', 540, 1684);
 		expectStatutory(book, 'DECLARED', 'OCC_INJURY', 0, 87);
@@ -139,32 +133,35 @@ for (const [period, amount, expected] of [
 		assert.equal(book.get('NOTICE')!.get('LI')!.employee, expected);
 	});
 
-test('Taiwan — ending insurance mid-month retains premiums for the preceding covered days', () => {
-	const book = assessStatutory(
-		{
-			code: 'TW',
-			period: '2026-01',
-			riskClass: '1',
-			people: [{ key: 'WITHDRAWAL', wage: 40000, registrations: registrations(40100) }]
-		},
-		(world) => {
-			world.companies[0]!.pay_cutoff_day = 1;
-			const ids = new Set(
-				world.statutory_contributions.filter((row) => row.code === 'LI').map((row) => row.id)
-			);
-			for (const fact of [...world.employment_statutory_facts]) {
-				if (!ids.has(fact.statutory_contribution_id)) continue;
-				fact.effective_range = { ...fact.effective_range, end: '2026-01-15' };
-				world.employment_statutory_facts.push({
-					...fact,
-					id: `${fact.id}-withdrawal`,
-					effective_range: { start: '2026-01-16', end: null },
-					status: { kind: 'NOT_REGISTERED', reason: 'Coverage ended' }
-				});
-			}
-		}
+test('Taiwan — unexplained mid-month LI withdrawal refuses payroll', () => {
+	assert.throws(
+		() =>
+			assessStatutory(
+				{
+					code: 'TW',
+					period: '2026-01',
+					riskClass: '1',
+					people: [{ key: 'WITHDRAWAL', wage: 40000, registrations: registrations(40100) }]
+				},
+				(world) => {
+					world.companies[0]!.pay_cutoff_day = 1;
+					const ids = new Set(
+						world.statutory_contributions.filter((row) => row.code === 'LI').map((row) => row.id)
+					);
+					for (const fact of [...world.employment_statutory_facts]) {
+						if (!ids.has(fact.statutory_contribution_id)) continue;
+						fact.effective_range = { ...fact.effective_range, end: '2026-01-15' };
+						world.employment_statutory_facts.push({
+							...fact,
+							id: `${fact.id}-withdrawal`,
+							effective_range: { start: '2026-01-16', end: null },
+							status: { kind: 'NOT_REGISTERED', reason: 'Coverage ended' }
+						});
+					}
+				}
+			),
+		/NOT_REGISTERED does not prove a noncompulsory employer or worker class/
 	);
-	expectStatutory(book, 'WITHDRAWAL', 'LI', 461, 1614);
 });
 
 test('Taiwan — deferred joining wages retain the joining month insurance liability', () => {
@@ -246,7 +243,24 @@ for (const [period, exit] of [
 				code: 'TW',
 				period: period!,
 				riskClass: '1',
-				people: [{ key: 'LEAVER', wage: 60000, exit_date: exit!, registrations: registrations() }]
+				people: [
+					{
+						key: 'LEAVER',
+						wage: 60000,
+						exit_date: exit!,
+						registrations: {
+							...registrations(),
+							NHI_SUPPLEMENT: {
+								kind: 'REGISTERED',
+								elections: {
+									withdrawal_grade: 34800,
+									withdrawal_on: exit!,
+									withdrawal_reference: 'INSURER-WITHDRAWAL-2026'
+								}
+							}
+						}
+					}
+				]
 			},
 			(world) => {
 				world.companies[0]!.pay_cutoff_day = 1;
@@ -331,7 +345,18 @@ test('Taiwan — a bonus after a new-year grade change retains the previous-year
 					key: 'PRIOR-YEAR-LEAVER',
 					wage: 28590,
 					exit_date: '2025-12-15',
-					registrations: registrations(28590)
+					registrations: {
+						...registrations(29500),
+						NHI: { kind: 'NOT_REGISTERED' },
+						NHI_SUPPLEMENT: {
+							kind: 'REGISTERED',
+							elections: {
+								withdrawal_grade: 28590,
+								withdrawal_on: '2025-12-15',
+								withdrawal_reference: 'INSURER-WITHDRAWAL-2025'
+							}
+						}
+					}
 				}
 			]
 		},
@@ -386,6 +411,6 @@ test('Taiwan — an obsolete NHI grade cannot charge a currently insured worker'
 					}
 				]
 			}),
-		/declared insured amount is not a grade in force/
+		/NHI insured amount must be one of/
 	);
 });

@@ -34,23 +34,34 @@ const workLines = (slip: BuiltPayslip) =>
 		.map((row) => [row.source_id.slice(-10), row.label, row.quantity, row.amount] as const)
 		.toSorted((left, right) => left[0].localeCompare(right[0]) || left[1].localeCompare(right[1]));
 
+/**
+ * A punch, with the day's one-hour rest taken at `rest` when one is named. A time entry is a span
+ * and the break the day provides — the shift's grant, or the statute's minimum where longer — comes
+ * off it; naming the rest as a gap keeps the shift's hour from being deducted twice.
+ */
 const punch = (
 	world: PayrollWorld,
 	key: string,
 	date: string,
 	start: string,
 	end: string,
-	offset = '+08:00'
+	offset = '+08:00',
+	rest: { readonly from: string; readonly to: string } | null = null
 ) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
+	const at = (time: string) => `${date}T${time}:00${offset}`;
 	world.work_days.push({
 		id: `wd-${key}-${date}`,
 		employment_id: employment.id,
 		work_date: date,
 		shift_definition_id: null,
-		worked_intervals: [
-			{ start: `${date}T${start}:00${offset}`, end: `${date}T${end}:00${offset}` }
-		],
+		worked_intervals:
+			rest == null
+				? [{ start: at(start), end: at(end) }]
+				: [
+						{ start: at(start), end: at(rest.from) },
+						{ start: at(rest.to), end: at(end) }
+					],
 		requested_by: null,
 		approval_id: null
 	});
@@ -222,8 +233,15 @@ test('SG round 2 — s.88(1)(c)/(4A): an employer that gives time off pays no ho
 			world.jurisdiction_holidays.push(holiday('2026-01-01', "New Year's Day"));
 			world.jurisdiction_holidays.push(holiday('2026-01-10', 'A Saturday holiday'));
 			empty(world, 'OFF-DAY', '2026-01-10');
-			punch(world, 'MGR', '2026-01-01', '09:00', '18:00');
-			punch(world, 'PART4', '2026-01-01', '09:00', '18:00');
+			// Both worked the ordinary 09:00–18:00 day with the shift's granted hour taken at
+			// 13:00–14:00 (s.38(1)(a) puts the break between noon and three), so 8 worked hours.
+			for (const key of ['MGR', 'PART4']) {
+				punch(world, key, '2026-01-01', '09:00', '18:00');
+				world.work_days.at(-1)!.worked_intervals = [
+					{ start: '2026-01-01T09:00:00+08:00', end: '2026-01-01T13:00:00+08:00' },
+					{ start: '2026-01-01T14:00:00+08:00', end: '2026-01-01T18:00:00+08:00' }
+				];
+			}
 		}
 	);
 	assert.deepEqual(workLines(slips.get('OFF-DAY')!), []);
@@ -263,8 +281,16 @@ test('MY round 2 — s.60A(7): twelve hours of work a day are twelve worked hour
 				]
 			},
 			(world) => {
-				punch(world, 'UNDER', '2026-01-05', '09:00', '21:30');
-				punch(world, 'OVER', '2026-01-05', '09:00', '22:30');
+				// The 13:00–14:00 rest the shift grants is taken, so 09:00–21:30 is 11.5 worked
+				// hours and 09:00–22:30 is 12.5 — the s.60A(9) reading the test's comment states.
+				punch(world, 'UNDER', '2026-01-05', '09:00', '21:30', '+08:00', {
+					from: '13:00',
+					to: '14:00'
+				});
+				punch(world, 'OVER', '2026-01-05', '09:00', '22:30', '+08:00', {
+					from: '13:00',
+					to: '14:00'
+				});
 			}
 		);
 		const daily = warnings.filter((line) => line.startsWith('DAILY_WORK_LIMIT_EXCEEDED'));
@@ -315,12 +341,15 @@ test('PH round 2 — a double holiday is 200% unworked and 300% worked; the seco
 			world.jurisdiction_holidays.push(
 				holiday('2026-01-05', 'Two regular holidays', 'DOUBLE_HOLIDAY')
 			);
-			punch(world, 'DBL-W', '2026-01-05', '09:00', '18:00');
-			punch(world, 'DBL-OT', '2026-01-05', '09:00', '20:00');
+			// The one-hour rest is taken, so DBL-W worked 8 h and DBL-OT 10 — the two hours
+			// past the 18:00 shift the test's comment prices at 3 × 1.3.
+			const rest = { from: '13:00', to: '14:00' };
+			punch(world, 'DBL-W', '2026-01-05', '09:00', '18:00', '+08:00', rest);
+			punch(world, 'DBL-OT', '2026-01-05', '09:00', '20:00', '+08:00', rest);
 			empty(world, 'DBL-U', '2026-01-05');
 			empty(world, 'DBL-ABS', '2026-01-02');
 			empty(world, 'DBL-ABS', '2026-01-05');
-			punch(world, 'DBL-D', '2026-01-05', '09:00', '18:00');
+			punch(world, 'DBL-D', '2026-01-05', '09:00', '18:00', '+08:00', rest);
 		}
 	);
 	assert.deepEqual(
@@ -356,22 +385,18 @@ test('PH round 2 — Handbook ch.2 §D: the daily-paid are paid an unworked regu
 
 test('PH round 2 — RA 10361 s.24: a kasambahay in NCR is held to NCR-DW-06, ₱7,800 a month, not the establishment order', () => {
 	// NCR-DW-06 s.1: ₱7,800 a month from 7 February 2026 (the 1 April 2026 version carries it).
-	// DW-7500 is below it; DW-7800 meets it — and would be far below the establishment floor
-	// (NCR-26, ₱695 × 313 ÷ 12 = 18,127.92) if that held a domestic worker.
-	const { warnings } = buildStatutory({
-		code: 'PH',
-		period: '2026-04',
-		region: 'NCR',
-		people: [
-			{ key: 'DW-7500', wage: 7_500, employment_type: 'DOMESTIC' },
-			{ key: 'DW-7800', wage: 7_800, employment_type: 'DOMESTIC' }
-		]
-	});
-	const below = warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW'));
-	assert.equal(below.length, 1, below.join('\n'));
-	assert.match(
-		below[0]!,
-		/DW-7500 is contracted at 7500 a month, below the NCR minimum wage of 7800/
+	// DW-7500 is below it and refuses; DW-7800 meets it despite being below the establishment floor.
+	const run = (wage: number) =>
+		buildStatutory({
+			code: 'PH',
+			period: '2026-04',
+			region: 'NCR',
+			people: [{ key: 'DW', wage, employment_type: 'DOMESTIC' }]
+		});
+	assert.throws(() => run(7_500), /MINIMUM_WAGE_BELOW: DW is contracted at 7500 a month/);
+	assert.deepEqual(
+		run(7_800).warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW')),
+		[]
 	);
 });
 
@@ -452,7 +477,7 @@ const entitlement = (
 	assert.ok(row, `${code} has no ${leave} on ${settingsId}`);
 	return computedEntitlement({
 		rule: row.entitlement,
-		window: leaveWindowOf(asOf, row.entitlement),
+		window: leaveWindowOf(asOf, row.entitlement, hire),
 		asOf,
 		hireDate: hire,
 		exitDate: null,

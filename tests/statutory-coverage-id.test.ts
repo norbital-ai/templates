@@ -2,15 +2,545 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
 	assessStatutory,
+	assessStatutoryUnvalidated,
 	buildStatutory,
 	chargeOf,
+	COMPANY_ID,
 	createStatutoryWorld,
 	leaveCatalogue
 } from './fixtures/statutory-world.ts';
 import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import { gatherPayrollRun, buildPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { minimumWageIssues } from '../src/lib/payroll/contribution.ts';
 
 const uuid = (n: number) => `d1000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+
+test('ID: a worker past one year needs a dated company wage-scale grade and basic minimum', () => {
+	const world = createStatutoryWorld({
+		code: 'ID',
+		period: '2026-01',
+		region: 'Provinsi DKI Jakarta',
+		riskClass: 'I',
+		people: [{ key: 'SCALE', wage: 6_000_000, hire_date: '2025-01-01' }]
+	});
+	const build = () =>
+		buildPayrollRun(
+			gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+		);
+	assert.doesNotThrow(build);
+	const terms = world.employment_terms[0]!;
+	terms.id_wage_scale_basic_minimum = 6_000_000.01;
+	assert.throws(build, /below the company's FIXTURE grade minimum/);
+	terms.id_wage_scale_basic_minimum = 6_000_000;
+	terms.id_wage_scale_evidence_file = null;
+	assert.throws(build, /record the dated company wage structure/);
+	terms.id_wage_scale_evidence_file = 'fixture-scale-and-grade-notice.pdf';
+	terms.id_wage_scale_effective_on = '2026-02-01';
+	assert.throws(build, /record the dated company wage structure/);
+	terms.id_wage_scale_effective_on = '2025-01-01';
+	terms.id_wage_scale_notice_on = '2026-02-01';
+	assert.throws(build, /record the dated company wage structure/);
+	terms.id_wage_scale_notice_on = '2025-01-01';
+	assert.doesNotThrow(build);
+
+	const firstYear = createStatutoryWorld({
+		code: 'ID',
+		period: '2026-01',
+		region: 'Provinsi DKI Jakarta',
+		riskClass: 'I',
+		people: [{ key: 'FIRST', wage: 6_000_000, hire_date: '2026-01-01' }]
+	});
+	firstYear.employment_terms[0]!.id_wage_scale_evidence_file = null;
+	assert.doesNotThrow(() =>
+		buildPayrollRun(
+			gatherPayrollRun({ world: payrollWorld(firstYear), companyId: COMPANY_ID, period: '2026-01' })
+		)
+	);
+});
+
+test('ID: pure output wages refuse until agreed units and twelve paid months can be valued', () => {
+	const world = createStatutoryWorld({
+		code: 'ID',
+		period: '2026-01',
+		region: 'Provinsi DKI Jakarta',
+		riskClass: 'I',
+		people: [
+			{
+				key: 'OUTPUT',
+				wage: 0,
+				hire_date: '2026-01-01',
+				statutory_work_category: 'PIECE_RATE'
+			}
+		]
+	});
+	assert.throws(
+		() =>
+			buildPayrollRun(
+				gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+			),
+		/pure output wages need the agreed result rate, recorded units and twelve months of paid wages/
+	);
+});
+
+test('ID: hourly pay is part-time only and meets the sector-aware monthly floor divided by 126', () => {
+	const hourly = (wage: number, employment_type: string) =>
+		assessStatutory({
+			code: 'ID',
+			period: '2026-01',
+			region: 'Provinsi DKI Jakarta',
+			riskClass: 'I',
+			people: [
+				{
+					key: 'HOUR',
+					wage,
+					hire_date: '2026-01-01',
+					exit_date: '2026-03-31',
+					exit_reason: 'END_OF_CONTRACT',
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					id_foreign_prior_indonesia_work: 'NONE',
+					id_foreign_prior_work_reviewed_on: '2026-01-01',
+					id_foreign_prior_work_reference: 'FIXTURE-NO-PRIOR-WORK',
+					pay_frequency: 'HOURLY',
+					employment_type,
+					ordinary_hours_per_week: 20
+				}
+			]
+		});
+	// DKI 2026 Rp5,729,876 ÷ 126 = Rp45,475.206..., rounded at the comparison cent.
+	assert.doesNotThrow(() => hourly(45_475.21, 'PART_TIME'));
+	assert.throws(() => hourly(45_475.2, 'PART_TIME'), /MINIMUM_WAGE_BELOW/);
+	assert.throws(() => hourly(50_000, 'PERMANENT'), /hourly wage only for part-time work/);
+});
+
+test('ID: saved daily and hourly PPU runs refuse an unsealed BPJS Kesehatan monthly wage', () => {
+	const build = (payFrequency: 'MONTHLY' | 'DAILY' | 'HOURLY') => {
+		const world = createStatutoryWorld({
+			code: 'ID',
+			period: '2026-01',
+			region: 'Provinsi DKI Jakarta',
+			riskClass: 'I',
+			people: [
+				{
+					key: 'HEALTH',
+					wage:
+						payFrequency === 'MONTHLY' ? 6_000_000 : payFrequency === 'DAILY' ? 300_000 : 50_000,
+					hire_date: '2026-01-01',
+					pay_frequency: payFrequency,
+					employment_type: payFrequency === 'HOURLY' ? 'PART_TIME' : 'PERMANENT',
+					ordinary_hours_per_week: payFrequency === 'HOURLY' ? 20 : 40
+				}
+			]
+		});
+		return () =>
+			buildPayrollRun(
+				gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+			);
+	};
+	assert.doesNotThrow(build('MONTHLY'));
+	for (const frequency of ['DAILY', 'HOURLY'] as const)
+		assert.throws(
+			build(frequency),
+			/BPJS Kesehatan monthly contribution wage for daily or hourly terms is not sealed/
+		);
+});
+
+test('ID: a short-contract foreigner needs dated no-prior-work evidence before Kesehatan is skipped', () => {
+	const world = createStatutoryWorld({
+		code: 'ID',
+		period: '2026-01',
+		region: 'Provinsi DKI Jakarta',
+		riskClass: 'I',
+		people: [
+			{
+				key: 'FOREIGN3M',
+				wage: 6_000_000,
+				citizenship: 'FOREIGNER',
+				tax_residency: 'NON_RESIDENT',
+				employment_type: 'CONTRACT',
+				hire_date: '2026-01-01',
+				exit_date: '2026-03-31'
+			}
+		]
+	});
+	const build = () =>
+		buildPayrollRun(
+			gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+		);
+	const terms = world.employment_terms[0]!;
+	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/);
+	terms.id_foreign_prior_indonesia_work = 'ANY';
+	terms.id_foreign_prior_work_reviewed_on = '2026-01-01';
+	terms.id_foreign_prior_work_reference = 'PRIOR-WORK-RECORD';
+	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/);
+	terms.id_foreign_prior_indonesia_work = 'NONE';
+	terms.id_foreign_prior_work_reviewed_on = '2026-02-01';
+	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/);
+	terms.id_foreign_prior_work_reviewed_on = '2026-01-01';
+	terms.id_foreign_prior_work_reference = null;
+	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/);
+	terms.id_foreign_prior_work_reference = 'NO-PRIOR-WORK-DECLARATION';
+	const built = build();
+	assert.equal(
+		built.payslip_payroll_run[0]?.statutory.some((row) => row.scheme_code === 'KESEHATAN'),
+		false
+	);
+});
+
+test('ID: micro or small employers never use the ordinary BPJS Kesehatan UMP/UMK floor', () => {
+	const options = {
+		code: 'ID',
+		period: '2026-01',
+		region: 'Provinsi DKI Jakarta',
+		riskClass: 'I',
+		people: [{ key: 'SIZE', wage: 6_000_000 }]
+	} as const;
+	assert.ok(chargeOf(assessStatutory(options), 'SIZE', 'KESEHATAN').employee > 0);
+	for (const period of ['2025-12', '2026-01', '2026-03'])
+		assert.throws(
+			() =>
+				assessStatutory({
+					...options,
+					period,
+					companyFacts: { enterprise_size_class: 'MICRO_OR_SMALL' }
+				}),
+			/KESEHATAN: Verify the employer's enterprise size/
+		);
+	const shortForeignContract = assessStatutory({
+		...options,
+		companyFacts: { enterprise_size_class: 'MICRO_OR_SMALL' },
+		people: [
+			{
+				key: 'FOREIGN3M',
+				wage: 6_000_000,
+				citizenship: 'FOREIGNER',
+				employment_type: 'CONTRACT',
+				hire_date: '2026-01-01',
+				id_foreign_prior_indonesia_work: 'NONE',
+				id_foreign_prior_work_reviewed_on: '2026-01-01',
+				id_foreign_prior_work_reference: 'FIXTURE-NO-PRIOR-WORK',
+				exit_date: '2026-03-31'
+			}
+		]
+	});
+	assert.equal(shortForeignContract.get('FOREIGN3M')?.get('KESEHATAN'), undefined);
+	const missing = createStatutoryWorld(options);
+	missing.companies[0]!.facts = {};
+	assert.throws(
+		() =>
+			buildPayrollRun(
+				gatherPayrollRun({
+					world: payrollWorld(missing),
+					companyId: COMPANY_ID,
+					period: options.period
+				})
+			),
+		/KESEHATAN: Verify the employer's enterprise size/
+	);
+	assert.throws(
+		() =>
+			assessStatutory({
+				...options,
+				people: [{ key: 'SIZE', wage: 5_000_000 }]
+			}),
+		/MINIMUM_WAGE_BELOW/
+	);
+});
+
+test('ID: a mid-month enterprise-size change refuses Kesehatan before pricing the month', () => {
+	const world = createStatutoryWorld({
+		code: 'ID',
+		period: '2026-01',
+		region: 'Provinsi DKI Jakarta',
+		riskClass: 'I',
+		companyFacts: { enterprise_size_class: 'MICRO_OR_SMALL' },
+		people: [{ key: 'SIZE', wage: 6_000_000 }]
+	});
+	world.company_facts = [
+		{
+			id: uuid(990),
+			company_id: COMPANY_ID,
+			facts: { enterprise_size_class: 'OTHER' },
+			effective_range: {
+				start: '2026-01-16T00:00:00.000Z',
+				end: null
+			},
+			approval_id: null
+		}
+	] as never;
+	assert.throws(
+		() =>
+			buildPayrollRun(
+				gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+			),
+		/enterprise_size_class.*inside.*month/
+	);
+});
+
+test('ID: an unsealed KBLI in a local sector order cannot take the ordinary floor', () => {
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: 'ID',
+				period: '2026-01',
+				region: 'Provinsi DKI Jakarta',
+				riskClass: 'I',
+				people: [
+					{
+						key: 'BUS',
+						wage: 5_729_876,
+						worksite_sector: '49214'
+					}
+				]
+			}),
+		/sector.*49214|49214.*sector/i
+	);
+});
+
+test('ID: dated KBLI editions convert only a verified one-to-one sector code', () => {
+	const options = {
+		code: 'ID',
+		period: '2026-01',
+		region: 'Provinsi DKI Jakarta',
+		riskClass: 'I',
+		people: [
+			{
+				key: 'CODE',
+				wage: 6_000_000,
+				hire_date: '2025-12-18',
+				worksite_sector: '62199',
+				worksite_sector_edition: '2025'
+			}
+		]
+	} as const;
+	assert.ok(assessStatutory(options).has('CODE'));
+	assert.ok(
+		assessStatutory({
+			...options,
+			people: [
+				{ key: 'CODE', wage: 6_000_000, worksite_sector: '62019', worksite_sector_edition: '2020' }
+			]
+		}).has('CODE')
+	);
+	for (const person of [
+		{
+			key: 'CODE',
+			wage: 6_000_000,
+			hire_date: '2025-12-18',
+			worksite_sector: '62019',
+			worksite_sector_edition: '2025'
+		},
+		{
+			key: 'CODE',
+			wage: 6_000_000,
+			hire_date: '2025-12-18',
+			worksite_sector: '10739',
+			worksite_sector_edition: '2025'
+		}
+	])
+		assert.throws(() => assessStatutory({ ...options, people: [person] }), /No verified KBLI/);
+	assert.throws(
+		() =>
+			assessStatutory({
+				...options,
+				people: [
+					{ key: 'CODE', wage: 6_000_000, worksite_sector: '62019', worksite_sector_edition: null }
+				]
+			}),
+		/supported worksite KBLI edition/
+	);
+	assert.throws(
+		() =>
+			assessStatutory({
+				...options,
+				people: [
+					{
+						key: 'CODE',
+						wage: 6_000_000,
+						worksite_sector: '62019',
+						worksite_sector_edition: '2015'
+					}
+				]
+			}),
+		/supported worksite KBLI edition/
+	);
+	assert.throws(
+		() =>
+			assessStatutory({
+				...options,
+				period: '2025-12',
+				people: [
+					{
+						key: 'CODE',
+						wage: 6_000_000,
+						hire_date: '2025-12-17',
+						worksite_sector: '62199',
+						worksite_sector_edition: '2025'
+					}
+				]
+			}),
+		/KBLI 2025 cannot classify this worksite/
+	);
+});
+
+test('ID: a reciprocally unique KBLI 2025 code selects its 2020 locality sector floor on the saved run', () => {
+	const world = createStatutoryWorld({
+		code: 'ID',
+		period: '2026-01',
+		region: 'Provinsi Jawa Timur/Kabupaten Banyuwangi',
+		riskClass: 'I',
+		people: [
+			{
+				key: 'MINE',
+				wage: 3_000_000,
+				hire_date: '2026-01-01',
+				worksite_sector: '07221',
+				worksite_sector_edition: '2025'
+			}
+		]
+	});
+	assert.throws(
+		() =>
+			buildPayrollRun(
+				gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+			),
+		/MINIMUM_WAGE_BELOW/
+	);
+});
+
+test('ID: a split KBLI 2025 hotel code with one 2020 source selects the Badung sector floor on the saved run', () => {
+	const world = createStatutoryWorld({
+		code: 'ID',
+		period: '2026-01',
+		region: 'Provinsi Bali/Kabupaten Badung',
+		riskClass: 'I',
+		companyFacts: { umsp_hotel_star: 5 },
+		people: [
+			{
+				key: 'HOTEL',
+				wage: 3_800_000,
+				hire_date: '2026-01-01',
+				worksite_sector: '55101',
+				worksite_sector_edition: '2025'
+			}
+		]
+	});
+	const build = () =>
+		buildPayrollRun(
+			gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+		);
+	assert.throws(build, /MINIMUM_WAGE_BELOW/);
+	world.companies[0]!.facts = { ...world.companies[0]!.facts, umsp_hotel_star: 4 };
+	assert.throws(build, /KBLI 2025 hotel star class conflicts/);
+	delete world.companies[0]!.facts.umsp_hotel_star;
+	assert.throws(build, /Record umsp_hotel_star/);
+});
+
+test('ID: a dated one-to-one KBLI edition revision preserves the saved monthly wage class', () => {
+	const world = createStatutoryWorld({
+		code: 'ID',
+		period: '2026-01',
+		region: 'Provinsi DKI Jakarta',
+		riskClass: 'I',
+		people: [
+			{
+				key: 'CODE',
+				wage: 6_000_000,
+				hire_date: '2026-01-01',
+				worksite_sector: '62019',
+				worksite_sector_edition: '2020'
+			}
+		]
+	});
+	const prior = world.employment_terms[0]!;
+	prior.effective_range = { start: '2026-01-01', end: '2026-01-16T00:00:00.000Z' };
+	world.employment_terms.push({
+		...prior,
+		id: uuid(991),
+		worksite_sector: '62199',
+		worksite_sector_edition: '2025',
+		effective_range: { start: '2026-01-16T00:00:00.000Z', end: null }
+	} as never);
+	const build = () =>
+		buildPayrollRun(
+			gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+		);
+	assert.doesNotThrow(build);
+	world.employment_terms[1]!.worksite_sector = '10437';
+	world.employment_terms[1]!.worksite_sector_edition = '2020';
+	assert.throws(build, /A workplace or wage class change inside one pay window/);
+});
+
+test('ID: Banten legacy broad programming codes and their newer descendants refuse without a verified sector selector', () => {
+	for (const [sector, edition] of [
+		['62010', '2020'],
+		['62020', '2020'],
+		['62019', '2020'],
+		['62199', '2025']
+	] as const) {
+		const world = createStatutoryWorld({
+			code: 'ID',
+			period: '2026-01',
+			region: 'Provinsi Banten/Kota Tangerang Selatan',
+			riskClass: 'I',
+			people: [
+				{
+					key: 'PROGRAMMER',
+					wage: 6_000_000,
+					hire_date: '2026-01-01',
+					worksite_sector: sector,
+					worksite_sector_edition: edition
+				}
+			]
+		});
+		assert.throws(
+			() =>
+				buildPayrollRun(
+					gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+				),
+			/sector wage order.*not verified/
+		);
+	}
+});
+
+test('ID: known but unseeded provincial sector orders refuse ordinary-floor payroll in their dated versions', () => {
+	for (const [period, worksite, sector = '62019'] of [
+		['2025-12', 'Provinsi Banten/Kota Tangerang Selatan'],
+		['2025-12', 'Provinsi Jawa Barat/Kota Bandung'],
+		// Kep.782/2024 names 01270, but the amended local UMSK selector is unsealed.
+		['2025-12', 'Provinsi Jawa Barat/Kota Bandung', '01270'],
+		['2025-12', 'Provinsi Jawa Timur/Kota Surabaya'],
+		['2025-12', 'Provinsi Kepulauan Riau/Kota Batam'],
+		['2025-12', 'Provinsi Riau/Kota Pekanbaru'],
+		['2026-01', 'Provinsi Jawa Barat/Kota Bandung'],
+		// Kep.860/2025 names 41011, but the separate local UMSK selector is unsealed.
+		['2026-01', 'Provinsi Jawa Barat/Kota Bandung', '41011'],
+		['2026-01', 'Provinsi Kepulauan Riau/Kota Batam'],
+		['2026-03', 'Provinsi Riau/Kota Pekanbaru']
+	] as const) {
+		const world = createStatutoryWorld({
+			code: 'ID',
+			period,
+			region: worksite,
+			riskClass: 'I',
+			people: [
+				{
+					key: 'UNSEALED',
+					wage: 10_000_000,
+					worksite_sector: sector,
+					worksite_sector_edition: '2020'
+				}
+			]
+		});
+		assert.throws(
+			() =>
+				buildPayrollRun(
+					gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period })
+				),
+			/sector wage order.*not verified/
+		);
+	}
+});
 
 // Governor decrees 561.7/Kep.798-Kesra/2024 and 561.7/Kep.862-Kesra/2025,
 // operative tables and commencement clauses; Perpres 82/2018 art.32(2)-(3).
@@ -27,7 +557,8 @@ for (const [region, prior, current] of [
 		['2026-03', current]
 	] as const)
 		test(`ID ${region}: ${period} Kesehatan uses the workplace UMK`, () => {
-			const book = assessStatutory({
+			// The Rp2m contract is below the UMK and cannot build; isolate the BPJS floor arithmetic.
+			const book = assessStatutoryUnvalidated({
 				code: 'ID',
 				period,
 				region,
@@ -50,8 +581,52 @@ test('ID: a province name cannot select a lower UMP where every city and regency
 				riskClass: 'I',
 				people: [{ key: 'PROVINCE', wage: 2_000_000 }]
 			}),
-		/KESEHATAN bounds its base by the regional minimum wage/
+		/No sealed minimum-wage rate covers PERMANENT at "Jawa Barat"/
 	);
+});
+
+test('ID PP 36/2021 art.17: daily wage meets the monthly floor at 21 or 25 days', () => {
+	const floor = 5_729_876; // DKI Jakarta UMP, 2026.
+	const build = (workdays: number, dailyWage: number) => {
+		const world = createStatutoryWorld({
+			code: 'ID',
+			period: '2026-04',
+			region: 'Provinsi DKI Jakarta',
+			riskClass: 'I',
+			people: [{ key: 'DAILY', wage: dailyWage, pay_frequency: 'DAILY' }]
+		});
+		const pattern = world.shift_patterns[0]!.pattern as {
+			days: { roster_code_id: string }[];
+		};
+		const work = pattern.days[0]!;
+		const rest = pattern.days[5]!;
+		pattern.days = Array.from({ length: 7 }, (_, day) => (day < workdays ? work : rest));
+		const prepared = gatherPayrollRun({
+			world: payrollWorld(world),
+			companyId: COMPANY_ID,
+			period: '2026-04'
+		});
+		return minimumWageIssues({
+			configuration: prepared.configuration,
+			bundles: prepared.gathered.bundles,
+			asOf: '2026-04-30'
+		});
+	};
+	for (const [workdays, divisor] of [
+		[5, 21],
+		[6, 25]
+	] as const) {
+		const daily = Math.ceil((floor / divisor) * 100) / 100;
+		assert.equal(
+			build(workdays, daily).some((issue) => issue.code === 'MINIMUM_WAGE_BELOW'),
+			false
+		);
+		assert.equal(
+			build(workdays, daily - 0.01).some((issue) => issue.code === 'MINIMUM_WAGE_BELOW'),
+			true
+		);
+	}
+	assert.throws(() => build(4, 300_000), /daily minimum-wage divisor is missing for 4 workdays/);
 });
 
 type ExitFacts = Readonly<Record<string, string | number | boolean>>;
@@ -185,17 +760,19 @@ test('ID detailed cause, not the broad exit reason, determines the multiplier', 
 	assert.equal(prevention.PESANGON!.amount, 50_000_000);
 });
 
-test('ID daily and output-paid separation wage bases follow article 157', () => {
-	const daily = separationAmounts({
-		wage: 400_000,
-		payFrequency: 'DAILY',
-		facts: standardFacts('EFFICIENCY_PREVENT_LOSS', {
-			separation_wage_basis: 'DAILY',
-			separation_daily_wage: 400_000
-		})
-	});
-	assert.equal(daily.PESANGON!.amount, 60_000_000);
-	assert.equal(daily.UPMK!.amount, 24_000_000);
+test('ID output-paid separation follows article 157 while daily full run refuses its Kesehatan base', () => {
+	assert.throws(
+		() =>
+			separationAmounts({
+				wage: 400_000,
+				payFrequency: 'DAILY',
+				facts: standardFacts('EFFICIENCY_PREVENT_LOSS', {
+					separation_wage_basis: 'DAILY',
+					separation_daily_wage: 400_000
+				})
+			}),
+		/BPJS Kesehatan monthly contribution wage for daily or hourly terms is not sealed/
+	);
 
 	const output = separationAmounts({
 		facts: standardFacts('EFFICIENCY_PREVENT_LOSS', {
@@ -381,6 +958,7 @@ test('ID contractual cash-out retains conversion-date salary and explicit allowa
 	const world = contractualCashOut('2026-02-28');
 	const prior = world.employment_terms[0]!;
 	const catalogue = (code: string) => world.allowance_catalogue.find((row) => row.code === code)!;
+	prior.base_salary = 9_000_000;
 	prior.allowances = [
 		{ catalogue_id: catalogue('HOUSE_ALLOWANCE').id, amount: 1_000_000 },
 		{ catalogue_id: catalogue('SPECIAL_ALLOWANCE').id, amount: 2_000_000 }
@@ -394,7 +972,7 @@ test('ID contractual cash-out retains conversion-date salary and explicit allowa
 		currency: 'IDR',
 		allowances: []
 	} as never);
-	assert.equal(cashAmount(world), 350_000);
+	assert.equal(cashAmount(world), 500_000);
 });
 
 test('ID contractual cash-out refuses unclassified allowances and unsupported wage bases', () => {

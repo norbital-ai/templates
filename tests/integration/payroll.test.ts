@@ -11,6 +11,8 @@ import {
 	NORBITAL_SG,
 	OPS_PH,
 	recordPhBirthDates,
+	recordPhShiftBreaks,
+	recordSgShgFacts,
 	refused,
 	SG_2026_Q1,
 	workspace
@@ -23,8 +25,14 @@ beforeEach(async () => {
 const admin = () => t.as(t.admin);
 /** The run a create committed (its pins and payslips are the other records). */
 const run = async (company_id: string, period: string) => {
-	if (company_id === NORBITAL_SG) await declareSgSdl(t, SG_2026_Q1);
-	if (company_id === OPS_PH) await recordPhBirthDates(t);
+	if (company_id === NORBITAL_SG) {
+		await declareSgSdl(t, SG_2026_Q1);
+		await recordSgShgFacts(t);
+	}
+	if (company_id === OPS_PH) {
+		await recordPhBirthDates(t);
+		await recordPhShiftBreaks(t);
+	}
 	const records = committed(await admin().act('payroll_runs.create', { company_id, period }));
 	return {
 		id: records.find((row) => row.collection === 'payroll_runs')!.id as string,
@@ -76,6 +84,7 @@ it('a captured work day cannot change while its draft run holds it', async () =>
 
 it("an HR controller's run waits for a manager's approval", async () => {
 	await declareSgSdl(t, SG_2026_Q1);
+	await recordSgShgFacts(t);
 	const controller = t.as(t.member(['hr_controller']));
 	expect(
 		(await controller.act('payroll_runs.create', { company_id: NORBITAL_SG, period: '2026-01' }))

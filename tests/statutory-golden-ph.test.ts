@@ -31,7 +31,11 @@ import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine
 import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { absenceDayRate, ordinaryDivisorDays } from '../src/lib/payroll/run/ordinary-rate.ts';
 import { priceWorkDay } from '../src/lib/payroll/work-bands.ts';
-import { observedHolidays } from '../src/lib/scheduling/work-limits.ts';
+import {
+	applicableLimits,
+	observedHolidays,
+	projectedLimitBreaches
+} from '../src/lib/scheduling/work-limits.ts';
 import {
 	adhocCatalogue,
 	contributionSchemes,
@@ -604,21 +608,21 @@ test('Philippines — NCR-DW-06 holds a kasambahay to ₱7,800 from 7 February 2
 	// RA 10361 s.24 and the NCR domestic-worker orders (nwpc.dole.gov.ph/ncr/): NCR-DW-05 ₱7,000 a
 	// month from 4 January 2025; NCR-DW-06 ₱7,000 + ₱800 = ₱7,800, published 22 January 2026 and
 	// effective 7 February 2026. A ₱7,500 kasambahay meets the January floor (7,500 ≥ 7,000) and
-	// falls below February's (7,500 < 7,800). The version is chosen at the salary window's end:
-	// 31 January (the 6 January version, ₱7,000) and 28 February (the 7 February version).
+	// falls below February's (7,500 < 7,800), so that run refuses.
 	const below = (period: string) =>
 		buildStatutory({
 			code: 'PH',
 			period,
 			region: 'NCR',
 			people: [{ key: 'DW-7500', wage: 7_500, employment_type: 'DOMESTIC' }]
-		}).warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW'));
-	assert.deepEqual(below('2026-01'), []);
-	const february = below('2026-02');
-	assert.equal(february.length, 1, february.join('\n'));
-	assert.match(
-		february[0]!,
-		/DW-7500 is contracted at 7500 a month, below the NCR minimum wage of 7800/
+		});
+	assert.deepEqual(
+		below('2026-01').warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW')),
+		[]
+	);
+	assert.throws(
+		() => below('2026-02'),
+		/MINIMUM_WAGE_BELOW: DW-7500 is contracted at 7500 a month, below the NCR\/Manila minimum wage of 7800/
 	);
 });
 
@@ -637,7 +641,7 @@ test('Philippines — NCR-28’s ₱755 is mandatory: an unexempted contract bel
 		});
 	assert.throws(
 		() => run(7_777.77),
-		/MINIMUM_WAGE_BELOW: J is contracted at 7777\.77 a month, below the NCR minimum wage of 16421\.25 \(19692\.92 restated on this person's factor\)/
+		/MINIMUM_WAGE_BELOW: J is contracted at 7777\.77 a month, below the NCR\/Manila minimum wage of 16421\.25 \(19692\.92 restated on this person's factor\)/
 	);
 	// A centavo under the floor still refuses; the floor itself does not.
 	assert.throws(() => run(16_421.24), /MINIMUM_WAGE_BELOW: J .*16421\.25/);
@@ -654,7 +658,7 @@ test('Philippines — NCR-28’s ₱755 is mandatory: an unexempted contract bel
 	assert.equal(exempted.slips.get('J')?.gross, 3_575.99);
 	assert.match(
 		exempted.warnings.find((line) => line.startsWith('MINIMUM_WAGE_BELOW')) ?? '',
-		/J is contracted at 7777\.77 a month, below the NCR minimum wage of 16421\.25/
+		/J is contracted at 7777\.77 a month, below the NCR\/Manila minimum wage of 16421\.25/
 	);
 	// 20,000 is below the six-day 19,692.92 but above this person's 16,421.25: no warning.
 	assert.deepEqual(
@@ -1002,12 +1006,15 @@ test('Philippines — Labor Code arts. 87, 93 and 94 premiums on every version',
 		// Art.94(b) over art.93: a regular holiday on a rest day is priced as the holiday.
 		assert.equal(version.work_rules.holiday_rest_precedence, 'PUBLIC_HOLIDAY');
 		// Art.83 and art.85: the eight-hour day and the unpaid hour for meals; art.91: one rest day
-		// in seven.
+		// in seven. RA 10361 s.20: a kasambahay's eight hours of daily rest, sixteen worked hours.
 		assert.deepEqual(
 			version.work_rules.limits
 				.filter((limit) => limit.measure !== 'CONSECUTIVE_WORK_DAYS')
 				.map((limit) => [limit.measure, limit.max_hours]),
-			[['NORMAL_HOURS', 8]]
+			[
+				['NORMAL_HOURS', 8],
+				['TOTAL_WORK_HOURS', 16]
+			]
 		);
 		// Art.85: the 60-minute unpaid meal period, and the 20-minute compensable one where the
 		// work is continuous.
@@ -1098,9 +1105,10 @@ test('Philippines — the statutory leave ladder on every version', () => {
 			[['employment.service_months >= 12', 5]]
 		],
 		MATERNITY_LEAVE: [
-			'employee.gender == "FEMALE" && event.kind in ["BIRTH", "MISCARRIAGE"] && facts.SSS.since_months >= 3',
+			// RA 11210 grants the private-sector leave; three SSS contributions qualify its cash benefit.
+			'employee.gender == "FEMALE" && event.kind in ["BIRTH", "MISCARRIAGE", "EMERGENCY_TERMINATION"]',
 			[
-				['event.kind == "MISCARRIAGE"', 60],
+				['event.kind in ["MISCARRIAGE", "EMERGENCY_TERMINATION"]', 60],
 				['employee.solo_parent', 120],
 				['', 105]
 			]
@@ -1307,15 +1315,39 @@ test('Philippines — an allowance loses the unpaid days of the window it covers
 // Compounded day types, the minimum-wage earner, the apprentice floor, the daily factor.
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** A punch from `start` to `end` on `date`, in Manila's +08:00 frame. */
-const punchPh = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+/** `HH:MM` one hour later, for the meal break that separates two worked intervals. */
+const anHourLater = (time: string) => {
+	const minutes = (Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)) + 60) % 1440;
+	return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+};
+
+/**
+ * A punch from `start` to `end` on `date`, in Manila's +08:00 frame. `mealStart` names the hour the
+ * shift's granted meal break is taken: only a gap between worked intervals proves it, so a break the
+ * punches do not show stays worked time (PD 442 art.84(b); `work_rules.breaks` owes the 60 minutes).
+ */
+const punchPh = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	start: string,
+	end: string,
+	mealStart?: string
+) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
+	const interval = (from: string, to: string) => ({
+		start: `${date}T${from}:00+08:00`,
+		end: `${date}T${to}:00+08:00`
+	});
 	world.work_days.push({
 		id: `wd-${key}-${date}`,
 		employment_id: employment.id,
 		work_date: date,
 		shift_definition_id: null,
-		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		worked_intervals:
+			mealStart == null
+				? [interval(start, end)]
+				: [interval(start, mealStart), interval(anHourLater(mealStart), end)],
 		requested_by: null,
 		approval_id: null
 	});
@@ -1328,7 +1360,7 @@ const workLinesPh = (
 		.map((row) => [row.source_id.slice(-10), row.label, row.quantity, row.amount] as const)
 		.toSorted((left, right) => left[0].localeCompare(right[0]) || left[1].localeCompare(right[1]));
 
-test('Philippines — a regular holiday worked on the rest day is 260% and 338%, a special day 150% and 195% (Handbook ch.3 §D, ch.4 §C)', () => {
+test('Philippines — a regular holiday worked on the rest day is 260% and 338%, a special day 150% (Handbook ch.3 §D, ch.4 §C)', () => {
 	const { slips } = buildStatutory(
 		{ code: 'PH', period: '2026-01', people: [{ key: 'PH-COMP', wage: 21_750 }] },
 		(world) => {
@@ -1359,12 +1391,16 @@ test('Philippines — a regular holiday worked on the rest day is 260% and 338%,
 					approval_id: null
 				}
 			);
-			punchPh(world, 'PH-COMP', '2026-01-04', '08:00', '19:00'); // eleven hours, ten net of the meal period
-			punchPh(world, 'PH-COMP', '2026-01-11', '08:00', '17:00'); // nine hours, eight net
+			punchPh(world, 'PH-COMP', '2026-01-04', '08:00', '19:00'); // eleven hours, no gap punched
+			punchPh(world, 'PH-COMP', '2026-01-11', '08:00', '17:00'); // nine hours, no gap punched
 		}
 	);
-	// 21,750 ÷ 21.75 = 1,000 a day, 125.00 an hour. Regular holiday on the rest day: 8 × 125 × 2.6
-	// = 2,600 and 2 × 125 × 3.38 = 845; the special day on the rest day: 8 × 125 × 1.5 = 1,500.
+	// 21,750 ÷ 21.75 = 1,000 a day, 125.00 an hour. The rest day has no shift; the version's
+	// `work_rules.breaks` second rule (continuous_attendance unasserted) provides 60 minutes under
+	// PD 442 art.85, and the punch shows no gap, so the provided hour comes off the span
+	// (Owner directive 2026-09-29: the provided break is deducted from the entry). Regular holiday
+	// on the rest day: 11 − 1 = 10 hours → 8 × 125 × 2.6 = 2,600 and 2 × 125 × 3.38 = 845; the
+	// special day on the rest day: 9 − 1 = 8 hours → 8 × 125 × 1.5 = 1,500, no overtime.
 	assert.deepEqual(workLinesPh(slips.get('PH-COMP')!), [
 		['2026-01-04', 'OT-2.6X-REST', 8, 2600],
 		['2026-01-04', 'OT-3.38X-REST', 2, 845],
@@ -1384,7 +1420,13 @@ test('Philippines — a minimum-wage earner’s overtime and night differential 
 				{ key: 'PH-APPRENTICE', wage: 12_000, employment_type: 'APPRENTICE' }
 			]
 		},
-		(world) => punchPh(world, 'PH-MWE', '2026-01-05', '08:00', '20:00') // from the 09:00 shift start: ten net hours, two of overtime
+		(world) => {
+			// From the 09:00 shift start, ten net hours with the meal taken: two of overtime. Overtime
+			// is planned, not derived from the clock (owner's rule 2026-09-23), and `assessStatutory`
+			// plans nothing, so the day states its own.
+			punchPh(world, 'PH-MWE', '2026-01-05', '08:00', '20:00', '13:00');
+			world.work_days.at(-1)!.approved_overtime_hours = 2;
+		}
 	);
 	// The whole compensation of a minimum-wage earner — basic, overtime, night differential — is
 	// exempt; the WTAX base is nothing, so the scheme is skipped outright.
@@ -1460,7 +1502,7 @@ test('Philippines — a daily-paid employee’s hour is the day over eight, what
 					world.employments.find((e) => e.employee_number === 'PH-DAILY-6')!.id
 			)!;
 			world.shift_patterns[0]!.pattern.days[5] = world.shift_patterns[0]!.pattern.days[0]!;
-			punchPh(world, 'PH-DAILY-6', '2026-01-05', '09:00', '20:00'); // two hours beyond eight
+			punchPh(world, 'PH-DAILY-6', '2026-01-05', '09:00', '20:00', '13:00'); // two hours beyond eight
 		}
 	);
 	// A daily-paid worker's hour is the day over eight — 75.00 — whatever the factor; the factor
@@ -1987,10 +2029,13 @@ test('Philippines — two days of leave without pay: SSS and Pag-IBIG read the r
 
 test('Philippines — overtime, rest day, regular holiday, special day and the night hour, on one payslip', () => {
 	// ₱21,750 a month: a day 1,000, an hour 125. Each day is worked 09:00 to 20:00, ten hours net of
-	// the unpaid hour (art.85). The salary pays a working holiday at 100% (261 factor); the rest day
-	// is unpaid. Handbook ch.2–4 totals: ordinary overtime 125% (art.87); rest day 130%, beyond
-	// eight 169% (art.93); regular holiday 200%, beyond eight 260% (art.94); special day 130%,
-	// beyond eight 169%; the night hour 10% of the hour's own rate (art.86).
+	// the shift's unpaid hour (art.85); the rest day on the 13th has no shift, and the version's
+	// `work_rules.breaks` provides 60 minutes when continuous_attendance is unasserted (art.85), so
+	// its continuous eleven-hour span takes the provided hour off — ten hours worked. The salary
+	// pays a working holiday at 100% (261 factor); the rest day is unpaid. Handbook ch.2–4 totals:
+	// ordinary overtime 125% (art.87); rest day 130%, beyond eight 169% (art.93); regular holiday
+	// 200%, beyond eight 260% (art.94); special day 130%, beyond eight 169%; the night hour 10% of
+	// the hour's own rate (art.86).
 	const holiday = (world: PayrollWorld, date: string, kind: string) =>
 		world.jurisdiction_holidays.push({
 			id: `h-${date}`,
@@ -2009,9 +2054,10 @@ test('Philippines — overtime, rest day, regular holiday, special day and the n
 		(world) => {
 			holiday(world, '2026-06-12', 'PUBLIC_HOLIDAY'); // Friday, Independence Day
 			holiday(world, '2026-06-17', 'SPECIAL_HOLIDAY'); // a Wednesday declared special
-			for (const date of ['2026-06-08', '2026-06-12', '2026-06-13', '2026-06-17'])
-				punchPh(world, 'PH-OT', date, '09:00', '20:00');
-			punchPh(world, 'PH-OT', '2026-06-15', '09:00', '23:00'); // thirteen net: five of overtime
+			for (const date of ['2026-06-08', '2026-06-12', '2026-06-17'])
+				punchPh(world, 'PH-OT', date, '09:00', '20:00', '13:00');
+			punchPh(world, 'PH-OT', '2026-06-13', '09:00', '20:00'); // the rest day: no shift, the provided 60 minutes still come off
+			punchPh(world, 'PH-OT', '2026-06-15', '09:00', '23:00', '13:00'); // thirteen net: five of overtime
 		}
 	);
 	const slip = slips.get('PH-OT')!;
@@ -2020,14 +2066,14 @@ test('Philippines — overtime, rest day, regular holiday, special day and the n
 		['2026-06-12', 'OT-2.0X', 8, 1000], // 8 × 125 × (2.0 − 1.0)
 		['2026-06-12', 'OT-2.6X', 2, 650], // 2 × 125 × 2.6
 		['2026-06-13', 'OT-1.3X', 8, 1300], // 8 × 125 × 1.3
-		['2026-06-13', 'OT-1.69X', 2, 422.5], // 2 × 125 × 1.69
+		['2026-06-13', 'OT-1.69X', 2, 422.5], // 2 × 125 × 1.69: 11 clocked − 1 provided = 10
 		// 22:00–23:00 on the 15th is an overtime hour: 10% × 156.25 = 15.625 → 15.63.
 		['2026-06-15', 'NIGHT_PREMIUM', 1, 15.63],
 		['2026-06-15', 'OT-1.25X', 5, 781.25], // 5 × 125 × 1.25
 		['2026-06-17', 'OT-1.3X', 8, 300], // 8 × 125 × (1.3 − 1.0)
 		['2026-06-17', 'OT-1.69X', 2, 422.5] // 2 × 125 × 1.69
 	]);
-	// 21,750 + 5,188.75 + 15.63 = 26,954.38.
+	// 21,750 + 5,204.38 = 26,954.38.
 	assert.equal(slip.gross, 26_954.38);
 	const charge = (code: string) => {
 		const row = slip.statutory.find((entry) => entry.scheme_code === code)!;
@@ -2046,12 +2092,22 @@ test('Philippines — overtime, rest day, regular holiday, special day and the n
 });
 
 test('Philippines — a late start with no overtime earns the ordinary 10% night rate on its night hour (Labor Code art.86)', () => {
-	// Scheduled 09:00–18:00, worked 14:00–23:00: eight hours net, no overtime (art.87 counts
-	// hours beyond eight). The 22:00–23:00 hour is an ordinary night hour: 10% × 125 = 12.50,
-	// and its 125 inside the salary is shown, not paid again (NIGHT_WAGE).
+	// Rostered 14:00–23:00, a late starter's eight paid hours, worked 14:00–23:00 with the meal
+	// taken: eight net hours, no overtime (art.87 counts hours beyond eight). The 22:00–23:00 hour is
+	// an ordinary night hour: 10% × 125 = 12.50, and its 125 inside the salary is shown, not paid
+	// again (NIGHT_WAGE). The roster must cover the hours actually worked: clocked outside it, the
+	// day reads hours outside ordinary paid work (work.ts, "Reconcile the work day before payroll").
 	const { slips } = buildStatutory(
 		{ code: 'PH', period: '2026-06', people: [{ key: 'PH-ND', wage: 21_750 }] },
-		(world) => punchPh(world, 'PH-ND', '2026-06-15', '14:00', '23:00')
+		(world) => {
+			world.shift_definitions[0]!.variant = {
+				kind: 'WORK',
+				start_time: '14:00',
+				end_time: '23:00',
+				break_minutes: 60
+			};
+			punchPh(world, 'PH-ND', '2026-06-15', '14:00', '23:00', '18:00');
+		}
 	);
 	assert.deepEqual(
 		slips
@@ -2064,16 +2120,26 @@ test('Philippines — a late start with no overtime earns the ordinary 10% night
 	);
 });
 
-test('Philippines — a 21:00–06:00 punch on a day shift with no overtime prices every night hour at the ordinary 10% (Labor Code art.86)', () => {
-	// Scheduled 09:00–18:00 with an unpaid hour, worked 21:00 to 06:00: eight net hours, none of them
-	// overtime (art.87). The punches place no break, so the eight night hours bound by the eight net
-	// hours all stand: 8 × 10% × 125 = 100.
+test('Philippines — a 21:00–06:00 punch rostered to a night shift with no overtime prices every night hour at the ordinary 10% (Labor Code art.86)', () => {
+	// Rostered 21:00–06:00, eight paid hours, worked across the night with the meal taken: eight net
+	// hours, none of them overtime (art.87). The roster must cover the hours actually worked; clocked
+	// outside it, the day reads hours outside ordinary paid work (work.ts, "Reconcile the work day
+	// before payroll"). Art.86 reaches only the 22:00–06:00 window: of the nine clocked hours, the
+	// meal break is unworked and 21:00–22:00 is not a night hour, leaving seven.
+	// 7 × 10% × 125 = 87.50.
 	const { slips } = buildStatutory(
 		{ code: 'PH', period: '2026-06', people: [{ key: 'PH-ND2', wage: 21_750 }] },
 		(world) => {
+			world.shift_definitions[0]!.variant = {
+				kind: 'WORK',
+				start_time: '21:00',
+				end_time: '06:00',
+				break_minutes: 60
+			};
 			punchPh(world, 'PH-ND2', '2026-06-15', '21:00', '23:00');
 			world.work_days.at(-1)!.worked_intervals = [
-				{ start: '2026-06-15T21:00:00+08:00', end: '2026-06-16T06:00:00+08:00' }
+				{ start: '2026-06-15T21:00:00+08:00', end: '2026-06-16T01:00:00+08:00' },
+				{ start: '2026-06-16T02:00:00+08:00', end: '2026-06-16T06:00:00+08:00' }
 			];
 		}
 	);
@@ -2082,7 +2148,7 @@ test('Philippines — a 21:00–06:00 punch on a day shift with no overtime pric
 			.get('PH-ND2')!
 			.adjustments.filter((row) => row.component_code === 'NIGHT_PREMIUM')
 			.map((row) => [row.quantity, row.amount]),
-		[[8, 100]]
+		[[7, 87.5]]
 	);
 });
 
@@ -2201,9 +2267,8 @@ test('Philippines — Pag-IBIG reads the fund salary, allowances included (Circu
 	);
 	expectStatutoryBase(worker, 'H-FUND', 'HDMF', 9000);
 	expectStatutory(worker, 'H-FUND', 'HDMF', 180, 180);
-	// A kasambahay on ₱4,800 alone is under ₱5,000: the employer carries 4% → 192. With a ₱400
-	// allowance the fund salary is 5,200, at least ₱5,000: 2% each → 104 / 104. (A synthetic
-	// threshold case: ₱4,800 is under NCR-DW-06's ₱7,800 floor.)
+	// A synthetic ₱4,800 kasambahay would test the ₱5,000 contribution threshold, but falls below
+	// NCR-DW-06's ₱7,800 mandatory wage floor and cannot produce a payroll run.
 	const household = (allowance: number) =>
 		assessStatutory(
 			{
@@ -2216,12 +2281,8 @@ test('Philippines — Pag-IBIG reads the fund salary, allowances included (Circu
 				if (allowance > 0) standing(world, 'DW', 'allowance', allowance, '2026-10-01');
 			}
 		);
-	expectStatutory(household(0), 'DW', 'HDMF', 0, 192);
-	expectStatutory(household(400), 'DW', 'HDMF', 104, 104);
-	// RA 10361 s.30: under ₱5,000 the employer pays the whole SSS and PhilHealth too.
-	expectStatutory(household(0), 'DW', 'SSS', 0, 750);
-	expectStatutory(household(0), 'DW', 'PHIC', 0, 500);
-	expectStatutory(household(0), 'DW', 'SSS_EC', 0, 10);
+	assert.throws(() => household(0), /MINIMUM_WAGE_BELOW: DW/);
+	assert.throws(() => household(400), /MINIMUM_WAGE_BELOW: DW/);
 });
 
 test('Philippines — a non-resident alien engaged in business is on the graduated table, to the centavo', () => {
@@ -2472,8 +2533,8 @@ test('Philippines — a local special non-working day by Republic Act reaches th
 			code: 'PH',
 			period: '2026-01',
 			people: [
-				{ key: 'PH-NAV', wage: 21_750, worksite: 'Navotas' },
-				{ key: 'PH-MNL', wage: 21_750, worksite: 'Manila' }
+				{ key: 'PH-NAV', wage: 21_750, worksite: 'NCR/Navotas' },
+				{ key: 'PH-MNL', wage: 21_750, worksite: 'NCR/Manila' }
 			]
 		},
 		(world) => {
@@ -2485,13 +2546,13 @@ test('Philippines — a local special non-working day by Republic Act reaches th
 				kind: 'SPECIAL_HOLIDAY',
 				replaces: null,
 				given_to: null,
-				worksite: 'Navotas',
+				worksite: 'NCR/Navotas',
 				source: null,
 				published_at: '2025-12-01T00:00:00.000Z',
 				approval_id: null
 			});
-			punchPh(world, 'PH-NAV', '2026-01-16', '09:00', '18:00');
-			punchPh(world, 'PH-MNL', '2026-01-16', '09:00', '18:00');
+			punchPh(world, 'PH-NAV', '2026-01-16', '09:00', '18:00', '13:00');
+			punchPh(world, 'PH-MNL', '2026-01-16', '09:00', '18:00', '13:00');
 		}
 	);
 	assert.deepEqual(workLinesPh(slips.get('PH-NAV')!), [['2026-01-16', 'OT-1.3X', 8, 300]]);
@@ -2503,7 +2564,7 @@ test('Philippines — the roster board and the work-day import observe the Navot
 	// non-working holiday in the City of Navotas". The board and the import read `observedHolidays`;
 	// it takes the worksite each date's terms record, as payroll's `atWorksite` does, so the same
 	// Navotas-scoped row that pays PH-NAV its premium in the golden above marks only PH-NAV's day.
-	const precedence = settingsVersions('PH').at(-1)!.work_rules.holiday_rest_precedence;
+	const work = settingsVersions('PH').at(-1)!.work_rules;
 	const codes = [
 		{
 			id: 'W',
@@ -2532,7 +2593,7 @@ test('Philippines — the roster board and the work-day import observe the Navot
 			kind: 'SPECIAL_HOLIDAY',
 			replaces: null,
 			given_to: null,
-			worksite: 'Navotas',
+			worksite: 'NCR/Navotas',
 			published_at: '2025-12-01T00:00:00.000Z'
 		}
 	] as never;
@@ -2543,17 +2604,17 @@ test('Philippines — the roster board and the work-day import observe the Navot
 			companyId: COMPANY_ID,
 			holidays,
 			codes,
-			precedence,
+			work,
 			plans: [],
 			rosterPeriods: [],
 			patternOn: () => ({ pattern, anchor: '2026-01-05' }),
 			worksiteOn: () => worksite
 		});
 	assert.deepEqual(
-		[...observedAt('Navotas')],
+		[...observedAt('NCR/Navotas')],
 		[['2026-01-16', { name: 'Navotas foundation anniversary (RA 12271)', from: null }]]
 	);
-	assert.deepEqual([...observedAt('Manila')], []);
+	assert.deepEqual([...observedAt('NCR/Manila')], []);
 });
 
 test('Philippines — two cities’ local special days on one date: 27 March 2026 is San Juan’s (RA 7669) and Las Piñas’ (Proclamation 1186); each worksite earns its own premium, a Manila site works an ordinary day', () => {
@@ -2583,18 +2644,18 @@ test('Philippines — two cities’ local special days on one date: 27 March 202
 			code: 'PH',
 			period: '2026-04',
 			people: [
-				{ key: 'PH-SJ', wage: 21_750, worksite: 'San Juan' },
-				{ key: 'PH-LP', wage: 21_750, worksite: 'Las Pinas' },
-				{ key: 'PH-MNL', wage: 21_750, worksite: 'Manila' }
+				{ key: 'PH-SJ', wage: 21_750, worksite: 'NCR/San Juan' },
+				{ key: 'PH-LP', wage: 21_750, worksite: 'NCR/Las Piñas' },
+				{ key: 'PH-MNL', wage: 21_750, worksite: 'NCR/Manila' }
 			]
 		},
 		(world) => {
 			world.jurisdiction_holidays.push(
-				local('h-san-juan-2026', 'Araw ng San Juan (RA 7669)', 'San Juan'),
-				local('h-las-pinas-2026', 'Las Piñas Day (Proclamation 1186)', 'Las Pinas')
+				local('h-san-juan-2026', 'Araw ng San Juan (RA 7669)', 'NCR/San Juan'),
+				local('h-las-pinas-2026', 'Las Piñas Day (Proclamation 1186)', 'NCR/Las Piñas')
 			);
 			for (const key of ['PH-SJ', 'PH-LP', 'PH-MNL'])
-				punchPh(world, key, '2026-03-27', '09:00', '18:00');
+				punchPh(world, key, '2026-03-27', '09:00', '18:00', '13:00');
 		}
 	);
 	assert.deepEqual(workLinesPh(slips.get('PH-SJ')!), [['2026-03-27', 'OT-1.3X', 8, 300]]);
@@ -2881,5 +2942,216 @@ test('Philippines — every version cites PhilHealth Circular 2020-0005 Rev.1 an
 		expectStatutory(book, 'P-100000', 'PHIC', 2500, 2500);
 		expectStatutory(book, 'P-150000', 'PHIC', 2500, 2500);
 		expectStatutory(book, 'P-57777', 'PHIC', 1444.42, 1444.43);
+	}
+});
+
+// PH-HR45: RA 10361 s.32 (E-Library 2/51514), read 28 Sep 2026: "If the domestic worker is unjustly
+// dismissed, the domestic worker shall be paid the compensation already earned plus the equivalent
+// of fifteen (15) days work by way of indemnity." The Act names no day; the default is the
+// version's ordinary day, the monthly basic over `ordinary_divisor_days` (PH-HR45 in the register).
+test('Philippines — a kasambahay dismissed without just cause is paid fifteen days’ work as indemnity; a just-cause dismissal and an ordinary employee are not (RA 10361 s.32)', () => {
+	// ₱7,500 a month, no paid rest days, a 40-hour week: the ordinary divisor is 261 ÷ 12 = 21.75,
+	// the day 7,500 ÷ 21.75 = 344.8276, fifteen of them 5,172.41.
+	const leaver = (key: string, type: string) => ({
+		key,
+		wage: type === 'DOMESTIC' ? 7_500 : 30_000,
+		employment_type: type,
+		hire_date: '2024-03-01',
+		exit_date: '2026-01-31',
+		exit_reason: 'DISMISSAL'
+	});
+	const { slips } = buildStatutory(
+		{
+			code: 'PH',
+			period: '2026-01',
+			// NCR-DW-05's ₱7,000 floor applies in January, so the kasambahay's withholding status is known.
+			region: 'NCR',
+			people: [
+				leaver('KB-UNJUST', 'DOMESTIC'),
+				leaver('KB-JUST', 'DOMESTIC'),
+				leaver('PH-UNJUST', 'PERMANENT')
+			]
+		},
+		(world) => {
+			const row = world.adhoc_catalogue!.find(
+				(item) => item.code === 'KASAMBAHAY_INDEMNITY' && item.settings_id === PH_2026_JAN6
+			)!;
+			for (const [index, key] of ['KB-UNJUST', 'KB-JUST', 'PH-UNJUST'].entries()) {
+				const employment = world.employments.find((item) => item.employee_number === key)!;
+				employment.exit_facts = { kasambahay_unjust_dismissal: key !== 'KB-JUST' };
+				world.adhoc_requests!.push({
+					id: `d0000000-0000-4000-8000-0000000004a${index}`,
+					employment_id: employment.id,
+					catalogue_id: row.id,
+					amount: 0,
+					event_date: '2026-01-31',
+					pay_period: '2026-01',
+					payslip_id: null,
+					reason: 'kasambahay indemnity',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		}
+	);
+	const paid = (key: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === 'KASAMBAHAY_INDEMNITY')
+			?.amount ?? 0;
+	assert.equal(paid('KB-UNJUST'), 5_172.41);
+	assert.equal(paid('KB-JUST'), 0);
+	assert.equal(paid('PH-UNJUST'), 0);
+	for (const version of settingsVersions('PH')) {
+		const fact = version.exit_facts.find(
+			(row: { key: string }) => row.key === 'kasambahay_unjust_dismissal'
+		);
+		assert.ok(fact, version.id);
+		assert.ok(
+			adhocCatalogue('PH').some(
+				(row: { code: string; settings_id: string }) =>
+					row.code === 'KASAMBAHAY_INDEMNITY' && row.settings_id === version.id
+			),
+			version.id
+		);
+	}
+});
+
+// PH-HR44: RA 10361 s.20 "an aggregate daily rest period of eight (8) hours per day": at most sixteen
+// worked hours in a day for a kasambahay (a break is rest). s.21's 24 consecutive hours a week is
+// the version's `weekly_rest` (a rest after six consecutive work days), which covers everyone.
+test('Philippines — a kasambahay keeps eight hours of daily rest: a 17-hour day is refused, 16 hours is not, and the limit binds domestic workers only (RA 10361 ss.20–21)', () => {
+	const person = (type: string) =>
+		personContext({
+			employee: null,
+			employment: { service_start: '2024-01-01' },
+			terms: { base_salary: 7_500, currency: 'PHP', paid_rest_days: false, employment_type: type },
+			week: { ordinary_hours_per_week: 40, working_days_per_week: 5 },
+			asOf: '2026-06-30'
+		});
+	const plan = (hours: number) =>
+		new Map([
+			[
+				'2026-06-15',
+				{
+					date: '2026-06-15',
+					kind: 'WORK' as const,
+					paid_minutes: hours * 60,
+					break_minutes: 0,
+					spread_hours: hours
+				}
+			]
+		]);
+	for (const version of settingsVersions('PH')) {
+		assert.ok(
+			version.work_rules.limits.some(
+				(limit: { key: string; measure: string }) =>
+					limit.key === 'weekly_rest' && limit.measure === 'CONSECUTIVE_WORK_DAYS'
+			),
+			version.id
+		);
+		const domestic = applicableLimits(version.work_rules.limits, person('DOMESTIC'));
+		const permanent = applicableLimits(version.work_rules.limits, person('PERMANENT'));
+		assert.equal(domestic.find((limit) => limit.key === 'kasambahay_daily_rest')?.max_hours, 16);
+		assert.equal(
+			permanent.some((limit) => limit.key === 'kasambahay_daily_rest'),
+			false,
+			version.id
+		);
+		const breaches = (hours: number) =>
+			projectedLimitBreaches({
+				subject: 'KB',
+				changedDates: new Set(['2026-06-15']),
+				planByDate: plan(hours),
+				limits: domestic
+			}).map((row) => [row.key, row.projected, row.maximum]);
+		assert.deepEqual(breaches(17), [['kasambahay_daily_rest', 17, 16]], version.id);
+		assert.deepEqual(breaches(16), [], version.id);
+	}
+});
+
+// PH-HR42: NIRC s.235 as amended by RA 11976 s.33 (E-Library 2/96948): books of accounts and other
+// accounting records "shall be preserved … for a period of five (5) years reckoned from the day
+// following the deadline in filing a return". PH-HR43: Omnibus Rules Book VI Rule I s.6(b), (d)
+// (E-Library 2/85819): probation "shall not exceed six (6) months reckoned from the date the
+// employee actually started working", with the standards made known "at the time of his engagement".
+test('Philippines — every version keeps tax records five years (NIRC s.235 per RA 11976) and states the probation duty (Omnibus Rules Book VI Rule I s.6)', () => {
+	for (const version of settingsVersions('PH')) {
+		const retention = version.obligations.find(
+			(row: { code: string }) => row.code === 'EMPLOYMENT_RECORDS_RETENTION'
+		);
+		assert.match(retention.timing, /At least three years from the date of the last entry/);
+		assert.match(retention.timing, /five years from the day after the return’s filing deadline/);
+		assert.match(retention.authority, /NIRC s\.235 as amended by RA 11976 s\.33/);
+		const probation = version.obligations.find(
+			(row: { code: string }) => row.code === 'PROBATIONARY_STANDARDS_AND_LIMIT'
+		);
+		assert.match(probation.timing, /six months from the actual start/);
+		assert.match(probation.authority, /Book VI Rule I ss\.5\(c\), 6/);
+	}
+});
+
+test('Philippines — a six-day kasambahay’s indemnity uses the 313-day divisor (RA 10361 s.32)', () => {
+	const key = 'KB-SIX';
+	const slip = buildStatutory(
+		{
+			code: 'PH',
+			period: '2026-01',
+			region: 'NCR',
+			people: [
+				{
+					key,
+					wage: 7_500,
+					employment_type: 'DOMESTIC',
+					ordinary_hours_per_week: 48,
+					exit_date: '2026-01-31',
+					exit_reason: 'DISMISSAL'
+				}
+			]
+		},
+		(world) => {
+			world.shift_patterns[0]!.pattern.days[5] = world.shift_patterns[0]!.pattern.days[0]!;
+			world.employments[0]!.exit_facts = { kasambahay_unjust_dismissal: true };
+			adhoc(world, 991, 'KASAMBAHAY_INDEMNITY', '2026-01-31', 0);
+			world.adhoc_requests!.at(-1)!.pay_period = '2026-01';
+		}
+	).slips.get(key)!;
+	assert.equal(
+		slip.adjustments.find((row) => row.component_code === 'KASAMBAHAY_INDEMNITY')?.amount,
+		4_313.1
+	);
+});
+
+test('Philippines — unjustified kasambahay departure forfeits at most unpaid salary or fifteen days (RA 10361 s.32)', () => {
+	for (const [exit, capped] of [
+		['2026-01-10', false],
+		['2026-01-31', true]
+	] as const) {
+		const key = capped ? 'KB-FULL' : 'KB-PART';
+		const slip = buildStatutory(
+			{
+				code: 'PH',
+				period: '2026-01',
+				region: 'NCR',
+				people: [
+					{
+						key,
+						wage: 7_500,
+						employment_type: 'DOMESTIC',
+						exit_date: exit,
+						exit_reason: 'RESIGNATION'
+					}
+				]
+			},
+			(world) => {
+				world.employments[0]!.exit_facts = { kasambahay_unjustified_departure: true };
+				adhoc(world, 992, 'KASAMBAHAY_FORFEITURE', exit, 0);
+				world.adhoc_requests!.at(-1)!.pay_period = '2026-01';
+			}
+		).slips.get(key)!;
+		const salary = slip.base.find((row) => row.component_code === 'BASIC')!.amount;
+		const forfeited = slip.adjustments.find(
+			(row) => row.component_code === 'KASAMBAHAY_FORFEITURE'
+		)?.amount;
+		assert.equal(forfeited, capped ? 5_172.41 : salary);
 	}
 });

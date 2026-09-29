@@ -53,7 +53,8 @@ for (const frequency of ['DAILY', 'HOURLY']) {
 		const day = world.work_days.find((row) => row.work_date === '2026-01-05');
 		assert.ok(day);
 		day.worked_intervals = [
-			{ start: '2026-01-05T09:30:00+08:00', end: '2026-01-05T16:30:00+08:00' }
+			{ start: '2026-01-05T09:30:00+08:00', end: '2026-01-05T12:30:00+08:00' },
+			{ start: '2026-01-05T13:30:00+08:00', end: '2026-01-05T16:30:00+08:00' }
 		];
 		assert.equal(await base(), scheduled - 20);
 		day.worked_intervals = [];
@@ -67,7 +68,10 @@ function attendedWorld(options: Parameters<typeof createPublicPayrollWorld>[0] =
 	const world = createPublicPayrollWorld(options);
 	for (const day of world.work_days) {
 		day.worked_intervals = [
-			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+			// The shift's granted 60 minutes punched as the 12:30–13:30 gap: the engine nets the gap
+			// against the grant, so the day provides no further break and pays its 8 ordinary hours.
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T12:30:00+08:00` },
+			{ start: `${day.work_date}T13:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
 	}
 	return world;

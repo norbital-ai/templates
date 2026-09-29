@@ -149,6 +149,9 @@ test('ID audit — Kesehatan floor, ceiling and the six-month foreigner (Perpres
 					citizenship: 'FOREIGNER',
 					employment_type: 'CONTRACT',
 					hire_date: '2026-01-01',
+					id_foreign_prior_indonesia_work: 'NONE',
+					id_foreign_prior_work_reviewed_on: '2026-01-01',
+					id_foreign_prior_work_reference: 'FIXTURE-NO-PRIOR-WORK',
 					exit_date: '2026-03-31'
 				},
 				{
@@ -479,7 +482,22 @@ test('ID audit — a daily wage is ×21 (five-day week) before the 1/173 hour (P
 	const { slips } = buildStatutory(
 		world(
 			'2026-01',
-			[{ key: 'DAILY', wage: 400_000, pay_frequency: 'DAILY' }],
+			[
+				{
+					key: 'DAILY',
+					wage: 400_000,
+					pay_frequency: 'DAILY',
+					citizenship: 'FOREIGNER',
+					tax_residency: 'NON_RESIDENT',
+					employment_type: 'CONTRACT',
+					hire_date: '2026-01-01',
+					id_foreign_prior_indonesia_work: 'NONE',
+					id_foreign_prior_work_reviewed_on: '2026-01-01',
+					id_foreign_prior_work_reference: 'FIXTURE-NO-PRIOR-WORK',
+					exit_date: '2026-03-31',
+					exit_reason: 'END_OF_CONTRACT'
+				}
+			],
 			'II',
 			'Kabupaten Bekasi'
 		),

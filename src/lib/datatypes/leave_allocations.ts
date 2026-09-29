@@ -3,6 +3,8 @@ export type LeaveAllocation = {
 	readonly window: { readonly start: string; readonly end: string };
 	readonly date: string;
 	readonly days: number;
+	/** Hour-denominated movement; `days` is zero for this allocation. */
+	readonly hours?: number | null;
 	/** Null is computed entitlement; otherwise the manual entry that supplied the credit. */
 	readonly credit_entry_id?: string | null;
 	/** The salary-year end the days originally belong to, carried through transfers (its rate applies). */

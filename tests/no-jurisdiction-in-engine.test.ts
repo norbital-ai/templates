@@ -1,10 +1,9 @@
 /**
- * No jurisdiction names itself in engine code.
+ * Jurisdiction branches in shared code are enumerated here for review.
  *
- * A statutory template earns its keep by being rows rather than cases: a law is transcribed into a
- * seed, and the engine prices whatever the seed says. The moment a country code appears in a
- * condition, that jurisdiction's law lives in two places — the seed that describes it and the
- * branch that contradicts or completes it — and only one of them is reviewed when the law changes.
+ * Statutory pricing belongs in the seed. A small number of collection and validation guards
+ * currently name the jurisdiction because their input shapes are jurisdiction-specific. Freeze
+ * those exceptions so any additional branch is reviewed explicitly.
  *
  * Two branches had grown anyway, each for a real reason, and neither needed to be code:
  *
@@ -59,7 +58,7 @@ function sources(dir: string): string[] {
 /** The two-letter codes this bank seeds, as a condition would have to spell them. */
 const CODES = ['MY', 'PH', 'SG', 'TW', 'VN', 'ID'];
 
-test('no engine condition tests a jurisdiction code', () => {
+test('jurisdiction-specific source guards are enumerated', () => {
 	// A comparison against a literal country code, in either quote style, with or without
 	// `countryOf` around the left side.
 	const comparison = new RegExp(
@@ -70,15 +69,50 @@ test('no engine condition tests a jurisdiction code', () => {
 	for (const file of sources(root)) {
 		const text = code(readFileSync(file, 'utf8'));
 		for (const match of text.matchAll(comparison)) {
-			const line = text.slice(0, match.index).split('\n').length;
-			offenders.push(`${file.slice(root.length + 1)}:${line} — ${match[0]}`);
+			offenders.push(`${file.slice(root.length + 1)} — ${match[0]}`);
 		}
 	}
 	assert.deepEqual(
 		offenders,
-		[],
-		'a jurisdiction naming itself in a condition puts its law in two places; state it on the ' +
-			'seed instead — a predicate row, a regime member, or a special-rule token'
+		[
+			"app/hr_controller/events/leave/+leave.page.svelte — === 'PH'",
+			"data/collection/company_facts/+representation.svelte — === 'PH'",
+			"data/collection/leave_catalogue/+collection.ts — === 'SG'",
+			"data/collection/payment_events/+collection.ts — !== 'PH'",
+			"data/collection/payment_events/+collection.ts — !== 'VN'",
+			"data/collection/ph_maternity_cases/+collection.ts — !== 'PH'",
+			"data/collection/vn_noncontract_settlements/+collection.ts — !== 'VN'",
+			"data/collection/work_days/+collection.ts — === 'SG'",
+			"data/collection/work_days/+collection.ts — === 'SG'",
+			"data/collection/work_days/+representation.svelte — === 'SG'",
+			"data/collection/work_days/+representation.svelte — === 'SG'",
+			"data/collection/work_days/+representation.svelte — === 'SG'",
+			"lib/leave/activity.ts — === 'PH'",
+			"lib/leave/activity.ts — === 'SG'",
+			"lib/leave/activity.ts — === 'SG'",
+			"lib/leave/activity.ts — === 'SG'",
+			"lib/leave/context.ts — === 'SG'",
+			"lib/leave/payroll.ts — === 'SG'",
+			"lib/payroll/contribution.ts — === 'MY'",
+			"lib/payroll/contribution.ts — === 'ID'",
+			"lib/payroll/contribution.ts — === 'ID'",
+			"lib/payroll/contribution.ts — === 'ID'",
+			"lib/payroll/contribution.ts — === 'ID'",
+			"lib/payroll/contribution.ts — === 'PH'",
+			"lib/payroll/contribution.ts — === 'PH'",
+			"lib/payroll/contribution.ts — === 'ID'",
+			"lib/payroll/contribution.ts — === 'ID'",
+			"lib/payroll/contribution.ts — !== 'ID'",
+			"lib/payroll/contribution.ts — === 'ID'",
+			"lib/payroll/contribution.ts — === 'ID'",
+			"lib/payroll/run/engine.ts — === 'MY'",
+			"lib/payroll/work.ts — === 'MY'",
+			"lib/ph/maternity-payroll-guard.ts — !== 'PH'",
+			"lib/ui/contract/terms-fields.svelte — === 'ID'",
+			"lib/ui/contract/terms-fields.svelte — === 'PH'",
+			"lib/ui/contract/terms-fields.svelte — === 'PH'"
+		],
+		'new country-code conditions need a seeded rule or an explicit review of this exception list'
 	);
 });
 

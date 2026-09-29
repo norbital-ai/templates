@@ -94,7 +94,8 @@ it('saves Vietnam minimum-wage facts and refuses a daily contract below both con
 	expect(terms?.minimum_wage_2026_area_reclassified).toBe(true);
 	for (const [code, elections] of [
 		['UI', { pension_qualified: false }],
-		['UNION_DUES', { union_member: false }]
+		['UNION_DUES', { union_member: false }],
+		['PIT', { eligible_dependents: 0 }]
 	] as const) {
 		const scheme = (
 			await admin.read('statutory_contributions', {
@@ -161,7 +162,8 @@ it('saves Vietnam minimum-wage facts and refuses a daily contract below both con
 		.id as string;
 	for (const [code, elections] of [
 		['UI', { pension_qualified: false }],
-		['UNION_DUES', { union_member: false }]
+		['UNION_DUES', { union_member: false }],
+		['PIT', { eligible_dependents: 0 }]
 	] as const) {
 		const scheme = (
 			await admin.read('statutory_contributions', {

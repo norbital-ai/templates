@@ -29,6 +29,7 @@ export function payRequestTerms<T extends { readonly effective_range: unknown }>
 
 type CapSubject = {
 	readonly subject: PersonContext;
+	readonly currency: string | null;
 	/** Reuses the approved history for each prior source's own rule date. */
 	readonly at: (date: string) => PersonContext;
 	/** How a refusal names the person: their employee number, as the run's own message does. */
@@ -64,11 +65,11 @@ export async function capSubjects(
 	const settled = { approval_id: { isNull: true } };
 	const [employments, terms] = await Promise.all([
 		readAll<CapEmployment>(reads, 'employments', { id: { in: ids }, ...settled }),
-		readAll<{ readonly employment_id: string; readonly effective_range: unknown }>(
-			reads,
-			'employment_terms',
-			{ employment_id: { in: ids }, ...settled }
-		)
+		readAll<{
+			readonly employment_id: string;
+			readonly effective_range: unknown;
+			readonly currency: string | null;
+		}>(reads, 'employment_terms', { employment_id: { in: ids }, ...settled })
 	]);
 	const [employees, companies] = await Promise.all([
 		readAll<CapEmployee>(reads, 'employees', {
@@ -99,6 +100,7 @@ export async function capSubjects(
 			});
 		return {
 			subject: at(asOf),
+			currency: payRequestTerms(ownTerms, contract, asOf)?.currency ?? null,
 			at,
 			label:
 				employment.employee_number == null || employment.employee_number === ''

@@ -3,6 +3,7 @@ import {
 	committed,
 	declareSgSdl,
 	NORBITAL_SG,
+	recordSgShgFacts,
 	SG_2026_H2,
 	SG_EMPLOYMENT,
 	workspace
@@ -17,6 +18,7 @@ for (const [origin, expected] of [
 		const t = await workspace({ now: '2026-12-30T02:00:00.000Z' });
 		const admin = t.as(t.admin);
 		await declareSgSdl(t, SG_2026_H2);
+		await recordSgShgFacts(t);
 		const employment = await admin.get('employments', SG_EMPLOYMENT);
 		const cpf = (
 			await admin.read('statutory_contributions', {

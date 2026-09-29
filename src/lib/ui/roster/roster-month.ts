@@ -645,7 +645,9 @@ function factsForDate(
 		breakMinutes: breakTaken,
 		// `workedMinutes` returns null for an open interval by itself, which is exactly the
 		// contract this field states — so an open punch reaches the day sheet as "not known
-		// yet" rather than as a number nobody should act on.
+		// yet" rather than as a number nobody should act on. `breakTaken` is the provided break
+		// less the gaps the spans already exclude, so the cell reads the same length of day the
+		// payslip does: span − provided break.
 		workedMinutes: recorded == null ? null : workedMinutes(recorded, breakTaken),
 		withinCutoff:
 			options.cutoff != null && date >= options.cutoff.start && date <= options.cutoff.end,

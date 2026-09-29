@@ -8,7 +8,7 @@
 {#if view.value}
 	<ul class="text-sm">
 		{#each view.value as row, index (index)}
-			<li>{row.date} · {row.days}</li>
+			<li>{row.date} · {row.hours == null ? `${row.days} days` : `${row.hours} hours`}</li>
 		{/each}
 	</ul>
 {:else}

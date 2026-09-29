@@ -45,8 +45,20 @@ export default policy({
 		employments: { read: true, create: true, update: true, delete: true },
 		employment_terms: { read: true, create: true, update: true, delete: true },
 		employment_statutory_facts: { read: true, create: true, update: true, delete: true },
+		sss_contribution_months: { read: true, create: true, update: true },
+		ph_maternity_cases: {
+			read: true,
+			create: true,
+			update: true,
+			queries: ['reconcile', 'sss_candidate', 'assess_cash_evidence']
+		},
+		ph_maternity_movements: { read: true, create: true, update: true },
+		ph_maternity_pay_plans: { read: true, create: true, queries: ['advance_status'] },
+		ph_maternity_pay_cutoffs: { read: true, create: true },
 		employment_wage_periods: { read: true, create: true, update: true, delete: true },
+		presence_periods: { read: true, create: true, update: true, delete: true },
 		payment_holds: { read: true, create: true, update: true, delete: true },
+		vn_noncontract_settlements: { read: true, create: true },
 		work_days: {
 			read: true,
 			create: { fields: WORK_DAY_FULL_FIELDS, approval: WORK_DAY_CREATE_APPROVAL },
@@ -65,6 +77,10 @@ export default policy({
 		},
 		payroll_runs: { read: true, create: true, delete: true },
 		payslips: { read: true, update: true, delete: UNPAID_PAYSLIP },
+		payable_tranches: { read: true },
+		payment_events: { read: true, create: true },
+		payment_allocations: { read: true },
+		vn_payment_tax_facts: { read: true },
 		payslip_wage_periods: { read: true }
 	},
 	limits: MEMBER_LIMITS

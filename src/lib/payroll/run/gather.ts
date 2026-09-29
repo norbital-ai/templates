@@ -7,6 +7,7 @@ import { resolveEmployment, type ResolvedEmployment } from '../../../lib/employm
  */
 
 import type { InLieuSlice } from '../../../lib/datatypes/payroll_trace.js';
+import { isRestLimit } from '../../../lib/datatypes/work_rules.js';
 import { refuse } from '../../../lib/refuse.js';
 import type { WorkspaceRow } from '../../../lib/rows.js';
 import type { PayrollWorld } from '../world.js';
@@ -25,9 +26,12 @@ import { contributionYearToDate, prepareContributionInputs } from '../contributi
 import {
 	completedMonths,
 	completedYears,
+	addDays,
+	daysBetween,
 	monthBounds,
 	monthKey,
 	periodMonth,
+	weekStart,
 	type IsoDate
 } from './dates.js';
 import { dateKey } from '../../../lib/iso-day.js';
@@ -111,8 +115,13 @@ export type EmploymentBundle = {
 	readonly termsHistory: readonly EmploymentTerms[];
 	/** Plan and punch together. */
 	readonly workDays: readonly WorkDay[];
+	/** Historical work-day evidence for piece-rate severance, including days with no units. */
+	readonly pieceWorkDays: readonly WorkDay[];
 	/** Approved dated wage history a statutory ordinary rate or conversion may consume. */
 	readonly wagePeriods: readonly ReferenceWagePeriod[];
+	/** The person's recorded stays in the run's jurisdiction, entry to exit (null while running). */
+	readonly presence?:
+		readonly { readonly start: string; readonly end: string | null }[] | undefined;
 	/** The person's earlier payslips as months of pay, the record a normal-wage reference reads first. */
 	readonly payslipWageMonths?: readonly PayslipWageMonth[] | undefined;
 	/** The rosters of record whose cycles touch the attendance span, as day ranges. */
@@ -167,6 +176,8 @@ export type GatheredRun = {
 	>;
 	/** employee id → calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
 	readonly earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, ReadonlyMap<string, number>>>;
+	/** Earlier paid wage by calendar month, across tax years, for ID piece-rate BPJS. */
+	readonly paidWagesByMonth: ReadonlyMap<string, ReadonlyMap<string, number>>;
 	/** employee id → limit key (`''` regulated) → calendar month → overtime earlier payslips settled. */
 	readonly priorOvertimeHours: ReadonlyMap<
 		string,
@@ -193,6 +204,7 @@ type GatherRunOptions = {
 	readonly world: PayrollWorld;
 	readonly configuration: Configuration;
 	readonly window: PayrollWindow;
+	readonly payDueDate?: string | undefined;
 };
 
 export function gatherRun(options: GatherRunOptions): GatheredRun {
@@ -261,7 +273,7 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			exit != null && exit < salary.end ? exit : salary.end
 		);
 		const cadence = paysOn(company, payFrequency)
-			? cadenceWindow(period, company, payFrequency)
+			? cadenceWindow(period, company, payFrequency, options.payDueDate)
 			: window;
 		if (cadence == null) continue;
 		cadenceByEmployment.set(row.id, { window: cadence, payFrequency });
@@ -332,20 +344,47 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 	// A cutoff can straddle two months, but the 104-hour statutory counter resets on the first of
 	// each calendar month. Read both months in full so 1st–20th work can correctly affect later
 	// 21st–month-end work (and vice versa when it is paid in the following run).
-	const complianceSpan = {
+	const monthlyComplianceSpan = {
 		start: monthBounds(monthKey(attendanceSpan.start)).start,
 		end: monthBounds(monthKey(attendanceSpan.end)).end
+	};
+	const weeklyNormalHours = configuration.limits.some(
+		(limit) => limit.measure === 'NORMAL_HOURS' && limit.period === 'WEEK'
+	);
+	const restDays =
+		configuration.jurisdiction.jurisdiction_code === 'TH'
+			? Math.max(0, ...configuration.work.limits.filter(isRestLimit).map((limit) => limit.max_days))
+			: 0;
+	const firstWeek = weeklyNormalHours
+		? weekStart(monthlyComplianceSpan.start)
+		: monthlyComplianceSpan.start;
+	const lastWeek = weeklyNormalHours
+		? addDays(weekStart(monthlyComplianceSpan.end), 6)
+		: monthlyComplianceSpan.end;
+	const firstRest = addDays(monthlyComplianceSpan.start, -restDays);
+	const lastRest = addDays(monthlyComplianceSpan.end, restDays);
+	const complianceSpan = {
+		start: firstWeek < firstRest ? firstWeek : firstRest,
+		end: lastWeek > lastRest ? lastWeek : lastRest
 	};
 
 	const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
 	// The prior settlement needs only the employees and the period, so it is read beside the
 	// family inputs rather than after them: on a network database every wave of reads is a
 	// round trip, and this one was three in a row at the end of the gather.
-	const { workDaysByEmployment, rostersByEmployment, wagePeriodsByEmployment } = prepareWorkInputs({
+	const { workDaysByEmployment, wagePeriodsByEmployment } = prepareWorkInputs({
 		world,
 		employmentIds,
 		complianceSpan
 	});
+	const pieceDaysByEmployment = Map.groupBy(
+		live(world.work_days).filter((row) => employmentIds.includes(row.employment_id)),
+		(row) => row.employment_id
+	);
+	const pieceRostersByEmployment = Map.groupBy(
+		live(world.rosters).filter((row) => employmentIds.includes(row.employment_id)),
+		(row) => row.employment_id
+	);
 	const { loansByEmployment, repaymentsByLoan } = prepareLoanPayroll({ world, employmentIds });
 	const factsByEmployee = prepareContributionInputs({ world, employeeIds, configuration });
 	const prior = gatherPriorSettlement({ world, configuration, period, employeeIds, companyId });
@@ -393,8 +432,21 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			}),
 			termsHistory: termsByEmployment.get(employment.id) ?? [],
 			workDays: workDaysByEmployment.get(employment.id) ?? [],
-			rosters: rostersByEmployment.get(employment.id) ?? [],
+			pieceWorkDays: pieceDaysByEmployment.get(employment.id) ?? [],
+			rosters: (pieceRostersByEmployment.get(employment.id) ?? []).map((row) =>
+				monthBounds(row.period)
+			),
 			wagePeriods: wagePeriodsByEmployment.get(employment.id) ?? [],
+			presence: live(world.presence_periods)
+				.filter(
+					(row) =>
+						row.employee_id === employment.employee_id &&
+						row.jurisdiction_code === options.configuration.jurisdiction.jurisdiction_code
+				)
+				.map((row) => ({
+					start: dateKey(row.period?.from),
+					end: row.period?.to == null ? null : dateKey(row.period.to)
+				})),
 			payslipWageMonths: prior.payslipWageMonths.get(employment.employee_id) ?? [],
 			serviceMonths: completedMonths(hire, paid.end),
 			age: dob == null ? null : completedYears(dob, paid.end),
@@ -404,6 +456,41 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			arrearsFor: settlement.arrearsFor,
 			deferral: settlement.deferral
 		});
+	}
+	if (configuration.jurisdiction.jurisdiction_code === 'CN') {
+		const covered = configuration.jurisdiction.work_rules.wages?.by_region ?? {};
+		for (const bundle of bundles) {
+			const { hire, exit } = employmentDates(bundle.employment);
+			// A worker's cadence can differ from the company's, and the attendance cutoff can
+			// bring last month's overtime into this run. Both spans need the selected wage law.
+			for (const span of [bundle.window.salary, bundle.attendance, bundle.arrearsFor?.days]) {
+				if (span == null) continue;
+				for (const day of daysBetween(span.start, span.end)) {
+					if (day < hire || (exit != null && day > exit)) continue;
+					const site = bundle.termsHistory
+						.find((row) => coversDate(row.effective_range, day))
+						?.worksite?.trim();
+					if (site != null && Object.hasOwn(covered, site)) continue;
+					refuse(
+						`${bundle.employment.employee_number}: ${configuration.jurisdiction.code} cannot price ${day} ` +
+							`at ${site ? `worksite "${site}"` : 'an unrecorded worksite'}. Record the dated ` +
+							'contract performance place under the correct city wage profile.'
+					);
+				}
+			}
+			if (exit == null || exit >= bundle.window.salary.start) continue;
+			for (const day of daysBetween(hire, exit)) {
+				const site = bundle.termsHistory
+					.find((row) => coversDate(row.effective_range, day))
+					?.worksite?.trim();
+				if (site != null && Object.hasOwn(covered, site)) continue;
+				refuse(
+					`${bundle.employment.employee_number}: ${configuration.jurisdiction.code} cannot price a post-exit payment ` +
+						`with ${site ? `worksite "${site}"` : 'an unrecorded worksite'} on ${day}; ` +
+						'record the dated contract performance place under the correct city wage profile.'
+				);
+			}
+		}
 	}
 
 	return { bundles, headcount, headcountCitizens, ...prior };
@@ -436,6 +523,7 @@ type PriorSettlement = {
 	readonly yearEarned: Map<string, Map<string, number>>;
 	readonly yearQuantityPayments: Map<string, Map<string, QuantityPayment[]>>;
 	readonly earnedByMonth: Map<string, Map<string, Map<string, number>>>;
+	readonly paidWagesByMonth: Map<string, Map<string, number>>;
 	readonly priorOvertimeHours: Map<string, Map<string, Map<string, number>>>;
 	readonly priorInLieu: Map<string, InLieuSlice[]>;
 	readonly payslipWageMonths: Map<string, PayslipWageMonth[]>;
@@ -564,6 +652,7 @@ function gatherPriorSettlement(options: GatherPriorSettlementOptions): PriorSett
 		yearEarned: new Map<string, Map<string, number>>(),
 		yearQuantityPayments: new Map<string, Map<string, QuantityPayment[]>>(),
 		earnedByMonth: new Map<string, Map<string, Map<string, number>>>(),
+		paidWagesByMonth: new Map<string, Map<string, number>>(),
 		priorOvertimeHours: new Map<string, Map<string, Map<string, number>>>(),
 		priorInLieu: new Map<string, InLieuSlice[]>(),
 		payslipWageMonths: new Map<string, PayslipWageMonth[]>(),

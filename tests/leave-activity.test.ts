@@ -29,6 +29,7 @@ describe('leave activity fields', () => {
 		assert.equal(leaveActivityOf({ encash_days: 1, days: 1 }), 'ENCASHMENT');
 		assert.equal(leaveActivityOf({ destination_from: '2027-01-01' }), 'CARRY_FORWARD');
 		assert.equal(leaveActivityOf({ from_date: '2026-01-01', days: 1 }), 'ADJUSTMENT');
+		assert.equal(leaveActivityOf({ effective_on: '2026-08-31', hours: -1 }), 'ADJUSTMENT');
 		assert.equal(leaveActivityOf({ as_adjustment_entry: true, reversal_of_id: id(9) }), 'REVERSAL');
 	});
 
@@ -45,9 +46,11 @@ describe('leave activity fields', () => {
 			to_date: '2026-09-03',
 			half_day_start: false,
 			half_day_end: false,
+			no_pay_origin: null,
 			days: null,
 			hours: null,
 			encash_days: null,
+			encash_hours: null,
 			as_adjustment_entry: false,
 			reversal_of_id: null,
 			effective_on: null,
@@ -60,6 +63,7 @@ describe('leave activity fields', () => {
 			event_kind: null,
 			event_relationship: null,
 			event_child_index: null,
+			event_wife_prior_living_biological_children: null,
 			event_date: null,
 			agreed_pay_fraction: null
 		});

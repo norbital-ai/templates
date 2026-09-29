@@ -50,7 +50,10 @@ test('a leave type introduced midyear does not require that type in earlier sett
 		() => leaveRules(context, id(1), id(7)).entitlementAt(annualWindow, '2026-11-30'),
 		/No ANNUAL leave catalogue covers 2026-11-30/
 	);
-	assert.throws(() => approve(context, timeOff('2026-11-30')), /INELIGIBLE/);
+	assert.throws(
+		() => approve(context, timeOff('2026-11-30')),
+		/No ANNUAL leave catalogue covers 2026-11-30/
+	);
 	assert.equal(approve(context, timeOff('2026-12-15')).charges.length, 1);
 });
 
@@ -143,7 +146,8 @@ test('balance reservation reads actual commitments and still refuses missing evi
 		date: '2026-01-31',
 		entitlementAt: (_window, date) => {
 			inspected.push(date);
-			assert.equal(date, '2026-01-31');
+			// The year's opening date is read for the automatic carry; nothing past the asked date.
+			assert.ok(date <= '2026-01-31');
 			return { available: 12, earned: 12 };
 		}
 	});
@@ -188,7 +192,7 @@ test('manual adjustments and encashment use their actual source date instead of 
 
 test('manual carry validates its source debit and destination availability without requiring destination year-end policy', () => {
 	const context = leaveContext();
-	context.versions[0]!.effective_range = { start: '2025-12-01', end: '2026-03-01' };
+	context.versions[0]!.effective_range = { start: '2025-01-01', end: '2026-03-01' };
 	const carry = approve(context, {
 		from_date: '2025-01-01',
 		to_date: '2025-12-31',

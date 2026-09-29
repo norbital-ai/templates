@@ -115,3 +115,40 @@ test('an ALLOW cap states a ceiling for reporting and refuses nothing', () => {
 		null
 	);
 });
+
+test('a monetary cap compares payable units, including zero-decimal currencies', () => {
+	const common = {
+		limit: limit(),
+		componentCode: 'THR',
+		subject: 'PUB-EMP-0001'
+	};
+	assert.equal(
+		entryLimitRefusal({
+			...common,
+			resolved: { amount: 5103448.275862069, exceededBy: 0 },
+			proposed: 5103448.27586207,
+			currency: 'IDR'
+		}),
+		null,
+		'a floating-point difference below a rupiah cent is not an excess'
+	);
+	assert.equal(
+		entryLimitRefusal({
+			...common,
+			resolved: { amount: 1000.4, exceededBy: 0 },
+			proposed: 1000.49,
+			currency: 'VND'
+		}),
+		null,
+		'fractions of a đồng are not payable'
+	);
+	assert.match(
+		entryLimitRefusal({
+			...common,
+			resolved: { amount: 1000.4, exceededBy: 0 },
+			proposed: 1000.51,
+			currency: 'VND'
+		}) ?? '',
+		/1001 requested against 1000 allowed/
+	);
+});

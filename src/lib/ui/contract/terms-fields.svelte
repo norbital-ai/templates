@@ -83,6 +83,10 @@
 				name="comparable_full_time_daily_hours"
 				label={t('component.comparable_full_time_daily_hours')}
 			/>
+			<Field
+				name="comparable_full_time_weekly_hours"
+				label={t('component.comparable_full_time_weekly_hours')}
+			/>
 			<!-- The entity's own named pattern: a day cycle, or a declared week under which every priced day needs a roster
 			     row with a shift. The days a week are the pattern's. -->
 			<Field
@@ -112,10 +116,46 @@
 			<Field name="residency_since" label={t('component.residency_since')} />
 			<Field name="work_classification" label={t('component.classification')} />
 			<Field name="statutory_work_category" label={t('component.statutory_work_category')} />
+			<Field name="hazardous_work" label={t('component.hazardous_work')} />
+			<Field name="th_pregnancy_status" label="Thai pregnancy status (dated terms)" />
+			<Field name="weather_dependent_piece" label={t('component.weather_dependent_piece')} />
 			<Field name="grade" label={t('component.grade')} />
+			{#if settingsCode === 'ID'}
+				<Field name="id_wage_scale_grade" label={t('component.id_wage_scale_grade')} />
+				<Field
+					name="id_wage_scale_basic_minimum"
+					label={t('component.id_wage_scale_basic_minimum')}
+				/>
+				<Field
+					name="id_wage_scale_effective_on"
+					label={t('component.id_wage_scale_effective_on')}
+				/>
+				<Field name="id_wage_scale_notice_on" label={t('component.id_wage_scale_notice_on')} />
+				<Field name="id_wage_scale_reference" label={t('component.id_wage_scale_reference')} />
+				<Field
+					name="id_wage_scale_evidence_file"
+					label={t('component.id_wage_scale_evidence_file')}
+				/>
+				<Field
+					name="id_foreign_prior_indonesia_work"
+					label={t('component.id_foreign_prior_indonesia_work')}
+				/>
+				<Field
+					name="id_foreign_prior_work_reviewed_on"
+					label={t('component.id_foreign_prior_work_reviewed_on')}
+				/>
+				<Field
+					name="id_foreign_prior_work_reference"
+					label={t('component.id_foreign_prior_work_reference')}
+				/>
+			{/if}
 			<Field name="pass_type" label={t('component.pass_type')} />
 			<Field name="tax_residency" label={t('component.tax_residency')} />
 			<Field name="notice_days" label={t('component.notice_days')} />
+			<!-- CN LCL arts.14, 19–20, 82–83: the probation, the wage after it and an overdue open-ended contract -->
+			<Field name="probation_end" label={t('component.probation_end')} />
+			<Field name="post_probation_wage" label={t('component.post_probation_wage')} />
+			<Field name="open_ended_due_on" label={t('component.open_ended_due_on')} />
 			<Field name="paid_rest_days" label={t('component.paid_rest_days')} />
 			<Field name="proration" label={t('component.proration')} />
 			<!-- VN Decree 293/2025 art. 5(5): the worksite's 2025 region and whether 2026 reclassified it lower -->
@@ -126,7 +166,17 @@
 			/>
 			<!-- TH Minimum Wage Notice 14: the worksite and sector the daily rate is read at -->
 			<Field name="worksite" label={t('component.worksite')} />
+			{#if settingsCode === 'PH'}
+				<Field name="ph_worksite_source_reference" label="Worksite municipality source reference" />
+				<Field name="ph_worksite_source_file" label="Worksite municipality source file" />
+			{/if}
+			<Field name="worksite_state" label={t('component.worksite_state')} />
 			<Field name="worksite_sector" label={t('component.worksite_sector')} />
+			{#if settingsCode === 'PH'}
+				<Field name="ph_sector_source_reference" label="Wage sector source reference" />
+				<Field name="ph_sector_source_file" label="Wage sector source file" />
+			{/if}
+			<Field name="worksite_sector_edition" label={t('component.worksite_sector_edition')} />
 		</Grid>
 	</FormSection>
 

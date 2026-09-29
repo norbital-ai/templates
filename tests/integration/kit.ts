@@ -28,6 +28,56 @@ export const SG_2026_H2 = '04f345bd-7068-587d-888d-b0c073163300';
 /** Dion Neo's employee record and email: NHPADM05 at Norbital Pte. Ltd. */
 export const DION = 'dion.neo@norbital.ai';
 
+/** Synthetic event facts absent from the bank's three Nihon family-leave rows. */
+export async function recordNihonBirthDates(t: Awaited<ReturnType<typeof workspace>>) {
+	for (const [id, date] of [
+		['9e2712ee-9efa-5d32-ad52-734c34be0ae8', '2025-12-29'],
+		['5b083fc2-cdd9-49e9-93ed-54af7e2fc4c1', '2026-01-12'],
+		['0962001f-ec98-4e28-a243-10948e062eaa', '2026-01-12']
+	] as const)
+		await t.db.write({
+			text: 'UPDATE leave_entries SET event_kind = $1, event_date = $2 WHERE id = $3',
+			params: ['BIRTH', date, id]
+		});
+}
+
+/** A declared Peninsular worksite for Nihon's otherwise state-less sample terms. */
+export async function recordNihonWorksites(t: Awaited<ReturnType<typeof workspace>>) {
+	await t.db.write({
+		text: `UPDATE employment_terms SET worksite_state = $1
+		       WHERE employment_id IN (SELECT id FROM employments WHERE company_id = $2)`,
+		params: ['SELANGOR', NIHON_MY]
+	});
+}
+
+/** Synthetic negative MyKAS declaration for the plant's EIS registration facts. */
+export async function recordNihonEisFacts(t: Awaited<ReturnType<typeof workspace>>) {
+	await t.db.write({
+		text: `UPDATE employment_statutory_facts AS fact
+		       SET status = jsonb_set(status, '{elections}',
+		         COALESCE(status->'elections', '{}'::jsonb) || '{"mykas_resident":false}'::jsonb)
+		       WHERE statutory_contribution_id IN
+		         (SELECT id FROM statutory_contributions WHERE code = 'EIS')
+		       AND employee_id IN
+		         (SELECT employee_id FROM employments WHERE company_id = $1)`,
+		params: [NIHON_MY]
+	});
+}
+
+/** Synthetic negative pre-1998 EPF membership declaration for this isolated payroll probe. */
+export async function recordNihonEpfFacts(t: Awaited<ReturnType<typeof workspace>>) {
+	await t.db.write({
+		text: `UPDATE employment_statutory_facts AS fact
+		       SET status = jsonb_set(status, '{elections}',
+		         COALESCE(status->'elections', '{}'::jsonb) || '{"member_before_1998":false}'::jsonb)
+		       WHERE statutory_contribution_id IN
+		         (SELECT id FROM statutory_contributions WHERE code IN ('EPF', 'EPF_NON_CITIZEN'))
+		       AND employee_id IN
+		         (SELECT employee_id FROM employments WHERE company_id = $1)`,
+		params: [NIHON_MY]
+	});
+}
+
 /**
  * This template on the test kit, read from the build (`pnpm test` runs `bolt build --bank` first) so no suite
  * recompiles it, with the bank's sample pack: the public law, the entities, their people and their history.
@@ -126,6 +176,139 @@ export async function recordPhBirthDates(
 	const people = [...new Set(employments.map((row) => String(row.employee_id)))];
 	for (const id of people)
 		committed(await admin.act('employees.update', { target: id, set: { date_of_birth: born } }));
+	const company = await admin.get('companies', OPS_PH);
+	committed(
+		await admin.act('companies.update', {
+			target: OPS_PH,
+			set: {
+				facts: {
+					...(company?.facts ?? {}),
+					ph_wage_one_establishment: true,
+					ph_wage_worker_count: 20
+				}
+			}
+		})
+	);
+	// The bank's earlier terms are consumed by saved sample slips. Supply this probe's site facts
+	// in its isolated database fixture; the product correctly forbids rewriting consumed terms.
+	await t.db.write({
+		text: `UPDATE employment_terms SET worksite = $1, worksite_sector = $2
+		       WHERE employment_id IN (SELECT id FROM employments WHERE company_id = $3)`,
+		params: ['Laguna/Calamba', 'OTHER_NONAGRI', OPS_PH]
+	});
+}
+
+/**
+ * The bank's Philippine attendance punches one continuous span across the 60 minutes the shift
+ * grants, and since the rest break became observational (PD 442 art.84(b)) that hour is worked
+ * time, so a run refuses to price unplanned premium. Punch the granted break as a gap, from the
+ * shift's midpoint, as the day sheet records it, and state the planned premium the clock still
+ * overruns: a punch that ends after the shift is overtime the day must plan (owner's rule
+ * 2026-09-23). Idempotent: a row already split is not split again, and a plan that already covers
+ * the overrun is left alone.
+ */
+export async function recordPhShiftBreaks(t: Awaited<ReturnType<typeof workspace>>) {
+	const shifts = (
+		await t
+			.as(t.admin)
+			.read('shift_definitions', { where: { company_id: { eq: OPS_PH } }, all: true })
+	).rows;
+	const night = shifts.find((row) => row.code === 'OPSPH-NIGHT')!.id as string;
+	const [result] = await t.db.read([
+		{
+			text: `SELECT id::text, work_date::text,
+			         shift_definition_id::text, worked_intervals::text,
+			         approved_overtime_hours::text, incentive_hours::text
+			       FROM work_days`,
+			params: []
+		}
+	]);
+	const rows = (result?.rows ?? []) as readonly {
+		readonly id: string;
+		readonly work_date: string;
+		readonly shift_definition_id: string | null;
+		readonly worked_intervals: string;
+		readonly approved_overtime_hours: string | null;
+		readonly incentive_hours: string | null;
+	}[];
+	const HOUR = 3_600_000;
+	const updates = rows.flatMap((row) => {
+		if (row.shift_definition_id == null || row.worked_intervals == null) return [];
+		const intervals = JSON.parse(row.worked_intervals) as { start: string; end: string }[];
+		if (intervals.length === 0 || intervals.some((interval) => interval.end == null)) return [];
+		const isNight = row.shift_definition_id === night;
+		const midnight = Date.parse(`${row.work_date}T00:00:00.000Z`);
+		const gapFrom = midnight + (isNight ? 18.5 : 5) * HOUR;
+		const gapTo = midnight + (isNight ? 19.5 : 6) * HOUR;
+		let punched = intervals;
+		if (intervals.length === 1) {
+			const [span] = intervals;
+			if (Date.parse(span!.start) < gapFrom && gapTo < Date.parse(span!.end))
+				punched = [
+					{ start: span!.start, end: new Date(gapFrom).toISOString() },
+					{ start: new Date(gapTo).toISOString(), end: span!.end }
+				];
+		}
+		const shiftStart = midnight + (isNight ? 12.5 : 0.5) * HOUR;
+		const worked = punched.reduce(
+			(total, interval) =>
+				total +
+				Math.max(0, Date.parse(interval.end) - Math.max(Date.parse(interval.start), shiftStart)) /
+					HOUR,
+			0
+		);
+		const ordinary = Math.min(isNight ? 11 : 8, worked);
+		const approved = Number(row.approved_overtime_hours ?? 0);
+		const incentive = Number(row.incentive_hours ?? 0);
+		const needed = worked - ordinary;
+		const shortfall = Math.max(0, needed - approved - incentive);
+		const planned =
+			shortfall <= 1e-9
+				? approved
+				: (Math.round(approved * 100) + Math.ceil(shortfall * 100)) / 100;
+		const changed = punched !== intervals || Math.abs(planned - approved) > 1e-9;
+		if (!changed) return [];
+		return [
+			JSON.stringify({
+				id: row.id,
+				intervals: punched,
+				approved: String(planned)
+			})
+		];
+	});
+	if (updates.length === 0) return;
+	await t.db.write({
+		text: `UPDATE work_days AS day
+		       SET worked_intervals = state.intervals,
+		           approved_overtime_hours = state.approved::numeric
+		       FROM jsonb_to_recordset($1::jsonb)
+		         AS state(id uuid, intervals jsonb, approved text)
+		       WHERE day.id = state.id`,
+		params: [`[${updates.join(',')}]`]
+	});
+}
+
+/**
+ * The bank's Singapore people carry no NRIC race or religion, so the self-help funds (CDAC, ECF,
+ * SINDA, MBMF) refuse a Singapore run rather than price a fund from an unstated fact. Record the
+ * register's codes as HR must before assessing: `MALAY` is an ICA RaceCode that no fund's r.2
+ * list reaches, and `OTHER` records a religion without asserting one of MBMF's.
+ */
+export async function recordSgShgFacts(
+	t: Awaited<ReturnType<typeof workspace>>,
+	companyId = NORBITAL_SG
+) {
+	const admin = t.as(t.admin);
+	const employments = (
+		await admin.read('employments', { where: { company_id: { eq: companyId } }, all: true })
+	).rows;
+	for (const id of new Set(employments.map((row) => String(row.employee_id))))
+		committed(
+			await admin.act('employees.update', {
+				target: id,
+				set: { race: 'MALAY', religion: 'OTHER' }
+			})
+		);
 }
 
 type Row = { readonly [field: string]: unknown };

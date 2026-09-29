@@ -1,9 +1,9 @@
 /**
  * The pay items Work produces, built from `work_rules`.
  *
- * BASIC, ABSENCE and the NIGHT premium are engine-priced lines; the overtime classes and the
- * incentive come from `bands`, one component per (line, label) so each class settles as its
- * own payslip line and an incentive hour keeps the band's award. Which schemes charge each line is the
+ * BASIC, a configured results-wage top-up, ABSENCE and the NIGHT premium are engine-priced lines;
+ * the overtime classes and incentive come from `bands`, one component per (line, label), so each
+ * class settles as its own payslip line and an incentive hour keeps the band's award. Which schemes charge each line is the
  * scheme's own declaration; nothing here names one.
  */
 
@@ -58,6 +58,16 @@ export function workPayItems(
 			output: 'salary',
 			definition: { source: 'SCHEDULE', unit: 'MONEY', reducible: false }
 		}),
+		...(work.wages?.block_unmeasured_results_pay === true
+			? [
+					item({
+						settingsId: work.settings_id,
+						code: 'MINIMUM_WAGE_TOP_UP',
+						output: 'salary_top_up',
+						definition: { source: 'RESULTS_FLOOR', unit: 'MONEY' }
+					})
+				]
+			: []),
 		item({
 			settingsId: work.settings_id,
 			code: WORK_LINE_CODES.absence,
@@ -65,6 +75,16 @@ export function workPayItems(
 			absence: true,
 			definition: { source: 'ABSENCE', unit: 'MONEY' }
 		}),
+		...(work.bands.some((band) => band.label === 'GUARD-OT-1.25X')
+			? [
+					item({
+						settingsId: work.settings_id,
+						code: 'GUARD_NORMAL_SUPPLEMENT',
+						output: 'guard_normal_supplement',
+						definition: { source: 'DERIVED_NORMAL', unit: 'MONEY' }
+					})
+				]
+			: []),
 		item({
 			settingsId: work.settings_id,
 			code: WORK_LINE_CODES.night,

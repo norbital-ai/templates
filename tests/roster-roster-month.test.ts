@@ -182,9 +182,11 @@ test('a closed day reports worked minutes net of the derived break', () => {
 		]
 	}).get(`${EMPLOYMENT}:2026-08-04`);
 	assert.equal(day.workDayId, 'day-1');
-	// The shift grants 60; the 30-minute gap between the punches is already visible, so 30 remain.
+	// The shift grants 60; the 30-minute gap between the punches is already visible, so the day
+	// provides the remaining 30 as its break.
 	assert.equal(day.breakMinutes, 30);
-	// 254 + 250 gross, less the 30 minutes of break not already in the gap.
+	// 254 + 250 minutes of punching, less the 30 provided minutes the gap does not already show:
+	// the cell nets the same break the payslip's length of day takes off. 474, not 504.
 	assert.equal(day.workedMinutes, 474);
 	assert.equal(day.attendanceState, 'CLOSED');
 });
@@ -300,19 +302,24 @@ function span(startMinute, endMinute) {
 test('the break is the shift’s grant less the gaps already visible between the punches', () => {
 	const assessment = assessAttendanceDraft([span(0, 254), span(284, 534)], 60);
 	assert.equal(assessment.closedMinutes, 504);
+	// The granted 60 less the 30-minute gap already punched: 30 provided.
 	assert.equal(assessment.breakMinutes, 30);
+	// 504 punched minutes less the 30 provided: the day sheet nets what the payslip deducts.
 	assert.equal(assessment.workedMinutes, 474);
 	assert.equal(assessment.problem, null);
 });
 
 test('one interval takes the whole granted break off; no grant takes nothing', () => {
+	// No gap is punched, so the 60-minute grant is the provided break: 480 − 60, and null grants nothing.
 	assert.equal(assessAttendanceDraft([span(0, 480)], 60).workedMinutes, 420);
 	assert.equal(assessAttendanceDraft([span(0, 480)], null).workedMinutes, 480);
 });
 
 test('a day shorter than its granted break works nothing, never a negative', () => {
 	const assessment = assessAttendanceDraft([span(0, 19)], 60);
+	// No gap is punched, so the whole 60-minute grant is provided.
 	assert.equal(assessment.breakMinutes, 60);
+	// 19 minutes less the 60 provided floors at zero, never a negative.
 	assert.equal(assessment.workedMinutes, 0);
 	assert.equal(assessment.problem, null);
 });

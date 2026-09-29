@@ -164,8 +164,8 @@
 		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
 		"code": "SEVERANCE_PAY",
 		"name": "Economic compensation (经济补偿)",
-		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month (the remainder counts part months by their days, service_months_exact, so any leftover days under six months earn the half month); a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending; a leaver who served no month before the exit’s month averages the one month worked at the contract monthly wage due (terms.monthly_wage), which is also art.20’s previous month where there is none (register CN-SH-A2). Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases.",
-		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
+		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month (the remainder counts part months by their days, service_months_exact, so any leftover days under six months earn the half month); a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending; a leaver who served no month before the exit’s month averages the one month worked at the contract monthly wage due (terms.monthly_wage), which is also art.20’s previous month where there is none (register CN-SH-A2). Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases. Implementing Regulation art.6 para.1: a worker who will not conclude a written contract after the first month is ended by written notice with art.47 compensation (ground REG_6).",
+		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\", \"REG_6\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -184,8 +184,8 @@
 		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
 		"code": "SEVERANCE_PAY",
 		"name": "Economic compensation (经济补偿)",
-		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month (the remainder counts part months by their days, service_months_exact, so any leftover days under six months earn the half month); a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending; a leaver who served no month before the exit’s month averages the one month worked at the contract monthly wage due (terms.monthly_wage), which is also art.20’s previous month where there is none (register CN-SH-A2). Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases.",
-		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
+		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month (the remainder counts part months by their days, service_months_exact, so any leftover days under six months earn the half month); a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending; a leaver who served no month before the exit’s month averages the one month worked at the contract monthly wage due (terms.monthly_wage), which is also art.20’s previous month where there is none (register CN-SH-A2). Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases. Implementing Regulation art.6 para.1: a worker who will not conclude a written contract after the first month is ended by written notice with art.47 compensation (ground REG_6).",
+		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\", \"REG_6\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -204,8 +204,8 @@
 		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
 		"code": "SEVERANCE_PAY",
 		"name": "Economic compensation (经济补偿)",
-		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month (the remainder counts part months by their days, service_months_exact, so any leftover days under six months earn the half month); a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending; a leaver who served no month before the exit’s month averages the one month worked at the contract monthly wage due (terms.monthly_wage), which is also art.20’s previous month where there is none (register CN-SH-A2). Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases.",
-		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
+		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month (the remainder counts part months by their days, service_months_exact, so any leftover days under six months earn the half month); a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending; a leaver who served no month before the exit’s month averages the one month worked at the contract monthly wage due (terms.monthly_wage), which is also art.20’s previous month where there is none (register CN-SH-A2). Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases. Implementing Regulation art.6 para.1: a worker who will not conclude a written contract after the first month is ended by written notice with art.47 compensation (ground REG_6).",
+		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\", \"REG_6\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -224,8 +224,8 @@
 		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
 		"code": "SEVERANCE_PAY",
 		"name": "Economic compensation (经济补偿)",
-		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month (the remainder counts part months by their days, service_months_exact, so any leftover days under six months earn the half month); a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending; a leaver who served no month before the exit’s month averages the one month worked at the contract monthly wage due (terms.monthly_wage), which is also art.20’s previous month where there is none (register CN-SH-A2). Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases.",
-		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
+		"authority": "LCL (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) art.46: owed on art.36 where the employer proposed the mutual ending, art.38, art.40, art.41, art.44(1) fixed-term expiry unless the worker refused a renewal on equal or better terms, art.44(4)–(5); not on art.37 resignation or art.39 dismissal. art.47: one month’s wage per full year of service, six months to under a year a year, under six months half a month (the remainder counts part months by their days, service_months_exact, so any leftover days under six months earn the half month); a monthly wage above three times the city’s published prior-year monthly average is paid at three times that average for at most twelve years; the wage is the twelve months’ average before the ending; a leaver who served no month before the exit’s month averages the one month worked at the contract monthly wage due (terms.monthly_wage), which is also art.20’s previous month where there is none (register CN-SH-A2). Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284) art.27: the wage due including bonuses, allowances and subsidies, floored at the local minimum wage; art.20: an art.40 ending without thirty days’ notice adds one month at the previous month’s wage; art.25 with LCL art.87: unlawful termination pays twice art.47 and no art.47 beside it. art.97 para.3: years count from 1 January 2008 (service months less lcl97_pre2008_months); the pre-2008 service is paid under the rules then in force as the recorded lcl97_pre2008_compensation, outside the art.47 cap. Regulation art.10: uncompensated service carried from a transferring employer (lcl10_transferred_service_months) counts. Regulation art.25: art.87 damages count every year from hire, so neither pre-2008 fact applies to them. The average is the exit fact lcl47_average_monthly_wage, defaulted per version (register CN-SH50, owner rule 2026-09-28). Taxed by IIT_SEVERANCE (财税〔2018〕164号 item 5(1)); outside the SI and housing-fund bases. Implementing Regulation art.6 para.1: a worker who will not conclude a written contract after the first month is ended by written notice with art.47 compensation (ground REG_6).",
+		"eligibility": "employment.exit_facts.lcl_termination_ground in [\"ART_36_EMPLOYER\", \"ART_38\", \"ART_40\", \"ART_41\", \"ART_44_4_5\", \"ART_87\", \"REG_6\"] || (employment.exit_facts.lcl_termination_ground == \"ART_44_1\" && !employment.exit_facts.renewal_offer_refused)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -244,7 +244,7 @@
 		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
 		"code": "MATERNITY_ALLOWANCE_OFFSET",
 		"name": "Maternity allowance paid to the worker (生育津贴冲抵)",
-		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8) item 4: 从业妇女享受的生育生活津贴标准低于本人产假前工资标准的，差额部分由其生育或者流产时所在用人单位按国家规定支付. The allowance is claimed by the worker (随申办) and paid by the fund; MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. Owner rule 2026-09-28: 产假前工资 is read as the contract wage the leave row prices; the allowance is a fund benefit, not wages (Social Insurance Law art.56), so the offset leaves the IIT base and the art.47 average (财税〔2008〕8号 exempts the allowance). Where the fund paid the employer, no line is raised.",
+		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8) item 4: 从业妇女享受的生育生活津贴标准低于本人产假前工资标准的，差额部分由其生育或者流产时所在用人单位按国家规定支付. The allowance is claimed by the worker (随申办) and paid by the fund; MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. Owner rule 2026-09-28: 产假前工资 is read as the contract wage the leave row prices; the allowance is a fund benefit, not wages (Social Insurance Law art.56), so the offset leaves the IIT base and the art.47 average (财税〔2008〕8号 exempts the allowance). Where the fund paid the employer, no line is raised. Since 28 Sep 2026 (round 6, fix in place) the recorded amount is the whole allowance standard for the days — the fund’s share plus any share the employer owes itself (advance, above-cap excess or non-enrolment), which MATERNITY_BENEFIT_EMPLOYER pays; where the fund pays the whole allowance they are the same figure.",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"evidence": "REQUIRED",
 		"destination": "PAY",
@@ -264,7 +264,7 @@
 		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
 		"code": "MATERNITY_ALLOWANCE_OFFSET",
 		"name": "Maternity allowance paid to the worker (生育津贴冲抵)",
-		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8) item 4: 从业妇女享受的生育生活津贴标准低于本人产假前工资标准的，差额部分由其生育或者流产时所在用人单位按国家规定支付. The allowance is claimed by the worker (随申办) and paid by the fund; MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. Owner rule 2026-09-28: 产假前工资 is read as the contract wage the leave row prices; the allowance is a fund benefit, not wages (Social Insurance Law art.56), so the offset leaves the IIT base and the art.47 average (财税〔2008〕8号 exempts the allowance). Where the fund paid the employer, no line is raised.",
+		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8) item 4: 从业妇女享受的生育生活津贴标准低于本人产假前工资标准的，差额部分由其生育或者流产时所在用人单位按国家规定支付. The allowance is claimed by the worker (随申办) and paid by the fund; MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. Owner rule 2026-09-28: 产假前工资 is read as the contract wage the leave row prices; the allowance is a fund benefit, not wages (Social Insurance Law art.56), so the offset leaves the IIT base and the art.47 average (财税〔2008〕8号 exempts the allowance). Where the fund paid the employer, no line is raised. Since 28 Sep 2026 (round 6, fix in place) the recorded amount is the whole allowance standard for the days — the fund’s share plus any share the employer owes itself (advance, above-cap excess or non-enrolment), which MATERNITY_BENEFIT_EMPLOYER pays; where the fund pays the whole allowance they are the same figure.",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"evidence": "REQUIRED",
 		"destination": "PAY",
@@ -284,7 +284,7 @@
 		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
 		"code": "MATERNITY_ALLOWANCE_OFFSET",
 		"name": "Maternity allowance paid to the worker (生育津贴冲抵)",
-		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8) item 4: 从业妇女享受的生育生活津贴标准低于本人产假前工资标准的，差额部分由其生育或者流产时所在用人单位按国家规定支付. The allowance is claimed by the worker (随申办) and paid by the fund; MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. Owner rule 2026-09-28: 产假前工资 is read as the contract wage the leave row prices; the allowance is a fund benefit, not wages (Social Insurance Law art.56), so the offset leaves the IIT base and the art.47 average (财税〔2008〕8号 exempts the allowance). Where the fund paid the employer, no line is raised.",
+		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8) item 4: 从业妇女享受的生育生活津贴标准低于本人产假前工资标准的，差额部分由其生育或者流产时所在用人单位按国家规定支付. The allowance is claimed by the worker (随申办) and paid by the fund; MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. Owner rule 2026-09-28: 产假前工资 is read as the contract wage the leave row prices; the allowance is a fund benefit, not wages (Social Insurance Law art.56), so the offset leaves the IIT base and the art.47 average (财税〔2008〕8号 exempts the allowance). Where the fund paid the employer, no line is raised. Since 28 Sep 2026 (round 6, fix in place) the recorded amount is the whole allowance standard for the days — the fund’s share plus any share the employer owes itself (advance, above-cap excess or non-enrolment), which MATERNITY_BENEFIT_EMPLOYER pays; where the fund pays the whole allowance they are the same figure.",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"evidence": "REQUIRED",
 		"destination": "PAY",
@@ -304,7 +304,7 @@
 		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
 		"code": "MATERNITY_ALLOWANCE_OFFSET",
 		"name": "Maternity allowance paid to the worker (生育津贴冲抵)",
-		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8) item 4: 从业妇女享受的生育生活津贴标准低于本人产假前工资标准的，差额部分由其生育或者流产时所在用人单位按国家规定支付. The allowance is claimed by the worker (随申办) and paid by the fund; MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. Owner rule 2026-09-28: 产假前工资 is read as the contract wage the leave row prices; the allowance is a fund benefit, not wages (Social Insurance Law art.56), so the offset leaves the IIT base and the art.47 average (财税〔2008〕8号 exempts the allowance). Where the fund paid the employer, no line is raised.",
+		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8) item 4: 从业妇女享受的生育生活津贴标准低于本人产假前工资标准的，差额部分由其生育或者流产时所在用人单位按国家规定支付. The allowance is claimed by the worker (随申办) and paid by the fund; MATERNITY_LEAVE is paid leave, so where the fund paid the allowance to the worker this line takes that allowance back off the wage the leave days priced: the worker keeps max(wage, allowance). The amount is the allowance the fund paid for this pay month’s leave days, recorded as the agency paid it; the line never exceeds the wage the salary window prices for its MATERNITY_LEAVE days (person.period.leave_pay: salary × leave days ÷ working days), so a part month takes back no more than the leave days’ wage. Owner rule 2026-09-28: 产假前工资 is read as the contract wage the leave row prices; the allowance is a fund benefit, not wages (Social Insurance Law art.56), so the offset leaves the IIT base and the art.47 average (财税〔2008〕8号 exempts the allowance). Where the fund paid the employer, no line is raised. Since 28 Sep 2026 (round 6, fix in place) the recorded amount is the whole allowance standard for the days — the fund’s share plus any share the employer owes itself (advance, above-cap excess or non-enrolment), which MATERNITY_BENEFIT_EMPLOYER pays; where the fund pays the whole allowance they are the same figure.",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"evidence": "REQUIRED",
 		"destination": "PAY",
@@ -317,6 +317,566 @@
 			}
 		],
 		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "54a8a871-5ac4-5221-9bfe-a7887fb7e0e7",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "MATERNITY_BENEFIT_EMPLOYER",
+		"name": "Maternity benefit the employer owes (用人单位支付的生育保险待遇)",
+		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html; register CN-SH21) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8; register CN-SH14), read on shanghai.gov.cn 28 Sep 2026. The maternity benefit the employer itself owes, as the recorded amount for the pay month: item 4(1) — where the unit’s contributions for her are under 12 cumulative and under 9 consecutive months in the birth month, the fund pays the allowance × paid months ÷ 12 and the unit 先行垫付 the rest (recovered from the district centre once 12/9 months are reached, outside payroll); item 4(2) para.1 — the part of the unit’s prior-year average wage above 300% of the city average is paid by the unit; item 6(2) — a unit that did not validly enrol or pay for her owes every benefit at the notice’s standard. MATERNITY_ALLOWANCE_OFFSET takes the whole allowance standard for the days (fund share plus this line) off the leave wage, so the worker keeps max(wage, allowance). Owner rule 2026-09-28: law silent on the IIT of an employer-paid share; default exempt as a benefit of 生育保险性质 under 财税〔2008〕8号 (https://www.gov.cn/zwgk/2008-04/03/content_935964.htm): 生育津贴、生育医疗费或其他属于生育保险性质的津贴、补贴 paid under a county-or-higher government’s maternity-insurance rules are exempt from IIT; lawful because the notice fixes it as the allowance itself. Not wages: outside the SI and fund bases and the art.47 average (item 6(4) strips the allowance from the next year’s base).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "bdb0484b-dd49-58e2-8c67-9d2fb1be1e62",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "NO_WRITTEN_CONTRACT_WAGE",
+		"name": "Second wage for months without a written contract (未订立书面劳动合同二倍工资)",
+		"authority": "LCL art.82 para.1 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html): an employer that has not concluded a written contract more than one month and less than one year after the work began pays twice the wage each month. Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, read 28 Sep 2026) art.6 para.2: 起算时间为用工之日起满一个月的次日，截止时间为补订书面劳动合同的前一日; art.7: with no written contract at one year, the double wage runs from the day after the first month to the day before the year, and a no-fixed-term contract is deemed concluded on the anniversary. The line is the second wage for those months: raise it on the day the written contract was concluded, or on the first anniversary; person.employment.service_months_exact on that day measures the months before it, so the months owed are those less the first month, at most eleven, a part month by its days. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line; lawful because it is the wage the contract pays for those months. IIT: wage income of the month paid (个人所得税法实施条例 art.6(1) 与任职或者受雇有关的其他所得; STA 2018 No.61 art.6). Owner rule 2026-09-28: law silent on whether the sanction is wages for LCL art.47 or the SI bases; default not (outside WAGES and every base), because it is a penalty for the employer’s breach, not pay for work.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * (person.employment.service_months_exact - 1.0 <= 0.0 ? 0.0 : (person.employment.service_months_exact - 1.0 >= 11.0 ? 11.0 : person.employment.service_months_exact - 1.0)))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "93636cdd-650c-5c30-bf8b-26e95da870f4",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "PROBATION_EXCESS_DAMAGES",
+		"name": "Damages for probation served beyond the legal limit (违法约定试用期赔偿金)",
+		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: terms.probation_months (hire through that day, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.terms.post_probation_wage > 0.0 ? person.terms.post_probation_wage : person.terms.monthly_wage) * (person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c220cf2f-f919-55e8-aa2e-c0b905957500",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "PROBATION_WAGE_SHORTFALL",
+		"name": "Probation wage below 80% of the agreed wage (试用期工资差额)",
+		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × terms.probation_months, raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((0.8 * person.terms.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.post_probation_wage - person.terms.monthly_wage) * person.terms.probation_months)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT", "WAGES"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "2550b329-c3ad-5db2-b47e-e77c4a46557a",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "OPEN_ENDED_CONTRACT_WAGE",
+		"name": "Second wage for months without the open-ended contract due (未订立无固定期限劳动合同二倍工资)",
+		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; terms.open_ended_overdue_months measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * person.terms.open_ended_overdue_months)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "5c7471b6-b6dd-5a3c-887a-7b06d1391f35",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "INTERNAL_RETIREMENT_SUBSIDY",
+		"name": "Internal-retirement one-off income (内部退养一次性收入)",
+		"authority": "财税〔2018〕164号 item 5(3); 国税发〔1999〕58号 item 1 (https://zhejiang.chinatax.gov.cn/art/1999/4/9/art_8409_73561.html). Taxed with this month’s wages by IIT_INTERNAL_RETIREMENT; outside ordinary cumulative IIT and statutory insurance bases.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_INTERNAL_RETIREMENT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b8aee7a8-5edf-523c-82b1-c5ca034ed439",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "EARLY_RETIREMENT_SUBSIDY",
+		"name": "Early-retirement lump-sum subsidy (提前退休一次性补贴)",
+		"authority": "财税〔2018〕164号 item 5(2) (from 1 Jan 2019; STA copy https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202364/content.html, read 28 Sep 2026): the lump-sum subsidy an individual receives on completing early-retirement (提前退休) formalities, taxed alone by IIT_EARLY_RETIREMENT on the annual comprehensive table spread over the actual years to statutory retirement age (exit fact iit164_early_retirement_years). Outside the SI and fund bases and the art.47 average.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_EARLY_RETIREMENT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f21c831a-1c04-5c6c-9d66-389bed2f8d6f",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "MATERNITY_BENEFIT_EMPLOYER",
+		"name": "Maternity benefit the employer owes (用人单位支付的生育保险待遇)",
+		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html; register CN-SH21) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8; register CN-SH14), read on shanghai.gov.cn 28 Sep 2026. The maternity benefit the employer itself owes, as the recorded amount for the pay month: item 4(1) — where the unit’s contributions for her are under 12 cumulative and under 9 consecutive months in the birth month, the fund pays the allowance × paid months ÷ 12 and the unit 先行垫付 the rest (recovered from the district centre once 12/9 months are reached, outside payroll); item 4(2) para.1 — the part of the unit’s prior-year average wage above 300% of the city average is paid by the unit; item 6(2) — a unit that did not validly enrol or pay for her owes every benefit at the notice’s standard. MATERNITY_ALLOWANCE_OFFSET takes the whole allowance standard for the days (fund share plus this line) off the leave wage, so the worker keeps max(wage, allowance). Owner rule 2026-09-28: law silent on the IIT of an employer-paid share; default exempt as a benefit of 生育保险性质 under 财税〔2008〕8号 (https://www.gov.cn/zwgk/2008-04/03/content_935964.htm): 生育津贴、生育医疗费或其他属于生育保险性质的津贴、补贴 paid under a county-or-higher government’s maternity-insurance rules are exempt from IIT; lawful because the notice fixes it as the allowance itself. Not wages: outside the SI and fund bases and the art.47 average (item 6(4) strips the allowance from the next year’s base).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "857b4e75-c4eb-5c74-98da-da87e06e73bb",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "NO_WRITTEN_CONTRACT_WAGE",
+		"name": "Second wage for months without a written contract (未订立书面劳动合同二倍工资)",
+		"authority": "LCL art.82 para.1 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html): an employer that has not concluded a written contract more than one month and less than one year after the work began pays twice the wage each month. Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, read 28 Sep 2026) art.6 para.2: 起算时间为用工之日起满一个月的次日，截止时间为补订书面劳动合同的前一日; art.7: with no written contract at one year, the double wage runs from the day after the first month to the day before the year, and a no-fixed-term contract is deemed concluded on the anniversary. The line is the second wage for those months: raise it on the day the written contract was concluded, or on the first anniversary; person.employment.service_months_exact on that day measures the months before it, so the months owed are those less the first month, at most eleven, a part month by its days. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line; lawful because it is the wage the contract pays for those months. IIT: wage income of the month paid (个人所得税法实施条例 art.6(1) 与任职或者受雇有关的其他所得; STA 2018 No.61 art.6). Owner rule 2026-09-28: law silent on whether the sanction is wages for LCL art.47 or the SI bases; default not (outside WAGES and every base), because it is a penalty for the employer’s breach, not pay for work.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * (person.employment.service_months_exact - 1.0 <= 0.0 ? 0.0 : (person.employment.service_months_exact - 1.0 >= 11.0 ? 11.0 : person.employment.service_months_exact - 1.0)))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1eb4580a-315c-560e-ac8c-1a17795c6591",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "PROBATION_EXCESS_DAMAGES",
+		"name": "Damages for probation served beyond the legal limit (违法约定试用期赔偿金)",
+		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: terms.probation_months (hire through that day, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.terms.post_probation_wage > 0.0 ? person.terms.post_probation_wage : person.terms.monthly_wage) * (person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f30e3fb0-4b87-5c73-b7fd-ed492df8ba8f",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "PROBATION_WAGE_SHORTFALL",
+		"name": "Probation wage below 80% of the agreed wage (试用期工资差额)",
+		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × terms.probation_months, raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((0.8 * person.terms.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.post_probation_wage - person.terms.monthly_wage) * person.terms.probation_months)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT", "WAGES"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f592507d-882d-5c3a-b6e1-2bb7b5e02bd7",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "OPEN_ENDED_CONTRACT_WAGE",
+		"name": "Second wage for months without the open-ended contract due (未订立无固定期限劳动合同二倍工资)",
+		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; terms.open_ended_overdue_months measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * person.terms.open_ended_overdue_months)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "0104a345-3a06-52f5-89a7-e9fc55da32ba",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "INTERNAL_RETIREMENT_SUBSIDY",
+		"name": "Internal-retirement one-off income (内部退养一次性收入)",
+		"authority": "财税〔2018〕164号 item 5(3); 国税发〔1999〕58号 item 1 (https://zhejiang.chinatax.gov.cn/art/1999/4/9/art_8409_73561.html). Taxed with this month’s wages by IIT_INTERNAL_RETIREMENT; outside ordinary cumulative IIT and statutory insurance bases.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_INTERNAL_RETIREMENT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f2c6aa67-d973-5e6f-b410-8ed4d137e9cc",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "EARLY_RETIREMENT_SUBSIDY",
+		"name": "Early-retirement lump-sum subsidy (提前退休一次性补贴)",
+		"authority": "财税〔2018〕164号 item 5(2) (from 1 Jan 2019; STA copy https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202364/content.html, read 28 Sep 2026): the lump-sum subsidy an individual receives on completing early-retirement (提前退休) formalities, taxed alone by IIT_EARLY_RETIREMENT on the annual comprehensive table spread over the actual years to statutory retirement age (exit fact iit164_early_retirement_years). Outside the SI and fund bases and the art.47 average.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_EARLY_RETIREMENT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e95e0638-8779-550b-bea2-c6787670f5cb",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "MATERNITY_BENEFIT_EMPLOYER",
+		"name": "Maternity benefit the employer owes (用人单位支付的生育保险待遇)",
+		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html; register CN-SH21) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8; register CN-SH14), read on shanghai.gov.cn 28 Sep 2026. The maternity benefit the employer itself owes, as the recorded amount for the pay month: item 4(1) — where the unit’s contributions for her are under 12 cumulative and under 9 consecutive months in the birth month, the fund pays the allowance × paid months ÷ 12 and the unit 先行垫付 the rest (recovered from the district centre once 12/9 months are reached, outside payroll); item 4(2) para.1 — the part of the unit’s prior-year average wage above 300% of the city average is paid by the unit; item 6(2) — a unit that did not validly enrol or pay for her owes every benefit at the notice’s standard. MATERNITY_ALLOWANCE_OFFSET takes the whole allowance standard for the days (fund share plus this line) off the leave wage, so the worker keeps max(wage, allowance). Owner rule 2026-09-28: law silent on the IIT of an employer-paid share; default exempt as a benefit of 生育保险性质 under 财税〔2008〕8号 (https://www.gov.cn/zwgk/2008-04/03/content_935964.htm): 生育津贴、生育医疗费或其他属于生育保险性质的津贴、补贴 paid under a county-or-higher government’s maternity-insurance rules are exempt from IIT; lawful because the notice fixes it as the allowance itself. Not wages: outside the SI and fund bases and the art.47 average (item 6(4) strips the allowance from the next year’s base).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "61fb27ab-6561-5783-8772-d97d9f568568",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "NO_WRITTEN_CONTRACT_WAGE",
+		"name": "Second wage for months without a written contract (未订立书面劳动合同二倍工资)",
+		"authority": "LCL art.82 para.1 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html): an employer that has not concluded a written contract more than one month and less than one year after the work began pays twice the wage each month. Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, read 28 Sep 2026) art.6 para.2: 起算时间为用工之日起满一个月的次日，截止时间为补订书面劳动合同的前一日; art.7: with no written contract at one year, the double wage runs from the day after the first month to the day before the year, and a no-fixed-term contract is deemed concluded on the anniversary. The line is the second wage for those months: raise it on the day the written contract was concluded, or on the first anniversary; person.employment.service_months_exact on that day measures the months before it, so the months owed are those less the first month, at most eleven, a part month by its days. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line; lawful because it is the wage the contract pays for those months. IIT: wage income of the month paid (个人所得税法实施条例 art.6(1) 与任职或者受雇有关的其他所得; STA 2018 No.61 art.6). Owner rule 2026-09-28: law silent on whether the sanction is wages for LCL art.47 or the SI bases; default not (outside WAGES and every base), because it is a penalty for the employer’s breach, not pay for work.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * (person.employment.service_months_exact - 1.0 <= 0.0 ? 0.0 : (person.employment.service_months_exact - 1.0 >= 11.0 ? 11.0 : person.employment.service_months_exact - 1.0)))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "dcdba513-806f-533d-9f10-14955fbfe5eb",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "PROBATION_EXCESS_DAMAGES",
+		"name": "Damages for probation served beyond the legal limit (违法约定试用期赔偿金)",
+		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: terms.probation_months (hire through that day, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.terms.post_probation_wage > 0.0 ? person.terms.post_probation_wage : person.terms.monthly_wage) * (person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b65ad72c-a331-55ae-8bde-23641f1ef70a",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "PROBATION_WAGE_SHORTFALL",
+		"name": "Probation wage below 80% of the agreed wage (试用期工资差额)",
+		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × terms.probation_months, raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((0.8 * person.terms.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.post_probation_wage - person.terms.monthly_wage) * person.terms.probation_months)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT", "WAGES"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b907ede0-8926-5608-a9fa-82a8aeb41b16",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "OPEN_ENDED_CONTRACT_WAGE",
+		"name": "Second wage for months without the open-ended contract due (未订立无固定期限劳动合同二倍工资)",
+		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; terms.open_ended_overdue_months measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * person.terms.open_ended_overdue_months)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "dda7cdab-e2ed-54de-9f39-bc50ebc7fe9e",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "INTERNAL_RETIREMENT_SUBSIDY",
+		"name": "Internal-retirement one-off income (内部退养一次性收入)",
+		"authority": "财税〔2018〕164号 item 5(3); 国税发〔1999〕58号 item 1 (https://zhejiang.chinatax.gov.cn/art/1999/4/9/art_8409_73561.html). Taxed with this month’s wages by IIT_INTERNAL_RETIREMENT; outside ordinary cumulative IIT and statutory insurance bases.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_INTERNAL_RETIREMENT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "10ad825c-18af-54d6-9fc9-a056ea586407",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "EARLY_RETIREMENT_SUBSIDY",
+		"name": "Early-retirement lump-sum subsidy (提前退休一次性补贴)",
+		"authority": "财税〔2018〕164号 item 5(2) (from 1 Jan 2019; STA copy https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202364/content.html, read 28 Sep 2026): the lump-sum subsidy an individual receives on completing early-retirement (提前退休) formalities, taxed alone by IIT_EARLY_RETIREMENT on the annual comprehensive table spread over the actual years to statutory retirement age (exit fact iit164_early_retirement_years). Outside the SI and fund bases and the art.47 average.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_EARLY_RETIREMENT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e55864b0-8f22-5267-8985-a1c5af5044f4",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "MATERNITY_BENEFIT_EMPLOYER",
+		"name": "Maternity benefit the employer owes (用人单位支付的生育保险待遇)",
+		"authority": "沪医保规〔2021〕9号 (to 30 June 2026, https://ybj.sh.gov.cn/gfxwj/20220221/896fab70895744b19f48655977d25a19.html; register CN-SH21) and 沪医保规〔2026〕5号 (from 1 July 2026, https://www.shanghai.gov.cn/gwk/search/content/79e981546eaf4727ae47502f4de955b8; register CN-SH14), read on shanghai.gov.cn 28 Sep 2026. The maternity benefit the employer itself owes, as the recorded amount for the pay month: item 4(1) — where the unit’s contributions for her are under 12 cumulative and under 9 consecutive months in the birth month, the fund pays the allowance × paid months ÷ 12 and the unit 先行垫付 the rest (recovered from the district centre once 12/9 months are reached, outside payroll); item 4(2) para.1 — the part of the unit’s prior-year average wage above 300% of the city average is paid by the unit; item 6(2) — a unit that did not validly enrol or pay for her owes every benefit at the notice’s standard. MATERNITY_ALLOWANCE_OFFSET takes the whole allowance standard for the days (fund share plus this line) off the leave wage, so the worker keeps max(wage, allowance). Owner rule 2026-09-28: law silent on the IIT of an employer-paid share; default exempt as a benefit of 生育保险性质 under 财税〔2008〕8号 (https://www.gov.cn/zwgk/2008-04/03/content_935964.htm): 生育津贴、生育医疗费或其他属于生育保险性质的津贴、补贴 paid under a county-or-higher government’s maternity-insurance rules are exempt from IIT; lawful because the notice fixes it as the allowance itself. Not wages: outside the SI and fund bases and the art.47 average (item 6(4) strips the allowance from the next year’s base).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "4638b843-6341-579f-bb44-e1d1529938b3",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "NO_WRITTEN_CONTRACT_WAGE",
+		"name": "Second wage for months without a written contract (未订立书面劳动合同二倍工资)",
+		"authority": "LCL art.82 para.1 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html): an employer that has not concluded a written contract more than one month and less than one year after the work began pays twice the wage each month. Implementing Regulation (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, read 28 Sep 2026) art.6 para.2: 起算时间为用工之日起满一个月的次日，截止时间为补订书面劳动合同的前一日; art.7: with no written contract at one year, the double wage runs from the day after the first month to the day before the year, and a no-fixed-term contract is deemed concluded on the anniversary. The line is the second wage for those months: raise it on the day the written contract was concluded, or on the first anniversary; person.employment.service_months_exact on that day measures the months before it, so the months owed are those less the first month, at most eleven, a part month by its days. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line; lawful because it is the wage the contract pays for those months. IIT: wage income of the month paid (个人所得税法实施条例 art.6(1) 与任职或者受雇有关的其他所得; STA 2018 No.61 art.6). Owner rule 2026-09-28: law silent on whether the sanction is wages for LCL art.47 or the SI bases; default not (outside WAGES and every base), because it is a penalty for the employer’s breach, not pay for work.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * (person.employment.service_months_exact - 1.0 <= 0.0 ? 0.0 : (person.employment.service_months_exact - 1.0 >= 11.0 ? 11.0 : person.employment.service_months_exact - 1.0)))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "e727a451-3d96-54fa-9d9f-1539dc5342c1",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "PROBATION_EXCESS_DAMAGES",
+		"name": "Damages for probation served beyond the legal limit (违法约定试用期赔偿金)",
+		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: terms.probation_months (hire through that day, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((person.terms.post_probation_wage > 0.0 ? person.terms.post_probation_wage : person.terms.monthly_wage) * (person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "bf3e988d-a6de-545a-a1fe-b3771e249555",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "PROBATION_WAGE_SHORTFALL",
+		"name": "Probation wage below 80% of the agreed wage (试用期工资差额)",
+		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × terms.probation_months, raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent((0.8 * person.terms.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.post_probation_wage - person.terms.monthly_wage) * person.terms.probation_months)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT", "WAGES"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d65a2b21-2f86-5465-9d8d-c21c7b72df48",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "OPEN_ENDED_CONTRACT_WAGE",
+		"name": "Second wage for months without the open-ended contract due (未订立无固定期限劳动合同二倍工资)",
+		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; terms.open_ended_overdue_months measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(person.terms.monthly_wage * person.terms.open_ended_overdue_months)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "35077e00-89dc-57f6-b739-a62b4e9b3398",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "INTERNAL_RETIREMENT_SUBSIDY",
+		"name": "Internal-retirement one-off income (内部退养一次性收入)",
+		"authority": "财税〔2018〕164号 item 5(3); 国税发〔1999〕58号 item 1 (https://zhejiang.chinatax.gov.cn/art/1999/4/9/art_8409_73561.html). Taxed with this month’s wages by IIT_INTERNAL_RETIREMENT; outside ordinary cumulative IIT and statutory insurance bases.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_INTERNAL_RETIREMENT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "aaa2381f-dc92-5857-b14c-a03484099d8d",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "EARLY_RETIREMENT_SUBSIDY",
+		"name": "Early-retirement lump-sum subsidy (提前退休一次性补贴)",
+		"authority": "财税〔2018〕164号 item 5(2) (from 1 Jan 2019; STA copy https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202364/content.html, read 28 Sep 2026): the lump-sum subsidy an individual receives on completing early-retirement (提前退休) formalities, taxed alone by IIT_EARLY_RETIREMENT on the annual comprehensive table spread over the actual years to statutory retirement age (exit fact iit164_early_retirement_years). Outside the SI and fund bases and the art.47 average.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "round_cent(entry.amount)",
+				"limit": null
+			}
+		],
+		"counts_toward": ["IIT_EARLY_RETIREMENT"],
 		"raised_by": "MANUAL"
 	}
 ]

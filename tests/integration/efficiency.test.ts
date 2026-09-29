@@ -3,11 +3,22 @@
  * payroll run are each a handful of statements, however many people and days they cover (a write is one statement).
  */
 import { beforeEach, expect, it } from 'vitest';
-import { NIHON_MY, workspace } from './kit.ts';
+import {
+	NIHON_MY,
+	recordNihonBirthDates,
+	recordNihonEisFacts,
+	recordNihonEpfFacts,
+	recordNihonWorksites,
+	workspace
+} from './kit.ts';
 
 let t: Awaited<ReturnType<typeof workspace>>;
 beforeEach(async () => {
 	t = await workspace({ now: '2026-03-10T02:00:00.000Z' });
+	await recordNihonBirthDates(t);
+	await recordNihonWorksites(t);
+	await recordNihonEisFacts(t);
+	await recordNihonEpfFacts(t);
 }, 120_000);
 const admin = () => t.as(t.admin);
 const day = (v: unknown) =>
@@ -79,16 +90,18 @@ it('a month workbook for the whole plant imports in a handful of statements', as
 	const file = await february();
 	t.count.reset();
 	const imported = await admin().act('work_days.import_month', file);
-	expect(imported.kind).toBe('committed');
+	expect(imported.kind, JSON.stringify(imported)).toBe('committed');
 	expect(file.roster.length).toBeGreaterThan(2_000);
 	expect(t.count.writes).toBe(1);
-	expect(t.count.reads).toBeLessThanOrEqual(12);
+	// Ten reads for the month's law and rows, plus the nested work-days write's own two-wave
+	// neighbourhood (terms, leave, payslips, rosters, settings, runs, codes and the projection).
+	expect(t.count.reads).toBeLessThanOrEqual(20);
 });
 
 it('a payroll run prices the whole plant in one write', async () => {
 	t.count.reset();
 	const run = await admin().act('payroll_runs.create', { company_id: NIHON_MY, period: '2026-01' });
-	expect(run.kind).toBe('committed');
+	expect(run.kind, JSON.stringify(run)).toBe('committed');
 	expect(t.count.writes).toBe(1);
 	expect(t.count.reads).toBeLessThanOrEqual(12);
 });

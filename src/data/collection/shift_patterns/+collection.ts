@@ -5,6 +5,8 @@ import { dateKey } from '../../../lib/iso-day.js';
 import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import { sealedLineages } from '../../../lib/entity-facts.js';
 import { patternRosterCodeId } from '../../../lib/scheduling/work-pattern.js';
+import { isRestLimit } from '../../../lib/datatypes/work_rules.js';
+import { assertRunHasRestDay } from '../work_days/lib/schedule-rules.js';
 import {
 	applicableLimits,
 	plannedDay,
@@ -34,7 +36,7 @@ const PROJECTION_DAYS = 366;
  * A pattern write is a schedule write: its cycle is the base every employment on it projects, and a cycle that
  * breaches a jurisdiction's hour ceilings must never become that base. A cycle is whole weeks. The gate projects the
  * cycle over one year from the pattern's effective start and refuses the first breach with the sentence the roster
- * gate quotes; a pattern plans no overtime, so only its shifts' own hours and spread-over are judged. A `ROSTERED`
+ * gate quotes; a pattern plans no overtime, so only its shifts' own hours, spread-over and unconditional weekly rest are judged. A `ROSTERED`
  * pattern has no cycle to project; payroll's precheck judges it. One read wave.
  */
 c.transform(async (inputs, ctx) => {
@@ -93,7 +95,14 @@ c.transform(async (inputs, ctx) => {
 		const start = dateKey(range.start);
 		const version = settingsInForce(settingsVersions, settingsCode, start);
 		const limits = applicableLimits(version?.work_rules?.limits ?? [], null);
-		if (limits.length === 0) continue;
+		const restRule = version?.work_rules?.limits.find(isRestLimit);
+		const patternRestRule =
+			restRule != null &&
+			(restRule.when ?? '').trim() === '' &&
+			(restRule.average?.when ?? '').trim() === ''
+				? restRule
+				: null;
+		if (limits.length === 0 && patternRestRule == null) continue;
 		const codeById = new Map<string, RosterCodeFacts>();
 		for (const code of codes.rows) {
 			if (String(code.company_id) !== String(row.company_id)) continue;
@@ -106,6 +115,7 @@ c.transform(async (inputs, ctx) => {
 		}
 		const end = addDays(start, PROJECTION_DAYS);
 		const planByDate = new Map<string, SchedulePlanDay>();
+		const rosterCodeByDate = new Map<string, string | null>();
 		const changedDates = new Set<string>();
 		for (let date = start; date <= end; date = addDays(date, 1)) {
 			let rosterCodeId: string | null = null;
@@ -115,6 +125,7 @@ c.transform(async (inputs, ctx) => {
 				rosterCodeId = null;
 			}
 			planByDate.set(date, plannedDay({ date, rosterCodeId, codeById }));
+			rosterCodeByDate.set(date, rosterCodeId);
 			changedDates.add(date);
 		}
 		const breach = projectedLimitBreaches({
@@ -125,6 +136,18 @@ c.transform(async (inputs, ctx) => {
 			authority: version?.work_rules?.authority ?? null
 		})[0];
 		if (breach != null) ctx.refuse(breach.message);
+		if (patternRestRule != null)
+			assertRunHasRestDay({
+				employeeNumber: `pattern ${row.code ?? ''}`.trim(),
+				rule: patternRestRule,
+				authority: patternRestRule.authority ?? null,
+				window: { start, end },
+				plannedByDate: rosterCodeByDate,
+				changedDates,
+				terms: [],
+				patternById: new Map<string, never>(),
+				codeKindById: new Map([...codeById].map(([id, facts]) => [id, facts.kind] as const))
+			});
 	}
 	return inputs;
 });

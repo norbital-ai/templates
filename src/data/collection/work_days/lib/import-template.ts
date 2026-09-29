@@ -41,6 +41,9 @@ const READ_ME_LINES = [
 	'none, and an hour the clock shows past the shift with none planned is not paid.',
 	'',
 	'The "Settings" sheet states the legal entity, the month (YYYY-MM) and the IANA timezone once.',
+	'For Thailand, "Overtime" is one person-day per row. State overtime_hours and the ISO instant',
+	'of that occasion’s worker consent. A nine-hour normal day also needs the ISO instant of its',
+	'prior redistribution agreement, even if overtime_hours is zero.',
 	'Do not rename the sheets or the columns: the importer refuses the whole file by name.',
 	"Every row is checked against the entity's records — employee numbers, shift codes, holidays —",
 	'and one bad row refuses the whole file so it can be corrected and re-imported as one.'
@@ -50,6 +53,7 @@ export function schedulingTemplateWorkbook(options: {
 	readonly legalEntity: string;
 	readonly month: string;
 	readonly timezone: string;
+	readonly jurisdictionCode?: string | undefined;
 }): ln.Workbook {
 	const workbook = new ExcelJSBrowser.Workbook();
 	const readMe = workbook.addWorksheet(READ_ME_SHEET_NAME);
@@ -80,12 +84,22 @@ export function schedulingTemplateWorkbook(options: {
 	attendance.addRow(['employee_number', 'work_date', 'clock_in', 'clock_out']);
 
 	const overtime = workbook.addWorksheet(OVERTIME_SHEET_NAME);
-	overtime.addRow([
-		'employee_number',
-		...eachDay(monthOf(`${options.month}-01`)).map((day) =>
-			String(Number.parseInt(day.slice(-2), 10))
-		)
-	]);
+	overtime.addRow(
+		options.jurisdictionCode === 'TH'
+			? [
+					'employee_number',
+					'work_date',
+					'overtime_hours',
+					'overtime_consented_at',
+					'normal_hours_redistribution_agreed_at'
+				]
+			: [
+					'employee_number',
+					...eachDay(monthOf(`${options.month}-01`)).map((day) =>
+						String(Number.parseInt(day.slice(-2), 10))
+					)
+				]
+	);
 
 	return workbook;
 }

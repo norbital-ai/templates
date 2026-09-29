@@ -170,6 +170,58 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "4c6a047a-0c1e-552f-81c2-892173f07d20",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "FAMILY_PLANNING_PROCEDURE_LEAVE",
+		"name": "Family-planning procedure leave (计划生育手术假)",
+		"authority": "上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号), art.19, effective 1 November 2022 through 31 October 2027: paid leave from the procedure date; simultaneous procedures accumulate. IUD insertion/removal 2 days, IUD follow-up 1 day, vasectomy 7, tubal ligation 30, implant insertion 5/removal 3, diagnostic curettage after an IUD or implant 5. Abortion, post-procedure sick leave, no heavy work after insertion, and simultaneous-procedure overlap still require review (register CN-SH51). https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html",
+		"eligibility": "event.date >= \"2022-11-01\" && event.date < \"2027-11-01\" && event.kind in [\"IUD_INSERTION\", \"IUD_REMOVAL\", \"IUD_FOLLOWUP\", \"VASECTOMY\", \"TUBAL_LIGATION\", \"IMPLANT_INSERTION\", \"IMPLANT_REMOVAL\", \"DIAGNOSTIC_CURETTAGE\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"IUD_INSERTION\"",
+					"days": 2
+				},
+				{
+					"eligibility": "event.kind == \"IUD_REMOVAL\"",
+					"days": 2
+				},
+				{
+					"eligibility": "event.kind == \"IUD_FOLLOWUP\"",
+					"days": 1
+				},
+				{
+					"eligibility": "event.kind == \"VASECTOMY\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"TUBAL_LIGATION\"",
+					"days": 30
+				},
+				{
+					"eligibility": "event.kind == \"IMPLANT_INSERTION\"",
+					"days": 5
+				},
+				{
+					"eligibility": "event.kind == \"IMPLANT_REMOVAL\"",
+					"days": 3
+				},
+				{
+					"eligibility": "event.kind == \"DIAGNOSTIC_CURETTAGE\"",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "9adab635-01fc-5fbf-afa8-930fbae52b5d",
 		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
 		"code": "UNPAID_LEAVE",
@@ -334,6 +386,58 @@
 			]
 		},
 		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "614b867f-7882-5d16-a63a-0d21e53a1056",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "FAMILY_PLANNING_PROCEDURE_LEAVE",
+		"name": "Family-planning procedure leave (计划生育手术假)",
+		"authority": "上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号), art.19, effective 1 November 2022 through 31 October 2027: paid leave from the procedure date; simultaneous procedures accumulate. IUD insertion/removal 2 days, IUD follow-up 1 day, vasectomy 7, tubal ligation 30, implant insertion 5/removal 3, diagnostic curettage after an IUD or implant 5. Abortion, post-procedure sick leave, no heavy work after insertion, and simultaneous-procedure overlap still require review (register CN-SH51). https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html",
+		"eligibility": "event.date >= \"2022-11-01\" && event.date < \"2027-11-01\" && event.kind in [\"IUD_INSERTION\", \"IUD_REMOVAL\", \"IUD_FOLLOWUP\", \"VASECTOMY\", \"TUBAL_LIGATION\", \"IMPLANT_INSERTION\", \"IMPLANT_REMOVAL\", \"DIAGNOSTIC_CURETTAGE\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"IUD_INSERTION\"",
+					"days": 2
+				},
+				{
+					"eligibility": "event.kind == \"IUD_REMOVAL\"",
+					"days": 2
+				},
+				{
+					"eligibility": "event.kind == \"IUD_FOLLOWUP\"",
+					"days": 1
+				},
+				{
+					"eligibility": "event.kind == \"VASECTOMY\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"TUBAL_LIGATION\"",
+					"days": 30
+				},
+				{
+					"eligibility": "event.kind == \"IMPLANT_INSERTION\"",
+					"days": 5
+				},
+				{
+					"eligibility": "event.kind == \"IMPLANT_REMOVAL\"",
+					"days": 3
+				},
+				{
+					"eligibility": "event.kind == \"DIAGNOSTIC_CURETTAGE\"",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "REQUIRED",
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
@@ -510,6 +614,58 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "45246fd7-3389-57f2-9700-a2dcdc5c0a39",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "FAMILY_PLANNING_PROCEDURE_LEAVE",
+		"name": "Family-planning procedure leave (计划生育手术假)",
+		"authority": "上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号), art.19, effective 1 November 2022 through 31 October 2027: paid leave from the procedure date; simultaneous procedures accumulate. IUD insertion/removal 2 days, IUD follow-up 1 day, vasectomy 7, tubal ligation 30, implant insertion 5/removal 3, diagnostic curettage after an IUD or implant 5. Abortion, post-procedure sick leave, no heavy work after insertion, and simultaneous-procedure overlap still require review (register CN-SH51). https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html",
+		"eligibility": "event.date >= \"2022-11-01\" && event.date < \"2027-11-01\" && event.kind in [\"IUD_INSERTION\", \"IUD_REMOVAL\", \"IUD_FOLLOWUP\", \"VASECTOMY\", \"TUBAL_LIGATION\", \"IMPLANT_INSERTION\", \"IMPLANT_REMOVAL\", \"DIAGNOSTIC_CURETTAGE\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"IUD_INSERTION\"",
+					"days": 2
+				},
+				{
+					"eligibility": "event.kind == \"IUD_REMOVAL\"",
+					"days": 2
+				},
+				{
+					"eligibility": "event.kind == \"IUD_FOLLOWUP\"",
+					"days": 1
+				},
+				{
+					"eligibility": "event.kind == \"VASECTOMY\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"TUBAL_LIGATION\"",
+					"days": 30
+				},
+				{
+					"eligibility": "event.kind == \"IMPLANT_INSERTION\"",
+					"days": 5
+				},
+				{
+					"eligibility": "event.kind == \"IMPLANT_REMOVAL\"",
+					"days": 3
+				},
+				{
+					"eligibility": "event.kind == \"DIAGNOSTIC_CURETTAGE\"",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "7fa9c424-d4c9-5d07-9bcb-fec00d2aa8dd",
 		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
 		"code": "UNPAID_LEAVE",
@@ -674,6 +830,58 @@
 			]
 		},
 		"evidence": "NONE",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "b35f094f-edbc-53be-9dd6-6e84bb917f6e",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "FAMILY_PLANNING_PROCEDURE_LEAVE",
+		"name": "Family-planning procedure leave (计划生育手术假)",
+		"authority": "上海市计划生育奖励与补助若干规定 (沪府规〔2022〕18号), art.19, effective 1 November 2022 through 31 October 2027: paid leave from the procedure date; simultaneous procedures accumulate. IUD insertion/removal 2 days, IUD follow-up 1 day, vasectomy 7, tubal ligation 30, implant insertion 5/removal 3, diagnostic curettage after an IUD or implant 5. Abortion, post-procedure sick leave, no heavy work after insertion, and simultaneous-procedure overlap still require review (register CN-SH51). https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html",
+		"eligibility": "event.date >= \"2022-11-01\" && event.date < \"2027-11-01\" && event.kind in [\"IUD_INSERTION\", \"IUD_REMOVAL\", \"IUD_FOLLOWUP\", \"VASECTOMY\", \"TUBAL_LIGATION\", \"IMPLANT_INSERTION\", \"IMPLANT_REMOVAL\", \"DIAGNOSTIC_CURETTAGE\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "event.kind == \"IUD_INSERTION\"",
+					"days": 2
+				},
+				{
+					"eligibility": "event.kind == \"IUD_REMOVAL\"",
+					"days": 2
+				},
+				{
+					"eligibility": "event.kind == \"IUD_FOLLOWUP\"",
+					"days": 1
+				},
+				{
+					"eligibility": "event.kind == \"VASECTOMY\"",
+					"days": 7
+				},
+				{
+					"eligibility": "event.kind == \"TUBAL_LIGATION\"",
+					"days": 30
+				},
+				{
+					"eligibility": "event.kind == \"IMPLANT_INSERTION\"",
+					"days": 5
+				},
+				{
+					"eligibility": "event.kind == \"IMPLANT_REMOVAL\"",
+					"days": 3
+				},
+				{
+					"eligibility": "event.kind == \"DIAGNOSTIC_CURETTAGE\"",
+					"days": 5
+				}
+			]
+		},
+		"evidence": "REQUIRED",
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,

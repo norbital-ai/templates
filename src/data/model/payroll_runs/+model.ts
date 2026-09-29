@@ -15,6 +15,8 @@ export default model({
 		/** The engine build that interpreted the captured configuration. */
 		calculation_version: { kind: 'text' },
 		pay_date: { kind: 'date' },
+		/** Contractual wage due date, separate from the run's settlement date. */
+		pay_due_date: { kind: 'date', optional: true },
 		attendance_from: { kind: 'date' },
 		attendance_to: { kind: 'date' },
 		/** How each charge was derived; later runs' overtime ceilings read its settled counts. */

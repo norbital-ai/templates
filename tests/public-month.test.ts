@@ -17,9 +17,12 @@ import {
 let world;
 async function createJanuary() {
 	world = createPublicPayrollWorld();
+	// The 07:30-16:30 shift grants 60 minutes, and a break is proved only by a gap between worked
+	// intervals. Punch it 12:30-13:30: eight paid hours, no premium.
 	for (const day of world.work_days) {
 		day.worked_intervals = [
-			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T12:30:00+08:00` },
+			{ start: `${day.work_date}T13:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
 	}
 	// The payload the runtime would commit, then stored the way the database would hold it: the

@@ -64,7 +64,75 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 			'PCB.ORDINARY',
 			'FIRST_SCHEDULE_WAGES'
 		],
-		TERMINATION_BENEFIT: []
+		TERMINATION_BENEFIT: [],
+		// ITA Sch.6 para 25C past-achievement/excellence/innovation/productivity award: EPF s.2 "any
+		// bonus", KWSP FAQ Q8 "Incentives"; not an annual bonus under Act 4 s.2(24)(e)/Act 800 s.2 (e),
+		// so SOCSO/EIS/SKBBK wages; Act 612 s.2 (e) excludes any bonus. MTD spec 2026 E(9) v.
+		EXCELLENCE_AWARD: [
+			...MY_WAGES.filter((code) => code !== 'HRDF'),
+			...MY_ADDITIONAL_EPF,
+			'PCB.ADDITIONAL'
+		],
+		// Official-duty travel: KWSP FAQ Q11 non-wages, Act 4 s.2(24)(b), Act 800 s.2 (b), Act 612 s.2
+		// (b), EA 1955 s.2 (c) all exclude a travelling allowance; taxable above RM6,000 (E(9) i).
+		TRAVEL_OFFICIAL: ['PCB.ORDINARY'],
+		TASK_MONTHLY_WAGE: [
+			...MY_WAGES.filter((code) => code !== 'HRDF'),
+			'EPF.ORDINARY',
+			'EPF_NON_CITIZEN.ORDINARY',
+			'EPF_PR.ORDINARY',
+			'PCB.ORDINARY'
+		],
+		TRIP_MONTHLY_WAGE: [
+			...MY_WAGES.filter((code) => code !== 'HRDF'),
+			'EPF.ORDINARY',
+			'EPF_NON_CITIZEN.ORDINARY',
+			'EPF_PR.ORDINARY',
+			'PCB.ORDINARY'
+		],
+		COMMISSION_MONTHLY: [
+			...MY_WAGES.filter((code) => code !== 'HRDF'),
+			'EPF.ORDINARY',
+			'EPF_NON_CITIZEN.ORDINARY',
+			'EPF_PR.ORDINARY',
+			'PCB.ORDINARY'
+		],
+		COMMISSION_IRREGULAR: [
+			...MY_WAGES.filter((code) => code !== 'HRDF'),
+			'EPF.ORDINARY',
+			'EPF_NON_CITIZEN.ORDINARY',
+			'EPF_PR.ORDINARY',
+			'PCB.ADDITIONAL'
+		],
+		RESULTS_ZERO_MONTH: [],
+		// BIK/VOLA: non-cash, so no contribution wage (EPF s.2 "remuneration in money", Act 4 s.2(24),
+		// Act 800 s.2 "payable in money", Act 612 and EA s.2 "in cash"); Y1 for MTD (spec 2026 E(12)).
+		BIK_VOLA: ['PCB.ORDINARY'],
+		// Cash allowances: EPF s.2 wages (FAQ Q8 "allowance"), Act 4/Act 800 wages (owner rule
+		// 2026-09-28: not "special expenses"), Act 612 fixed cash allowance, EA s.2 wages. Child care is
+		// taxable above RM3,000 (E(9) ii); meal and parking are fully exempt (E(9) vi, vii).
+		CHILDCARE_ALLOWANCE: [
+			...MY_WAGES,
+			'EPF.ORDINARY',
+			'EPF_NON_CITIZEN.ORDINARY',
+			'EPF_PR.ORDINARY',
+			'PCB.ORDINARY',
+			'FIRST_SCHEDULE_WAGES'
+		],
+		MEAL_ALLOWANCE: [
+			...MY_WAGES,
+			'EPF.ORDINARY',
+			'EPF_NON_CITIZEN.ORDINARY',
+			'EPF_PR.ORDINARY',
+			'FIRST_SCHEDULE_WAGES'
+		],
+		PARKING_ALLOWANCE: [
+			...MY_WAGES,
+			'EPF.ORDINARY',
+			'EPF_NON_CITIZEN.ORDINARY',
+			'EPF_PR.ORDINARY',
+			'FIRST_SCHEDULE_WAGES'
+		]
 	},
 	// RA 11199 s.8(f) compensation; NIRC s.32(B)(7)(e) 13th month and other benefits (de minimis meal).
 	// RR 2-98 s.2.78.1(A)(3) as amended (RR 11-2018, RR 4-2025, RR 29-2025): each de minimis class
@@ -87,6 +155,9 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		BACKPAY_DUTY_ALLOWANCE: [...PH_WAGES, 'WTAX.ORDINARY'],
 		RETIREMENT_PAY: [],
 		SEPARATION_PAY: [],
+		// RA 10361 s.32 indemnity: separation for a cause beyond the employee's control, NIRC s.32(B)(6)(b).
+		KASAMBAHAY_INDEMNITY: [],
+		KASAMBAHAY_FORFEITURE: [],
 		STATUTORY_ADJUSTMENT: [],
 		THIRTEENTH_MONTH_PAY: ['WTAX.SPECIAL'],
 		allowance: [...PH_WAGES, 'WTAX.ORDINARY'],
@@ -132,6 +203,26 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 			'OCC_INJURY'
 		],
 		OCC_INJURY_OFFSET: [],
+		// 勞基法 §59 職業災害補償費: not 工資 (施行細則 §10(7)), exempt from income tax (所得稅法 §4(1)(3)-(4)).
+		OCC_INJURY_MEDICAL: [],
+		OCC_INJURY_LUMP_SUM: [],
+		OCC_DISABILITY_G01: [],
+		OCC_DISABILITY_G02: [],
+		OCC_DISABILITY_G03: [],
+		OCC_DISABILITY_G04: [],
+		OCC_DISABILITY_G05: [],
+		OCC_DISABILITY_G06: [],
+		OCC_DISABILITY_G07: [],
+		OCC_DISABILITY_G08: [],
+		OCC_DISABILITY_G09: [],
+		OCC_DISABILITY_G10: [],
+		OCC_DISABILITY_G11: [],
+		OCC_DISABILITY_G12: [],
+		OCC_DISABILITY_G13: [],
+		OCC_DISABILITY_G14: [],
+		OCC_DISABILITY_G15: [],
+		OCC_DEATH_FUNERAL: [],
+		OCC_DEATH_COMPENSATION: [],
 		RETIREMENT_PAY: [],
 		SEVERANCE_PAY: [],
 		bonus: [
@@ -190,6 +281,18 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		// The allowance offset takes a fund benefit back off the wage: it leaves the IIT base (财税〔2008〕8号
 		// exempts the allowance) and, being no wage, the art.47 average (Social Insurance Law art.56).
 		MATERNITY_ALLOWANCE_OFFSET: ['IIT'],
+		// 财税〔2008〕8号: an employer-paid maternity benefit is exempt and no wage.
+		MATERNITY_BENEFIT_EMPLOYER: [],
+		// LCL art.82 double wage: 工资薪金 (IIT 实施条例 art.6(1)); not WAGES (Owner rule 2026-09-28).
+		NO_WRITTEN_CONTRACT_WAGE: ['IIT'],
+		// LCL art.82 para.2 and art.83: the same sanction defaults (Owner rule 2026-09-28).
+		OPEN_ENDED_CONTRACT_WAGE: ['IIT'],
+		PROBATION_EXCESS_DAMAGES: ['IIT'],
+		// LCL art.20 / Regulation art.15: probation wage arrears are wages (Regulation art.27), as BONUS.
+		PROBATION_WAGE_SHORTFALL: ['IIT', 'WAGES'],
+		// 财税〔2018〕164号 item 5(2): taxed alone, spread over the years to statutory retirement age.
+		EARLY_RETIREMENT_SUBSIDY: ['IIT_EARLY_RETIREMENT'],
+		INTERNAL_RETIREMENT_SUBSIDY: ['IIT_INTERNAL_RETIREMENT'],
 		SEVERANCE_PAY: ['IIT_SEVERANCE']
 	}
 };
@@ -201,6 +304,10 @@ const SEPARATION = new Set([
 	'TERMINATION_BENEFIT',
 	'NOTICE_IN_LIEU',
 	'SEPARATION_PAY',
+	'KASAMBAHAY_INDEMNITY',
+	'KASAMBAHAY_FORFEITURE',
+	'OCC_DEATH_FUNERAL',
+	'OCC_DEATH_COMPENSATION',
 	'RETIREMENT_PAY',
 	'SEVERANCE_PAY',
 	'SEVERANCE_ALLOWANCE',

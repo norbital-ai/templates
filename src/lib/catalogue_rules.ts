@@ -137,6 +137,7 @@ export function schemeFault(
 			readonly rebate?: string | null | undefined;
 			readonly deduction?: string | null | undefined;
 			readonly per_unit?: boolean | null | undefined;
+			readonly payment_occasion?: boolean | null | undefined;
 		}[];
 		readonly assessment_period?: string | null | undefined;
 		readonly assessment_scope?: string | null | undefined;
@@ -151,11 +152,17 @@ export function schemeFault(
 	const { rules, assessed_on: assessedOn, elections } = scheme;
 	if (
 		rules.some((rule) => rule.per_unit) &&
-		((scheme.assessment_period != null && scheme.assessment_period !== 'PAY_PERIOD') ||
+		(rules.some(
+			(rule) =>
+				rule.per_unit &&
+				!rule.payment_occasion &&
+				scheme.assessment_period != null &&
+				scheme.assessment_period !== 'PAY_PERIOD'
+		) ||
 			scheme.assessment_scope === 'COMPANY' ||
 			(scheme.ordinary_on ?? '').trim() !== '')
 	)
-		return 'Per-unit rules require a PAY_PERIOD employment scheme without an ordinary split.';
+		return 'Per-unit rules require a PAY_PERIOD employment scheme without an ordinary split, except dated payment occasions.';
 	for (const field of elections) {
 		for (const [kind, expression] of [
 			['requirement', field.required_when],

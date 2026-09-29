@@ -21,7 +21,7 @@ import {
 	type PersonInput
 } from '../../lib/payroll/run/eligibility.js';
 import { attendanceWindow, defaultPayPeriod } from '../../lib/payroll/run/period.js';
-import { resolveSchedule } from '../../lib/payroll/run/schedule.js';
+import { resolveSchedule, type ScheduledDay } from '../../lib/payroll/run/schedule.js';
 import type { ShiftDefinition } from '../../lib/payroll/run/configuration.js';
 import type { WorkRules } from '../datatypes/work_rules.js';
 import { resolveHolidays, type HolidayRow } from '../holiday-calendar.js';
@@ -243,7 +243,7 @@ type OvertimeSplitDay = SchedulePlanDay & {
 	readonly fixed_overtime_hours?: number | undefined;
 	/** `work_days.emergency_cause`: the hours sit outside every ceiling (TW 勞基法 §32(4)). */
 	readonly emergency?: boolean | undefined;
-	/** The person observes a company holiday on the date (`observedHolidayDates`). */
+	/** The person observes a company holiday on the date (`observedDays`). */
 	readonly holiday?: boolean | undefined;
 };
 
@@ -439,7 +439,7 @@ type HeadroomDay = SchedulePlanDay & {
 	readonly approved_overtime_hours: number;
 	/** `work_days.emergency_cause`: the hours sit outside every ceiling (TW 勞基法 §32(4)). */
 	readonly emergency?: boolean | undefined;
-	/** The person observes a company holiday on the date (`observedHolidayDates`). */
+	/** The person observes a company holiday on the date (`observedDays`). */
 	readonly holiday?: boolean | undefined;
 };
 
@@ -556,35 +556,74 @@ export function breachSentence(breach: OvertimeBreach): string {
 	);
 }
 
+/** What a person's schedule resolves the dates to, read the way payroll prices them. */
+export type ObservedDays = {
+	/** The dates the person observes a company holiday on. */
+	readonly holidays: ReadonlySet<string>;
+	/**
+	 * The dates payroll resolves as an off day: under `last_rest_day_only` (MY s.59(1)) a REST code
+	 * with a later REST code in its Monday–Sunday week is not the week's rest day.
+	 */
+	readonly offDays: ReadonlySet<string>;
+};
+
 /**
- * The dates a person observes a company holiday on, exactly as payroll prices them: payroll's own
- * `resolveSchedule` over each assessment window (the attendance window a run resolves), with the
- * published rows of the company's calendar — replacement days included, a local day only at the
- * worksite the person's terms record on it (PH RA 12271, as `atWorksite`) — the rosters of record,
- * the version's `holiday_rest_precedence` (under SUBSTITUTE a holiday on the rest day is carried to
- * the next working day, unless the calendar publishes its replacement) and each row's `given_to`.
- * The split, the headroom, the day sheet and the import read this, so none keeps a calendar rule of
- * its own. Throws where the schedule cannot be resolved, as a run would.
+ * The days a person observes, exactly as payroll prices them: payroll's own `resolveSchedule` over
+ * each assessment window (the attendance window a run resolves), with the published rows of the
+ * company's calendar — replacement days included, a local day only at the worksite the person's
+ * terms record on it (PH RA 12271, as `atWorksite`) — the rosters of record, the version's
+ * `holiday_rest_precedence` (under SUBSTITUTE a holiday on the rest day is carried to the next
+ * working day, unless the calendar publishes its replacement), its `last_rest_day_only` and each
+ * row's `given_to`. The split, the headroom, the day sheet and the import read this (through
+ * `observedPlan`), so none keeps a calendar rule of its own. Throws where the schedule cannot be
+ * resolved, as a run would.
  */
-export function observedHolidayDates(
-	options: Parameters<typeof observedHolidays>[0]
-): ReadonlySet<string> {
-	return new Set(observedHolidays(options).keys());
+export function observedDays(options: Parameters<typeof resolvedDays>[0]): ObservedDays {
+	const holidays = new Set<string>();
+	const offDays = new Set<string>();
+	for (const day of resolvedDays(options).values()) {
+		if (day.observedHoliday != null) holidays.add(day.date);
+		if (day.offDay) offDays.add(day.date);
+	}
+	return { holidays, offDays };
+}
+
+/** A plan day as payroll resolves it: its observed holiday, and a REST code resolved as an off day. */
+export function observedPlan<Plan extends SchedulePlanDay>(
+	plan: Plan,
+	observed: ObservedDays
+): Plan & { readonly holiday: boolean } {
+	return {
+		...plan,
+		...(plan.kind === 'REST' && observed.offDays.has(plan.date) && { kind: 'OFF' as const }),
+		holiday: observed.holidays.has(plan.date)
+	};
 }
 
 /**
  * The holidays a person observes, by date, with the name each is observed under and — for a
  * rest-day holiday SUBSTITUTE carried to a working day — the date it fell on. Read exactly as
- * payroll resolves them (`resolveSchedule`); see `observedHolidayDates`. The month board draws a
+ * payroll resolves them (`resolveSchedule`); see `observedDays`. The month board draws a
  * person's cells from this, so a board and a payslip cannot name different holidays.
  */
-export function observedHolidays(options: {
+export function observedHolidays(
+	options: Parameters<typeof resolvedDays>[0]
+): ReadonlyMap<string, { readonly name: string; readonly from: string | null }> {
+	const observed = new Map<string, { readonly name: string; readonly from: string | null }>();
+	for (const day of resolvedDays(options).values())
+		if (day.observedHoliday != null) observed.set(day.date, day.observedHoliday);
+	return observed;
+}
+
+function resolvedDays(options: {
 	readonly dates: readonly string[];
 	readonly cutoffDay: number;
 	readonly companyId: string;
 	readonly holidays: readonly HolidayRow[];
 	readonly codes: readonly Pick<ShiftDefinition, 'id' | 'code' | 'variant' | 'effective_range'>[];
-	readonly precedence: WorkRules['holiday_rest_precedence'] | null | undefined;
+	/** The version's work rules in force; none resolves nothing. */
+	readonly work:
+		Pick<WorkRules, 'holiday_rest_precedence' | 'last_rest_day_only'> | null | undefined;
 	/** The person's stored plans: the explicit roster code of each dated row. */
 	readonly plans: readonly {
 		readonly work_date: string;
@@ -598,9 +637,10 @@ export function observedHolidays(options: {
 	) => { readonly pattern: ShiftPatternLike['pattern']; readonly anchor: string | null } | null;
 	/** The worksite the person's terms record on a date: a local day reaches only that site's staff. */
 	readonly worksiteOn: (date: string) => string | null | undefined;
-}): ReadonlyMap<string, { readonly name: string; readonly from: string | null }> {
-	const observed = new Map<string, { readonly name: string; readonly from: string | null }>();
-	if (options.precedence == null) return observed;
+}): ReadonlyMap<string, ScheduledDay> {
+	const resolved = new Map<string, ScheduledDay>();
+	const precedence = options.work?.holiday_rest_precedence;
+	if (precedence == null) return resolved;
 	const shiftById = new Map(options.codes.map((code) => [code.id, code as ShiftDefinition]));
 	const windows = new Map(
 		options.dates.map((date) => {
@@ -634,13 +674,13 @@ export function observedHolidays(options: {
 					options.worksiteOn
 				),
 				shiftById,
-				holidayRestPrecedence: options.precedence
+				holidayRestPrecedence: precedence,
+				lastRestDayOnly: options.work?.last_rest_day_only === true
 			}
 		});
-		for (const day of schedule.values())
-			if (day.observedHoliday != null) observed.set(day.date, day.observedHoliday);
+		for (const day of schedule.values()) resolved.set(day.date, day);
 	}
-	return observed;
+	return resolved;
 }
 
 /** An allowance class as the wage comparand reads it: where it pays and which way. */

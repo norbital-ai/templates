@@ -11,6 +11,8 @@
 	type Count = number | null;
 	type Value = readonly {
 		readonly child_birthdate: string;
+		readonly estimated_delivery_date?: string | null;
+		readonly adoption_eligibility_date?: string | null;
 		readonly relationship: 'CHILD' | 'STEPCHILD' | 'ADOPTED' | 'LEGAL_WARD';
 		readonly effective_range?: { readonly start: string; readonly end: string | null } | null;
 		readonly citizenship?: string | null;
@@ -58,6 +60,20 @@
 						value={row.child_birthdate || null}
 						{disabled}
 						onChange={(next) => edit(index, { child_birthdate: next ?? '' })}
+					/>
+				</Labelled>
+				<Labelled label={t('employee_children.estimated_delivery_date')}>
+					<DateInput
+						value={row.estimated_delivery_date || null}
+						{disabled}
+						onChange={(next) => edit(index, { estimated_delivery_date: next })}
+					/>
+				</Labelled>
+				<Labelled label={t('employee_children.adoption_eligibility_date')}>
+					<DateInput
+						value={row.adoption_eligibility_date || null}
+						{disabled}
+						onChange={(next) => edit(index, { adoption_eligibility_date: next })}
 					/>
 				</Labelled>
 				<Labelled label={t('employee_children.relationship')}>

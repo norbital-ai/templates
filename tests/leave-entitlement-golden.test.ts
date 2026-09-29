@@ -68,6 +68,7 @@ type Facts = {
 		readonly kind?: string;
 		readonly relationship?: string;
 		readonly child_index?: number;
+		readonly wife_prior_living_biological_children?: number;
 		readonly date?: string;
 	};
 	/**
@@ -146,7 +147,7 @@ function grant(
 				citizenship: facts.childCitizenship?.[index] ?? null,
 				shared_parental_weeks: facts.childSharedWeeks?.[index] ?? null
 			})),
-			event: facts.event ?? null,
+			event: facts.event == null ? null : { date: asOf, ...facts.event },
 			facts: [
 				...contributionSchemes(lineage).map((scheme) => ({
 					code: scheme.code,
@@ -167,7 +168,7 @@ function grant(
 		return grantedDays(row.entitlement, personOn(asOf));
 	return computedEntitlement({
 		rule: row.entitlement,
-		window: leaveWindowOf(asOf, row.entitlement),
+		window: leaveWindowOf(asOf, row.entitlement, hire),
 		asOf,
 		hireDate: hire,
 		exitDate: null,
@@ -311,7 +312,8 @@ test('Philippines — service incentive leave and the special statutory leaves',
 		null
 	]);
 	// RA 11210: 105 days per birth, 120 for a qualified solo parent — the most specific band is
-	// first — and 60 for a miscarriage; for an SSS member of three months' contributions.
+	// first — and 60 for a miscarriage or emergency termination. SSS contributions qualify the
+	// cash benefit, not the private-sector leave entitlement (RA 11210 s.5).
 	const SSS = { registrations: [{ code: 'SSS', since: '2020-01-01' }] } as const;
 	assert.deepEqual(
 		ladder('PH', 0, 'MATERNITY_LEAVE', { ...FEMALE, ...SSS, solo_parent: true, event: BIRTH }),
@@ -325,11 +327,10 @@ test('Philippines — service incentive leave and the special statutory leaves',
 		ladder('PH', 0, 'MATERNITY_LEAVE', { ...FEMALE, ...SSS, event: { kind: 'MISCARRIAGE' } }),
 		[60, 60, 60]
 	);
-	assert.deepEqual(ladder('PH', 0, 'MATERNITY_LEAVE', { ...FEMALE, event: BIRTH }), [
-		null,
-		null,
-		null
-	]);
+	assert.deepEqual(
+		ladder('PH', 0, 'MATERNITY_LEAVE', { ...FEMALE, event: BIRTH }),
+		[105, 105, 105]
+	);
 	// RA 8187: seven days per delivery, married male employee, no service condition.
 	assert.deepEqual(
 		ladder('PH', 0, 'PATERNITY_LEAVE', { ...MARRIED_MALE, event: BIRTH }),
@@ -665,6 +666,7 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 		// twins, fourteen for twins by caesarean — and the art.115 personal leaves per event.
 		const SI_1Y = { registrations: [{ code: 'SI', since: '2024-01-01' }] } as const;
 		const MOTHER = { ...FEMALE, ...SI_1Y } as const;
+		const wife = version === 3 ? { relationship: 'WIFE' } : {};
 		assert.deepEqual(
 			ladder('VN', version, 'MATERNITY_LEAVE', { ...MOTHER, event: { kind: 'BIRTH' } }),
 			[180, 180, 180]
@@ -684,21 +686,30 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 			[null, null, null]
 		);
 		assert.deepEqual(
-			ladder('VN', version, 'PATERNITY_LEAVE', { ...MALE, event: { kind: 'BIRTH' } }),
+			ladder('VN', version, 'PATERNITY_LEAVE', {
+				...MALE,
+				event: { kind: 'BIRTH', ...wife, wife_prior_living_biological_children: 0 }
+			}),
 			[5, 5, 5]
 		);
 		assert.deepEqual(
-			ladder('VN', version, 'PATERNITY_LEAVE', { ...MALE, event: { kind: 'BIRTH_SURGERY' } }),
+			ladder('VN', version, 'PATERNITY_LEAVE', {
+				...MALE,
+				event: { kind: 'BIRTH_SURGERY', ...wife, wife_prior_living_biological_children: 0 }
+			}),
 			[7, 7, 7]
 		);
 		assert.deepEqual(
-			ladder('VN', version, 'PATERNITY_LEAVE', { ...MALE, event: { kind: 'MULTIPLE_BIRTH' } }),
+			ladder('VN', version, 'PATERNITY_LEAVE', {
+				...MALE,
+				event: { kind: 'MULTIPLE_BIRTH', ...wife }
+			}),
 			[10, 10, 10]
 		);
 		assert.deepEqual(
 			ladder('VN', version, 'PATERNITY_LEAVE', {
 				...MALE,
-				event: { kind: 'MULTIPLE_BIRTH_SURGERY' }
+				event: { kind: 'MULTIPLE_BIRTH_SURGERY', ...wife }
 			}),
 			[14, 14, 14]
 		);
@@ -707,7 +718,7 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 			// month per child from the second (eight), and the father three working days per child
 			// from the third — `children.born_on(event.date)` counts the confinement the profile
 			// records.
-			const triplets = (code: string, facts: Record<string, unknown>) =>
+			const triplets = (code: string, facts: Record<string, unknown>, priorChild = false) =>
 				grantedDays(
 					leaveCatalogue('VN')
 						.filter((row) => row.settings_id === settingsVersions('VN')[3]!.id)
@@ -716,20 +727,30 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 						employee: { date_of_birth: '1990-01-01', gender: facts.gender },
 						employment: { service_start: '2020-01-01' },
 						terms: null,
-						children: [0, 0, 0].map((_, index) => ({
-							child_birthdate: '2026-08-01',
-							citizenship: null,
-							shared_parental_weeks: null
-						})),
-						event: { kind: 'MULTIPLE_BIRTH', date: '2026-08-01', ...facts.event },
+						children: [
+							...(priorChild ? [{ child_birthdate: '2024-08-01', relationship: 'CHILD' }] : []),
+							...[0, 0, 0].map(() => ({
+								child_birthdate: '2026-08-01',
+								relationship: 'CHILD',
+								citizenship: null,
+								shared_parental_weeks: null
+							}))
+						],
+						event: {
+							kind: 'MULTIPLE_BIRTH',
+							date: '2026-08-01',
+							relationship: 'WIFE',
+							...facts.event
+						},
 						asOf: '2026-08-01'
 					} as never)
 				);
 			assert.equal(triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: {} }), 240);
 			assert.equal(
 				triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: { child_index: 2 } }),
-				270
+				240
 			);
+			assert.equal(triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: {} }, true), 270);
 			assert.equal(triplets('PATERNITY_LEAVE', { gender: 'MALE', event: {} }), 13);
 			assert.equal(
 				triplets('PATERNITY_LEAVE', { gender: 'MALE', event: { kind: 'MULTIPLE_BIRTH_SURGERY' } }),
@@ -738,9 +759,47 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 			assert.deepEqual(
 				ladder('VN', version, 'PATERNITY_LEAVE', {
 					...MALE,
-					event: { kind: 'BIRTH', child_index: 2 }
+					event: {
+						kind: 'BIRTH',
+						relationship: 'WIFE',
+						child_index: 2,
+						wife_prior_living_biological_children: 1
+					}
 				}),
 				[10, 10, 10]
+			);
+			assert.deepEqual(
+				ladder('VN', version, 'PATERNITY_LEAVE', {
+					...MALE,
+					event: {
+						kind: 'BIRTH',
+						relationship: 'WIFE',
+						child_index: 2,
+						wife_prior_living_biological_children: 0
+					}
+				}),
+				[5, 5, 5]
+			);
+			assert.deepEqual(
+				ladder('VN', version, 'PATERNITY_LEAVE', {
+					...MALE,
+					event: { kind: 'BIRTH', relationship: 'WIFE', wife_prior_living_biological_children: 2 }
+				}),
+				[5, 5, 5]
+			);
+			assert.deepEqual(
+				ladder('VN', version, 'PATERNITY_LEAVE', {
+					...MALE,
+					event: { kind: 'BIRTH', relationship: 'WIFE' }
+				}),
+				[null, null, null]
+			);
+			assert.deepEqual(
+				ladder('VN', version, 'PATERNITY_LEAVE', {
+					...MALE,
+					event: { kind: 'BIRTH', relationship: 'OTHER', wife_prior_living_biological_children: 1 }
+				}),
+				[null, null, null]
 			);
 		}
 		assert.deepEqual(
@@ -800,9 +859,8 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 // ladder is identical on both, only the insured-salary grade tables move on 1 January 2026.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-test('Taiwan — the §38 annual ladder and the 性平法 entitlements, on all three sealed versions', () => {
-	// The 1 January 2027 version moves the labour-insurance rate alone; its leave rows are clones.
-	for (const version of [0, 1, 2]) {
+test('Taiwan — the §38 annual ladder and the 性平法 entitlements, on both live sealed versions', () => {
+	for (const version of [0, 1]) {
 		// 第38條: nothing under six months, three days at six, seven at one year, ten at two, then
 		// fourteen at three and fifteen at five. Thirty months is the two-year rung, seventy the
 		// five-year one.
@@ -1062,6 +1120,54 @@ test('Thailand — the Labour Protection Act leaves, across the Act No.9 cutover
 });
 
 for (const lineage of ['CN-shanghai', 'CN-kunming'] as const) {
+	test(`${lineage} — family-planning procedure days on every sealed version`, () => {
+		// Shanghai 沪府规〔2022〕18号 art.19; Yunnan population-planning regulation art.19.
+		const days =
+			lineage === 'CN-shanghai'
+				? {
+						IUD_INSERTION: 2,
+						IUD_REMOVAL: 2,
+						IUD_FOLLOWUP: 1,
+						VASECTOMY: 7,
+						TUBAL_LIGATION: 30,
+						IMPLANT_INSERTION: 5,
+						IMPLANT_REMOVAL: 3,
+						DIAGNOSTIC_CURETTAGE: 5
+					}
+				: {
+						IUD_INSERTION: 7,
+						IUD_REMOVAL: 7,
+						TUBAL_LIGATION: 30,
+						VASECTOMY: 15,
+						TUBAL_REVERSAL: 30,
+						VAS_REVERSAL: 15,
+						CONTRACEPTION_FAILURE_UNDER_4M: 15,
+						CONTRACEPTION_FAILURE_4M_PLUS: 42
+					};
+		for (const version of settingsVersions(lineage).keys()) {
+			for (const [kind, count] of Object.entries(days))
+				assert.equal(
+					grant(lineage, version, 'FAMILY_PLANNING_PROCEDURE_LEAVE', 30, {
+						event: { kind }
+					}),
+					count,
+					`${lineage} ${kind}`
+				);
+			assert.equal(
+				grant(lineage, version, 'FAMILY_PLANNING_PROCEDURE_LEAVE', 30, {
+					event: { kind: 'UNRECORDED_PROCEDURE' }
+				}),
+				null
+			);
+			if (lineage === 'CN-shanghai')
+				assert.equal(
+					grant(lineage, version, 'FAMILY_PLANNING_PROCEDURE_LEAVE', 30, {
+						event: { kind: 'IUD_INSERTION', date: '2027-11-01' }
+					}),
+					null
+				);
+		}
+	});
 	test(`${lineage} — unpaid leave is unmetered on every sealed version`, () => {
 		for (const version of settingsVersions(lineage).keys())
 			assert.deepEqual(ladder(lineage, version, 'UNPAID_LEAVE'), [null, null, null]);

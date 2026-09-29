@@ -214,3 +214,32 @@ test('an Overtime total is split at the statutory limits into approved and incen
 	].find((row) => row.approved_overtime_hours > 0);
 	assert.deepEqual([day.approved_overtime_hours, day.incentive_hours], [4, 2]);
 });
+
+test('Thai scheduling import writes the consent and redistribution facts with their person-day', async () => {
+	const tables = world({
+		versions: [
+			{
+				...workDayTables().jurisdiction_settings[0],
+				code: 'TH',
+				jurisdiction_code: 'TH',
+				work_rules: { limits: [], bands: [] }
+			}
+		]
+	});
+	tables.companies[0].settings_code = 'TH';
+	const { acts } = await run(tables, {
+		overtime: [
+			{
+				employee_number: 'PERSON',
+				work_date: '2026-01-20',
+				overtime_hours: 1,
+				overtime_consented_at: '2026-01-19T01:00:00.000Z',
+				normal_hours_redistribution_agreed_at: '2026-01-18T01:00:00.000Z'
+			}
+		]
+	});
+	const day = (act(acts, 'work_days.create') ?? [])[0];
+	assert.equal(day.approved_overtime_hours, 1);
+	assert.equal(day.overtime_consented_at, '2026-01-19T01:00:00.000Z');
+	assert.equal(day.normal_hours_redistribution_agreed_at, '2026-01-18T01:00:00.000Z');
+});

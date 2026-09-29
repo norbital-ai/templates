@@ -47,7 +47,7 @@ test('PH — NCR-28 from 26 September 2026: a ₱695 daily rate is below the flo
 	assert.equal(september.length, 2, september.join('\n'));
 	assert.match(
 		september[0]!,
-		/NCR-695 is contracted at 15116\.25 a month, below the NCR minimum wage of 16421\.25 \(19692\.92 restated on this person's factor\) the version states from 2026-09-26 to 2026-09-30\./
+		/NCR-695 is contracted at 15116\.25 a month, below the NCR\/Manila minimum wage of 16421\.25 \(19692\.92 restated on this person's factor\) the version states from 2026-09-26 to 2026-09-30\./
 	);
 	assert.match(september[1]!, /NCR-720 .* from 2026-09-26 to 2026-09-30\./);
 	// October is wholly NCR-28: the warning stands for the whole month, with no dates.

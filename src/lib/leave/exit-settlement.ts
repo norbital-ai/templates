@@ -8,7 +8,9 @@ import { defaultPayPeriod } from '../../lib/payroll/run/period.js';
 import { coversDate, readRange } from '../../lib/payroll/run/effective.js';
 import { resolveExitFacts } from '../declared-facts.js';
 import { plain, plainRows } from '../wire.js';
-import { personAt, readLeaveContext, type LeaveContext } from './context.js';
+import { refuse } from '../refuse.js';
+import { personAt, readLeaveContext, leavePool, leaveRules, type LeaveContext } from './context.js';
+import { leaveExitBalanceAt } from './balance.js';
 import { exitEncashments } from './exit-encashment.js';
 import { leaveBalanceSummaries } from './summary.js';
 import * as Predicate from 'effect/Predicate';
@@ -20,6 +22,7 @@ export type ExitSettlement = {
 	readonly raised: readonly {
 		readonly code: string;
 		readonly days: number;
+		readonly hours?: number;
 		readonly reference: string;
 	}[];
 };
@@ -33,7 +36,12 @@ export const exitSettlementOutput = {
 			kind: 'list',
 			of: {
 				kind: 'object',
-				fields: { code: { kind: 'text' }, days: { kind: 'number' }, reference: { kind: 'text' } }
+				fields: {
+					code: { kind: 'text' },
+					days: { kind: 'number' },
+					hours: { kind: 'number', optional: true },
+					reference: { kind: 'text' }
+				}
 			}
 		}
 	}
@@ -74,7 +82,10 @@ export async function settleExit(ctx: Ctx, employmentId: string): Promise<ExitSe
 	if (exit_date == null) return out('open');
 	if (row.encashment_raised_at != null) return out('nothing_to_encash');
 	await ctx.progress({ ratio: 0.2, text: `Reading ${row.employee_number} balances` });
-	const context = await readLeaveContext(ctx, [employmentId]);
+	const context = await readLeaveContext(ctx, [employmentId], {
+		start: exit_date,
+		end: exit_date
+	});
 	const version =
 		versionOn(context, employmentId, today) ?? versionOn(context, employmentId, exit_date);
 	if (version == null) throw new Error('Departure processing requires a sealed settings version.');
@@ -94,19 +105,42 @@ export async function settleExit(ctx: Ctx, employmentId: string): Promise<ExitSe
 		scalarFacts(leaver?.exit_facts),
 		personAt(context, employmentId, exit_date)
 	);
+	const encashable = new Set<string>();
+	const summaries = leaveBalanceSummaries(context, employmentId, exit_date).map((summary) => {
+		const catalogue = context.catalogues.find((row) => row.id === summary.catalogue_id);
+		if (catalogue == null || !catalogue.can_encash || !catalogue.encash_on_exit) return summary;
+		const current = isEligible(catalogue.entitlement.encash_on_exit_when ?? '', person);
+		const carryWhen = catalogue.entitlement.encash_carry_on_exit_when;
+		if (carryWhen == null) {
+			if (current) encashable.add(catalogue.id);
+			return summary;
+		}
+		const carried = isEligible(carryWhen, person);
+		if (!current && !carried) return summary;
+		const rules = leaveRules(context, employmentId, catalogue.id);
+		const balance = leaveExitBalanceAt({
+			entries: leavePool(context, employmentId, rules).asPool,
+			window: summary.window,
+			date: exit_date,
+			entitlementAt: rules.entitlementAt,
+			carryFrom: rules.carryFrom,
+			pool: catalogue.code
+		});
+		if (current && !carried && balance.carried > 0)
+			refuse(
+				`${catalogue.code} cannot settle current-year leave ahead of ineligible carried credit.`
+			);
+		encashable.add(catalogue.id);
+		return {
+			...summary,
+			available: (current ? balance.current : 0) + (carried ? balance.carried : 0)
+		};
+	});
 	const submissions = exitEncashments({
 		employmentId,
 		exitDate: exit_date,
-		summaries: leaveBalanceSummaries(context, employmentId, exit_date),
-		encashable: new Set(
-			context.catalogues.flatMap((c) =>
-				c.can_encash &&
-				c.encash_on_exit &&
-				isEligible(c.entitlement.encash_on_exit_when ?? '', person)
-					? [c.id]
-					: []
-			)
-		),
+		summaries,
+		encashable,
 		posted: new Set(
 			context.entries.flatMap((e) => (e.employment_id === employmentId ? [e.reference] : []))
 		),
@@ -163,6 +197,7 @@ export async function settleExit(ctx: Ctx, employmentId: string): Promise<ExitSe
 		...submissions.map((s) => ({
 			code: context.catalogues.find((c) => c.id === s.catalogue_id)?.code ?? s.catalogue_id,
 			days: s.encash_days ?? 0,
+			...(s.encash_hours == null ? {} : { hours: s.encash_hours }),
 			reference: s.reference
 		})),
 		...separation.map((s) => ({ code: s.reason, days: 0, reference: s.reason })),

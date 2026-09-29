@@ -106,7 +106,7 @@ test('conflicting active declarations across statutory versions stop payroll', (
 
 for (const [jurisdiction, expected] of [
 	['PH', 3000],
-	['TW', 0]
+	['TW', 3000]
 ] as const)
 	test(`statutory declarations from a ${jurisdiction} catalogue remain within their jurisdiction`, () => {
 		const { slips } = buildStatutory(
@@ -295,5 +295,46 @@ test('a fact write refuses an election the scheme does not declare, or of anothe
 	await assert.rejects(
 		writeFact({ ...registered, elections: { disabled: 'yes' } }),
 		/declares the election disabled as a boolean; this value is a string/
+	);
+});
+
+test('a dated non-registration can carry an evidenced election without asserting enrolment', async () => {
+	const outside = {
+		kind: 'NOT_REGISTERED' as const,
+		reason: 'First month before fund participation begins',
+		elections: { disabled: true },
+		declaration_reference: 'JOIN-2026-04'
+	};
+	const saved = await writeFact(outside);
+	assert.deepEqual(saved.status, outside);
+	assert.deepEqual((await writeFact({ ...outside, reason: 'Provident fund member' })).status, {
+		...outside,
+		reason: 'Provident fund member'
+	});
+	assert.equal(statutoryFactStatusFault(outside), undefined);
+	assert.match(
+		statutoryFactStatusFault({ ...outside, declaration_reference: '' }) ?? '',
+		/declaration_reference/
+	);
+	await assert.rejects(
+		writeFact({ ...outside, elections: { undeclared: true } }),
+		/PCB does not declare the election undeclared/
+	);
+	await assert.rejects(
+		writeFact({ ...outside, elections: { disabled: 'yes' } }),
+		/PCB declares the election disabled as a boolean; this value is a string/
+	);
+	await assert.rejects(
+		transformOne(
+			facts,
+			{ employee_id: 'e', statutory_contribution_id: 'pcb', status: outside },
+			undefined,
+			{
+				statutory_contributions: [
+					{ ...scheme, elections: [{ key: 'disabled', type: 'boolean', scope: 'EMPLOYMENT' }] }
+				]
+			}
+		),
+		/requires a named employment/
 	);
 });

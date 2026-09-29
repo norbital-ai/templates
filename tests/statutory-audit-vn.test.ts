@@ -220,18 +220,32 @@ test('VN audit — the 2026 monthly PIT table at the 60,000,000 and 100,000,000 
 	expectStatutory(july, 'T60', 'PIT', 8_500_000, 0);
 });
 
-test('VN audit — the 10% flat withholding threshold is 2,000,000 in 2025 and 5,000,000 a payment for tax year 2026', () => {
+test('VN audit — the pre-July 10% flat withholding threshold is 2,000,000 per payment', () => {
 	// Circular 111/2013 art.25(1)(i): 10% on a payment of 2,000,000 or more under a contract of less
-	// than three months. Decree 253/2026 art.50(2) raises it to 5,000,000, applied to resident salary
-	// income from tax year 2026 (art.69(1)(a)). 10% of the gross payment, no deduction.
-	const short = (key: string, wage: number, hire: string, exit: string) => ({
+	// than three months. Decree 253/2026 art.50(2) raises it to 5,000,000 from 1 July 2026.
+	const short = (key: string, wage: number, gross: number, hire: string, exit: string) => ({
 		key,
 		wage,
 		// Reduced-hours contracts isolate the withholding threshold from a full-time wage-floor breach.
 		employment_type: 'PART_TIME',
 		citizenship: 'CITIZEN',
 		hire_date: hire,
-		exit_date: exit
+		exit_date: exit,
+		exit_reason: 'END_OF_CONTRACT',
+		registrations: {
+			PIT: {
+				kind: 'REGISTERED',
+				unit_assessments: [
+					{
+						period: hire.slice(0, 7),
+						gross,
+						units: 1,
+						reference: `${key}-PAY`,
+						paid_on: `${hire.slice(0, 7)}-31`
+					}
+				]
+			}
+		}
 	});
 	// A part-timer under the 2,340,000 floor is outside SI, HI and UI and owed 21.5% of the floor,
 	// 503,100, with the wage (LC art.168(3)): the payment is the wage plus it.
@@ -240,8 +254,8 @@ test('VN audit — the 10% flat withholding threshold is 2,000,000 in 2025 and 5
 		period: '2025-12',
 		region: 'I',
 		people: [
-			short('AT', 1_496_900, '2025-12-01', '2026-01-31'),
-			short('UNDER', 1_496_899, '2025-12-01', '2026-01-31')
+			short('AT', 1_496_900, 2_000_000, '2025-12-01', '2026-01-31'),
+			short('UNDER', 1_496_899, 1_999_999, '2025-12-01', '2026-01-31')
 		]
 	});
 	expectStatutory(december, 'AT', 'PIT', 200_000, 0);
@@ -251,12 +265,12 @@ test('VN audit — the 10% flat withholding threshold is 2,000,000 in 2025 and 5
 		period: '2026-01',
 		region: 'I',
 		people: [
-			short('AT', 5_000_000, '2026-01-01', '2026-02-28'),
-			short('UNDER', 4_999_999, '2026-01-01', '2026-02-28')
+			short('AT', 5_000_000, 5_000_000, '2026-01-01', '2026-02-28'),
+			short('UNDER', 4_999_999, 4_999_999, '2026-01-01', '2026-02-28')
 		]
 	});
 	expectStatutory(january, 'AT', 'PIT', 500_000, 0);
-	expectStatutory(january, 'UNDER', 'PIT', 0, 0);
+	expectStatutory(january, 'UNDER', 'PIT', 500_000, 0);
 });
 
 // ─── Overtime at night: Decree 145/2020 art.57 ────────────────────────────────────────────────

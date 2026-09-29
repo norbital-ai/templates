@@ -165,15 +165,16 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -433,15 +434,16 @@
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -701,15 +703,16 @@
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -1035,15 +1038,16 @@
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -1325,15 +1329,16 @@
 		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -1615,15 +1620,16 @@
 		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -1905,15 +1911,16 @@
 		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -2173,15 +2180,16 @@
 		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -2441,15 +2449,16 @@
 		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -2775,15 +2784,16 @@
 		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -3065,15 +3075,16 @@
 		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -3355,15 +3366,16 @@
 		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -3645,15 +3657,16 @@
 		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -3913,15 +3926,16 @@
 		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -4181,15 +4195,16 @@
 		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -4515,15 +4530,16 @@
 		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -4805,15 +4821,16 @@
 		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -5095,15 +5112,16 @@
 		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -5385,15 +5403,16 @@
 		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -5653,15 +5672,16 @@
 		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -5921,15 +5941,16 @@
 		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -6255,15 +6276,16 @@
 		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -6545,15 +6567,16 @@
 		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{
@@ -6835,15 +6858,16 @@
 		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave",
-		"authority": "Republic Act 11210 (105-Day Expanded Maternity Leave Law) sec. 2 and sec. 3 Applied 2026-09-18: a grant per event — 105 days for a live birth, 120 for a solo parent, 60 for a miscarriage or emergency termination (RA 11210 s.3; `event.kind`) — for a member with at least three monthly contributions in the twelve months before the semester of childbirth (read as three months since SSS registration, `facts.SSS.since_months`). Applied 2026-09-19 (2): RA 11210: the benefit is leave with the SSS allowance; it is not convertible to cash. Applied 2026-09-23 (round 5): the leave is a woman's (RA 11210 s.3) and the fifteen solo-parent days turn on the Solo Parent Identification Card (RA 11861 ss.15, 20); an unrecorded `employee.gender` offers no maternity leave and `employee.solo_parent` is false until the card is recorded — the claim's own conditions, never a guess. SSS registration (`facts.SSS.since_months`, 0 when unrecorded) likewise shows no leave until recorded (RA 11210 s.14, SSS Act s.14-A: three monthly contributions in the twelve months before the semester of childbirth).",
-		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\"] && facts.SSS.since_months >= 3",
+		"authority": "Republic Act 11210 secs. 3 and 5: a pregnant private-sector female worker receives 105 days of maternity leave with full pay for a live birth, 60 days for miscarriage or emergency termination, and an additional 15 days if qualified as a solo parent. Section 5(a) separately requires three paid SSS contributions in the twelve months before the contingency semester for the SSS cash benefit. Months since SSS registration do not establish that contribution history and do not gate this leave entitlement. The SSS advance, reimbursement and employer salary differential require separate assessment under sec. 5(c). RA 11861 secs. 15 and 20 govern the Solo Parent Identification Card; unrecorded gender and solo-parent status are not presumed. Corrected 2026-09-29 against the enacted law; production verification deferred. An event entered as EMERGENCY_TERMINATION receives the same 60-day branch as miscarriage under RA 11210 secs. 3 and 5 and the implementing rules; this is a distinct event kind, not inferred from a live birth.",
+		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
-					"eligibility": "event.kind == \"MISCARRIAGE\"",
+					"eligibility": "event.kind in [\"MISCARRIAGE\", \"EMERGENCY_TERMINATION\"]",
 					"days": 60
 				},
 				{

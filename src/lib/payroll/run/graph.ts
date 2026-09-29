@@ -86,6 +86,12 @@ export function payrollRunGraph(options: {
 				directed_amount: charge.directed,
 				rebate_amount: charge.rebate ?? 0,
 				rule_when: charge.ruleReference,
+				...(charge.ruleReference != null &&
+				charge.contribution.row.rules.some(
+					(rule) => rule.when === charge.ruleReference && rule.payment_occasion
+				)
+					? { payment_occasion: true }
+					: {}),
 				...(charge.remittanceRounding == null
 					? {}
 					: { remittance_rounding: charge.remittanceRounding })

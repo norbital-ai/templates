@@ -12,6 +12,7 @@
  */
 
 import type { Entitlement } from '../../../lib/datatypes/entitlement.js';
+import { cents, currencyFractionDigits } from './rounding.js';
 
 /** The entry columns this rule reads, so a transform may pass a candidate the database has never seen. */
 export type LimitSibling = {
@@ -88,13 +89,17 @@ export function entryLimitRefusal(options: {
 	readonly componentCode: string;
 	readonly subject: string;
 	readonly proposed: number;
+	readonly currency?: string | undefined;
 }): string | null {
 	if (options.limit.on_exceed !== 'BLOCK' || options.proposed <= 0) return null;
 	const requested = options.resolved.exceededBy + options.proposed;
-	if (requested <= options.resolved.amount) return null;
+	const roundedRequested = cents(requested, options.currency);
+	const roundedAllowed = cents(options.resolved.amount, options.currency);
+	if (roundedRequested <= roundedAllowed) return null;
+	const digits = options.currency == null ? 2 : currencyFractionDigits(options.currency);
 	return (
 		`${options.componentCode} entitlement exceeded for ${options.subject}: ` +
-		`${(Math.round(requested * 100) / 100).toFixed(2)} requested against ` +
-		`${(Math.round(options.resolved.amount * 100) / 100).toFixed(2)} allowed.`
+		`${roundedRequested.toFixed(digits)} requested against ` +
+		`${roundedAllowed.toFixed(digits)} allowed.`
 	);
 }

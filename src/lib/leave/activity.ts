@@ -3,9 +3,10 @@ import { fromMinorUnits, toMinorUnits } from '../payroll/run/rounding.js';
 import type { LeaveActivity } from './pending.js';
 import type { LeaveAllocation } from '../datatypes/leave_allocations.js';
 import type { LeaveCharge } from '../datatypes/leave_charges.js';
-import { addDays, daysBetween, monthDay } from '../../lib/payroll/run/dates.js';
+import { addDays, daysBetween, monthDay, weekStart } from '../../lib/payroll/run/dates.js';
 import { coversDate } from '../../lib/payroll/run/effective.js';
 import { dateKey } from '../iso-day.js';
+import { hasPhSoloParentDocument } from '../ph/maternity-reconciliation.js';
 import { pointNumber, type HalfDayRange } from '../half-day.js';
 import { resolveHolidays } from '../holiday-calendar.js';
 import { patternAnchor, patternRosterCodeId, termPatternRow } from '../scheduling/work-pattern.js';
@@ -15,10 +16,12 @@ import { payrollWindows, lockStateForDate } from '../scheduling/lock.js';
 import {
 	allocateLeaveDays,
 	assertLeaveBalanceIntegrity,
+	leaveBalanceAt,
 	reverseLeaveAllocations
 } from './balance.js';
 import { assertLeaveWindow, grantedDays, leaveWindowOf, type LeaveWindow } from './entitlement.js';
 import { leavePool, leaveRules, type LeaveContext } from './context.js';
+import { hourlyLeaveBasis } from './hourly-requirement.js';
 import { evaluatePersonNumber, isEligible } from '../../lib/payroll/run/eligibility.js';
 import {
 	emptyActivityFields,
@@ -69,6 +72,7 @@ export function measureLeaveDay(
 	throughHoliday = false
 ) {
 	const settings = rules.settingsOn(date);
+	const calendarDay = rules.catalogueAt(date)?.entitlement.calendar_days === true;
 	const resolved = resolveHolidays(
 		context.holidays,
 		rules.company.id,
@@ -105,7 +109,7 @@ export function measureLeaveDay(
 			period: paid.period,
 			evidence
 		};
-	if (resolved.has(date) && !throughHoliday)
+	if (resolved.has(date) && !throughHoliday && !calendarDay)
 		return { eligible: false as const, reason: 'HOLIDAY' as const, evidence };
 	const term = rules.terms.find((row) => coversDate(row.effective_range, date));
 	if (!term) return { eligible: false as const, reason: 'NO_SCHEDULE' as const, evidence };
@@ -113,7 +117,7 @@ export function measureLeaveDay(
 		(row) => row.employment_id === rules.employment.id && dateKey(row.work_date) === date
 	);
 	const namedPattern = context.patterns.find((row) => row.id === term.shift_pattern_id);
-	if (namedPattern != null && !coversDate(namedPattern.effective_range, date))
+	if (namedPattern != null && !coversDate(namedPattern.effective_range, date) && !calendarDay)
 		return { eligible: false as const, reason: 'NO_SCHEDULE' as const, evidence };
 	const patternRow = termPatternRow(term, new Map(context.patterns.map((row) => [row.id, row])));
 	const codeId =
@@ -122,9 +126,9 @@ export function measureLeaveDay(
 	const shift = context.shifts.find(
 		(row) => row.id === codeId && row.company_id === rules.company.id
 	);
-	if (!shift || !coversDate(shift.effective_range, date))
+	if ((!shift || !coversDate(shift.effective_range, date)) && !calendarDay)
 		return { eligible: false as const, reason: 'MISSING_ROSTER_CODE' as const, evidence };
-	if (rosterCodeKind(shift.variant) !== 'WORK')
+	if (shift != null && rosterCodeKind(shift.variant) !== 'WORK' && !calendarDay)
 		return { eligible: false as const, reason: 'REST_OR_OFF' as const, evidence };
 	if (!rules.eligibleOn(date))
 		return { eligible: false as const, reason: 'INELIGIBLE' as const, evidence };
@@ -145,10 +149,10 @@ export function measureLeaveDay(
 		evidence,
 		occupied,
 		term,
-		shift,
+		shift: shift != null && coversDate(shift.effective_range, date) ? shift : null,
 		workDay: override ?? null,
 		catalogue: rules.catalogueOn(date),
-		labels: workWindowHalves(shift.variant)
+		labels: workWindowHalves(shift?.variant)
 	};
 }
 
@@ -168,12 +172,17 @@ export function planLeaveActivity(
 		context,
 		input.employment_id,
 		input.catalogue_id,
-		input.event_kind == null && input.event_relationship == null && input.event_child_index == null
+		input.event_kind == null &&
+			input.event_relationship == null &&
+			input.event_child_index == null &&
+			input.event_wife_prior_living_biological_children == null
 			? undefined
 			: {
 					kind: input.event_kind ?? null,
 					relationship: input.event_relationship ?? null,
 					child_index: input.event_child_index ?? null,
+					wife_prior_living_biological_children:
+						input.event_wife_prior_living_biological_children ?? null,
 					date: input.event_date ?? null
 				}
 	);
@@ -192,9 +201,11 @@ export function planLeaveActivity(
 		to_date: input.to_date ?? null,
 		half_day_start: input.half_day_start ?? null,
 		half_day_end: input.half_day_end ?? null,
+		no_pay_origin: input.no_pay_origin ?? null,
 		days: input.days ?? null,
 		hours: input.hours ?? null,
 		encash_days: input.encash_days ?? null,
+		encash_hours: input.encash_hours ?? null,
 		as_adjustment_entry: input.as_adjustment_entry ?? false,
 		reversal_of_id: input.reversal_of_id ?? null,
 		effective_on: input.effective_on ?? null,
@@ -207,6 +218,8 @@ export function planLeaveActivity(
 		event_kind: input.event_kind ?? null,
 		event_relationship: input.event_relationship ?? null,
 		event_child_index: input.event_child_index ?? null,
+		event_wife_prior_living_biological_children:
+			input.event_wife_prior_living_biological_children ?? null,
 		event_date: input.event_date ?? null,
 		agreed_pay_fraction: input.agreed_pay_fraction ?? null
 	};
@@ -225,8 +238,9 @@ export function planLeaveActivity(
 		const rule = rules.catalogueOn(date).entitlement;
 		const exempt = rule.consumes_after_days;
 		if (exempt == null) return days;
-		// The exemption is a year's, whatever window the row itself keeps (a monthly grant).
-		const year = leaveWindowOf(date, rule.year_start_month);
+		// The exemption is a year's, whatever window the row itself keeps (a monthly grant):
+		// UPFRONT reads the leave year the same `year_start_month` and anchor already give.
+		const year = leaveWindowOf(date, { ...rule, availability: 'UPFRONT' }, rules.hire);
 		const own = activeTimeOff(sameLeave)
 			.flatMap((row) => row.charges)
 			.filter((row) => row.date >= year.start && row.date <= year.end)
@@ -242,7 +256,7 @@ export function planLeaveActivity(
 		days: number,
 		basis: 'available' | 'earned'
 	) => {
-		assertLeaveWindow(window, rules.catalogueOn(date).entitlement);
+		assertLeaveWindow(window, rules.catalogueOn(date).entitlement, rules.hire);
 		allocations.push(
 			...allocateLeaveDays({
 				entries: [...sameLeave, { id, allocations, approval_id: 'planning' }],
@@ -250,6 +264,7 @@ export function planLeaveActivity(
 				date,
 				days,
 				entitlementAt: rules.entitlementAt,
+				carryFrom: rules.carryFrom,
 				basis
 			})
 		);
@@ -259,7 +274,11 @@ export function planLeaveActivity(
 			pools.pool != null &&
 			pools.pool.rules.catalogueOn(date).entitlement.rolling_months == null
 		) {
-			const poolWindow = leaveWindowOf(date, pools.pool.rules.catalogueOn(date).entitlement);
+			const poolWindow = leaveWindowOf(
+				date,
+				pools.pool.rules.catalogueOn(date).entitlement,
+				pools.pool.rules.hire
+			);
 			const pooledDays = poolShare(date, days);
 			if (pooledDays > 0)
 				allocations.push(
@@ -272,6 +291,7 @@ export function planLeaveActivity(
 						date,
 						days: pooledDays,
 						entitlementAt: pools.pool.rules.entitlementAt,
+						carryFrom: pools.pool.rules.carryFrom,
 						basis,
 						pool: pools.pool.code
 					})
@@ -289,6 +309,21 @@ export function planLeaveActivity(
 				(row) => row.employee_id === employeeId && row.leave_code === rules.selected.code
 			) as unknown as LeaveActivity[]
 		);
+	};
+	/** Lifetime statutory day caps count the comparable full-time days represented by saved hours. */
+	const equivalentDays = (charge: LeaveCharge): number => {
+		if (charge.hours == null) return charge.days;
+		const term = context.terms.find((row) => row.id === charge.employment_term_id);
+		if (term == null)
+			refuse('An earlier hourly leave charge needs its dated employment terms for a lifetime cap.');
+		const basis = hourlyLeaveBasis(
+			rules.catalogueOn(charge.date).entitlement,
+			term,
+			context.patterns.find((row) => row.id === term.shift_pattern_id)?.pattern ?? null,
+			new Map(context.shifts.map((row) => [row.id, row]))
+		);
+		if (basis == null) refuse('An hourly leave charge has no comparable full-time basis.');
+		return charge.hours / basis.grantHoursPerDay;
 	};
 	/** The days already charged in a window over a set of entries. */
 	const chargedIn = (rows: readonly LeaveActivity[], from: string, to: string): number =>
@@ -345,17 +380,16 @@ export function planLeaveActivity(
 	const judgeChildLifetime = (
 		caps: NonNullable<ReturnType<typeof rules.catalogueOn>['entitlement']['child_lifetime']>,
 		rule: ReturnType<typeof rules.catalogueOn>['entitlement'],
-		charged: readonly LeaveCharge[],
-		quantity: number
+		charged: readonly LeaveCharge[]
 	): void => {
 		const own = activeTimeOff(sameLeave).filter((row) => row.leave_code === rules.selected.code);
 		const earlier = [...own, ...priorTimeOff()].flatMap((row) => row.charges);
-		const taken = earlier.reduce((sum, row) => sum + row.days, 0);
+		const taken = earlier.reduce((sum, row) => sum + equivalentDays(row), 0);
 		const years = new Map<string, { window: LeaveWindow; days: number }>();
 		for (const charge of [...earlier, ...charged]) {
-			const window = leaveWindowOf(charge.date, rule);
+			const window = leaveWindowOf(charge.date, rule, rules.hire);
 			const year = years.get(window.start) ?? { window, days: 0 };
-			year.days += charge.days;
+			year.days += equivalentDays(charge);
 			years.set(window.start, year);
 		}
 		const first = charged[0]!.date;
@@ -372,6 +406,7 @@ export function planLeaveActivity(
 		);
 		const supply = [...years.values()];
 		const reach = supply.map(({ window }) => buckets.map((bucket) => bucket.holds(window)));
+		const added = charged.reduce((sum, row) => sum + equivalentDays(row), 0);
 		const granted = buckets
 			.filter((_, index) => reach.some((row) => row[index]))
 			.reduce((sum, bucket) => sum + bucket.room, 0);
@@ -382,22 +417,22 @@ export function planLeaveActivity(
 				reach
 			) +
 				1e-9 <
-			taken + quantity
+			taken + added
 		)
 			refuse(
-				`${rules.selected.code} is granted for ${granted} days in a lifetime; ${taken} are already taken and this would add ${quantity}.`
+				`${rules.selected.code} is granted for ${granted} days in a lifetime; ${taken} are already taken and this would add ${added}.`
 			);
 	};
 	/**
 	 * A lifetime cap in days (`lifetime_days`, SG GPCL: 42 a child) is counted over every leave
 	 * year and every employment of the person here.
 	 */
-	const judgeLifetimeDays = (charged: readonly LeaveCharge[], quantity: number): void => {
+	const judgeLifetimeDays = (charged: readonly LeaveCharge[]): void => {
 		const first = charged[0];
 		if (first == null) return;
 		const rule = rules.catalogueOn(first.date).entitlement;
 		if (rule.child_lifetime != null && rule.child_lifetime.length > 0) {
-			judgeChildLifetime(rule.child_lifetime, rule, charged, quantity);
+			judgeChildLifetime(rule.child_lifetime, rule, charged);
 			return;
 		}
 		if (rule.lifetime_days == null) return;
@@ -408,11 +443,36 @@ export function planLeaveActivity(
 		const own = activeTimeOff(sameLeave).filter((row) => row.leave_code === rules.selected.code);
 		const taken = [...own, ...priorTimeOff()]
 			.flatMap((row) => row.charges)
-			.reduce((sum, row) => sum + row.days, 0);
-		if (taken + quantity > cap + 1e-9)
+			.reduce((sum, row) => sum + equivalentDays(row), 0);
+		const added = charged.reduce((sum, row) => sum + equivalentDays(row), 0);
+		if (taken + added > cap + 1e-9)
 			refuse(
-				`${rules.selected.code} is granted for ${cap} days in a lifetime; ${taken} are already taken and this would add ${quantity}.`
+				`${rules.selected.code} is granted for ${cap} days in a lifetime; ${taken} are already taken and this would add ${added}.`
 			);
+	};
+	/**
+	 * A weekly cap (`weekly_days`, TW 勞基法 §16(2): two days of job-search leave a week) is counted
+	 * over each Monday-to-Sunday week: this leave's approved and pending days, and this entry's.
+	 */
+	const judgeWeekly = (charged: readonly LeaveCharge[]): void => {
+		const own = activeTimeOff(sameLeave)
+			.filter((row) => row.leave_code === rules.selected.code)
+			.flatMap((row) => row.charges);
+		for (const charge of charged) {
+			const cap = rules.catalogueOn(charge.date).entitlement.weekly_days;
+			if (cap == null) continue;
+			const monday = weekStart(charge.date);
+			const sunday = addDays(monday, 6);
+			const inWeek = (rows: readonly LeaveCharge[]) =>
+				rows
+					.filter((row) => row.date >= monday && row.date <= sunday)
+					.reduce((sum, row) => sum + row.days, 0);
+			const already = inWeek(own);
+			if (already + inWeek(charged) > cap + 1e-9)
+				refuse(
+					`${rules.selected.code} allows ${cap} days a week; ${already} are already taken in the week of ${monday}.`
+				);
+		}
 	};
 	/**
 	 * A grant that is not an annual pool is judged on the entry itself: a PER_EVENT row against
@@ -428,9 +488,26 @@ export function planLeaveActivity(
 				kind: fields.event_kind,
 				relationship: fields.event_relationship,
 				child_index: fields.event_child_index,
+				wife_prior_living_biological_children: fields.event_wife_prior_living_biological_children,
 				date: fields.event_date
 			});
-			const granted = grantedDays(rule, person);
+			const phMaternityBirth =
+				rules.company.settings_code === 'PH' &&
+				rules.selected.code === 'MATERNITY_LEAVE' &&
+				fields.event_kind === 'BIRTH';
+			const documentedCase = phMaternityBirth
+				? context.maternityCases?.find(
+						(row) =>
+							row.employment_id === input.employment_id &&
+							row.event_kind === 'BIRTH' &&
+							dateKey(row.event_on) === dateKey(fields.event_date)
+					)
+				: null;
+			const granted = phMaternityBirth
+				? documentedCase != null && hasPhSoloParentDocument(documentedCase)
+					? 120
+					: 105
+				: grantedDays(rule, person);
 			// The grant is the event's, not the entry's: a second entry for the same event — the
 			// twin's, or the rest of a grant filed in two blocks — draws on what the first left.
 			// Twins are one birth (MSF: multiple births carry one entitlement), so the event is its
@@ -438,7 +515,7 @@ export function planLeaveActivity(
 			const sameEvent = (row: LeaveActivity) =>
 				fields.event_date != null &&
 				row.event_kind === (fields.event_kind ?? null) &&
-				row.event_relationship === (fields.event_relationship ?? null) &&
+				(phMaternityBirth || row.event_relationship === (fields.event_relationship ?? null)) &&
 				dateKey(row.event_date) === dateKey(fields.event_date);
 			const alreadyForEvent = activeTimeOff(sameLeave)
 				.filter(
@@ -535,23 +612,58 @@ export function planLeaveActivity(
 		case 'TIME_OFF': {
 			const range = timeOffRangeOf(fields);
 			if (range == null) refuse('Time off needs a start and end date.');
+			if (
+				rules.company.settings_code === 'SG' &&
+				rules.selected.is_npl === true &&
+				fields.no_pay_origin == null
+			)
+				refuse('SG no-pay leave needs its employee-request origin recorded.');
+			if (
+				rules.company.settings_code === 'SG' &&
+				rules.selected.is_npl === true &&
+				fields.no_pay_origin === 'OTHER'
+			)
+				refuse(
+					'SG no-pay leave without an employee request needs its lawful pay and service basis assessed.'
+				);
+			if (
+				fields.event_date == null &&
+				daysBetween(range.start.date, range.end.date).some(
+					(date) => rules.catalogueOn(date).entitlement.availability === 'PER_EVENT'
+				)
+			)
+				refuse('Per-event leave requires the dated event that grants it.');
 			if (pointNumber(range.end) < pointNumber(range.start))
 				refuse('Leave must end after it starts.');
 			if (range.start.date < rules.hire || (rules.exit != null && range.end.date > rules.exit))
 				refuse('Time off must fall within the employment dates.');
 			const dates = daysBetween(range.start.date, range.end.date);
+			if (
+				(range.start.half !== 'FIRST' || range.end.half !== 'SECOND') &&
+				dates.some((date) => rules.catalogueOn(date).entitlement.calendar_days === true)
+			)
+				refuse(
+					`${rules.selected.code} counts whole calendar days; a half-day leave cannot be approved.`
+				);
 			// SG EA s.88(2): a public holiday enclosed by no-pay leave the employee asked for is not
 			// paid — where the version says so, a no-pay row charges the holiday too, read through
 			// the roster as the working day it would have been. The first and last day of the range
 			// are never such a holiday: the leave must stand on both sides of it.
 			const holidayUnpaid =
 				rules.selected.is_npl === true &&
+				fields.no_pay_origin === 'EMPLOYEE_REQUESTED' &&
 				rules.settingsOn(range.start.date).payroll.holiday_in_no_pay_leave_unpaid === true;
 			for (const date of dates) {
 				const enclosed = holidayUnpaid && date !== range.start.date && date !== range.end.date;
 				const day = measureLeaveDay(context, rules, date, entries, enclosed);
 				if (!day.eligible) {
-					if (day.reason === 'HOLIDAY' || day.reason === 'REST_OR_OFF') continue;
+					if (day.reason === 'HOLIDAY' || day.reason === 'REST_OR_OFF') {
+						if (rules.catalogueOn(date).entitlement.calendar_days === true)
+							refuse(
+								`${rules.selected.code} counts ${date} as a calendar leave day, but this HRMS cannot yet charge a holiday or rest day. Approve a supported leave span only after calendar-day charging is available.`
+							);
+						continue;
+					}
 					refuse(`Leave on ${date} cannot be approved: ${day.reason}.`);
 				}
 				let halves = 0;
@@ -563,28 +675,75 @@ export function planLeaveActivity(
 					halves += 1;
 				}
 				// TW Leave Regulations art. 7(2): the hour is a unit only where the catalogue says so.
-				if (fields.hours != null && day.catalogue.unit !== 'HOUR')
+				const hourlyBasis = hourlyLeaveBasis(
+					day.catalogue.entitlement,
+					day.term,
+					context.patterns.find((row) => row.id === day.term.shift_pattern_id)?.pattern ?? null,
+					new Map(context.shifts.map((row) => [row.id, row]))
+				);
+				if (fields.hours != null && day.catalogue.unit !== 'HOUR' && hourlyBasis == null)
 					refuse(`${day.catalogue.code} is taken by the day or half day, not by the hour.`);
+				if (fields.hours != null && day.shift == null)
+					refuse(`${day.catalogue.code} needs a working shift to measure hours on ${date}.`);
+				const paidHours =
+					day.shift == null ? 0 : (workWindow(day.shift.variant)?.paid_minutes ?? 0) / 60;
+				if (hourlyBasis != null && !(paidHours > 0))
+					refuse(`${day.catalogue.code} needs scheduled paid hours on ${date}.`);
+				const chargedHours =
+					hourlyBasis == null ? null : (fields.hours ?? (paidHours * halves) / 2);
+				if (
+					chargedHours != null &&
+					(!Number.isFinite(chargedHours) ||
+						chargedHours <= 0 ||
+						chargedHours > (paidHours * halves) / 2 + 1e-9 ||
+						(fields.hours != null && range.start.date !== range.end.date))
+				)
+					refuse('Hourly leave must fit the selected scheduled time on one day.');
 				const days =
-					day.catalogue.unit === 'HOUR' && fields.hours != null
-						? hourlyShare(fields.hours, range, day.shift.variant)
-						: halves === 2
-							? 1
-							: 0.5;
+					chargedHours != null
+						? chargedHours / paidHours
+						: day.catalogue.unit === 'HOUR' && fields.hours != null
+							? hourlyShare(fields.hours, range, day.shift!.variant)
+							: halves === 2
+								? 1
+								: 0.5;
 				charges.push({
 					date,
 					days,
+					...(chargedHours == null ? {} : { hours: chargedHours }),
 					catalogue_id: day.catalogue.id,
 					employment_term_id: day.term.id,
 					holiday_id: day.evidence.holiday_id,
-					shift_definition_id: day.shift.id,
+					shift_definition_id: day.shift?.id ?? null,
 					work_day_id: day.workDay?.id ?? null
 				});
-				pooled.push({ window: leaveWindowOf(date, day.catalogue.entitlement), date, days });
+				pooled.push({
+					window: leaveWindowOf(date, day.catalogue.entitlement, rules.hire),
+					date,
+					days: chargedHours ?? days
+				});
 			}
 			if (charges.length === 0) refuse('The range contains no eligible scheduled work time.');
+			if (
+				rules.company.settings_code === 'TH' &&
+				rules.selected.code === 'MATERNITY_LEAVE' &&
+				fields.event_date != null
+			) {
+				const eventDates = [
+					...charges.map((charge) => charge.date),
+					...activeTimeOff(sameLeave)
+						.filter((row) => dateKey(row.event_date) === dateKey(fields.event_date))
+						.flatMap((row) => row.charges.map((charge) => charge.date))
+				];
+				if (
+					eventDates.some((date) => date < '2025-12-07') &&
+					eventDates.some((date) => date >= '2025-12-07')
+				)
+					refuse('MATERNITY_LEAVE across 2025-12-07 requires transition review.');
+			}
 			const quantity = charges.reduce((sum, row) => sum + row.days, 0);
-			judgeLifetimeDays(charges, quantity);
+			judgeLifetimeDays(charges);
+			judgeWeekly(charges);
 			judgePoolRolling(charges);
 			if (!judgeUnpooled(charges, quantity))
 				for (const debitOf of pooled)
@@ -610,12 +769,11 @@ export function planLeaveActivity(
 			if (fields.from_date == null || fields.to_date == null)
 				refuse('Encashment needs a source window.');
 			const source: LeaveWindow = { start: fields.from_date, end: fields.to_date };
-			if (
-				fields.encash_days == null ||
-				!Number.isFinite(fields.encash_days) ||
-				fields.encash_days <= 0
-			)
-				refuse('An encashment converts a positive number of days.');
+			if (fields.encash_days != null && fields.encash_hours != null)
+				refuse('An encashment has one quantity, either days or hours.');
+			const quantity = fields.encash_hours ?? fields.encash_days;
+			if (quantity == null || !Number.isFinite(quantity) || quantity <= 0)
+				refuse('An encashment converts a positive leave quantity.');
 			if (
 				fields.effective_on == null ||
 				fields.due_on == null ||
@@ -634,10 +792,15 @@ export function planLeaveActivity(
 			].toSorted()[0]!;
 			if (date < source.start) refuse('The source window falls after this employment ended.');
 			if (date < rules.hire) refuse('Encashment cannot consume leave before employment began.');
+			const hourlyUnit = rules.entitlementAt(source, date).unit === 'HOUR';
+			if (hourlyUnit !== (fields.encash_hours != null))
+				refuse('Encashment must use the same day or hour unit as its leave balance.');
+			if (hourlyUnit && (rules.exit == null || fields.effective_on !== rules.exit))
+				refuse('Part-time hourly leave cash-out requires a recorded employment departure.');
 			// Leave carries no pricing: the days are the entry's own quantity and payroll prices them
 			// using the dated leave cash-out rule when the entry settles.
-			debit(source, date, fields.encash_days, 'earned');
-			fields = { ...fields, days: fields.encash_days };
+			debit(source, date, quantity, 'earned');
+			fields = { ...fields, days: hourlyUnit ? null : quantity };
 			break;
 		}
 		case 'CARRY_FORWARD': {
@@ -655,7 +818,11 @@ export function planLeaveActivity(
 				start: fields.destination_from,
 				end: fields.destination_to
 			};
-			assertLeaveWindow(destination, rules.catalogueOn(fields.available_from).entitlement);
+			assertLeaveWindow(
+				destination,
+				rules.catalogueOn(fields.available_from).entitlement,
+				rules.hire
+			);
 			if (
 				destination.start <= source.end ||
 				fields.available_from < destination.start ||
@@ -665,9 +832,19 @@ export function planLeaveActivity(
 				refuse(
 					'Carry-forward needs a later destination window and validity dates inside that window.'
 				);
-			if (fields.days == null || !(fields.days > 0))
-				refuse('A carry-forward moves a positive number of days.');
-			debit(source, source.end, fields.days, 'earned');
+			const sourceUnit = rules.entitlementAt(source, source.end).unit;
+			const destinationUnit = rules.entitlementAt(destination, fields.available_from).unit;
+			if (sourceUnit !== destinationUnit)
+				refuse('A carry-forward cannot move between day and hour leave balances.');
+			const quantity = sourceUnit === 'HOUR' ? fields.hours : fields.days;
+			if (
+				(sourceUnit === 'HOUR' ? fields.days != null : fields.hours != null) ||
+				quantity == null ||
+				!Number.isFinite(quantity) ||
+				quantity <= 0
+			)
+				refuse('A carry-forward needs a positive quantity in its leave balance unit.');
+			debit(source, source.end, quantity, 'earned');
 			break;
 		}
 		case 'ADJUSTMENT': {
@@ -676,18 +853,26 @@ export function planLeaveActivity(
 			const window: LeaveWindow = { start: fields.from_date, end: fields.to_date };
 			if (fields.effective_on == null)
 				refuse('A leave adjustment must fall inside its stated window.');
-			assertLeaveWindow(window, rules.catalogueOn(fields.effective_on).entitlement);
+			assertLeaveWindow(window, rules.catalogueOn(fields.effective_on).entitlement, rules.hire);
 			if (!fields.reason?.trim()) refuse('A leave adjustment needs a reason.');
 			if (fields.effective_on < window.start || fields.effective_on > window.end)
 				refuse('A leave adjustment must fall inside its stated window.');
-			if (fields.days == null || !Number.isFinite(fields.days) || fields.days === 0)
-				refuse('A leave adjustment must change the balance.');
-			if (fields.days < 0) debit(window, fields.effective_on, -fields.days, 'available');
+			const unit = rules.entitlementAt(window, fields.effective_on).unit;
+			const quantity = unit === 'HOUR' ? fields.hours : fields.days;
+			if (
+				(unit === 'HOUR' ? fields.days != null : fields.hours != null) ||
+				quantity == null ||
+				!Number.isFinite(quantity) ||
+				quantity === 0
+			)
+				refuse('A leave adjustment needs a signed quantity in its leave balance unit.');
+			if (quantity < 0) debit(window, fields.effective_on, -quantity, 'available');
 			else
 				allocations.push({
 					window,
 					date: fields.effective_on,
-					days: fields.days,
+					days: unit === 'HOUR' ? 0 : quantity,
+					...(unit === 'HOUR' ? { hours: quantity } : {}),
 					credit_entry_id: null
 				});
 			break;
@@ -696,6 +881,7 @@ export function planLeaveActivity(
 			if (
 				(input.charges?.length ?? 0) > 0 ||
 				fields.encash_days != null ||
+				fields.encash_hours != null ||
 				fields.destination_from != null ||
 				fields.destination_to != null
 			)
@@ -752,31 +938,118 @@ export function planLeaveActivity(
 					? original.days
 					: originalActivity === 'REVERSAL'
 						? null
-						: Math.abs(original.days ?? 0);
+						: original.days == null
+							? null
+							: Math.abs(original.days);
 			fields = {
 				...fields,
 				days,
+				hours:
+					originalActivity === 'TIME_OFF'
+						? (original.hours ?? null)
+						: original.hours == null
+							? null
+							: Math.abs(original.hours),
 				due_on: gross == null ? null : fields.due_on
 			};
 			break;
 		}
 	}
-	const windows = [...new Map(allocations.map((row) => [row.window.start, row.window])).values()];
-	assertLeaveBalanceIntegrity(
-		[...sameLeave, { id, ...fields, allocations, approval_id: null }],
-		windows,
-		rules.entitlementAt
-	);
-	if (pools.pool != null)
-		assertLeaveBalanceIntegrity(
-			[
-				...pools.pool.entries,
-				{ id, ...fields, allocations, approval_id: null, leave_code: rules.selected.code }
-			],
-			windows,
-			pools.pool.rules.entitlementAt,
-			pools.pool.code
+	const windowsFor = (pool: string | null) => [
+		...new Map(
+			allocations
+				.filter((row) => (row.pool ?? null) === pool)
+				.map((row) => [row.window.start, row.window])
+		).values()
+	];
+	const affectedWindows = (
+		pool: string | null,
+		entries: readonly { readonly allocations: readonly LeaveAllocation[] }[],
+		leaveRule: typeof rules
+	) => {
+		const windows = windowsFor(pool);
+		const known = entries.flatMap((entry) => entry.allocations.map((row) => row.window));
+		const successors = windows.flatMap((source) =>
+			leaveRule.catalogueAt(source.end)?.entitlement.auto_carry_one_year === true
+				? known.filter((window) => window.start === addDays(source.end, 1))
+				: []
 		);
+		return [
+			...new Map([...windows, ...successors].map((window) => [window.start, window])).values()
+		];
+	};
+	const proposed = { id, ...fields, allocations, approval_id: null };
+	const ownEntries = [...sameLeave, proposed];
+	assertLeaveBalanceIntegrity(
+		ownEntries,
+		affectedWindows(null, ownEntries, rules),
+		rules.entitlementAt,
+		undefined,
+		rules.carryFrom
+	);
+	if (pools.pool != null) {
+		const poolEntries = [...pools.pool.entries, { ...proposed, leave_code: rules.selected.code }];
+		assertLeaveBalanceIntegrity(
+			poolEntries,
+			affectedWindows(pools.pool.code, poolEntries, pools.pool.rules),
+			pools.pool.rules.entitlementAt,
+			pools.pool.code,
+			pools.pool.rules.carryFrom
+		);
+	}
+	if (
+		activity === 'TIME_OFF' &&
+		rules.company.settings_code === 'SG' &&
+		rules.selected.is_npl === true &&
+		fields.no_pay_origin === 'EMPLOYEE_REQUESTED' &&
+		fields.half_day_start !== true &&
+		fields.half_day_end !== true &&
+		charges.every((charge) => charge.days >= 1 - 1e-9)
+	) {
+		const annual = context.catalogues.find(
+			(row) =>
+				row.settings_id === rules.settingsOn(fields.from_date!).id && row.code === 'ANNUAL_LEAVE'
+		);
+		if (annual == null) refuse('SG no-pay leave needs a dated annual-leave rule.');
+		const annualEntries = entries.filter(
+			(row) => row.employment_id === input.employment_id && row.leave_code === 'ANNUAL_LEAVE'
+		);
+		const annualRules = leaveRules(
+			{
+				...context,
+				entries: [
+					...entries,
+					{
+						...proposed,
+						employment_id: input.employment_id,
+						catalogue_id: rules.selected.id,
+						leave_code: rules.selected.code,
+						reference: input.reference,
+						charges,
+						payslip_id: null
+					}
+				]
+			},
+			input.employment_id,
+			annual.id
+		);
+		const windows = [
+			leaveWindowOf(fields.from_date!, annual.entitlement, rules.hire),
+			leaveWindowOf(fields.to_date!, annual.entitlement, rules.hire),
+			...annualEntries.flatMap((row) => row.allocations.map((allocation) => allocation.window))
+		];
+		for (const window of new Map(windows.map((row) => [row.start, row])).values()) {
+			const balance = leaveBalanceAt({
+				entries: annualEntries,
+				window,
+				date: window.end,
+				entitlementAt: annualRules.entitlementAt,
+				carryFrom: annualRules.carryFrom
+			});
+			if ((balance.balance ?? 0) < -1e-9 || (balance.available ?? 0) < -1e-9)
+				refuse('SG no-pay leave reduces an annual-leave balance below existing usage.');
+		}
+	}
 	return {
 		employment_id: input.employment_id,
 		catalogue_id: rules.selected.id,

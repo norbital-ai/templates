@@ -127,11 +127,17 @@ test("TW — the government pays 100/50/25% of a disabled worker's own LI and EI
 
 test('VN — overtime past the 40-hour month, rest-day and holiday hours counted, is funnelled to the taxable line (LC art.107; Decree 253/2026 art.26(3))', () => {
 	// 17,600,000 ÷ 22 working days (January 2026) ÷ 8 = 100,000 an hour. In the order worked:
-	// 1 Jan holiday 8 h → 8; 2 Jan 3 → 11; 5–9 Jan 3 × 5 → 26; Saturday 10 Jan 8.5 → 34.5;
-	// 12 Jan 3 → 37.5; 13 Jan 3 → 40.5 (0.5 h past 40); 14 Jan 3 → all past. Beyond the limit:
-	// 0.5 h on the 13th and 3 h on the 14th, weekday overtime at 150%: 75,000 and 450,000. Only
+	// 1 Jan holiday 8 h → 8; 2 Jan 3 → 11; 5–9 Jan 3 × 5 → 26; Saturday 10 Jan 9 (no break taken;
+	// art.109(1) excludes only a break taken, so the missed half hour was worked) → 35;
+	// 12 Jan 3 → 38; 13 Jan 3 → 41 (1 h past 40); 14 Jan 3 → all past. Beyond the limit:
+	// 1 h on the 13th and 3 h on the 14th, weekday overtime at 150%: 150,000 and 450,000. Only
 	// overtime within art.107 is exempt, so these hours leave the exempt overtime line.
 	const key = 'VN-FUNNEL';
+	// The shift grants 60 minutes (09:00–18:00, `break_minutes` 60) and a break is proved only by the
+	// gap between worked intervals, so the weekdays and the holiday punch 13:00–14:00 as one. The
+	// The rest day is punched as one span, which is a time entry and nothing more: the seeded
+	// art.109(1) rule provides its 30 minutes, so the day's hours are its span less that break.
+	const restDay = '2026-01-10';
 	const punches: [string, string, string][] = [
 		['2026-01-01', '09:00', '18:00'],
 		['2026-01-10', '09:00', '18:00'],
@@ -166,9 +172,13 @@ test('VN — overtime past the 40-hour month, rest-day and holiday hours counted
 					employment_id: employment.id,
 					work_date: date,
 					shift_definition_id: null,
-					worked_intervals: [
-						{ start: `${date}T${start}:00+07:00`, end: `${date}T${end}:00+07:00` }
-					],
+					worked_intervals:
+						date === restDay
+							? [{ start: `${date}T${start}:00+07:00`, end: `${date}T${end}:00+07:00` }]
+							: [
+									{ start: `${date}T${start}:00+07:00`, end: `${date}T13:00:00+07:00` },
+									{ start: `${date}T14:00:00+07:00`, end: `${date}T${end}:00+07:00` }
+								],
 					requested_by: null,
 					emergency_cause: null,
 					time_off_in_lieu: null,

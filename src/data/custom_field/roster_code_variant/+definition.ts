@@ -11,7 +11,8 @@ const f = customField({
 			WORK: {
 				start_time: { kind: 'text' },
 				end_time: { kind: 'text' },
-				break_minutes: { kind: 'int', min: 0 }
+				break_minutes: { kind: 'int', min: 0 },
+				break_start_time: { kind: 'text', optional: true }
 			},
 			REST: { statutory: { kind: 'bool', optional: true } },
 			OFF: {}

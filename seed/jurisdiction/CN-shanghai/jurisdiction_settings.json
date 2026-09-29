@@ -139,7 +139,8 @@
 				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
 				"https://www.shzfgjj.cn/html/newxxgk/zcjd/228183.html",
 				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228478.html",
-				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html"
+				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html",
+				"https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html"
 			],
 			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
 		},
@@ -179,7 +180,7 @@
 				"key": "lcl_termination_ground",
 				"type": "string",
 				"label": "Labour Contract Law ground",
-				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination.",
+				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination. REG_6: the worker would not conclude a written contract after the first month, so the employer ended it by written notice (Implementing Regulation art.6 para.1: 依照劳动合同法第四十七条的规定支付经济补偿).",
 				"options": [
 					"ART_36_EMPLOYER",
 					"ART_36_WORKER",
@@ -191,7 +192,8 @@
 					"ART_44_1",
 					"ART_44_2_3",
 					"ART_44_4_5",
-					"ART_87"
+					"ART_87",
+					"REG_6"
 				],
 				"required_when": "employment.exit_reason != \"\""
 			},
@@ -242,6 +244,22 @@
 				"description": "Implementing Regulation art.10: service with the former employer the worker was moved from not by their own choice counts as service here, unless the former employer already paid 经济补偿 for it. The uncompensated months carried.",
 				"minimum": 0,
 				"integer": true,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_early_retirement_years",
+				"type": "number",
+				"label": "Actual years from early retirement to statutory retirement age",
+				"description": "财税〔2018〕164号 item 5(2): the actual years (实际年度数) from completing the early-retirement formalities to the statutory retirement age, over which an early-retirement subsidy is spread. 0 where no early-retirement subsidy is paid; IIT_EARLY_RETIREMENT refuses a subsidy while it is 0.",
+				"minimum": 0,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_internal_retirement_months",
+				"type": "number",
+				"label": "Months from internal retirement to statutory retirement age",
+				"description": "国税发〔1999〕58号 item 1: months over which the one-off internal-retirement income is averaged to choose the monthly IIT rate. Zero means unrecorded and refuses a positive payment.",
+				"minimum": 0,
 				"default_value": 0
 			}
 		],
@@ -415,7 +433,8 @@
 				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
 				"https://www.shzfgjj.cn/html/newxxgk/zcjd/228183.html",
 				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228478.html",
-				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html"
+				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html",
+				"https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html"
 			],
 			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
 		},
@@ -436,7 +455,7 @@
 				"minimum": 0,
 				"maximum": 2,
 				"label": "Employer unemployment rate on the agency notice (%)",
-				"description": "No 2026 instrument continuing the reduced unemployment rate was located (register CN-SH06 / CN-KM27); the rate the agency assesses is recorded until one is sealed. Unrecorded refuses the run."
+				"description": "No signed 2026 reduced-rate renewal with a proved effective interval was found (register CN-SH06); record the agency-assessed rate for this employer. Unrecorded refuses the run."
 			},
 			{
 				"key": "unemployment_employee_rate",
@@ -473,7 +492,7 @@
 				"key": "lcl_termination_ground",
 				"type": "string",
 				"label": "Labour Contract Law ground",
-				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination.",
+				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination. REG_6: the worker would not conclude a written contract after the first month, so the employer ended it by written notice (Implementing Regulation art.6 para.1: 依照劳动合同法第四十七条的规定支付经济补偿).",
 				"options": [
 					"ART_36_EMPLOYER",
 					"ART_36_WORKER",
@@ -485,7 +504,8 @@
 					"ART_44_1",
 					"ART_44_2_3",
 					"ART_44_4_5",
-					"ART_87"
+					"ART_87",
+					"REG_6"
 				],
 				"required_when": "employment.exit_reason != \"\""
 			},
@@ -536,6 +556,22 @@
 				"description": "Implementing Regulation art.10: service with the former employer the worker was moved from not by their own choice counts as service here, unless the former employer already paid 经济补偿 for it. The uncompensated months carried.",
 				"minimum": 0,
 				"integer": true,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_early_retirement_years",
+				"type": "number",
+				"label": "Actual years from early retirement to statutory retirement age",
+				"description": "财税〔2018〕164号 item 5(2): the actual years (实际年度数) from completing the early-retirement formalities to the statutory retirement age, over which an early-retirement subsidy is spread. 0 where no early-retirement subsidy is paid; IIT_EARLY_RETIREMENT refuses a subsidy while it is 0.",
+				"minimum": 0,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_internal_retirement_months",
+				"type": "number",
+				"label": "Months from internal retirement to statutory retirement age",
+				"description": "国税发〔1999〕58号 item 1: months over which the one-off internal-retirement income is averaged to choose the monthly IIT rate. Zero means unrecorded and refuses a positive payment.",
+				"minimum": 0,
 				"default_value": 0
 			}
 		],
@@ -709,7 +745,8 @@
 				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
 				"https://www.shzfgjj.cn/html/newxxgk/zcjd/228183.html",
 				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228478.html",
-				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html"
+				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html",
+				"https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html"
 			],
 			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
 		},
@@ -730,7 +767,7 @@
 				"minimum": 0,
 				"maximum": 2,
 				"label": "Employer unemployment rate on the agency notice (%)",
-				"description": "No 2026 instrument continuing the reduced unemployment rate was located (register CN-SH06 / CN-KM27); the rate the agency assesses is recorded until one is sealed. Unrecorded refuses the run."
+				"description": "No signed 2026 reduced-rate renewal with a proved effective interval was found (register CN-SH06); record the agency-assessed rate for this employer. Unrecorded refuses the run."
 			},
 			{
 				"key": "unemployment_employee_rate",
@@ -767,7 +804,7 @@
 				"key": "lcl_termination_ground",
 				"type": "string",
 				"label": "Labour Contract Law ground",
-				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination.",
+				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination. REG_6: the worker would not conclude a written contract after the first month, so the employer ended it by written notice (Implementing Regulation art.6 para.1: 依照劳动合同法第四十七条的规定支付经济补偿).",
 				"options": [
 					"ART_36_EMPLOYER",
 					"ART_36_WORKER",
@@ -779,7 +816,8 @@
 					"ART_44_1",
 					"ART_44_2_3",
 					"ART_44_4_5",
-					"ART_87"
+					"ART_87",
+					"REG_6"
 				],
 				"required_when": "employment.exit_reason != \"\""
 			},
@@ -830,6 +868,22 @@
 				"description": "Implementing Regulation art.10: service with the former employer the worker was moved from not by their own choice counts as service here, unless the former employer already paid 经济补偿 for it. The uncompensated months carried.",
 				"minimum": 0,
 				"integer": true,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_early_retirement_years",
+				"type": "number",
+				"label": "Actual years from early retirement to statutory retirement age",
+				"description": "财税〔2018〕164号 item 5(2): the actual years (实际年度数) from completing the early-retirement formalities to the statutory retirement age, over which an early-retirement subsidy is spread. 0 where no early-retirement subsidy is paid; IIT_EARLY_RETIREMENT refuses a subsidy while it is 0.",
+				"minimum": 0,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_internal_retirement_months",
+				"type": "number",
+				"label": "Months from internal retirement to statutory retirement age",
+				"description": "国税发〔1999〕58号 item 1: months over which the one-off internal-retirement income is averaged to choose the monthly IIT rate. Zero means unrecorded and refuses a positive payment.",
+				"minimum": 0,
 				"default_value": 0
 			}
 		],
@@ -1003,7 +1057,8 @@
 				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
 				"https://www.shzfgjj.cn/html/newxxgk/zcjd/228183.html",
 				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228478.html",
-				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html"
+				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html",
+				"https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html"
 			],
 			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
 		},
@@ -1024,7 +1079,7 @@
 				"minimum": 0,
 				"maximum": 2,
 				"label": "Employer unemployment rate on the agency notice (%)",
-				"description": "No 2026 instrument continuing the reduced unemployment rate was located (register CN-SH06 / CN-KM27); the rate the agency assesses is recorded until one is sealed. Unrecorded refuses the run."
+				"description": "No signed 2026 reduced-rate renewal with a proved effective interval was found (register CN-SH06); record the agency-assessed rate for this employer. Unrecorded refuses the run."
 			},
 			{
 				"key": "unemployment_employee_rate",
@@ -1061,7 +1116,7 @@
 				"key": "lcl_termination_ground",
 				"type": "string",
 				"label": "Labour Contract Law ground",
-				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination.",
+				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination. REG_6: the worker would not conclude a written contract after the first month, so the employer ended it by written notice (Implementing Regulation art.6 para.1: 依照劳动合同法第四十七条的规定支付经济补偿).",
 				"options": [
 					"ART_36_EMPLOYER",
 					"ART_36_WORKER",
@@ -1073,7 +1128,8 @@
 					"ART_44_1",
 					"ART_44_2_3",
 					"ART_44_4_5",
-					"ART_87"
+					"ART_87",
+					"REG_6"
 				],
 				"required_when": "employment.exit_reason != \"\""
 			},
@@ -1124,6 +1180,22 @@
 				"description": "Implementing Regulation art.10: service with the former employer the worker was moved from not by their own choice counts as service here, unless the former employer already paid 经济补偿 for it. The uncompensated months carried.",
 				"minimum": 0,
 				"integer": true,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_early_retirement_years",
+				"type": "number",
+				"label": "Actual years from early retirement to statutory retirement age",
+				"description": "财税〔2018〕164号 item 5(2): the actual years (实际年度数) from completing the early-retirement formalities to the statutory retirement age, over which an early-retirement subsidy is spread. 0 where no early-retirement subsidy is paid; IIT_EARLY_RETIREMENT refuses a subsidy while it is 0.",
+				"minimum": 0,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_internal_retirement_months",
+				"type": "number",
+				"label": "Months from internal retirement to statutory retirement age",
+				"description": "国税发〔1999〕58号 item 1: months over which the one-off internal-retirement income is averaged to choose the monthly IIT rate. Zero means unrecorded and refuses a positive payment.",
+				"minimum": 0,
 				"default_value": 0
 			}
 		],

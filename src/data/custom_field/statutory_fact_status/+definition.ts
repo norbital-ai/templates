@@ -99,12 +99,22 @@ const f = customField({
 							period: { kind: 'text' },
 							gross: { kind: 'number', min: 0 },
 							units: { kind: 'int', min: 1 },
-							reference: { kind: 'text' }
+							reference: { kind: 'text' },
+							paid_on: { kind: 'text', optional: true },
+							withhold_below_threshold_requested: { kind: 'bool', optional: true }
 						}
 					}
 				}
 			},
-			NOT_REGISTERED: { reason: { kind: 'text' } }
+			NOT_REGISTERED: {
+				reason: { kind: 'text' },
+				elections: {
+					kind: 'record',
+					of: { kind: 'union', of: [{ kind: 'bool' }, { kind: 'number' }, { kind: 'text' }] },
+					optional: true
+				},
+				declaration_reference: { kind: 'text', optional: true }
+			}
 		}
 	}
 });

@@ -1,5 +1,7 @@
 import type { StatutoryFact } from './run/statutory-facts.js';
+import * as Predicate from 'effect/Predicate';
 import type { WorkRules } from '../datatypes/work_rules.js';
+import { governed } from '../jurisdiction_settings.js';
 import { refuse } from '../refuse.js';
 import {
 	contribute,
@@ -220,6 +222,7 @@ import { resolveSchedule } from '../../lib/payroll/run/schedule.js';
 import { contractAllowancesOn } from './contract-allowances.js';
 import { dateKey } from '../iso-day.js';
 import { canonicalPlace, placeWage } from '../datatypes/wages.js';
+import { resolveCompanyFacts } from '../declared-facts.js';
 import type { MeasuredEmployment } from './family.js';
 import {
 	philippinesCumulativeHistory,
@@ -545,13 +548,19 @@ export function minimumWageCovers(
 	return isEligible(configuration.jurisdiction.work_rules.wages?.applies_when ?? '', person);
 }
 
-/** The person's floor under one version: their order's wage at its `scale`, 0 where it excludes them. */
+/** The person's monthly floor under one version: 0 without a monthly order or for an excluded worker. */
 export function personWageFloor(
 	configuration: Pick<Configuration, 'company' | 'jurisdiction'>,
 	person: PersonContext
 ): number {
+	const wages = configuration.jurisdiction.work_rules.wages;
+	if (
+		Object.keys(wages?.by_region ?? {}).length === 0 &&
+		Object.keys(wages?.by_employment_type ?? {}).length === 0
+	)
+		return 0;
 	return minimumWageCovers(configuration, person)
-		? (personMinimumWage(configuration, person) ?? 0) * minimumWageScale(configuration, person)
+		? personMinimumWage(configuration, person) * minimumWageScale(configuration, person)
 		: 0;
 }
 
@@ -700,6 +709,7 @@ export function minimumWageIssues(options: {
 	readonly measured?: readonly MeasuredEmployment[];
 	/** The run's charges by employment, for a floor stated net of the employee's shares. */
 	readonly charges?: ReadonlyMap<string, readonly ContributionCharge[]>;
+	readonly headcountCitizens?: number;
 	readonly asOf: string;
 }): RunIssue[] {
 	const issues: RunIssue[] = [];
@@ -708,23 +718,87 @@ export function minimumWageIssues(options: {
 	);
 	for (const bundle of options.bundles) {
 		if (bundle.employedDays == null || bundle.deferral != null) continue;
+		if (options.configuration.jurisdiction.jurisdiction_code === 'MY') {
+			const eastMalaysia = (place: string) =>
+				/^(?:Malaysia[/-])?(?:Sabah|Sarawak)(?:$|[\s/,-])/i.test(place.trim());
+			if (
+				eastMalaysia(options.configuration.company.region ?? '') ||
+				bundle.terms.some((term) => eastMalaysia(term.worksite ?? ''))
+			)
+				refuse(
+					`${bundle.employment.employee_number}: Sabah and Sarawak worksite payroll needs its Labour Ordinance profile; this Malaysian profile applies Employment Act 1955 rules for Peninsular Malaysia and Labuan.`
+				);
+		}
 		const measured = measuredByEmployment.get(bundle.employment.id);
 		const segments = versionSegments(options.configuration, bundle.employedDays);
 		for (const segment of segments)
 			issues.push(...dailyFloorIssues(segment.configuration, bundle, segment, measured));
-		for (const { segment, term, against, during } of floorTerms(bundle, segments, measured)) {
+		for (const { segment, term, against, during, start } of floorTerms(
+			bundle,
+			segments,
+			measured
+		)) {
 			const { configuration } = segment;
 			const { person } = against;
+			if (configuration.jurisdiction.code === 'ID' && person.employment.service_years >= 1) {
+				const scaleMinimum = decodeNumber(term.id_wage_scale_basic_minimum);
+				if (
+					!term.id_wage_scale_grade?.trim() ||
+					!term.id_wage_scale_reference?.trim() ||
+					!term.id_wage_scale_evidence_file ||
+					!term.id_wage_scale_effective_on ||
+					term.id_wage_scale_effective_on > start ||
+					!term.id_wage_scale_notice_on ||
+					term.id_wage_scale_notice_on > start ||
+					!(scaleMinimum > 0)
+				)
+					refuse(
+						`${bundle.employment.employee_number}: record the dated company wage structure, this worker's grade notice and its basic-wage minimum before pricing service of one year or more.`
+					);
+				if (cents(person.terms.monthly_basic) < cents(scaleMinimum))
+					refuse(
+						`${bundle.employment.employee_number}: basic wage ${cents(person.terms.monthly_basic)} is below the company's ${term.id_wage_scale_grade} grade minimum ${cents(scaleMinimum)}${during}.`
+					);
+			}
+			if (
+				configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
+				person.terms.monthly_basic <= 0 &&
+				person.employee.citizenship === 'CITIZEN' &&
+				(options.headcountCitizens ?? 0) >= 5 &&
+				options.charges
+					?.get(bundle.employment.id)
+					?.some(
+						(charge) => charge.contribution.row.code === 'HRDF' && charge.ruleReference != null
+					) &&
+				(person.terms.statutory_work_category === 'PIECE_RATE' ||
+					(person.terms.statutory_work_category === 'TASK_BASIS' &&
+						(measured?.adjustments.some(
+							(line) =>
+								line.input.family === 'ADHOC' &&
+								['TASK_MONTHLY_WAGE', 'TRIP_MONTHLY_WAGE'].includes(line.catalogueComponent.code)
+						) ||
+							measured?.base.some(
+								(line) => line.catalogueComponent.output === 'salary_top_up' && line.amount > 0
+							))))
+			)
+				refuse(
+					`${bundle.employment.employee_number}: zero-basic piece or task/trip wages, or a commission minimum-wage top-up, need an HRD Corp levy classification before this employer's levy can be calculated from them.`
+				);
 			// The wages order's rule on the contract's composition (ID: basic at least 75% of the wage).
 			const termsWhen = (configuration.jurisdiction.work_rules.wages?.terms_when ?? '').trim();
 			if (termsWhen !== '' && !isEligible(termsWhen, person))
 				issues.push({
 					code: 'WAGE_TERMS_RULE',
-					severity: 'WARNING',
+					severity:
+						configuration.jurisdiction.work_rules.wages?.block_terms_when === true
+							? 'BLOCKER'
+							: 'WARNING',
 					message:
 						`${bundle.employment.employee_number}'s contract does not satisfy the version's wage rule ` +
 						`\`${termsWhen}\` (basic ${person.terms.basic_salary}, fixed allowances ${person.terms.fixed_allowances})${during}. ` +
-						'The run pays the contract; restate the terms or record why they stand.',
+						(configuration.jurisdiction.work_rules.wages?.block_terms_when === true
+							? 'Correct the terms before running payroll.'
+							: 'The run pays the contract; restate the terms or record why they stand.'),
 					collection: 'employment_terms',
 					recordId: term.id
 				});
@@ -747,17 +821,23 @@ export function minimumWageIssues(options: {
 			if (payable >= cents(floor)) continue;
 			const blockWhen = configuration.jurisdiction.work_rules.wages?.block_below_when?.trim();
 			const blocking = blockWhen != null && blockWhen !== '' && isEligible(blockWhen, person);
+			const resultsOnly =
+				configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
+				['PIECE_RATE', 'TASK_BASIS'].includes(person.terms.statutory_work_category) &&
+				person.terms.monthly_basic <= 0;
 			issues.push({
 				code: 'MINIMUM_WAGE_BELOW',
 				severity: blocking ? 'BLOCKER' : 'WARNING',
 				message:
-					`${bundle.employment.employee_number} is contracted at ${payable} ${unit}` +
+					`${bundle.employment.employee_number} ${resultsOnly ? 'has payable' : 'is contracted at'} ${payable} ${unit}` +
 					(withheld > 0 ? ` net of ${cents(withheld)} employee ${netOf.join('/')} shares` : '') +
 					', below the ' +
 					`${workplace(configuration, person)} minimum wage of ${stated} the version states${during}. ` +
-					(blocking
-						? 'Raise the contract terms before running payroll.'
-						: 'The run pays the contract; raise the terms or record why the wage stands.'),
+					(resultsOnly
+						? 'Record and pay enough results wages for the full calendar month before running payroll.'
+						: blocking
+							? 'Raise the contract terms before running payroll.'
+							: 'The run pays the contract; raise the terms or record why the wage stands.'),
 				collection: 'employment_terms',
 				recordId: term.id
 			});
@@ -784,11 +864,56 @@ function* floorTerms(
 			const start = from > segment.start ? from : segment.start;
 			const asOf = through < segment.end ? through : segment.end;
 			if (start > asOf) continue;
+			const wages = segment.configuration.jurisdiction.work_rules.wages;
+			const site = wages?.workplace_keyed
+				? term.worksite?.trim() || segment.configuration.company.region || ''
+				: (segment.configuration.company.region ?? '');
+			const place = canonicalPlace(wages?.by_region ?? {}, site);
+			const sector =
+				segment.configuration.jurisdiction.code === 'ID' && wages?.monthly_by_sector != null
+					? idWageKbli(wages, term, from)
+					: (term.worksite_sector?.trim() ?? '');
+			const sectorKeys = new Set(
+				(wages?.monthly_by_sector ?? [])
+					.filter(
+						(row) =>
+							(place === row.place || place.startsWith(`${row.place}/`)) &&
+							row.kbli.includes(sector)
+					)
+					.flatMap((row) =>
+						[...(row.when?.matchAll(/company\.facts\.([A-Za-z_][A-Za-z0-9_]*)/g) ?? [])].map(
+							(match) => match[1]!
+						)
+					)
+			);
+			if (
+				sectorKeys.size > 0 &&
+				segment.configuration.companyFactRevisions.some((revision) => {
+					const boundary = readRange(revision.effective_range);
+					return (
+						boundary != null &&
+						[dateKey(boundary.start), dateKey(boundary.end)].some(
+							(day) => day > start && day <= asOf
+						) &&
+						Object.keys(revision.facts).some((key) => sectorKeys.has(key))
+					);
+				})
+			)
+				refuse(
+					`Sector classification changes inside ${start}–${asOf}; this wage-floor segment needs dated assessment.`
+				);
 			const against = wageAgainstFloor(segment.configuration, bundle, term, asOf, measured);
+			if (wages?.monthly_by_sector?.length && start < asOf) {
+				const atStart = wageAgainstFloor(segment.configuration, bundle, term, start, measured);
+				if (atStart?.floor !== against?.floor)
+					refuse(
+						`A sector minimum wage changes inside ${start}–${asOf}; this wage-floor segment needs dated assessment.`
+					);
+			}
 			if (against == null) continue;
 			const during =
 				segments.length > 1 || datedTerms.length > 1 ? ` from ${start} to ${asOf}` : '';
-			yield { segment, term, against, during };
+			yield { segment, term, against, during, start };
 		}
 	}
 }
@@ -848,7 +973,7 @@ export function raiseToMinimumWage(
 
 /**
  * A daily floor by worksite and sector (TH Minimum Wage Notice 14): each normal working day, at
- * the worksite and sector its terms record that day, is held to the higher of the place's rate (a
+ * the worksite its work day records (else its terms') and the sector its terms record, is held to the higher of the place's rate (a
  * district key overriding its province) and the sector's. The day is the normal day however short
  * the employer makes it (cl.19), so a daily rate meets the whole floor and an hourly rate meets it
  * over the day's scheduled hours. A monthly or semi-monthly wage (`base_salary` is the month for
@@ -880,6 +1005,12 @@ function dailyFloorIssues(
 	// Per terms row: whether the order covers the person (null where it does not) and blocks, and
 	// the version's divisor over them.
 	const judged = new Map<string, { blocking: boolean; divisor: number } | null>();
+	// A work day's recorded site overrides the terms' worksite for that day (cl.20: the day's workplace).
+	const siteOn = new Map(
+		bundle.workDays
+			.filter((row) => (row.worksite?.trim() ?? '') !== '')
+			.map((row) => [dateKey(row.work_date), row.worksite!.trim()])
+	);
 	for (const day of measured.schedule.values()) {
 		if (day.date < segment.start || day.date > segment.end) continue;
 		if (day.dayType !== 'ORDINARY' || day.shift == null) continue;
@@ -913,7 +1044,7 @@ function dailyFloorIssues(
 		}
 		const judgement = judged.get(term.id);
 		if (judgement == null) continue;
-		const site = term.worksite?.trim() ?? '';
+		const site = siteOn.get(day.date) ?? term.worksite?.trim() ?? '';
 		const province = site.split('/')[0]!.trim();
 		// A bare province whose districts carry their own rates does not say which rate the day is owed.
 		const districted =
@@ -985,6 +1116,14 @@ function wageAgainstFloor(
 	unit: string;
 	stated: number | string;
 } | null {
+	if (
+		configuration.jurisdiction.code === 'ID' &&
+		['PIECE_RATE', 'TASK_BASIS'].includes(term.statutory_work_category) &&
+		decodeNumber(term.base_salary) <= 0
+	)
+		refuse(
+			`${bundle.employment.employee_number}: pure output wages need the agreed result rate, recorded units and twelve months of paid wages before the statutory monthly wage can be verified (PP 36/2021 arts.18–19).`
+		);
 	const monthWindow = monthBounds(monthKey(asOf));
 	const monthWorkingDays = measured?.normalWorkingDaysIn?.(monthWindow) ?? null;
 	const input = {
@@ -1005,19 +1144,178 @@ function wageAgainstFloor(
 		asOf
 	};
 	// The version's divisor turns a daily or hourly rate into the month the floor is stated in.
+	const dailyDivisors =
+		configuration.jurisdiction.work_rules.wages?.daily_monthly_divisor_by_workweek;
+	const dailyDivisor =
+		term.pay_frequency === 'DAILY' && dailyDivisors != null
+			? dailyDivisors[String(input.week.working_days_per_week)]
+			: null;
+	if (term.pay_frequency === 'DAILY' && dailyDivisors != null && dailyDivisor == null)
+		refuse(
+			`${bundle.employment.employee_number}: the daily minimum-wage divisor is missing for ${input.week.working_days_per_week} workdays a week.`
+		);
 	const person = personContext({
 		...input,
-		divisorDays: divisorFor(configuration, input, bundle.employment.employee_number)
+		divisorDays: dailyDivisor ?? divisorFor(configuration, input, bundle.employment.employee_number)
 	});
-	let wage = bindingMinimumWage(configuration, person);
-	if (wage == null || !minimumWageCovers(configuration, person)) return null;
+	if (!minimumWageCovers(configuration, person)) return null;
+	if (
+		configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
+		['PIECE_RATE', 'TASK_BASIS'].includes(person.terms.statutory_work_category) &&
+		person.terms.monthly_basic <= 0
+	) {
+		const fullMonth =
+			bundle.window?.salary.start === monthWindow.start &&
+			bundle.window.salary.end === monthWindow.end &&
+			bundle.window.attendance.start === monthWindow.start &&
+			bundle.window.attendance.end === monthWindow.end &&
+			bundle.employedDays?.start === monthWindow.start &&
+			bundle.employedDays.end === monthWindow.end;
+		if (measured == null || !fullMonth || measured.arrears != null)
+			refuse(
+				`${bundle.employment.employee_number}: results pay cannot be verified against the Malaysian monthly minimum wage without measured wages for a full calendar month on the same attendance and salary window, with no earlier-month arrears.`
+			);
+		let paid: number;
+		if (person.terms.statutory_work_category === 'TASK_BASIS') {
+			if (person.terms.fixed_allowances !== 0)
+				refuse(
+					`${bundle.employment.employee_number}: fixed allowances on task, trip or commission terms need a sourced minimum-wage classification before the monthly comparator can run.`
+				);
+			const codes = [
+				'TASK_MONTHLY_WAGE',
+				'TRIP_MONTHLY_WAGE',
+				'COMMISSION_MONTHLY',
+				'COMMISSION_IRREGULAR'
+			];
+			if (
+				term.pay_frequency !== 'MONTHLY' ||
+				bundle.workDays.some(
+					(day) =>
+						dateKey(day.work_date) >= monthWindow.start &&
+						dateKey(day.work_date) <= monthWindow.end &&
+						day.piece_units != null
+				)
+			)
+				refuse(
+					`${bundle.employment.employee_number}: task, trip and commission results need monthly terms and typed wage requests; piece-unit workday amounts do not identify their statutory earning class.`
+				);
+			const captured = new Set(measured.captured.payRequests.ADHOC);
+			const requests = bundle.payRequests.filter(
+				(request) =>
+					request.family === 'ADHOC' &&
+					captured.has(request.id) &&
+					codes.includes(request.catalogueComponent.code)
+			);
+			const attestations = bundle.payRequests.filter(
+				(request) =>
+					request.family === 'ADHOC' &&
+					request.catalogueComponent.code === 'RESULTS_ZERO_MONTH' &&
+					(request.pay_period === monthKey(asOf) ||
+						(request.event_date >= monthWindow.start && request.event_date <= monthWindow.end))
+			);
+			if (attestations.length > 0) {
+				const attestation = attestations[0]!;
+				if (
+					attestations.length !== 1 ||
+					bundle.payRequests.some(
+						(request) =>
+							request.family === 'ADHOC' &&
+							codes.includes(request.catalogueComponent.code) &&
+							(request.pay_period === monthKey(asOf) ||
+								(request.event_date >= monthWindow.start && request.event_date <= monthWindow.end))
+					) ||
+					!captured.has(attestation.id) ||
+					attestation.event_date !== monthWindow.end ||
+					attestation.pay_period !== monthKey(asOf) ||
+					decodeNumber(attestation.amount) !== 0 ||
+					attestation.sign !== 1 ||
+					attestation.evidence_file == null ||
+					measured.adjustments.some(
+						(line) =>
+							line.input.family === 'ADHOC' && line.input.id === attestation.id && line.amount !== 0
+					)
+				)
+					refuse(
+						`${bundle.employment.employee_number}: one evidenced zero-results attestation dated ${monthWindow.end}, paid in ${monthKey(asOf)}, must stand alone before the monthly minimum can be assessed.`
+					);
+				paid = 0;
+			} else {
+				if (requests.length === 0)
+					refuse(
+						`${bundle.employment.employee_number}: task, trip and commission wages cannot be verified against the Malaysian monthly minimum wage until their payable amounts and contribution treatment are recorded as distinct earnings.`
+					);
+				paid = 0;
+				for (const request of requests) {
+					if (
+						request.event_date < monthWindow.start ||
+						request.event_date > monthWindow.end ||
+						request.pay_period !== monthKey(asOf) ||
+						request.sign !== 1 ||
+						request.evidence_file == null
+					)
+						refuse(
+							`${bundle.employment.employee_number}: ${request.catalogueComponent.code} needs positive evidenced wages earned and paid in ${monthKey(asOf)} before the monthly minimum can be assessed.`
+						);
+					const lines = measured.adjustments.filter(
+						(line) =>
+							line.input.family === 'ADHOC' &&
+							line.input.id === request.id &&
+							line.catalogueComponent.code === request.catalogueComponent.code
+					);
+					if (lines.length !== 1 || lines[0]!.amount <= 0 || lines[0]!.bucket !== 'EARNING')
+						refuse(
+							`${bundle.employment.employee_number}: ${request.catalogueComponent.code} did not settle as one positive result-wage line.`
+						);
+					paid += lines[0]!.amount;
+				}
+			}
+		} else
+			paid = measured.base
+				.filter(
+					(line) =>
+						line.catalogueComponent.output === 'salary' ||
+						line.catalogueComponent.output === 'salary_top_up'
+				)
+				.reduce((sum, line) => sum + line.amount, 0);
+		const floor = bindingMinimumWage(configuration, person, asOf);
+		return {
+			person,
+			paid:
+				paid +
+				(person.terms.statutory_work_category === 'TASK_BASIS'
+					? measured.base
+							.filter((line) => line.catalogueComponent.output === 'salary_top_up')
+							.reduce((sum, line) => sum + line.amount, 0)
+					: 0),
+			floor,
+			unit: `in ${monthKey(asOf)} results wages`,
+			stated: floor
+		};
+	}
+	// A daily-only order is checked on each normal workday; no order means no monthly floor.
+	if (Object.keys(configuration.jurisdiction.work_rules.wages?.by_region ?? {}).length === 0)
+		return null;
+	let wage = bindingMinimumWage(configuration, person, asOf);
+	if (configuration.jurisdiction.code === 'ID' && person.terms.pay_frequency === 'HOURLY') {
+		if (person.employment.type !== 'PART_TIME')
+			refuse(
+				`${bundle.employment.employee_number}: PP 36/2021 art.16 permits an hourly wage only for part-time work.`
+			);
+		return {
+			person,
+			paid: person.terms.basic_salary,
+			floor: wage / 126,
+			unit: 'an hour',
+			stated: `${wage} a month / 126 (PP 36/2021 art.16)`
+		};
+	}
 	// An hourly rate meets the hourly table. A monthly-paid part-timer uses the version's
 	// monthly proportion where stated; otherwise the hourly table is annualised by contract hours.
 	const scale = minimumWageScale(configuration, person);
-	let hourly =
-		configuration.jurisdiction.work_rules.wages?.hourly_by_region?.[
-			configuration.company.region ?? ''
-		];
+	let hourly = placeWage(
+		configuration.jurisdiction.work_rules.wages?.hourly_by_region ?? {},
+		configuration.company.region ?? ''
+	);
 	let statedMonthly: number | string = wage;
 	let statedHourly: number | string = hourly ?? 0;
 	const priorFloorOn = configuration.jurisdiction.work_rules.wages?.protected_prior_floor_on;
@@ -1072,10 +1370,24 @@ function wageAgainstFloor(
 	const monthlyPartTime =
 		person.employment.type === 'PART_TIME' &&
 		(person.terms.pay_frequency === 'MONTHLY' || person.terms.pay_frequency === 'SEMI_MONTHLY');
-	const contractedWeek = term.ordinary_hours_per_week ?? 0;
-	if (monthlyPartTime && partTimeFullTimeWeek != null && !(contractedWeek > 0))
+	const partTimeMonthlyHourly =
+		monthlyPartTime &&
+		configuration.jurisdiction.work_rules.wages?.part_time_monthly_hourly_floor === true;
+	const contractedWeek =
+		term.ordinary_hours_per_week ??
+		(patternWorkload(termPattern(term, configuration.patternById), configuration.shiftById)
+			?.average_weekly_paid_minutes ?? 0) / 60;
+	if (
+		monthlyPartTime &&
+		(partTimeFullTimeWeek != null || partTimeMonthlyHourly) &&
+		!(contractedWeek > 0)
+	)
 		refuse(
 			`${bundle.employment.employee_number}: contracted weekly hours are required for the part-time monthly minimum wage.`
+		);
+	if (partTimeMonthlyHourly && hourly == null)
+		refuse(
+			`${bundle.employment.employee_number}: the part-time monthly minimum wage needs an hourly wage table for this region.`
 		);
 	if (dailyPartTime && !(contractedWeek > 0 && person.terms.working_days_per_week > 0))
 		refuse(
@@ -1162,37 +1474,47 @@ function wageAgainstFloor(
 						'a month (converted from weekly pay)',
 						statedMonthly
 					]
-				: dailyPartTime && hourly != null
+				: partTimeMonthlyHourly && hourly != null
 					? [
-							person.terms.basic_salary,
-							(hourly * contractedWeek) / person.terms.working_days_per_week,
-							'a day',
-							`${statedHourly} an hour × ${contractedWeek / person.terms.working_days_per_week} hours a day`
+							(person.terms.monthly_basic * 12) / (contractedWeek * 52),
+							hourly * scale,
+							'an hour (converted from monthly part-time pay)',
+							statedHourly
 						]
-					: monthlyPartTime && partTimeFullTimeWeek != null
+					: dailyPartTime && hourly != null
 						? [
-								person.terms.monthly_basic,
-								(wage * scale * contractedWeek) / partTimeFullTimeWeek,
-								'a month',
-								`${statedMonthly} a month × ${contractedWeek} / ${partTimeFullTimeWeek} weekly hours`
+								person.terms.basic_salary,
+								(hourly * contractedWeek) / person.terms.working_days_per_week,
+								'a day',
+								`${statedHourly} an hour × ${contractedWeek / person.terms.working_days_per_week} hours a day`
 							]
-						: hourly != null && person.employment.type === 'PART_TIME'
+						: monthlyPartTime && partTimeFullTimeWeek != null
 							? [
 									person.terms.monthly_basic,
-									(hourly * scale * (term.ordinary_hours_per_week ?? 0) * 52) / 12,
+									(wage * scale * contractedWeek) / partTimeFullTimeWeek,
 									'a month',
-									`${statedHourly} an hour over ${term.ordinary_hours_per_week ?? 0} hours a week`
+									`${statedMonthly} a month × ${contractedWeek} / ${partTimeFullTimeWeek} weekly hours`
 								]
-							: [
-									person.terms.monthly_basic,
-									wage * scale,
-									'a month',
-									// Quote the floor this person is held to (PH: ₱755 × 261 ÷ 12 on a five-day week),
-									// not the version's basis it is restated from.
-									scale === 1
-										? statedMonthly
-										: `${cents(wage * scale)} (${statedMonthly} restated on this person's factor)`
-								];
+							: hourly != null && person.employment.type === 'PART_TIME'
+								? [
+										person.terms.monthly_basic,
+										(hourly * scale * (term.ordinary_hours_per_week ?? 0) * 52) / 12,
+										'a month',
+										`${statedHourly} an hour over ${term.ordinary_hours_per_week ?? 0} hours a week`
+									]
+								: [
+										configuration.jurisdiction.work_rules.wages?.floor_includes_fixed_allowances ===
+										true
+											? person.terms.monthly_basic + person.terms.fixed_allowances
+											: person.terms.monthly_basic,
+										wage * scale,
+										'a month',
+										// Quote the floor this person is held to (PH: ₱755 × 261 ÷ 12 on a five-day week),
+										// not the version's basis it is restated from.
+										scale === 1
+											? statedMonthly
+											: `${cents(wage * scale)} (${statedMonthly} restated on this person's factor)`
+									];
 	return { person, paid, floor, unit, stated };
 }
 
@@ -1274,7 +1596,7 @@ function wageFloorPay(
 /**
  * The window split where the company's lineage changes version: each run of days with the
  * configuration of the version in force on them. The run's own version (chosen at the period end)
- * governs only its own days; a day no sealed version covers keeps the run's.
+ * governs only its own days; with a loaded lineage, an uncovered day refuses.
  */
 function versionSegments(
 	configuration: Configuration,
@@ -1283,9 +1605,14 @@ function versionSegments(
 	const segments: { start: IsoDate; end: IsoDate; days: number; configuration: Configuration }[] =
 		[];
 	for (const day of daysBetween(window.start, window.end)) {
-		const version =
-			settingsInForce(configuration.lineageVersions, configuration.jurisdiction.code, day) ??
-			configuration.jurisdiction;
+		const selected = settingsInForce(
+			configuration.lineageVersions,
+			configuration.jurisdiction.code,
+			day
+		);
+		if (selected == null && configuration.lineageVersions.length > 0)
+			refuse(`No sealed ${configuration.jurisdiction.code} settings version governs ${day}.`);
+		const version = selected ?? configuration.jurisdiction;
 		const last = segments.at(-1);
 		if (last != null && last.configuration.jurisdiction.id === version.id) {
 			last.end = day;
@@ -1321,7 +1648,7 @@ function versionSegments(
  * wage order fixes it from its effective date, so the month's statutory minimum is the sum of each
  * day's rate in force; a monthly scheme test (RA 9504's `monthly_basic <= wage_floor`) compares
  * the month's wage with that month's minimum. A window one version governs reads that version's
- * floor unchanged. Null where no segment states one.
+ * floor unchanged. Null where no segment states one; a partially covered window is refused.
  */
 function windowFloor(
 	segments: ReturnType<typeof versionSegments>,
@@ -1335,6 +1662,8 @@ function windowFloor(
 		days += segment.days;
 		total += floor * segment.days;
 	}
+	if (days > 0 && days !== segments.reduce((sum, segment) => sum + segment.days, 0))
+		refuse('A minimum-wage order is missing for part of this pay window.');
 	// ponytail: calendar-day weights; a roster-weighted floor if a daily order ever needs it.
 	return days === 0 ? null : total / days;
 }
@@ -1342,17 +1671,132 @@ function windowFloor(
 /**
  * The monthly minimum wage that holds this person: their employment type's own order where the
  * version states one (`wages.by_employment_type`; PH RA 10361 s.24, domestic workers), else their
- * place's (`regionalMinimumWage`). Null where neither states a figure for them.
+ * place's (`regionalMinimumWage`). A covered person without a sealed rate is refused.
  */
-function personMinimumWage(
-	configuration: Pick<Configuration, 'company' | 'jurisdiction'>,
-	person: PersonContext
-): number | null {
+type WageConfiguration = Pick<Configuration, 'company' | 'jurisdiction'> &
+	Partial<Pick<Configuration, 'recordedCompanyFacts' | 'companyFactRevisions'>>;
+
+function classifiedWageKey(configuration: WageConfiguration, person: PersonContext): string | null {
+	const classification = configuration.jurisdiction.work_rules.wages?.classified_by_worksite;
+	if (classification == null) return null;
+	const worksite = person.terms.worksite.trim();
+	const domestic = person.employment.type === 'DOMESTIC';
+	const sector = person.terms.worksite_sector.trim();
+	if (worksite === '' || (!domestic && sector === ''))
+		refuse('Record the exact worksite and wage-order sector before pricing this minimum wage.');
+	const rows = classification.rows.filter(
+		(row) =>
+			row.worksite === worksite &&
+			(row.employment_type ?? '') === (domestic ? 'DOMESTIC' : '') &&
+			(domestic || row.sector === sector)
+	);
+	if (rows.length === 0)
+		refuse(`No sealed wage-order class covers ${worksite} (${domestic ? 'DOMESTIC' : sector}).`);
+	const asOf = person.employment.history.as_of;
+	const revision = configuration.companyFactRevisions?.find((row) =>
+		coversDate(row.effective_range, asOf)
+	);
+	const facts =
+		revision?.facts ?? configuration.recordedCompanyFacts ?? configuration.company.facts ?? {};
+	const sized = rows.some((row) => row.min_workers != null || row.max_workers != null);
+	let headcount = 0;
+	if (sized) {
+		if (
+			configuration.jurisdiction.jurisdiction_code === 'PH' &&
+			(revision == null ||
+				!(revision.ph_wage_class_source_reference ?? '').trim() ||
+				revision.ph_wage_class_source_file == null ||
+				revision.ph_wage_class_source_file === '')
+		)
+			refuse(
+				'A PH size-based wage class needs a dated establishment and worker-count source document.'
+			);
+		if (
+			!Object.hasOwn(facts, classification.single_establishment_fact) ||
+			facts[classification.single_establishment_fact] !== true
+		)
+			refuse('Record a verified single-establishment wage-order classification before payroll.');
+		const declared = facts[classification.headcount_fact];
+		if (!Predicate.isNumber(declared) || !Number.isInteger(declared) || declared < 0)
+			refuse('Record the dated establishment worker count before pricing this wage order.');
+		headcount = declared;
+	}
+	const matching = rows.filter(
+		(row) =>
+			(row.min_workers == null || headcount >= row.min_workers) &&
+			(row.max_workers == null || headcount <= row.max_workers)
+	);
+	if (matching.length !== 1)
+		refuse(`Exactly one sealed wage-order class must cover ${worksite} on ${asOf}.`);
+	if (
+		configuration.jurisdiction.jurisdiction_code === 'PH' &&
+		!domestic &&
+		matching[0]!.rate_key !== 'NCR' &&
+		matching[0]!.rate_key !== 'IV-A' &&
+		(!(
+			person.terms.ph_worksite_source_reference.trim() &&
+			person.terms.ph_worksite_source_file_recorded
+		) ||
+			!(
+				person.terms.ph_sector_source_reference.trim() &&
+				person.terms.ph_sector_source_file_recorded
+			))
+	)
+		refuse('A reduced PH wage-order class needs dated municipality and sector source documents.');
+	return matching[0]!.rate_key;
+}
+
+function personMinimumWage(configuration: WageConfiguration, person: PersonContext): number {
 	const byType =
 		configuration.jurisdiction.work_rules.wages?.by_employment_type?.[person.employment.type];
-	if (byType == null) return regionalMinimumWage(configuration, person);
-	const wage = byType[configuration.company.region ?? ''];
-	return wage == null ? null : wage;
+	const classifiedKey = classifiedWageKey(configuration, person);
+	const region = configuration.company.region ?? '';
+	const typeRegion =
+		byType == null || classifiedKey != null
+			? ''
+			: Object.keys(byType)
+					.toSorted((a, b) => b.length - a.length)
+					.find((key) => region === key || region.startsWith(`${key}-`));
+	const wage =
+		byType == null
+			? classifiedKey == null
+				? regionalMinimumWage(configuration, person)
+				: configuration.jurisdiction.work_rules.wages?.by_region[classifiedKey]
+			: byType[classifiedKey ?? typeRegion ?? ''];
+	if (wage == null)
+		refuse(
+			`No sealed minimum-wage rate covers ${person.employment.type} at "${workplace(configuration, person)}" in ${configuration.jurisdiction.code}. Record a supported worksite and employment class before running payroll.`
+		);
+	return wage;
+}
+
+/** Resolve an attested KBLI edition only where the newer code has one sealed old sector class. */
+function idWageKbli(
+	wages: NonNullable<Configuration['jurisdiction']['work_rules']['wages']>,
+	terms: {
+		readonly worksite_sector?: string | null;
+		readonly worksite_sector_edition?: string | null;
+	},
+	asOf: IsoDate
+): string {
+	const code = terms.worksite_sector?.trim() ?? '';
+	const edition = terms.worksite_sector_edition?.trim() ?? '';
+	if (!/^[0-9]{5}$/.test(code))
+		refuse('Record the five-digit worksite KBLI before pricing an Indonesian sector wage.');
+	if ((edition !== '2020' && edition !== '2025') || wages.kbli_edition == null)
+		refuse(
+			'Record a supported worksite KBLI edition and a sealed wage-order edition before Indonesian payroll.'
+		);
+	if (edition === '2025' && (wages.kbli_2025_from == null || asOf < wages.kbli_2025_from))
+		refuse(`KBLI 2025 cannot classify this worksite on ${asOf}.`);
+	if (edition === wages.kbli_edition) return code;
+	const converted =
+		edition === '2025' && wages.kbli_edition === '2020' ? wages.kbli_2025_to_2020?.[code] : null;
+	if (converted == null)
+		refuse(
+			`No verified KBLI ${edition} ${code} conversion covers the wage order's ${wages.kbli_edition} edition.`
+		);
+	return converted;
 }
 
 /**
@@ -1360,24 +1804,70 @@ function personMinimumWage(
  * row that binds them (`wages.monthly_by_sector`; ID PP 36/2021 as amended by PP 49/2025 art.35D).
  * A row binds at its place or inside it, for a worksite sector it lists, where its `when` holds.
  */
-function bindingMinimumWage(
-	configuration: Pick<Configuration, 'company' | 'jurisdiction'>,
-	person: PersonContext
-): number | null {
+export function bindingMinimumWage(
+	configuration: Configuration,
+	person: PersonContext,
+	asOf: IsoDate
+): number {
 	const wage = personMinimumWage(configuration, person);
 	const wages = configuration.jurisdiction.work_rules.wages;
-	if (wage == null || wages?.monthly_by_sector == null) return wage;
+	if (wages?.monthly_by_sector == null) return wage;
+	const sector =
+		configuration.jurisdiction.code === 'ID'
+			? idWageKbli(wages, person.terms, asOf)
+			: person.terms.worksite_sector;
 	const place = canonicalPlace(wages.by_region, workplace(configuration, person));
+	const localRows = wages.monthly_by_sector.filter(
+		(row) => place === row.place || place.startsWith(`${row.place}/`)
+	);
+	const strictSector = (wages.strict_sector_places ?? []).some(
+		(row) => place === row || place.startsWith(`${row}/`)
+	);
+	if ((localRows.length > 0 || strictSector) && !/^[0-9]{5}$/.test(sector))
+		refuse(
+			`Record the five-digit worksite KBLI before pricing the sector minimum wage at "${place}".`
+		);
+	const sectorRows = localRows.filter((row) => row.kbli.includes(sector));
+	if (sectorRows.length === 0) {
+		if (
+			strictSector &&
+			!(wages.verified_ordinary_sectors ?? []).some(
+				(row) => row.place === place && row.kbli === sector
+			)
+		)
+			refuse(
+				`The sector wage order for ${place} KBLI ${person.terms.worksite_sector} is not verified; no ordinary-floor fallback is allowed.`
+			);
+		return wage;
+	}
+	const revision = configuration.companyFactRevisions.find((row) =>
+		coversDate(row.effective_range, asOf)
+	);
+	const rawFacts = revision?.facts ?? configuration.recordedCompanyFacts ?? {};
+	for (const row of sectorRows)
+		for (const key of row.when?.matchAll(/company\.facts\.([A-Za-z_][A-Za-z0-9_]*)/g) ?? [])
+			if (!Object.hasOwn(rawFacts, key[1]!))
+				refuse(
+					`Record ${key[1]} for ${place} KBLI ${person.terms.worksite_sector} before pricing its sector minimum wage.`
+				);
+	const datedFacts = resolveCompanyFacts(
+		configuration.jurisdiction.facts ?? [],
+		{ ...configuration.company, facts: configuration.recordedCompanyFacts },
+		{ asOf, revisions: configuration.companyFactRevisions }
+	);
+	const sourceKbli = person.terms.worksite_sector?.trim() ?? '';
+	if (
+		configuration.jurisdiction.code === 'ID' &&
+		person.terms.worksite_sector_edition?.trim() === '2025' &&
+		/^5510[1-5]$/.test(sourceKbli) &&
+		sectorRows.some((row) => row.kbli.includes('55110')) &&
+		datedFacts.umsp_hotel_star !== 6 - (sourceKbli.charCodeAt(4) - 48)
+	)
+		refuse('KBLI 2025 hotel star class conflicts with the dated employer hotel-star evidence.');
+	const datedPerson = { ...person, company: { ...person.company, facts: datedFacts } };
 	return Math.max(
 		wage,
-		...wages.monthly_by_sector
-			.filter(
-				(row) =>
-					(place === row.place || place.startsWith(`${row.place}/`)) &&
-					row.kbli.includes(person.terms.worksite_sector) &&
-					isEligible(row.when, person)
-			)
-			.map((row) => row.amount)
+		...sectorRows.filter((row) => isEligible(row.when, datedPerson)).map((row) => row.amount)
 	);
 }
 
@@ -1386,34 +1876,109 @@ function workplace(
 	configuration: Pick<Configuration, 'company' | 'jurisdiction'>,
 	person?: PersonContext
 ): string {
-	const keyed = configuration.jurisdiction.work_rules.wages?.workplace_keyed === true;
+	const keyed =
+		configuration.jurisdiction.work_rules.wages?.workplace_keyed === true ||
+		configuration.jurisdiction.work_rules.wages?.classified_by_worksite != null;
 	return (
 		(keyed && person?.terms.worksite ? person.terms.worksite : configuration.company.region) ?? ''
 	);
 }
 
-/** The region's monthly floor over the employed window, day-weighted across the versions in force
- * — what `minimum_wage(region)` reads; each payslip's trace keeps it (`earned_daily_excess`). */
+/** The person's monthly rate for this window; an unresolved mid-month worksite change refuses. */
 export function windowMinimumWage(
 	configuration: Configuration,
-	window: { readonly start: IsoDate; readonly end: IsoDate }
+	window: { readonly start: IsoDate; readonly end: IsoDate },
+	termsHistory: EmploymentBundle['termsHistory'],
+	employeeNumber?: string
 ): number {
-	return (
-		windowFloor(versionSegments(configuration, window), (version) =>
-			regionalMinimumWage(version)
-		) ?? 0
-	);
+	let total = 0;
+	let days = 0;
+	let missing = 0;
+	const workplaces = new Set<string>();
+	const classification = configuration.jurisdiction.work_rules.wages?.classified_by_worksite;
+	if (
+		classification != null &&
+		configuration.companyFactRevisions.some((revision) => {
+			const range = readRange(revision.effective_range);
+			return (
+				range != null &&
+				[dateKey(range.start), dateKey(range.end)].some(
+					(day) => day > window.start && day <= window.end
+				) &&
+				[classification.single_establishment_fact, classification.headcount_fact].some((key) =>
+					Object.hasOwn(revision.facts, key)
+				)
+			);
+		})
+	)
+		refuse('An establishment wage classification changes inside this pay window.');
+	for (const segment of versionSegments(configuration, window))
+		for (const day of daysBetween(segment.start, segment.end)) {
+			const terms = termsHistory.find((row) => coversDate(row.effective_range, day));
+			if (terms == null)
+				refuse(`${employeeNumber ?? 'A minimum-wage trace'} needs employment terms on ${day}.`);
+			const monthlyOrder = segment.configuration.jurisdiction.work_rules.wages;
+			if (monthlyOrder?.workplace_keyed) {
+				const site = terms.worksite?.trim() || configuration.company.region || '';
+				const range = readRange(terms.effective_range);
+				const sector =
+					segment.configuration.jurisdiction.code !== 'ID'
+						? null
+						: monthlyOrder.kbli_edition == null
+							? `${terms.worksite_sector?.trim() ?? ''}|${terms.worksite_sector_edition?.trim() ?? ''}`
+							: idWageKbli(monthlyOrder, terms, range == null ? day : dateKey(range.start));
+				workplaces.add(sector == null ? site : `${site}|${sector}`);
+			}
+			if (segment.configuration.jurisdiction.work_rules.wages?.classified_by_worksite)
+				workplaces.add(`${terms.worksite?.trim() ?? ''}|${terms.worksite_sector?.trim() ?? ''}`);
+			const wage =
+				Object.keys(monthlyOrder?.by_region ?? {}).length === 0 &&
+				Object.keys(monthlyOrder?.by_employment_type ?? {}).length === 0
+					? null
+					: personMinimumWage(
+							segment.configuration,
+							personContext({
+								employee: null,
+								employment: { service_start: '' },
+								terms,
+								company: segment.configuration.company,
+								asOf: day
+							})
+						);
+			if (wage == null) {
+				missing += 1;
+				continue;
+			}
+			total += wage;
+			days += 1;
+		}
+	if (workplaces.size > 1)
+		refuse(
+			'A workplace or wage class change inside one pay window needs an approved monthly minimum-wage basis.'
+		);
+	if (days > 0 && missing > 0)
+		refuse('A minimum-wage order is missing for part of this pay window.');
+	return days === 0 ? 0 : total / days;
 }
 
 /** The monthly minimum wage at the person's workplace (the company's region without one) under the version in force, or null where none is stated. */
 function regionalMinimumWage(
-	configuration: Pick<Configuration, 'company' | 'jurisdiction'>,
-	person?: PersonContext
+	configuration: WageConfiguration,
+	person?: PersonContext,
+	worksite?: string
 ): number | null {
-	return placeWage(
-		configuration.jurisdiction.work_rules.wages?.by_region ?? {},
-		workplace(configuration, person)
-	);
+	const wages = configuration.jurisdiction.work_rules.wages;
+	const table = wages?.by_region ?? {};
+	if (wages?.classified_by_worksite != null)
+		return person == null ? null : (table[classifiedWageKey(configuration, person)!] ?? null);
+	const place = wages?.workplace_keyed && worksite ? worksite : workplace(configuration, person);
+	if (wages?.workplace_keyed) {
+		const exact = canonicalPlace(table, place);
+		return exact.includes('/') || wages.standalone_workplaces?.includes(exact)
+			? (table[exact] ?? null)
+			: null;
+	}
+	return placeWage(table, place);
 }
 
 /**
@@ -1483,6 +2048,7 @@ export function prepareContributionAssessment(options: {
 	readonly yearQuantityPayments?: ReadonlyMap<string, readonly QuantityPayment[]> | undefined;
 	/** calendar month → component code → what this employee's earlier payslips earned. */
 	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
+	readonly paidWagesByMonth?: ReadonlyMap<string, number> | undefined;
 	/** What the month's earlier instalments settled and charged, at a semi-monthly or weekly cadence. */
 	readonly monthPrior?: MonthPrior | undefined;
 }): ContractAssessment {
@@ -1495,6 +2061,32 @@ export function prepareContributionAssessment(options: {
 		configuration,
 		asOf
 	);
+	const payMonth = monthBounds(bundle.window.period.slice(0, 7));
+	for (const scheme of configuration.contributions) {
+		if (scheme.row.assessment_period === 'PAY_PERIOD') continue;
+		const keys = new Set(
+			schemeExpressions(scheme).flatMap((expression) =>
+				[...expression.matchAll(/company\.facts\.([A-Za-z_][A-Za-z0-9_]*)/g)].map(
+					(match) => match[1]!
+				)
+			)
+		);
+		for (const revision of configuration.companyFactRevisions) {
+			const range = readRange(revision.effective_range);
+			if (range == null) continue;
+			const boundaries = [dateKey(range.start)];
+			if (range.end != null) boundaries.push(addDays(dateKey(range.end), 1));
+			const changed = [...keys].find(
+				(key) =>
+					Object.hasOwn(revision.facts, key) &&
+					boundaries.some((date) => date > payMonth.start && date <= payMonth.end)
+			);
+			if (changed != null)
+				refuse(
+					`${changed} changes inside the pay month; ${scheme.row.code} needs a dated monthly assessment basis.`
+				);
+		}
+	}
 	const startMonth0 = configuration.jurisdiction.payroll.tax_year_start_month;
 	const taxYear = taxYearOf(bundle.window.period, startMonth0);
 	/** An opening belongs to the person or this employer as the dated scheme declares. */
@@ -1580,6 +2172,7 @@ export function prepareContributionAssessment(options: {
 			risk_class: configuration.company.risk_class
 		},
 		fixedAllowances: contractAllowancesOn(bundle, configuration, asOf),
+		presence: bundle.presence,
 		terms:
 			bundle.termsHistory.find((row) => coversDate(row.effective_range, asOf)) ??
 			bundle.terms.at(-1) ??
@@ -1610,6 +2203,43 @@ export function prepareContributionAssessment(options: {
 		...personInput,
 		divisorDays: divisorFor(configuration, personInput, bundle.employment.employee_number)
 	});
+	const foreignShortContract =
+		configuration.jurisdiction.code === 'ID' &&
+		person.employee.citizenship === 'FOREIGNER' &&
+		!person.employment.open_ended &&
+		person.employment.contract_months < 6;
+	if (foreignShortContract) {
+		const terms = effectiveWithin(
+			bundle.termsHistory,
+			bundle.employedDays?.start ?? bundle.window.salary.start,
+			bundle.employedDays?.end ?? bundle.window.salary.end
+		);
+		if (
+			terms.length === 0 ||
+			terms.some((term) => {
+				const reviewed = dateKey(term.id_foreign_prior_work_reviewed_on);
+				return (
+					term.id_foreign_prior_indonesia_work !== 'NONE' ||
+					!term.id_foreign_prior_work_reference?.trim() ||
+					reviewed < person.employment.service_start ||
+					reviewed > asOf
+				);
+			})
+		)
+			refuse(
+				`${bundle.employment.employee_number}: verify dated prior work in Indonesia before excluding a foreign worker on a short contract from BPJS Kesehatan; a current contract under six months alone does not establish the six-month work condition.`
+			);
+	}
+	if (
+		configuration.jurisdiction.code === 'ID' &&
+		['DAILY', 'HOURLY'].includes(person.terms.pay_frequency) &&
+		(person.employee.citizenship === 'CITIZEN' ||
+			(person.employee.citizenship === 'FOREIGNER' &&
+				(person.employment.open_ended || person.employment.contract_months >= 6)))
+	)
+		refuse(
+			`${bundle.employment.employee_number}: BPJS Kesehatan monthly contribution wage for daily or hourly terms is not sealed; the raw contract rate cannot be used as a monthly wage against the UMK/UMP floor.`
+		);
 	const covered = minimumWageCovers(configuration, person);
 	// The terms in force across the window, where the residency they record changes inside it
 	// (a foreigner becomes a permanent resident, a permanent resident a citizen): each status's
@@ -1664,9 +2294,45 @@ export function prepareContributionAssessment(options: {
 	// of it for an apprentice — and 0 where it does not; the person root carries both, so a formula
 	// may read either. A wage order commencing inside the employed window weights each version's
 	// floor by the days it governs (`windowFloor`).
-	const segments = versionSegments(configuration, bundle.employedDays ?? bundle.window.salary);
-	const minimumWage = windowFloor(segments, (version) => regionalMinimumWage(version, person));
-	const floor = windowFloor(segments, (version) => personWageFloor(version, person)) ?? 0;
+	const wageWindow = bundle.employedDays ?? bundle.arrearsFor?.days ?? bundle.deferral?.days;
+	const segments = versionSegments(configuration, wageWindow ?? bundle.window.salary);
+	const workplaceKeyed = segments.some(
+		(segment) => segment.configuration.jurisdiction.work_rules.wages?.workplace_keyed === true
+	);
+	const classified = segments.some(
+		(segment) => segment.configuration.jurisdiction.work_rules.wages?.classified_by_worksite != null
+	);
+	if (classified && wageWindow != null)
+		windowMinimumWage(
+			configuration,
+			wageWindow,
+			bundle.termsHistory,
+			bundle.employment.employee_number
+		);
+	if (
+		workplaceKeyed &&
+		segments.some(
+			(segment) =>
+				(segment.configuration.jurisdiction.work_rules.wages?.scale ?? '').trim() !== '' ||
+				(segment.configuration.jurisdiction.work_rules.wages?.applies_when ?? '').trim() !== ''
+		)
+	)
+		refuse(
+			'A workplace-keyed wage floor with variable coverage or scale needs dated person assessment.'
+		);
+	const minimumWage = workplaceKeyed
+		? wageWindow == null
+			? 0
+			: windowMinimumWage(
+					configuration,
+					wageWindow,
+					bundle.termsHistory,
+					bundle.employment.employee_number
+				)
+		: windowFloor(segments, (version) => regionalMinimumWage(version, person));
+	const floor = workplaceKeyed
+		? (minimumWage ?? refuse('A workplace-keyed minimum wage is missing.'))
+		: (windowFloor(segments, (version) => personWageFloor(version, person)) ?? 0);
 	const startMonth = configuration.jurisdiction.payroll.tax_year_start_month;
 	const bounds = taxYearBounds(bundle.window.period, startMonth);
 	const dates = employmentDates(bundle.employment);
@@ -1676,6 +2342,36 @@ export function prepareContributionAssessment(options: {
 			? dates.exit
 			: bundle.window.salary.end;
 	const employed = through >= from;
+	const dependentReliefMonths = (code: string): number => {
+		const scheme = configuration.contributions.find((entry) => entry.row.code === code);
+		if (scheme == null) refuse(`${code}: no statutory scheme governs annual dependant relief.`);
+		let months = 0;
+		for (
+			let date = bounds.start;
+			date <= bounds.end;
+			date = addDays(monthBounds(date.slice(0, 7)).end, 1)
+		) {
+			const status = factStatusesOn(
+				bundle.statutoryFacts,
+				date,
+				bundle.employment.id,
+				configuration.contributions
+			).get(scheme.row.id);
+			const registered = status?.kind === 'REGISTERED' ? status : null;
+			const count = registered?.elections?.eligible_dependents;
+			if (!Predicate.isNumber(count) || !Number.isInteger(count) || count < 0)
+				refuse(
+					`${code}: record a dated eligible dependant count for ${date.slice(0, 7)} before annual finalisation.`
+				);
+			const reference = registered?.elections?.dependents_registration_reference;
+			if (count > 0 && (!Predicate.isString(reference) || reference.trim() === ''))
+				refuse(
+					`${code}: record dependant registration evidence for ${date.slice(0, 7)} before annual finalisation.`
+				);
+			months += count;
+		}
+		return months;
+	};
 	return {
 		employment: bundle.employment,
 		window: bundle.window,
@@ -1686,6 +2382,7 @@ export function prepareContributionAssessment(options: {
 			}),
 			contributions: configuration.contributions,
 			facts,
+			currentFacts,
 			coverageByScheme,
 			standingsByScheme,
 			residencySegments,
@@ -1717,6 +2414,7 @@ export function prepareContributionAssessment(options: {
 					ordinary: 0
 				},
 			firstYear: (code) => options.firstYear?.get(`${bundle.employment.employee_id}:${code}`) ?? 0,
+			dependentReliefMonths,
 			yearEarned: options.yearEarned,
 			history: (code) =>
 				historyFor(code) ?? {
@@ -1731,6 +2429,7 @@ export function prepareContributionAssessment(options: {
 				},
 			yearQuantityPayments: options.yearQuantityPayments,
 			earnedByMonth: options.earnedByMonth,
+			paidWagesByMonth: options.paidWagesByMonth,
 			monthPrior: options.monthPrior,
 			monthlyContributionDays: measured.monthlyContributionDays,
 			componentsByCode: new Map(
@@ -1743,6 +2442,8 @@ export function prepareContributionAssessment(options: {
 				key: bundle.window.period,
 				start: bundle.window.salary.start,
 				end: bundle.window.salary.end,
+				payDate: bundle.window.payDate,
+				settingsRange: governed(configuration.jurisdiction.effective_range),
 				// How this period sits in the month: a scheme assessed over the MONTH is charged once,
 				// in the period that owns the month's start, on the month's wage. The cadence is the
 				// employment's own, not the company's: a MONTHLY employment inside a SEMI_MONTHLY company

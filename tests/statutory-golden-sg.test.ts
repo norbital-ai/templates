@@ -27,6 +27,8 @@ import {
 } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
+import { grantedDays, type LeaveEntitlement } from '../src/lib/leave/entitlement.ts';
+import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 
 const sgSettingsId = (date: string) =>
 	settingsVersions('SG').find(
@@ -523,6 +525,25 @@ const punch = (
 		approval_id: null
 	});
 };
+/**
+ * A punch whose shift's granted hour was taken 13:00–14:00, the window EA s.38(1)(a) names.
+ * A break owed and not taken is worked time, so a scheduled hour only comes off the clock where
+ * the punches show it went.
+ */
+const punchWithBreak = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	start: string,
+	end: string,
+	requestedBy: 'EMPLOYER' | 'EMPLOYEE' | null = null
+) => {
+	punch(world, key, date, start, end, requestedBy);
+	world.work_days.at(-1)!.worked_intervals = [
+		{ start: `${date}T${start}:00+08:00`, end: `${date}T13:00:00+08:00` },
+		{ start: `${date}T14:00:00+08:00`, end: `${date}T${end}:00+08:00` }
+	];
+};
 /** A day read and found empty: the calendar's own record of a day nobody worked. */
 const emptyDay = (world: PayrollWorld, key: string, date: string) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
@@ -579,8 +600,9 @@ test('Singapore — Part 4 pay: the Fourth Schedule hour, the Third Schedule day
 		(world) => {
 			world.jurisdiction_holidays.push(holiday('2026-01-01', "New Year's Day"));
 			for (const key of ['SG-WORKMAN', 'SG-CLERK', 'SG-CLERK-OVER', 'SG-WORKMAN-OVER']) {
-				punch(world, key, '2026-01-01', '09:00', '20:00'); // Thursday holiday: ten hours
-				punch(world, key, '2026-01-05', '09:00', '20:00'); // Monday: two hours past the shift
+				// The shift's hour is taken, so the Thursday holiday and the Monday are ten hours.
+				punchWithBreak(world, key, '2026-01-01', '09:00', '20:00');
+				punchWithBreak(world, key, '2026-01-05', '09:00', '20:00');
 				punch(world, key, '2026-01-10', '09:00', '13:00'); // Saturday rest day: four hours
 				punch(world, key, '2026-01-11', '09:00', '16:00'); // Sunday rest day: seven hours
 				punch(world, key, '2026-01-17', '09:00', '20:00'); // Saturday rest day: eleven hours
@@ -589,8 +611,8 @@ test('Singapore — Part 4 pay: the Fourth Schedule hour, the Third Schedule day
 	);
 
 	// s.88(4): an extra day's salary at the basic rate for the holiday, 132.00, and MOM's 1.5× for
-	// the 2 hours beyond the normal day: 2 × 15 × 1.5 = 45.00 (the shift's hour of break comes off
-	// a scheduled day's clock, so 09:00–20:00 is ten hours). s.38(4): 2 h × 15.00 × 1.5 = 45.00 on
+	// the 2 hours beyond the normal day: 2 × 15 × 1.5 = 45.00 (the shift's granted hour is taken
+	// 13:00–14:00, so 09:00–20:00 is ten worked hours). s.38(4): 2 h × 15.00 × 1.5 = 45.00 on
 	// the Monday. s.37(3)(a): four hours does not exceed half of eight, one day's pay = 132.00.
 	// s.37(3)(b): seven hours is more than half but not more than eight, two days' = 264.00.
 	// s.37(3)(c): eleven hours on a rest day — two days' pay for the first eight (a rest day has no
@@ -649,7 +671,8 @@ test('Singapore — s.38(1)’s 44-hour week pays nothing from the clock, and a 
 			const [monday, , , , , , sunday] = pattern.pattern.days;
 			pattern.pattern = { days: [monday!, monday!, monday!, monday!, monday!, monday!, sunday!] };
 			for (const day of ['05', '06', '07', '08', '09', '10'])
-				punch(world, 'SG-SIX-DAY', `2026-01-${day}`, '09:00', '18:00'); // eight hours net
+				// The shift's granted hour is taken, so 09:00–18:00 is the eight net hours.
+				punchWithBreak(world, 'SG-SIX-DAY', `2026-01-${day}`, '09:00', '18:00');
 			punch(world, 'SG-SIX-DAY', '2026-01-11', '09:00', '18:15'); // Sunday rest day: 9h15
 		}
 	);
@@ -720,7 +743,7 @@ test('Singapore — the normal day is nine hours on a five-day week (s.38(1)), a
 				end_time: '20:00',
 				break_minutes: 60
 			};
-			punch(world, 'SG-LONG', '2026-01-05', '09:00', '20:00');
+			punchWithBreak(world, 'SG-LONG', '2026-01-05', '09:00', '20:00');
 		}
 	);
 	// The rostered week is fifty hours, over s.38(1)(b)'s 44: 12 × 2,288 ÷ (52 × 44) = 12.00 an
@@ -1029,9 +1052,9 @@ test('Singapore — the 72-hour month is also counted with rest-day and holiday 
 		(world) => {
 			const employment = world.employments.find((row) => row.employee_number === 'SG-OT')!;
 			const at = (date: string, time: string) => `${date}T${time}:00.000+08:00`;
-			// The shift is 09:00–18:00 with an hour's break: eight normal hours. Fourteen weekdays
-			// worked to 22:00 (four over each): 56 h; two to 23:00 (five over): 10 h; two to 20:00
-			// (two over): 4 h → 70 regulated hours.
+			// The shift is 09:00–18:00 with an hour's break, taken 13:00–14:00: eight normal hours.
+			// Fourteen weekdays worked to 22:00 (four over each): 56 h; two to 23:00 (five over):
+			// 10 h; two to 20:00 (two over): 4 h → 70 regulated hours.
 			const weekdays = [
 				'02',
 				'03',
@@ -1060,9 +1083,12 @@ test('Singapore — the 72-hour month is also counted with rest-day and holiday 
 					employment_id: employment.id,
 					work_date: `2026-03-${day}`,
 					shift_definition_id: null,
+					// The shift's granted hour is taken at 13:00, so each span is the hours its
+					// comment counts: 09:00–22:00 is 12, 09:00–23:00 is 13, 09:00–20:00 is 10.
 					worked_intervals: [
+						{ start: at(`2026-03-${day}`, '09:00'), end: at(`2026-03-${day}`, '13:00') },
 						{
-							start: at(`2026-03-${day}`, '09:00'),
+							start: at(`2026-03-${day}`, '14:00'),
 							end:
 								end === '00:00'
 									? at(`2026-03-${String(Number(day) + 1).padStart(2, '0')}`, '00:00')
@@ -1228,6 +1254,7 @@ test('Singapore — the lineage carries a no-pay leave row, and a day of it come
 				catalogue_id: npl.id,
 				leave_code: 'UNPAID_LEAVE',
 				reference: 'NPL-SG',
+				no_pay_origin: 'EMPLOYEE_REQUESTED',
 				from_date: '2026-02-03',
 				to_date: '2026-02-03',
 				half_day_start: false,
@@ -1676,7 +1703,7 @@ test('Singapore — cash allowances, expense refunds, overtime and leave convers
 				payslip_id: null,
 				as_adjustment_entry: false
 			} as never);
-			punch(world, 'BASES', '2026-01-05', '09:00', '20:00');
+			punchWithBreak(world, 'BASES', '2026-01-05', '09:00', '20:00');
 		}
 	);
 	const slip = slips.get('BASES')!;
@@ -2623,6 +2650,7 @@ test('Singapore — every sealed version: a joiner and a resigning leaver with a
 					catalogue_id: row('UNPAID_LEAVE').id,
 					leave_code: 'UNPAID_LEAVE',
 					reference: `NPL-SG-${c.period}`,
+					no_pay_origin: 'EMPLOYEE_REQUESTED',
 					from_date: c.npl,
 					to_date: c.npl,
 					half_day_start: false,
@@ -2662,7 +2690,7 @@ test('Singapore — every sealed version: a joiner and a resigning leaver with a
 					payslip_id: null,
 					as_adjustment_entry: false
 				} as never);
-				punch(world, 'SG-LEAVER', c.overtime, '09:00', '20:00');
+				punchWithBreak(world, 'SG-LEAVER', c.overtime, '09:00', '20:00');
 				const bonus = world.adhoc_catalogue!.find(
 					(entry) => entry.code === 'bonus' && entry.settings_id === version
 				)!;
@@ -3379,4 +3407,212 @@ test('Singapore — the SDL authority names SWDA from SSO s.2 and the NOA FAQ as
 		});
 		expectStatutory(book, 'SG-SP', 'SDL', 0, 5.86);
 	}
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// Reconstructed 2026-09-29 from `docs/inventory/singapore.md`'s Round 6 closure table: the four
+// goldens that lived here were lost with an uncommitted working tree, and these are rebuilt from
+// the register's own source, facts and expected results rather than from the original text.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+test('Singapore — the Fourth Schedule hour is read unrounded; only the overtime amount rounds to the cent (SG-EA46-R01)', () => {
+	// EA 1968 s.35(b): Part 4 reaches a non-workman on "a salary not exceeding $2,600 a month" —
+	// $2,600 is inside, $2,600.01 outside (ceiling-inclusive). Fourth Schedule: hourly basic rate
+	// = 12 × monthly basic ÷ (52 × 44), with no rounding stated; s.38(4) pays 1.5× that rate.
+	// 12 × 2,600 ÷ 2,288 = 13.636363…; 2 h × 1.5 × 13.636363… = 40.909… → 40.91. MOM's
+	// hours-of-work page quotes "$13.60" and 2 × 1.5 × $13.60 = $40.80 — an illustration the
+	// Schedule does not state. Owner rule 2026-09-28: law states the formula, silent on rounding;
+	// default the formula unrounded and the payable amount half-up to the cent; lawful because it
+	// pays at least the Schedule's rate (a rate truncated to $13.60 would underpay s.38(4)).
+	const { slips } = buildStatutory(
+		{
+			code: 'SG',
+			period: '2026-01',
+			people: [
+				{ key: 'SG-2600', wage: 2600, citizenship: 'CITIZEN' },
+				{ key: 'SG-2600.01', wage: 2600.01, citizenship: 'CITIZEN' }
+			]
+		},
+		(world) => {
+			// The shift's hour is taken 13:00–14:00, so 09:00–20:00 is ten worked hours: the normal
+			// day plus two.
+			for (const key of ['SG-2600', 'SG-2600.01'])
+				punchWithBreak(world, key, '2026-01-05', '09:00', '20:00');
+		}
+	);
+	assert.deepEqual(workLines(slips.get('SG-2600')!), [['2026-01-05', 'OT-1.5X', 2, 40.91]]);
+	assert.equal(slips.get('SG-2600')!.gross, 2640.91);
+	// One cent above the ceiling takes Part 4 away: no overtime line, the month is the basic wage.
+	assert.deepEqual(workLines(slips.get('SG-2600.01')!), []);
+	assert.equal(slips.get('SG-2600.01')!.gross, 2600.01);
+});
+
+test('Singapore — the self-help funds read NRIC races in the ICA RaceCode spellings (SG-SHG04(a))', () => {
+	// ICA-sourced RaceCode list (Singpass Myinfo data catalogue → Myinfo API code tables, sheet
+	// RaceCode, source ICA/MOM). SINDA Rules 1992 r.2 reaches "every person of Indian descent and
+	// includes Bangladeshis, Bengalis, Gujaratis, Parsees, Sikhs, Sinhalese, Telegus, Pakistanis,
+	// Sri Lankans, Goanese, Malayalees, Punjabis, Sindhis and Tamils" — ICA spells the Rules'
+	// "Telegus" TELUGU and "Goanese" GOAN. CDAC Rules 1992 r.2 reaches the Chinese community (a
+	// SINO INDIAN's first-named descent is Chinese); ECF Rules 1995 r.2 the Eurasian one (the
+	// ANGLO codes' first name). NEPALESE is not a code of a people r.2 names.
+	// Schedule bands at $3,000: CDAC "more than $2,000 but not more than $3,500" $1; ECF "more than
+	// $2,500 but not more than $4,000" $9; SINDA "more than $2,500 but not more than $4,500" $7.
+	const book = assessStatutory({
+		code: 'SG',
+		period: '2026-01',
+		people: [
+			{ key: 'SG-TELUGU', wage: 3000, age: 30, citizenship: 'CITIZEN', race: 'TELUGU' },
+			{ key: 'SG-GOAN', wage: 3000, age: 30, citizenship: 'CITIZEN', race: 'GOAN' },
+			{ key: 'SG-MALABARI', wage: 3000, age: 30, citizenship: 'CITIZEN', race: 'MALABARI' },
+			{
+				key: 'SG-OTHER-INDIAN',
+				wage: 3000,
+				age: 30,
+				citizenship: 'CITIZEN',
+				race: 'OTHER INDIAN'
+			},
+			{
+				key: 'SG-CEYLONESE-PR',
+				wage: 3000,
+				age: 30,
+				citizenship: 'PERMANENT_RESIDENT',
+				residency_since: '2020-01-15',
+				race: 'CEYLONESE'
+			},
+			{
+				key: 'SG-SINO-INDIAN',
+				wage: 3000,
+				age: 30,
+				citizenship: 'PERMANENT_RESIDENT',
+				residency_since: '2020-01-15',
+				race: 'SINO INDIAN'
+			},
+			{
+				key: 'SG-SINO-INDIAN-DUAL',
+				wage: 3000,
+				age: 30,
+				citizenship: 'PERMANENT_RESIDENT',
+				residency_since: '2020-01-15',
+				race: 'SINO INDIAN',
+				registrations: {
+					SINDA: {
+						kind: 'REGISTERED',
+						elections: {
+							shg_dual_sinda: true,
+							shg_secondary_race: 'TAMIL',
+							shg_instruction_reference: 'SINDA-DUAL'
+						}
+					}
+				}
+			},
+			{ key: 'SG-ANGLO-INDIAN', wage: 3000, age: 30, citizenship: 'CITIZEN', race: 'ANGLO INDIAN' },
+			{
+				key: 'SG-ANGLO-CHINESE',
+				wage: 3000,
+				age: 30,
+				citizenship: 'CITIZEN',
+				race: 'ANGLO CHINESE'
+			},
+			{
+				key: 'SG-OTHER-EURASIAN',
+				wage: 3000,
+				age: 30,
+				citizenship: 'CITIZEN',
+				race: 'OTHER EURASIAN'
+			},
+			{ key: 'SG-NEPALESE', wage: 3000, age: 30, citizenship: 'CITIZEN', race: 'NEPALESE' }
+		]
+	});
+	// The Rules' Indian community, in the code table's spelling.
+	for (const key of ['SG-TELUGU', 'SG-GOAN', 'SG-MALABARI', 'SG-OTHER-INDIAN', 'SG-CEYLONESE-PR'])
+		expectStatutory(book, key, 'SINDA', 7, 0);
+	// A mixed-descent code goes to the fund of its first-named descent; a dual election adds SINDA.
+	expectStatutory(book, 'SG-SINO-INDIAN', 'CDAC', 1, 0);
+	expectStatutorySkipped(book, 'SG-SINO-INDIAN', 'SINDA');
+	expectStatutory(book, 'SG-SINO-INDIAN-DUAL', 'CDAC', 1, 0);
+	expectStatutory(book, 'SG-SINO-INDIAN-DUAL', 'SINDA', 7, 0);
+	for (const key of ['SG-ANGLO-INDIAN', 'SG-ANGLO-CHINESE', 'SG-OTHER-EURASIAN'])
+		expectStatutory(book, key, 'ECF', 9, 0);
+	// A code of wider or unstated origin reaches no fund at all.
+	for (const code of ['SINDA', 'CDAC', 'ECF']) expectStatutorySkipped(book, 'SG-NEPALESE', code);
+});
+
+test('Singapore — an unrecorded race refuses under SINDA for a foreign pass holder too (SG-SHG04(a))', () => {
+	// The round-4 seed dropped `citizenship != FOREIGNER` from the blank-race term of SINDA only;
+	// the other funds still exclude a foreigner before the race test, so a foreign pass holder with
+	// no race recorded used to be skipped in silence. SINDA Rules r.2 names no residency condition,
+	// so the wage deduction turns on the race alone and an unstated race cannot be priced: the run
+	// refuses rather than charging nothing.
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: 'SG',
+				period: '2026-01',
+				people: [
+					{
+						key: 'SG-NO-RACE',
+						wage: 3000,
+						age: 30,
+						citizenship: 'FOREIGNER',
+						pass_type: 'S_PASS',
+						race: ''
+					}
+				]
+			}),
+		/Record the employee’s NRIC race before calculating SINDA/
+	);
+});
+
+test('Singapore — shared parental leave selects the 6- or 10-unit pool on the certified dates (SG-SPL-M01)', () => {
+	// CDCA 2001 s.2 "April 2025 Scheme child", s.12DA(2) and Second Schedule para 5: M = 6 only
+	// where the birth AND the estimated delivery date fall before 1 Apr 2026 (or the adoption
+	// eligibility date is 1 Apr 2025–31 Mar 2026); otherwise M = 10. para 6: the default split is
+	// half each, so a parent with no recorded sharing takes M ÷ 2 weeks. Owner rule 2026-09-28: law
+	// silent on an unrecorded date — an unrecorded EDD reads as the birth date and an unrecorded
+	// eligibility date as the event date, which is the pre-fix behaviour. The bands are read through
+	// the engine's own `grantedDays` over the seeded row, on the event the payroll builds.
+	const rule = leaveCatalogue('SG').find((row) => row.code === 'SHARED_PARENTAL_LEAVE')!;
+	// The certified dates are facts of the named child (`children`), which `personContext` reads by
+	// the entry's `event.child_index`; the entry event carries the kind and the event date.
+	const granted = (
+		kind: 'BIRTH' | 'ADOPTION',
+		date: string,
+		child: { estimated_delivery_date?: string; adoption_eligibility_date?: string }
+	) =>
+		grantedDays(
+			{ bands: rule.entitlement.bands } as Pick<LeaveEntitlement, 'bands'>,
+			personContext({
+				employee: null,
+				employment: { service_start: '' },
+				terms: null,
+				company: null,
+				asOf: date,
+				children: [{ child_birthdate: date, ...child }],
+				event: { kind, date, child_index: 1 }
+			} as never)
+		);
+	// Both the birth and the EDD before 1 April 2026: the 6-week pool, half of it = 21 days.
+	assert.equal(granted('BIRTH', '2026-03-20', { estimated_delivery_date: '2026-03-25' }), 21);
+	// A pre-April birth with an April EDD is an April 2025 Scheme child: the 10-week pool = 35.
+	assert.equal(granted('BIRTH', '2026-03-20', { estimated_delivery_date: '2026-04-05' }), 35);
+	// An unrecorded EDD reads as the birth date, so the same birth without one stays at 21.
+	assert.equal(granted('BIRTH', '2026-03-20', {}), 21);
+	// An adoption with its eligibility date inside 1 Apr 2025-31 Mar 2026 takes the 6-week pool.
+	assert.equal(granted('ADOPTION', '2026-03-20', { adoption_eligibility_date: '2026-03-01' }), 21);
+	// An eligibility date on or after 1 April 2026 takes the 10-week pool = 35.
+	assert.equal(granted('ADOPTION', '2026-04-10', { adoption_eligibility_date: '2026-04-01' }), 35);
+});
+
+test('Singapore — childcare leave cites the in-force SSO s.12B (SG-SRC02)', () => {
+	// The row cited a Wayback copy of CDCA s.12B; the in-force SSO text is word-for-word the quoted
+	// text, so every sealed version cites `?ProvIds=pr12B-` instead (read 2026-09-28, current as at
+	// that date, last amended by Act 19 of 2021).
+	for (const row of leaveCatalogue('SG').filter(
+		(candidate) => candidate.code === 'CHILDCARE_LEAVE'
+	))
+		assert.match(
+			row.authority ?? '',
+			/sso\.agc\.gov\.sg\/Act\/CDCSA2001\?ProvIds=pr12B-/,
+			`version ${row.settings_id} cites the in-force s.12B`
+		);
 });

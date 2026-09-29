@@ -269,7 +269,8 @@ test('VN — under the December 2025 version the premium of overtime beyond the 
 				work_date: '2025-12-08',
 				shift_definition_id: null,
 				worked_intervals: [
-					{ start: '2025-12-08T09:00:00+07:00', end: '2025-12-08T23:00:00+07:00' }
+					{ start: '2025-12-08T09:00:00+07:00', end: '2025-12-08T13:00:00+07:00' },
+					{ start: '2025-12-08T14:00:00+07:00', end: '2025-12-08T23:00:00+07:00' }
 				],
 				approval_id: null
 			});
@@ -355,7 +356,14 @@ test('MY — a foreign employee is outside the EIS by rule, except the para 10(b
 });
 
 test('TW — salary paid to a worker not insured here carries the 2.11% NHI supplement from the minimum wage (健保法 §31(1)(2))', () => {
-	const elsewhere = { NHI: { kind: 'NOT_REGISTERED' }, NHI_SUPPLEMENT: { kind: 'NOT_REGISTERED' } };
+	const elsewhere = {
+		NHI: {
+			kind: 'NOT_REGISTERED',
+			declaration_reference: 'OTHER-NHI-UNIT-2026',
+			elections: { other_unit_covered: true }
+		},
+		NHI_SUPPLEMENT: { kind: 'NOT_REGISTERED' }
+	};
 	const book = assessStatutory({
 		code: 'TW',
 		period: '2026-07',
@@ -412,14 +420,26 @@ test('TW — the non-resident 6% band ends at one and a half times the minimum w
 					wage: at,
 					citizenship: 'FOREIGNER',
 					tax_residency: 'NON_RESIDENT',
-					registrations: { EI: { kind: 'NOT_REGISTERED' } }
+					registrations: {
+						EI: {
+							kind: 'NOT_REGISTERED',
+							declaration_reference: 'FOREIGN-WORK-PERMIT',
+							elections: { foreign_worker_excluded: true }
+						}
+					}
 				},
 				{
 					key: 'ABOVE',
 					wage: above,
 					citizenship: 'FOREIGNER',
 					tax_residency: 'NON_RESIDENT',
-					registrations: { EI: { kind: 'NOT_REGISTERED' } }
+					registrations: {
+						EI: {
+							kind: 'NOT_REGISTERED',
+							declaration_reference: 'FOREIGN-WORK-PERMIT',
+							elections: { foreign_worker_excluded: true }
+						}
+					}
 				}
 			]
 		});

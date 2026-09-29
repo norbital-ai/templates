@@ -172,6 +172,34 @@ test('registration status does not erase a version-declared liability or its req
 		{ facts }
 	)[0]!;
 	assert.deepEqual([skipped.employee, skipped.employer], [0, 0]);
+	assert.throws(
+		() =>
+			charge([{ ...scheme, row: { ...scheme.row, unregistered_action: 'REFUSE' } }], 3000, {
+				facts
+			}),
+		/DUTY: the recorded not-registered status cannot establish an exemption/
+	);
+	const excluded = schemeOf('DUTY', [band('base > 0.0', '0.0', '0.0')], {
+		unregistered_action: 'REFUSE'
+	});
+	const exempt = charge([excluded], 3000, { facts })[0]!;
+	assert.deepEqual([exempt.employee, exempt.employer], [0, 0]);
+	assert.deepEqual(charge([excluded], 0, { facts }), []);
+	const priorCoverage = schemeOf('DUTY', [
+		{
+			...band('scheme.current_registration_status == "NOT_REGISTERED"', '0.0', '0.0'),
+			refusal: 'The current registration is unresolved.'
+		},
+		percent('true', 5, 5)
+	]);
+	assert.throws(
+		() =>
+			charge([priorCoverage], 3000, {
+				facts: new Map([[priorCoverage.row.id, { kind: 'REGISTERED', reference_number: 'OLD' }]]),
+				currentFacts: facts
+			}),
+		/The current registration is unresolved/
+	);
 	const needsDeclaration = {
 		...scheme,
 		row: {

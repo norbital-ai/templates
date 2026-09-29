@@ -37,6 +37,7 @@ import { workPayItems } from '../src/lib/payroll/work-lines.ts';
 
 const WORK_CODE = '00000000-0000-4000-8000-00000000c001';
 const REST_CODE = '00000000-0000-4000-8000-00000000c002';
+const LATE_CODE = '00000000-0000-4000-8000-00000000c003';
 
 /** 08:30–17:30 with an hour's unpaid break: eight paid hours. */
 const SHIFT_CODES = new Map([
@@ -46,6 +47,16 @@ const SHIFT_CODES = new Map([
 			id: WORK_CODE,
 			code: 'D',
 			variant: { kind: 'WORK', start_time: '08:30', end_time: '17:30', break_minutes: 60 },
+			effective_range: { start: '2020-01-01', end: null }
+		}
+	],
+	/** The same eight paid hours, an hour later round the clock: a day a late clock can be run on. */
+	[
+		LATE_CODE,
+		{
+			id: LATE_CODE,
+			code: 'L',
+			variant: { kind: 'WORK', start_time: '14:30', end_time: '23:30', break_minutes: 60 },
 			effective_range: { start: '2020-01-01', end: null }
 		}
 	],
@@ -576,8 +587,14 @@ test('a rest day pays a day’s wages, and only the hours past the normal day ru
 
 	// Under half a normal day takes the half-day band instead of the full one.
 	const three = measure({ workDays: [clock('2026-03-15', '08:30', '12:30', 3)] });
-	// Worked and not planned is not paid.
-	assert.deepEqual(measure({ workDays: [clock('2026-03-15', '08:30', '17:30')] }).overtimeDays, []);
+	// Worked and not planned is reported, not quietly priced: overtime is planned (owner's rule,
+	// 2026-09-23), so hours on the clock that nobody approved are a reconciliation question — a run
+	// issue naming the day, not a refusal that hides every other settlement.
+	const unplanned = measure({ workDays: [clock('2026-03-15', '08:30', '17:30')] });
+	assert.equal(amountOf(unplanned, OT_REST_FULL), null, 'no plan, no rest-day line');
+	assert.equal(amountOf(unplanned, OT_REST_HALF), null);
+	// The run reports it as `UNPLANNED_OVERTIME` on its issues, naming the day and both figures;
+	// `calculateFamilies` prices no line for hours nobody planned.
 	assert.equal(amountOf(three, OT_REST_HALF), 66.37, 'half of 132.73, rounded to the cent');
 	assert.equal(
 		three.adjustments.filter((row) => row.label === OT_REST_HALF).length,
@@ -761,16 +778,20 @@ test('the night premium adds a share of the hourly rate to hours inside the wind
 		catalogueComponents: [...COMPONENT_CATALOGUE, night],
 		nightPremium
 	};
-	// An ordinary day clocked 14:30–02:00: ten and a half hours net of the break, two and a half
-	// beyond the normal eight, and four of the clocked hours inside the window. The overtime is the
-	// day's last two and a half hours (23:30–02:00); 22:00–23:30 is an ordinary night hour.
+	// A late-shift Tuesday clocked 14:30–02:00: ten and a half hours net of the hour's break, two
+	// and a half beyond the normal eight, and four of the clocked hours inside the window. The
+	// overtime is the day's last two and a half hours (23:30–02:00); 22:00–23:30 is an ordinary
+	// night hour. The row carries the late shift, because on the day shift those ten and a half
+	// hours are eight of premium, not two and a half.
 	const late = measure(
 		{
 			workDays: [
 				{
 					...clock('2026-03-10', '14:30', '23:59', 2.5),
+					shift_definition_id: LATE_CODE,
 					worked_intervals: [
-						{ start: '2026-03-10T14:30:00.000+08:00', end: '2026-03-11T02:00:00.000+08:00' }
+						{ start: '2026-03-10T14:30:00.000+08:00', end: '2026-03-10T19:00:00.000+08:00' },
+						{ start: '2026-03-10T20:00:00.000+08:00', end: '2026-03-11T02:00:00.000+08:00' }
 					]
 				}
 			]
@@ -795,14 +816,16 @@ test('the night premium adds a share of the hourly rate to hours inside the wind
 		),
 		null
 	);
-	// Without a window on the regime nothing is priced, whatever the clock says.
+	// Without a window on the regime nothing is priced, whatever the clock says. The late shift and
+	// the two and a half planned hours it needs are the same reconciliation the guarded case needs.
 	assert.equal(
 		amountOf(
 			measure(
 				{
 					workDays: [
 						{
-							...clock('2026-03-10', '20:00', '23:59'),
+							...clock('2026-03-10', '20:00', '23:59', 2.5),
+							shift_definition_id: LATE_CODE,
 							worked_intervals: [
 								{ start: '2026-03-10T20:00:00.000+08:00', end: '2026-03-11T02:00:00.000+08:00' }
 							]

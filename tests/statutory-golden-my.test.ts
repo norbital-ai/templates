@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
 	assessStatutory,
+	assessStatutoryUnvalidated,
 	buildStatutory,
 	COMPANY_ID,
 	expectStatutory,
@@ -34,6 +35,12 @@ import {
 	rowIn
 } from './fixtures/statutory-world.ts';
 import { resolveWindow } from '../src/lib/payroll/run/period.ts';
+import {
+	applicableLimits,
+	observedDays,
+	observedPlan,
+	splitPlannedOvertime
+} from '../src/lib/scheduling/work-limits.ts';
 import { monthsAt, priorWages } from './fixtures/prior-wages.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 
@@ -260,7 +267,7 @@ test('Malaysia — declared relief categories remain separate from recorded fami
 });
 
 test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the January 2026 law', () => {
-	const book = assessStatutory({
+	const book = assessStatutoryUnvalidated({
 		code: 'MY',
 		period: '2026-01',
 		// HRDF bands on headcount: ten or more Malaysian employees is the compulsory 1% band,
@@ -447,9 +454,9 @@ test('Malaysia — prior contribution liability survives a change of employer', 
 	expectStatutory(book, 'MY-LATE-58', 'SOCSO', 25.25, 88.35);
 	expectStatutory(book, 'MY-LATE-58', 'EIS', 10.1, 10.1);
 	// A non-citizen first registered at 57: Second Category on the same row (employer 1.25% only);
-	// EIS never reaches a non-citizen, which the NOT_REGISTERED fact already says (a zero row).
+	// EIS never reaches a non-citizen, so no EIS charge row is produced.
 	expectStatutory(book, 'MY-FOREIGN-LATE-58', 'SOCSO', 0, 63.1);
-	expectStatutory(book, 'MY-FOREIGN-LATE-58', 'EIS', 0, 0);
+	expectStatutorySkipped(book, 'MY-FOREIGN-LATE-58', 'EIS');
 });
 
 test('Malaysia — the RM4,000 EPF relief cap and the RM10 minimum monthly deduction', () => {
@@ -532,18 +539,10 @@ test('Malaysia — the RM4,000 EPF relief cap and the RM10 minimum monthly deduc
 	);
 });
 
-test('Malaysia — SKBBK is levied from 1 June 2026, and a local leaves it by releasing', () => {
+test('Malaysia — SKBBK is levied from 1 June 2026 for local and foreign workers', () => {
 	const people = [
 		{ key: 'MY-LOCAL', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL },
-		{ key: 'MY-FOREIGN', wage: 5001, citizenship: 'FOREIGNER', registrations: MY_FOREIGN },
-		// A citizen who filed the Notis Perakuan Pelepasan Liabiliti: out of the scheme by their own
-		// election, which is a registration fact and not a property of the statute.
-		{
-			key: 'MY-RELEASED',
-			wage: 5001,
-			citizenship: 'CITIZEN',
-			registrations: { ...MY_LOCAL, SKBBK: OUT }
-		}
+		{ key: 'MY-FOREIGN', wage: 5001, citizenship: 'FOREIGNER', registrations: MY_FOREIGN }
 	];
 
 	// Before 1 June 2026 the scheme does not exist at all.
@@ -567,16 +566,48 @@ test('Malaysia — SKBBK is levied from 1 June 2026, and a local leaves it by re
 	const july = assessStatutory({ code: 'MY', period: '2026-07', people });
 	expectStatutory(july, 'MY-LOCAL', 'SKBBK', 37.85, 0);
 	expectStatutory(july, 'MY-FOREIGN', 'SKBBK', 37.85, 0);
-	// The release is what takes a person out, and it is theirs alone. A filed release is a
-	// NOT_REGISTERED fact, which gates the charge to zero rather than removing the scheme — the
-	// person is inside a scheme they owe nothing under, which is exactly what a release means.
-	expectStatutory(july, 'MY-RELEASED', 'SKBBK', 0, 0);
-	expectStatutory(july, 'MY-RELEASED', 'SOCSO', 25.25, 88.35);
 	// Nothing else moved across the two seams: SOCSO, EIS and EPF are unchanged.
 	expectStatutory(july, 'MY-LOCAL', 'SOCSO', 25.25, 88.35);
 	expectStatutory(july, 'MY-LOCAL', 'EIS', 10.1, 10.1);
 	expectStatutory(july, 'MY-LOCAL', 'EPF', 561, 612);
 });
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — SKBBK cannot treat an undated not-registered status as a release`, () => {
+		for (const period of ['2026-06', '2026-07']) {
+			for (const citizenship of ['CITIZEN', 'FOREIGNER'] as const)
+				assert.throws(
+					() =>
+						assessStatutory({
+							code,
+							period,
+							people: [
+								{
+									key: citizenship,
+									wage: 5001,
+									citizenship,
+									registrations: {
+										...(citizenship === 'FOREIGNER' ? MY_FOREIGN : MY_LOCAL),
+										SKBBK: OUT
+									}
+								}
+							]
+						}),
+					/SKBBK: the recorded not-registered status cannot establish an exemption/,
+					`${code} ${period} ${citizenship}`
+				);
+			const ordinary = assessStatutory({
+				code,
+				period,
+				people: [
+					{ key: 'LOCAL', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+					{ key: 'FOREIGN', wage: 5001, citizenship: 'FOREIGNER', registrations: MY_FOREIGN }
+				]
+			});
+			expectStatutory(ordinary, 'LOCAL', 'SKBBK', 37.85, 0);
+			expectStatutory(ordinary, 'FOREIGN', 'SKBBK', 37.85, 0);
+		}
+	});
 
 test('Malaysia — a non-resident PCB override is a flat 30% without resident reliefs', () => {
 	const book = assessStatutory({
@@ -683,7 +714,7 @@ test('Malaysia — the Third Schedule brackets a wage in tens, then twenties, th
 	// RM20,000. Each row charges the rate on its own ceiling, so RM970 is "960.01 – 980.00" →
 	// 108 / 128, RM15 is "10.01 – 20.00" → 3 / 3. A composition of three `bracket()` calls
 	// re-rounded 980 to 1,000 and 20 to 100; the rounding is one ladder, not a chain.
-	const book = assessStatutory({
+	const book = assessStatutoryUnvalidated({
 		code: 'MY',
 		period: '2026-01',
 		people: [
@@ -732,7 +763,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 			({ key, wage, age, citizenship: 'CITIZEN', registrations: MY_LOCAL }) as const;
 		const pr = (key: string, wage: number) =>
 			({ key, wage, age: 61, citizenship: 'PERMANENT_RESIDENT', registrations: MY_LOCAL }) as const;
-		const book = assessStatutory({
+		const book = assessStatutoryUnvalidated({
 			code,
 			period: '2026-01',
 			people: [
@@ -796,18 +827,36 @@ const holiday = (date: string, name: string) => ({
 	published_at: '2025-12-01T00:00:00.000Z',
 	approval_id: null
 });
-/** A punch from `start` to `end` on `date`, in the jurisdiction's own +08:00 frame. */
-const punch = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+/**
+ * The worked intervals one day carries, each `[start, end]` in the jurisdiction's +08:00 frame.
+ *
+ * A time entry is a span, and the break a normal day provides comes off it: the shift's
+ * `break_minutes`, or the statute's minimum where that is longer (EA 1955 s.60A(1)(a) owes thirty
+ * minutes after five continuous hours), less any gap the punches already show. A day that means to
+ * have taken its shift's hour punches the hour as one gap.
+ */
+const clocked = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	spans: readonly (readonly [string, string])[]
+) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
 	world.work_days.push({
 		id: `wd-${key}-${date}`,
 		employment_id: employment.id,
 		work_date: date,
 		shift_definition_id: null,
-		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		worked_intervals: spans.map(([start, end]) => ({
+			start: `${date}T${start}:00+08:00`,
+			end: `${date}T${end}:00+08:00`
+		})),
 		approval_id: null
 	});
 };
+/** A punch from `start` to `end` on `date`: one interval, no gap — the day's provided break comes off. */
+const punch = (world: PayrollWorld, key: string, date: string, start: string, end: string) =>
+	clocked(world, key, date, [[start, end]]);
 /** The work-day lines one payslip carries, as `[date, label, hours, amount]`, in date order. */
 const workLines = (slip: BuiltPayslip) =>
 	slip.adjustments
@@ -860,6 +909,141 @@ test('Malaysia — s.59(1): of two rest days in a week only the last is the rest
 	]);
 });
 
+test('Malaysia — s.59(1): the earlier of two rest days counts toward the 104-hour month, and a holiday on it is not substituted', () => {
+	// Mon–Fri 09:00–18:00 less a 60-minute break (8 h), Saturday and Sunday both coded REST.
+	// s.59(1): "where an employee is allowed more than one rest day in a week the last of such rest
+	// days shall be the rest day for the purposes of this Part": Sunday is the rest day, Saturday is
+	// not. The 104-hour month (Employment (Limitation of Overtime Work) Regulations 1980 reg. 2,
+	// s.60A(4)(a)) excludes work on the rest day and the s.60D(1) holidays; Saturday's is ordinary
+	// overtime and counts. s.60D(1) proviso: only a holiday that falls on a REST day moves to the
+	// working day next following, so a holiday on Saturday is observed on Saturday.
+	//
+	// August 2026 (cutoff 1), holidays on Sat 15 and Sun 23. Planned overtime: Sat 1 and Sat 8
+	// 12 h each (the s.60A(7) twelve-hour day holds all 12 on a day with no shift), Sat 22 4 h —
+	// 28 h that count. Sun 2 12 h and Sat 15 12 h: the rest day and a holiday, outside the cap. Every
+	// weekday 4 h (8 h shift + 4 = the twelve-hour day); Mon 24 is Sunday's substitute holiday,
+	// outside the cap, so 19 weekdays to Fri 28 count 76. The cap is full after Fri 28 (28 + 76 =
+	// 104); Mon 31's 4 h are incentive. Reading Saturday as the rest day would count 80 and approve
+	// every hour.
+	const settingsId = settingsIdOn('MY', '2026-08-15');
+	const work = settingsVersions('MY').find((row) => row.id === settingsId)!.work_rules;
+	assert.equal(work.last_rest_day_only, true);
+	const codes = [
+		{
+			id: 'W',
+			code: 'W',
+			variant: { kind: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 },
+			effective_range: { start: '2020-01-01', end: null }
+		},
+		{
+			id: 'R',
+			code: 'R',
+			variant: { kind: 'REST' },
+			effective_range: { start: '2020-01-01', end: null }
+		}
+	];
+	const pattern = {
+		kind: 'CYCLE',
+		days: ['W', 'W', 'W', 'W', 'W', 'R', 'R'].map((roster_code_id) => ({ roster_code_id }))
+	};
+	const holiday = (date: string) => ({
+		id: `h-${date}`,
+		company_id: COMPANY_ID,
+		date,
+		name: 'Holiday',
+		kind: 'PUBLIC',
+		replaces: null,
+		given_to: null,
+		published_at: '2026-01-01T00:00:00.000Z'
+	});
+	const observed = observedDays({
+		dates: ['2026-08-15'],
+		cutoffDay: 1,
+		companyId: COMPANY_ID,
+		// Sat 15 August and Sun 23 August, each a holiday for this test.
+		holidays: [holiday('2026-08-15'), holiday('2026-08-23')],
+		codes,
+		work,
+		plans: [],
+		rosterPeriods: [],
+		patternOn: () => ({ pattern, anchor: '2026-08-03' }),
+		worksiteOn: () => null
+	} as Parameters<typeof observedDays>[0]);
+	// Sat 15 is observed on itself; Sun 23 (the rest day) moves to Mon 24.
+	assert.deepEqual([...observed.holidays].toSorted(), ['2026-08-15', '2026-08-24']);
+	assert.deepEqual([...observed.offDays].toSorted(), [
+		'2026-08-01',
+		'2026-08-08',
+		'2026-08-15',
+		'2026-08-22',
+		'2026-08-29'
+	]);
+	const days = [];
+	for (let n = 1; n <= 31; n++) {
+		const date = `2026-08-${String(n).padStart(2, '0')}`;
+		const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
+		const rest = weekday === 0 || weekday === 6;
+		const total = ['2026-08-01', '2026-08-02', '2026-08-08', '2026-08-15'].includes(date)
+			? 12
+			: rest && date !== '2026-08-22'
+				? 0
+				: 4;
+		days.push({
+			...observedPlan(
+				rest
+					? { date, kind: 'REST' as const, paid_minutes: 0, break_minutes: 0, spread_hours: 0 }
+					: { date, kind: 'WORK' as const, paid_minutes: 480, break_minutes: 60, spread_hours: 9 },
+				observed
+			),
+			total_overtime_hours: total
+		});
+	}
+	const split = splitPlannedOvertime({
+		days,
+		limits: applicableLimits(work.limits ?? [], null),
+		cutoffDay: 1
+	});
+	const row = (date: string) => {
+		const day = split.get(date)!;
+		return [day.approved_overtime_hours, day.incentive_hours];
+	};
+	assert.deepEqual(row('2026-08-01'), [12, 0]);
+	assert.deepEqual(row('2026-08-02'), [12, 0]);
+	assert.deepEqual(row('2026-08-08'), [12, 0]);
+	assert.deepEqual(row('2026-08-15'), [12, 0]);
+	assert.deepEqual(row('2026-08-22'), [4, 0]);
+	assert.deepEqual(row('2026-08-24'), [4, 0]);
+	assert.deepEqual(row('2026-08-28'), [4, 0]);
+	assert.deepEqual(row('2026-08-31'), [0, 4]);
+});
+
+test('MY-nihon — the last rest day keeps its 2.0× rate; paid earlier rest-day work refuses before saving', () => {
+	// A contractual Sat+Sun rest pattern makes only Sunday the Act's s.59(1) rest day. The company
+	// owes its 2× Saturday rate, while Saturday also consumes s.60A(4)(a)'s 104-hour overtime cap.
+	// Until those two identities are represented separately, Saturday work cannot be priced safely.
+	const { slips } = buildStatutory(
+		{
+			code: 'MY-nihon',
+			period: '2026-08',
+			people: [{ key: 'SUN-4', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
+		},
+		(world) => punch(world, 'SUN-4', '2026-08-09', '09:00', '13:00')
+	);
+	assert.deepEqual(workLines(slips.get('SUN-4')!), [['2026-08-09', 'RESTDAY-OT-2.0X', 4, 123.04]]);
+	assert.throws(
+		() =>
+			buildStatutory(
+				{
+					code: 'MY-nihon',
+					period: '2026-08',
+					people: [{ key: 'SAT-4', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
+				},
+				(world) => punch(world, 'SAT-4', '2026-08-08', '09:00', '13:00')
+			),
+		/earlier contractual rest day.*statutory 104-hour overtime count/
+	);
+});
+
 test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rate', () => {
 	const { slips, warnings } = buildStatutory(
 		{
@@ -901,38 +1085,56 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 			};
 			pattern.days[5] = { roster_code_id: 'off-day' };
 			for (const key of ['MY-EA', 'MY-OVER', 'MY-MANUAL']) {
-				punch(world, key, '2026-01-05', '09:00', '20:00'); // Monday: two hours past the shift
+				// A scheduled day punches the shift's hour as a gap: 09:00–12:00 and 13:00–20:00 is
+				// ten hours worked, two beyond the normal eight.
+				clocked(world, key, '2026-01-05', [
+					['09:00', '12:00'],
+					['13:00', '20:00']
+				]); // Monday: two hours past the shift
 				punch(world, key, '2026-01-10', '09:00', '13:00'); // Saturday off day: four hours
 				punch(world, key, '2026-01-04', '09:00', '13:00'); // Sunday rest day: four hours
 				punch(world, key, '2026-01-11', '09:00', '16:00'); // Sunday rest day: seven hours
 				punch(world, key, '2026-01-18', '09:00', '20:00'); // Sunday rest day: eleven hours
-				punch(world, key, '2026-01-01', '09:00', '18:00'); // Thursday holiday: the normal day
-				punch(world, key, '2026-01-14', '09:00', '20:00'); // Wednesday holiday: ten hours
+				// A holiday the shift still runs: eight hours worked is the normal day, ten is two
+				// beyond it.
+				clocked(world, key, '2026-01-01', [
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				]); // Thursday holiday: the normal day
+				clocked(world, key, '2026-01-14', [
+					['09:00', '12:00'],
+					['13:00', '20:00']
+				]); // Wednesday holiday: ten hours
 			}
 		}
 	);
 
 	// s.60A(3)(a): 2 h × 12.50 × 1.5 = 37.50; an off day is not a rest day, so its four hours are
 	// hours beyond the normal week at the same 1.5× = 75.00. s.60(3)(b)(i): four hours is not more
-	// than half of eight, half a day's wages = 50.00. s.60(3)(b)(ii): seven hours is more than half
-	// but not more than eight, one day's wages = 100.00. s.60(3)(c): eleven hours on a rest day — a
-	// day's wages for the first eight, then 3 h × 12.50 × 2 = 75.00. s.60D(3)(a)(i): work on a
-	// holiday is two days' wages = 200.00 "regardless that the period of work done on that day is
-	// less than the normal hours"; s.60D(3)(aa): 2 h beyond them × 12.50 × 3 = 75.00. The shift's
-	// hour of break comes off a scheduled day's clock (09:00–20:00 is ten hours worked); a rest or
-	// off day has no shift, so its whole clock is work.
+	// than half of eight, half a day's wages = 50.00. EA s.60A(1)(a): a rest or off day has no
+	// shift to grant a break, so the Act's thirty minutes after five continuous hours comes off the
+	// span — 09:00–16:00 is 6.5 h worked, more than half but not more than eight, s.60(3)(b)(ii)
+	// one day's wages = 100.00; 09:00–20:00 is 10.5 h, s.60(3)(c) a day's wages for the first
+	// eight, then 2.5 h × 12.50 × 2 = 62.50. s.60D(3)(a)(i): work on a holiday is two days' wages
+	// = 200.00 "regardless that the period of work done on that day is less than the normal hours";
+	// s.60D(3)(aa): 2 h beyond them × 12.50 × 3 = 75.00. A scheduled day's shift grants an hour and
+	// takes it as a gap (09:00–20:00 punched as two intervals is ten hours worked with nothing left
+	// to deduct).
 	assert.deepEqual(workLines(slips.get('MY-EA')!), [
 		['2026-01-01', 'HOLIDAY-2-DAYS-PAY', 8, 200],
 		['2026-01-04', 'RESTDAY-HALF-DAY-PAY', 4, 50],
 		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 37.5],
 		['2026-01-10', 'WORKDAY-OT-1.5X', 4, 75],
-		['2026-01-11', 'RESTDAY-FULL-DAY-PAY', 7, 100],
+		['2026-01-11', 'RESTDAY-FULL-DAY-PAY', 6.5, 100],
 		['2026-01-14', 'HOLIDAY-2-DAYS-PAY', 8, 200],
 		['2026-01-14', 'HOLIDAY-OT-3.0X', 2, 75],
 		['2026-01-18', 'RESTDAY-FULL-DAY-PAY', 8, 100],
-		['2026-01-18', 'RESTDAY-OT-2.0X', 3, 75]
+		['2026-01-18', 'RESTDAY-OT-2.0X', 2.5, 62.5]
 	]);
-	assert.equal(slips.get('MY-EA')!.gross, 2600 + 200 + 50 + 37.5 + 75 + 100 + 200 + 75 + 100 + 75);
+	assert.equal(
+		slips.get('MY-EA')!.gross,
+		2600 + 200 + 50 + 37.5 + 75 + 100 + 200 + 75 + 100 + 62.5
+	);
 	// Which schemes see the overtime is each scheme's own `assessed_on`: EPF Act 1991 s.2 keeps
 	// overtime out of wages, Act 4 and Act 800 take it in, HRD Corp levies basic and fixed
 	// allowances only.
@@ -940,12 +1142,12 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 		slips.get('MY-EA')!.statutory.find((row) => row.scheme_code === code)!;
 	assert.equal(charge('EPF').base_amount, 2600);
 	assert.equal(charge('HRDF').base_amount, 2600);
-	assert.equal(charge('SOCSO').base_amount, 3512.5);
-	assert.equal(charge('EIS').base_amount, 3512.5);
-	// SOCSO on 3,512.50 is the "exceeding 3,500, not exceeding 3,600" row: 17.75 / 62.15.
+	assert.equal(charge('SOCSO').base_amount, 3500);
+	assert.equal(charge('EIS').base_amount, 3500);
+	// SOCSO on 3,500.00 is the "exceeding 3,400, not exceeding 3,500" row: 17.25 / 60.35.
 	assert.deepEqual(
 		[charge('SOCSO').employee_amount, charge('SOCSO').employer_amount],
-		[17.75, 62.15]
+		[17.25, 60.35]
 	);
 
 	// Over RM4,000 and outside para 2: the same six days produce no Part XII line at all.
@@ -972,16 +1174,16 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 		['2026-01-04', 'RESTDAY-HALF-DAY-PAY', 4, 100],
 		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 75],
 		['2026-01-10', 'WORKDAY-OT-1.5X', 4, 150],
-		['2026-01-11', 'RESTDAY-FULL-DAY-PAY', 7, 200],
+		['2026-01-11', 'RESTDAY-FULL-DAY-PAY', 6.5, 200],
 		['2026-01-14', 'HOLIDAY-2-DAYS-PAY', 8, 400],
 		['2026-01-14', 'HOLIDAY-OT-3.0X', 2, 150],
 		['2026-01-18', 'RESTDAY-FULL-DAY-PAY', 8, 200],
-		['2026-01-18', 'RESTDAY-OT-2.0X', 3, 150]
+		['2026-01-18', 'RESTDAY-OT-2.0X', 2.5, 125]
 	]);
 });
 
 test('Malaysia — s.18A prices an incomplete month and unpaid absence on the calendar month', () => {
-	const { slips, warnings } = buildStatutory(
+	const { slips } = buildStatutory(
 		{
 			code: 'MY',
 			period: '2026-01',
@@ -997,9 +1199,7 @@ test('Malaysia — s.18A prices an incomplete month and unpaid absence on the ca
 					registrations: REGISTERED_LOCAL
 				},
 				// A rostered Tuesday with no attendance and no leave: one day of absence without pay.
-				{ key: 'MY-ABSENT', wage: 3100, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL },
-				// Minimum Wages Order 2024 [P.U.(A) 376/2024]: RM1,700; a contract below it is reported.
-				{ key: 'MY-UNDER', wage: 1500, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
+				{ key: 'MY-ABSENT', wage: 3100, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
 			]
 		},
 		(world) => {
@@ -1046,13 +1246,17 @@ test('Malaysia — s.18A prices an incomplete month and unpaid absence on the ca
 		[[3000, 330, 390]]
 	);
 
-	// The run still builds — the Order is enforced by the Labour Department, not by refusing a
-	// payslip — and names the person and the figure.
-	assert.ok(
-		warnings.some((line) =>
-			/MY-UNDER is contracted at 1500 a month, below the Malaysia minimum wage of 1700/.test(line)
-		),
-		warnings.join('\n')
+	assert.throws(
+		() =>
+			buildStatutory({
+				code: 'MY',
+				period: '2026-01',
+				region: 'Malaysia',
+				people: [
+					{ key: 'MY-UNDER', wage: 1500, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
+				]
+			}),
+		/MINIMUM_WAGE_BELOW: MY-UNDER is contracted at 1500 a month, below the Malaysia minimum wage of 1700/
 	);
 });
 
@@ -1060,10 +1264,11 @@ test('Malaysia — regulation 4’s 104-hour month is a ceiling on the employer,
 	// Employment (Limitation of Overtime Work) Regulations 1980 reg.4: an employer shall not require
 	// overtime beyond 104 hours in a month. s.60A(3)(a) still pays every planned hour at 1.5×; the
 	// write stores the planned excess as incentive hours (`splitPlannedOvertime`), paid on the
-	// INCENTIVE line at the band's own award. Fourteen January weekdays of eight hours past the
-	// shift (18:00 → 02:00) are 112 h. The s.60A(7) twelve-hour day splits first: each day's eight
-	// shift hours leave four within it and four incentive, so the month holds 56 and never reaches
-	// 104 (owner's rule, 2026-09-23: every statutory overtime limit splits).
+	// INCENTIVE line at the band's own award. Fourteen January weekdays worked 09:00–02:00 with the
+	// shift's hour punched as a gap are sixteen hours each, eight past the normal day: 112 h. The
+	// s.60A(7) twelve-hour day splits first: each day's twelve worked hours leave four within it and
+	// four incentive, so the month holds 56 and never reaches 104 (owner's rule, 2026-09-23: every
+	// statutory overtime limit splits).
 	const next = (date: string) =>
 		new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
 	const { slips, warnings } = buildStatutory(
@@ -1085,7 +1290,8 @@ test('Malaysia — regulation 4’s 104-hour month is a ceiling on the employer,
 					work_date: date,
 					shift_definition_id: null,
 					worked_intervals: [
-						{ start: `${date}T09:00:00+08:00`, end: `${next(date)}T02:00:00+08:00` }
+						{ start: `${date}T09:00:00+08:00`, end: `${date}T13:00:00+08:00` },
+						{ start: `${date}T14:00:00+08:00`, end: `${next(date)}T02:00:00+08:00` }
 					],
 					approval_id: null
 				});
@@ -1127,9 +1333,10 @@ test('Malaysia — regulation 4’s 104-hour month is a ceiling on the employer,
 
 test('MY-nihon — overtime past twelve hours worked is incentive at the customer’s rate', () => {
 	// The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the
-	// statutory limits — here s.60A(7)'s twelve worked hours a day (`daily_total`). 09:00–22:30 is
-	// 12.5 h worked, 4.5 h past the normal eight at round(2,600 × 12 ÷ (52 × 45)) = 13.33 × 1.5 =
-	// 19.995: 4 h within twelve, 4 × 19.995 = 79.98; 0.5 h beyond, 0.5 × 19.995 = 9.9975 → 10.00.
+	// statutory limits — here s.60A(7)'s twelve worked hours a day (`daily_total`). 09:00–22:30 with
+	// the shift's hour punched as a gap is 12.5 h worked, 4.5 h past the normal eight at
+	// round(2,600 × 12 ÷ (52 × 45)) = 13.33 × 1.5 = 19.995: 4 h within twelve, 4 × 19.995 = 79.98;
+	// 0.5 h beyond, 0.5 × 19.995 = 9.9975 → 10.00.
 	const { slips } = buildStatutory(
 		{
 			code: 'MY-nihon',
@@ -1138,7 +1345,11 @@ test('MY-nihon — overtime past twelve hours worked is incentive at the custome
 				{ key: 'N-2600', wage: 2600, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
 			]
 		},
-		(world) => punch(world, 'N-2600', '2026-01-05', '09:00', '22:30')
+		(world) =>
+			clocked(world, 'N-2600', '2026-01-05', [
+				['09:00', '13:00'],
+				['14:00', '22:30']
+			])
 	);
 	assert.deepEqual(
 		slips
@@ -1156,11 +1367,14 @@ test('MY-nihon — a short rest day or holiday is lifted to the Act’s day awar
 	// the customer’s hour is round(3,000 × 12 ÷ (52 × 45)) = 15.38; the s.60I(1A) ordinary rate of
 	// pay is 3,000 ÷ 26 = 115.3846, its hour ÷ 8 = 14.4231.
 	// Sunday 6 Sep, 1 h: column 1 × 15.38 × 2 = 30.76; s.60(3)(b)(i) half the ORP = 57.69.
-	// Sunday 20 Sep, 11 h: column 8 × 15.38 × 2 = 246.08 over s.60(3)(b)(ii)'s 115.38; the 3 h beyond
-	// at the greater hour, 3 × 15.38 × 2 = 92.28 over s.60(3)(c)'s 86.54 — 338.36, the column price.
-	// Hari Malaysia, Wed 16 Sep, 10:00–12:00: the column is 1 h (the shift's hour of break comes off
-	// a scheduled day's clock) × 15.38 × 2 = 30.76; s.60D(3)(a)(i) two days' wages 2 × 115.3846 =
-	// 230.77 "regardless that the period of work done on that day is less than the normal hours".
+	// Sunday 20 Sep, 09:00–20:00: the rest day has no shift to grant a break, so EA s.60A(1)(a)'s
+	// thirty minutes after five continuous hours comes off — 10.5 h worked: column 8 × 15.38 × 2 =
+	// 246.08 over s.60(3)(b)(ii)'s 115.38; the 2.5 h beyond at the greater hour, 2.5 × 15.38 × 2 =
+	// 76.90 over s.60(3)(c)'s 72.12 — 322.98, the column price.
+	// Hari Malaysia, Wed 16 Sep, 10:00–12:00: the column is the one hour worked — the shift's hour
+	// punched as a gap 10:30–11:30 — × 15.38 × 2 = 30.76; s.60D(3)(a)(i) two days' wages 2 ×
+	// 115.3846 = 230.77 "regardless that the period of work done on that day is less than the normal
+	// hours".
 	const { slips } = buildStatutory(
 		{
 			code: 'MY-nihon',
@@ -1169,7 +1383,10 @@ test('MY-nihon — a short rest day or holiday is lifted to the Act’s day awar
 		},
 		(world) => {
 			world.jurisdiction_holidays.push(holiday('2026-09-16', 'Hari Malaysia'));
-			punch(world, 'N-3000', '2026-09-16', '10:00', '12:00');
+			clocked(world, 'N-3000', '2026-09-16', [
+				['10:00', '10:30'],
+				['11:30', '12:00']
+			]);
 			punch(world, 'N-3000', '2026-09-06', '09:00', '10:00');
 			punch(world, 'N-3000', '2026-09-20', '09:00', '20:00');
 		}
@@ -1177,7 +1394,7 @@ test('MY-nihon — a short rest day or holiday is lifted to the Act’s day awar
 	assert.deepEqual(workLines(slips.get('N-3000')!), [
 		['2026-09-06', 'RESTDAY-OT-2.0X', 1, 57.69],
 		['2026-09-16', 'HOLIDAY-2.0X', 1, 230.77],
-		['2026-09-20', 'RESTDAY-OT-2.0X', 11, 338.36]
+		['2026-09-20', 'RESTDAY-OT-2.0X', 10.5, 322.98]
 	]);
 });
 
@@ -1197,7 +1414,10 @@ test('Nihon cash allowances enter the contribution bases but not the overtime ho
 					amount: 260
 				}
 			];
-			punch(world, 'N-GROSS', '2026-01-05', '09:00', '22:00');
+			clocked(world, 'N-GROSS', '2026-01-05', [
+				['09:00', '13:00'],
+				['14:00', '22:00']
+			]);
 		}
 	);
 	const slip = slips.get('N-GROSS')!;
@@ -1232,8 +1452,15 @@ test('MY overtime uses the salary on the worked day across a mid-month pay rise'
 				effective_range: { start: '2026-01-10', end: null }
 			});
 			old.effective_range = { start: '2015-01-01', end: '2026-01-09' };
-			punch(world, 'M-DATED', '2026-01-05', '09:00', '20:00');
-			punch(world, 'M-DATED', '2026-01-12', '09:00', '20:00');
+			// Ten hours worked on each day, the shift's hour punched as a gap.
+			clocked(world, 'M-DATED', '2026-01-05', [
+				['09:00', '12:00'],
+				['13:00', '20:00']
+			]);
+			clocked(world, 'M-DATED', '2026-01-12', [
+				['09:00', '12:00'],
+				['13:00', '20:00']
+			]);
 		}
 	);
 	assert.deepEqual(workLines(slips.get('M-DATED')!), [
@@ -1253,15 +1480,30 @@ test('Malaysia — s.60A(3) overtime is work in excess of the normal hours, not 
 			]
 		},
 		(world) => {
-			// Two hours late, two hours past the end: eight hours worked, a normal day.
-			punch(world, 'MY-LATE', '2026-01-05', '11:00', '20:00');
+			// Two hours late, two hours past the end: eight hours worked, the shift's hour punched
+			// as a gap 15:00–16:00.
+			clocked(world, 'MY-LATE', '2026-01-05', [
+				['11:00', '15:00'],
+				['16:00', '20:00']
+			]);
 			// Two hours late, four past the end: ten hours worked, two beyond the normal eight.
-			punch(world, 'MY-LATE-LONG', '2026-01-06', '11:00', '22:00');
+			clocked(world, 'MY-LATE-LONG', '2026-01-06', [
+				['11:00', '15:00'],
+				['16:00', '22:00']
+			]);
 		}
 	);
 	// s.60A(3)(a): "work carried out in excess of the normal hours of work" — 11:00–20:00 less the
 	// hour of break is the eight normal hours and no more. The clock-out overrun priced the two
 	// hours the person had not worked at 1.5×; the Act pays nothing.
+	//
+	// OPEN — a conflict between the Act and the guard, not between the Act and this fixture. The
+	// guard (work.ts:1547) measures ordinary paid work as the hours worked INSIDE the rostered
+	// window (`ordinaryWorkedHours`), so it reads six of these eight hours as ordinary and demands
+	// two hours of approved overtime for a day the contract fixes at eight. The engine's own
+	// planner (`keyClockOverruns`) and the roster board both read the same day as eight ordinary
+	// hours. A shift of 11:00–20:00 on this row makes the run agree with the Act, but then the
+	// clock-out never leaves the window and the case stops testing anything: left failing instead.
 	assert.deepEqual(workLines(slips.get('MY-LATE')!), []);
 	assert.equal(slips.get('MY-LATE')!.gross, 2600);
 	assert.deepEqual(workLines(slips.get('MY-LATE-LONG')!), [
@@ -1314,7 +1556,11 @@ const rostered = (
 				employment_id: employment.id,
 				work_date: date,
 				shift_definition_id: SHIFT_7H30,
-				worked_intervals: [{ start: `${date}T08:00:00+08:00`, end: `${date}T16:30:00+08:00` }],
+				// The shift's hour punched as a gap: 08:00–16:30 is seven and a half hours worked.
+				worked_intervals: [
+					{ start: `${date}T08:00:00+08:00`, end: `${date}T12:00:00+08:00` },
+					{ start: `${date}T13:00:00+08:00`, end: `${date}T16:30:00+08:00` }
+				],
 				approval_id: null
 			});
 		date = new Date(Date.parse(`${date}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
@@ -1335,9 +1581,11 @@ test('MY-nihon — a rostered person’s hour is the contract week’s, whatever
 		},
 		(world) => {
 			rostered(world, 'NHPMY0339', '2025-12-01', '2026-01-31', 6);
-			// Monday 5 January to 18:30: 9.5 h worked, two beyond the 7.5-hour normal day.
+			// Monday 5 January to 18:30 with the hour punched as a gap: 9.5 h worked, two beyond the
+			// 7.5-hour normal day.
 			world.work_days.find((row) => row.id === 'wd-NHPMY0339-2026-01-05')!.worked_intervals = [
-				{ start: '2026-01-05T08:00:00+08:00', end: '2026-01-05T18:30:00+08:00' }
+				{ start: '2026-01-05T08:00:00+08:00', end: '2026-01-05T12:00:00+08:00' },
+				{ start: '2026-01-05T13:00:00+08:00', end: '2026-01-05T18:30:00+08:00' }
 			];
 		}
 	);
@@ -1398,15 +1646,7 @@ test('Malaysia — HRD Corp counts Malaysian employees alone, and zakat is set o
 				key: `MY-FW-${index}`,
 				wage: 2000,
 				citizenship: 'FOREIGNER' as const,
-				registrations: {
-					EPF: OUT,
-					EPF_PR: OUT,
-					EIS: OUT,
-					PCB: OUT,
-					SOCSO: OUT,
-					SKBBK: OUT,
-					HRDF: OUT
-				}
+				registrations: MY_FOREIGN
 			}))
 		]
 	});
@@ -1447,7 +1687,11 @@ test('Malaysia — the normal day is at most nine hours under the s.60A(1) provi
 				end_time: '20:00',
 				break_minutes: 60
 			};
-			punch(world, 'MY-TEN', '2026-01-05', '09:00', '20:00');
+			// A full ten-hour shift, the hour punched as a gap: ten hours worked, two past the eight.
+			clocked(world, 'MY-TEN', '2026-01-05', [
+				['09:00', '14:00'],
+				['15:00', '20:00']
+			]);
 			punch(world, 'MY-DAILY', '2026-01-04', '09:00', '13:00'); // Sunday rest day, four hours
 			punch(world, 'MY-DAILY', '2026-01-11', '09:00', '16:00'); // Sunday rest day, seven hours
 			// s.60I(1C): a daily rate is priced from the preceding complete wage period — 2,600 over
@@ -1475,10 +1719,12 @@ test('Malaysia — the normal day is at most nine hours under the s.60A(1) provi
 	assert.deepEqual(workLines(slips.get('MY-TEN')!), [['2026-01-05', 'WORKDAY-OT-1.5X', 2, 37.5]]);
 	// s.60(3)(a): a daily-rated employee's rest-day work pays one day's wages up to half the
 	// normal hours and two days' wages beyond — 100 and 200 — where a monthly-rated one gets half
-	// and one.
+	// and one. The 09:00–16:00 Sunday is a seven-hour span and no shift grants a rest-day break, so
+	// EA s.60A(1)(a)'s thirty minutes after five continuous hours comes off: 6.5 h worked, still
+	// beyond half of eight — two days' wages = 200; the four-hour punch owes no break.
 	assert.deepEqual(workLines(slips.get('MY-DAILY')!), [
 		['2026-01-04', 'RESTDAY-ONE-DAY-PAY', 4, 100],
-		['2026-01-11', 'RESTDAY-TWO-DAYS-PAY', 7, 200]
+		['2026-01-11', 'RESTDAY-TWO-DAYS-PAY', 6.5, 200]
 	]);
 });
 
@@ -1526,7 +1772,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 			{ key: 'W-2150-61', wage: 2150, age: 61, citizenship: 'CITIZEN' }
 		];
 		for (const period of ['2026-06', '2026-08']) {
-			const book = assessStatutory({ code, period, people });
+			const book = assessStatutoryUnvalidated({ code, period, people });
 			expectStatutory(book, 'W-30', 'SKBBK', 0.2, 0);
 			expectStatutory(book, 'W-2150', 'SKBBK', 16.15, 0);
 			expectStatutory(book, 'W-3550', 'SKBBK', 26.65, 0);
@@ -1866,8 +2112,15 @@ test('Malaysia — the 45-hour week pays nothing from the clock; its excess is p
 			const pattern = world.shift_patterns[0]!;
 			const [monday, , , , , , sunday] = pattern.pattern.days;
 			pattern.pattern = { days: [monday!, monday!, monday!, monday!, monday!, monday!, sunday!] };
-			punch(world, 'SIX8-SAT', '2026-01-10', '09:00', '18:00');
-			punch(world, 'SIX8-PLAN', '2026-01-10', '09:00', '18:00');
+			// A full shift: the hour is punched as a gap, so eight hours are worked.
+			clocked(world, 'SIX8-SAT', '2026-01-10', [
+				['09:00', '13:00'],
+				['14:00', '18:00']
+			]);
+			clocked(world, 'SIX8-PLAN', '2026-01-10', [
+				['09:00', '13:00'],
+				['14:00', '18:00']
+			]);
 			world.work_days.at(-1)!.approved_overtime_hours = 3;
 		}
 	);
@@ -1879,9 +2132,10 @@ test('Malaysia — the 45-hour week pays nothing from the clock; its excess is p
 
 test('Malaysia — a part-timer’s hours beyond their own day up to a full-timer’s eight are the hourly rate, beyond that 1.5× (Part-Time Employees Regulations 2010 reg. 5)', () => {
 	// Contracted 09:00–13:00 five days (twenty hours) at RM1,040: the day is 1,040 ÷ 26 = 40.00
-	// and the hour is the day over the contract's four — 10.00. A ten-hour Monday (09:00–19:00,
-	// no break): four hours up to the full-timer's eight at 1.0× = 40.00, two beyond at 1.5× =
-	// 30.00.
+	// and the hour is the day over the contract's four — 10.00. A Monday punched 09:00–19:00 is a
+	// ten-hour span; the short shift grants no break, so EA s.60A(1)(a)'s thirty minutes after five
+	// continuous hours comes off: 9.5 h worked — four hours up to the full-timer's eight at
+	// 1.0× = 40.00, 1.5 beyond at 1.5× = 22.50.
 	const SHORT_ID = 'c0000000-0000-4000-8000-0000000000f2';
 	const { slips } = buildStatutory(
 		{
@@ -1915,7 +2169,7 @@ test('Malaysia — a part-timer’s hours beyond their own day up to a full-time
 	);
 	assert.deepEqual(workLines(slips.get('MY-PT')!), [
 		['2026-01-05', 'PT-1.0X', 4, 40],
-		['2026-01-05', 'PT-1.5X', 2, 30]
+		['2026-01-05', 'PT-1.5X', 1.5, 22.5]
 	]);
 });
 
@@ -1925,8 +2179,9 @@ test('MY-nihon — a roster that mixes 7.5-hour and 9-hour shifts owes no overti
 	// normal day. The roster's
 	// average day (8.2 h) is nobody's normal hours: it priced 0.8 h of overtime on every 9-hour
 	// shift. The hourly rate stays the shift over the agreed week — 1,700 ÷ 26 over the rostered
-	// average day; only the overtime threshold moves. Clocked whole on 19 January: no line.
-	// Clocked to 19:30 on the 20th: one hour beyond the nine.
+	// average day; only the overtime threshold moves. Both clocks punch the shift's hour as a gap,
+	// so a 9-hour shift worked whole is nine hours worked on the 19th: no line. Worked to 19:30 on
+	// the 20th: ten hours worked, one beyond the nine.
 	const NINE = 'c0000000-0000-4000-8000-0000000000e1';
 	const { slips } = buildStatutory(
 		{
@@ -1964,10 +2219,12 @@ test('MY-nihon — a roster that mixes 7.5-hour and 9-hour shifts owes no overti
 					approval_id: null
 				});
 			world.work_days.find((row) => row.id === 'wd-NHPMY0357-2026-01-19')!.worked_intervals = [
-				{ start: '2026-01-19T08:30:00+08:00', end: '2026-01-19T18:30:00+08:00' }
+				{ start: '2026-01-19T08:30:00+08:00', end: '2026-01-19T13:00:00+08:00' },
+				{ start: '2026-01-19T14:00:00+08:00', end: '2026-01-19T18:30:00+08:00' }
 			];
 			world.work_days.find((row) => row.id === 'wd-NHPMY0357-2026-01-20')!.worked_intervals = [
-				{ start: '2026-01-20T08:30:00+08:00', end: '2026-01-20T19:30:00+08:00' }
+				{ start: '2026-01-20T08:30:00+08:00', end: '2026-01-20T13:00:00+08:00' },
+				{ start: '2026-01-20T14:00:00+08:00', end: '2026-01-20T19:30:00+08:00' }
 			];
 		}
 	);
@@ -2175,7 +2432,7 @@ test('MY — a mid-month salary change is each rate over its own calendar days (
 
 for (const code of ['MY', 'MY-nihon'] as const)
 	test(`${code} — floors, ceilings and the cent either side of a band seam`, () => {
-		const book = assessStatutory({
+		const book = assessStatutoryUnvalidated({
 			code,
 			period: '2026-01',
 			people: [
@@ -2443,8 +2700,12 @@ for (const code of ['MY', 'MY-nihon'] as const)
 					people: [{ key: 'OT', wage: 2600, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
 				},
 				(world) => {
+					// Ten hours worked on each Monday, the shift's hour punched as a gap.
 					for (const date of ['2026-01-19', '2026-01-26'])
-						punch(world, 'OT', date, '09:00', '20:00');
+						clocked(world, 'OT', date, [
+							['09:00', '12:00'],
+							['13:00', '20:00']
+						]);
 				}
 			).slips.get('OT')!;
 		const paid = (period: string) =>
@@ -2454,39 +2715,32 @@ for (const code of ['MY', 'MY-nihon'] as const)
 	});
 
 for (const code of ['MY', 'MY-nihon'] as const)
-	test(`${code} — a non-resident's employment of sixty days or fewer is exempt (ITA Schedule 6 para 21)`, () => {
+	test(`${code} — a paragraph 21 election without worked-in-Malaysia days refuses before saving`, () => {
 		// Income Tax Act 1967 Schedule 6 para 21 (AGC online text as at 1 January 2026) exempts a
-		// non-resident's income from an employment exercised in Malaysia for not more than sixty days;
-		// para 22 removes it beyond sixty days and for a public entertainer. The days are the
-		// employer's declared fact (`pcb_sch6_para21`). Declared: exempt income is excluded from MTD
-		// remuneration (LHDN MTD Specification 2026 D(a)), so nothing is withheld. Undeclared: D(a)'s
-		// 30% × 5,001 = 1,500.30.
+		// non-resident's income from an employment exercised in Malaysia for not more than sixty days.
+		// The boolean election does not record how many days the employment was exercised here.
 		const foreign = (para21: boolean) => ({
 			...MY_FOREIGN,
 			PCB: { kind: 'REGISTERED', elections: { pcb_sch6_para21: para21 } }
 		});
-		const book = assessStatutory({
-			code,
-			period: '2026-01',
-			people: [
-				{
-					key: 'NR-60',
-					wage: 5001,
-					citizenship: 'FOREIGNER',
-					tax_residency: 'NON_RESIDENT',
-					registrations: foreign(true)
-				},
-				{
-					key: 'NR-61',
-					wage: 5001,
-					citizenship: 'FOREIGNER',
-					tax_residency: 'NON_RESIDENT',
-					registrations: foreign(false)
-				}
-			]
+		const person = (para21: boolean) => ({
+			key: 'NR',
+			wage: 5001,
+			citizenship: 'FOREIGNER',
+			tax_residency: 'NON_RESIDENT' as const,
+			registrations: foreign(para21)
 		});
-		expectStatutory(book, 'NR-60', 'PCB', 0, 0);
-		expectStatutory(book, 'NR-61', 'PCB', 1500.3, 0);
+		assert.throws(
+			() => buildStatutory({ code, period: '2026-01', people: [person(true)] }),
+			/PCB: Schedule 6 paragraph 21 needs dated days employment was exercised in Malaysia/
+		);
+		expectStatutory(
+			assessStatutory({ code, period: '2026-01', people: [person(false)] }),
+			'NR',
+			'PCB',
+			1500.3,
+			0
+		);
 	});
 
 test('Malaysia — a PCB rule tells a 181-day contract from a 182-day one (MTD spec 2026 D(a) note)', () => {
@@ -2502,6 +2756,7 @@ test('Malaysia — a PCB rule tells a 181-day contract from a 182-day one (MTD s
 	].map((row) => ({
 		...row,
 		wage: 5001,
+		employment_type: row.exit_date == null ? 'PERMANENT' : 'CONTRACT',
 		citizenship: 'FOREIGNER',
 		hire_date: '2026-01-01',
 		registrations: MY_FOREIGN
@@ -2545,6 +2800,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 			// Not known to be resident, unless the row records otherwise.
 			tax_residency: null,
 			wage: 5001,
+			employment_type: row.exit_date == null ? 'PERMANENT' : 'CONTRACT',
 			citizenship: 'FOREIGNER',
 			hire_date: '2026-01-01',
 			registrations: MY_FOREIGN,
@@ -2582,14 +2838,20 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		const january = buildStatutory({
 			code,
 			period: '2026-01',
-			people: people({ pcb_sch6_para21: true })
+			people: people({})
 		}).slips.get('NR')!;
-		assert.equal(january.statutory.find((row) => row.scheme_code === 'PCB')!.employee_amount, 0);
+		// Model a previously paid nil-MTD slip from before the paragraph 21 evidence guard.
+		const historicJanuary = {
+			...january,
+			statutory: january.statutory.map((row) =>
+				row.scheme_code === 'PCB' ? { ...row, employee_amount: 0 } : row
+			)
+		};
 		const february = (elections: Record<string, boolean>) =>
 			assessStatutory({ code, period: '2026-02', people: people(elections) }, (world) => {
 				world.payroll_runs.push({ id: 'paid-january', company_id: COMPANY_ID, period: '2026-01' });
 				world.payslips.push({
-					...january,
+					...historicJanuary,
 					id: 'para21-january-slip',
 					payroll_run_id: 'paid-january',
 					status: 'PAID',
@@ -2688,6 +2950,212 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		expectStatutory(book, 'LS-9', 'PCB', 289.9, 0);
 	});
 
+/** An ad hoc payment of `code` in January 2026 for every employment in the world. */
+const adhocForAll = (
+	world: PayrollWorld,
+	settingsId: string,
+	pay: Record<string, [string, number][]>
+) => {
+	let index = 0;
+	for (const employment of world.employments)
+		for (const [code, amount] of pay[employment.employee_number] ?? [])
+			world.adhoc_requests!.push({
+				id: `d0000000-0000-4000-8000-0000000b${String(index++).padStart(4, '0')}`,
+				employment_id: employment.id,
+				catalogue_id: rowIn(world.adhoc_catalogue!, settingsId, code),
+				amount,
+				event_date: '2026-01-01',
+				pay_period: null,
+				payslip_id: null,
+				reason: code,
+				evidence_file: null,
+				as_adjustment_entry: false,
+				approval_id: null
+			});
+};
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — a past-achievement, excellence, innovation or productivity award shares the RM2,000 with long service (ITA Sch.6 para 25C)`, () => {
+		const settingsId = settingsIdOn(code, '2026-01-15');
+		const book = assessStatutory(
+			{
+				code,
+				period: '2026-01',
+				people: [
+					// Nine years: para 25C's ten-year condition binds the long service award alone.
+					{
+						key: 'EX-9',
+						wage: 5001,
+						hire_date: '2017-01-01',
+						citizenship: 'CITIZEN',
+						registrations: MY_LOCAL
+					},
+					// Eleven years, both awards: one RM2,000 cap for the two (LHDN PR 5/2019 para 7.1.1, Example 11).
+					{
+						key: 'EX-LS-11',
+						wage: 5001,
+						hire_date: '2015-01-01',
+						citizenship: 'CITIZEN',
+						registrations: MY_LOCAL
+					}
+				]
+			},
+			(world) =>
+				adhocForAll(world, settingsId, {
+					'EX-9': [['EXCELLENCE_AWARD', 3000]],
+					'EX-LS-11': [
+						['EXCELLENCE_AWARD', 3000],
+						['LONG_SERVICE_AWARD', 3000]
+					]
+				})
+		);
+		// EPF Act s.2 "wages" includes any bonus; KWSP FAQ Q8 lists incentives: the award is EPF wages.
+		// 8,001 → Third Schedule Part A bracket 8,100: 11% = 891, 12% = 972. The long service award
+		// stays outside (s.2 (c) gratuity, owner rule 2026-09-28), so EX-LS-11's EPF base is 8,001 too.
+		for (const key of ['EX-9', 'EX-LS-11']) {
+			expectStatutoryBase(book, key, 'EPF', 8001);
+			expectStatutory(book, key, 'EPF', 891, 972);
+			// Act 612 s.2 (e) "any bonus": outside HRD.
+			expectStatutoryBase(book, key, 'HRDF', 5001);
+			// Act 4 s.2(24) / Act 800 s.2: wages; above the RM6,000 ceiling — 29.75 / 104.15, EIS 11.90.
+			expectStatutory(book, key, 'SOCSO', 29.75, 104.15);
+			expectStatutory(book, key, 'EIS', 11.9, 11.9);
+		}
+		expectStatutoryBase(book, 'EX-9', 'SOCSO', 8001);
+		expectStatutoryBase(book, 'EX-LS-11', 'SOCSO', 11001);
+		// PCB base: 5,001 + 3,000 − 2,000 = 6,001; 5,001 + 6,000 − 2,000 (one cap) = 9,001.
+		expectStatutoryBase(book, 'EX-9', 'PCB', 6001);
+		expectStatutoryBase(book, 'EX-LS-11', 'PCB', 9001);
+		// MTD 2026 D(b). Normal (both): Y1 = Y2 = 5,001, n = 11, K1 = 561 (EPF on the normal 5,001),
+		// K2 = lower of 561 and (4,000 − 561) ÷ 11 = 312.63 (E(1)), LP1 = 29.75 + 11.90 = 41.65:
+		// P = 4,440 + 11 × 4,688.37 − 9,041.65 = 46,970.42 → 600 + 11,970.42 × 6% = 1,318.2252 ÷ 12 → 109.85.
+		// Additional: Kt ≤ 4,000 − 3,999.93 = 0.07 (the cap is spent), so P + Yt − Kt:
+		// EX-9, Yt 1,000: 47,970.35–.42 → 600 + 12,970.35–.42 × 6% = 1,378.22 − 12 × 109.85 = 60.02 → 60.05;
+		// 109.85 + 60.05 = 169.90.
+		// EX-LS-11, Yt 4,000: 50,970.35–.42 → Table 1 "50,001 – 70,000" 1,500 + 970.35–.42 × 11% =
+		// 1,606.74 − 1,318.20 = 288.54 (288.53 at Kt 0.07) → 288.55; 109.85 + 288.55 = 398.40.
+		expectStatutory(book, 'EX-9', 'PCB', 169.9, 0);
+		expectStatutory(book, 'EX-LS-11', 'PCB', 398.4, 0);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — official-duty travel is tax-exempt to RM6,000 and no contribution wage; child care to RM3,000, meal and parking exempt but contribution wages (MTD spec 2026 E(9))`, () => {
+		const settingsId = settingsIdOn(code, '2026-01-15');
+		const book = assessStatutory(
+			{
+				code,
+				period: '2026-01',
+				people: [
+					{ key: 'TRAVEL-500', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+					{ key: 'TRAVEL-7000', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+					{ key: 'ALLOW', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL }
+				]
+			},
+			(world) => {
+				adhocForAll(world, settingsId, {
+					'TRAVEL-500': [['TRAVEL_OFFICIAL', 500]],
+					'TRAVEL-7000': [['TRAVEL_OFFICIAL', 7000]]
+				});
+				const employment = world.employments.find((row) => row.employee_number === 'ALLOW')!;
+				const terms = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+				terms.allowances = [
+					{
+						catalogue_id: rowIn(world.allowance_catalogue, settingsId, 'CHILDCARE_ALLOWANCE'),
+						amount: 250
+					},
+					{
+						catalogue_id: rowIn(world.allowance_catalogue, settingsId, 'MEAL_ALLOWANCE'),
+						amount: 200
+					},
+					{
+						catalogue_id: rowIn(world.allowance_catalogue, settingsId, 'PARKING_ALLOWANCE'),
+						amount: 100
+					}
+				];
+			}
+		);
+		// Travel: EPF s.2 and KWSP FAQ Q11, Act 4 s.2(24)(b), Act 800 s.2 (b), Act 612 s.2 (b) exclude a
+		// travelling allowance — every contribution base is the 5,001 wage: EPF 561 / 612 (bracket 5,100),
+		// SOCSO 25.25 / 88.35 ("5,000 – 5,100"), EIS 10.10.
+		for (const key of ['TRAVEL-500', 'TRAVEL-7000']) {
+			for (const scheme of ['EPF', 'SOCSO', 'EIS', 'HRDF'])
+				expectStatutoryBase(book, key, scheme, 5001);
+			expectStatutory(book, key, 'EPF', 561, 612);
+			expectStatutory(book, key, 'SOCSO', 25.25, 88.35);
+			expectStatutory(book, key, 'EIS', 10.1, 10.1);
+		}
+		// PCB: RM6,000 a year exempt (E(9) item i; PR 5/2019 para 7.2.1). 500 → base 5,001; 7,000 → 6,001.
+		expectStatutoryBase(book, 'TRAVEL-500', 'PCB', 5001);
+		expectStatutoryBase(book, 'TRAVEL-7000', 'PCB', 6001);
+		// TRAVEL-500 is the plain 5,001: P = 4,440 + 11 × 4,688.37 − 9,000 − (25.25 + 10.10) = 46,976.72
+		// → 600 + 11,976.72 × 6% = 1,318.6032 ÷ 12 = 109.88 → 109.90.
+		expectStatutory(book, 'TRAVEL-500', 'PCB', 109.9, 0);
+		// TRAVEL-7000: the taxable 1,000 is normal remuneration (a monthly allowance, spec D(1)), so
+		// Y1 = Y2 = 6,001, K1 = 561, K2 = 312.63: P = 5,440 + 11 × 5,688.37 − 9,035.35 = 58,976.72 →
+		// Table 1 "50,001 – 70,000" 1,500 + 8,976.72 × 11% = 2,487.4392 ÷ 12 = 207.28 → 207.30.
+		expectStatutory(book, 'TRAVEL-7000', 'PCB', 207.3, 0);
+		// ALLOW: 5,001 + child care 250 + meal 200 + parking 100 = 5,551. EPF "Allowance" (KWSP FAQ Q8):
+		// Part A bracket 5,600 → 616 / 672. Act 4 Third Schedule "exceeding 5,500 not exceeding 5,600"
+		// 27.75 / 97.15; Act 800 Second Schedule 11.10. Act 612 s.2 fixed allowances in cash: 5,551.
+		for (const scheme of ['EPF', 'SOCSO', 'EIS', 'HRDF'])
+			expectStatutoryBase(book, 'ALLOW', scheme, 5551);
+		expectStatutory(book, 'ALLOW', 'EPF', 616, 672);
+		expectStatutory(book, 'ALLOW', 'SOCSO', 27.75, 97.15);
+		expectStatutory(book, 'ALLOW', 'EIS', 11.1, 11.1);
+		// PCB: child care inside RM3,000 (item ii), meal (item vii) and parking (item vi) exempt: 5,001.
+		// K1 = 616 (E(13)(i): EPF on a tax-exempt allowance is still K1), K2 = (4,000 − 616) ÷ 11 =
+		// 307.63, LP1 = 27.75 + 11.10 = 38.85: P = 4,385 + 11 × 4,693.37 − 9,038.85 = 46,973.22 →
+		// 600 + 11,973.22 × 6% = 1,318.3932 ÷ 12 = 109.86 → 109.90.
+		expectStatutoryBase(book, 'ALLOW', 'PCB', 5001);
+		expectStatutory(book, 'ALLOW', 'PCB', 109.9, 0);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — a benefit in kind is Y1 for MTD but never paid, gross or a contribution wage (MTD spec 2026 E(12))`, () => {
+		const settingsId = settingsIdOn(code, '2026-01-15');
+		const { slips } = buildStatutory(
+			{
+				code,
+				period: '2026-01',
+				people: [
+					{ key: 'PLAIN', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+					{ key: 'BIK-1000', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL }
+				]
+			},
+			(world) => adhocForAll(world, settingsId, { 'BIK-1000': [['BIK_VOLA', 1000]] })
+		);
+		const plain = slips.get('PLAIN')!;
+		const bik = slips.get('BIK-1000')!;
+		const charge = (slip: BuiltPayslip, scheme: string) =>
+			slip.statutory.find((row) => row.scheme_code === scheme)!;
+		// E(12): "shall not appear in the pay slip … as gross salary" — the line prints as information.
+		assert.equal(bik.gross, 5001);
+		assert.deepEqual(
+			bik.adjustments
+				.filter((line) => line.component_code === 'BIK_VOLA')
+				.map((line) => [line.bucket, line.amount]),
+			[['INFORMATION', 1000]]
+		);
+		// Non-cash: EPF s.2 "remuneration in money", Act 4 s.2(24) / Act 800 s.2 "payable in money",
+		// Act 612 s.2 "paid in cash" — every contribution is the plain 5,001's: EPF 561 / 612,
+		// SOCSO 25.25 / 88.35, EIS 10.10.
+		for (const scheme of ['EPF', 'SOCSO', 'EIS', 'HRDF']) {
+			assert.equal(charge(bik, scheme).base_amount, 5001, scheme);
+			assert.equal(charge(bik, scheme).employee_amount, charge(plain, scheme).employee_amount);
+			assert.equal(charge(bik, scheme).employer_amount, charge(plain, scheme).employer_amount);
+		}
+		// E(12): BIK/VOLA is part of Y1 (method i, the monthly amount). Y1 = Y2 = 6,001, K1 = 561,
+		// K2 = (4,000 − 561) ÷ 11 = 312.63, LP1 = 25.25 + 10.10: P = 5,440 + 11 × 5,688.37 − 9,035.35 =
+		// 58,976.72 → Table 1 "50,001 – 70,000" 1,500 + 8,976.72 × 11% = 2,487.4392 ÷ 12 = 207.28 →
+		// 207.30 (the plain 5,001: 109.90).
+		assert.equal(charge(plain, 'PCB').base_amount, 5001);
+		assert.equal(charge(plain, 'PCB').employee_amount, 109.9);
+		assert.equal(charge(bik, 'PCB').base_amount, 6001);
+		assert.equal(charge(bik, 'PCB').employee_amount, 207.3);
+		// Net: gross less the employee charges — the benefit pays nothing.
+		assert.equal(bik.net, Math.round((5001 - 561 - 25.25 - 10.1 - 207.3) * 100) / 100);
+	});
+
 test('Malaysia — ITA employer duties cite Act 53 as at 1 January 2026, not the 2006 reprint', () => {
 	// AGC "Online version of updated text of reprint", Act 53 as at 1 January 2026: s.82 records
 	// seven years; s.83(1) employer's return by 31 March; s.83(1A) statement of remuneration by the
@@ -2782,4 +3250,73 @@ test('Malaysia — the Employment Act cites the AGC reprint as at 1 August 2023,
 		);
 		assert.doesNotMatch(adhoc, jtksmUpdatedText, `${code} adhoc_catalogue`);
 	}
+});
+
+test('Malaysia — a travelling contract allowance is outside the s.60I ordinary rate (EA s.2 “wages” (c))', () => {
+	// EA 1955 (AGC reprint as at 1 Aug 2023) s.2 "wages": basic wages and all other payments in cash
+	// payable for work done, not including "(c) any travelling allowance or the value of any
+	// travelling concession". s.60I(1A): a monthly-rated ordinary rate of pay is the monthly wages
+	// ÷ 26. Basic 2,600 + meal allowance 260 (cash, wages) + travelling allowance 520 (not wages):
+	// ORP (2,600 + 260) ÷ 26 = 110.00 a day, ÷ 8 normal hours = 13.75 an hour (with the travelling
+	// allowance it would read 3,380 ÷ 26 = 130.00). s.60D(3)(a)(i): the holiday's normal day is two
+	// days' wages = 220.00. s.60(3)(b)(i): four rest-day hours, half a day = 55.00. s.60A(3)(a):
+	// 2 h × 13.75 × 1.5 = 41.25. s.60(3)(b)(ii): the 09:00–16:00 rest-day span less EA s.60A(1)(a)'s
+	// thirty minutes after five continuous hours is 6.5 h worked, one day = 110.00.
+	const settingsId = settingsIdOn('MY', '2026-01-15');
+	const { slips } = buildStatutory(
+		{
+			code: 'MY',
+			period: '2026-01',
+			people: [
+				{ key: 'MY-TRAVEL', wage: 2600, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
+			]
+		},
+		(world) => {
+			const version = world.jurisdiction_settings.find((row) => row.id === settingsId)!;
+			version.work_rules.wage_excluded_allowances = ['TRAVEL_CONTRACT'];
+			world.allowance_catalogue.push({
+				id: 'a4000000-0000-4000-8000-000000000901',
+				settings_id: settingsId,
+				code: 'TRAVEL_CONTRACT',
+				name: 'Travelling allowance (contract)',
+				eligibility: '',
+				evidence: 'NONE',
+				destination: 'PAY',
+				direction: 'ADD',
+				bands: [{ when: '', amount: 'entry.amount', limit: null }],
+				counts_toward: [],
+				approval_id: null
+			});
+			const employment = world.employments.find((row) => row.employee_number === 'MY-TRAVEL')!;
+			world.employment_terms.find((row) => row.employment_id === employment.id)!.allowances = [
+				{
+					catalogue_id: rowIn(world.allowance_catalogue, settingsId, 'MEAL_ALLOWANCE'),
+					amount: 260
+				},
+				{ catalogue_id: 'a4000000-0000-4000-8000-000000000901', amount: 520 }
+			];
+			world.jurisdiction_holidays.push(holiday('2026-01-01', 'New Year'));
+			// The shift's hour punched as a gap on the two scheduled days: eight hours worked on the
+			// holiday, ten on the Monday.
+			clocked(world, 'MY-TRAVEL', '2026-01-01', [
+				['09:00', '13:00'],
+				['14:00', '18:00']
+			]);
+			punch(world, 'MY-TRAVEL', '2026-01-04', '09:00', '13:00'); // Sunday rest day: four hours
+			clocked(world, 'MY-TRAVEL', '2026-01-05', [
+				['09:00', '12:00'],
+				['13:00', '20:00']
+			]);
+			punch(world, 'MY-TRAVEL', '2026-01-11', '09:00', '16:00'); // Sunday rest day: seven hours
+		}
+	);
+	assert.deepEqual(workLines(slips.get('MY-TRAVEL')!), [
+		['2026-01-01', 'HOLIDAY-2-DAYS-PAY', 8, 220],
+		['2026-01-04', 'RESTDAY-HALF-DAY-PAY', 4, 55],
+		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 41.25],
+		['2026-01-11', 'RESTDAY-FULL-DAY-PAY', 6.5, 110]
+	]);
+	// EPF s.2 and KWSP FAQ Q11: the travelling allowance is no EPF wage either; the meal allowance is.
+	const epf = slips.get('MY-TRAVEL')!.statutory.find((row) => row.scheme_code === 'EPF')!;
+	assert.equal(epf.base_amount, 2860);
 });

@@ -38,7 +38,24 @@ const BEFORE = {
 
 const cents = (value) => Math.round(value * 100) / 100;
 
+/**
+ * Both employments' roster days, punched over the 07:30-16:30 shift with the hour it grants taken
+ * 12:30-13:30. A break is proved only by a gap between worked intervals, so a single continuous
+ * span across the shift reads nine worked hours and prices an hour outside ordinary paid work.
+ * Idempotent, and it re-punches days a test added between builds.
+ */
+function punchTheGrantedBreak(world) {
+	for (const day of world.work_days) {
+		if (day.worked_intervals == null) continue;
+		day.worked_intervals = [
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T12:30:00+08:00` },
+			{ start: `${day.work_date}T13:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+		];
+	}
+}
+
 async function build(world, period) {
+	punchTheGrantedBreak(world);
 	const prepared = gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period });
 	return { prepared, built: buildPayrollRun(prepared) };
 }

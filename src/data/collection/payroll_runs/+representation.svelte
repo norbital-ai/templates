@@ -2,8 +2,8 @@
 	import { t } from '../../../lib/ui/t.js';
 	import { everyField } from '../../../lib/every-field.js';
 	/**
-	 * Creating a payroll run is choosing two facts: which company, and which period. Everything else on the record
-	 * — the windows, the pay date, the configuration hash, the trace — is derived by the collection's transform.
+	 * Creating a payroll run chooses the company, period, and optionally a contractual pay due date.
+	 * The windows, settlement date, configuration hash, and trace are derived by the collection's transform.
 	 * The window shown before submit comes from the engine's own `resolveWindow`, so the operator reads the cutoff
 	 * rule the run will be built with.
 	 *
@@ -34,6 +34,7 @@
 	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/display-formatters.js';
 	import { createValues, hrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { openCreated } from '../../../lib/ui/open-created.js';
+	import { dateKey } from '../../../lib/iso-day.js';
 	import {
 		companyPeriods,
 		periodDayRange,
@@ -48,9 +49,9 @@
 	const scopedCompanyId = $derived(scope?.companyId?.());
 
 	/** A company whose calendar the engine cannot build (a cutoff out of range) offers no period, not an error. */
-	const windowFor = (period: string, company: Company) => {
+	const windowFor = (period: string, company: Company, payDueDate?: string) => {
 		try {
-			return resolveWindow(period, company);
+			return resolveWindow(period, company, payDueDate);
 		} catch {
 			return null;
 		}
@@ -120,7 +121,7 @@
 			? null
 			: bolt.read('payslips', {
 					where: { payroll_run_id: { eq: run.id } },
-					select: { status: true },
+					select: { status: true, payment_mode: true },
 					all: true
 				})
 	);
@@ -129,6 +130,9 @@
 		(slips.current ?? []).filter((row) => row.status === status).length;
 	const paid = $derived(count('PAID'));
 	const held = $derived(count('ON_HOLD'));
+	const eventLedger = $derived(
+		(slips.current ?? []).some((row) => row.payment_mode === 'EVENT_LEDGER')
+	);
 	/** The COMPANY-assessed schemes' employer total: the levy the run carries beside its payslips. */
 	const companyCharges = $derived(
 		(run?.company_charges ?? []).reduce((sum, charge) => sum + charge.employer_amount, 0)
@@ -178,6 +182,12 @@
 						<dt class="text-meta">{t('app.payroll.pay_date')}</dt>
 						<dd class="font-medium tabular-nums">{formatCalendarDate(run.pay_date)}</dd>
 					</Stack>
+					<Stack gap="xs">
+						<dt class="text-meta">{t('component.pay_due_date')}</dt>
+						<dd class="font-medium tabular-nums">
+							{formatCalendarDate(run.pay_due_date ?? run.pay_date)}
+						</dd>
+					</Stack>
 					{#if companyCharges > 0}
 						<Stack gap="xs">
 							<dt class="text-meta">{t('component.company_charges')}</dt>
@@ -222,6 +232,9 @@
 					{t('component.held_excluded_from_bank', { count: held })}
 				</p>
 			{/if}
+			{#if eventLedger}
+				<p class="text-sm text-muted-foreground">{t('component.payment_use_events')}</p>
+			{/if}
 		</Stack>
 	{/if}
 {/snippet}
@@ -248,12 +261,16 @@
 							input: move('DRAFT'),
 							requiresSelection: true
 						},
-						{
-							action: 'payslips.update',
-							label: t('payroll.mark_paid'),
-							input: move('PAID'),
-							requiresSelection: true
-						}
+						...(slips.loading || eventLedger
+							? []
+							: [
+									{
+										action: 'payslips.update' as const,
+										label: t('payroll.mark_paid'),
+										input: move('PAID'),
+										requiresSelection: true as const
+									}
+								])
 					]
 				}}
 				where={{ payroll_run_id: { eq: run.id } }}
@@ -281,7 +298,10 @@
 			{#snippet children(form)}
 				{@const chosen = companyOf(form.get('company_id'))}
 				{@const period = typeof form.get('period') === 'string' ? String(form.get('period')) : null}
-				{@const window = chosen != null && period != null ? windowFor(period, chosen) : null}
+				{@const statedDueDate = form.get('pay_due_date')}
+				{@const payDueDate = typeof statedDueDate === 'string' ? dateKey(statedDueDate) : undefined}
+				{@const window =
+					chosen != null && period != null ? windowFor(period, chosen, payDueDate) : null}
 				<Stack gap="lg">
 					<Grid gap="md" minimum="compact">
 						{#if scopedCompanyId != null}
@@ -325,6 +345,7 @@
 								/>
 							{/snippet}
 						</Field>
+						<Field name="pay_due_date" label={t('component.pay_due_date')} />
 					</Grid>
 					{#if window}
 						<Grid as="dl" gap="sm" minimum="compact">
@@ -347,6 +368,10 @@
 							<Stack gap="xs">
 								<dt class="text-meta">{t('component.pay_date')}</dt>
 								<dd class="font-medium tabular-nums">{formatCalendarDate(window.payDate)}</dd>
+							</Stack>
+							<Stack gap="xs">
+								<dt class="text-meta">{t('component.pay_due_date')}</dt>
+								<dd class="font-medium tabular-nums">{formatCalendarDate(window.payDueDate)}</dd>
 							</Stack>
 						</Grid>
 					{/if}

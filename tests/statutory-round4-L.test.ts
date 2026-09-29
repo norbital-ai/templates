@@ -38,7 +38,7 @@ function cashOut(facts: Record<string, string | number>, houseAllowance = 0) {
 		riskClass: 'I',
 		people: [{ key: 'LEAVE', wage: 6_000_000 }]
 	});
-	world.companies[0]!.facts = facts;
+	world.companies[0]!.facts = { ...world.companies[0]!.facts, ...facts };
 	if (houseAllowance > 0)
 		world.employment_terms[0]!.allowances = [
 			{

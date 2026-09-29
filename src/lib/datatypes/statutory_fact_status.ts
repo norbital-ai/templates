@@ -1,4 +1,5 @@
 import { isCalendarDate } from '../iso-day.js';
+import * as Predicate from 'effect/Predicate';
 
 type Frequency = 'MONTHLY' | 'SEMI_MONTHLY' | 'WEEKLY';
 
@@ -73,24 +74,41 @@ export type StatutoryFactStatus =
 				  }[]
 				| null;
 			readonly deduction_claims?: readonly StatutoryDeductionClaim[] | null;
-			/** Payment facts for a rule that assesses each daily/average-daily unit independently. */
+			/** Payment facts for a rule that assesses each payment or daily unit independently. */
 			readonly unit_assessments?:
 				| readonly {
 						readonly period: string;
 						readonly gross: number;
 						readonly units: number;
 						readonly reference: string;
+						/** Actual or scheduled settlement date for a payment-occasion rule. */
+						readonly paid_on?: string | null;
+						/** The payee requested withholding even below this payment's threshold. */
+						readonly withhold_below_threshold_requested?: boolean | null;
 				  }[]
 				| null;
 	  }
-	| { readonly kind: 'NOT_REGISTERED'; readonly reason: string };
+	| {
+			readonly kind: 'NOT_REGISTERED';
+			readonly reason: string;
+			/** Dated declarations explaining a lawful non-enrolment (for example, a first fund month). */
+			readonly elections?: { readonly [key: string]: boolean | number | string } | null;
+			readonly declaration_reference?: string | null;
+	  };
 
 const count = (value: number | null | undefined) =>
 	value == null || (Number.isInteger(value) && value >= 0);
 
 export function statutoryFactStatusFault(status: StatutoryFactStatus): string | undefined {
-	if (status.kind === 'NOT_REGISTERED')
-		return status.reason === '' ? 'reason: is required' : undefined;
+	if (status.kind === 'NOT_REGISTERED') {
+		if (status.reason.trim() === '') return 'reason: is required';
+		if (Object.keys(status.elections ?? {}).length > 0 && !status.declaration_reference?.trim())
+			return 'declaration_reference: is required for a non-registration election';
+		for (const value of Object.values(status.elections ?? {}))
+			if (!['boolean', 'number', 'string'].includes(typeof value))
+				return 'elections: a value is a boolean, a number or text';
+		return undefined;
+	}
 	if (status.reference_number === '') return 'reference_number: is required';
 	if ((status.rate_override ?? 0) < 0) return 'rate_override: must not be negative';
 	if (status.first_contribution_due_on != null && !isCalendarDate(status.first_contribution_due_on))
@@ -129,8 +147,11 @@ export function statutoryFactStatusFault(status: StatutoryFactStatus): string | 
 			unit.gross < 0 ||
 			!Number.isInteger(unit.units) ||
 			unit.units <= 0 ||
-			!/\S/.test(unit.reference)
+			!/\S/.test(unit.reference) ||
+			(unit.paid_on != null && !isCalendarDate(unit.paid_on)) ||
+			(unit.withhold_below_threshold_requested != null &&
+				!Predicate.isBoolean(unit.withhold_below_threshold_requested))
 		)
-			return 'unit_assessments: a period, non-negative gross, whole positive units and a reference';
+			return 'unit_assessments: a period, non-negative gross, whole positive units, reference, and valid payment date/request';
 	return undefined;
 }

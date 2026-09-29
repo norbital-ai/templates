@@ -60,6 +60,9 @@ const unpaidDay = (world: PayrollWorld, key: string, catalogueId: string) => {
 		half_day_start: false,
 		half_day_end: false,
 		days: 1,
+		// The origin the unpaid day is taken on: requested by the employee, so the wage is reduced
+		// (SG EA ss.88, 88A — `leave/payroll.ts` refuses an entry that does not state it).
+		no_pay_origin: 'EMPLOYEE_REQUESTED',
 		effective_on: '2026-01-14',
 		reason: 'Unpaid',
 		allocations: [],

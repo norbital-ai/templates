@@ -8,6 +8,7 @@ import {
 	committed,
 	declareSgSdl,
 	NORBITAL_SG,
+	recordSgShgFacts,
 	refused,
 	SG_2026_Q1,
 	SG_EMPLOYMENT,
@@ -18,6 +19,7 @@ let t: Awaited<ReturnType<typeof workspace>>;
 beforeEach(async () => {
 	t = await workspace();
 	await declareSgSdl(t, SG_2026_Q1);
+	await recordSgShgFacts(t);
 });
 const admin = () => t.as(t.admin);
 

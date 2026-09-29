@@ -235,6 +235,12 @@ export const workRulesValueSchema = Schema.Struct({
 	 * `person.terms.gross_monthly` (SG EA s.2: travelling, food or housing allowances). Absent is none.
 	 */
 	gross_excluded_allowances: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.String))),
+	/**
+	 * Allowance codes outside the statute's wage, left out of `person.terms.fixed_allowances` and
+	 * `monthly_wage` at every person site (MY EA s.2 "wages" (c): any travelling allowance). A
+	 * scheme's own base is its `counts_toward`. Absent is none.
+	 */
+	wage_excluded_allowances: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.String))),
 	/** Boolean over the person: who the overtime ladder covers. Empty is everyone. */
 	overtime_when: Schema.String,
 	/**

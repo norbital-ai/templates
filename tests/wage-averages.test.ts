@@ -80,7 +80,12 @@ test('earned_average reads a window of earlier payslips ending months_back befor
 		if (['LI', 'EI', 'LABOR_PENSION', 'OCC_INJURY', 'NHI'].includes(scheme.code)) {
 			assert.match(scheme.assessed_on, /scheme\.elections\.insured_amount/);
 			assert.ok(
-				scheme.elections.some((field) => field.key === 'insured_amount' && field.required === true),
+				scheme.elections.some(
+					(field) =>
+						field.key === 'insured_amount' &&
+						(field.required === true ||
+							field.required_when === 'scheme.registration_status == "REGISTERED"')
+				),
 				`${scheme.code} requires the insured amount`
 			);
 		}

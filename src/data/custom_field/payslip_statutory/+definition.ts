@@ -25,6 +25,8 @@ const f = customField({
 				directed_amount: { kind: 'number', optional: true },
 				rebate_amount: { kind: 'number', optional: true },
 				rule_when: { kind: 'text', optional: true },
+				/** The amount was assessed from dated, single-payment facts. */
+				payment_occasion: { kind: 'bool', optional: true },
 				/** How this charge's employer amount is remitted, on a scheme with remittance rounding. */
 				remittance_rounding: { kind: 'enum', values: ['NONE', 'FLOOR_MAJOR_UNIT'], optional: true }
 			}

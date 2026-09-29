@@ -31,8 +31,11 @@ function capWorld(family: Family) {
 	const world = createPublicPayrollWorld();
 	world.allowances = [];
 	for (const day of world.work_days) {
+		// The shift's granted 60 minutes, punched as a gap — a break owed and not taken is worked
+		// time, and nine continuous hours price an hour outside ordinary paid work.
 		day.worked_intervals = [
-			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T12:30:00+08:00` },
+			{ start: `${day.work_date}T13:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
 	}
 	const oldSettings = world.jurisdiction_settings[0];
@@ -319,7 +322,10 @@ test('a recurring annual award pays 600 then 400, exhausts, and starts fresh nex
 			...template,
 			id: `work-${date}`,
 			work_date: date,
-			worked_intervals: [{ start: `${date}T07:30:00+08:00`, end: `${date}T16:30:00+08:00` }]
+			worked_intervals: [
+				{ start: `${date}T07:30:00+08:00`, end: `${date}T12:30:00+08:00` },
+				{ start: `${date}T13:30:00+08:00`, end: `${date}T16:30:00+08:00` }
+			]
 		});
 	}
 	const award = (month: string, amount: number) =>

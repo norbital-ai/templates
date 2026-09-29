@@ -2,10 +2,13 @@
 export type LeaveCharge = {
 	readonly date: string;
 	readonly days: number;
+	/** Actual scheduled hours consumed, for an hourly entitlement. */
+	readonly hours?: number | null;
 	readonly catalogue_id: string;
 	readonly employment_term_id: string;
 	/** The published holiday that excluded the day from the charge, when one did. */
 	readonly holiday_id?: string | null;
-	readonly shift_definition_id: string;
+	/** A calendar-day leave charge can fall on a day with no roster code. */
+	readonly shift_definition_id?: string | null | undefined;
 	readonly work_day_id?: string | null;
 };

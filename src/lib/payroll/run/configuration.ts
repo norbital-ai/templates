@@ -21,7 +21,7 @@ import {
 	type HolidayRow,
 	type PreparedHolidayInput
 } from '../../../lib/holiday-calendar.js';
-import { coversDate, effectiveOn, live } from './effective.js';
+import { coversDate, effectiveOn, live, overlapsRange } from './effective.js';
 import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import type { PayrollWindow } from './period.js';
 import { dateKey } from '../../../lib/iso-day.js';
@@ -47,13 +47,17 @@ export type Work = WorkRules & {
  *
  * - `ENTRY`            — a catalogue band prices the entry through the entry context.
  * - `SCHEDULE`         — the contracted amount from `employment_terms` (basic salary).
+ * - `RESULTS_FLOOR`    — a separately shown monthly minimum-wage top-up for results pay.
  * - `DERIVED_OVERTIME` — priced by the jurisdiction's regime from work days, never entered.
+ * - `DERIVED_NORMAL`   — additional normal-time wages priced from an agreed work day.
  * - `ABSENCE`          — unexplained absence, priced from the day wage.
  */
 export type ComponentDefinition =
 	| { readonly source: 'ENTRY' }
 	| { readonly source: 'SCHEDULE'; readonly unit: 'MONEY'; readonly reducible: boolean }
+	| { readonly source: 'RESULTS_FLOOR'; readonly unit: 'MONEY' }
 	| { readonly source: 'DERIVED_OVERTIME'; readonly unit: 'MONEY' }
+	| { readonly source: 'DERIVED_NORMAL'; readonly unit: 'MONEY' }
 	| { readonly source: 'ABSENCE'; readonly unit: 'MONEY' };
 
 export type CatalogueComponent = FamilyPayItem & { readonly definition: ComponentDefinition };
@@ -210,7 +214,9 @@ export function pickConfiguration(options: {
 	);
 	const revisions = companyFactRevisions.map((row) => ({
 		facts: row.facts ?? {},
-		effective_range: row.effective_range
+		effective_range: row.effective_range,
+		ph_wage_class_source_reference: row.ph_wage_class_source_reference,
+		ph_wage_class_source_file: row.ph_wage_class_source_file
 	}));
 
 	return {
@@ -242,6 +248,37 @@ export function pickConfiguration(options: {
 				: []
 		)
 	};
+}
+
+/** A CN run has one sealed city profile. Every employed salary day must name a site it covers. */
+export function assertProfileWorksites(
+	configuration: Configuration,
+	world: PayrollWorld,
+	window: PayrollWindow
+): void {
+	if (configuration.jurisdiction.jurisdiction_code !== 'CN') return;
+	const covered = configuration.jurisdiction.work_rules.wages?.by_region ?? {};
+	const termsByEmployment = Map.groupBy(live(world.employment_terms), (row) => row.employment_id);
+	const days = daysBetween(window.salary.start, window.salary.end);
+	for (const employment of live(world.employments)) {
+		if (
+			employment.company_id !== configuration.company.id ||
+			!overlapsRange(employment.effective_range, window.salary.start, window.salary.end)
+		)
+			continue;
+		const terms = termsByEmployment.get(employment.id) ?? [];
+		for (const day of days) {
+			if (!coversDate(employment.effective_range, day)) continue;
+			const site = terms.find((row) => coversDate(row.effective_range, day))?.worksite?.trim();
+			if (site != null && Object.hasOwn(covered, site)) continue;
+			refuse(
+				`${employment.employee_number}: ${configuration.jurisdiction.code} cannot price ${day} ` +
+					`at ${site ? `worksite "${site}"` : 'an unrecorded worksite'}. Record the contract ` +
+					'performance place on dated employment terms; this run has one city profile and ' +
+					'cannot substitute the company region or another city’s wage rules.'
+			);
+		}
+	}
 }
 
 /**
@@ -310,6 +347,7 @@ export function configurationSnapshot(
 				row.eligibility,
 				row.bands,
 				row.npl_prorates ?? null,
+				row.outpatient_sick_pay ?? null,
 				row.owed ?? null
 			])
 			.toSorted((left, right) => String(left[0]).localeCompare(String(right[0]))),

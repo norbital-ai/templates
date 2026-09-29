@@ -43,6 +43,8 @@ export const WORK_DAY_FULL_FIELDS = [
 	'work_date',
 	'shift_definition_id',
 	'approved_overtime_hours',
+	'overtime_consented_at',
+	'normal_hours_redistribution_agreed_at',
 	'incentive_hours',
 	'worked_intervals'
 ] as const;

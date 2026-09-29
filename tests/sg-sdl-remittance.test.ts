@@ -158,11 +158,13 @@ test('SG SDL cannot be waived by an unregistered label or missing employer class
 				key: 'UNREGISTERED',
 				wage: 2000,
 				citizenship: 'FOREIGNER',
-				registrations: { SDL: { kind: 'NOT_REGISTERED' } }
+				registrations: {
+					SDL: { kind: 'NOT_REGISTERED', elections: { sdl_service_scope: '' } }
+				}
 			}
 		]
 	});
-	assert.throws(() => settle(unregistered, '2026-07'), /SDL:.*service scope.*required/i);
+	assert.throws(() => settle(unregistered, '2026-07'), /SDL:.*service scope.*must be one of/i);
 	const unknownEmployer = createStatutoryWorld({
 		code: 'SG',
 		period: '2026-07',
