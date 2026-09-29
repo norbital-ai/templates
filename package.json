@@ -14,15 +14,15 @@
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
-		"@norbital-ai/bolt": "0.0.136",
-		"@norbital-ai/std": "0.0.136",
-		"@norbital-ai/ui": "0.0.136",
+		"@norbital-ai/bolt": "0.0.137",
+		"@norbital-ai/std": "0.0.137",
+		"@norbital-ai/ui": "0.0.137",
 		"runed": "^0.37.1",
 		"svelte": "^5.57.1",
 		"vite": "^8.2.2"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.136",
+		"@norbital-ai/bolt-server": "0.0.137",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@types/node": "^26.2.0",
 		"@typescript/native": "npm:typescript@7.0.2",
