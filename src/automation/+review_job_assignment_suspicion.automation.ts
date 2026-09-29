@@ -87,12 +87,9 @@ review.run(async (input, ctx) => {
 				await reviewOne(next);
 		})
 	);
-	// anything left unread (a failure, a photo still queued) is retried at the next quarter hour, once
-	if (
-		failures.length > 0 ||
-		(counts.awaiting_inspection ?? 0) > 0 ||
-		inspection.failures.length > 0
-	)
+	// anything left unread (a failed turn, a photo still queued) is retried at the next quarter hour, once; a photo the
+	// host could not read is durably marked, so it is not re-inspected and schedules no retry of its own
+	if (failures.length > 0 || (counts.awaiting_inspection ?? 0) > 0)
 		await ctx.schedule(
 			'review_job_assignment_suspicion',
 			{},

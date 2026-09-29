@@ -11,12 +11,20 @@ import { committed, CONTROLLER, rows, siteWithJob, workspace, type T } from './k
 
 type Call = { facility: string; method: string; args: readonly Json[] };
 /** The host's facilities, faked: image facts from the file's id, sizes, and one scripted verdict. */
-function facilities(verdict: () => Json | Error) {
+function facilities(
+	verdict: () => Json | Error,
+	unreadable: (ref: { id: string; name: string }) => boolean = () => false
+) {
 	const calls: Call[] = [];
 	const facility = async (call: Call) => {
 		calls.push(call);
 		const ref = call.args[0] as { id: string; name: string } | undefined;
-		if (call.facility === 'files' && call.method === 'image')
+		if (call.facility === 'files' && call.method === 'image') {
+			if (unreadable(ref!))
+				return {
+					ok: false as const,
+					error: { kind: 'invalid' as const, message: 'The image could not be read.' }
+				};
 			return {
 				ok: true as const,
 				value: {
@@ -28,6 +36,7 @@ function facilities(verdict: () => Json | Error) {
 					exif: {}
 				}
 			};
+		}
 		if (call.facility === 'files' && call.method === 'meta')
 			return { ok: true as const, value: { ...ref, bytes: 1_000, sha256: 'x' } };
 		if (call.facility === 'ai' && call.method === 'sys_2.infer') {
@@ -63,6 +72,7 @@ const suspicious = {
 	reason: 'Two different door plates.',
 	evidence_asset_name: 'IMG_0001.jpg'
 };
+const clear = { suspicious: false, reason: 'No usable photo.', evidence_asset_name: '' };
 
 it('inspects the photo, judges the job once, writes one finding, and judges again after a change', async () => {
 	const fake = facilities(() => suspicious);
@@ -106,6 +116,69 @@ it('inspects the photo, judges the job once, writes one finding, and judges agai
 	expect(await logs()).toHaveLength(1); // the open finding stands; no second one
 });
 
+it('a photo the host cannot read does not block its assignment and stays visibly failed', async () => {
+	const unreadable = new Set<string>();
+	const fake = facilities(
+		() => clear,
+		(ref) => unreadable.has(ref.id)
+	);
+	const t = await workspace({ runs: { facility: fake.facility as never } });
+	const { job } = await siteWithJob(t);
+	const photo = await filedPhoto(t, job);
+	const [file] = await rows(t, `SELECT photo->>'id' AS id FROM photo_evidence WHERE id = $1`, [
+		photo
+	]);
+	unreadable.add(String(file!['id']));
+	await t.runDue();
+	// the review proceeds on the evidence it has instead of waiting forever
+	expect(
+		(await rows(t, `SELECT suspicion_checked_at FROM job_assignments WHERE id = $1`, [job]))[0]![
+			'suspicion_checked_at'
+		]
+	).not.toBeNull();
+	expect(
+		await rows(t, `SELECT suspicious FROM suspicion_reviews WHERE job_assignment_id = $1`, [job])
+	).toEqual([{ suspicious: false }]);
+	const [failure] = await rows(
+		t,
+		`SELECT inspection_failed_at, inspection_failure_reason FROM photo_evidence WHERE id = $1`,
+		[photo]
+	);
+	expect(failure!['inspection_failed_at']).not.toBeNull();
+	expect(String(failure!['inspection_failure_reason'])).toContain('could not be read');
+});
+
+it('an unreadable photo is not inspected again by a later run', async () => {
+	const unreadable = new Set<string>();
+	const fake = facilities(
+		() => clear,
+		(ref) => unreadable.has(ref.id)
+	);
+	const t = await workspace({ runs: { facility: fake.facility as never } });
+	const { job } = await siteWithJob(t);
+	const failed = await filedPhoto(t, job);
+	const [file] = await rows(t, `SELECT photo->>'id' AS id FROM photo_evidence WHERE id = $1`, [
+		failed
+	]);
+	unreadable.add(String(file!['id']));
+	const attempts = () =>
+		fake.calls.filter(
+			(call) =>
+				call.facility === 'files' &&
+				call.method === 'image' &&
+				(call.args[0] as { id?: string } | undefined)?.id === file!['id']
+		).length;
+	await t.runDue();
+	expect(attempts()).toBe(1);
+	// a later photo is inspected while the failed one keeps its one attempt
+	const later = await filedPhoto(t, job);
+	await t.runDue();
+	expect(attempts()).toBe(1);
+	expect(
+		(await rows(t, `SELECT sha256 FROM photo_evidence WHERE id = $1`, [later]))[0]!['sha256']
+	).not.toBe('');
+});
+
 it('a failed turn stamps nothing and re-queues the review at the next quarter hour', async () => {
 	const fake = facilities(() => new Error('provider down'));
 	const t = await workspace({
@@ -126,7 +199,11 @@ it('a failed turn stamps nothing and re-queues the review at the next quarter ho
 	expect(queued).toEqual([{ due: expect.stringMatching(/^2026-09-25 10:15:00/), state: 'queued' }]);
 	const [failed] = await rows(
 		t,
-		`SELECT state FROM sys_run WHERE automation = 'review_job_assignment_suspicion' AND cause = 'created'`
+		`SELECT state, error::text AS error FROM sys_run WHERE automation = 'review_job_assignment_suspicion' AND cause = 'created'`
 	);
 	expect(failed!['state']).toBe('failed');
+	// the run names the cause it actually hit: a failed turn used to surface as the guest's own 'unawaited' complaint,
+	// which named neither the provider nor the assignment
+	expect(failed!['error']).toContain('provider down');
+	expect(failed!['error']).not.toContain('unawaited');
 });

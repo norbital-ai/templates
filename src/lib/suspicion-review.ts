@@ -54,6 +54,8 @@ const MAX_CANDIDATES = 2;
 const MAX_CANDIDATE_IMAGE_BYTES = 1024 * 1024;
 /** Photos inspected per run; the rest wait for the next. */
 const INSPECTIONS_PER_RUN = 50;
+/** A host refusal reason is audit copy, not a transcript. */
+const MAX_INSPECTION_FAILURE_REASON_CHARS = 500;
 const SCENE_BACKFILL_PER_RUN = 1000;
 const SCENE_BATCH = 16;
 const SCENE_BATCHES_AT_ONCE = 4;
@@ -93,10 +95,12 @@ export type ReviewPhoto = {
 	readonly matched_evidence_ids: readonly string[];
 	readonly created_at: string | null;
 	readonly scene_embedding?: readonly number[] | null;
+	/** Set when the host could not read the photo: it takes no visual slot and never blocks the review. */
+	readonly inspection_failed_at?: string | null;
 };
 export type ReviewCandidate = Omit<
 	ReviewPhoto,
-	'matched_evidence_ids' | 'created_at' | 'scene_embedding'
+	'matched_evidence_ids' | 'created_at' | 'scene_embedding' | 'inspection_failed_at'
 > & {
 	readonly distance: number;
 	readonly matched_photo_ids: readonly string[];
@@ -151,13 +155,16 @@ const photoSignal = (photo: ReviewPhoto) =>
 
 /**
  * A small deterministic visual sample: preferred photos (a candidate's probe), up to two signalled ones, then first,
- * middle and last for temporal coverage, within the attachment byte budget.
+ * middle and last for temporal coverage, within the attachment byte budget. A photo the host could not read takes no
+ * slot.
  */
 export function selectInferencePhotos(
 	photos: readonly ReviewPhoto[],
 	preferred: readonly string[] = []
 ): ReviewPhoto[] {
-	const chronological = [...photos].sort(byOrder);
+	const chronological = [...photos]
+		.filter((photo) => photo.inspection_failed_at == null)
+		.sort(byOrder);
 	const byId = new Map(chronological.map((photo) => [photo.id, photo]));
 	const signalled = chronological
 		.filter((photo) => photoSignal(photo) > 0)
@@ -510,12 +517,12 @@ async function assignmentsOf(
 /**
  * Fill the facts of photos still awaiting them (empty `sha256`): the host's image facts, the scene embedding, the capture
  * point against the site of the photo's work, and near-duplicates under other assignments (an identical file is `exact_duplicate`, a
- * perceptual near-match `visual_duplicate`). A photo the host cannot read keeps its empty hash and is named in
- * `failures`; its assignment then waits.
+ * perceptual near-match `visual_duplicate`). A photo the host cannot read is durably marked failed with a bounded
+ * reason and named in `failures`; it stops blocking its assignment and stops consuming later runs' inspection slots.
  */
 export async function inspectPendingPhotos(ctx: Ctx) {
 	const pending = await ctx.read('photo_evidence', {
-		where: { sha256: { eq: '' } },
+		where: { sha256: { eq: '' }, inspection_failed_at: { isNull: true } },
 		select: { photo: true, job_assignment_id: true, variation_request_id: true },
 		limit: INSPECTIONS_PER_RUN
 	});
@@ -541,9 +548,14 @@ export async function inspectPendingPhotos(ctx: Ctx) {
 	for (const photo of rows) {
 		const facts = await ctx.files.image.try(photo.photo);
 		if ('kind' in facts) {
-			failures.push({
-				photo_id: photo.id,
-				reason: 'message' in facts ? facts.message : facts.reason
+			const reason = clipText(
+				'message' in facts ? facts.message : facts.reason,
+				MAX_INSPECTION_FAILURE_REASON_CHARS
+			);
+			failures.push({ photo_id: photo.id, reason });
+			await ctx.act('photo_evidence.update', {
+				target: photo.id as Id<'photo_evidence'>,
+				set: { inspection_failed_at: ctx.now, inspection_failure_reason: reason }
 			});
 			continue;
 		}
@@ -667,7 +679,7 @@ export async function uncheckedAssignments(ctx: Ctx, only?: readonly string[]) {
 	}));
 }
 
-/** A photo on the assignment has no facts yet: the assignment waits rather than being judged on an empty hash. */
+/** A photo on the assignment has no facts yet and no durable failure: the assignment waits for the next inspection. */
 export class AwaitingInspection extends Error {
 	constructor(readonly photoId: string) {
 		super(`Photo evidence ${photoId} has not been inspected yet.`);
@@ -699,6 +711,7 @@ async function loadFacts(ctx: Ctx, assignment: ReviewFacts['assignment']): Promi
 		select: {
 			photo: true,
 			sha256: true,
+			inspection_failed_at: true,
 			flags: true,
 			matched_evidence_ids: true,
 			created_at: true,
@@ -706,7 +719,9 @@ async function loadFacts(ctx: Ctx, assignment: ReviewFacts['assignment']): Promi
 		},
 		all: true
 	});
-	const waiting = photos.rows.find((photo) => photo.sha256 === '');
+	const waiting = photos.rows.find(
+		(photo) => photo.sha256 === '' && photo.inspection_failed_at == null
+	);
 	if (waiting !== undefined) throw new AwaitingInspection(String(waiting.id));
 	return {
 		assignment,
@@ -728,7 +743,9 @@ async function loadFacts(ctx: Ctx, assignment: ReviewFacts['assignment']): Promi
 				flags: photo.flags,
 				matched_evidence_ids: photo.matched_evidence_ids,
 				created_at: photo.created_at == null ? null : String(photo.created_at),
-				scene_embedding: photo.scene_embedding
+				scene_embedding: photo.scene_embedding,
+				inspection_failed_at:
+					photo.inspection_failed_at == null ? null : String(photo.inspection_failed_at)
 			}))
 		),
 		candidates: [],
@@ -812,7 +829,10 @@ export async function reviewAssignment(
 	const basis = reviewBasis(facts);
 	const basisHash = sha256Text(basis);
 	const attachedPairs = pairsOf(facts, representatives).filter((pair) => pair.attached);
-	const [decision, ...sameScene] = await Promise.all([
+	// `allSettled`, not `all`: one turn that fails must not abandon the others mid-flight. A fail-fast fan-out returns the
+	// body while sibling `ctx.ai` calls are still crossing, which the guest reports as an internal failure and loses the
+	// review that was succeeding. A pair that could not be judged is simply not counted as reuse.
+	const [decision, ...pairTurns] = await Promise.allSettled([
 		ctx.ai.sys_2.infer({
 			model: SUSPICION_REVIEW_MODEL,
 			prompt: suspicionPrompt(facts, representatives),
@@ -821,19 +841,19 @@ export async function reviewAssignment(
 		}) as Promise<Decision>,
 		...attachedPairs.map(
 			async ({ own, candidate }) =>
-				(
-					(await ctx.ai.sys_2.infer({
-						model: SUSPICION_REVIEW_MODEL,
-						prompt: PAIR_PROMPT,
-						files: await Promise.all([visible(ctx, own.photo), visible(ctx, candidate.photo)]),
-						output: PAIR_DECISION
-					})) as { readonly same_scene: boolean }
-				).same_scene
+				ctx.ai.sys_2.infer({
+					model: SUSPICION_REVIEW_MODEL,
+					prompt: PAIR_PROMPT,
+					files: await Promise.all([visible(ctx, own.photo), visible(ctx, candidate.photo)]),
+					output: PAIR_DECISION
+				}) as Promise<{ readonly same_scene: boolean }>
 		)
 	]);
+	if (decision.status === 'rejected') throw decision.reason;
+	const sameScene = pairTurns.map((turn) => turn.status === 'fulfilled' && turn.value.same_scene);
 	const verdict = judge(
 		representatives,
-		decision,
+		decision.value,
 		attachedPairs.filter((_, i) => sameScene[i])
 	);
 	const job = assignment.id as Id<'job_assignments'>;
