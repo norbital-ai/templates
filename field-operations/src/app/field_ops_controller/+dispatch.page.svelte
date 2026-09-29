@@ -6,7 +6,7 @@
 	 */
 	import { bolt } from '$bolt';
 	import type { ListRow } from '@norbital-ai/bolt';
-	import { AppShell, Cluster, Split, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Cluster, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Board, Button, DateInput, Map } from '@norbital-ai/ui';
 	import Icon from '@iconify/svelte';
 	import { csvRecords } from '../../lib/csv.js';
@@ -146,7 +146,7 @@
 	title={t('app.field_ops_controller.header_title')}
 	description={t('app.field_ops_controller.header_description')}
 >
-	<Stack gap="sm">
+	<Stack gap="sm" fill>
 		<!-- the sheet picker the import action opens -->
 		<input
 			bind:this={picker}
@@ -165,12 +165,13 @@
 		{#if message}<p role="status" class="text-sm whitespace-pre-line text-muted-foreground">
 				{message}
 			</p>{/if}
-		<Split ratio="wide" collapse="switch" gap="md">
+		<Split ratio="wide" collapse="switch" gap="md" fill>
 			{#snippet start()}
 				<Board
 					of="job_assignments"
 					by="status"
 					key="dispatch"
+					columns={2}
 					where={{ scheduled_for: { eq: date } }}
 					orderBy={{ dispatched_at: 'asc' }}
 					toolbar={{
@@ -200,7 +201,7 @@
 				/>
 			{/snippet}
 			{#snippet end()}
-				<Stack gap="sm">
+				<Stack gap="sm" fill>
 					<!-- `isolate`: Leaflet's pane z-indexes stay below the record sheet -->
 					<div class="isolate">
 						<Map
@@ -216,10 +217,11 @@
 							{t('app.field_ops_controller.map_empty', { date })}
 						</p>
 					{/if}
-					<Stack
+					<Scroll
 						as="ul"
+						name={t('app.field_ops_controller.dispatch_map_for', { date })}
+						grow
 						gap="sm"
-						aria-label={t('app.field_ops_controller.dispatch_map_for', { date })}
 					>
 						{#each sites.current?.rows ?? [] as site (site.id)}
 							<li class="rounded-md border p-2">
@@ -244,7 +246,7 @@
 								</Stack>
 							</li>
 						{/each}
-					</Stack>
+					</Scroll>
 				</Stack>
 			{/snippet}
 		</Split>
