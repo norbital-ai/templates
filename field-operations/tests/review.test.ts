@@ -2,7 +2,7 @@
  * The suspicion review (L-TPL-field-operations-004/011/016) over the host's image facts and a scripted `sys_2` model:
  * a filed photo is inspected, an unchecked job is judged once and stamped, a suspicious judgement writes one finding
  * however often it is re-judged, a change makes the job unread again, and a failed turn stamps nothing and re-queues
- * the review at the next quarter hour.
+ * the review at the next two-hour slot.
  */
 import { readFileSync } from 'node:fs';
 import { expect, it } from 'vitest';
@@ -179,7 +179,7 @@ it('an unreadable photo is not inspected again by a later run', async () => {
 	).not.toBe('');
 });
 
-it('a failed turn stamps nothing and re-queues the review at the next quarter hour', async () => {
+it('a failed turn stamps nothing and re-queues the review at the next two-hour slot', async () => {
 	const fake = facilities(() => new Error('provider down'));
 	const t = await workspace({
 		runs: { facility: fake.facility as never },
@@ -196,7 +196,7 @@ it('a failed turn stamps nothing and re-queues the review at the next quarter ho
 		t,
 		`SELECT due_at::text AS due, state FROM sys_run WHERE automation = 'review_job_assignment_suspicion' AND key = 'suspicion_retry'`
 	);
-	expect(queued).toEqual([{ due: expect.stringMatching(/^2026-09-25 10:15:00/), state: 'queued' }]);
+	expect(queued).toEqual([{ due: expect.stringMatching(/^2026-09-25 12:00:00/), state: 'queued' }]);
 	const [failed] = await rows(
 		t,
 		`SELECT state, error::text AS error FROM sys_run WHERE automation = 'review_job_assignment_suspicion' AND cause = 'created'`

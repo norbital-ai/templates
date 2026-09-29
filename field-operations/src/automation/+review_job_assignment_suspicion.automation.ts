@@ -4,7 +4,7 @@ import {
 	backfillScenes,
 	inspectPendingPhotos,
 	messageOf,
-	nextQuarterHour,
+	nextRetrySlot,
 	reviewAssignment,
 	uncheckedAssignments
 } from '../lib/suspicion-review.js';
@@ -14,7 +14,7 @@ const REVIEWS_AT_ONCE = 6;
 
 const review = automation({
 	description:
-		"When an assignment is filed or changes: inspects photos awaiting facts (fills each one's sha256, perceptual embedding and integrity flags), then reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious. A review that fails stamps nothing and is retried at the next quarter hour.",
+		"When an assignment is filed or changes: inspects photos awaiting facts (fills each one's sha256, perceptual embedding and integrity flags), then reviews every unchecked assignment with AI and creates an idempotent suspicion log only when the model judges the combined evidence suspicious. A review that fails stamps nothing and is retried at the next two-hour slot.",
 	on: [
 		{ created: 'job_assignments' },
 		{
@@ -87,13 +87,13 @@ review.run(async (input, ctx) => {
 				await reviewOne(next);
 		})
 	);
-	// anything left unread (a failed turn, a photo still queued) is retried at the next quarter hour, once; a photo the
+	// anything left unread (a failed turn, a photo still queued) is retried at the next two-hour slot, once; a photo the
 	// host could not read is durably marked, so it is not re-inspected and schedules no retry of its own
 	if (failures.length > 0 || (counts.awaiting_inspection ?? 0) > 0)
 		await ctx.schedule(
 			'review_job_assignment_suspicion',
 			{},
-			{ at: nextQuarterHour(String(ctx.now)) as never, key: 'suspicion_retry' }
+			{ at: nextRetrySlot(String(ctx.now)) as never, key: 'suspicion_retry' }
 		);
 	if (failures.length > 0)
 		throw new Error(

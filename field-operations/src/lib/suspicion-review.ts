@@ -914,10 +914,10 @@ export async function reviewAssignment(
 	return status;
 }
 
-/** The next quarter-hour slot, today's `*\/15` cron instant. */
-export const nextQuarterHour = <T extends string>(now: T): T => {
+/** The next two-hour slot (00:00, 02:00, … UTC), when a review that did not complete is tried again. */
+export const nextRetrySlot = <T extends string>(now: T): T => {
 	const at = new Date(now);
-	at.setUTCSeconds(0, 0);
-	at.setUTCMinutes(at.getUTCMinutes() - (at.getUTCMinutes() % 15) + 15);
+	at.setUTCMinutes(0, 0, 0);
+	at.setUTCHours(at.getUTCHours() - (at.getUTCHours() % 2) + 2);
 	return at.toISOString() as T;
 };

@@ -65,7 +65,7 @@ Every photo, from every entry path, passes through the same pipeline: the `photo
 collection files it (exactly one parent, immutable provenance) and the suspicion review's first
 pass reads the bytes and writes the facts. The facts need the bytes, which a collection transform
 cannot read, and the review is the first thing that must not proceed without them — so inspection
-is the opening pass of the one hourly run rather than an automation of its own:
+is the opening pass of the review run rather than an automation of its own:
 
 1. **Ingest** — JPEG/PNG only, exactly one parent (assignment or variation), SHA-256 fingerprint,
    Meta PDQ perceptual hash (256-bit), EXIF parse (`exifr`), and quality/metadata signals. The
@@ -90,8 +90,9 @@ is the opening pass of the one hourly run rather than an automation of its own:
 
 ### The suspicion review
 
-One automation owns both passes: `review_job_assignment_suspicion` (hourly, manual runs may
-name one `assignment_id`). It inspects every photo still awaiting its facts, then pages through
+One automation owns both passes: `review_job_assignment_suspicion` (on each filed or changed
+assignment, retried every two hours while any review is left unread; manual runs may name one
+`assignment_id`). It inspects every photo still awaiting its facts, then pages through
 every unchecked assignment, including completed work, and assembles the assignment, its job and site, the deterministic photo facts, and bounded
 recent `communication_logs`. It passes a bounded visual sample (up to three photos, deterministic
 selection weighted by signal, capped at 4 MiB) plus a text context to a provider model
@@ -173,14 +174,14 @@ The envoy runs under the strict capability lock:
 
 ### Automations, policies, seed
 
-| Kind       | Name                              | What it does                                                                                                                                                                                                                                                                                                            |
-| ---------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Automation | `review_job_assignment_suspicion` | Hourly (and on manual request, one assignment by id): inspects every photo still awaiting its integrity facts, then pages through all unchecked assignments, reviews each against a bounded visual + communication context, and writes one idempotent suspicion log only when the model judges the evidence suspicious. |
-| Policy     | `field_ops_controller`            | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                                                                     |
-| Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + `mutate.existing`, `assignee_user_id = requestor`); own variations (`read` + both `mutate` branches behind the approval flow); own evidence (`read` + `mutate.new`).                                                       |
-| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: read assignments; update status, completion and summary on any one; file new photo and message rows under it. No other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                                                                         |
-| Policy     | `suspicion_review_automation`     | The review automation's authority: the photo corpus it inspects (facts written once, while the hash is empty), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                                                       |
-| Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its photo-to-assignment map is reviewed photo by photo; the job-assignment import CSV template lives in `assets/` with its own README.                                                                     |
+| Kind       | Name                              | What it does                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Automation | `review_job_assignment_suspicion` | On each filed or changed assignment, retried every two hours while any review is left unread (and on manual request, one assignment by id): inspects every photo still awaiting its integrity facts, then pages through all unchecked assignments, reviews each against a bounded visual + communication context, and writes one idempotent suspicion log only when the model judges the evidence suspicious. |
+| Policy     | `field_ops_controller`            | Full command of the operational records and both apps; the audit ledgers (communications, reviews, suspicion logs) are append-only.                                                                                                                                                                                                                                                                           |
+| Policy     | `field_ops_contractor`            | Requestor-scoped grants: assigned sites and their dispatched jobs; own assignments (`read` + `mutate.existing`, `assignee_user_id = requestor`); own variations (`read` + both `mutate` branches behind the approval flow); own evidence (`read` + `mutate.new`).                                                                                                                                             |
+| Policy     | `field_ops_whatsapp`              | The WhatsApp envoy's directly declared ceiling: read assignments; update status, completion and summary on any one; file new photo and message rows under it. No other writes, deletes, evidence or log reads, reviews, suspicion data or apps.                                                                                                                                                               |
+| Policy     | `suspicion_review_automation`     | The review automation's authority: the photo corpus it inspects (facts written once, while the hash is empty), append-only review records and suspicion logs, and the single `suspicion_checked_at` stamp that closes the review.                                                                                                                                                                             |
+| Seed       | —                                 | Fixture data is host-owned and lives in the repository seed bank (there is no `src/+seed.ts` compiler role). Its photo-to-assignment map is reviewed photo by photo; the job-assignment import CSV template lives in `assets/` with its own README.                                                                                                                                                           |
 
 The controller reads assignments, people, sites, and open suspicion logs directly from the
 sync-backed collections. Its board cards and map points are local projections of those rows, so they
