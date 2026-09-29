@@ -1808,7 +1808,8 @@ test('Vietnam — a foreigner is insured on a contract of twelve months or more 
 					exit_date: '2026-12-31',
 					exit_reason: 'END_OF_CONTRACT'
 				},
-				// A working pensioner, recorded outside SI: nothing to the fund, 20.5% + 1% to them.
+				// A working pensioner, recorded outside SI: nothing to the fund, 17.5% + 1% to them (HI
+				// is the SI agency's, HI Law art.13(5)(d)).
 				{
 					key: 'VN-PENSIONER',
 					wage: 20_000_000,
@@ -1858,9 +1859,10 @@ test('Vietnam — a foreigner is insured on a contract of twelve months or more 
 	// Twelve months: insured, 8% / 17.5% and 1.5% / 3%.
 	assert.deepEqual(charge('VN-F-12M', 'SI'), [1_600_000, 3_500_000]);
 	assert.deepEqual(charge('VN-F-12M', 'HI'), [300_000, 600_000]);
-	// The pensioner: 20.5% of 20,000,000 plus UI's 1% = 4,300,000.
+	// The pensioner: SI's 17.5% plus UI's 1% of 20,000,000 = 3,700,000. No HI 3%: HI Law
+	// art.12(2)(a), 13(5)(d) insure a pensioner through the SI agency, so art.168(3) owes none.
 	assert.deepEqual(charge('VN-PENSIONER', 'SI'), [0, 0]);
-	assert.equal(equivalent('VN-PENSIONER'), 4_300_000);
+	assert.equal(equivalent('VN-PENSIONER'), 3_700_000);
 });
 
 test('Vietnam — a pensioner, a transferee and a foreigner hired at retirement age are outside insurance and owed the employer’s rate (Law 41/2024 art.2(2), 2(7); Labour Code art.168(3))', () => {
@@ -1933,10 +1935,11 @@ test('Vietnam — a pensioner, a transferee and a foreigner hired at retirement 
 	};
 	const equivalent = (key: string) =>
 		slips.get(key)!.base.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')?.amount;
-	// The pensioner: no SI, HI or UI; 20.5% + 1% of 20,000,000 = 4,300,000 with the wage.
+	// The pensioner: no SI, HI or UI; 17.5% + 1% of 20,000,000 = 3,700,000 with the wage (HI is the
+	// SI agency's, HI Law art.13(5)(d)).
 	assert.deepEqual(charge('VN-PENSION', 'SI'), [0, 0]);
 	assert.deepEqual(charge('VN-PENSION', 'UI'), [0, 0]);
-	assert.equal(equivalent('VN-PENSION'), 4_300_000);
+	assert.equal(equivalent('VN-PENSION'), 3_700_000);
 	// The transferee and the retirement-age hire: no SI or HI; 20.5% = 4,100,000 (no UI for a foreigner).
 	assert.deepEqual(charge('VN-TRANSFEREE', 'SI'), [0, 0]);
 	assert.equal(equivalent('VN-TRANSFEREE'), 4_100_000);
@@ -1968,8 +1971,8 @@ test('Vietnam — the insurance equivalent is owed with no allowance row: a work
 	});
 	const equivalent = (key: string) =>
 		slips.get(key)!.base.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')?.amount;
-	// Pensioner: 17.5% SI + 3% HI + 1% UI of 25,000,000 = 5,375,000.
-	assert.equal(equivalent('VN-PEN'), 5_375_000);
+	// Pensioner: 17.5% SI + 1% UI of 25,000,000 = 4,625,000; no HI share (HI Law art.13(5)(d)).
+	assert.equal(equivalent('VN-PEN'), 4_625_000);
 	// Foreigner: 17.5% + 3% of 30,000,000 = 6,150,000; no UI share for a foreigner.
 	assert.equal(equivalent('VN-FR'), 6_150_000);
 	for (const key of ['VN-PEN', 'VN-FR'])
@@ -1981,6 +1984,44 @@ test('Vietnam — the insurance equivalent is owed with no allowance row: a work
 				`${key} ${code}`
 			);
 		}
+});
+
+test('Vietnam — 2026-09: a pensioner aged 63 is owed SI and UI equivalents, not HI (Labour Code art.168(3); HI Law art.12(2)(a), 13(5)(d); Law 41/2024 art.2(7)(a))', () => {
+	// Labour Code art.168(3) pays the employer's rate only for the schemes the worker is outside
+	// ("không thuộc đối tượng tham gia"). A pensioner is outside SI (Law 41/2024 art.2(7)(a)) and UI
+	// (Law 74/2025 art.31(2)) but inside HI: art.12(2)(a) lists him in the SI agency's group and
+	// art.13(5)(d) keeps him there whatever else he is.
+	const { slips } = buildStatutory({
+		code: 'VN',
+		period: '2026-09',
+		region: 'I',
+		people: [
+			{
+				key: 'VN-PEN-63',
+				wage: 30_000_000,
+				citizenship: 'CITIZEN',
+				gender: 'MALE',
+				birth_date: '1963-01-01',
+				receiving_pension: true
+			}
+		]
+	});
+	const slip = slips.get('VN-PEN-63')!;
+	const charge = (code: string) => {
+		const row = slip.statutory.find((item) => item.scheme_code === code);
+		return [row?.employee_amount ?? 0, row?.employer_amount ?? 0];
+	};
+	for (const code of ['SI', 'HI', 'UI']) assert.deepEqual(charge(code), [0, 0], code);
+	// 30,000,000 × (17.5% + 1%) = 5,550,000 (under the 46,800,000 SI and 106,200,000 UI caps).
+	assert.equal(
+		slip.base.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')?.amount,
+		5_550_000
+	);
+	assert.equal(slip.gross, 35_550_000);
+	// Law 109/2025 art.4 counts the equivalent as salary income: 35,550,000 − 15,500,000 =
+	// 20,050,000 → 10,000,000 × 5% + 10,050,000 × 10% = 1,505,000.
+	assert.deepEqual(charge('PIT'), [1_505_000, 0]);
+	assert.equal(slip.net, 34_045_000); // 35,550,000 − 1,505,000
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -2038,8 +2079,10 @@ test('Vietnam — a mid-month leaver: final pay on working days, unused leave at
 	// / 3% = 1,320,000; UI 1% = 440,000 each (Region I cap 106,200,000). Leave pay is not insured.
 	// PIT, resident, tax year 2026: Decree 253/2026 art.26(2) exempts pay for untaken leave within
 	// Labour Code art.113(3) (applied to resident salary from tax period 2026, art.69(1)(a)):
-	// 22,000,000 of taxable wages is paid after termination. GDT letter 51/TCT-DNNCN (2021)
-	// directs 10% per payment of at least VND2m: 2,200,000. Net 30,000,000 − 4,620,000 − 2,200,000.
+	// 22,000,000 of taxable wages is paid after termination. Circular 111/2013 art.25(1)(i) (Gazette
+	// 563+564 pp.69–70) withholds 10% on each payment of at least VND2m to a resident paid without a
+	// labour contract; the register treats a payment after the contract ended as one (owner rule
+	// 2026-09-28, as GDT letter 51/TCT-DNNCN of 2021 also directs): 2,200,000. Net 30,000,000 − 4,620,000 − 2,200,000.
 	// Non-resident: Decree 253/2026 took effect 1 July 2026 (art.69), so April still taxes the leave
 	// pay with the salary (Circular 111/2013 art.2(2)): 30,000,000 × 20% = 6,000,000 (Law 04/2007
 	// art.26 as carried; no deductions).
@@ -3275,4 +3318,41 @@ test('Vietnam — a worker on a probation contract is outside UI from 2026 (Law 
 		// Control: the same wage on a labour contract, 1% / 1% of 20,000,000.
 		assert.deepEqual(ui('VN-PERMANENT'), [20_000_000, 200_000, 200_000], period);
 	}
+});
+
+test('Vietnam — the 3,000,000 voluntary pension cap reaches back to January 2026 under the pre-July versions (Decree 253/2026 art.46(2)(a), art.69(1)(a))', () => {
+	// Decree 253/2026 art.46(2)(a) (Official Gazette 402): supplementary pension, voluntary pension
+	// and life insurance premiums are deducted up to 3,000,000 a month in total, employer and
+	// employee shares together. Art.69(1)(a): the resident salary rules apply from tax period 2026,
+	// so February 2026 (the 1 January 2026 version) already takes the 3,000,000 cap, not the
+	// 1,000,000 of Circular 111/2013 art.9(2)(b) as replaced by Circular 92/2015 art.15.
+	// 30,000,000 salary, Region I: SI 8% 2,400,000 + HI 1.5% 450,000 + UI 1% 300,000 = 3,150,000.
+	// 4,000,000 paid → 3,000,000 deducted: 30,000,000 − 3,150,000 − 15,500,000 (Resolution 110/2025)
+	// − 3,000,000 = 8,350,000 × 5% (first band of the 2026 table, ≤10,000,000) = 417,500.
+	// 2,500,000 paid → deducted whole: 8,850,000 × 5% = 442,500.
+	const claim = (amount: number) => ({
+		PIT: {
+			kind: 'REGISTERED',
+			deduction_claims: [
+				{
+					period: '2026-02',
+					category: 'VOLUNTARY_PENSION',
+					amount,
+					source: 'EMPLOYEE',
+					reference: 'VP-FEB'
+				}
+			]
+		}
+	});
+	const book = assessStatutory({
+		code: 'VN',
+		period: '2026-02',
+		region: 'I',
+		people: [
+			{ key: 'VP-4M', wage: 30_000_000, citizenship: 'CITIZEN', registrations: claim(4_000_000) },
+			{ key: 'VP-2.5M', wage: 30_000_000, citizenship: 'CITIZEN', registrations: claim(2_500_000) }
+		]
+	});
+	expectStatutory(book, 'VP-4M', 'PIT', 417_500, 0);
+	expectStatutory(book, 'VP-2.5M', 'PIT', 442_500, 0);
 });

@@ -34,6 +34,7 @@ import test from 'node:test';
 import {
 	COMPANY_ID,
 	adhocCatalogue,
+	allowanceCatalogue,
 	assessStatutory,
 	assertEveryVersionPriced,
 	buildStatutory,
@@ -478,6 +479,13 @@ test('Shanghai — the 3% / 10% seam of the annual table is ceiling-inclusive (C
 });
 
 test('Shanghai — a non-resident is withheld monthly on wage − 5,000, no insurance relief (CN-N38)', () => {
+	// IIT Law art.6(2) (https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193028/content.html): 非居民个人的工资、
+	// 薪金所得，以每月收入额减除费用五千元后的余额为应纳税所得额; the withholding return (STA 2022 No.7 annex 2
+	// item 11(1)②, https://fgk.chinatax.gov.cn/zcfgk/c100012/c5196775/content.html) states it as 收入额减去减除
+	// 费用. The employee's own insurance and fund shares are not taken off (财税〔2006〕10号 is read for residents).
+	// The tax authority answers the same way: STA Foshan bureau filing guide Q(十), 2025-10-09
+	// (https://guangdong.chinatax.gov.cn/gdsw/fssw_nsrxt_kjxz/2025-10/09/content_00a4ed7054fc4d82ac30702f52001a14.shtml),
+	// on IIT Law art.6 and STA 2018 No.61 art.9: 非居民个人缴纳的三险一金暂不允许扣除 (EM1 rejected).
 	const nonres = (key: string, wage: number) =>
 		person(key, wage, { tax_residency: 'NON_RESIDENT' });
 	const book = assessStatutory({
@@ -2417,7 +2425,7 @@ function leaveGrant(
 		gender: string;
 		births: readonly string[];
 		asOf: string;
-		event?: { kind: string; date: string };
+		event?: { kind: string; date: string; relationship?: string };
 	}
 ) {
 	const row = leaveCatalogue(code).find(
@@ -2989,6 +2997,171 @@ test('both cities — an early-retirement subsidy is spread over the actual year
 		assert.deepEqual(tax(192_002, 2), [192_002, 2_160.2, 0], code);
 		assert.throws(() => run(code, 500_000, null), /iit164_early_retirement_years/, code);
 	}
+});
+
+// ─────────────────────────────────── Both cities: exempt receipts, heat, funeral and injury leave ──
+
+/** One seeded catalogue row of a version, whole. */
+const seeded = <Row extends { settings_id: string; code: string }>(
+	rows: readonly Row[],
+	settingsId: string,
+	code: string
+) =>
+	rows.find((row) => row.settings_id === settingsId && row.code === code) ??
+	assert.fail(`No ${code} in ${settingsId}`);
+
+test('both cities — 独生子女补贴, 托儿补助费, 差旅费津贴 and 误餐补助 stay out of the IIT base (国税发〔1994〕89号 item 2; CN-N55)', () => {
+	// 国税发〔1994〕89号 item 2 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html): these are
+	// 不属于工资、薪金性质的补贴、津贴 and 不征税. 100 + 200 + 300 + 50 = 650 is paid on top of the wage and the
+	// wage's tax is unchanged: Shanghai 20,000 − 3,500 − 5,000 = 11,500 × 3% = 345; Kunming 10,000 −
+	// (800 + 200 + 30 + 1,200) − 5,000 = 2,770 × 3% = 83.10.
+	const exempt = [
+		['ONE_CHILD_SUBSIDY', 100],
+		['CHILDCARE_SUBSIDY', 200],
+		['TRAVEL_ALLOWANCE', 300],
+		['MISSED_MEAL_SUBSIDY', 50]
+	] as const;
+	const run = (
+		code: typeof SH | typeof KM,
+		key: string,
+		wage: number,
+		region: string,
+		facts: Record<string, number>
+	) =>
+		buildStatutory(
+			{ code, period: '2026-01', region, companyFacts: facts, people: [person(key, wage)] },
+			(world) => {
+				for (const [row, amount] of exempt) adhoc(world, key, row, amount, '2026-01-10', code);
+			}
+		).slips.get(key)!;
+	const sh = run(SH, 'SH-EXEMPT', 20_000, 'SHANGHAI', SH_2026_FACTS);
+	assert.deepEqual(charge(sh, 'IIT'), [20_000, 345, 0]);
+	assert.equal(sh.gross, 20_650);
+	const km = run(KM, 'KM-EXEMPT', 10_000, 'CATEGORY_I', KM_2026_FACTS);
+	assert.deepEqual(charge(km, 'IIT'), [10_000, 83.1, 0]);
+	assert.equal(km.gross, 10_650);
+	for (const code of [SH, KM] as const)
+		for (const version of settingsVersions(code))
+			for (const [row] of exempt)
+				assert.deepEqual(
+					seeded(adhocCatalogue(code), version.id, row).counts_toward,
+					[],
+					`${code} ${version.name} ${row}`
+				);
+});
+
+test('Shanghai — the summer heat allowance is 300 a month from June to September, taxed as wages (沪人社规〔2019〕19号; CN-SH19)', () => {
+	// 沪人社规〔2019〕19号 items 1–3 (in force to 31 Dec 2028 by 沪人社规〔2023〕29号): CNY300 a month, June to
+	// September, for open-air work or a workplace not brought below 33℃; in 工资总额. On a 20,000 wage the
+	// July slip is 20,300 gross and the IIT base 20,300; May pays none (20,000); a contract figure of 400
+	// is kept (the notice is a floor for the months it covers).
+	const run = (period: string, amount: number) =>
+		buildStatutory(
+			{
+				code: SH,
+				period,
+				region: 'SHANGHAI',
+				companyFacts: SH_2026_FACTS,
+				people: [person('SH-HEAT', 20_000)]
+			},
+			(world) => {
+				const row = world.allowance_catalogue!.find(
+					(item) =>
+						item.code === 'HEAT_ALLOWANCE' && item.settings_id === settingsIdOn(SH, `${period}-15`)
+				)!;
+				for (const terms of world.employment_terms)
+					terms.allowances = [{ catalogue_id: row.id, amount }];
+			}
+		).slips.get('SH-HEAT')!;
+	const july = run('2026-07', 300);
+	assert.equal(july.gross, 20_300);
+	assert.equal(charge(july, 'IIT')[0], 20_300);
+	const may = run('2026-05', 300);
+	assert.equal(may.gross, 20_000);
+	assert.equal(charge(may, 'IIT')[0], 20_000);
+	assert.equal(run('2026-08', 400).gross, 20_400);
+	for (const version of settingsVersions(SH))
+		rowIn(allowanceCatalogue(SH), version.id, 'HEAT_ALLOWANCE');
+});
+
+test('both cities — 丧假: three paid days for a parent, the spouse or a child, on every version (CN-N51)', () => {
+	// 国劳总薪字〔1980〕29号 item 1: 一至三天 for 直系亲属（父母、配偶和子女）; the seed grants the maximum, as
+	// MARRIAGE_LEAVE does (owner rule 2026-09-28). 工资支付暂行规定 art.11: paid at the contract standard.
+	const day = '2026-03-10';
+	for (const code of [SH, KM] as const)
+		for (const version of settingsVersions(code)) {
+			const days = (relationship: string) =>
+				leaveGrant(code, version.id, 'FUNERAL_LEAVE', {
+					gender: 'MALE',
+					births: [],
+					asOf: day,
+					event: { kind: 'DEATH', relationship, date: day }
+				});
+			assert.deepEqual(
+				[days('PARENT'), days('SPOUSE'), days('CHILD'), days('SIBLING')],
+				[3, 3, 3, null],
+				`${code} ${version.name}`
+			);
+			assert.equal(seeded(leaveCatalogue(code), version.id, 'FUNERAL_LEAVE').is_npl, false);
+		}
+});
+
+test('Kunming — 停工留薪期: paid work-injury leave, at most 24 months (731 calendar days), certificate required (工伤保险条例 art.33; CN-N21)', () => {
+	// Art.33: 原工资福利待遇不变，由所在单位按月支付; 一般不超过12个月, extended at most 12 more on the committee's
+	// confirmation — 24 months is at most 731 days. Shanghai measures the pay on the prior 12-month average
+	// (CN-SH20), which the leave row cannot state, so it has no row.
+	const day = '2026-03-10';
+	for (const version of settingsVersions(KM)) {
+		assert.equal(
+			leaveGrant(KM, version.id, 'WORK_INJURY_LEAVE', {
+				gender: 'FEMALE',
+				births: [],
+				asOf: day,
+				event: { kind: 'WORK_INJURY', date: day }
+			}),
+			731,
+			version.name
+		);
+		const row = seeded(leaveCatalogue(KM), version.id, 'WORK_INJURY_LEAVE');
+		assert.deepEqual(
+			[row.is_npl, row.evidence, (row.entitlement as { calendar_days?: boolean }).calendar_days],
+			[false, 'REQUIRED', true],
+			version.name
+		);
+	}
+	for (const version of settingsVersions(SH))
+		assert.equal(
+			leaveCatalogue(SH).some(
+				(row) => row.settings_id === version.id && row.code === 'WORK_INJURY_LEAVE'
+			),
+			false
+		);
+});
+
+test('Kunming — housing rent and housing-loan interest in one year refuse (国发〔2018〕41号; CN-N54)', () => {
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: KM,
+				period: '2026-01',
+				region: 'CATEGORY_I',
+				companyFacts: KM_2026_FACTS,
+				people: [
+					person('KM-BOTH', 10_000, {
+						iit: {
+							deduction_claims: ['HOUSING_RENT', 'HOUSING_LOAN_INTEREST'].map((category) => ({
+								period: '2026-01',
+								category,
+								amount: 1_000,
+								source: 'EMPLOYEE',
+								reference: category
+							}))
+						}
+					})
+				]
+			}),
+		/cannot both be deducted/
+	);
 });
 
 test('every sealed version of `CN-shanghai` and `CN-kunming` is priced by a golden here', () => {

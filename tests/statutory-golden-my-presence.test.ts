@@ -95,14 +95,16 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		// Both in Malaysia without a break since 2025, 31 days in January 2026. From 3 July 2025,
 		// 3–31 July (29) + 31 + 30 + 31 + 30 + 31 = 182 consecutive days in 2025: resident for 2026
 		// under s.7(1)(b), whatever the recorded NON_RESIDENT. D(b)(1) normal remuneration, as the
-		// 182-day contract golden: K1 = K2 = 101, LP1 25.25, relief 9,000, P = 49,774.75, Table 1
-		// 600 + 14,774.75 × 6% = 1,486.485 ÷ 12 = 123.873 → 123.87 → 123.90. From 4 July, 181 days:
+		// 182-day contract golden: K1 = K2 = 100.02 (Part F 2% × 5,001, A1760 para 2), no SOCSO
+		// relief without a TP1 claim (MTD spec 2026 D.2(ii) item k), relief 9,000, P = 4,900.98 × 12
+		// − 9,000 = 49,811.76, Table 1 600 + 14,811.76 × 6% = 1,488.7056 ÷ 12 = 124.058 → 124.05.
+		// From 4 July, 181 days:
 		// not resident; physical presence alone does not prove days employment was exercised here.
 		const book = assessStatutory(
 			{ code, period: '2026-01', people: [foreigner('L-182')] },
 			stays({ 'L-182': { start: '2025-07-03', end: null } })
 		);
-		expectStatutory(book, 'L-182', 'PCB', 123.9, 0);
+		expectStatutory(book, 'L-182', 'PCB', 124.05, 0);
 		assert.throws(
 			() =>
 				buildStatutory(

@@ -361,7 +361,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -500,6 +500,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -542,6 +551,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -924,7 +940,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -1063,6 +1079,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -1105,6 +1130,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -1489,7 +1521,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -1628,6 +1660,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -1670,6 +1711,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -2058,7 +2106,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -2197,6 +2245,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -2239,6 +2296,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -2625,7 +2689,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -2764,6 +2828,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -2806,6 +2879,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -3195,7 +3275,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -3334,6 +3414,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -3376,6 +3465,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -3755,7 +3851,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -3894,6 +3990,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -3936,6 +4041,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -4318,7 +4430,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -4457,6 +4569,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -4499,6 +4620,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -4883,7 +5011,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -5022,6 +5150,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -5064,6 +5201,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -5452,7 +5596,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -5591,6 +5735,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -5633,6 +5786,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -6019,7 +6179,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -6158,6 +6318,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -6200,6 +6369,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -6589,7 +6765,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -6728,6 +6904,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -6770,6 +6955,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -7154,7 +7346,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -7293,6 +7485,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -7335,6 +7536,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -7722,7 +7930,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -7861,6 +8069,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -7903,6 +8120,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -8292,7 +8516,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -8431,6 +8655,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -8473,6 +8706,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -8866,7 +9106,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -9005,6 +9245,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -9047,6 +9296,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -9438,7 +9694,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -9577,6 +9833,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -9619,6 +9884,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -10013,7 +10285,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -10152,6 +10424,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -10194,6 +10475,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -13631,7 +13919,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -13770,6 +14058,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -13812,6 +14109,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -17259,7 +17563,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -17398,6 +17702,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -17440,6 +17753,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -20886,7 +21206,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -21025,6 +21345,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -21067,6 +21396,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -24517,7 +24853,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -24656,6 +24992,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -24698,6 +25043,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -28136,7 +28488,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -28275,6 +28627,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -28317,6 +28678,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",
@@ -31771,7 +32139,7 @@
 				"trigger": "Start of business operations; each hire",
 				"timing": "Employer data within 30 days from the start of business operations; each new hire within 30 days from the start of employment",
 				"owner": "HR / Pag-IBIG employer account",
-				"authority": "RA 9679 s.6; HDMF Circular 275 §C.4 (https://web.archive.org/web/2020id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/HDMF%20Circular%20275%20-%20Implementing%20Guidelines%20on%20Employer%20Registration%20Contribution%20and%20Remittance.pdf)",
+				"authority": "RA 9679 s.6; HDMF Circular 275 §C.2 as amended by HDMF Circular 365 of 29 September 2016, effective immediately (https://web.archive.org/web/20211228231909id_/https://www.pagibigfund.gov.ph/document/pdf/circulars/provident/Circular%20No.%20365%20-%20Amended%20HDMF%20Circular%20No.%20275%20on%20the%20Registration%20of%20Employers.pdf): employer data within thirty days from the start of business operations and newly hired employees within thirty days from the start of employment. Citation corrected in place 2026-09-29 (PH-SRC03): §C.4 exists only in the unamended Circular 275; the deadlines are unchanged.",
 				"status": "EXTERNAL"
 			},
 			{
@@ -31910,6 +32278,15 @@
 				"status": "EXTERNAL"
 			},
 			{
+				"code": "PROTECTION_ORDER_SUPPORT_WITHHOLDING",
+				"description": "Withhold from the respondent employee's salary the support a protection order fixes and remit it directly to the woman and/or her child",
+				"trigger": "Service on the employer of a temporary or permanent protection order under RA 9262 s.8(g) directing support and salary withholding",
+				"timing": "Regularly, each pay period the order covers, without delay; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt of court",
+				"owner": "Payroll / PROTECTION_ORDER_SUPPORT deduction at the ordered amount, remittance to the payee named in the order",
+				"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): the court orders \"an appropriate percentage of the income or salary of the respondent to be withheld regularly by the respondent's employer\" and \"automatically remitted directly to the woman\", notwithstanding other laws to the contrary",
+				"status": "PARTIAL"
+			},
+			{
 				"code": "KASAMBAHAY_CONTRACT_AND_REGISTRY",
 				"description": "Execute a written employment contract with a kasambahay and register the kasambahay in the barangay Registry of Domestic Workers",
 				"trigger": "Engagement of a domestic worker",
@@ -31952,6 +32329,13 @@
 					"CLOSURE_DUE_TO_SERIOUS_LOSSES",
 					"DISEASE"
 				]
+			},
+			{
+				"key": "terminated_for_disease",
+				"type": "boolean",
+				"label": "Terminated for disease (Labor Code art.299)",
+				"description": "Whether the employer ended the employment because the employee suffers from a disease whose continued employment is prohibited by law or prejudicial to the employee's or co-employees' health (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323). The employer must pay separation pay of at least one month's salary or half a month per year of service, whichever is greater, a fraction of at least six months counting as a year. Asked on every non-domestic dismissal or unilateral termination; a kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)). Added in place 2026-09-29 in every version (a transcription omission: the article predates every version).",
+				"required_when": "employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "kasambahay_unjust_dismissal",

@@ -100,7 +100,7 @@
 				"include_allowances": [],
 				"exclude_allowances": [],
 				"preserve_year_end_rate": false,
-				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime), but the BONUS class does not mark WAGES (engine_defect: counts-toward matrix), so a paid bonus is not yet averaged in."
+				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime): BONUS and ANNUAL_BONUS_SEPARATE both count toward WAGES, so a paid bonus is averaged in (register CN-N06). Annual-leave regulation: https://xzfg.moj.gov.cn/front/law/detail?LawID=208."
 			}
 		},
 		"payroll": {
@@ -136,9 +136,7 @@
 				"https://rsj.sh.gov.cn/tdjjf_17554/20250120/t0035_1430072.html",
 				"https://rsj.sh.gov.cn/tshbx_17729/20250103/t0035_1429759.html",
 				"https://rsj.sh.gov.cn/tshbx_17729/20260121/t0035_1438097.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcjd/228183.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228478.html",
+				"https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=230412105807NKYzasRn8VIgegEEV4g",
 				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html",
 				"https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html"
 			],
@@ -394,7 +392,7 @@
 				"include_allowances": [],
 				"exclude_allowances": [],
 				"preserve_year_end_rate": false,
-				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime), but the BONUS class does not mark WAGES (engine_defect: counts-toward matrix), so a paid bonus is not yet averaged in."
+				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime): BONUS and ANNUAL_BONUS_SEPARATE both count toward WAGES, so a paid bonus is averaged in (register CN-N06). Annual-leave regulation: https://xzfg.moj.gov.cn/front/law/detail?LawID=208."
 			}
 		},
 		"payroll": {
@@ -430,9 +428,7 @@
 				"https://rsj.sh.gov.cn/tdjjf_17554/20250120/t0035_1430072.html",
 				"https://rsj.sh.gov.cn/tshbx_17729/20250103/t0035_1429759.html",
 				"https://rsj.sh.gov.cn/tshbx_17729/20260121/t0035_1438097.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcjd/228183.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228478.html",
+				"https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=230412105807NKYzasRn8VIgegEEV4g",
 				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html",
 				"https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html"
 			],
@@ -706,7 +702,7 @@
 				"include_allowances": [],
 				"exclude_allowances": [],
 				"preserve_year_end_rate": false,
-				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime), but the BONUS class does not mark WAGES (engine_defect: counts-toward matrix), so a paid bonus is not yet averaged in."
+				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime): BONUS and ANNUAL_BONUS_SEPARATE both count toward WAGES, so a paid bonus is averaged in (register CN-N06). Annual-leave regulation: https://xzfg.moj.gov.cn/front/law/detail?LawID=208."
 			}
 		},
 		"payroll": {
@@ -742,9 +738,7 @@
 				"https://rsj.sh.gov.cn/tdjjf_17554/20250120/t0035_1430072.html",
 				"https://rsj.sh.gov.cn/tshbx_17729/20250103/t0035_1429759.html",
 				"https://rsj.sh.gov.cn/tshbx_17729/20260121/t0035_1438097.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcjd/228183.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228478.html",
+				"https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=230412105807NKYzasRn8VIgegEEV4g",
 				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html",
 				"https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html"
 			],
@@ -1018,7 +1012,7 @@
 				"include_allowances": [],
 				"exclude_allowances": [],
 				"preserve_year_end_rate": false,
-				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime), but the BONUS class does not mark WAGES (engine_defect: counts-toward matrix), so a paid bonus is not yet averaged in."
+				"authority": "企业职工带薪年休假实施办法 arts.10–12 (职工带薪年休假条例 art.5): unused statutory days are paid at 300% of the day wage, which includes the normal pay already paid, so the leaver is owed the further 200%; the day wage is the monthly wage ÷ 21.75, the monthly wage being the average of the twelve months before the payment with this employer excluding overtime (fewer where employed shorter). A bonus is in that average (art.11 excludes only overtime): BONUS and ANNUAL_BONUS_SEPARATE both count toward WAGES, so a paid bonus is averaged in (register CN-N06). Annual-leave regulation: https://xzfg.moj.gov.cn/front/law/detail?LawID=208."
 			}
 		},
 		"payroll": {
@@ -1054,9 +1048,7 @@
 				"https://rsj.sh.gov.cn/tdjjf_17554/20250120/t0035_1430072.html",
 				"https://rsj.sh.gov.cn/tshbx_17729/20250103/t0035_1429759.html",
 				"https://rsj.sh.gov.cn/tshbx_17729/20260121/t0035_1438097.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228051.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcjd/228183.html",
-				"https://www.shzfgjj.cn/html/newxxgk/zcwj/gfxwj/228478.html",
+				"https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=230412105807NKYzasRn8VIgegEEV4g",
 				"https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html",
 				"https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html"
 			],

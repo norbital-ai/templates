@@ -39,6 +39,13 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	]),
 	/** The entitlement counts every calendar day, including rest days and holidays. */
 	calendar_days: Schema.optionalKey(Schema.Boolean),
+	/**
+	 * Of a PER_EVENT row, the bands grant calendar months, not days: the leave must fall within
+	 * that many months counted from the event's first leave day (`monthsEnd`), whatever days the
+	 * roster charges inside them (VN Labour Code art.139(1): 06 tháng; Law 41/2024 art.53(9): the
+	 * period includes holidays and weekly rest days). Absent is days.
+	 */
+	calendar_months: Schema.optionalKey(Schema.Boolean),
 	/** The most PER_EVENT entries of this leave an employee may take in a lifetime; absent is no cap. */
 	lifetime_events: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
 	/**

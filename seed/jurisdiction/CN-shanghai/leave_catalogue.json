@@ -886,5 +886,101 @@
 		"is_npl": false,
 		"can_encash": false,
 		"encash_on_exit": false
+	},
+	{
+		"id": "829c2f6c-0a84-59b1-94c4-aebdab9e3df2",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "FUNERAL_LEAVE",
+		"name": "Funeral leave (丧假)",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "50364ddf-6f0c-58fb-a8aa-45a78e3497df",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "FUNERAL_LEAVE",
+		"name": "Funeral leave (丧假)",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "c0304486-a89b-59db-ab35-d0ea7b81851f",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "FUNERAL_LEAVE",
+		"name": "Funeral leave (丧假)",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ced19b16-c34c-50b8-9bd3-94fbe962f3c3",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "FUNERAL_LEAVE",
+		"name": "Funeral leave (丧假)",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
 	}
 ]

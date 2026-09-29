@@ -82,20 +82,17 @@
 		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -443,20 +440,17 @@
 		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -804,20 +798,21 @@
 		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
 					"eligibility": "event.child_index >= 2",
-					"days": "210.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "7.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				},
 				{
 					"eligibility": "",
-					"days": "180.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -1170,20 +1165,17 @@
 		"settings_id": "3e9ec72c-8248-57c4-a30d-336b620f13b0",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -1531,20 +1523,17 @@
 		"settings_id": "5affd360-4551-50a3-9b69-8e2d883b90b6",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -1892,20 +1881,17 @@
 		"settings_id": "c2a6f8dc-1baa-53f2-a469-372d6fdf9962",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -2253,20 +2239,21 @@
 		"settings_id": "88af2811-6efb-5c3d-a8e7-c6abe8058f86",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
 					"eligibility": "event.child_index >= 2",
-					"days": "210.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "7.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				},
 				{
 					"eligibility": "",
-					"days": "180.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -2619,20 +2606,17 @@
 		"settings_id": "7c39ad83-e7f5-5945-8f0a-48f69a7672fa",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -2980,20 +2964,17 @@
 		"settings_id": "87c4fcc3-34ee-56b8-afb4-7be3c8900c05",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -3341,20 +3322,17 @@
 		"settings_id": "0a34c1a5-88ad-5252-a198-fecfd596ca80",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -3702,20 +3680,21 @@
 		"settings_id": "54a64216-a80f-5f39-a09a-bc56baf97202",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
 					"eligibility": "event.child_index >= 2",
-					"days": "210.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "7.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				},
 				{
 					"eligibility": "",
-					"days": "180.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -4068,20 +4047,17 @@
 		"settings_id": "c568b5b3-afad-54c6-a2fc-3f3f65140921",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -4429,20 +4405,17 @@
 		"settings_id": "653e6cb8-16f8-58c5-ab45-3f0a710a32ef",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -4790,20 +4763,21 @@
 		"settings_id": "c07f6541-3c32-5143-ab6f-33ba0a7ea171",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
 					"eligibility": "event.child_index >= 2",
-					"days": "210.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "7.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				},
 				{
 					"eligibility": "",
-					"days": "180.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -5156,20 +5130,17 @@
 		"settings_id": "bd218876-976e-5449-a96e-8786339c81c2",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -5517,20 +5488,17 @@
 		"settings_id": "d925f077-0984-5101-9621-e1beb7f30225",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -5878,20 +5846,17 @@
 		"settings_id": "0435bc9b-8d8d-529a-86ca-4a992ca1198b",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -6239,20 +6204,21 @@
 		"settings_id": "00bed3e1-b0f0-54dd-bfff-7cc75ddd0a90",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
 					"eligibility": "event.child_index >= 2",
-					"days": "210.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "7.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				},
 				{
 					"eligibility": "",
-					"days": "180.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -6605,20 +6571,17 @@
 		"settings_id": "967b7d06-1e8b-53ff-9a3e-375fa142b847",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -6966,20 +6929,17 @@
 		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -7327,20 +7287,17 @@
 		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -7688,20 +7645,21 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months from 1 July 2026 only where the mother had exactly one living biological child at this birth (Population Law 113/2025 art.14(1)(a), Decree 168/2026 art.2(1)(a); `children.natural_surviving_before(event.date) == 1`; complete dated child history is required), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months from 1 July 2026 only where the mother had exactly one living biological child at this birth (Population Law 113/2025 art.14(1)(a), Decree 168/2026 art.2(1)(a); `children.natural_surviving_before(event.date) == 1`; complete dated child history is required), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
 					"eligibility": "children.natural_surviving_before(event.date) == 1",
-					"days": "210.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "7.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				},
 				{
 					"eligibility": "",
-					"days": "180.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},
@@ -8054,20 +8012,17 @@
 		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave. Applied 2026-09-29 (M2): the grant is calendar months, not days (`calendar_months`): Labour Code 2019 art.139(1) “06 tháng … thêm 01 tháng” for each child from the second of a multiple birth (triplets eight months, `children.born_on(event.date)`; the earlier flat seven months for any multiple birth was a transcription error, fixed in every version), counted from the event’s first leave day, rest days and holidays inside the period (Law 41/2024 art.53(9)); the law states no day arithmetic, so the period ends the day before the same day of the closing month, or on that month’s last day where it has none (register default).",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_months": true,
 			"bands": [
 				{
-					"eligibility": "event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
-					"days": 210
-				},
-				{
 					"eligibility": "",
-					"days": 180
+					"days": "6.0 + double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				}
 			]
 		},

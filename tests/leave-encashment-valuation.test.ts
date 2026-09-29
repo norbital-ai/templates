@@ -370,8 +370,9 @@ test('MY: TP1 relief applies to normal and additional remuneration when unused l
 		slip.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT')!.amount,
 		288.52
 	);
-	// Normal projected chargeable income: 60,012 - 4,000 - 36.75 - 9,000 - 2,500 = 44,475.25.
-	// Normal MTD 97.40. Additional tax: 1,185.8262 - 12×97.40 = 17.0262 → 17.05.
+	// Normal projected chargeable income: 60,012 - 3,999.93 - 9,000 - 2,500 = 44,512.07 (no
+	// SOCSO/EIS relief without a TP1 claim, MTD spec 2026 D.2(ii) item k). Normal MTD 97.56 → 97.60.
+	// Additional: P = 44,800.59, tax 1,188.03 - 12×97.60 = 16.83 → 16.85; 97.60 + 16.85 = 114.45.
 	assert.equal(slip.statutory.find((row) => row.scheme_code === 'PCB')!.employee_amount, 114.45);
 });
 test('TW: 60,001 / 30 × 1.5 rounds once to 3,000.05 (Enforcement Rules 24-1)', () => {
@@ -547,9 +548,9 @@ test('MY semi-monthly cash-out uses the monthly salary unit without doubling it'
 for (const code of ['MY', 'MY-nihon'] as const) {
 	test(`${code}: encashment tax below RM10 is exempt independently of normal MTD`, () => {
 		// LHDN MTD 2026, section E(3–5), pp.19–20: the RM10 minimum applies separately
-		// to normal and additional remuneration. Normal annual tax is RM1,318.599:
-		// 60,012 − 4,000 EPF − 35.35 SOCSO/EIS − 9,000 personal = 46,976.65.
-		// Normal MTD = 109.90. Half a leave day = 5,001 / 26 / 2 = 96.17;
+		// to normal and additional remuneration. Normal annual tax is RM1,320.7242:
+		// 60,012 − 3,999.93 EPF − 9,000 personal = 47,012.07 (no SOCSO/EIS relief without TP1).
+		// Normal MTD = 110.10. Half a leave day = 5,001 / 26 / 2 = 96.17;
 		// its additional tax is below RM10 and must not increase the deduction.
 		const world = cashWorld(code, 5001, '2026-01-20', '2026-01');
 		world.leave_entries[0]!.days = 0.5;
@@ -564,6 +565,6 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 			slip.adjustments.find((row) => row.component_code === 'ANNUAL_LEAVE_ENCASHMENT')!.amount,
 			96.17
 		);
-		assert.equal(slip.statutory.find((row) => row.scheme_code === 'PCB')!.employee_amount, 109.9);
+		assert.equal(slip.statutory.find((row) => row.scheme_code === 'PCB')!.employee_amount, 110.1);
 	});
 }

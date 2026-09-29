@@ -25,6 +25,7 @@ const f = customField({
 				values: ['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'HALF_MONTHS', 'CALENDAR_DAYS']
 			},
 			calendar_days: { kind: 'bool', optional: true },
+			calendar_months: { kind: 'bool', optional: true },
 			lifetime_events: { kind: 'int', min: 1, optional: true },
 			consumes_after_days: { kind: 'number', min: 0, optional: true },
 			lifetime_days: { kind: 'json', optional: true },

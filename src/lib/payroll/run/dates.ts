@@ -141,6 +141,21 @@ export function completedMonths(start: IsoDate, end: IsoDate): number {
 	return Math.max(0, months);
 }
 
+/**
+ * The last day of a period of `months` calendar months opening on `start`: the day before the same
+ * day of the closing month, or that month's last day where it has no such day (15 March + 6 is
+ * 14 September; 1 March + 6 is 31 August; 31 August + 6 is 28 February).
+ */
+export function monthsEnd(start: IsoDate, months: number): IsoDate {
+	const day = dayOfMonth(start);
+	const same = monthDay(
+		decodeNumber(start.slice(0, 4)),
+		decodeNumber(start.slice(5, 7)) - 1 + months,
+		day
+	);
+	return dayOfMonth(same) < day ? same : addDays(same, -1);
+}
+
 /** Whole years between two days, on the same anniversary-exact basis. */
 export function completedYears(start: IsoDate, end: IsoDate): number {
 	return Math.floor(completedMonths(start, end) / 12);

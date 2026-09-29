@@ -18,6 +18,7 @@ import {
 	assessStatutory,
 	buildStatutory,
 	COMPANY_ID,
+	createStatutoryWorld,
 	expectStatutory,
 	expectStatutorySkipped,
 	assertEveryVersionPriced,
@@ -25,10 +26,12 @@ import {
 	settingsVersions,
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
-import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { payrollWorld, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
 import { grantedDays, type LeaveEntitlement } from '../src/lib/leave/entitlement.ts';
 import { personContext } from '../src/lib/payroll/run/eligibility.ts';
+import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { weeklyInstalments } from '../src/lib/payroll/run/period.ts';
 
 const sgSettingsId = (date: string) =>
 	settingsVersions('SG').find(
@@ -3615,4 +3618,100 @@ test('Singapore — childcare leave cites the in-force SSO s.12B (SG-SRC02)', ()
 			/sso\.agc\.gov\.sg\/Act\/CDCSA2001\?ProvIds=pr12B-/,
 			`version ${row.settings_id} cites the in-force s.12B`
 		);
+});
+
+test('Singapore — at a sub-monthly cadence the employee CPF share is taken in proportion or at the last payment, and the month is trued up (CPF Act s.7(7); SG-CPF35)', () => {
+	// CPF Act 1953 s.7(7) (SSO, current version as at 29 Sep 2026): where wages are paid at
+	// intervals of less than a month, the employer "(a) may deduct … at the time of each payment in
+	// the month the appropriate proportion of such sum as would be recoverable … if paid at the same
+	// rate throughout the month; and (b) must make such adjustment as may be necessary on the
+	// occasion of the last payment in that month". A Chinese citizen aged 30 on $3,000 a month, CPF
+	// Table 1 (every sealed version; $3,000 is under both the $7,400 and the $8,000 OW ceiling):
+	// total round(37% × 3,000) = 1,110; employee floor(20% × 3,000) = 600; employer 510.
+	// SPLIT: the first half takes ½ of the month's share at the half's own rate — its wage (the
+	// month's working days split at the 15th) × 2, Table 1 rounding: total to the dollar, employee
+	// cents dropped — and the last half trues the month up to 600/510. LAST: nothing until the last payment, which takes the
+	// month whole (s.7(7)(a) is permissive). A weekly company is always LAST.
+	// FIRST (the company default) takes the whole month's 600 from the first half, above
+	// s.7(7)(a)'s proportion; that is a shared-engine defect reported under SG-CPF35, not asserted here.
+	const person = {
+		key: 'SG-SUBMONTHLY',
+		wage: 3000,
+		age: 30,
+		citizenship: 'CITIZEN',
+		race: 'CHINESE'
+	} as const;
+	const cpf = (
+		slips: readonly {
+			statutory: readonly {
+				scheme_code: string;
+				employee_amount: number;
+				employer_amount: number;
+			}[];
+		}[]
+	) =>
+		slips
+			.flatMap((slip) => slip.statutory)
+			.filter((row) => row.scheme_code === 'CPF')
+			.reduce(
+				([employee, employer], row) => [
+					employee + row.employee_amount,
+					employer + row.employer_amount
+				],
+				[0, 0]
+			);
+	const settle = (world: PayrollWorld, period: string) => {
+		const prepared = gatherPayrollRun({
+			world: payrollWorld(world),
+			companyId: COMPANY_ID,
+			period
+		});
+		const built = buildPayrollRun(prepared);
+		world.payroll_runs.push({
+			id: period,
+			company_id: COMPANY_ID,
+			period,
+			company_charges: built.company_charges
+		});
+		for (const slip of built.payslip_payroll_run)
+			world.payslips.push({ ...slip, payroll_run_id: period, paid_at: prepared.window.payDate });
+		return cpf(built.payslip_payroll_run);
+	};
+	const halfGross = (world: PayrollWorld) => world.payslips.at(-1)!.gross as number;
+	/** ½ of the month's CPF at the half's own rate: s.7(7)(a) "the appropriate proportion". */
+	const proportion = (gross: number) => {
+		const total = Math.round(0.37 * gross * 2);
+		const employee = Math.floor(0.2 * gross * 2);
+		return [employee / 2, (total - employee) / 2];
+	};
+	for (const month of ['2025-12', '2026-01', '2026-04', '2026-07', '2027-01'])
+		for (const cutoff of ['SPLIT', 'LAST'] as const) {
+			const world = createStatutoryWorld({
+				code: 'SG',
+				period: `${month}-1`,
+				payFrequency: 'SEMI_MONTHLY',
+				people: [{ ...person, pay_frequency: 'SEMI_MONTHLY' as const }]
+			});
+			world.companies[0]!.semi_monthly_statutory_cutoff = cutoff;
+			const first = settle(world, `${month}-1`);
+			const want = cutoff === 'SPLIT' ? proportion(halfGross(world)) : [0, 0];
+			assert.deepEqual(first, want, `${month} ${cutoff} first half`);
+			const last = settle(world, `${month}-2`);
+			assert.deepEqual(
+				[first[0] + last[0], first[1] + last[1]],
+				[600, 510],
+				`${month} ${cutoff} the month trued up`
+			);
+		}
+	// Weekly: $3,000 over the month's weeks, nothing charged before the last week, 600/510 in it.
+	const weeks = weeklyInstalments('2026-03');
+	const world = createStatutoryWorld({
+		code: 'SG',
+		period: '2026-03-1',
+		payFrequency: 'WEEKLY',
+		people: [{ ...person, wage: 3000 / weeks.length, pay_frequency: 'WEEKLY' as const }]
+	});
+	const charged = weeks.map((week) => settle(world, `2026-03-${week.sequence}`));
+	assert.ok(charged.slice(0, -1).every(([employee, employer]) => employee === 0 && employer === 0));
+	assert.deepEqual(charged.at(-1), [600, 510]);
 });

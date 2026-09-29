@@ -276,6 +276,7 @@ export function entryContext(options: {
 		limits: options.limits,
 		period: {
 			key: options.period,
+			month: Number.parseInt(options.period.slice(5, 7), 10),
 			start: options.periodStart,
 			end: options.periodEnd,
 			index: 1,

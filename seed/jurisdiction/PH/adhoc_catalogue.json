@@ -225,10 +225,10 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "4fddc3cc-7bf8-42c4-8f43-7d9ef87605d6",
@@ -245,18 +245,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "617ae8c6-9874-5f5b-808e-f6bc96bedf7a",
 		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -274,6 +274,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "937b33ed-dab9-558e-a011-a8436c2f6e52",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "4197dd92-b948-5d01-976b-1407bddf2a5e",
@@ -300,8 +320,8 @@
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -319,6 +339,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "30724685-5175-5cdb-859b-0e87b6e21314",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "89806dd6-8b4d-57bf-ae48-eae34f21a970",
@@ -470,18 +510,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "3e3639ae-6d60-5882-921f-a7b4abedd26a",
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -499,6 +539,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "31f3b86c-df1f-55d6-8b5e-029b0659416a",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "7593d8a1-5b5e-559b-bd28-f095fe93361b",
@@ -650,18 +710,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "6c4cfb63-a114-5de3-a5ef-d47f792589bc",
 		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -679,6 +739,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "0369068f-3e1e-5afa-8507-94bb617685e0",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "023c9e25-9d43-5017-b2fa-b4353e91bcd9",
@@ -830,18 +910,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "7f977770-1cfe-5ebe-9265-75b7ab38aef6",
 		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -859,6 +939,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "99f19e95-7f65-5275-99be-c35b4e33a598",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "80f133d1-1726-536e-bfd8-c8103033d0a4",
@@ -1010,18 +1110,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "f1f01afc-7f7f-5976-ae53-b6cea9d70a3f",
 		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -1039,6 +1139,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "592f0cbd-80ac-5eb0-8695-a1736cacb503",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "1e0e48ac-33d5-5553-89ce-22068372bbee",
@@ -2006,10 +2126,10 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "5c5037d1-345b-5f71-b46c-a429af9cc09d",
@@ -2026,18 +2146,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "02521b5b-428e-5d2b-9a39-a36a8779f77e",
 		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -2055,6 +2175,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "d0327f82-c557-5821-9b25-e05053253226",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "be2a7579-d520-5bb9-9936-4c9256132602",
@@ -2081,8 +2221,8 @@
 		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -2100,6 +2240,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "c48f1ef6-da87-5218-8bc8-3c2d4525b136",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "d7cb81b2-d693-590b-99d1-b9d5234db514",
@@ -2251,18 +2411,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "e7453ba1-6199-5a42-86b9-f57665466558",
 		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -2280,6 +2440,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "68195cd3-e407-5d22-97f2-d72a291141f9",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "fc856565-22b1-5ffb-a0da-52669485951d",
@@ -2431,18 +2611,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "29a89582-bd64-54b7-bf72-6e2c5a3c9e59",
 		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -2460,6 +2640,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "8fda70ac-36a0-50a9-a66f-8a0480c29160",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "3f0c8e47-923b-50e3-9b11-da48803937cb",
@@ -2611,18 +2811,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "cfcbdde2-5a9e-563e-9845-17b9dc3167c1",
 		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -2640,6 +2840,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "5e4e7d52-4943-5808-9e33-31a28407bbea",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "d26869dc-bc2b-5f0c-ad70-48d278b660ee",
@@ -2791,18 +3011,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "52c254b5-6fb5-5b71-83e9-65d4393b8bbd",
 		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -2820,6 +3040,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "34b280e9-e769-507e-9649-5122dafb0655",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "3e96c200-2d49-5193-8663-6b3c95153043",
@@ -3787,10 +4027,10 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "7fe2ba18-f30e-5ec1-a8a4-0a43c2d3a808",
@@ -3807,18 +4047,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "9de97594-1586-5905-8c6b-f38dc6f8c194",
 		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -3836,6 +4076,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "bd0f0c08-626e-51ba-9e4b-0dedc04c764d",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "48a5ea13-7b03-56fb-8ece-1bcd823905cb",
@@ -3862,8 +4122,8 @@
 		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -3881,6 +4141,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "9b2b79b0-6af2-52e1-90f5-e853c01c0793",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "568031df-28e2-5988-9360-f40a25032c3e",
@@ -4032,18 +4312,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "13560789-5cf1-5666-9f8a-528e8365932c",
 		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -4061,6 +4341,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "9aec932e-1755-5002-b8af-e4928c83a01d",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "e0703961-5ab8-5de2-9d4a-d8eb38783d47",
@@ -4212,18 +4512,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "034b5fdb-79e9-574b-b668-bb97c71ac426",
 		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -4241,6 +4541,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "1d641b98-7796-52b6-a80d-f24d2c97a549",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "dcff1bd9-47b4-54ef-a228-694ab74b3ebf",
@@ -4392,18 +4712,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "5ab8410f-c26f-5210-8d6b-c6173533b3c1",
 		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -4421,6 +4741,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "c51a4e4a-3c36-5568-b129-65ed526ccff8",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "a9639535-ea50-5d38-8f16-cc223f1b4488",
@@ -4572,18 +4912,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "6a516ab4-fe5b-5675-9748-efeb3d305f9d",
 		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -4601,6 +4941,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "edf76bef-ebcd-5bbc-bed2-3eb61ecad547",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "da260d48-133a-50a7-9002-b3ad9c85305b",
@@ -5568,10 +5928,10 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "d50e9354-8e95-5470-985a-20cd0576236a",
@@ -5588,18 +5948,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "19f7dfd5-83af-5035-b73a-47473237f12a",
 		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -5617,6 +5977,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "07aac8de-6049-5534-b9d5-83339304aa31",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "4e9d5f1f-f39f-529f-900f-0889c2deefe9",
@@ -5643,8 +6023,8 @@
 		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -5662,6 +6042,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "2dcff63c-79c9-59f1-8cee-62a7f46eb394",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "af06195a-d27e-5696-be35-3ae4cbe3207a",
@@ -5813,18 +6213,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "f2926497-d2c9-56c6-a890-32270408b6fe",
 		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -5842,6 +6242,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "da05a2e0-5460-5477-94bc-1796fdc585b8",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "8800a86f-0c83-576b-8824-db6cda96e71e",
@@ -5993,18 +6413,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "d515eab4-678a-5326-a145-1d5292dbf877",
 		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -6022,6 +6442,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "8cd8fa78-1882-514f-ac71-20828d1002a8",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "f2a73349-9da1-5834-8d0b-a111ab69ec08",
@@ -6173,18 +6613,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "6272bd44-e677-52f1-8d12-3ba7645e7237",
 		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -6202,6 +6642,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "95979bd5-e9dc-5f91-9210-aa1e0cc44869",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "89bd0cfe-66f6-50ba-97bb-eabb5163cf2d",
@@ -6353,18 +6813,18 @@
 				"limit": null
 			}
 		],
-		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993).",
+		"authority": "PD 851 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §§A–D, F): a twelfth of the basic salary earned in the calendar year, rank-and-file only. §B.4: not owed to those paid on purely commission, boundary or task basis or a fixed amount for specific work (`TASK_BASIS`), except piece-rate workers (`PIECE_RATE`), who are covered (§F.1). Commissions are outside the basic (§F.2, Boie-Takeda v. De la Serna, 10 December 1993). Applied in place 2026-09-29 in every version (EM-1, a transcription error: the class was `MANUAL`, so off-boarding never raised a leaver’s pro-rata amount): raised by `SEPARATION` — DOLE Handbook 2024 ch.13 §G (Revised Guidelines on PD 851 ¶6): an employee who resigned or was terminated before the time of payment is entitled to it in proportion to the time worked in the calendar year, one-twelfth of the basic salary earned in that period; payable with the final pay (DOLE Labor Advisory 06-20: final pay within 30 days of separation). HR still raises the year-end payment for those in service from Events (§E: not later than 24 December).",
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
-		"raised_by": "MANUAL"
+		"raised_by": "SEPARATION"
 	},
 	{
 		"id": "3e575c87-41a1-552e-b7d8-52bcf1e6db22",
 		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
 		"code": "SEPARATION_PAY",
 		"name": "Separation pay",
-		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\").",
-		"eligibility": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\"",
+		"authority": "Labor Code art.298: one month’s pay or one month per year of service, whichever is higher, on termination for installation of labour-saving devices or redundancy; art.298–299: half a month per year or one month, whichever is higher, on retrenchment, closure not due to serious losses, or disease. A fraction of at least six months counts as a year. Applied 2026-09-19 (2): Labor Code arts.298–299: one month’s pay per year of service (redundancy, the only authorised cause the exit reasons distinguish; a fraction of at least six months counts as a year), never less than one month. Tax: exempt under NIRC s.32(B)(6)(b) as pay for a cause beyond the employee’s control (redundancy or retrenchment), so the class counts toward nothing and no withholding scheme reads it. Applied 2026-09-23 (round 2): the exit fact `termination_cause` chooses the award — labour-saving devices or redundancy one month a year (art.298); retrenchment, a closure not due to serious losses, or disease half a month a year (arts.298–299); a closure due to serious business losses owes none (art.298: the half-month award is for closures \"not due to serious business losses\"). Applied in place 2026-09-29 in every version (ML-3, a transcription omission): a termination for disease recorded as a dismissal or unilateral termination of a non-domestic employee (exit fact `terminated_for_disease`) pays the same one month or half a month per year, whichever is greater (Labor Code art.299, formerly art.284; E-Library PD 442 text art.323: \"at least to one (1) month salary or to one-half (1/2) month salary for every year of service, whichever is greater\"); tax-exempt as separation for sickness (NIRC s.32(B)(6)(b)). A kasambahay's disease is a just cause under RA 10361 s.34(f) with no separation pay.",
+		"eligibility": "(employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] && employment.exit_facts.termination_cause != \"CLOSURE_DUE_TO_SERIOUS_LOSSES\") || (employment.type != \"DOMESTIC\" && employment.exit_reason in [\"DISMISSAL\", \"UNILATERAL\"] && employment.exit_facts.terminated_for_disease)",
 		"evidence": "NONE",
 		"destination": "PAY",
 		"direction": "ADD",
@@ -6382,6 +6842,26 @@
 		],
 		"counts_toward": [],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "d93e42dc-5bcd-58ed-8a0e-6d9dda6f23ae",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"code": "PROTECTION_ORDER_SUPPORT",
+		"name": "Protection-order support (RA 9262)",
+		"authority": "RA 9262 s.8(g) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128): a protection order may direct the respondent to provide support, and notwithstanding other laws to the contrary the court orders an appropriate percentage of the respondent's income or salary withheld regularly by the employer and automatically remitted directly to the woman; failure to withhold or remit, or delay without justifiable cause, makes the employer liable for indirect contempt. Added in place 2026-09-29 in every version (ML-2, a transcription omission: RA 9262 predates every version). The percentage is the court's, so the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: the Act is silent on how the employer books the withholding; default a net-pay deduction after every statutory line, touching no SSS, PhilHealth, Pag-IBIG or withholding base, because the support is paid out of the respondent's own compensation. Remittance to the payee is an external payment (obligation PROTECTION_ORDER_SUPPORT_WITHHOLDING).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	},
 	{
 		"id": "89a86aae-50aa-5268-8a1d-49a0028886f1",

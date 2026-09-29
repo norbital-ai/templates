@@ -2002,6 +2002,68 @@ test('Philippines — a leaver on 13 March: part month, SIL conversion, pro-rata
 	assert.deepEqual(charge('WTAX'), [13_793.1, -2015.1, 0]);
 });
 
+test('Philippines — EM-1: off-boarding owes a June leaver the pro-rata 13th month, 180,000 ÷ 12 = 15,000', () => {
+	// Hired 1 January 2026, resigns effective 30 June 2026, ₱30,000 a month, rank-and-file.
+	const EXIT = '2026-06-30';
+	// DOLE Handbook 2024 ch.13 §G (PD 851 Revised Guidelines ¶6): a leaver before the time of
+	// payment is owed a twelfth of the basic salary earned from January to the separation. The class
+	// is off-boarding's to raise in every version, so the leaver's final pay cannot omit it.
+	for (const row of adhocCatalogue('PH').filter((row) => row.code === 'THIRTEENTH_MONTH_PAY'))
+		assert.equal(row.raised_by, 'SEPARATION', row.settings_id);
+	const { slips } = buildStatutory(
+		{
+			code: 'PH',
+			period: '2026-06',
+			people: [
+				{
+					key: 'PH-EM1',
+					wage: 30_000,
+					hire_date: '2026-01-01',
+					exit_date: EXIT,
+					exit_reason: 'RESIGNATION'
+				}
+			]
+		},
+		(world) => {
+			paidMonths(
+				world,
+				'PH-EM1',
+				['2026-01', '2026-02', '2026-03', '2026-04', '2026-05'],
+				30_000,
+				PAID_30000
+			);
+			// As `separationPayments` raises it: amount 0, dated the last day, pinned to the final
+			// salary month (a 30 June entry would otherwise pass the 21st cutoff into July); the band prices it.
+			adhoc(world, 3, 'THIRTEENTH_MONTH_PAY', EXIT, 0);
+			world.adhoc_requests!.at(-1)!.pay_period = '2026-06';
+		}
+	);
+	const slip = slips.get('PH-EM1')!;
+	// (5 × 30,000 + 30,000) ÷ 12 = 180,000 ÷ 12 = 15,000.00.
+	assert.equal(
+		slip.adjustments.find((row) => row.component_code === 'THIRTEENTH_MONTH_PAY')?.amount,
+		15_000
+	);
+	// A NET-destination non-wage payment: gross is the month's wage (Handbook ch.13 §I: the 13th
+	// month is not part of the regular wage), net carries it.
+	assert.equal(slip.gross, 30_000);
+	const charge = (code: string) => {
+		const row = slip.statutory.find((entry) => entry.scheme_code === code)!;
+		return [row.base_amount, row.employee_amount, row.employer_amount];
+	};
+	// SSS MSC 30,000: regular 20,000 → 1,000 / 2,000; MPF 10,000 → 500 / 1,000. PhilHealth 5% ×
+	// 30,000 → 750 each; Pag-IBIG 200 each. The 13th month is in none of them.
+	assert.deepEqual(charge('SSS'), [30_000, 1000, 2000]);
+	assert.deepEqual(charge('SSS_MPF'), [30_000, 500, 1000]);
+	assert.deepEqual(charge('PHIC'), [30_000, 750, 750]);
+	// The last payment annualises (RR 11-2018 s.2.79(B)(5)(b)): 180,000 regular pay (the 13th month
+	// inside ₱90,000, NIRC s.32(B)(7)(e)) less 6 × 2,450 contributions = 165,300, under ₱250,000:
+	// nil due, so January–May's 5 × 1,007.55 = 5,037.75 is refunded.
+	assert.deepEqual(charge('WTAX'), [30_000, -5037.75, 0]);
+	// 30,000 − (1,000 + 500 + 750 + 200 − 5,037.75) + 15,000 = 47,587.75.
+	assert.equal(slip.net, 47_587.75);
+});
+
 test('Philippines — two days of leave without pay: SSS and Pag-IBIG read the reduced pay, PhilHealth the fixed basic', () => {
 	const { slips } = buildStatutory(
 		{ code: 'PH', period: '2026-06', people: [{ key: 'PH-LWOP2', wage: 30_000 }] },
@@ -2978,7 +3040,11 @@ test('Philippines — a kasambahay dismissed without just cause is paid fifteen 
 			)!;
 			for (const [index, key] of ['KB-UNJUST', 'KB-JUST', 'PH-UNJUST'].entries()) {
 				const employment = world.employments.find((item) => item.employee_number === key)!;
-				employment.exit_facts = { kasambahay_unjust_dismissal: key !== 'KB-JUST' };
+				employment.exit_facts = {
+					kasambahay_unjust_dismissal: key !== 'KB-JUST',
+					// Labor Code art.299 is asked on every non-domestic dismissal (ML-3); not a disease here.
+					...(key === 'PH-UNJUST' ? { terminated_for_disease: false } : {})
+				};
 				world.adhoc_requests!.push({
 					id: `d0000000-0000-4000-8000-0000000004a${index}`,
 					employment_id: employment.id,
@@ -3154,4 +3220,117 @@ test('Philippines — unjustified kasambahay departure forfeits at most unpaid s
 		)?.amount;
 		assert.equal(forfeited, capped ? 5_172.41 : salary);
 	}
+});
+
+// ML-3: Labor Code art.299 (formerly art.284; the E-Library PD 442 text 26/25306 prints it as
+// art.323, read 29 Sep 2026): an employer may terminate for disease "Provided, That he is paid
+// separation pay equivalent at least to one (1) month salary or to one-half (1/2) month salary for
+// every year of service, whichever is greater, a fraction of at least six (6) months being
+// considered as one (1) whole year." A disease termination is an employer dismissal, so the exit
+// fact `terminated_for_disease` is asked on every non-domestic DISMISSAL or UNILATERAL exit; a
+// kasambahay's disease is a just cause without separation pay (RA 10361 s.34(f)).
+test('Philippines — a termination for disease recorded as a dismissal pays half a month per year, never less than a month (Labor Code art.299)', () => {
+	// ₱30,000, hired 15 November 2020, out 31 January 2026: 5 years 2 months → 5 years (the two
+	// months are under six), 5 × ½ × 30,000 = 75,000. Hired 15 May 2025: about 8½ months → one year
+	// (at least six months), ½ × 30,000 = 15,000 < one month, so the one-month floor pays 30,000.
+	const leaver = (key: string, hire: string) => ({
+		key,
+		wage: 30_000,
+		hire_date: hire,
+		exit_date: '2026-01-31',
+		exit_reason: 'DISMISSAL'
+	});
+	const run = (disease: boolean | undefined) =>
+		buildStatutory(
+			{
+				code: 'PH',
+				period: '2026-01',
+				people: [leaver('PH-DISEASE', '2020-11-15'), leaver('PH-DISEASE-8M', '2025-05-15')]
+			},
+			(world) => {
+				const row = world.adhoc_catalogue!.find(
+					(item) => item.code === 'SEPARATION_PAY' && item.settings_id === PH_2026_JAN6
+				)!;
+				for (const [index, key] of ['PH-DISEASE', 'PH-DISEASE-8M'].entries()) {
+					const employment = world.employments.find((item) => item.employee_number === key)!;
+					employment.exit_facts = disease === undefined ? {} : { terminated_for_disease: disease };
+					world.adhoc_requests!.push({
+						id: `d0000000-0000-4000-8000-0000000299a${index}`,
+						employment_id: employment.id,
+						catalogue_id: row.id,
+						amount: 0,
+						event_date: '2026-01-31',
+						pay_period: '2026-01',
+						payslip_id: null,
+						reason: 'separation pay (disease)',
+						evidence_file: null,
+						as_adjustment_entry: false,
+						approval_id: null
+					});
+				}
+			}
+		);
+	const { slips } = run(true);
+	const paid = (key: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === 'SEPARATION_PAY')?.amount;
+	assert.equal(paid('PH-DISEASE'), 75_000);
+	assert.equal(paid('PH-DISEASE-8M'), 30_000);
+	// Unrecorded on a non-domestic dismissal is never read as "not a disease": the separation pay is
+	// skipped by name and the rest of the run is paid.
+	const undeclared = run(undefined);
+	assert.equal(
+		undeclared.slips
+			.get('PH-DISEASE')!
+			.adjustments.some((row) => row.component_code === 'SEPARATION_PAY'),
+		false
+	);
+	assert.match(
+		undeclared.warnings.join('\n'),
+		/PH-DISEASE: adhoc SEPARATION_PAY was captured for 2026-01 and paid nothing — the departure record is incomplete: Terminated for disease \(Labor Code art\.299\) is required before calculation/
+	);
+	for (const version of settingsVersions('PH'))
+		assert.ok(
+			version.exit_facts.some((row: { key: string }) => row.key === 'terminated_for_disease'),
+			version.id
+		);
+});
+
+// ML-2: RA 9262 s.8(g) (E-Library 2/22128, read 29 Sep 2026): a protection order may direct support,
+// and "the court shall order an appropriate percentage of the income or salary of the respondent to
+// be withheld regularly by the respondent's employer for the same to be automatically remitted
+// directly to the woman. Failure to remit and/or withhold or any delay in the remittance … shall
+// render the respondent or his employer liable for indirect contempt of court". The percentage is
+// the court's, so HR enters the ordered amount; owner rule 2026-09-28: the Act is silent on the
+// booking, the default is a net deduction touching no contribution or withholding base.
+test('Philippines — protection-order support comes off net pay at the ordered amount and leaves gross and every statutory line whole (RA 9262 s.8(g))', () => {
+	// ₱30,000 in January 2026 (the table golden above): SSS 1,000 + MPF 500, PHIC 750, HDMF 200,
+	// WTAX 15% × (27,550 − 20,833) = 1,007.55. Whole net 30,000 − 3,457.55 = 26,542.45. The order
+	// fixes ₱6,000 (20%): net 26,542.45 − 6,000 = 20,542.45.
+	const run = (ordered: number) =>
+		buildStatutory(
+			{ code: 'PH', period: '2026-01', people: [{ key: 'PH-30000', wage: 30_000 }] },
+			(world) => {
+				if (ordered === 0) return;
+				adhoc(world, 9262, 'PROTECTION_ORDER_SUPPORT', '2026-01-31', ordered);
+				world.adhoc_requests!.at(-1)!.pay_period = '2026-01';
+			}
+		).slips.get('PH-30000')!;
+	const whole = run(0);
+	const ordered = run(6_000);
+	assert.equal(whole.gross, 30_000);
+	assert.equal(whole.net, 26_542.45);
+	assert.equal(ordered.gross, 30_000);
+	assert.deepEqual(ordered.statutory, whole.statutory);
+	assert.equal(ordered.net, 20_542.45);
+	for (const version of settingsVersions('PH'))
+		assert.ok(
+			adhocCatalogue('PH').some(
+				(row: { code: string; settings_id: string; direction: string; destination: string }) =>
+					row.code === 'PROTECTION_ORDER_SUPPORT' &&
+					row.settings_id === version.id &&
+					row.direction === 'SUBTRACT' &&
+					row.destination === 'NET'
+			),
+			version.id
+		);
 });

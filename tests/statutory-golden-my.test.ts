@@ -52,27 +52,27 @@ const MY_FOREIGN = { EPF: OUT, EPF_PR: OUT, EIS: OUT };
 
 for (const code of ['MY', 'MY-nihon'] as const)
 	test(`${code} — child relief uses the tax-year declaration and full or half entitlement`, () => {
-		// LHDN MTD 2026: annual income 60,012 less EPF 4,000, SOCSO 35.35 and
-		// personal relief 9,000 gives P=46,976.65. In this band each RM1,000
-		// child relief reduces monthly MTD by RM5, subject to the published rounding.
+		// LHDN MTD 2026: annual income 60,012 less EPF 3,999.93 (K2 312.63) and personal relief
+		// 9,000 gives P=47,012.07 (no TP1, so no SOCSO/EIS relief: D.2(ii) item k). In this band
+		// each RM1,000 child relief reduces monthly MTD by RM5, subject to the published rounding.
 		const cases = [
-			{ key: 'NO-CLAIM', claims: [], expected: 109.9 },
-			{ key: 'FULL', category: 'UNDER_18', full: 1, half: 0, expected: 99.9 },
-			{ key: 'HALF', category: 'UNDER_18', full: 0, half: 1, expected: 104.9 },
-			{ key: 'MIXED', category: 'UNDER_18', full: 1, half: 1, expected: 94.9 },
-			{ key: 'STUDYING', category: 'STUDYING', full: 1, half: 0, expected: 99.9 },
-			{ key: 'TERTIARY', category: 'TERTIARY', full: 0, half: 1, expected: 89.9 },
-			{ key: 'DISABLED', category: 'DISABLED', full: 0, half: 1, expected: 89.9 },
-			{ key: 'DISABLED-TERTIARY', category: 'DISABLED_TERTIARY', full: 0, half: 1, expected: 69.9 },
+			{ key: 'NO-CLAIM', claims: [], expected: 110.1 },
+			{ key: 'FULL', category: 'UNDER_18', full: 1, half: 0, expected: 100.1 },
+			{ key: 'HALF', category: 'UNDER_18', full: 0, half: 1, expected: 105.1 },
+			{ key: 'MIXED', category: 'UNDER_18', full: 1, half: 1, expected: 95.1 },
+			{ key: 'STUDYING', category: 'STUDYING', full: 1, half: 0, expected: 100.1 },
+			{ key: 'TERTIARY', category: 'TERTIARY', full: 0, half: 1, expected: 90.1 },
+			{ key: 'DISABLED', category: 'DISABLED', full: 0, half: 1, expected: 90.1 },
+			{ key: 'DISABLED-TERTIARY', category: 'DISABLED_TERTIARY', full: 0, half: 1, expected: 70.1 },
 			{
 				key: 'PREVIOUS-YEAR',
 				category: 'UNDER_18',
 				full: 1,
 				half: 0,
 				year: '2025',
-				expected: 109.9
+				expected: 110.1
 			},
-			{ key: 'NEXT-YEAR', category: 'UNDER_18', full: 1, half: 0, year: '2027', expected: 109.9 }
+			{ key: 'NEXT-YEAR', category: 'UNDER_18', full: 1, half: 0, year: '2027', expected: 110.1 }
 		];
 		const book = assessStatutory({
 			code,
@@ -130,11 +130,13 @@ test('Malaysia — a bonus month withholds the additional remuneration’s whole
 	// on the NORMAL remuneration alone — 5,001 × 12 = 60,012 — and takes the bonus's tax in full
 	// in the month, where annualising the whole 17,001 would have taxed a 204,012 year.
 	//
-	// Reliefs this month: EPF on the bracketed 17,100 = 1,881, projected to the 4,000 cap;
-	// SOCSO + EIS at the 6,000 ceiling = 29.75 + 11.90 = 41.65; personal 9,000.
-	// Normal: 60,012 − 4,000 − 41.65 − 9,000 = 46,970.35 → 600 + 6% × 11,970.35 = 1,318.221; over
-	// twelve = 109.85175. Additional: 58,970.35 → 1,500 + 11% × 8,970.35 = 2,486.7385; the
-	// difference 1,168.5175 is withheld now. 1,278.36925 → 1,278.36 → 1,278.40.
+	// Reliefs this month: EPF K1 561 on the normal 5,001; on the bracketed 17,100 = 1,881, Kt = 1,320;
+	// personal 9,000. No TP1, so no SOCSO/EIS relief (MTD spec 2026 D.2(ii) item k).
+	// Step 1: K2 = (4,000 − 561)/11 = 312.63; P = 4,440 + 4,688.37 × 11 − 9,000 = 47,012.07 →
+	// 600 + 6% × 12,012.07 = 1,320.7242 / 12 = 110.06 → 110.10; the year's normal tax 1,321.20.
+	// Steps 2–4: K2 = (4,000 − 1,881)/11 = 192.63; P = 4,440 + 4,808.37 × 11 + 10,680 − 9,000 =
+	// 59,012.07 → 1,500 + 11% × 9,012.07 = 2,491.32; 2,491.32 − 1,321.20 = 1,170.12 → 1,170.15.
+	// Step 5: 110.10 + 1,170.15 = 1,280.25.
 	const book = assessStatutory(
 		{
 			code: 'MY',
@@ -166,29 +168,29 @@ test('Malaysia — a bonus month withholds the additional remuneration’s whole
 			});
 		}
 	);
-	expectStatutory(book, 'MY-BONUS', 'PCB', 1278.4, 0);
+	expectStatutory(book, 'MY-BONUS', 'PCB', 1280.25, 0);
 	assert.equal(book.get('MY-BONUS')!.get('PCB')!.base, 17_001);
 });
 
 // LHDN MTD Specification 2026 D.2 Steps 1–5 and E(1): K2 is truncated to the sen, so a full-year
 // EPF projection is K1 + Kt + K2 × 11 = 3,999.93, not the RM4,000 cap (the spec's own example:
-// "Total EPF = RM3,999.93 ≤ RM4,000.00"). Wage 7,777.77: EPF K1 = 11% × 7,800 = 858; LP1 = SOCSO
-// 29.75 + EIS 11.90 = 41.65; personal 9,000; band M=70,000 R=19% B=3,700.
-// Step 1: K2 = (4,000 − 858)/11 = 285.63; P = 6,919.77 + 7,492.14 × 11 − 9,041.65 = 80,291.66;
-// MTD = (10,291.66 × 19% + 3,700)/12 = 471.28 → 471.30; the year's normal tax 471.30 × 12 = 5,655.60.
+// "Total EPF = RM3,999.93 ≤ RM4,000.00"). Wage 7,777.77: EPF K1 = 11% × 7,800 = 858; no SOCSO/EIS
+// relief without TP1 (D.2(ii) item k); personal 9,000; band M=70,000 R=19% B=3,700.
+// Step 1: K2 = (4,000 − 858)/11 = 285.63; P = 6,919.77 + 7,492.14 × 11 − 9,000 = 80,333.31;
+// MTD = (10,333.31 × 19% + 3,700)/12 = 471.94 → 471.95; the year's normal tax 471.95 × 12 = 5,663.40.
 // Bonus 10,000: wage 17,777.77 → EPF 11% × 17,800 = 1,958, Kt = 1,100; K2 = 2,042/11 = 185.63;
-//   P = 6,919.77 + 7,592.14 × 11 + 8,900 − 9,041.65 = 90,291.66; tax 7,555.41; 1,899.81 → 1,899.85;
-//   PCB 471.30 + 1,899.85 = 2,371.15.
-// Bonus 10,005.50: same EPF; P = 90,297.16; tax 7,556.46; 1,900.86 → 1,900.90; PCB 2,372.20.
+//   P = 6,919.77 + 7,592.14 × 11 + 8,900 − 9,000 = 90,333.31; tax 7,563.32; 1,899.92 → 1,899.95;
+//   PCB 471.95 + 1,899.95 = 2,371.90.
+// Bonus 10,005.50: same EPF; P = 90,338.81; tax 7,564.37; 1,900.97 → 1,901.00; PCB 2,372.95.
 // Bonus 3,000: wage 10,777.77 → EPF 1,188, Kt = 330; K2 = 2,812/11 = 255.63;
-//   P = 6,919.77 + 7,522.14 × 11 + 2,670 − 9,041.65 = 83,291.66; tax 6,225.41; 569.81 → 569.85;
-//   PCB 1,041.15.
+//   P = 6,919.77 + 7,522.14 × 11 + 2,670 − 9,000 = 83,333.31; tax 6,233.32; 569.92 → 569.95;
+//   PCB 1,041.90.
 // Relieving the untruncated cap instead lowered P by 0.07 and each PCB by 5 sen.
 for (const code of ['MY', 'MY-nihon'] as const)
 	for (const [bonus, expected] of [
-		[10_000, 2371.15],
-		[10_005.5, 2372.2],
-		[3_000, 1041.15]
+		[10_000, 2371.9],
+		[10_005.5, 2372.95],
+		[3_000, 1041.9]
 	] as const)
 		test(`${code} — a bonus month's EPF projection truncates K2 to the sen (MTD spec 2026 E(1)), bonus ${bonus}`, () => {
 			const settingsId = settingsIdOn(code, '2026-01-15');
@@ -216,6 +218,76 @@ for (const code of ['MY', 'MY-nihon'] as const)
 			);
 			expectStatutory(book, 'RES', 'PCB', expected, 0);
 		});
+
+// MY-MM-01. LHDN MTD Specification 2026 D.2(i): the only compulsory (automatic) relief of a single
+// employee is (a) the individual RM9,000; SOCSO/EIS is optional relief item k (RM350), claimed
+// "by submitting Form TP1" (D.2(ii); Form TP1 (2026) item C14; ITA 1967 s.46(1)(n)). The
+// specification's own worked examples carry LP1 = 0 on a RM5,500 wage. A resident single citizen,
+// no TP1, January 2026 (n = 11), K2 truncated per E(1):
+// (a) 5,000: EPF 11% × 5,000 = 550; K2 = (4,000 − 550)/11 = 313.63; P = 4,450 + 4,686.37 × 11 −
+//     9,000 = 47,000.07; tax 600 + 12,000.07 × 6% = 1,320.0042; ÷ 12 = 110.00.
+// (b) 8,000: EPF 880; K2 = 3,120/11 = 283.63; P = 7,120 + 7,716.37 × 11 − 9,000 = 83,000.07;
+//     tax 3,700 + 13,000.07 × 19% = 6,170.0133; ÷ 12 = 514.16 → 514.20.
+// (c) 5,000 + 10,000 bonus: Step 1 as (a), 110.00, the year's normal tax 1,320.00. EPF on 15,000 =
+//     1,650, Kt = 1,100; K2 = (4,000 − 1,650)/11 = 213.63; P = 4,450 + 4,786.37 × 11 + 8,900 − 9,000
+//     = 57,000.07; tax 1,500 + 7,000.07 × 11% = 2,270.00; Step 4 950.00; PCB 110 + 950 = 1,060.00.
+// A TP1 SOCSO/EIS claim of RM34.65 (item k, within RM350) is what brings the relief back: on (a)
+// P = 46,965.42, tax 1,317.9252, ÷ 12 = 109.82 → 109.85.
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — SOCSO/EIS relieve PCB only through a TP1 claim (MTD spec 2026 D.2(ii) item k)`, () => {
+		const settingsId = settingsIdOn(code, '2026-01-15');
+		const tp1 = {
+			...MY_LOCAL,
+			PCB: {
+				kind: 'REGISTERED',
+				deduction_claims: [
+					{
+						period: '2026-01',
+						category: 'SOCSO_EIS',
+						amount: 34.65,
+						source: 'EMPLOYEE',
+						reference: 'TP1 C14'
+					}
+				]
+			}
+		};
+		const book = assessStatutory(
+			{
+				code,
+				period: '2026-01',
+				people: [
+					{ key: 'W-5000', wage: 5000, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+					{ key: 'W-8000', wage: 8000, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+					{ key: 'W-BONUS', wage: 5000, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+					{ key: 'W-TP1', wage: 5000, citizenship: 'CITIZEN', registrations: tp1 }
+				]
+			},
+			(world) => {
+				const employment = world.employments.find((row) => row.employee_number === 'W-BONUS')!;
+				world.adhoc_requests!.push({
+					id: 'd0000000-0000-4000-8000-0000000a3301',
+					employment_id: employment.id,
+					catalogue_id: rowIn(world.adhoc_catalogue!, settingsId, 'BONUS'),
+					amount: 10_000,
+					event_date: '2026-01-15',
+					pay_period: '2026-01',
+					payslip_id: null,
+					reason: 'bonus',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		);
+		// The contributions are still charged in full (Act 4 Third Schedule; Act 800 Second Schedule).
+		expectStatutory(book, 'W-5000', 'EPF', 550, 650);
+		expectStatutory(book, 'W-5000', 'SOCSO', 24.75, 86.65);
+		expectStatutory(book, 'W-5000', 'EIS', 9.9, 9.9);
+		expectStatutory(book, 'W-5000', 'PCB', 110, 0);
+		expectStatutory(book, 'W-8000', 'PCB', 514.2, 0);
+		expectStatutory(book, 'W-BONUS', 'PCB', 1060, 0);
+		expectStatutory(book, 'W-TP1', 'PCB', 109.85, 0);
+	});
 
 test('Malaysia — declared relief categories remain separate from recorded family facts', () => {
 	// MTD 2026: RM2,000 minor + RM8,000 tertiary + RM8,000 disabled = RM18,000.
@@ -263,7 +335,7 @@ test('Malaysia — declared relief categories remain separate from recorded fami
 		]
 	});
 	expectStatutory(book, 'MY-CHILDREN', 'PCB', 0, 0);
-	expectStatutory(book, 'MY-UNCLASSED', 'PCB', 109.9, 0);
+	expectStatutory(book, 'MY-UNCLASSED', 'PCB', 110.1, 0);
 });
 
 test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the January 2026 law', () => {
@@ -342,8 +414,9 @@ test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the January 2026 law', () =>
 	expectStatutory(book, 'MY-PR-60', 'EPF_PR', 281, 306);
 	expectStatutorySkipped(book, 'MY-PR-60', 'EPF');
 	// Part F — a non-citizen, 2% each on the wage as it stands, no bracket table and no ceiling.
-	// Specific KWSP foreign-worker FAQ: 5,001 × 2% = 100.02 → 101 for each share.
-	expectStatutory(book, 'MY-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
+	// Act A1760 Part F para 2: the total is rounded to the next ringgit. 2 × 100.02 = 200.04 → 201;
+	// employee 100.02 (2%, never rounded up), employer 201 − 100.02 = 100.98.
+	expectStatutory(book, 'MY-FOREIGN', 'EPF_NON_CITIZEN', 100.02, 100.98);
 	// EPF Act First Schedule para (13): at seventy-five the person is outside the Act — no Part F
 	// row at all, not a zero one.
 	expectStatutorySkipped(book, 'MY-FOREIGN-75', 'EPF_NON_CITIZEN');
@@ -368,19 +441,20 @@ test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the January 2026 law', () =>
 	// A January monthly payslip projects twelve payslips: annual = wage × 12.
 	//
 	// MY-1000: annual 12,000. EPF relief 110 projected over the eleven months still to run =
-	// 110 + 110 × 11 = 1,320 (well under the RM4,000 cap). SOCSO+EIS = 4.75 + 1.90 = 6.65 (cap
-	// 350). Personal relief 9,000. Chargeable = 12,000 − 1,326.65 − 9,000 = 1,673.35, which is in
+	// 110 + 110 × 11 = 1,320 (well under the RM4,000 cap). No TP1, so no SOCSO/EIS relief.
+	// Personal relief 9,000. Chargeable = 12,000 − 1,320 − 9,000 = 1,680, which is in
 	// the 0%..RM5,000 band: no tax, and below the RM10 minimum in any case.
 	expectStatutory(book, 'MY-1000', 'PCB', 0, 0);
-	// MY-5001: annual 60,012. EPF 561 projected = 561 + min(561, (4,000−561)/11) × 11 = 4,000, the
-	// cap. SOCSO+EIS = 25.25 + 10.10 = 35.35. Personal 9,000. Chargeable = 60,012 − 4,035.35 −
-	// 9,000 = 46,976.65. Category 1 band M=35,000 R=6% B=600: 600 + 11,976.65 × 6% = 1,318.599.
-	// Spread over 12 = 109.88325 → truncate to the cent 109.88 → up to the next 5 cents 109.90.
-	expectStatutory(book, 'MY-5001', 'PCB', 109.9, 0);
-	// MY-25000: annual 300,000. EPF relief capped at 4,000; SOCSO+EIS = 29.75 + 11.90 = 41.65.
-	// Chargeable = 300,000 − 4,041.65 − 9,000 = 286,958.35. Band M=100,000 R=25% B=9,400:
-	// 9,400 + 186,958.35 × 25% = 56,139.5875 → /12 = 4,678.29896 → 4,678.29 → 4,678.30.
-	expectStatutory(book, 'MY-25000', 'PCB', 4678.3, 0);
+	// MY-5001: annual 60,012. EPF 561 projected = 561 + trunc((4,000−561)/11) × 11 = 561 + 312.63
+	// × 11 = 3,999.93 (E(1)). No TP1, so no SOCSO/EIS relief (D.2(ii) item k; SOCSO is 25.25 and
+	// EIS 10.10 on the slip all the same). Personal 9,000. P = 4,440 + 4,688.37 × 11 − 9,000 =
+	// 47,012.07. Category 1 band M=35,000 R=6% B=600: 600 + 12,012.07 × 6% = 1,320.7242.
+	// Spread over 12 = 110.06035 → truncate to the cent 110.06 → up to the next 5 cents 110.10.
+	expectStatutory(book, 'MY-5001', 'PCB', 110.1, 0);
+	// MY-25000: EPF K1 2,750, K2 = trunc(1,250/11) = 113.63; no SOCSO/EIS relief without TP1.
+	// P = 22,250 + 24,886.37 × 11 − 9,000 = 287,000.07. Band M=100,000 R=25% B=9,400:
+	// 9,400 + 187,000.07 × 25% = 56,150.0175 → /12 = 4,679.168 → 4,679.16 → 4,679.20.
+	expectStatutory(book, 'MY-25000', 'PCB', 4679.2, 0);
 	// MY-60: no EPF employee share and no SOCSO/EIS employee share at 60+, so the only relief is
 	// the RM9,000 personal one. Chargeable = 60,012 − 9,000 = 51,012. Band M=50,000 R=11%
 	// B=1,500: 1,500 + 1,012 × 11% = 1,611.32 → /12 = 134.27666 → 134.27 → 134.30.
@@ -388,13 +462,13 @@ test('Malaysia — EPF, SOCSO, EIS, PCB and HRDF on the January 2026 law', () =>
 	// LHDN reliefs read from the employment's PCB elections. The MTD 2026 specification (updated
 	// 1 January 2026, reliefs (e) and (f)) puts a disabled individual at RM7,000 and a disabled
 	// spouse at RM6,000 — the YA 2023 figures of 6,000 and 5,000 had been seeded. A disabled person:
-	// chargeable 46,976.65 − 7,000 = 39,976.65 → 600 + 4,976.65 × 6% = 898.599 → /12 = 74.88325 →
-	// 74.88 → 74.90. A disabled spouse, a further RM6,000 on top of the RM4,000 spouse relief:
-	// 42,976.65 − 6,000 = 36,976.65 → 600 + 1,976.65 × 6% = 718.599 → /12 = 59.88325 → 59.90. The
-	// spouse control pays 89.90.
-	expectStatutory(book, 'MY-DISABLED', 'PCB', 74.9, 0);
-	expectStatutory(book, 'MY-SPOUSE', 'PCB', 89.9, 0);
-	expectStatutory(book, 'MY-DISABLED-SPOUSE', 'PCB', 59.9, 0);
+	// chargeable 47,012.07 − 7,000 = 40,012.07 → 600 + 5,012.07 × 6% = 900.7242 → /12 = 75.06 →
+	// 75.10. A disabled spouse, a further RM6,000 on top of the RM4,000 spouse relief:
+	// 43,012.07 − 6,000 = 37,012.07 → 600 + 2,012.07 × 6% = 720.7242 → /12 = 60.06 → 60.10. The
+	// spouse control pays 90.10.
+	expectStatutory(book, 'MY-DISABLED', 'PCB', 75.1, 0);
+	expectStatutory(book, 'MY-SPOUSE', 'PCB', 90.1, 0);
+	expectStatutory(book, 'MY-DISABLED-SPOUSE', 'PCB', 60.1, 0);
 
 	// HRD Corp levy, PSMB Act 2001 s.14: 1% of monthly wages, employer only, compulsory at ten or
 	// more employees. Overtime is outside the base; here there is none.
@@ -497,7 +571,7 @@ test('Malaysia — the RM4,000 EPF relief cap and the RM10 minimum monthly deduc
 			// schedule; the s.6D rebate belongs to Category 2 alone. The two ladders differ by
 			// exactly RM400 in the B constant, and only across a chargeable income of 5,000 to
 			// 35,000 — which is why a seed reading marital status alone looked right at most wages
-			// and, at this one, withheld nothing at all from a household that owes 16.60 a month.
+			// and, at this one, withheld nothing at all from a household that owes 50.00 a month.
 			{
 				key: 'MY-SPOUSE-DEPENDENT',
 				wage: 4000,
@@ -518,20 +592,22 @@ test('Malaysia — the RM4,000 EPF relief cap and the RM10 minimum monthly deduc
 	});
 
 	// MY-MIN: annual 31,200. EPF 286 (11% of the 2,600 bracket) projected = 286 × 12 = 3,432, under
-	// the RM4,000 cap. SOCSO 12.25 + EIS 4.90 = 17.15. Personal 9,000. Chargeable = 31,200 − 3,449.15
-	// − 9,000 = 18,750.85. Band M=5,000 R=1% B=−400: −400 + 13,750.85 × 1% = −262.49 → the scale
+	// the RM4,000 cap. No TP1, so no SOCSO/EIS relief. Personal 9,000. Chargeable = 31,200 − 3,432
+	// − 9,000 = 18,768. Band M=5,000 R=1% B=−400: −400 + 13,768 × 1% = −262.32 → the scale
 	// gives nothing to withhold, and the RM10 monthly minimum does not create a liability.
 	expectStatutory(book, 'MY-MIN', 'PCB', 0, 0);
-	// MY-MARRIED: annual 60,012. EPF relief 4,000 (cap), SOCSO+EIS 35.35, personal 9,000, spouse
-	// 4,000, two children at RM2,000 = 4,000. Chargeable = 60,012 − 4,035.35 − 17,000 = 38,976.65.
-	// Category 2 shares Category 1's B from M=35,000 (only the first two bands differ): 600 +
-	// 3,976.65 × 6% = 838.599 → /12 = 69.88325 → 69.88 → 69.90.
-	expectStatutory(book, 'MY-MARRIED', 'PCB', 69.9, 0);
+	// MY-MARRIED: annual 60,012. EPF relief 3,999.93 (K2 312.63), no SOCSO/EIS relief without TP1,
+	// personal 9,000, spouse 4,000, two children at RM2,000 = 4,000. Chargeable = 47,012.07 − 8,000
+	// = 39,012.07. Category 2 shares Category 1's B from M=35,000 (only the first two bands differ):
+	// 600 + 4,012.07 × 6% = 840.7242 → /12 = 70.06 → 70.10.
+	expectStatutory(book, 'MY-MARRIED', 'PCB', 70.1, 0);
 	// The dependent-spouse household carries the s.47 relief and the s.6D rebate and owes nothing;
-	// the working-spouse household carries neither and owes 16.60. Reading marital status alone put
-	// both on Category 2 and withheld nothing from either.
+	// the working-spouse household carries neither: EPF 440, K2 = trunc(3,560/11) = 323.63, P =
+	// 3,560 + 3,676.37 × 11 − 9,000 = 35,000.07, past the RM35,000 rebate band: 600 + 0.07 × 6% =
+	// 600.0042 → /12 = 50.00. Reading marital status alone put both on Category 2 and withheld
+	// nothing from either.
 	expectStatutory(book, 'MY-SPOUSE-DEPENDENT', 'PCB', 0, 0);
-	expectStatutory(book, 'MY-SPOUSE-WORKING', 'PCB', 16.6, 0);
+	expectStatutory(book, 'MY-SPOUSE-WORKING', 'PCB', 50, 0);
 	assert.notEqual(
 		chargeOf(book, 'MY-SPOUSE-WORKING', 'PCB').employee,
 		chargeOf(book, 'MY-SPOUSE-DEPENDENT', 'PCB').employee,
@@ -633,8 +709,8 @@ test('Malaysia — a non-resident PCB override is a flat 30% without resident re
 	// The redundant matching override does not replace that declaration. 5,001×30%=1,500.30.
 	expectStatutory(book, 'MY-NR', 'PCB', 1500.3, 0);
 	// The rest of the statute prices them as the foreign worker they are: Part F EPF, 2% each,
-	// each share rounded up independently to 101.
-	expectStatutory(book, 'MY-NR', 'EPF_NON_CITIZEN', 101, 101);
+	// the total 200.04 rounded to 201 (A1760 Part F para 2): employee 100.02, employer 100.98.
+	expectStatutory(book, 'MY-NR', 'EPF_NON_CITIZEN', 100.02, 100.98);
 });
 
 test('MY-nihon prices the same statute as MY', () => {
@@ -647,7 +723,7 @@ test('MY-nihon prices the same statute as MY', () => {
 	expectStatutory(book, 'N-5001', 'EPF', 561, 612);
 	expectStatutory(book, 'N-5001', 'SOCSO', 25.25, 88.35);
 	expectStatutory(book, 'N-5001', 'EIS', 10.1, 10.1);
-	expectStatutory(book, 'N-5001', 'PCB', 109.9, 0);
+	expectStatutory(book, 'N-5001', 'PCB', 110.1, 0);
 });
 
 for (const code of ['MY', 'MY-nihon'] as const) {
@@ -702,11 +778,12 @@ test('MY-nihon carries Malaysia’s two later sealed versions, SKBBK seams and a
 	expectStatutory(july, 'N-5001', 'SKBBK', 37.85, 0);
 	expectStatutory(july, 'N-FOREIGN', 'SKBBK', 37.85, 0);
 	// Nothing else moved across either seam: the fork prices EPF, SOCSO and EIS as Malaysia does,
-	// including the Part F non-citizen 2% each on the wage as it stands (2% × 5,001 = 100.02 → 101).
+	// including the Part F non-citizen 2% each on the wage as it stands (total 200.04 → 201: 100.02
+	// employee, 100.98 employer; A1760 Part F para 2).
 	expectStatutory(july, 'N-5001', 'EPF', 561, 612);
 	expectStatutory(july, 'N-5001', 'SOCSO', 25.25, 88.35);
 	expectStatutory(july, 'N-5001', 'EIS', 10.1, 10.1);
-	expectStatutory(july, 'N-FOREIGN', 'EPF_NON_CITIZEN', 101, 101);
+	expectStatutory(july, 'N-FOREIGN', 'EPF_NON_CITIZEN', 100.02, 100.98);
 });
 
 test('Malaysia — the Third Schedule brackets a wage in tens, then twenties, then hundreds', () => {
@@ -1654,9 +1731,9 @@ test('Malaysia — HRD Corp counts Malaysian employees alone, and zakat is set o
 	// count Malaysian employees, so the employer is under the five-employee threshold and no levy
 	// is due — where the whole headcount would have read the compulsory 1% band.
 	expectStatutory(book, 'MY-CITIZEN', 'HRDF', 0, 0);
-	// r.3(3A): the RM100 zakat paid through the employer comes off the month's MTD, 4,678.30 −
-	// 100 = 4,578.30.
-	expectStatutory(book, 'MY-ZAKAT', 'PCB', 4578.3, 0);
+	// r.3(3A): the RM100 zakat paid through the employer comes off the month's MTD, 4,679.20 −
+	// 100 = 4,579.20.
+	expectStatutory(book, 'MY-ZAKAT', 'PCB', 4579.2, 0);
 });
 
 test('Malaysia — the normal day is at most nine hours under the s.60A(1) proviso, and a daily-rated rest day pays one or two days’ wages (s.60(3)(a))', () => {
@@ -1782,9 +1859,12 @@ for (const code of ['MY', 'MY-nihon'] as const)
 	});
 
 for (const code of ['MY', 'MY-nihon'] as const)
-	test(`${code} — December 2025 non-citizen EPF Part F rounds each 2% share up`, () => {
-		// KWSP's Part F example: RM1,751 × 2% = RM35.02, rounded up separately
-		// for worker and employer to RM36 each, effective since October 2025.
+	test(`${code} — December 2025 non-citizen EPF Part F rounds the total, not each share (Act A1760 Part F para 2)`, () => {
+		// Act A1760 s.10, Third Schedule Part F: 2% each; para 2 "The total contribution which
+		// includes cents shall be rounded to the next ringgit". RM1,751: 35.02 + 35.02 = 70.04 → RM71.
+		// Part F is silent on which share carries the rounding: the employee stays at 2% (EPF Act
+		// s.48(1)-(2) recovers only the contribution payable by the employee) and the employer pays
+		// 71 − 35.02 = 35.98. KWSP's foreign-worker FAQ (36 + 36 = 72) does not follow para 2.
 		const book = assessStatutory({
 			code,
 			period: '2025-12',
@@ -1792,7 +1872,31 @@ for (const code of ['MY', 'MY-nihon'] as const)
 				{ key: 'DEC-FOREIGN', wage: 1751, citizenship: 'FOREIGNER', registrations: MY_FOREIGN }
 			]
 		});
-		expectStatutory(book, 'DEC-FOREIGN', 'EPF_NON_CITIZEN', 36, 36);
+		expectStatutory(book, 'DEC-FOREIGN', 'EPF_NON_CITIZEN', 35.02, 35.98);
+	});
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — Part F: an odd-sen wage, a whole-ringgit total and KWSP's RM6,710 example (Act A1760 Part F para 2)`, () => {
+		// 2,123.05 × 2% = 42.461 → employee 42.46 (to the sen, not rounded up); total 84.922 → 85;
+		// employer 85 − 42.46 = 42.54.
+		// 3,250 × 2% = 65 exactly: total 130, nothing to round; 65 + 65.
+		// 3,250.01 × 2% = 65.0002 → 65.00; total 130.0004 → 131; employer 66.00.
+		// 6,710 × 4% = 268.40 → 269 (KWSP's general mandatory-contribution example); employee
+		// 134.20, employer 134.80.
+		const book = assessStatutory({
+			code,
+			period: '2026-01',
+			people: [2123.05, 3250, 3250.01, 6710].map((wage) => ({
+				key: `PF-${wage}`,
+				wage,
+				citizenship: 'FOREIGNER' as const,
+				registrations: MY_FOREIGN
+			}))
+		});
+		expectStatutory(book, 'PF-2123.05', 'EPF_NON_CITIZEN', 42.46, 42.54);
+		expectStatutory(book, 'PF-3250', 'EPF_NON_CITIZEN', 65, 65);
+		expectStatutory(book, 'PF-3250.01', 'EPF_NON_CITIZEN', 65, 66);
+		expectStatutory(book, 'PF-6710', 'EPF_NON_CITIZEN', 134.2, 134.8);
 	});
 
 test('every sealed version of `MY` and `MY-nihon` is priced by a golden here', () => {
@@ -1809,11 +1913,10 @@ test('Malaysia — a mid-year joiner’s PCB reads the previous employer’s TP3
 	// them as the year to date this employer starts from, so June annualises the whole year:
 	// 25,005 already earned + 5,001 × (1 + 6 remaining) = 60,012 — the same as a January
 	// full-year MY-5001 — less the 549.50 already withheld, spread over the 7 payslips left.
-	// EPF relief: 2,805 declared + 561 this month, projected to the RM4,000 cap. SOCSO, EIS and
-	// (from June) SKBBK share the RM350 cap and are not projected: 126.25 + 50.50 declared plus
-	// 25.25 + 10.10 + 37.85 this month = 249.95.
-	// Chargeable = 60,012 − 4,000 − 249.95 − 9,000 = 46,762.05 → 600 + 11,762.05 × 6% =
-	// 1,305.723; − 549.50 = 756.223; ÷ 7 = 108.032 → 108.03 → 108.05.
+	// EPF relief: 2,805 declared + 561 this month, K2 = trunc((4,000 − 3,366)/6) = 105.66. No TP1,
+	// so the declared and current SOCSO, EIS and SKBBK relieve nothing (MTD spec 2026 D.2(ii) k).
+	// P = 22,200 + 4,440 + 4,895.34 × 6 − 9,000 = 47,012.04 → 600 + 12,012.04 × 6% = 1,320.7224;
+	// − 549.50 = 771.2224; ÷ 7 = 110.17 → 110.20.
 	const tp3 = (base: number, employee: number, employer: number, months?: number) => ({
 		kind: 'REGISTERED',
 		opening: [
@@ -1854,9 +1957,9 @@ test('Malaysia — a mid-year joiner’s PCB reads the previous employer’s TP3
 			}
 		]
 	});
-	expectStatutory(book, 'MY-TP3', 'PCB', 108.05, 0);
-	// Fresh: 5,001 × 7 = 35,007 annualised; EPF 561 × 7 = 3,927; the 350 pool; personal 9,000 →
-	// 21,730 in the 20,000–35,000 band: −650 + 1,730 × 3% = −598.10 → nothing withheld.
+	expectStatutory(book, 'MY-TP3', 'PCB', 110.2, 0);
+	// Fresh: 5,001 × 7 = 35,007 annualised; EPF 561 × 7 = 3,927; personal 9,000 →
+	// 22,080 in the 20,000–35,000 band: −250 + 2,080 × 3% = −187.60 → nothing withheld.
 	expectStatutory(book, 'MY-FRESH', 'PCB', 0, 0);
 });
 
@@ -1877,7 +1980,7 @@ test('Malaysia — a paid CP38 instalment does not reduce the following month’
 	});
 	const prior = january.slips.get('MY-CP38')!;
 	const januaryTax = prior.statutory.find((row) => row.scheme_code === 'PCB')!;
-	assert.equal(januaryTax.employee_amount, 1109.9);
+	assert.equal(januaryTax.employee_amount, 1110.1);
 	assert.equal(januaryTax.directed_amount, 1000);
 	const february = assessStatutory({ code: 'MY', period: '2026-02', people }, (world) => {
 		world.payroll_runs.push({ id: 'paid-january', company_id: COMPANY_ID, period: '2026-01' });
@@ -1889,9 +1992,10 @@ test('Malaysia — a paid CP38 instalment does not reduce the following month’
 			paid_at: '2026-01-31'
 		});
 	});
-	// P = 60,012 − 4,000 − (35.35 × 2) − 9,000 = 46,941.30.
-	// Tax = 600 + 11,941.30 × 6% = 1,316.478; (tax − 109.90) / 11 → 109.70.
-	expectStatutory(february, 'MY-CP38', 'PCB', 109.7, 0);
+	// K2 = (4,000 − 1,122)/10 = 287.80; P = 4,440 × 2 + 4,713.20 × 10 − 9,000 = 47,012 (no TP1,
+	// so no SOCSO/EIS relief). Tax = 600 + 12,012 × 6% = 1,320.72; (tax − 110.10) / 11 = 110.056
+	// → 110.05.
+	expectStatutory(february, 'MY-CP38', 'PCB', 110.05, 0);
 });
 
 test('Malaysia — paid zakat remains in the next month’s accumulated rebate', () => {
@@ -1905,7 +2009,7 @@ test('Malaysia — paid zakat remains in the next month’s accumulated rebate',
 	];
 	const january = buildStatutory({ code: 'MY', period: '2026-01', people });
 	const prior = january.slips.get('MY-ZAKAT-HISTORY')!;
-	assert.equal(prior.statutory.find((row) => row.scheme_code === 'PCB')!.employee_amount, 9.9);
+	assert.equal(prior.statutory.find((row) => row.scheme_code === 'PCB')!.employee_amount, 10.1);
 	assert.equal(prior.statutory.find((row) => row.scheme_code === 'PCB')!.rebate_amount, 100);
 	const february = assessStatutory({ code: 'MY', period: '2026-02', people }, (world) => {
 		world.payroll_runs.push({ id: 'zakat-january', company_id: COMPANY_ID, period: '2026-01' });
@@ -1917,9 +2021,9 @@ test('Malaysia — paid zakat remains in the next month’s accumulated rebate',
 			paid_at: '2026-01-31'
 		});
 	});
-	// LHDN 2026 D(1): annual tax 1,316.478 less January MTD 9.90 and zakat 100,
-	// divided by 11 gives 109.6889... -> 109.70. February zakat 100 leaves 9.70.
-	expectStatutory(february, 'MY-ZAKAT-HISTORY', 'PCB', 9.7, 0);
+	// LHDN 2026 D(1): annual tax 1,320.72 (P 47,012) less January MTD 10.10 and zakat 100,
+	// divided by 11 gives 110.056... -> 110.05. February zakat 100 leaves 10.05.
+	expectStatutory(february, 'MY-ZAKAT-HISTORY', 'PCB', 10.05, 0);
 });
 
 test('Malaysia — excess zakat is retained in full and TP3 can declare prior-employer rebates', () => {
@@ -1963,8 +2067,8 @@ test('Malaysia — excess zakat is retained in full and TP3 can declare prior-em
 			});
 		}
 	);
-	// (1,316.478 annual tax − 1,000 January zakat − 0 prior MTD) / 11 → 28.80.
-	expectStatutory(february, 'MY-ZAKAT-EXCESS', 'PCB', 28.8, 0);
+	// (1,320.72 annual tax − 1,000 January zakat − 0 prior MTD) / 11 = 29.156 → 29.15.
+	expectStatutory(february, 'MY-ZAKAT-EXCESS', 'PCB', 29.15, 0);
 	const opening = (base: number, employee: number, rebate = 0) => ({
 		kind: 'REGISTERED',
 		opening: [{ year: '2026', base, employee, employer: 0, rebate, months: 1, reference: 'TP3' }]
@@ -1988,7 +2092,7 @@ test('Malaysia — excess zakat is retained in full and TP3 can declare prior-em
 			}
 		]
 	});
-	expectStatutory(joiner, 'MY-ZAKAT-TP3', 'PCB', 28.8, 0);
+	expectStatutory(joiner, 'MY-ZAKAT-TP3', 'PCB', 29.15, 0);
 });
 
 test('Malaysia — EPF stops at seventy-five for citizen and foreigner alike (First Schedule para 13)', () => {
@@ -2503,14 +2607,14 @@ for (const code of ['MY', 'MY-nihon'] as const)
 					});
 			}
 		);
-		// Resident: the derivation of the MY-only bonus golden above — 1,278.40.
-		expectStatutory(book, 'R-BONUS', 'PCB', 1278.4, 0);
+		// Resident: the derivation of the MY-only bonus golden above — 1,280.25.
+		expectStatutory(book, 'R-BONUS', 'PCB', 1280.25, 0);
 		// LHDN MTD 2026 D(a): a non-resident's MTD is 30% of the remuneration, bonus included, with no
 		// reliefs: 30% × (5,001 + 12,000) = 5,100.30.
 		expectStatutory(book, 'NR-BONUS', 'PCB', 5100.3, 0);
 		// EPF Part F on the whole month's wages (bonus is EPF wages, KWSP FAQ 8): 2% × 17,001 = 340.02
-		// → 341 each (each share rounded up, KWSP foreign-worker FAQ).
-		expectStatutory(book, 'NR-BONUS', 'EPF_NON_CITIZEN', 341, 341);
+		// each; total 680.04 → 681 (A1760 Part F para 2): employee 340.02, employer 340.98.
+		expectStatutory(book, 'NR-BONUS', 'EPF_NON_CITIZEN', 340.02, 340.98);
 	});
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
@@ -2561,11 +2665,10 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		// 9,677.42 = Y1 = Y2, n = 11.
 		// EPF Part A "9,600.01 – 9,700.00": employee 11% × 9,700 = 1,067 = K1. K2 = the lower of K1
 		// and (4,000 − 1,067) ÷ 11 = 266.636 → 266.63 (E(1): two decimals, later figures omitted).
-		// SOCSO + EIS at the RM6,000 ceiling: 29.75 + 11.90 = 41.65 (LP1). Personal relief 9,000.
-		// P = (9,677.42 − 1,067) + 11 × (9,677.42 − 266.63) − 9,000 − 41.65 = 103,087.46.
-		// Table 1 "100,001 – 400,000": (P − 100,000) × 25% + 9,400 = 10,171.865; ÷ 12 = 847.655
-		// → 847.65 (E(1)) → 847.65 (E(2), already a five-cent multiple). Had the cap been met
-		// exactly (K2 × 11 = 2,933) P would be 103,087.39 and the MTD the same 847.65.
+		// No TP1, so no SOCSO/EIS relief (D.2(ii) item k). Personal relief 9,000.
+		// P = (9,677.42 − 1,067) + 11 × (9,677.42 − 266.63) − 9,000 = 103,129.11.
+		// Table 1 "100,001 – 400,000": (P − 100,000) × 25% + 9,400 = 10,182.2775; ÷ 12 = 848.523
+		// → 848.52 (E(1)) → 848.55 (E(2)).
 		const { slips } = buildStatutory({
 			code,
 			period: '2026-01',
@@ -2584,7 +2687,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		const slip = slips.get('LEAVER-20K')!;
 		assert.equal(slip.gross, 9677.42);
 		const pcb = slip.statutory.find((row) => row.scheme_code === 'PCB')!;
-		assert.equal(pcb.employee_amount, 847.65);
+		assert.equal(pcb.employee_amount, 848.55);
 	});
 
 for (const code of ['MY', 'MY-nihon'] as const)
@@ -2811,14 +2914,15 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		expectStatutory(book, 'C-181', 'PCB', 1500.3, 0);
 		expectStatutory(book, 'C-OPEN', 'PCB', 1500.3, 0);
 		// 182 days, whatever the recorded status: D(b)(1) normal remuneration. Y1 = Y2 = 5,001, n = 11.
-		// K1 = EPF Part F employee 2% × 5,001 = 100.02 → 101 (KWSP foreign-worker FAQ, each share up);
-		// K2 = lower of 101 and (4,000 − 101) ÷ 11 = 354.45 → 101. EIS: none for a non-citizen
-		// (Act 800 s.2). LP1 = SOCSO First Category employee share, Act 4 Third Schedule "exceeding
-		// 5,000, not exceeding 5,100" = 25.25. Personal relief 9,000.
-		// P = (5,001 − 101) × 12 − 9,000 − 25.25 = 49,774.75. Table 1 "35,001 – 50,000": 600 +
-		// 14,774.75 × 6% = 1,486.485; ÷ 12 = 123.873 → 123.87 (E(1)) → 123.90 (E(2)).
-		expectStatutory(book, 'C-182', 'PCB', 123.9, 0);
-		expectStatutory(book, 'C-182-NR', 'PCB', 123.9, 0);
+		// K1 = EPF Part F employee 2% × 5,001 = 100.02 (A1760 Part F para 2 rounds the total; the
+		// employee share stays at 2%); K2 = lower of 100.02 and (4,000 − 100.02) ÷ 11 = 354.54 →
+		// 100.02. EIS: none for a non-citizen (Act 800 s.2). SOCSO relieves nothing without a TP1
+		// claim (MTD spec 2026 D.2(ii) item k). Personal relief 9,000.
+		// P = (5,001 − 100.02) × 12 − 9,000 = 49,811.76.
+		// Table 1 "35,001 – 50,000": 600 + 14,811.76 × 6% = 1,488.7056; ÷ 12 = 124.0588 → 124.05
+		// (E(1)) → 124.05 (E(2)).
+		expectStatutory(book, 'C-182', 'PCB', 124.05, 0);
+		expectStatutory(book, 'C-182-NR', 'PCB', 124.05, 0);
 	});
 
 for (const code of ['MY', 'MY-nihon'] as const)
@@ -2935,19 +3039,19 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		expectStatutoryBase(book, 'LS-10', 'PCB', 8001);
 		expectStatutoryBase(book, 'LS-9', 'PCB', 8001);
 		// MTD 2026 D(b)(1)–(2). Normal: Y1 = Y2 = 5,001, n = 11; K1 = 561; K2 = lower of 561 and
-		// (4,000 − 561) ÷ 11 = 312.636 → 312.63 (E(1)); LP1 = 29.75 + 11.90 = 41.65; personal 9,000.
-		// P = 4,440 + 11 × 4,688.37 − 9,041.65 = 46,970.42. Table 1 "35,001 – 50,000": 600 +
-		// 11,970.42 × 6% = 1,318.2252; ÷ 12 = 109.852 → 109.85 → 109.85.
-		// Additional: Kt = 0 (no EPF on the award, and the RM4,000 is already used). Tax on P + Yt,
-		// less 12 × 109.85 = 1,318.20:
-		// LS-11: Yt = 1,000 → 600 + 12,970.42 × 6% = 1,378.2252 − 1,318.20 = 60.025 → 60.02 → 60.05;
-		// 109.85 + 60.05 = 169.90.
-		// LS-9: Yt = 3,000 → 600 + 14,970.42 × 6% = 1,498.2252 − 1,318.20 = 180.025 → 180.05;
-		// 109.85 + 180.05 = 289.90; LS-10 the same. (Table 1 B at 20,001–35,000 is −250, the s.6A RM400 rebate; a
-		// RM3,000 wage would withhold nothing either way, so the probe sits above RM35,000.)
-		expectStatutory(book, 'LS-11', 'PCB', 169.9, 0);
-		expectStatutory(book, 'LS-10', 'PCB', 289.9, 0);
-		expectStatutory(book, 'LS-9', 'PCB', 289.9, 0);
+		// (4,000 − 561) ÷ 11 = 312.636 → 312.63 (E(1)); no SOCSO/EIS relief without TP1 (D.2(ii) k);
+		// personal 9,000. P = 4,440 + 11 × 4,688.37 − 9,000 = 47,012.07. Table 1 "35,001 – 50,000":
+		// 600 + 12,012.07 × 6% = 1,320.7242; ÷ 12 = 110.06 → 110.10.
+		// Additional: Kt = 0 (no EPF on the award). Tax on P + Yt, less 12 × 110.10 = 1,321.20:
+		// LS-11: Yt = 1,000 → 600 + 13,012.07 × 6% = 1,380.72 − 1,321.20 = 59.52 → 59.55;
+		// 110.10 + 59.55 = 169.65.
+		// LS-9: Yt = 3,000 → 50,012.07, Table 1 "50,001 – 70,000": 1,500 + 12.07 × 11% = 1,501.32
+		// − 1,321.20 = 180.12 → 180.15; 110.10 + 180.15 = 290.25; LS-10 the same. (Table 1 B at
+		// 20,001–35,000 is −250, the s.6A RM400 rebate; a RM3,000 wage would withhold nothing either
+		// way, so the probe sits above RM35,000.)
+		expectStatutory(book, 'LS-11', 'PCB', 169.65, 0);
+		expectStatutory(book, 'LS-10', 'PCB', 290.25, 0);
+		expectStatutory(book, 'LS-9', 'PCB', 290.25, 0);
 	});
 
 /** An ad hoc payment of `code` in January 2026 for every employment in the world. */
@@ -3027,15 +3131,15 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		expectStatutoryBase(book, 'EX-9', 'PCB', 6001);
 		expectStatutoryBase(book, 'EX-LS-11', 'PCB', 9001);
 		// MTD 2026 D(b). Normal (both): Y1 = Y2 = 5,001, n = 11, K1 = 561 (EPF on the normal 5,001),
-		// K2 = lower of 561 and (4,000 − 561) ÷ 11 = 312.63 (E(1)), LP1 = 29.75 + 11.90 = 41.65:
-		// P = 4,440 + 11 × 4,688.37 − 9,041.65 = 46,970.42 → 600 + 11,970.42 × 6% = 1,318.2252 ÷ 12 → 109.85.
-		// Additional: Kt ≤ 4,000 − 3,999.93 = 0.07 (the cap is spent), so P + Yt − Kt:
-		// EX-9, Yt 1,000: 47,970.35–.42 → 600 + 12,970.35–.42 × 6% = 1,378.22 − 12 × 109.85 = 60.02 → 60.05;
-		// 109.85 + 60.05 = 169.90.
-		// EX-LS-11, Yt 4,000: 50,970.35–.42 → Table 1 "50,001 – 70,000" 1,500 + 970.35–.42 × 11% =
-		// 1,606.74 − 1,318.20 = 288.54 (288.53 at Kt 0.07) → 288.55; 109.85 + 288.55 = 398.40.
-		expectStatutory(book, 'EX-9', 'PCB', 169.9, 0);
-		expectStatutory(book, 'EX-LS-11', 'PCB', 398.4, 0);
+		// K2 = lower of 561 and (4,000 − 561) ÷ 11 = 312.63 (E(1)); no SOCSO/EIS relief without TP1:
+		// P = 4,440 + 11 × 4,688.37 − 9,000 = 47,012.07 → 600 + 12,012.07 × 6% = 1,320.7242 ÷ 12 → 110.10.
+		// Additional: Kt = 330, K2 = (4,000 − 891) ÷ 11 = 282.63 (the EPF relief stays 3,999.93):
+		// EX-9, Yt 1,000: 4,440 + 11 × 4,718.37 + 670 − 9,000 = 48,012.07 → 600 + 13,012.07 × 6% =
+		// 1,380.72 − 12 × 110.10 = 59.52 → 59.55; 110.10 + 59.55 = 169.65.
+		// EX-LS-11, Yt 4,000: 51,012.07 → Table 1 "50,001 – 70,000" 1,500 + 1,012.07 × 11% =
+		// 1,611.32 − 1,321.20 = 290.12 → 290.15; 110.10 + 290.15 = 400.25.
+		expectStatutory(book, 'EX-9', 'PCB', 169.65, 0);
+		expectStatutory(book, 'EX-LS-11', 'PCB', 400.25, 0);
 	});
 
 for (const code of ['MY', 'MY-nihon'] as const)
@@ -3087,13 +3191,13 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		// PCB: RM6,000 a year exempt (E(9) item i; PR 5/2019 para 7.2.1). 500 → base 5,001; 7,000 → 6,001.
 		expectStatutoryBase(book, 'TRAVEL-500', 'PCB', 5001);
 		expectStatutoryBase(book, 'TRAVEL-7000', 'PCB', 6001);
-		// TRAVEL-500 is the plain 5,001: P = 4,440 + 11 × 4,688.37 − 9,000 − (25.25 + 10.10) = 46,976.72
-		// → 600 + 11,976.72 × 6% = 1,318.6032 ÷ 12 = 109.88 → 109.90.
-		expectStatutory(book, 'TRAVEL-500', 'PCB', 109.9, 0);
+		// TRAVEL-500 is the plain 5,001 (no TP1, so no SOCSO/EIS relief): P = 4,440 + 11 × 4,688.37 −
+		// 9,000 = 47,012.07 → 600 + 12,012.07 × 6% = 1,320.7242 ÷ 12 = 110.06 → 110.10.
+		expectStatutory(book, 'TRAVEL-500', 'PCB', 110.1, 0);
 		// TRAVEL-7000: the taxable 1,000 is normal remuneration (a monthly allowance, spec D(1)), so
-		// Y1 = Y2 = 6,001, K1 = 561, K2 = 312.63: P = 5,440 + 11 × 5,688.37 − 9,035.35 = 58,976.72 →
-		// Table 1 "50,001 – 70,000" 1,500 + 8,976.72 × 11% = 2,487.4392 ÷ 12 = 207.28 → 207.30.
-		expectStatutory(book, 'TRAVEL-7000', 'PCB', 207.3, 0);
+		// Y1 = Y2 = 6,001, K1 = 561, K2 = 312.63: P = 5,440 + 11 × 5,688.37 − 9,000 = 59,012.07 →
+		// Table 1 "50,001 – 70,000" 1,500 + 9,012.07 × 11% = 2,491.3277 ÷ 12 = 207.61 → 207.65.
+		expectStatutory(book, 'TRAVEL-7000', 'PCB', 207.65, 0);
 		// ALLOW: 5,001 + child care 250 + meal 200 + parking 100 = 5,551. EPF "Allowance" (KWSP FAQ Q8):
 		// Part A bracket 5,600 → 616 / 672. Act 4 Third Schedule "exceeding 5,500 not exceeding 5,600"
 		// 27.75 / 97.15; Act 800 Second Schedule 11.10. Act 612 s.2 fixed allowances in cash: 5,551.
@@ -3104,10 +3208,10 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		expectStatutory(book, 'ALLOW', 'EIS', 11.1, 11.1);
 		// PCB: child care inside RM3,000 (item ii), meal (item vii) and parking (item vi) exempt: 5,001.
 		// K1 = 616 (E(13)(i): EPF on a tax-exempt allowance is still K1), K2 = (4,000 − 616) ÷ 11 =
-		// 307.63, LP1 = 27.75 + 11.10 = 38.85: P = 4,385 + 11 × 4,693.37 − 9,038.85 = 46,973.22 →
-		// 600 + 11,973.22 × 6% = 1,318.3932 ÷ 12 = 109.86 → 109.90.
+		// 307.63, no SOCSO/EIS relief without TP1: P = 4,385 + 11 × 4,693.37 − 9,000 = 47,012.07 →
+		// 600 + 12,012.07 × 6% = 1,320.7242 ÷ 12 = 110.06 → 110.10.
 		expectStatutoryBase(book, 'ALLOW', 'PCB', 5001);
-		expectStatutory(book, 'ALLOW', 'PCB', 109.9, 0);
+		expectStatutory(book, 'ALLOW', 'PCB', 110.1, 0);
 	});
 
 for (const code of ['MY', 'MY-nihon'] as const)
@@ -3145,15 +3249,15 @@ for (const code of ['MY', 'MY-nihon'] as const)
 			assert.equal(charge(bik, scheme).employer_amount, charge(plain, scheme).employer_amount);
 		}
 		// E(12): BIK/VOLA is part of Y1 (method i, the monthly amount). Y1 = Y2 = 6,001, K1 = 561,
-		// K2 = (4,000 − 561) ÷ 11 = 312.63, LP1 = 25.25 + 10.10: P = 5,440 + 11 × 5,688.37 − 9,035.35 =
-		// 58,976.72 → Table 1 "50,001 – 70,000" 1,500 + 8,976.72 × 11% = 2,487.4392 ÷ 12 = 207.28 →
-		// 207.30 (the plain 5,001: 109.90).
+		// K2 = (4,000 − 561) ÷ 11 = 312.63, no SOCSO/EIS relief without TP1: P = 5,440 + 11 × 5,688.37
+		// − 9,000 = 59,012.07 → Table 1 "50,001 – 70,000" 1,500 + 9,012.07 × 11% = 2,491.3277 ÷ 12 =
+		// 207.61 → 207.65 (the plain 5,001: 110.10).
 		assert.equal(charge(plain, 'PCB').base_amount, 5001);
-		assert.equal(charge(plain, 'PCB').employee_amount, 109.9);
+		assert.equal(charge(plain, 'PCB').employee_amount, 110.1);
 		assert.equal(charge(bik, 'PCB').base_amount, 6001);
-		assert.equal(charge(bik, 'PCB').employee_amount, 207.3);
+		assert.equal(charge(bik, 'PCB').employee_amount, 207.65);
 		// Net: gross less the employee charges — the benefit pays nothing.
-		assert.equal(bik.net, Math.round((5001 - 561 - 25.25 - 10.1 - 207.3) * 100) / 100);
+		assert.equal(bik.net, Math.round((5001 - 561 - 25.25 - 10.1 - 207.65) * 100) / 100);
 	});
 
 test('Malaysia — ITA employer duties cite Act 53 as at 1 January 2026, not the 2006 reprint', () => {
@@ -3249,6 +3353,43 @@ test('Malaysia — the Employment Act cites the AGC reprint as at 1 August 2023,
 			'utf8'
 		);
 		assert.doesNotMatch(adhoc, jtksmUpdatedText, `${code} adhoc_catalogue`);
+	}
+});
+
+test('Malaysia — PERKESO duties cite the AGC Act 4 text with A1788, and HRD’s 2021 First Schedule its Gazette copy', () => {
+	// AGC "Online version of updated text of reprint", Act 4 as at 1 October 2024 (latest amendment
+	// Act A1724): s.4 registration of industries; s.6 contributions (amended from 1 June 2026 by
+	// Act A1788 s.3); s.14A interest on arrears; Part IV is "Administration, Finance and Audit", so an
+	// accident report is the return "required by the regulations" in s.94(e), enforced by s.94A(3).
+	// PERKESO's own Act 4 text is as at 1 September 2022 and predates both A1724 and A1788.
+	// P.U.(A) 84/2021 is on the AGC federal legislation portal; the HRD Corp copy is a mirror.
+	const act4 =
+		'https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf';
+	const a1788 =
+		'https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf';
+	const expected: Record<string, readonly string[]> = {
+		SOCSO_EIS_EMPLOYER_REGISTRATION: ['(Act 4) s.4 (', act4],
+		SOCSO_EIS_MONTHLY_CONTRIBUTION: ['(Act 4) ss.6, 14A (', act4, `Act A1788 s.3: ${a1788}`],
+		SOCSO_ACCIDENT_REPORT: ['(Act 4) ss.94(e), 94A(3) (', act4]
+	};
+	const pua84 = 'https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf';
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		let citingPua84 = 0;
+		for (const version of settingsVersions(code)) {
+			const obligations = version.obligations as readonly { code: string; authority: string }[];
+			for (const [duty, parts] of Object.entries(expected)) {
+				const authority = obligations.find((row) => row.code === duty)?.authority ?? '';
+				for (const part of parts)
+					assert.ok(authority.includes(part), `${code} ${version.id} ${duty}: ${authority}`);
+				assert.doesNotMatch(authority, /\(Act 4\) Part IV/);
+			}
+			const text = JSON.stringify(version);
+			assert.doesNotMatch(text, /As%20at%201%20September%202022/, `${code} ${version.id}`);
+			assert.doesNotMatch(text, /hrdcorp\.gov\.my\/wp-content\/uploads\/2021\/03\/FEDERAL/);
+			if (text.includes(pua84)) citingPua84 += 1;
+		}
+		// Every operative version that listed the HRD Corp mirror now lists the AGC copy.
+		assert.equal(citingPua84, settingsVersions(code).length, code);
 	}
 });
 

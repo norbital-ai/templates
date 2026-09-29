@@ -179,16 +179,17 @@ test('MY-nihon SOCSO, EIS, HRDF and PCB at the table seams (2025-12-01 version)'
 	// MTD, January (n = 11, divide by n + 1 = 12), resident, single, no children, Category 1.
 	// K2 = [4,000 − K1] / 11 truncated to the sen (MTD E.1), capped at K1.
 	// W-3700: K1 = 407 (EPF above); K2 = 3,593 / 11 = 326.636… → 326.63 (< 407);
-	//   EPF relief = 407 + 326.63 × 11 = 3,999.93. LP1 = 18.25 + 7.30 = 25.55. D = 9,000.
-	//   P = 44,400 − 3,999.93 − 9,000 − 25.55 = 31,374.52 → Table 1 row 20,001–35,000:
-	//   M 20,000, R 3%, B −250. (11,374.52 × 3%) − 250 = 91.2356 → /12 = 7.6029 → 7.60.
+	//   EPF relief = 407 + 326.63 × 11 = 3,999.93. No SOCSO/EIS relief without a TP1 claim (MTD
+	//   spec 2026 D.2(ii) item k). D = 9,000.
+	//   P = 44,400 − 3,999.93 − 9,000 = 31,400.07 → Table 1 row 20,001–35,000:
+	//   M 20,000, R 3%, B −250. (11,400.07 × 3%) − 250 = 92.0021 → /12 = 7.667 → 7.66 → 7.70.
 	//   MTD E.3: "less than ten ringgit, the employer is not required to make the MTD" → 0.
 	expectStatutory(book, 'W-3700', 'PCB', 0, 0);
 	// W-3900: K1 = 429 (row 3,880.01–3,900, 11% × 3,900); K2 = 3,571 / 11 = 324.636… → 324.63;
-	//   EPF relief = 429 + 3,570.93 = 3,999.93. LP1 = 19.25 + 7.70 = 26.95.
-	//   P = 46,800 − 3,999.93 − 9,000 − 26.95 = 33,773.12. (13,773.12 × 3%) − 250 = 163.1936
-	//   → /12 = 13.5994… → truncate 13.59 → round up to five sen (E.2) 13.60.
-	expectStatutory(book, 'W-3900', 'PCB', 13.6, 0);
+	//   EPF relief = 429 + 3,570.93 = 3,999.93. No SOCSO/EIS relief without TP1.
+	//   P = 46,800 − 3,999.93 − 9,000 = 33,800.07. (13,800.07 × 3%) − 250 = 164.0021
+	//   → /12 = 13.6668… → truncate 13.66 → round up to five sen (E.2) 13.70.
+	expectStatutory(book, 'W-3900', 'PCB', 13.7, 0);
 });
 
 test('MY-nihon SKBBK on the fork’s own June and July 2026 versions', () => {

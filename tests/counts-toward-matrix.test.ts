@@ -169,6 +169,8 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		leader: [...PH_WAGES, 'WTAX.ORDINARY'],
 		meal: [...PH_WAGES, 'WTAX.RICE'],
 		position: [...PH_WAGES, 'WTAX.ORDINARY'],
+		// RA 9262 s.8(g): the court's withholding from salary; a net deduction outside every base (ML-2).
+		PROTECTION_ORDER_SUPPORT: [],
 		transport: [...PH_WAGES, 'WTAX.ORDINARY']
 	},
 	// Circular 111/2013 art.2(2): allowances are salary income except severance and job-loss allowances.
@@ -203,6 +205,8 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 			'OCC_INJURY'
 		],
 		OCC_INJURY_OFFSET: [],
+		// 強制執行法 §115-1: the attached wage stays the worker's; a net deduction outside every base (TW-WAGE-06).
+		COURT_GARNISHMENT: [],
 		// 勞基法 §59 職業災害補償費: not 工資 (施行細則 §10(7)), exempt from income tax (所得稅法 §4(1)(3)-(4)).
 		OCC_INJURY_MEDICAL: [],
 		OCC_INJURY_LUMP_SUM: [],
@@ -293,7 +297,15 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		// 财税〔2018〕164号 item 5(2): taxed alone, spread over the years to statutory retirement age.
 		EARLY_RETIREMENT_SUBSIDY: ['IIT_EARLY_RETIREMENT'],
 		INTERNAL_RETIREMENT_SUBSIDY: ['IIT_INTERNAL_RETIREMENT'],
-		SEVERANCE_PAY: ['IIT_SEVERANCE']
+		SEVERANCE_PAY: ['IIT_SEVERANCE'],
+		// 沪人社规〔2019〕19号 items 1–3: in 工资总额, so wage income under IIT; a contract line, so in WAGES
+		// through the contract, not by membership (register CN-SH19).
+		HEAT_ALLOWANCE: ['IIT', 'IIT_INTERNAL_RETIREMENT'],
+		// 国税发〔1994〕89号 item 2(1), (3), (4): not of wage nature, not taxed; outside WAGES (register CN-N55).
+		ONE_CHILD_SUBSIDY: [],
+		CHILDCARE_SUBSIDY: [],
+		TRAVEL_ALLOWANCE: [],
+		MISSED_MEAL_SUBSIDY: []
 	}
 };
 MATRIX['MY-nihon'] = MATRIX.MY;
@@ -317,7 +329,9 @@ const SEPARATION = new Set([
 	'UPMK',
 	'UANG_PISAH',
 	'PKWT_COMPENSATION',
-	'THR'
+	'THR',
+	// PH: a leaver's pro-rata 13th month (DOLE Handbook 2024 ch.13 §G; PD 851 Revised Guidelines ¶6), EM-1.
+	'THIRTEENTH_MONTH_PAY'
 ]);
 
 for (const lineage of LINEAGES) {

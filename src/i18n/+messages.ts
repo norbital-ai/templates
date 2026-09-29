@@ -1443,7 +1443,7 @@ export default messages({
 	'renderer.statutory_deductions.category.education_medical_insurance':
 		'C13 · Education and medical insurance',
 	'renderer.statutory_deductions.category.socso_eis':
-		'C14 · SOCSO / EIS paid outside recorded payroll',
+		'C14 · SOCSO / EIS contributions (payroll and elsewhere)',
 	'renderer.statutory_deductions.category.ev_charging': 'C15 · EV charging',
 	'renderer.statutory_deductions.category.compost': 'C15 · Food-waste compost machine',
 	'renderer.statutory_deductions.category.food_grinder_cctv': 'C15 · Food grinder / CCTV',

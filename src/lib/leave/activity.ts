@@ -3,7 +3,13 @@ import { fromMinorUnits, toMinorUnits } from '../payroll/run/rounding.js';
 import type { LeaveActivity } from './pending.js';
 import type { LeaveAllocation } from '../datatypes/leave_allocations.js';
 import type { LeaveCharge } from '../datatypes/leave_charges.js';
-import { addDays, daysBetween, monthDay, weekStart } from '../../lib/payroll/run/dates.js';
+import {
+	addDays,
+	daysBetween,
+	monthDay,
+	monthsEnd,
+	weekStart
+} from '../../lib/payroll/run/dates.js';
 import { coversDate } from '../../lib/payroll/run/effective.js';
 import { dateKey } from '../iso-day.js';
 import { hasPhSoloParentDocument } from '../ph/maternity-reconciliation.js';
@@ -517,19 +523,31 @@ export function planLeaveActivity(
 				row.event_kind === (fields.event_kind ?? null) &&
 				(phMaternityBirth || row.event_relationship === (fields.event_relationship ?? null)) &&
 				dateKey(row.event_date) === dateKey(fields.event_date);
-			const alreadyForEvent = activeTimeOff(sameLeave)
+			const eventCharges = activeTimeOff(sameLeave)
 				.filter(
 					(row) =>
 						row.leave_code === rules.selected.code &&
 						row.employment_id === input.employment_id &&
 						sameEvent(row)
 				)
-				.flatMap((row) => row.charges)
-				.reduce((sum, row) => sum + row.days, 0);
-			if (alreadyForEvent + quantity > granted + 1e-9)
-				refuse(
-					`${rules.selected.code} grants ${granted} days for this event; ${alreadyForEvent} are already taken and this would add ${quantity}.`
-				);
+				.flatMap((row) => row.charges);
+			if (rule.calendar_months === true) {
+				// The grant is a span of calendar months from the event's first leave day; the days
+				// the roster charges inside it are the leave, rest days and holidays included in it.
+				const opening = [...charged, ...eventCharges].map((row) => row.date).toSorted()[0]!;
+				const last = monthsEnd(opening, granted);
+				const late = charged.find((row) => row.date > last);
+				if (late != null)
+					refuse(
+						`${rules.selected.code} grants ${granted} months for this event, ${opening} through ${last}; ${late.date} falls after them.`
+					);
+			} else {
+				const alreadyForEvent = eventCharges.reduce((sum, row) => sum + row.days, 0);
+				if (alreadyForEvent + quantity > granted + 1e-9)
+					refuse(
+						`${rules.selected.code} grants ${granted} days for this event; ${alreadyForEvent} are already taken and this would add ${quantity}.`
+					);
+			}
 			// Counted over the person: this employment's entries and their other employments' here.
 			const taken =
 				activeTimeOff(sameLeave).filter(

@@ -1313,7 +1313,7 @@ export default messages({
 	'renderer.statutory_deductions.category.life_insurance_epf': 'C11b · 人寿保险／另行分配的自愿EPF',
 	'renderer.statutory_deductions.category.private_retirement': 'C12 · 私人退休金／递延年金',
 	'renderer.statutory_deductions.category.education_medical_insurance': 'C13 · 教育与医疗保险',
-	'renderer.statutory_deductions.category.socso_eis': 'C14 · 已记录薪资以外缴付的SOCSO／EIS',
+	'renderer.statutory_deductions.category.socso_eis': 'C14 · SOCSO／EIS缴款（含薪资扣缴）',
 	'renderer.statutory_deductions.category.ev_charging': 'C15 · 电动车充电',
 	'renderer.statutory_deductions.category.compost': 'C15 · 厨余堆肥机',
 	'renderer.statutory_deductions.category.food_grinder_cctv': 'C15 · 厨余粉碎机／闭路电视',

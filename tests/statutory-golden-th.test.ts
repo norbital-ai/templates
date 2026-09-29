@@ -7,7 +7,7 @@
  * - Social Security Act B.E.2533, Council of State current consolidation
  *   (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09,
  *   read 28 September 2026; the SSO's own copy stops at No.3 B.E.2542, register TH-SS-12):
- *   s.33 insured on entry at 15–60; s.46 each side at the ministerial rate on the wage between the
+ *   s.33 insured while aged 15–60 (a hire over 60 never enters; one insured before 60 stays); s.46 each side at the ministerial rate on the wage between the
  *   ministerial floor and ceiling, a fraction of 50 satang or more counting as one baht, less
  *   dropped; s.5 the wage is pay for normal working time (overtime and holiday-work pay outside).
  *   5% each (Ministerial Regulation on contribution rates B.E.2565, Schedule B). Base THB1,650 to
@@ -16,9 +16,10 @@
  *   published 8 January 2026). TH-SS-01, -02, -11, -12, -13. The base regulation B.E.2568 (Gazette
  *   vol.142 part 81 Kor, 12 December 2025) was read from the SSO's copy
  *   (https://www.sso.go.th/wpr/download/download_by_pool_file/47755): cl.3 THB1,650–17,500 to 2028,
- *   –20,000 2029–2031, –23,000 from 2032. The ratchakitcha.soc.go.th flood-relief PDF returns
- *   HTTP 403 to every fetch tried, the Browser pane included (28 September 2026); its figures are
- *   the register's own transcription. The Employee Welfare Fund rate regulation B.E.2568 was read
+ *   –20,000 2029–2031, –23,000 from 2032. The flood-relief notice was read from the Gazette's own
+ *   PDF on 29 September 2026 (https://ratchakitcha.soc.go.th/documents/100888.pdf, vol.143 special
+ *   part 6 Ngor p.7, a Ministry of Labour notice under SSA s.46/1 signed 7 January 2026; it had
+ *   returned 403 on 28 September). The Employee Welfare Fund rate regulation B.E.2568 was read
  *   from the Gazette facsimile the Council of State serves ('ค0077 กฎกระทรวง 2568-60ก-3.pdf',
  *   https://www.ocs.go.th/searchlaw/power_link/download/eyJ1dWlkIjoiNDNjMTc4OTgtODFiMS00MmVhLWIwNmYtMjQ4YzM1NzlmMzFhIiwiZmlsZW5hbWUiOiLguIQwMDc3IOC4geC4juC4geC4o-C4sOC4l-C4o-C4p-C4hyAyNTY4LTYw4LiBLTMucGRmIn0.CH4M5nGGlUmG48thQPthO-j_qpRZ-5GpRKA0pnN9pw8);
  *   its law-index page (https://www.ocs.go.th/searchlaw/law-index/item/13221) has no text.
@@ -349,6 +350,75 @@ test('Thailand — the southern flood-relief rate is 3% each side, December 2025
 		);
 });
 
+test('Thailand — the flood-relief notice as read from the Gazette: cl.1 3% each side, December 2025–May 2026 (TH-SS-02)', () => {
+	// Read 29 September 2026 from https://ratchakitcha.soc.go.th/documents/100888.pdf (rendered
+	// page): Ministry of Labour notice under SSA s.46/1 para.1, vol.143 special part 6 Ngor p.7,
+	// published 8 January 2026, signed 7 January 2026. cl.1: 3% each side of the insured's wage for a
+	// registered employer and s.33 insured in the nine listed provinces, wage months December 2025
+	// to May 2026 (six months, the s.46/1 para.2 limit). s.46 rounding: 50 satang or more is a baht.
+	//   December 2025: 10,209 × 3% = 306.27 → 306; 16,667 capped at 15,000 × 3% = 450.
+	//   May 2026: 16,667 × 3% = 500.01 → 500; 16,683 × 3% = 500.49 → 500; 16,684 × 3% = 500.52 → 501.
+	//   May 2026 outside the provinces: 16,684 × 5% = 834.20 → 834.
+	const people = [
+		citizen('GF-10209', 10_209),
+		citizen('GF-16667', 16_667),
+		citizen('GF-16683', 16_683),
+		citizen('GF-16684', 16_684)
+	];
+	const flood = { sso_flood_relief_area: true };
+	const december = assessStatutory(
+		{ code: TH, period: '2025-12', people, companyFacts: flood },
+		belowNotice14
+	);
+	expectStatutory(december, 'GF-10209', 'SSO', 306, 306);
+	expectStatutory(december, 'GF-16667', 'SSO', 450, 450);
+	const may = assessStatutory(
+		{ code: TH, period: '2026-05', people, companyFacts: flood },
+		belowNotice14
+	);
+	expectStatutory(may, 'GF-16667', 'SSO', 500, 500);
+	expectStatutory(may, 'GF-16683', 'SSO', 500, 500);
+	expectStatutory(may, 'GF-16684', 'SSO', 501, 501);
+	const ordinary = assessStatutory({ code: TH, period: '2026-05', people }, belowNotice14);
+	expectStatutory(ordinary, 'GF-16684', 'SSO', 834, 834);
+	// The seed now says how the notice was read; the stale 403 blocker is gone everywhere.
+	for (const version of settingsVersions(TH)) {
+		const text = JSON.stringify(version);
+		assert.ok(text.includes('vol.143 special part 6 Ngor p.7'), `${version.id} Gazette reference`);
+		assert.ok(!text.includes('no capture of 100888'), `${version.id} stale flood blocker`);
+	}
+	for (const scheme of contributionSchemes(TH))
+		assert.ok(
+			!JSON.stringify(scheme).includes('flood-relief notice PDF returns HTTP 403'),
+			`${scheme.id} stale flood blocker`
+		);
+});
+
+test('Thailand — s.41/1 spouse-birth leave: 15 days within 90 days counted from the birth, as the Gazette reads (TH-LEAVE-03)', () => {
+	// Act No.9 s.6 (vol.142 part 74 Kor p.43, read 29 September 2026): s.41/1 up to fifteen days
+	// for each birth to help a spouse who gives birth, "within ninety days counted from the day of
+	// birth"; s.8 adds s.59/2, working-day wages for up to fifteen days. Every version from
+	// 7 December 2025 carries it; the pre-No.9 version does not.
+	for (const version of settingsVersions(TH)) {
+		const row = leaveCatalogue(TH).find(
+			(entry) => entry.settings_id === version.id && entry.code === 'CHILD_BIRTH_LEAVE'
+		);
+		const from = String(version.effective_range.start).slice(0, 10);
+		if (from < '2025-12-07') {
+			assert.equal(row, undefined, `${from} predates No.9`);
+			continue;
+		}
+		assert.ok(row, `${from} has no CHILD_BIRTH_LEAVE`);
+		assert.deepEqual(
+			row.entitlement.bands.map((band: { days: number }) => band.days),
+			[15]
+		);
+		assert.equal(row.is_npl, false);
+		assert.ok(row.authority.includes('within 90 days counted from the day of birth'), from);
+		assert.ok(!row.authority.includes('before or within 90 days after'), from);
+	}
+});
+
 test('Thailand — s.33 insures an entrant aged 15–60; a hire over 60 does not enter, an insured person ageing past 60 stays (TH-SS-12)', () => {
 	const book = assessStatutory({
 		code: TH,
@@ -372,6 +442,29 @@ test('Thailand — s.33 insures an entrant aged 15–60; a hire over 60 does not
 	// 164.5833… → 164.58.
 	expectStatutory(book, 'SS-61-ENTRANT', 'PIT', 90.9, 0);
 	expectStatutory(book, 'SS-62-INSURED', 'PIT', 164.58, 0);
+});
+
+test('Thailand — s.33 para.1 is a status test: a worker hired under 15 is insured once 15 (TH-SS-12)', () => {
+	// s.33 para.1: an employee "not under fifteen full years and not over sixty" is an insured
+	// person — a status held while those facts hold, not a one-off test at entry; s.38 ends it only
+	// on death or leaving employment. The lower bound is read on the period end, the day the
+	// monthly wage is paid (s.47 para.1 deducts from wages paid to an insured person).
+	const book = assessStatutory({
+		code: TH,
+		period: '2026-02',
+		people: [
+			// Born 1 June 1996, hired 1 July 2010 at 14; 29 in February 2026.
+			citizen('SS-HIRED-AT-14', 30_000, { birth_date: '1996-06-01', hire_date: '2010-07-01' }),
+			// The fixture's default age (40 at the period end) with a 2001 hire: 14 or 15 at hire.
+			citizen('SS-25Y-SERVICE', 30_000, { hire_date: '2001-01-01' })
+		]
+	});
+	// 30,000 over the 17,500 ceiling: 17,500 × 5% = 875 each side. PIT: 360,000 − 100,000 − 60,000
+	// − 875 × 12 = 189,500 → 39,500 × 5% = 1,975 ÷ 12 = 164.5833… → 164.58.
+	for (const key of ['SS-HIRED-AT-14', 'SS-25Y-SERVICE']) {
+		expectStatutory(book, key, 'SSO', 875, 875);
+		expectStatutory(book, key, 'PIT', 164.58, 0);
+	}
 });
 
 test('Thailand — SSO law is read from the current consolidation: s.46 para.5 and s.47 para.1 as amended (TH-SS-11, -12)', () => {
