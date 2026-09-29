@@ -205,7 +205,10 @@ export async function settleExit(ctx: Ctx, employmentId: string): Promise<ExitSe
 	]);
 }
 
-/** The separation payments the version owes this leaver: each eligible `SEPARATION` class not already raised. */
+/**
+ * The separation payments the version owes this leaver: each eligible `SEPARATION` class not already raised in the
+ * departure's calendar year. An annual class (PH 13th month, ID THR) raised in an earlier year does not settle this one.
+ */
 async function separationPayments(
 	ctx: Ctx,
 	context: LeaveContext,
@@ -228,7 +231,7 @@ async function separationPayments(
 		}),
 		ctx.read('adhoc_requests', {
 			where: { employment_id: { eq: employmentId as Id<'employments'> } },
-			select: { catalogue_id: true },
+			select: { catalogue_id: true, event_date: true },
 			all: true
 		})
 	]);
@@ -241,7 +244,11 @@ async function separationPayments(
 		payFrequency: terms?.pay_frequency ?? company.pay_frequency
 	});
 	return plainRows<{ id: string; code: string; eligibility: string }>(catalogue).flatMap((row) =>
-		standing.rows.some((s) => s.catalogue_id === row.id) || !isEligible(row.eligibility, person)
+		standing.rows.some(
+			(s) =>
+				s.catalogue_id === row.id &&
+				dateKey(String(s.event_date)).slice(0, 4) === exitDate.slice(0, 4)
+		) || !isEligible(row.eligibility, person)
 			? []
 			: [
 					{

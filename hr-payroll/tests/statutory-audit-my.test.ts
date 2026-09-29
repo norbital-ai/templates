@@ -96,7 +96,7 @@ function adhoc(
 // EPF — the Board's own worked examples (KWSP Employer Mandatory Contribution, 2025–2026)
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-test('MY audit — EPF Parts A, C, E examples and the specific Part F FAQ convention', () => {
+test('MY audit — EPF Parts A, C, E examples and the Part F total rounding', () => {
 	const people: Person[] = [
 		// Example 1.1: citizen < 60, RM3,250.00 → Part A row "3,240.01 – 3,260.00".
 		{ key: 'A-3250', wage: 3250, citizenship: 'CITIZEN', registrations: LOCAL },
@@ -144,9 +144,9 @@ test('MY audit — EPF Parts A, C, E examples and the specific Part F FAQ conven
 	assert.equal(c21.employee + c21.employer, 2444);
 	// 2.4: Part F, 2% × 3,250 = 65.00 each, total 130 (KWSP).
 	expectStatutory(book, 'F-3250', 'EPF_NON_CITIZEN', 65, 65);
-	// Specific foreign-worker FAQ rounds each share; the general-page discrepancy is recorded
-	// in the tracker. 6,710 × 2% = 134.20 → 135 independently for employee and employer.
-	expectStatutory(book, 'F-6710', 'EPF_NON_CITIZEN', 135, 135);
+	// Part F para 2 (Act A1760 s.10) rounds the total: 6,710 × 4% = 268.40 → 269; the employee
+	// share stays 134.20 and the employer pays 134.80.
+	expectStatutory(book, 'F-6710', 'EPF_NON_CITIZEN', 134.2, 134.8);
 });
 
 test('MY audit — Third Schedule Part A note: a bonus that lifts a ≤RM5,000 wage over RM5,000 keeps the employer at 13%', () => {
@@ -580,22 +580,22 @@ test('MY audit — MTD 2026 either side of the RM35,000 rebate cliff (Table 1, C
 		code: 'MY',
 		period: '2026-01',
 		people: [
-			{ key: 'PCB-4000', wage: 4000, citizenship: 'CITIZEN', registrations: LOCAL },
+			{ key: 'PCB-3990', wage: 3990, citizenship: 'CITIZEN', registrations: LOCAL },
 			{ key: 'PCB-4100', wage: 4100, citizenship: 'CITIZEN', registrations: LOCAL }
 		]
 	});
-	// RM4,000, January (n = 11). K1 = EPF Part A row 3,980.01–4,000 = 440. K2 = min(440,
-	// (4,000 − 440) ÷ 11 = 323.636…) so K + K1 + K2·n = 4,000 (the qualifying cap).
-	// Σ(Y−K) = 0; (Y1−K1) = 3,560; (Y2−K2)·n = 4,000·11 − 3,560 = 40,440 → 44,000.
-	// LP1 = SOCSO row 44 employee 19.75 + EIS row 44 employee 7.90 = 27.65. D = 9,000.
-	// P = 44,000 − 9,000 − 27.65 = 34,972.35 → band 20,001–35,000: M 20,000, R 3%, B −250.
-	// (14,972.35 × 3%) − 250 = 449.1705 − 250 = 199.1705; ÷ 12 = 16.5975… → 16.59 (E(1)) → 16.60 (E(2)).
-	expectStatutory(book, 'PCB-4000', 'PCB', 16.6, 0);
-	// RM4,100: K1 = row 4,080.01–4,100 = 451; K capped at 4,000 → net 49,200 − 4,000 = 45,200.
-	// LP1 = SOCSO row 45 20.25 + EIS row 45 8.10 = 28.35. P = 45,200 − 9,000 − 28.35 = 36,171.65 →
-	// band 35,001–50,000: M 35,000, R 6%, B 600 (no rebate). 1,171.65 × 6% = 70.299 + 600 = 670.299;
-	// ÷ 12 = 55.858… → 55.85 → 55.85.
-	expectStatutory(book, 'PCB-4100', 'PCB', 55.85, 0);
+	// SOCSO/EIS relieve nothing without a TP1 claim (MTD spec 2026 D.2(ii) item k), so the only
+	// reliefs are EPF and D = 9,000.
+	// RM3,990, January (n = 11). K1 = EPF Part A row 3,980.01–4,000 = 440. K2 = min(440,
+	// (4,000 − 440) ÷ 11 = 323.636… → 323.63 (E(1))).
+	// P = (3,990 − 440) + (3,990 − 323.63) × 11 − 9,000 = 3,550 + 40,330.07 − 9,000 = 34,880.07 →
+	// band 20,001–35,000: M 20,000, R 3%, B −250. 14,880.07 × 3% − 250 = 196.4021; ÷ 12 = 16.366…
+	// → 16.36 (E(1)) → 16.40 (E(2)). (RM4,000 lands at P = 35,000.07, already past the cliff.)
+	expectStatutory(book, 'PCB-3990', 'PCB', 16.4, 0);
+	// RM4,100: K1 = row 4,080.01–4,100 = 451; K2 = (4,000 − 451) ÷ 11 = 322.63.
+	// P = 3,649 + 3,777.37 × 11 − 9,000 = 36,200.07 → band 35,001–50,000: M 35,000, R 6%, B 600
+	// (no rebate). 1,200.07 × 6% = 72.0042 + 600 = 672.0042; ÷ 12 = 56.0003… → 56.00 → 56.00.
+	expectStatutory(book, 'PCB-4100', 'PCB', 56, 0);
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────

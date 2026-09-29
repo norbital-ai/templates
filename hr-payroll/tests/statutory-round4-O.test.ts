@@ -4,9 +4,9 @@
  * self-help-group funds on salary in lieu of notice. Every figure is derived by hand from the
  * instrument quoted beside it; the rules are read from the sealed seed, in every version.
  *
- *   KWSP non-Malaysian employee FAQ: RM1,751 → RM36 employee + RM36 employer.
- *     Separate share rounding also matches all 186 eligible Infotech export records reviewed
- *     (Jan–May 2026). The general-page combined-rounding discrepancy is recorded in the tracker.
+ *   Act A1760 s.10, Third Schedule Part F para 2: "The total contribution which includes cents
+ *     shall be rounded to the next ringgit". The employee share stays at 2% to the sen (EPF Act
+ *     s.48(1)-(2)); the employer pays the rounded total less it. RM1,751 → 35.02 + 35.98 = RM71.
  *   Employment Act 1955 (Act 265, reprint as at 1 August 2023) s.24(1), (2)(d), (8), (9).
  *   CPF Board FAQs: CPF “not payable on compensation in lieu of notice”; SHG contributions are
  *     “based on the total wages payable to an employee in a calendar month”; CDAC/ECF/SINDA are
@@ -36,7 +36,7 @@ const MY_PERIODS = ['2025-12', '2026-01', '2026-06', '2026-09', '2028-07', '2031
 
 // ─── 1. EPF Third Schedule Part F ────────────────────────────────────────────────────────────────
 
-test('MY Part F: each 2% share rounds up independently — every version, both lineages', () => {
+test('MY Part F: the total rounds up to the ringgit once, the employee share stays at 2% — every version, both lineages', () => {
 	for (const code of ['MY', 'MY-nihon']) {
 		for (const period of MY_PERIODS) {
 			const book = assessStatutory({
@@ -54,20 +54,20 @@ test('MY Part F: each 2% share rounds up independently — every version, both l
 				]
 			});
 			const at = `${code} ${period}`;
-			// KWSP's specific FAQ: 1,751 × 2% = 35.02 → 36 for each share.
-			expectStatutory(book, 'F-1751', 'EPF_NON_CITIZEN', 36, 36);
-			// Synthetic cases use contribution bases reconciled from Infotech's export.
-			expectStatutory(book, 'F-1954', 'EPF_NON_CITIZEN', 40, 40);
-			expectStatutory(book, 'F-2123.05', 'EPF_NON_CITIZEN', 43, 43);
-			expectStatutory(book, 'F-3249.99', 'EPF_NON_CITIZEN', 65, 65);
+			// Part F para 2: 1,751 × 4% = 70.04 → 71; employee 35.02, employer 71 − 35.02.
+			expectStatutory(book, 'F-1751', 'EPF_NON_CITIZEN', 35.02, 35.98);
+			expectStatutory(book, 'F-1954', 'EPF_NON_CITIZEN', 39.08, 39.92);
+			// 2,123.05 × 2% = 42.461 → 42.46 to the sen; 84.922 → 85.
+			expectStatutory(book, 'F-2123.05', 'EPF_NON_CITIZEN', 42.46, 42.54);
+			expectStatutory(book, 'F-3249.99', 'EPF_NON_CITIZEN', 64.99, 65.01);
 			// 3,250: 65.00 each, total 130.00 — no cents (KWSP example 2.4).
 			expectStatutory(book, 'F-3250', 'EPF_NON_CITIZEN', 65, 65);
-			expectStatutory(book, 'F-3250.01', 'EPF_NON_CITIZEN', 66, 66);
-			expectStatutory(book, 'F-5001', 'EPF_NON_CITIZEN', 101, 101);
+			expectStatutory(book, 'F-3250.01', 'EPF_NON_CITIZEN', 65, 66);
+			expectStatutory(book, 'F-5001', 'EPF_NON_CITIZEN', 100.02, 100.98);
 			const f67 = chargeOf(book, 'F-6710', 'EPF_NON_CITIZEN');
-			assert.equal(f67.employee + f67.employer, 270, at);
-			assert.equal(f67.employee, 135, at);
-			assert.equal(f67.employer, 135, at);
+			assert.equal(f67.employee + f67.employer, 269, at);
+			assert.equal(f67.employee, 134.2, at);
+			assert.equal(f67.employer, 134.8, at);
 		}
 		assertEveryVersionPriced(code);
 	}
@@ -121,16 +121,11 @@ test('MY Part F: semi-monthly shares reconcile to one rounded monthly assessment
 				(row) => row.scheme_code === 'EPF_NON_CITIZEN'
 			)
 		);
-		assert.equal(
-			charges.reduce((sum, row) => sum + row.employee_amount, 0),
-			40,
-			code
-		);
-		assert.equal(
-			charges.reduce((sum, row) => sum + row.employer_amount, 0),
-			40,
-			code
-		);
+		// One monthly assessment of 1,954: employee 39.08, total 78.16 → 79.
+		const cents = (field: 'employee_amount' | 'employer_amount') =>
+			Math.round(charges.reduce((sum, row) => sum + row[field], 0) * 100) / 100;
+		assert.equal(cents('employee_amount'), 39.08, code);
+		assert.equal(cents('employer_amount'), 39.92, code);
 	}
 });
 

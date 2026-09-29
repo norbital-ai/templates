@@ -76,8 +76,12 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 			// LHDN D(b), E(13): prior EPF 500, normal K1=220, bonus Kt=440, n=5.
 			// Normal EPF: 500 + 220×6 = 1,820; full EPF: 500 + 660 + 220×5 = 2,260.
 			// Voluntary EPF 2,000 raises the full projected EPF relief to its 4,000 cap.
-			// SOCSO, EIS and SKBBK are registered. Their employee shares enter the applicable
-			// social-insurance relief pool, giving RM314.50 or RM595.85 after five-sen rounding.
+			// SOCSO, EIS and SKBBK are registered but relieve nothing without a TP1 claim (MTD spec
+			// 2026 D.2(ii) item k). Normal P = 33,500 + 1,780 × 6 − 9,000 = 35,180 (− 2,000 voluntary
+			// = 33,180); full P = 38,740 (− 1,740 voluntary, the rest of the 4,000 = 37,000).
+			// Voluntary 0: 610.80 ÷ 6 = 101.80; 824.40 − 610.80 = 213.60; PCB 315.40.
+			// Voluntary 2,000: −250 + 13,180 × 3% = 145.40 ÷ 6 = 24.23 → 24.25; 720 − 145.50 = 574.50;
+			// PCB 598.75.
 			const built = buildStatutory(
 				{
 					code,
@@ -151,7 +155,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 			assert.deepEqual([epf.employee_amount, epf.employer_amount], [660, 780]);
 			assert.deepEqual(
 				[pcb.employee_amount, pcb.employer_amount],
-				[voluntary === 0 ? 314.5 : 595.85, 0]
+				[voluntary === 0 ? 315.4 : 598.75, 0]
 			);
 			const trace = built.trace;
 			const tracedTax = trace[0]!.schemes.find((row) => row.scheme_code === 'PCB')!;
@@ -161,35 +165,36 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 		});
 
 	test(`${code} — TP1 2026 limits change normal remuneration withholding`, () => {
-		// LHDN 2026: 60,012 annual remuneration - EPF 4,000 - SOCSO/EIS 35.35
-		// - personal 9,000 = 46,976.65. For these claims P stays in the 6% band:
+		// LHDN 2026: 60,012 annual remuneration - EPF 3,999.93 (K2 312.63) - personal 9,000 =
+		// 47,012.07; SOCSO/EIS relieve only as claimed (D.2(ii) item k, TP1 C14), so SOCSO_EIS 500
+		// is its RM350 cap. For these claims P stays in the 6% band:
 		// (600 + (P - 35,000) * .06) / 12, truncated to cents then rounded up to 5 cents.
 		const cases = [
-			['PARENTS_CARE', 9000, 69.9],
-			['PARENTS_CHECKUP', 1500, 104.9],
-			['DISABILITY_EQUIPMENT', 7000, 79.9],
-			['SELF_EDUCATION', 8000, 74.9],
-			['UPSKILLING', 3000, 99.9],
-			['SERIOUS_MEDICAL', 11000, 59.9],
-			['VACCINATION', 1500, 104.9],
-			['DENTAL', 1500, 104.9],
-			['MEDICAL_SCREENING', 1500, 104.9],
-			['LEARNING_DISABILITY', 11000, 59.9],
-			['LIFESTYLE', 3000, 97.4],
-			['SPORTS', 1500, 104.9],
-			['BREASTFEEDING', 1500, 104.9],
-			['CHILDCARE', 4000, 94.9],
-			['SSPN', 9000, 69.9],
-			['ALIMONY', 5000, 89.9],
-			['VOLUNTARY_EPF', 5000, 109.9],
-			['LIFE_INSURANCE_EPF', 4000, 94.9],
-			['PRIVATE_RETIREMENT', 4000, 94.9],
-			['EDUCATION_MEDICAL_INSURANCE', 5000, 89.9],
+			['PARENTS_CARE', 9000, 70.1],
+			['PARENTS_CHECKUP', 1500, 105.1],
+			['DISABILITY_EQUIPMENT', 7000, 80.1],
+			['SELF_EDUCATION', 8000, 75.1],
+			['UPSKILLING', 3000, 100.1],
+			['SERIOUS_MEDICAL', 11000, 60.1],
+			['VACCINATION', 1500, 105.1],
+			['DENTAL', 1500, 105.1],
+			['MEDICAL_SCREENING', 1500, 105.1],
+			['LEARNING_DISABILITY', 11000, 60.1],
+			['LIFESTYLE', 3000, 97.6],
+			['SPORTS', 1500, 105.1],
+			['BREASTFEEDING', 1500, 105.1],
+			['CHILDCARE', 4000, 95.1],
+			['SSPN', 9000, 70.1],
+			['ALIMONY', 5000, 90.1],
+			['VOLUNTARY_EPF', 5000, 110.1],
+			['LIFE_INSURANCE_EPF', 4000, 95.1],
+			['PRIVATE_RETIREMENT', 4000, 95.1],
+			['EDUCATION_MEDICAL_INSURANCE', 5000, 90.1],
 			['SOCSO_EIS', 500, 108.35],
-			['EV_CHARGING', 3000, 97.4],
-			['COMPOST', 3000, 97.4],
-			['FOOD_GRINDER_CCTV', 3000, 97.4],
-			['TOURISM', 1500, 104.9]
+			['EV_CHARGING', 3000, 97.6],
+			['COMPOST', 3000, 97.6],
+			['FOOD_GRINDER_CCTV', 3000, 97.6],
+			['TOURISM', 1500, 105.1]
 		] as const;
 		const book = assessStatutory({
 			code,
@@ -224,7 +229,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 			{ ...person('SPOUSE_ALIMONY', [claim('ALIMONY', 4000)]), spouse_status: 'WITHOUT_INCOME' }
 		];
 		const book = assessStatutory({ code, period: '2026-01', people: cases });
-		const expected = [69.9, 74.9, 59.9, 97.4, 107.4, 109.9, 109.9, 109.9, 97.4, 89.9];
+		const expected = [70.1, 75.1, 60.1, 97.6, 107.6, 110.1, 110.1, 110.1, 97.6, 90.1];
 		cases.forEach((row, index) => expectStatutory(book, row.key, 'PCB', expected[index]!, 0));
 	});
 
@@ -251,10 +256,10 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 				})
 			]
 		});
-		expectStatutory(book, 'LOWER_PRICE', 'PCB', 74.9, 0);
-		expectStatutory(book, 'UPPER_PRICE', 'PCB', 84.9, 0);
-		expectStatutory(book, 'JOINT', 'PCB', 88.9, 0); // 7,000 × 6,000 / 10,000 = 4,200.
-		expectStatutory(book, 'ACTUAL_BELOW_CAP', 'PCB', 104.9, 0);
+		expectStatutory(book, 'LOWER_PRICE', 'PCB', 75.1, 0);
+		expectStatutory(book, 'UPPER_PRICE', 'PCB', 85.1, 0);
+		expectStatutory(book, 'JOINT', 'PCB', 89.1, 0); // 7,000 × 6,000 / 10,000 = 4,200.
+		expectStatutory(book, 'ACTUAL_BELOW_CAP', 'PCB', 105.1, 0);
 	});
 
 	test(`${code} — conflicting recurring claims and incomplete housing facts stop payroll`, () => {
@@ -286,10 +291,10 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 
 for (const code of ['MY', 'MY-nihon'] as const)
 	test(`${code} — TP1 reduces normal and additional remuneration tax in a bonus month`, () => {
-		// EPF 4,000 + SOCSO/EIS 41.65 + personal 9,000 + TP1 2,500.
-		// Normal P=44,470.35: tax=1,168.221; normal MTD=97.35 after truncation/up-to-5c.
-		// With 12,000 additional pay P=56,470.35: tax=2,211.7385.
-		// Additional MTD=2,211.7385 - 12×97.35=1,043.5385 → 1,043.55; total=1,140.90.
+		// EPF 3,999.93 (K2 312.63) + personal 9,000 + TP1 2,500; no SOCSO/EIS relief without a
+		// TP1 claim. Normal P=44,512.07: tax=1,170.7242; normal MTD=97.56 → 97.60.
+		// With 12,000 additional pay (Kt 1,320, K2 192.63) P=56,512.07: tax=2,216.32.
+		// Additional MTD=2,216.32 - 12×97.60=1,045.12 → 1,045.15; total=1,142.75.
 		const book = assessStatutory(
 			{ code, period: '2026-01', people: [person('BONUS', [claim('LIFESTYLE', 3000)])] },
 			(world) => {
@@ -314,7 +319,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 				});
 			}
 		);
-		expectStatutory(book, 'BONUS', 'PCB', 1140.9, 0);
+		expectStatutory(book, 'BONUS', 'PCB', 1142.75, 0);
 	});
 
 for (const code of ['MY', 'MY-nihon'] as const) {
@@ -331,11 +336,11 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 		];
 		const built = buildStatutory({ code, period: '2026-01', people });
 		for (const [key, expected, rebate] of [
-			['DIRECT', 9.9, 100],
-			['LEVY', 69.9, 40],
+			['DIRECT', 10.1, 100],
+			['LEVY', 70.1, 40],
 			['BOTH', 0, 140],
-			['FUTURE', 109.9, 0],
-			['OLD', 109.9, 0]
+			['FUTURE', 110.1, 0],
+			['OLD', 110.1, 0]
 		] as const) {
 			const slip = built.slips.get(key)!;
 			const tax = slip.statutory.find((row) => row.scheme_code === 'PCB')!;
@@ -368,8 +373,8 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 				paid_at: '2026-01-31'
 			});
 		});
-		// February: (annual tax1,316.478 - January rebate1,000) /11 =>28.80.
-		expectStatutory(february, 'HISTORY', 'PCB', 28.8, 0);
+		// February: (annual tax 1,320.72 - January rebate 1,000) / 11 = 29.156 => 29.15.
+		expectStatutory(february, 'HISTORY', 'PCB', 29.15, 0);
 	});
 
 	test(`${code} — departure levy counts journeys with corrections and lifetime history`, () => {
@@ -388,7 +393,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 			period: '2026-01',
 			people: [person('TWO', claims, { tp1_departure_levy_claims_before_year: 0 })]
 		});
-		expectStatutory(book, 'TWO', 'PCB', 29.9, 0);
+		expectStatutory(book, 'TWO', 'PCB', 30.1, 0);
 		for (const [key, input, elections, message] of [
 			['THIRD', claims, { tp1_departure_levy_claims_before_year: 1 }, /two lifetime/],
 			['UNKNOWN_HISTORY', claims, {}, /Earlier departure levy claims is required/],
@@ -471,14 +476,19 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 			}
 		];
 		const book = assessStatutory({ code, period: '2026-01', people: cases });
-		// The registered lower-wage worker also deducts EPF and social-insurance shares.
-		expectStatutory(book, 'REP', 'PCB', 587.2, 0);
-		expectStatutory(book, 'KNOWLEDGE', 'PCB', 587.2, 0);
-		expectStatutory(book, 'LOWER', 'PCB', 328.9, 0);
-		// The approved non-citizen C-suite has mandatory scheme shares in the tax base.
-		expectStatutory(book, 'C_SUITE', 'PCB', 5837, 0);
-		// P.U. (A) 242/2023 r.5(d): RM25,000 basic is the inclusive minimum.
-		expectStatutory(book, 'C_SUITE_MINIMUM', 'PCB', 3587, 0);
+		// 15% of P, the s.6A RM400 rebate at P ≤ 35,000; EPF relieved (K2 truncated, E(1)), SOCSO/EIS
+		// not without a TP1 claim (MTD spec 2026 D.2(ii) item k):
+		// REP/KNOWLEDGE 5,001: P = 60,012 − 3,999.93 − 9,000 = 47,012.07 → 7,051.81 ÷ 12 → 587.65.
+		// LOWER 3,500: P = 42,000 − 3,999.93 − 9,000 = 29,000.07 → 4,350.01 − 400 ÷ 12 → 329.20.
+		expectStatutory(book, 'REP', 'PCB', 587.65, 0);
+		expectStatutory(book, 'KNOWLEDGE', 'PCB', 587.65, 0);
+		expectStatutory(book, 'LOWER', 'PCB', 329.2, 0);
+		// The approved non-citizen C-suite: Part F EPF 800, K2 290.90: P = 480,000 − 3,999.90 −
+		// 9,000 = 467,000.10 → 70,050.015 ÷ 12 = 5,837.50.
+		expectStatutory(book, 'C_SUITE', 'PCB', 5837.5, 0);
+		// P.U. (A) 242/2023 r.5(d): RM25,000 basic is the inclusive minimum. EPF 500, K2 318.18:
+		// P = 300,000 − 3,999.98 − 9,000 = 287,000.02 → 43,050.003 ÷ 12 = 3,587.50.
+		expectStatutory(book, 'C_SUITE_MINIMUM', 'PCB', 3587.5, 0);
 	});
 
 	test(`${code} — approved profile additional pay is included once in the annual projection`, () => {
@@ -515,8 +525,10 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 				approval_id: null
 			});
 		});
-		// The bonus is projected once; registered scheme shares reduce chargeable income.
-		expectStatutory(book, 'BONUS_PROFILE', 'PCB', 512, 0);
+		// The bonus is projected once; EPF (1,705 on 15,500, K2 208.63 → 3,999.93) reduces chargeable
+		// income, SOCSO/EIS do not without TP1: P = 54,000 − 3,999.93 − 9,000 = 41,000.07 → 15% =
+		// 6,150.01 ÷ 12 = 512.50.
+		expectStatutory(book, 'BONUS_PROFILE', 'PCB', 512.5, 0);
 	});
 
 	test(`${code} — profile approval bounds and unrestricted gross-rate overrides are validated`, () => {

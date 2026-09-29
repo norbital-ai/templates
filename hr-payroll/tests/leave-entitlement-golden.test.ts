@@ -18,6 +18,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { computedEntitlement, grantedDays, leaveWindowOf } from '../src/lib/leave/entitlement.ts';
+import { inclusiveDays, monthsEnd } from '../src/lib/payroll/run/dates.ts';
 import {
 	evaluateNumberOver,
 	isEligible,
@@ -662,24 +663,24 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 			[50, 50, 50]
 		);
 		// art.139(1) and Law 41/2024 art.53(2): grants per birth for a member of six months'
-		// contributions — six months, seven for twins; five days, seven for a caesarean, ten for
+		// contributions — six calendar months (`calendar_months`), seven for twins; five days, seven for a caesarean, ten for
 		// twins, fourteen for twins by caesarean — and the art.115 personal leaves per event.
 		const SI_1Y = { registrations: [{ code: 'SI', since: '2024-01-01' }] } as const;
 		const MOTHER = { ...FEMALE, ...SI_1Y } as const;
 		const wife = version === 3 ? { relationship: 'WIFE' } : {};
 		assert.deepEqual(
 			ladder('VN', version, 'MATERNITY_LEAVE', { ...MOTHER, event: { kind: 'BIRTH' } }),
-			[180, 180, 180]
+			[6, 6, 6]
 		);
 		assert.deepEqual(
 			ladder('VN', version, 'MATERNITY_LEAVE', { ...MOTHER, event: { kind: 'MULTIPLE_BIRTH' } }),
-			[210, 210, 210]
+			[7, 7, 7]
 		);
 		// Labour Code art.139: the six months' leave is every mother's; a mother short of the six
 		// contribution months is on leave without the fund's allowance, not without the leave.
 		assert.deepEqual(
 			ladder('VN', version, 'MATERNITY_LEAVE', { ...FEMALE, event: { kind: 'BIRTH' } }),
-			[180, 180, 180]
+			[6, 6, 6]
 		);
 		assert.deepEqual(
 			ladder('VN', version, 'MATERNITY_LEAVE', { ...MALE, event: { kind: 'BIRTH' } }),
@@ -745,12 +746,11 @@ test('Vietnam — the annual-leave cohorts, the seniority ladder and the SI sick
 						asOf: '2026-08-01'
 					} as never)
 				);
-			assert.equal(triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: {} }), 240);
-			assert.equal(
-				triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: { child_index: 2 } }),
-				240
-			);
-			assert.equal(triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: {} }, true), 270);
+			// Months (`calendar_months`): six plus one per child from the second — eight; nine after
+			// one prior living child (seven plus two).
+			assert.equal(triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: {} }), 8);
+			assert.equal(triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: { child_index: 2 } }), 8);
+			assert.equal(triplets('MATERNITY_LEAVE', { gender: 'FEMALE', event: {} }, true), 9);
 			assert.equal(triplets('PATERNITY_LEAVE', { gender: 'MALE', event: {} }), 13);
 			assert.equal(
 				triplets('PATERNITY_LEAVE', { gender: 'MALE', event: { kind: 'MULTIPLE_BIRTH_SURGERY' } }),
@@ -1217,6 +1217,29 @@ for (const lineage of ['CN-shanghai', 'CN-kunming'] as const) {
 		}
 	});
 }
+
+// Vietnam maternity months (Labour Code 2019 art.139(1): 06 tháng; Law 41/2024 art.53(9): holidays
+// and weekly rest days inside the period) are calendar months from the first leave day. The law
+// states no day arithmetic; the register default ends the period the day before the same day of the
+// closing month, or on that month's last day where it has none.
+test('VN — a maternity grant of N months ends on the calendar, not after 30 × N days', () => {
+	const span = (start: string, months: number) => {
+		const end = monthsEnd(start, months);
+		return [end, inclusiveDays(start, end)];
+	};
+	assert.deepEqual(span('2026-03-15', 6), ['2026-09-14', 184]);
+	assert.deepEqual(span('2026-03-01', 6), ['2026-08-31', 184]);
+	assert.deepEqual(span('2026-09-01', 6), ['2027-02-28', 181]);
+	assert.deepEqual(span('2026-08-31', 6), ['2027-02-28', 182]);
+	// Population Law 113/2025 art.14(1)(a): seven months for the second child from 1 July 2026.
+	assert.deepEqual(span('2026-07-10', 7), ['2027-02-09', 215]);
+	// A leap February: 30 August has no 30 February, so the period closes on the 29th; 29 August
+	// has one, so it closes the day before.
+	assert.equal(monthsEnd('2027-08-30', 6), '2028-02-29');
+	assert.equal(monthsEnd('2027-08-29', 6), '2028-02-28');
+	for (const row of leaveCatalogue('VN').filter((row) => row.code === 'MATERNITY_LEAVE'))
+		assert.equal(row.entitlement.calendar_months, true);
+});
 
 test('every sealed version of every lineage has a leave golden', () => {
 	// Not "were the numbers checked" — the tests above do that — but "was any version skipped".

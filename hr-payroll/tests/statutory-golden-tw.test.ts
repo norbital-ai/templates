@@ -3462,6 +3462,60 @@ test('Taiwan — an elected §59 offset comes off net pay and leaves the 原領�
 	assert.equal(offset.net, whole.net - 8_470);
 });
 
+test('Taiwan — a served wage garnishment comes off net pay at the ordered amount and leaves gross and every statutory line whole (強制執行法 §115-1)', () => {
+	// 強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): the attachment
+	// order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, and the court may depart from that
+	// ratio while reserving the debtor's 生活費用 — the ceiling binds the order, so the employer deducts exactly
+	// what the order fixes (fixture: 12,000 a month, one third of 36,000). Owner rule 2026-09-28: law silent on
+	// the booking; default a net deduction touching no wage, insured or tax base (register TW-WAGE-06).
+	// NT$36,000, April 2026, declared grade 36,300 (民國115年 LI/NHI tables):
+	//   LI 36,300 × 11.5% × 20% = 834.9 → 835 (勞保條例 §13, §15(1); 施行細則 §33 rounds to the 元)
+	//   EI 36,300 × 1% × 20% = 72.6 → 73 (就業保險法 §40)
+	//   NHI 36,300 × 5.17% × 30% = 563.013 → 563 (健保法 §27(1); 施行細則 §52)
+	//   INCOME_TAX nil (36,000 is below the 115年 table's first taxable row; 5% would be 1,800, ≤ 2,000 under 扣繳率標準 §13)
+	// Whole net 36,000 − (835 + 73 + 563) = 34,529; garnished net 34,529 − 12,000 = 22,529.
+	const run = (ordered: number) =>
+		buildStatutory(
+			{
+				code: 'TW',
+				period: '2026-04',
+				riskClass: '1',
+				people: [{ key: 'TW-GARNISH', wage: 36_000, citizenship: 'CITIZEN' }]
+			},
+			(world) => {
+				declareInsuredAmount(world, 'TW-GARNISH', 36_300);
+				if (ordered === 0) return;
+				const catalogue = world.adhoc_catalogue!.find(
+					(row) => row.code === 'COURT_GARNISHMENT' && row.settings_id === TW_2026
+				)!;
+				world.adhoc_requests!.push({
+					id: 'd4000000-0000-4000-8000-000000115001',
+					employment_id: world.employments[0]!.id,
+					catalogue_id: catalogue.id,
+					amount: ordered,
+					event_date: '2026-04-30',
+					// The order's April instalment: pinned, as the 30th is past the 21st cutoff.
+					pay_period: '2026-04',
+					payslip_id: null,
+					reason: '強制執行法 §115-1 扣押命令 / 移轉命令',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		).slips.get('TW-GARNISH')!;
+	const whole = run(0);
+	const garnished = run(12_000);
+	assert.deepEqual(charge(whole, 'LI'), [36_300, 835, charge(whole, 'LI')[2]]);
+	assert.deepEqual(charge(whole, 'EI'), [36_300, 73, charge(whole, 'EI')[2]]);
+	assert.deepEqual(charge(whole, 'NHI'), [36_300, 563, charge(whole, 'NHI')[2]]);
+	assert.equal(whole.gross, 36_000);
+	assert.equal(whole.net, 34_529);
+	assert.equal(garnished.gross, 36_000);
+	assert.deepEqual(garnished.statutory, whole.statutory);
+	assert.equal(garnished.net, 22_529);
+});
+
 test('Taiwan — 公傷病假 keeps the 原領工資 whole in a thirty- and a thirty-one-day month, and no insurer benefit is offset (勞基法 §59(2), 施行細則 §31)', () => {
 	// 勞基法 §59(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59): 勞工在醫療中不能
 	// 工作時，雇主應按其原領工資數額予以補償. 施行細則 §31(1) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030002):

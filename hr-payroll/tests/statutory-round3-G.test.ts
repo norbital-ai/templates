@@ -44,16 +44,16 @@ for (const code of ['MY', 'MY-nihon'] as const satisfies readonly Lineage[]) {
 		// and LHDN lists compensation for loss of employment as additional remuneration.
 		//
 		// PCB, January 2026 (n = 11), single resident, no reliefs beyond the individual's 9,000:
-		//   EPF on the normal 20,000 = 2,200; K2 = min((4,000 − 2,200) ÷ 11, 2,200) = 163.6364, so
-		//   K + K1 + K2·n = 4,000 (the qualifying cap). SOCSO + EIS at the RM6,000 ceiling:
-		//   29.75 + 11.90 = 41.65 (LP1). The compensation is not EPF or SOCSO wages: Kt = 0.
-		//   Normal P = 20,000 × 12 − 4,000 − 9,000 − 41.65 = 226,958.35.
+		//   EPF on the normal 20,000 = 2,200; K2 = min((4,000 − 2,200) ÷ 11, 2,200) = 163.63 (E(1)),
+		//   so K + K1 + K2·n = 3,999.93. SOCSO/EIS relieve nothing without a TP1 claim (MTD spec 2026
+		//   D.2(ii) item k). The compensation is not EPF or SOCSO wages: Kt = 0.
+		//   Normal P = 18,000 + 19,836.37 × 11 − 9,000 = 227,000.07.
 		//   Table 1 (100,001–400,000: M 100,000, R 25%, B 9,400):
-		//     (126,958.35 × 25%) + 9,400 = 41,139.5875; ÷ 12 = 3,428.2990 → 3,428.29 → 3,428.30.
-		//   Step 1[E] year MTD = 3,428.30 × 12 = 41,139.60.
-		//   Additional P = 226,958.35 + 16,849.32 = 243,807.67 → (143,807.67 × 25%) + 9,400 =
-		//     45,351.9175. Step 4: 45,351.9175 − 41,139.60 = 4,212.3175 → 4,212.31 → 4,212.35.
-		//   Step 5: 3,428.30 + 4,212.35 = 7,640.65.
+		//     (127,000.07 × 25%) + 9,400 = 41,150.0175; ÷ 12 = 3,429.168 → 3,429.16 → 3,429.20.
+		//   Step 1[E] year MTD = 3,429.20 × 12 = 41,150.40.
+		//   Additional P = 227,000.07 + 16,849.32 = 243,849.39 → (143,849.39 × 25%) + 9,400 =
+		//     45,362.3475 → 45,362.34. Step 4: 45,362.34 − 41,150.40 = 4,211.94 → 4,211.95.
+		//   Step 5: 3,429.20 + 4,211.95 = 7,641.15.
 		const versionId = settingsVersions(code).find(
 			(version) =>
 				String(version.effective_range.start) <= '2026-01-31' &&
@@ -105,7 +105,7 @@ for (const code of ['MY', 'MY-nihon'] as const satisfies readonly Lineage[]) {
 		const pcb = slip.statutory.find((line) => line.scheme_code === 'PCB')!;
 		// The PCB base is the month's 20,000 plus the taxable 16,849.32.
 		assert.equal(pcb.base_amount, 36_849.32);
-		assert.equal(pcb.employee_amount, 7_640.65);
+		assert.equal(pcb.employee_amount, 7_641.15);
 	});
 }
 

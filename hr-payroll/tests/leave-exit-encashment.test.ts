@@ -268,6 +268,20 @@ test('off-boarding raises the separation payments the version owes the leaver, o
 		{ catalogue_id: id(95), event_date: EXIT }
 	]);
 	assert.deepEqual(again.raisedAdhoc, []);
+	// EM-1: an annual class (PH 13th month, DOLE Handbook 2024 ch.13 §G) paid last December does
+	// not settle this year's pro-rata share; only a request in the departure's own year does.
+	const annual = [{ id: id(98), code: 'THIRTEENTH_MONTH_PAY', eligibility: '' }];
+	const lastYear = await run(closed(leaveContext()), 'RESIGNATION', annual, [
+		{ catalogue_id: id(98), event_date: '2025-12-15' }
+	]);
+	assert.deepEqual(
+		lastYear.raisedAdhoc.map((row) => [row.catalogue_id, row.event_date, row.amount]),
+		[[id(98), EXIT, 0]]
+	);
+	const thisYear = await run(closed(leaveContext()), 'RESIGNATION', annual, [
+		{ catalogue_id: id(98), event_date: '2026-06-30' }
+	]);
+	assert.deepEqual(thisYear.raisedAdhoc, []);
 	// A payment owed in a window before a dated event (ID THR for a leaver in the thirty days
 	// before Idulfitri, Permenaker 6/2016 art.7(1)): the eligibility compares the exit day.
 	const thr = [

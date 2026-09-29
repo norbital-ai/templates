@@ -132,6 +132,12 @@ test('Indonesia — BPJS Ketenagakerjaan and Kesehatan on the 1 January 2026 ver
 	// 0.14% out of it, never as a second line.
 	expectStatutory(book, 'ID-5M', 'JKK', 0, 27_000);
 	expectStatutory(book, 'ID-15M', 'JKK', 0, 81_000);
+	// Above the Rp5,000,000 recomposition cap the bill is still the whole group rate on the whole
+	// wage: Permenaker 3/2025 art.14(3)–(4) caps only the 0.14% recomposed into JKP, and the rest of
+	// the JKK contribution "menjadi aset dana jaminan sosial kecelakaan kerja". 0.54% × 25,000,000 =
+	// 135,000 (not 0.40% × 25,000,000 + 0.14% × 5,000,000 = 107,000). Round 7 rejects ID-70's
+	// reduced-bill reading.
+	expectStatutory(book, 'ID-25M', 'JKK', 0, 135_000);
 	// JKM 0.30%: PP 6/2025 art.11 ended the PP 49/2023 recomposition, so the full 0.30% is charged.
 	expectStatutory(book, 'ID-5M', 'JKM', 0, 15_000);
 	expectStatutory(book, 'ID-15M', 'JKM', 0, 45_000);
@@ -2482,6 +2488,38 @@ test('Indonesia — an explicitly named locality without a distinct UMK uses its
 		['Provinsi Sulawesi Tengah', '2026-04']
 	] as const)
 		assert.throws(() => kesehatan(region, period), /No sealed minimum-wage rate covers PERMANENT/);
+});
+
+test('Indonesia — DI Yogyakarta and Lampung locality floors on the December 2025 and 2026 versions (ID-137, ID-139)', () => {
+	// A Rp2m synthetic contract is below every floor, so Perpres 82/2018 art.32(2) lifts the
+	// Kesehatan base to the workplace UMK; 1% participant, 4% employer, rounded to the rupiah.
+	const kesehatan = (region: string, period: string) =>
+		assessStatutoryUnvalidated({
+			...scenario(period, [{ key: 'ID-LOC', wage: 2_000_000 }]),
+			region
+		});
+	for (const [region, period, employee, employer] of [
+		// DIY 2026, Kep.443/2025 per the Gunungkidul government announcement: Kota Yogyakarta
+		// Rp2,827,593 → 28,275.93 → 28,276; 113,103.72 → 113,104.
+		['Provinsi DI Yogyakarta/Kota Yogyakarta', '2026-04', 28_276, 113_104],
+		// Gunungkidul Rp2,468,378 → 24,683.78 → 24,684; 98,735.12 → 98,735.
+		['Provinsi DI Yogyakarta/Kabupaten Gunungkidul', '2026-01', 24_684, 98_735],
+		// DIY 2025 (same announcement's comparison): Gunungkidul Rp2,330,263.67 → 23,302.6367 →
+		// 23,303; 93,210.5468 → 93,211.
+		['Provinsi DI Yogyakarta/Kabupaten Gunungkidul', '2025-12', 23_303, 93_211],
+		// Lampung 2026, signed Kep. UMK Kota Bandar Lampung (JDIH Lampung 11562), from 1 Jan 2026:
+		// Rp3,491,889 → 34,918.89 → 34,919; 139,675.56 → 139,676.
+		['Provinsi Lampung/Kota Bandar Lampung', '2026-04', 34_919, 139_676],
+		// Lampung 2025: Pesawaran is expressly at the UMP Rp2,893,070 → 28,930.70 → 28,931;
+		// 115,722.80 → 115,723.
+		['Provinsi Lampung/Kabupaten Pesawaran', '2025-12', 28_931, 115_723]
+	] as const)
+		expectStatutory(kesehatan(region, period), 'ID-LOC', 'KESEHATAN', employee, employer);
+	// December 2025 carries no DIY province key: a bare DIY workplace refuses.
+	assert.throws(
+		() => kesehatan('Provinsi DI Yogyakarta', '2025-12'),
+		/No sealed minimum-wage rate covers PERMANENT/
+	);
 });
 
 test('Indonesia — the minimum-wage comparison holds a fractional UMK to the sen, never a rounded rupiah (ID-127)', () => {

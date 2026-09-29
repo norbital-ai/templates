@@ -244,7 +244,7 @@
 		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
 		"code": "MATERNITY_BENEFIT_EMPLOYER",
 		"name": "Maternity benefit the employer owes (用人单位支付的生育保险待遇)",
-		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml, read 28 Sep 2026) item 3: 未依法办理参保缴费的用人单位，职工发生规定的生育保险待遇的，由用人单位按照规定的待遇标准向职工支付各项生育待遇 — the allowance (item 2(8): the unit’s prior-year average monthly wage ÷ 30 × leave days), the medical lump sums (item 2(10)), the 1,000 nutrition grant per infant (item 2(13): 1,000, and 1,000 more for each further infant), assisted reproduction up to 3,000 (item 2(14)) and the death grant of 6 × the provincial prior-year monthly average (item 2(15)); the amount is what the unit owes for the pay month, recorded. An enrolled unit’s worker is paid these by the fund (eligibility item 2(5)–(6): 6 continuous months at the birth, arrears of 3 months or less back-paid count; the agency determines it), not through payroll. MATERNITY_ALLOWANCE_OFFSET takes the allowance the unit owes off the leave wage, so the worker keeps max(wage, allowance) plus the other benefits. Owner rule 2026-09-28: law silent on the IIT of an employer-paid benefit; default exempt as a benefit of 生育保险性质 under 财税〔2008〕8号 (https://www.gov.cn/zwgk/2008-04/03/content_935964.htm): 生育津贴、生育医疗费或其他属于生育保险性质的津贴、补贴 paid under a county-or-higher government’s maternity-insurance rules are exempt from IIT; lawful because item 3 pays it at the insurance standard. Not wages: outside the SI and fund bases and the art.47 average.",
+		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml, read 28 Sep 2026) item 3: 未依法办理参保缴费的用人单位，职工发生规定的生育保险待遇的，由用人单位按照规定的待遇标准向职工支付各项生育待遇 — the allowance (item 2(8): the unit’s prior-year average monthly wage ÷ 30 × leave days), the medical lump sums (item 2(10)), the 1,000 nutrition grant per infant (item 2(13): 1,000, and 1,000 more for each further infant), assisted reproduction up to 3,000 (item 2(14)) and the death grant of 6 × the provincial prior-year monthly average (item 2(15)); the amount is what the unit owes for the pay month, recorded. An enrolled unit’s worker is paid these by the fund (eligibility item 2(5)–(6): 6 continuous months at the birth, arrears of 3 months or less back-paid count; the agency determines it), not through payroll. MATERNITY_ALLOWANCE_OFFSET takes the allowance the unit owes off the leave wage, so the worker keeps max(wage, allowance) plus the other benefits. Owner rule 2026-09-28: law silent on the IIT of an employer-paid benefit; default exempt as a benefit of 生育保险性质 under 财税〔2008〕8号 (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5203344/content.html): 生育津贴、生育医疗费或其他属于生育保险性质的津贴、补贴 paid under a county-or-higher government’s maternity-insurance rules are exempt from IIT; lawful because item 3 pays it at the insurance standard. Not wages: outside the SI and fund bases and the art.47 average.",
 		"eligibility": "",
 		"evidence": "REQUIRED",
 		"destination": "PAY",
@@ -344,7 +344,7 @@
 		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
 		"code": "INTERNAL_RETIREMENT_SUBSIDY",
 		"name": "Internal-retirement one-off income (内部退养一次性收入)",
-		"authority": "财税〔2018〕164号 item 5(3); 国税发〔1999〕58号 item 1 (https://zhejiang.chinatax.gov.cn/art/1999/4/9/art_8409_73561.html). Taxed with this month’s wages by IIT_INTERNAL_RETIREMENT; outside ordinary cumulative IIT and statutory insurance bases.",
+		"authority": "财税〔2018〕164号 item 5(3); 国税发〔1999〕58号 item 1 (https://fgk.chinatax.gov.cn/zcfgk/c100012/c5193283/content.html). Taxed with this month’s wages by IIT_INTERNAL_RETIREMENT; outside ordinary cumulative IIT and statutory insurance bases.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -384,7 +384,7 @@
 		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
 		"code": "MATERNITY_BENEFIT_EMPLOYER",
 		"name": "Maternity benefit the employer owes (用人单位支付的生育保险待遇)",
-		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml, read 28 Sep 2026) item 3: 未依法办理参保缴费的用人单位，职工发生规定的生育保险待遇的，由用人单位按照规定的待遇标准向职工支付各项生育待遇 — the allowance (item 2(8): the unit’s prior-year average monthly wage ÷ 30 × leave days), the medical lump sums (item 2(10)), the 1,000 nutrition grant per infant (item 2(13): 1,000, and 1,000 more for each further infant), assisted reproduction up to 3,000 (item 2(14)) and the death grant of 6 × the provincial prior-year monthly average (item 2(15)); the amount is what the unit owes for the pay month, recorded. An enrolled unit’s worker is paid these by the fund (eligibility item 2(5)–(6): 6 continuous months at the birth, arrears of 3 months or less back-paid count; the agency determines it), not through payroll. MATERNITY_ALLOWANCE_OFFSET takes the allowance the unit owes off the leave wage, so the worker keeps max(wage, allowance) plus the other benefits. Owner rule 2026-09-28: law silent on the IIT of an employer-paid benefit; default exempt as a benefit of 生育保险性质 under 财税〔2008〕8号 (https://www.gov.cn/zwgk/2008-04/03/content_935964.htm): 生育津贴、生育医疗费或其他属于生育保险性质的津贴、补贴 paid under a county-or-higher government’s maternity-insurance rules are exempt from IIT; lawful because item 3 pays it at the insurance standard. Not wages: outside the SI and fund bases and the art.47 average.",
+		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml, read 28 Sep 2026) item 3: 未依法办理参保缴费的用人单位，职工发生规定的生育保险待遇的，由用人单位按照规定的待遇标准向职工支付各项生育待遇 — the allowance (item 2(8): the unit’s prior-year average monthly wage ÷ 30 × leave days), the medical lump sums (item 2(10)), the 1,000 nutrition grant per infant (item 2(13): 1,000, and 1,000 more for each further infant), assisted reproduction up to 3,000 (item 2(14)) and the death grant of 6 × the provincial prior-year monthly average (item 2(15)); the amount is what the unit owes for the pay month, recorded. An enrolled unit’s worker is paid these by the fund (eligibility item 2(5)–(6): 6 continuous months at the birth, arrears of 3 months or less back-paid count; the agency determines it), not through payroll. MATERNITY_ALLOWANCE_OFFSET takes the allowance the unit owes off the leave wage, so the worker keeps max(wage, allowance) plus the other benefits. Owner rule 2026-09-28: law silent on the IIT of an employer-paid benefit; default exempt as a benefit of 生育保险性质 under 财税〔2008〕8号 (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5203344/content.html): 生育津贴、生育医疗费或其他属于生育保险性质的津贴、补贴 paid under a county-or-higher government’s maternity-insurance rules are exempt from IIT; lawful because item 3 pays it at the insurance standard. Not wages: outside the SI and fund bases and the art.47 average.",
 		"eligibility": "",
 		"evidence": "REQUIRED",
 		"destination": "PAY",
@@ -484,7 +484,7 @@
 		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
 		"code": "INTERNAL_RETIREMENT_SUBSIDY",
 		"name": "Internal-retirement one-off income (内部退养一次性收入)",
-		"authority": "财税〔2018〕164号 item 5(3); 国税发〔1999〕58号 item 1 (https://zhejiang.chinatax.gov.cn/art/1999/4/9/art_8409_73561.html). Taxed with this month’s wages by IIT_INTERNAL_RETIREMENT; outside ordinary cumulative IIT and statutory insurance bases.",
+		"authority": "财税〔2018〕164号 item 5(3); 国税发〔1999〕58号 item 1 (https://fgk.chinatax.gov.cn/zcfgk/c100012/c5193283/content.html). Taxed with this month’s wages by IIT_INTERNAL_RETIREMENT; outside ordinary cumulative IIT and statutory insurance bases.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -524,7 +524,7 @@
 		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
 		"code": "MATERNITY_BENEFIT_EMPLOYER",
 		"name": "Maternity benefit the employer owes (用人单位支付的生育保险待遇)",
-		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml, read 28 Sep 2026) item 3: 未依法办理参保缴费的用人单位，职工发生规定的生育保险待遇的，由用人单位按照规定的待遇标准向职工支付各项生育待遇 — the allowance (item 2(8): the unit’s prior-year average monthly wage ÷ 30 × leave days), the medical lump sums (item 2(10)), the 1,000 nutrition grant per infant (item 2(13): 1,000, and 1,000 more for each further infant), assisted reproduction up to 3,000 (item 2(14)) and the death grant of 6 × the provincial prior-year monthly average (item 2(15)); the amount is what the unit owes for the pay month, recorded. An enrolled unit’s worker is paid these by the fund (eligibility item 2(5)–(6): 6 continuous months at the birth, arrears of 3 months or less back-paid count; the agency determines it), not through payroll. MATERNITY_ALLOWANCE_OFFSET takes the allowance the unit owes off the leave wage, so the worker keeps max(wage, allowance) plus the other benefits. Owner rule 2026-09-28: law silent on the IIT of an employer-paid benefit; default exempt as a benefit of 生育保险性质 under 财税〔2008〕8号 (https://www.gov.cn/zwgk/2008-04/03/content_935964.htm): 生育津贴、生育医疗费或其他属于生育保险性质的津贴、补贴 paid under a county-or-higher government’s maternity-insurance rules are exempt from IIT; lawful because item 3 pays it at the insurance standard. Not wages: outside the SI and fund bases and the art.47 average.",
+		"authority": "Kunming maternity rules of 17 July 2024 (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml, read 28 Sep 2026) item 3: 未依法办理参保缴费的用人单位，职工发生规定的生育保险待遇的，由用人单位按照规定的待遇标准向职工支付各项生育待遇 — the allowance (item 2(8): the unit’s prior-year average monthly wage ÷ 30 × leave days), the medical lump sums (item 2(10)), the 1,000 nutrition grant per infant (item 2(13): 1,000, and 1,000 more for each further infant), assisted reproduction up to 3,000 (item 2(14)) and the death grant of 6 × the provincial prior-year monthly average (item 2(15)); the amount is what the unit owes for the pay month, recorded. An enrolled unit’s worker is paid these by the fund (eligibility item 2(5)–(6): 6 continuous months at the birth, arrears of 3 months or less back-paid count; the agency determines it), not through payroll. MATERNITY_ALLOWANCE_OFFSET takes the allowance the unit owes off the leave wage, so the worker keeps max(wage, allowance) plus the other benefits. Owner rule 2026-09-28: law silent on the IIT of an employer-paid benefit; default exempt as a benefit of 生育保险性质 under 财税〔2008〕8号 (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5203344/content.html): 生育津贴、生育医疗费或其他属于生育保险性质的津贴、补贴 paid under a county-or-higher government’s maternity-insurance rules are exempt from IIT; lawful because item 3 pays it at the insurance standard. Not wages: outside the SI and fund bases and the art.47 average.",
 		"eligibility": "",
 		"evidence": "REQUIRED",
 		"destination": "PAY",
@@ -624,7 +624,7 @@
 		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
 		"code": "INTERNAL_RETIREMENT_SUBSIDY",
 		"name": "Internal-retirement one-off income (内部退养一次性收入)",
-		"authority": "财税〔2018〕164号 item 5(3); 国税发〔1999〕58号 item 1 (https://zhejiang.chinatax.gov.cn/art/1999/4/9/art_8409_73561.html). Taxed with this month’s wages by IIT_INTERNAL_RETIREMENT; outside ordinary cumulative IIT and statutory insurance bases.",
+		"authority": "财税〔2018〕164号 item 5(3); 国税发〔1999〕58号 item 1 (https://fgk.chinatax.gov.cn/zcfgk/c100012/c5193283/content.html). Taxed with this month’s wages by IIT_INTERNAL_RETIREMENT; outside ordinary cumulative IIT and statutory insurance bases.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -657,6 +657,246 @@
 			}
 		],
 		"counts_toward": ["IIT_EARLY_RETIREMENT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "eb295bc6-8ce6-5159-8a4e-8adf4c6986f7",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "ONE_CHILD_SUBSIDY",
+		"name": "One-child subsidy (独生子女补贴)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(1) 独生子女补贴 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "OPTIONAL",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "eb8a0109-ca5e-54e6-9c55-008bfec8e479",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "CHILDCARE_SUBSIDY",
+		"name": "Childcare subsidy (托儿补助费)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(3) 托儿补助费 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "OPTIONAL",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "19da6038-18c8-549e-a625-9a59c1eb8363",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "TRAVEL_ALLOWANCE",
+		"name": "Travel allowance (差旅费津贴)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(4) 差旅费津贴 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. Only the part within the unit’s finance standard for an actual business trip; a standing monthly figure paid as a travel allowance is wage income and belongs on BONUS. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "6a8c72bc-a1c8-5879-b9fd-8b73ba4f0c1e",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "MISSED_MEAL_SUBSIDY",
+		"name": "Missed-meal subsidy (误餐补助)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(4) 误餐补助 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. 财税〔1995〕82号 (https://shanghai.chinatax.gov.cn/zcfw/zcfgk/grsds/200402/t288617.html): only a meal fee at the finance-department standard for the actual meals missed while working away from the unit on duty; a subsidy paid under that name otherwise is wage income of the month and belongs on BONUS. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "7d619e6c-73e2-54fe-bed1-5d7823b0894a",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "ONE_CHILD_SUBSIDY",
+		"name": "One-child subsidy (独生子女补贴)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(1) 独生子女补贴 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "OPTIONAL",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "bb432f3d-71a7-5cda-9bf8-d394235754d5",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "CHILDCARE_SUBSIDY",
+		"name": "Childcare subsidy (托儿补助费)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(3) 托儿补助费 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "OPTIONAL",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "98b80ccb-5f30-58d1-b167-310849786318",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "TRAVEL_ALLOWANCE",
+		"name": "Travel allowance (差旅费津贴)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(4) 差旅费津贴 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. Only the part within the unit’s finance standard for an actual business trip; a standing monthly figure paid as a travel allowance is wage income and belongs on BONUS. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "52f42baa-b6a2-511d-9ac8-86f6845d57af",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "MISSED_MEAL_SUBSIDY",
+		"name": "Missed-meal subsidy (误餐补助)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(4) 误餐补助 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. 财税〔1995〕82号 (https://shanghai.chinatax.gov.cn/zcfw/zcfgk/grsds/200402/t288617.html): only a meal fee at the finance-department standard for the actual meals missed while working away from the unit on duty; a subsidy paid under that name otherwise is wage income of the month and belongs on BONUS. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "2cbb6eff-7418-57cd-ba59-d296d5505b45",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "ONE_CHILD_SUBSIDY",
+		"name": "One-child subsidy (独生子女补贴)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(1) 独生子女补贴 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "OPTIONAL",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "40e3d7ce-f07f-57a9-909a-3c9243662787",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "CHILDCARE_SUBSIDY",
+		"name": "Childcare subsidy (托儿补助费)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(3) 托儿补助费 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "OPTIONAL",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "20ef9234-c497-5d9b-889f-e2ba3158ce8f",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "TRAVEL_ALLOWANCE",
+		"name": "Travel allowance (差旅费津贴)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(4) 差旅费津贴 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. Only the part within the unit’s finance standard for an actual business trip; a standing monthly figure paid as a travel allowance is wage income and belongs on BONUS. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "8f5294b6-78ca-5d85-9470-2693ab3d76e2",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "MISSED_MEAL_SUBSIDY",
+		"name": "Missed-meal subsidy (误餐补助)",
+		"authority": "国税发〔1994〕89号 征收个人所得税若干问题的规定 item 2(4) 误餐补助 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html, in force as amended by STA Order 40): 不属于工资、薪金性质的补贴、津贴 … 不征税 — not wage income, so outside IIT (IIT Law art.4 lists the statutory exemptions). Owner rule 2026-09-28, law silent on these under LCL regulation art.27 and 实施办法 art.11: as receipts not of wage nature they are left out of WAGES (the art.47 average, the annual-leave day wage); the minimum-wage comparison reads contract basic and the social-insurance and fund bases are the declared prior-year wage, so neither sees them. 财税〔1995〕82号 (https://shanghai.chinatax.gov.cn/zcfw/zcfgk/grsds/200402/t288617.html): only a meal fee at the finance-department standard for the actual meals missed while working away from the unit on duty; a subsidy paid under that name otherwise is wage income of the month and belongs on BONUS. Added 29 Sep 2026 in every version (register CN-N55): the rule predates December 2025 and is unchanged.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
 		"raised_by": "MANUAL"
 	}
 ]

@@ -673,5 +673,152 @@
 		"is_npl": false,
 		"can_encash": false,
 		"encash_on_exit": false
+	},
+	{
+		"id": "75b95e09-e084-5f99-b0ff-2a3d41685e6e",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "FUNERAL_LEAVE",
+		"name": "Funeral leave (丧假)",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "0b7158c0-d92d-5acf-8794-0f5cabcbe118",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "FUNERAL_LEAVE",
+		"name": "Funeral leave (丧假)",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "9bd9662a-0b83-56c3-acd7-cd690dcd54c0",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "FUNERAL_LEAVE",
+		"name": "Funeral leave (丧假)",
+		"authority": "国劳总薪字〔1980〕29号 item 1: one to three days of funeral leave at the unit’s discretion when a parent, the spouse or a child dies (register CN-N51; issuer text not retrieved, read in republication); 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html, read on MOHRSS 29 Sep 2026): during 丧假 the employer pays the wage at the contract standard. Owner rule 2026-09-28, law giving a range: the seed grants the discretionary maximum, 3, as MARRIAGE_LEAVE does; a unit that grants fewer lowers this row. Travel days (item 2) depend on distance and are not seeded. Added 29 Sep 2026 in every version.",
+		"eligibility": "event.kind == \"DEATH\" && event.relationship in [\"PARENT\", \"SPOUSE\", \"CHILD\"]",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 3
+				}
+			]
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "6b0599d4-e009-5423-8d43-b5f42d1bfc9c",
+		"settings_id": "f04d6585-657e-5d90-afd8-b759c1e1aa8a",
+		"code": "WORK_INJURY_LEAVE",
+		"name": "Work-injury paid medical leave (停工留薪期)",
+		"authority": "工伤保险条例 art.33 (https://xzfg.moj.gov.cn/front/law/detail?LawID=610, read 29 Sep 2026): during the stop-work paid period 原工资福利待遇不变，由所在单位按月支付; the period is normally at most 12 months and may be extended, on the city labour-capacity appraisal committee’s confirmation, by at most 12 more. The period itself is the medical and committee determination (evidence required); the row caps it at 731 calendar days, the longest 24 months. Owner rule 2026-09-28, law silent on the wage measure: the contract wage continues for the charged days. The disability benefits after grading are CN-KM15. Added 29 Sep 2026 in every version (register CN-N21, CN-KM-WP13).",
+		"eligibility": "event.kind == \"WORK_INJURY\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"calendar_days": true,
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 731
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "94b7c0af-76af-50ff-863e-6310e7976bec",
+		"settings_id": "512aee67-8521-5d84-b279-1b4e54b056fe",
+		"code": "WORK_INJURY_LEAVE",
+		"name": "Work-injury paid medical leave (停工留薪期)",
+		"authority": "工伤保险条例 art.33 (https://xzfg.moj.gov.cn/front/law/detail?LawID=610, read 29 Sep 2026): during the stop-work paid period 原工资福利待遇不变，由所在单位按月支付; the period is normally at most 12 months and may be extended, on the city labour-capacity appraisal committee’s confirmation, by at most 12 more. The period itself is the medical and committee determination (evidence required); the row caps it at 731 calendar days, the longest 24 months. Owner rule 2026-09-28, law silent on the wage measure: the contract wage continues for the charged days. The disability benefits after grading are CN-KM15. Added 29 Sep 2026 in every version (register CN-N21, CN-KM-WP13).",
+		"eligibility": "event.kind == \"WORK_INJURY\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"calendar_days": true,
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 731
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ebfb8395-a45b-5ad5-9d98-e79ea3ada1c5",
+		"settings_id": "feba551c-e130-5ce6-a792-07f382e92636",
+		"code": "WORK_INJURY_LEAVE",
+		"name": "Work-injury paid medical leave (停工留薪期)",
+		"authority": "工伤保险条例 art.33 (https://xzfg.moj.gov.cn/front/law/detail?LawID=610, read 29 Sep 2026): during the stop-work paid period 原工资福利待遇不变，由所在单位按月支付; the period is normally at most 12 months and may be extended, on the city labour-capacity appraisal committee’s confirmation, by at most 12 more. The period itself is the medical and committee determination (evidence required); the row caps it at 731 calendar days, the longest 24 months. Owner rule 2026-09-28, law silent on the wage measure: the contract wage continues for the charged days. The disability benefits after grading are CN-KM15. Added 29 Sep 2026 in every version (register CN-N21, CN-KM-WP13).",
+		"eligibility": "event.kind == \"WORK_INJURY\"",
+		"entitlement": {
+			"availability": "PER_EVENT",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"calendar_days": true,
+			"bands": [
+				{
+					"eligibility": "",
+					"days": 731
+				}
+			]
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
 	}
 ]

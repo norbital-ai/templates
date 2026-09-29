@@ -582,7 +582,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -600,7 +600,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -609,7 +609,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -1343,7 +1343,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -1361,7 +1361,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -1379,7 +1379,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -2115,7 +2115,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -2133,7 +2133,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -2160,7 +2160,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -2896,7 +2896,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -2914,7 +2914,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -2941,7 +2941,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -3677,7 +3677,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -3695,7 +3695,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -3722,7 +3722,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -4455,7 +4455,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -4473,7 +4473,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -4482,7 +4482,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -5217,7 +5217,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -5235,7 +5235,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -5253,7 +5253,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -5990,7 +5990,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -6008,7 +6008,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -6035,7 +6035,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -6772,7 +6772,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -6790,7 +6790,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -6817,7 +6817,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -7554,7 +7554,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -7572,7 +7572,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -7599,7 +7599,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -8333,7 +8333,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -8351,7 +8351,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -8360,7 +8360,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -9096,7 +9096,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -9114,7 +9114,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -9132,7 +9132,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -9870,7 +9870,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -9888,7 +9888,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -9915,7 +9915,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -10653,7 +10653,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -10671,7 +10671,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -10698,7 +10698,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -11436,7 +11436,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -11454,7 +11454,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -11481,7 +11481,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -11876,7 +11876,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -12217,7 +12217,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -12235,7 +12235,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -12244,7 +12244,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -12680,7 +12680,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -13021,7 +13021,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -13039,7 +13039,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -13057,7 +13057,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -13495,7 +13495,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -13836,7 +13836,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -13854,7 +13854,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -13881,7 +13881,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -14319,7 +14319,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -14660,7 +14660,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -14678,7 +14678,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -14705,7 +14705,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -15143,7 +15143,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -15484,7 +15484,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -15502,7 +15502,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -15529,7 +15529,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -15963,7 +15963,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -16304,7 +16304,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -16322,7 +16322,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -16331,7 +16331,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -16785,7 +16785,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3268260/PUA%2013%20(2026).pdf"
 			],
@@ -17127,7 +17127,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -17145,7 +17145,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -17154,7 +17154,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -17609,7 +17609,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3268260/PUA%2013%20(2026).pdf"
 			],
@@ -17951,7 +17951,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -17969,7 +17969,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -17987,7 +17987,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -18444,7 +18444,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3268260/PUA%2013%20(2026).pdf"
 			],
@@ -18786,7 +18786,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -18804,7 +18804,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -18831,7 +18831,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -19288,7 +19288,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -19629,7 +19629,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -19647,7 +19647,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -19674,7 +19674,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -20132,7 +20132,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -20473,7 +20473,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -20491,7 +20491,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -20518,7 +20518,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -20972,7 +20972,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -21313,7 +21313,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -21331,7 +21331,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -21340,7 +21340,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -21794,7 +21794,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3268260/PUA%2013%20(2026).pdf"
 			],
@@ -22136,7 +22136,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -22154,7 +22154,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -22163,7 +22163,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -22618,7 +22618,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3268260/PUA%2013%20(2026).pdf"
 			],
@@ -22960,7 +22960,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -22978,7 +22978,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -22996,7 +22996,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -23453,7 +23453,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3268260/PUA%2013%20(2026).pdf"
 			],
@@ -23795,7 +23795,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -23813,7 +23813,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -23840,7 +23840,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -24297,7 +24297,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -24638,7 +24638,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -24656,7 +24656,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -24683,7 +24683,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -25141,7 +25141,7 @@
 				"https://belanjawan.mof.gov.my/ms/",
 				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf",
-				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/FEDERAL-GOVERMENT-GAZETTE-PEMBANGUNAN-SUMBER-MANUSIA-BERHAD-AMENDMENT-OF-FIRST-SCHEDULE-ORDER-2021-1.pdf",
+				"https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf",
 				"https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf"
 			],
 			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nlom.agc.gov.my — Laws of Malaysia (AGC): every Act and gazette order. The consolidated reprint of a principal Act is /ilims/upload/portal/akta/LOM/EN/Act <n>.pdf (452 EPF, 4 SOCSO, 265 Employment, 53 Income Tax; text); an amending Act is a PDF at /ilims/upload/portal/akta/outputaktap/<id>_BI/<Act name>.pdf; a P.U.(A)/(B) order at /ilims/upload/portal/akta/outputp/<id>/PUB <n> (<year>).pdf. Use the exact PDF URL listed; the portal search is script-driven and not readable.\nkwsp.gov.my — EPF. /en/employer/responsibilities/mandatory-contribution states the Part A/C/E rates, the age gates and the age-75 stop (HTML). /documents/d/guest/third_schedule_from_-1-october-2025 is the Third Schedule download link (the reader gets a shell page; the 1,203-row table is the PDF behind it). /en/employer/responsibilities/non-malaysian-citizen-employees is Part F.\nperkeso.gov.my — SOCSO, EIS, SKBBK. /en/rate-of-contribution.html carries the Act 4 / Act 800 tables; /images/lindung/lindung-24-jam/NewContributionRateIncludingSKBBK.pdf is the 65-row table with the SKBBK column (0.2 MB, text); /en/skim-kemalangan-bukan-bencana-kerja-lindung-24-jam.html holds the SKBBK notice and FAQ PDF.\nhasil.gov.my — LHDN MTD. /majikan/jadual-pcb-dan-spesifikasi-data/ lists the yearly \"Spesifikasi Kaedah Pengiraan Berkomputer PCB <year>\" PDF (/wp-content/uploads/spesifikasi-kaedah-pengiraan-berkomputer-pcb-<year>.pdf, 1.3 MB, text): Table 1 rates, reliefs, the RM10 minimum.\nlom.agc.gov.my — Employment Act 1955 reprint as at 1 August 2023 (Commissioner of Law Revision; latest amendment A1651): /ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint Act 265 (Final).pdf (1.6 MB, text): ss.60, 60A, 60D, 60E, 60F, First Schedule.\njtksm.mohr.gov.my — /sites/default/files/2023-11/Akta Kerja 1955 (Akta 265).pdf is only the AGC updated text as at 1 January 2023, which states it is not an authentic text; cite the reprint instead. /ms/soalan-lazim/akta-kerja-1955-pindaan-2022 is the 2022 amendment FAQ.\ngajiminimum.mohr.gov.my — the Minimum Wages Order in force, as one figure on the landing page.\nhrdcorp.gov.my — HRD levy; the site sits behind a browser challenge the reader cannot pass, so note it rather than reading it.\njohor.gov.my/rakyat/cuti-umum-2 — the Johor state holiday list for the year.\n\nFinding changes (read these before comparing, every run):\n1) lom.agc.gov.my: open subsid.php?type=pua, subsid.php?type=pub and principal.php?type=amendment (JS tables, newest first) plus the home page's 7-day What's New. Title search by URL (JS results, relevance order, scan every row for the year): search.php?search=<words>&kategori=iagcpuab_pua|iagcpuab_pub|iagcact_amendment|all&sorting=newest&lookup=title. Queries: 'minimum wages', 'employees provident fund', 'employees social security', 'employment insurance system', 'income tax (deduction from remuneration)', 'employment', 'holidays', 'human resources development'. Read the commencement clause, and check P.U.(B) for appointed dates of NOT YET IN FORCE Acts. Updated Acts: principal.php?type=updated. 2) LHDN: pengumuman-kenyataan-media and ketetapan-umum; PCB spec on majikan/jadual-pcb-dan-spesifikasi-data. 3) PERKESO directives-circulars. 4) KWSP highlights (browser). 5) JTKSM kenyataan-media for ad hoc state holidays; kabinet.gov.my for the yearly schedule. 6) Budget: belanjawan.mof.gov.my (October). hrdcorp.gov.my sits behind a Cloudflare challenge; do not attempt it; use PSMB Act/P.U.(A) on LOM. Discovery only: https://taxsummaries.pwc.com/malaysia/individual/significant-developments — then cite the gazette or agency page."
@@ -25482,7 +25482,7 @@
 				"trigger": "Employing one or more employees",
 				"timing": "Within the prescribed period (PERKESO: via ASSIST) — Act 800 s.14(1); on ceasing to be an employer, Form 1A and SIP 3 within thirty days of cessation",
 				"owner": "Finance / PERKESO employer code",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) s.4 (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); Employment Insurance System Act 2017 (Act 800) s.14 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{
@@ -25500,7 +25500,7 @@
 				"trigger": "Wages payable for the month",
 				"timing": "Not later than the 15th day of the following month; interest at 6% a year for each day unpaid thereafter",
 				"owner": "Finance / PERKESO payment receipt",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
 				"status": "PARTIAL"
 			},
 			{
@@ -25527,7 +25527,7 @@
 				"trigger": "A work-related accident to an insured employee",
 				"timing": "Within 48 hours of notification of the accident",
 				"owner": "HR / PERKESO accident report",
-				"authority": "Employees’ Social Security Act 1969 (Act 4) Part IV (https://www.perkeso.gov.my/images/akta/ACT%204/Act%204%20-%20EMPLOYEES%E2%80%99%20SOCIAL%20SECURITY%20ACT%201969%20%28As%20at%201%20September%202022%29.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.94(e), 94A(3) (an accident report required by the regulations; AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
 				"status": "EXTERNAL"
 			},
 			{

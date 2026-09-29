@@ -86,6 +86,26 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "74390f46-984e-598a-b5cf-ac55f2b4dff3",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "cbbb1203-bb6b-55d9-9908-3d3037175da9",
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "bonus",
@@ -159,6 +179,26 @@
 		"authority": "勞基法 §59 但書: where labour or occupational-accident insurance, or other law, has already paid compensation for the same accident from premiums the employer funded, 雇主得予以抵充之 — the employer may offset it against its §59 compensation. Permissive: the run never computes it; an employer electing it enters the insurer benefit the worker received (e.g. 災保法 §42 傷病給付) for the §59(2) days paid through OCCUPATIONAL_INJURY_LEAVE. 施行細則 §10(7): 職業災害補償費 is not 工資, so the offset leaves every wage and insured base untouched and is taken from net pay. Owner rule 2026-09-28: law silent on the base; default none; lawful because the insured grades are declared, not read from the month, and withholding on the unreduced salary is an advance settled in the annual return.",
 		"eligibility": "",
 		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "8b79934c-f542-5764-ac6e-22df474cdf6c",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"bands": [
@@ -258,6 +298,26 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "2be9a895-6903-5c09-be4c-3a15e5c10f77",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "88cf620e-f2c0-573d-876f-0db5e888eb01",
 		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
 		"code": "bonus",
@@ -331,6 +391,26 @@
 		"authority": "勞基法 §59 但書: where labour or occupational-accident insurance, or other law, has already paid compensation for the same accident from premiums the employer funded, 雇主得予以抵充之 — the employer may offset it against its §59 compensation. Permissive: the run never computes it; an employer electing it enters the insurer benefit the worker received (e.g. 災保法 §42 傷病給付) for the §59(2) days paid through OCCUPATIONAL_INJURY_LEAVE. 施行細則 §10(7): 職業災害補償費 is not 工資, so the offset leaves every wage and insured base untouched and is taken from net pay. Owner rule 2026-09-28: law silent on the base; default none; lawful because the insured grades are declared, not read from the month, and withholding on the unreduced salary is an advance settled in the annual return.",
 		"eligibility": "",
 		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1b18828e-1f03-5e61-b8f5-df0a631cf805",
+		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"bands": [
@@ -430,6 +510,26 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "af3ab8d3-ee72-5257-9f25-ae15164623d3",
+		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "facb52c2-7546-5b42-bba7-0ffad1cc845b",
 		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
 		"code": "bonus",
@@ -503,6 +603,26 @@
 		"authority": "勞基法 §59 但書: where labour or occupational-accident insurance, or other law, has already paid compensation for the same accident from premiums the employer funded, 雇主得予以抵充之 — the employer may offset it against its §59 compensation. Permissive: the run never computes it; an employer electing it enters the insurer benefit the worker received (e.g. 災保法 §42 傷病給付) for the §59(2) days paid through OCCUPATIONAL_INJURY_LEAVE. 施行細則 §10(7): 職業災害補償費 is not 工資, so the offset leaves every wage and insured base untouched and is taken from net pay. Owner rule 2026-09-28: law silent on the base; default none; lawful because the insured grades are declared, not read from the month, and withholding on the unreduced salary is an advance settled in the annual return.",
 		"eligibility": "",
 		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "36578a5e-5628-5b26-838d-bb81595b7e9f",
+		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"bands": [
@@ -602,6 +722,26 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "c161b2c1-ab1a-5ea4-acf9-fb2017b42ae8",
+		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "1de23785-8e56-55e0-926c-a15259c40493",
 		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
 		"code": "bonus",
@@ -675,6 +815,26 @@
 		"authority": "勞基法 §59 但書: where labour or occupational-accident insurance, or other law, has already paid compensation for the same accident from premiums the employer funded, 雇主得予以抵充之 — the employer may offset it against its §59 compensation. Permissive: the run never computes it; an employer electing it enters the insurer benefit the worker received (e.g. 災保法 §42 傷病給付) for the §59(2) days paid through OCCUPATIONAL_INJURY_LEAVE. 施行細則 §10(7): 職業災害補償費 is not 工資, so the offset leaves every wage and insured base untouched and is taken from net pay. Owner rule 2026-09-28: law silent on the base; default none; lawful because the insured grades are declared, not read from the month, and withholding on the unreduced salary is an advance settled in the annual return.",
 		"eligibility": "",
 		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "89b89659-019b-5233-97ce-477d2eb1825b",
+		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"bands": [
@@ -774,6 +934,26 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "930c10ac-8926-5d1c-9857-f57a820d63c3",
+		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "b3cbcd7e-4d80-570a-b92a-a9a3c289fdc1",
 		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
 		"code": "bonus",
@@ -847,6 +1027,26 @@
 		"authority": "勞基法 §59 但書: where labour or occupational-accident insurance, or other law, has already paid compensation for the same accident from premiums the employer funded, 雇主得予以抵充之 — the employer may offset it against its §59 compensation. Permissive: the run never computes it; an employer electing it enters the insurer benefit the worker received (e.g. 災保法 §42 傷病給付) for the §59(2) days paid through OCCUPATIONAL_INJURY_LEAVE. 施行細則 §10(7): 職業災害補償費 is not 工資, so the offset leaves every wage and insured base untouched and is taken from net pay. Owner rule 2026-09-28: law silent on the base; default none; lawful because the insured grades are declared, not read from the month, and withholding on the unreduced salary is an advance settled in the annual return.",
 		"eligibility": "",
 		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3940b80f-7fce-595c-9b3f-ee7ee5b30c15",
+		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"bands": [
@@ -946,6 +1146,26 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "e13948ab-731f-517a-a348-3462d89d4624",
+		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "a34410f2-1f4c-51fb-9e43-4f0c82097fd5",
 		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
 		"code": "bonus",
@@ -1019,6 +1239,26 @@
 		"authority": "勞基法 §59 但書: where labour or occupational-accident insurance, or other law, has already paid compensation for the same accident from premiums the employer funded, 雇主得予以抵充之 — the employer may offset it against its §59 compensation. Permissive: the run never computes it; an employer electing it enters the insurer benefit the worker received (e.g. 災保法 §42 傷病給付) for the §59(2) days paid through OCCUPATIONAL_INJURY_LEAVE. 施行細則 §10(7): 職業災害補償費 is not 工資, so the offset leaves every wage and insured base untouched and is taken from net pay. Owner rule 2026-09-28: law silent on the base; default none; lawful because the insured grades are declared, not read from the month, and withholding on the unreduced salary is an advance settled in the annual return.",
 		"eligibility": "",
 		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "8f52c6c3-6715-5328-b0ee-8dca69a8ed7d",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"bands": [
@@ -1118,6 +1358,26 @@
 		"raised_by": "MANUAL"
 	},
 	{
+		"id": "ba284943-e9f4-5642-a542-2ae4bd234c97",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
 		"id": "2b5f0506-2f91-571d-89f6-5ab7b166d6d3",
 		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
 		"code": "bonus",
@@ -1191,6 +1451,26 @@
 		"authority": "勞基法 §59 但書: where labour or occupational-accident insurance, or other law, has already paid compensation for the same accident from premiums the employer funded, 雇主得予以抵充之 — the employer may offset it against its §59 compensation. Permissive: the run never computes it; an employer electing it enters the insurer benefit the worker received (e.g. 災保法 §42 傷病給付) for the §59(2) days paid through OCCUPATIONAL_INJURY_LEAVE. 施行細則 §10(7): 職業災害補償費 is not 工資, so the offset leaves every wage and insured base untouched and is taken from net pay. Owner rule 2026-09-28: law silent on the base; default none; lawful because the insured grades are declared, not read from the month, and withholding on the unreduced salary is an advance settled in the annual return.",
 		"eligibility": "",
 		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "972f522e-3c1a-5fd2-9d27-75baf3672a94",
+		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
+		"code": "COURT_GARNISHMENT",
+		"name": "法院扣押薪資 (court wage garnishment)",
+		"authority": "強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 對於薪資或其他繼續性給付之債權所為強制執行…其效力及於扣押後應受及增加之給付; the attachment order on 自然人因提供勞務而獲得之繼續性報酬債權 不得逾各期給付數額三分之一, unless the execution court, weighing both sides' circumstances, departs from that ratio while reserving the debtor's 生活費用; under a 移轉命令 the employer (third-party garnishee) pays the attached portion to the creditor, otherwise as the order directs. Added in place 2026-09-29 in every version (a transcription omission: §115-1 predates every version). The one-third ceiling binds the court's order, not the employer: the employer deducts exactly the amount the served order fixes for the period, entered by HR with the order as evidence. Owner rule 2026-09-28: law silent on how the garnishee books the deduction; default a net-pay deduction after every statutory line, touching no wage, insured, pension or tax base — lawful because the attached claim is the worker's wage itself, so tax and insurance stay on the whole wage (所得稅法 §14, 勞保條例 §14). Remittance to the creditor or court is an external payment (register TW-WAGE-06).",
+		"eligibility": "",
+		"evidence": "REQUIRED",
 		"destination": "NET",
 		"direction": "SUBTRACT",
 		"bands": [
