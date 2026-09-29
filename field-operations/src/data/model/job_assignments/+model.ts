@@ -38,7 +38,8 @@ export default model({
 	index: ['scheduled_for', 'suspicion_checked_at'],
 	search: {
 		text: ['title', 'summary', 'search_text'],
-		// `/semantic` in the jobs search box: the work described, on the host's default embedding model
-		semantic: { fields: ['title', 'description', 'summary'], model: 'default' }
+		// `/semantic` in the jobs search box: the work described, on the host's default embedding model. `dim` is the width
+		// of the `bolt_embedding` column every job's vector and every probe are read at, so the host's model must honour it.
+		semantic: { fields: ['title', 'description', 'summary'], model: 'default', dim: 1536 }
 	}
 });
