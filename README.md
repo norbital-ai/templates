@@ -72,7 +72,9 @@ is the opening pass of the one hourly run rather than an automation of its own:
    selected asset, parent, and source provenance become immutable: correcting a filing requires new
    evidence so every check runs again. A row is born uninspected (empty hash, zero vector); the
    review inspects it — including a photo filed after its assignment was already reviewed — and
-   leaves an assignment unchecked until every photo on it carries a hash.
+   leaves an assignment unchecked until every photo on it carries a hash or has failed inspection.
+   A photo whose bytes cannot be read records `inspection_failed_at` and
+   `inspection_failure_reason` once, is never picked again, and takes no visual slot.
 2. **Duplicate check** — the pass compares the photo against everything already stored: perceptual
    near-duplicates via `findNearest` on a 256-dim 0/1 vector indexed with HNSW (L2 metric,
    threshold √31 ≈ PDQ Hamming 31) are recorded as `visual_duplicate`; a byte-identical file
