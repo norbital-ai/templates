@@ -13,12 +13,12 @@
 	},
 	"dependencies": {
 		"@iconify/svelte": "^5.2.2",
-		"@norbital-ai/bolt": "0.0.130",
-		"@norbital-ai/ui": "0.0.130",
+		"@norbital-ai/bolt": "0.0.131",
+		"@norbital-ai/ui": "0.0.131",
 		"svelte": "^5.57.1"
 	},
 	"devDependencies": {
-		"@norbital-ai/bolt-server": "0.0.130",
+		"@norbital-ai/bolt-server": "0.0.131",
 		"@sveltejs/vite-plugin-svelte": "^7.3.1",
 		"@types/node": "^26.4.0",
 		"happy-dom": "20.11.6",
