@@ -15,13 +15,13 @@ import type { LeaveActivity } from './pending.js';
 import { activeTimeOff } from './activity.js';
 import { leaveActivityOf, normaliseLeaveDays } from './activity-fields.js';
 import type { LeaveContext } from './context.js';
-import { coversDate, live } from '../../lib/payroll/run/effective.js';
+import { coversDate, live, overlapsRange, readRange } from '../../lib/payroll/run/effective.js';
 import {
 	evaluateNumberOver,
 	isEligible,
 	personContext
 } from '../../lib/payroll/run/eligibility.js';
-import { inclusiveDays } from '../../lib/payroll/run/dates.js';
+import { daysBetween, inclusiveDays } from '../../lib/payroll/run/dates.js';
 import type { Configuration } from '../../lib/payroll/run/configuration.js';
 import { encashmentCode } from './codes.js';
 import { cents } from '../../lib/payroll/run/rounding.js';
@@ -31,6 +31,10 @@ import { settingsInForce } from '../jurisdiction_settings.js';
 import { personWageFloor } from '../payroll/contribution.js';
 import type { WorkspaceRow } from '../rows.js';
 import { decodeNumber } from '../wire.js';
+import { dateKey } from '../iso-day.js';
+import { unsupportedHourlyLeave } from './hourly-requirement.js';
+import { hourlyLeaveBasis } from './hourly-requirement.js';
+import { workWindow } from '../scheduling/roster-code.js';
 
 export { encashmentCode } from './codes.js';
 
@@ -48,6 +52,8 @@ export type PreparedLeavePayroll = {
 	readonly catalogues: readonly LeaveCatalogue[];
 	readonly captures: readonly (SettledLeaveCapture & { readonly paid: boolean })[];
 	readonly deductionEligibility: Readonly<Record<string, boolean>>;
+	/** Dated catalogue flags for outpatient sick-pay allowance exclusions. */
+	readonly outpatientSickExclusion?: Readonly<Record<string, boolean>> | undefined;
 	/**
 	 * `entry id/date` → the share of the day wage deducted for that charged day: 1 for an unpaid
 	 * or fund-paid day, `1 − pay_fraction` for a part-paid one. Absent reads as the whole day.
@@ -212,14 +218,108 @@ export function withLeaveDeductionEligibility(
 		readonly configuration: Pick<
 			Configuration,
 			'company' | 'recordedCompanyFacts' | 'companyFactRevisions' | 'lineageVersions'
-		>;
+		> &
+			Partial<Pick<Configuration, 'patternById' | 'shiftById'>>;
 		readonly statutoryFacts: Parameters<typeof personFactsForVersion>[0];
 		readonly terms: readonly LeaveContext['terms'][number][];
 	}
 ): PreparedLeavePayroll {
 	const deductionEligibility: Record<string, boolean> = {};
 	const deductionShare: Record<string, number> = {};
+	const outpatientSickExclusion: Record<string, boolean> = {};
 	const { configuration } = options;
+	for (const entry of gathered.entries) {
+		const sourceStart = dateKey(entry.from_date ?? entry.effective_on);
+		const sourceEnd = dateKey(entry.to_date ?? entry.effective_on);
+		if (sourceStart === '' || sourceEnd === '') continue;
+		const rule = gathered.catalogues.find((row) => row.id === entry.catalogue_id)?.entitlement;
+		if (rule == null) continue;
+		const hourly = options.terms.some(
+			(term) =>
+				overlapsRange(term.effective_range, sourceStart, sourceEnd) &&
+				unsupportedHourlyLeave(
+					rule,
+					term,
+					configuration.patternById?.get(term.shift_pattern_id ?? '')?.pattern ?? null,
+					configuration.shiftById ?? new Map()
+				)
+		);
+		if (!hourly) continue;
+		const activity = leaveActivityOf(entry);
+		if (activity === 'CARRY_FORWARD' || activity === 'ADJUSTMENT') {
+			const movements = entry.allocations.filter(
+				(row) => row.pool == null || row.pool === entry.leave_code
+			);
+			if (
+				entry.days != null ||
+				entry.hours == null ||
+				!Number.isFinite(entry.hours) ||
+				(activity === 'CARRY_FORWARD' ? entry.hours <= 0 : entry.hours === 0) ||
+				movements.length === 0 ||
+				movements.some((row) => row.hours == null || row.days !== 0) ||
+				Math.abs(
+					movements.reduce((sum, row) => sum + (row.hours ?? 0), 0) -
+						(activity === 'CARRY_FORWARD' ? -entry.hours : entry.hours)
+				) > 1e-6
+			)
+				refuse(
+					`${entry.leave_code} needs a matching hour allocation before payroll can settle it.`
+				);
+		} else if (
+			activity !== 'TIME_OFF' &&
+			activity !== 'REVERSAL' &&
+			!(activity === 'ENCASHMENT' && entry.encash_hours != null)
+		)
+			refuse(`${entry.leave_code} needs an hourly leave movement before payroll can settle it.`);
+		if (entry.encash_hours != null) {
+			const exit = readRange(options.employment.effective_range)?.end;
+			const debits = entry.allocations.filter(
+				(row) => row.pool == null || row.pool === entry.leave_code
+			);
+			if (
+				entry.encash_days != null ||
+				exit == null ||
+				dateKey(exit) !== dateKey(entry.effective_on) ||
+				debits.length === 0 ||
+				debits.some((row) => row.hours == null || row.days !== 0) ||
+				Math.abs(debits.reduce((sum, row) => sum - (row.hours ?? 0), 0) - entry.encash_hours) > 1e-6
+			)
+				refuse(
+					'Hourly leave payout needs an exit-date hour allocation matching the unused balance.'
+				);
+		}
+		for (const charge of entry.charges) {
+			const term = options.terms.find(
+				(row) =>
+					row.id === charge.employment_term_id && coversDate(row.effective_range, charge.date)
+			);
+			if (term == null) refuse('Hourly leave has no dated contract terms.');
+			const version = settingsInForce(
+				configuration.lineageVersions,
+				configuration.company.settings_code,
+				charge.date
+			);
+			const dated = gathered.catalogues.find(
+				(row) => row.settings_id === version?.id && row.code === entry.leave_code
+			);
+			const basis = hourlyLeaveBasis(
+				(dated ?? gathered.catalogues.find((row) => row.id === charge.catalogue_id))!.entitlement,
+				term,
+				configuration.patternById?.get(term.shift_pattern_id ?? '')?.pattern ?? null,
+				configuration.shiftById ?? new Map()
+			);
+			if (basis == null) refuse('Hourly leave charge no longer matches its dated entitlement.');
+			const shift = configuration.shiftById?.get(charge.shift_definition_id ?? '');
+			const scheduled = shift == null ? null : workWindow(shift.variant);
+			if (
+				charge.hours == null ||
+				!(charge.hours > 0) ||
+				scheduled == null ||
+				Math.abs(charge.days - charge.hours / (scheduled.paid_minutes / 60)) > 1e-9
+			)
+				refuse('Hourly leave needs a saved hour charge matching its dated shift.');
+		}
+	}
 	// Every charged day of the employment's time off, so `leave.taken(code)` can count a code's
 	// days in the leave year before the day being priced, across entries.
 	const charged = activeTimeOff(gathered.entries).flatMap((entry) =>
@@ -230,7 +330,60 @@ export function withLeaveDeductionEligibility(
 		}))
 	);
 	const timeOff = activeTimeOff(gathered.entries);
+	if (configuration.company.settings_code === 'TH') {
+		const maternity = timeOff.filter(
+			(row) => row.leave_code === 'MATERNITY_LEAVE' && row.event_date != null
+		);
+		for (const entry of maternity) {
+			const dates = maternity
+				.filter(
+					(row) =>
+						row.employment_id === entry.employment_id &&
+						dateKey(row.event_date) === dateKey(entry.event_date)
+				)
+				.flatMap((row) => row.charges.map((charge) => charge.date));
+			if (dates.some((date) => date < '2025-12-07') && dates.some((date) => date >= '2025-12-07'))
+				refuse('MATERNITY_LEAVE across 2025-12-07 requires transition review.');
+		}
+	}
 	for (const entry of timeOff) {
+		if (
+			configuration.company.settings_code === 'SG' &&
+			gathered.catalogues.find((row) => row.id === entry.catalogue_id)?.is_npl === true
+		) {
+			if (entry.no_pay_origin == null)
+				refuse('SG no-pay leave needs its employee-request origin before payroll settlement.');
+			if (entry.no_pay_origin === 'OTHER')
+				refuse('SG no-pay leave without an employee request needs its pay basis assessed.');
+		}
+		if (
+			entry.event_date == null &&
+			entry.charges.some(
+				(charge) =>
+					gathered.catalogues.find((row) => row.id === charge.catalogue_id)?.entitlement
+						.availability === 'PER_EVENT'
+			)
+		)
+			refuse('Per-event leave requires the dated event that grants it.');
+		const calendarEntitlement = [
+			entry.catalogue_id,
+			...entry.charges.map((charge) => charge.catalogue_id)
+		].some(
+			(id) => gathered.catalogues.find((row) => row.id === id)?.entitlement.calendar_days === true
+		);
+		if (calendarEntitlement) {
+			const from = dateKey(entry.from_date);
+			const to = dateKey(entry.to_date);
+			if (from === '' || to === '')
+				refuse(`${entry.leave_code} needs a complete calendar leave span.`);
+			for (const date of daysBetween(from, to))
+				if (
+					entry.charges
+						.filter((charge) => charge.date === date)
+						.reduce((sum, charge) => sum + charge.days, 0) !== 1
+				)
+					refuse(`${entry.leave_code} cannot settle: ${date} has no whole calendar-day charge.`);
+		}
 		const chargedDays = entry.charges.reduce((sum, charge) => sum + charge.days, 0);
 		// One stoppage or other event filed as several entries (one per pay period) is one event:
 		// the entries of this code naming the same event date; an entry naming none is its own.
@@ -246,23 +399,53 @@ export function withLeaveDeductionEligibility(
 		// The leave opens on the event's first charged day: an event filed one entry per period keeps
 		// counting `day_index` / `month_index` across them (TH LPA s.59: wages for the first 60 days).
 		const opening = eventCharges.map((charge) => charge.date).toSorted()[0] ?? '';
+		if (calendarEntitlement && entry.event_date != null) {
+			const dates = eventCharges.map((charge) => charge.date);
+			const closing = dates.toSorted().at(-1)!;
+			const chargedDates = new Set(dates);
+			for (const date of daysBetween(opening, closing))
+				if (!chargedDates.has(date))
+					refuse(
+						`${entry.leave_code} cannot settle: ${date} is missing from the calendar leave event.`
+					);
+		}
 		for (const charge of entry.charges) {
 			const catalogue = gathered.catalogues.find((row) => row.id === charge.catalogue_id);
 			if (!catalogue) refuse('Approved leave refers to a missing catalogue revision.');
-			if (!deductsWage(catalogue)) continue;
-			const term = options.terms.find((row) => row.id === charge.employment_term_id);
-			if (!term || !coversDate(term.effective_range, charge.date))
-				refuse('Approved leave has no effective captured employment terms.');
 			const version = settingsInForce(
 				configuration.lineageVersions,
 				configuration.company.settings_code,
 				charge.date
 			);
+			const datedCatalogue = gathered.catalogues.find(
+				(row) => row.settings_id === version?.id && row.code === catalogue.code
+			);
+			if (datedCatalogue?.entitlement.requires_wife_prior_living_biological_children === true) {
+				if (entry.event_relationship !== 'WIFE')
+					refuse('VN paternity leave requires the birth event to identify the employee’s wife.');
+				if (!entry.reference.trim() || entry.certificate_file == null)
+					refuse('VN paternity leave requires its birth evidence and supporting reference.');
+				if (
+					['BIRTH', 'BIRTH_SURGERY', 'PRETERM_BIRTH'].includes(entry.event_kind ?? '') &&
+					(!Number.isInteger(entry.event_wife_prior_living_biological_children) ||
+						(entry.event_wife_prior_living_biological_children ?? -1) < 0)
+				)
+					refuse(
+						'VN paternity leave requires the wife’s prior living biological child count on the birth date.'
+					);
+			}
+			const excludesShift =
+				datedCatalogue?.entitlement.outpatient_sick_excludes_shift_allowance === true;
+			if (!deductsWage(catalogue) && !excludesShift) continue;
+			const term = options.terms.find((row) => row.id === charge.employment_term_id);
+			if (!term || !coversDate(term.effective_range, charge.date))
+				refuse('Approved leave has no effective captured employment terms.');
 			const person = personContext({
 				event: {
 					kind: entry.event_kind,
 					relationship: entry.event_relationship,
 					child_index: entry.event_child_index,
+					wife_prior_living_biological_children: entry.event_wife_prior_living_biological_children,
 					date: entry.event_date
 				},
 				employee: options.employee,
@@ -289,11 +472,23 @@ export function withLeaveDeductionEligibility(
 			});
 			const key = `${entry.id}/${charge.date}`;
 			let eligible = isEligible(catalogue.eligibility, person);
+			if (excludesShift) {
+				if (deductsWage(catalogue))
+					refuse('Outpatient sick-pay exclusion cannot also deduct the whole leave wage.');
+				outpatientSickExclusion[key] = true;
+				deductionEligibility[key] = eligible;
+				deductionShare[key] = 1;
+				continue;
+			}
 			// The employer's share of the day: none for an unpaid or fund-paid day, `pay_fraction`
 			// of it otherwise — read on the day, so a scale that steps by month steps here.
 			let share = 1;
 			if (eligible && !catalogue.is_npl && catalogue.paid_by !== 'FUND') {
-				const yearStart = leaveWindowOf(charge.date, catalogue.entitlement).start;
+				const yearStart = leaveWindowOf(
+					charge.date,
+					catalogue.entitlement,
+					serviceStart(options.employment)
+				).start;
 				const yearTaken: Record<string, number> = {};
 				for (const row of charged)
 					if (row.date >= yearStart && row.date < charge.date)
@@ -323,7 +518,7 @@ export function withLeaveDeductionEligibility(
 			deductionShare[key] = share;
 		}
 	}
-	return { ...gathered, deductionEligibility, deductionShare };
+	return { ...gathered, deductionEligibility, deductionShare, outpatientSickExclusion };
 }
 
 /** The Leave family selects its own approved sources; payroll receives date slices and encashed days. */
@@ -450,11 +645,16 @@ export function leaveCoverage(
  * charge inside the window, in days. Eligibility was prepared with the deduction, so a day the
  * catalogue's rule excuses is not counted here either.
  */
-function unpaidLeaveDaysByDate(prepared: PreparedLeavePayroll, window: LeaveWindow) {
+function unpaidLeaveDaysByDate(
+	prepared: PreparedLeavePayroll,
+	window: LeaveWindow,
+	excludeHourly = false
+) {
 	const days = new Map<string, number>();
 	for (const entry of activeTimeOff(prepared.entries))
 		for (const charge of entry.charges) {
 			if (charge.date < window.start || charge.date > window.end) continue;
+			if (excludeHourly && charge.hours != null) continue;
 			const catalogue = prepared.catalogues.find((row) => row.id === charge.catalogue_id);
 			if (catalogue == null || !deductsWage(catalogue)) continue;
 			const key = `${entry.id}/${charge.date}`;
@@ -464,8 +664,15 @@ function unpaidLeaveDaysByDate(prepared: PreparedLeavePayroll, window: LeaveWind
 	return days;
 }
 
-export function unpaidLeaveDays(prepared: PreparedLeavePayroll, window: LeaveWindow): number {
-	return [...unpaidLeaveDaysByDate(prepared, window).values()].reduce((sum, days) => sum + days, 0);
+export function unpaidLeaveDays(
+	prepared: PreparedLeavePayroll,
+	window: LeaveWindow,
+	excludeHourly = false
+): number {
+	return [...unpaidLeaveDaysByDate(prepared, window, excludeHourly).values()].reduce(
+		(sum, days) => sum + days,
+		0
+	);
 }
 
 /** Count dates without any employer-paid portion; separate half-days do not form a full day. */
@@ -499,6 +706,8 @@ export function calculateLeavePayroll(options: {
 	readonly dueThrough: string;
 	readonly currency: string;
 	readonly absenceRate: (charge: LeaveCharge) => number;
+	readonly absenceHourlyRate?: ((charge: LeaveCharge) => number) | undefined;
+	readonly outpatientSickExcludedRate?: ((charge: LeaveCharge) => number) | undefined;
 	/**
 	 * The statutory day rate for this entry's conversion date and catalogue revision.
 	 */
@@ -538,17 +747,29 @@ export function calculateLeavePayroll(options: {
 		for (const charge of charges.toSorted((a, b) => a.date.localeCompare(b.date))) {
 			const catalogue = prepared.catalogues.find((row) => row.id === charge.catalogue_id);
 			if (!catalogue) refuse('Approved Leave has no captured catalogue revision.');
-			if (!deductsWage(catalogue)) continue;
 			const key = `${entry.id}/${charge.date}`;
+			const excludesShift =
+				prepared.outpatientSickExclusion?.[key] === true ||
+				(prepared.outpatientSickExclusion == null &&
+					catalogue.entitlement.outpatient_sick_excludes_shift_allowance === true);
+			if (!deductsWage(catalogue) && !excludesShift) continue;
 			const eligible = prepared.deductionEligibility[key];
 			if (eligible == null) refuse('The Leave deduction eligibility was not prepared.');
 			if (!eligible) continue;
-			const rate = options.absenceRate(charge);
+			if (excludesShift && options.outpatientSickExcludedRate == null)
+				refuse('Outpatient sick leave needs the dated shift-allowance rate.');
+			if (!excludesShift && charge.hours != null && options.absenceHourlyRate == null)
+				refuse('Hourly leave deduction needs the dated gross hourly pay rate.');
+			const rate = excludesShift
+				? options.outpatientSickExcludedRate!(charge)
+				: charge.hours == null
+					? options.absenceRate(charge)
+					: options.absenceHourlyRate!(charge);
 			if (!Number.isFinite(rate) || rate < 0)
 				refuse('Work must supply a nonnegative Leave absence rate.');
 			const basis = `${charge.employment_term_id}/${charge.date.slice(0, 7)}`;
 			const previous = deductionTotals.get(basis) ?? 0;
-			const total = previous + rate * charge.days * shareOf(prepared, key);
+			const total = previous + rate * (charge.hours ?? charge.days) * shareOf(prepared, key);
 			const amount = cents(cents(total, currency) - cents(previous, currency), currency);
 			deductionTotals.set(basis, total);
 			if (amount === 0) continue;
@@ -559,7 +780,7 @@ export function calculateLeavePayroll(options: {
 				bucket: 'ABSENCE',
 				date: charge.date,
 				amount,
-				quantity: charge.days,
+				quantity: charge.hours ?? charge.days,
 				rate
 			});
 		}
@@ -575,7 +796,7 @@ export function calculateLeavePayroll(options: {
 			const rate = options.encashmentRate(entry);
 			if (!Number.isFinite(rate) || rate < 0)
 				refuse('The valuation rule must supply a nonnegative Leave encashment rate.');
-			const encashDays = entry.encash_days ?? 0;
+			const encashDays = entry.encash_hours ?? entry.encash_days ?? 0;
 			add(
 				entry.id,
 				[],

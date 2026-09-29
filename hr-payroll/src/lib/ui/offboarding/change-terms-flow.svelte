@@ -18,7 +18,7 @@
 	import { toast } from 'svelte-sonner';
 	import { todayKey } from '../calendar.js';
 	import { live, liveRows } from '../live.svelte.js';
-	import { numberFrom } from '../renderer-input.js';
+	import { nullableNumberFrom, numberFrom } from '../renderer-input.js';
 	import { coversDate } from '../../../lib/payroll/run/effective.js';
 	import FormSection from '../form-section.svelte';
 	import {
@@ -80,6 +80,17 @@
 			jobTitle: inForce?.job_title ?? '',
 			payrollGroup: inForce?.payroll_group ?? '',
 			grade: inForce?.grade ?? '',
+			ordinaryHoursPerWeek:
+				inForce?.ordinary_hours_per_week == null ? '' : String(inForce.ordinary_hours_per_week),
+			comparableFullTimePresence: inForce?.comparable_full_time_presence ?? null,
+			comparableFullTimeDailyHours:
+				inForce?.comparable_full_time_daily_hours == null
+					? ''
+					: String(inForce.comparable_full_time_daily_hours),
+			comparableFullTimeWeeklyHours:
+				inForce?.comparable_full_time_weekly_hours == null
+					? ''
+					: String(inForce.comparable_full_time_weekly_hours),
 			shiftPatternId: inForce?.shift_pattern_id ?? null
 		}));
 	});
@@ -95,6 +106,9 @@
 	const RESIDENCY_STATUSES = optionsOf(terms.fields.residency_status.values);
 	const WORK_CLASSIFICATIONS = optionsOf(terms.fields.work_classification.values);
 	const STATUTORY_WORK_CATEGORIES = optionsOf(terms.fields.statutory_work_category.values);
+	const COMPARABLE_FULL_TIME_PRESENCE = optionsOf(
+		terms.fields.comparable_full_time_presence.values
+	);
 	const patternOptions = $derived(
 		(patternsQuery.current ?? []).map((pattern) => ({
 			value: pattern.id,
@@ -124,6 +138,22 @@
 			formError = t('offboarding.need_pattern');
 			return null;
 		}
+		const ordinaryHours = nullableNumberFrom(draft.ordinaryHoursPerWeek);
+		const comparableDailyHours = nullableNumberFrom(draft.comparableFullTimeDailyHours);
+		const comparableWeeklyHours = nullableNumberFrom(draft.comparableFullTimeWeeklyHours);
+		if (
+			(draft.ordinaryHoursPerWeek.trim() !== '' &&
+				(ordinaryHours == null || !Number.isInteger(ordinaryHours) || ordinaryHours < 1)) ||
+			(draft.comparableFullTimeDailyHours.trim() !== '' &&
+				(comparableDailyHours == null || comparableDailyHours <= 0 || comparableDailyHours > 24)) ||
+			(draft.comparableFullTimeWeeklyHours.trim() !== '' &&
+				(comparableWeeklyHours == null ||
+					comparableWeeklyHours <= 0 ||
+					comparableWeeklyHours > 168))
+		) {
+			formError = t('offboarding.need_valid_hours');
+			return null;
+		}
 		const { payFrequency, workClassification, statutoryWorkCategory, employmentType } = draft;
 		if (
 			payFrequency == null ||
@@ -140,21 +170,35 @@
 			residency_since: draft.residencySince == null ? null : PlainDate(draft.residencySince),
 			currency: row.currency,
 			base_salary: salary,
+			minimum_wage_2025_region: row.minimum_wage_2025_region,
+			minimum_wage_2026_area_reclassified: row.minimum_wage_2026_area_reclassified,
+			worksite: row.worksite,
+			worksite_state: row.worksite_state,
+			worksite_sector: row.worksite_sector,
+			worksite_sector_edition: row.worksite_sector_edition,
 			allowances: draft.allowances,
 			pay_frequency: payFrequency,
 			work_classification: workClassification,
 			statutory_work_category: statutoryWorkCategory,
+			hazardous_work: row.hazardous_work,
+			weather_dependent_piece: row.weather_dependent_piece,
 			employment_type: employmentType,
 			department: text(draft.department),
 			job_title: text(draft.jobTitle),
 			payroll_group: text(draft.payrollGroup),
 			grade: text(draft.grade),
-			ordinary_hours_per_week: row.ordinary_hours_per_week,
+			ordinary_hours_per_week: ordinaryHours,
+			comparable_full_time_presence: draft.comparableFullTimePresence,
+			comparable_full_time_daily_hours: comparableDailyHours,
+			comparable_full_time_weekly_hours: comparableWeeklyHours,
 			shift_pattern_id: draft.shiftPatternId,
-			// Carried unchanged: the successor keeps the pass, tax residency, notice, paid-day and proration basis of the row it replaces.
+			// Other dated terms remain on the successor until their own fields are changed.
 			pass_type: row.pass_type,
 			tax_residency: row.tax_residency,
 			notice_days: row.notice_days,
+			probation_end: row.probation_end,
+			post_probation_wage: row.post_probation_wage,
+			open_ended_due_on: row.open_ended_due_on,
 			paid_rest_days: row.paid_rest_days,
 			proration: row.proration
 		};
@@ -227,6 +271,35 @@
 			hint={t('component.shift_assignment_hint')}
 		>
 			<Grid gap="sm" minimum="compact">
+				{@render text(
+					t('component.ordinary_hours_per_week'),
+					draft.ordinaryHoursPerWeek,
+					(ordinaryHoursPerWeek) => edit({ ordinaryHoursPerWeek })
+				)}
+				<Labelled label={t('component.comparable_full_time_presence')} class="text-sm font-medium">
+					<Combobox
+						options={COMPARABLE_FULL_TIME_PRESENCE}
+						value={draft.comparableFullTimePresence}
+						clearable
+						onChange={(comparableFullTimePresence) =>
+							edit({
+								comparableFullTimePresence,
+								...(comparableFullTimePresence === 'ABSENT'
+									? { comparableFullTimeDailyHours: '', comparableFullTimeWeeklyHours: '' }
+									: {})
+							})}
+					/>
+				</Labelled>
+				{@render text(
+					t('component.comparable_full_time_daily_hours'),
+					draft.comparableFullTimeDailyHours,
+					(comparableFullTimeDailyHours) => edit({ comparableFullTimeDailyHours })
+				)}
+				{@render text(
+					t('component.comparable_full_time_weekly_hours'),
+					draft.comparableFullTimeWeeklyHours,
+					(comparableFullTimeWeeklyHours) => edit({ comparableFullTimeWeeklyHours })
+				)}
 				<Labelled label={t('component.shift_pattern')} class="text-sm font-medium">
 					<Combobox
 						options={patternOptions}

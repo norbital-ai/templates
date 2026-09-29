@@ -17,6 +17,8 @@ export default model({
 		counts_toward: { kind: 'custom', of: 'code_list' },
 		/** Whether an unpaid day comes off this class; null follows `payroll.allowance_npl_prorates`. */
 		npl_prorates: { kind: 'bool', optional: true },
+		/** Singapore outpatient sick pay includes ordinary allowances but excludes shift allowance unless the agreed monthly benefit continues. */
+		outpatient_sick_pay: { kind: 'enum', values: ['INCLUDE', 'EXCLUDE'], optional: true },
 		/** A class the statute owes whoever its eligibility admits: priced with no contract row (VN LC art.168(3)). */
 		owed: { kind: 'bool', optional: true }
 	},

@@ -19,4 +19,5 @@ export type PayslipStatutory = {
 	readonly directed_amount?: number | null;
 	readonly rebate_amount?: number | null;
 	readonly rule_when?: string | null;
+	readonly payment_occasion?: boolean | null;
 };

@@ -66,14 +66,20 @@ test('a weekly company runs the weeks whose Sunday falls in the month, and its m
 		[week2.salary, week2.payDate],
 		[{ start: '2026-03-02', end: '2026-03-08' }, '2026-03-08']
 	);
+	assert.equal(week2.payDueDate, week2.payDate);
 	assert.equal(cadenceWindow('2026-03-2', WEEKLY, 'MONTHLY'), null);
 	assert.deepEqual(cadenceWindow('2026-03-5', WEEKLY, 'MONTHLY')!.salary, {
 		start: '2026-03-01',
 		end: '2026-03-31'
 	});
+	const lastWeek = resolveWindow('2026-03-5', WEEKLY);
 	assert.deepEqual(
-		resolveWindow('2026-03-5', WEEKLY).instalments.map((one) => one.sequence),
+		lastWeek.instalments.map((one) => one.sequence),
 		[5, 1]
+	);
+	assert.deepEqual(
+		lastWeek.instalments.map((one) => one.payDueDate),
+		['2026-03-29', '2026-03-31']
 	);
 	// A weekly entry settles in the week of its day, named by the Sunday's month; a monthly
 	// employment's entry settles in the month's last week.
@@ -143,12 +149,14 @@ test('a monthly company runs the calendar its cutoff already stated, paid at the
 	assert.deepEqual(window.salary, { start: '2026-01-01', end: '2026-01-31' });
 	assert.deepEqual(window.attendance, { start: '2025-12-21', end: '2026-01-20' });
 	assert.equal(window.payDate, '2026-01-31');
+	assert.equal(window.payDueDate, '2026-01-31');
 	assert.equal(window.instalments.length, 1, 'one pay event, and it is the window itself');
 	assert.deepEqual(window.instalments[0], {
 		sequence: 1,
 		salary: window.salary,
 		attendance: window.attendance,
-		payDate: window.payDate
+		payDate: window.payDate,
+		payDueDate: window.payDueDate
 	});
 	assert.deepEqual(cadenceWindow('2026-01', MONTHLY_ONLY, 'MONTHLY'), window);
 });
@@ -161,7 +169,8 @@ test('a half period pays the semi-monthly cadence exactly the instalment it name
 			sequence: 1,
 			salary: { start: '2026-01-01', end: '2026-01-15' },
 			attendance: { start: '2026-01-01', end: '2026-01-15' },
-			payDate: '2026-01-15'
+			payDate: '2026-01-15',
+			payDueDate: '2026-01-15'
 		}
 	]);
 	assert.deepEqual(first.salary, { start: '2026-01-01', end: '2026-01-15' });
@@ -172,7 +181,8 @@ test('a half period pays the semi-monthly cadence exactly the instalment it name
 			sequence: 2,
 			salary: { start: '2026-01-16', end: '2026-01-31' },
 			attendance: { start: '2026-01-16', end: '2026-01-31' },
-			payDate: '2026-01-31'
+			payDate: '2026-01-31',
+			payDueDate: '2026-01-31'
 		}
 	]);
 });
@@ -208,6 +218,21 @@ test('the run window is the envelope of every instalment the company pays in the
 		'from the monthly cutoff to the end of the semi-monthly instalment'
 	);
 	assert.equal(second.payDate, '2026-02-28');
+});
+
+test('a contractual due date crosses a year without moving the settlement date or wage window', () => {
+	const window = resolveWindow('2026-12', MONTHLY_ONLY, '2027-01-10');
+	assert.equal(window.payDate, '2026-12-31');
+	assert.equal(window.payDueDate, '2027-01-10');
+	assert.deepEqual(window.salary, { start: '2026-12-01', end: '2026-12-31' });
+	assert.equal(window.instalments[0]?.payDate, '2026-12-31');
+	assert.equal(window.instalments[0]?.payDueDate, '2027-01-10');
+	const mixed = resolveWindow('2026-12-2', PH_SEMI, '2027-01-10');
+	assert.deepEqual(
+		mixed.instalments.map((one) => one.payDueDate),
+		['2027-01-10', '2027-01-10']
+	);
+	assert.equal(mixed.payDate, '2026-12-31');
 });
 
 test('the two halves are disjoint and together cover the month, in every month of the year', () => {

@@ -33,7 +33,7 @@
 					: 'Rest day'
 				: 'Off day';
 		const overnight = current.end_time <= current.start_time ? ' (+1 day)' : '';
-		return `${current.start_time} → ${current.end_time}${overnight} · ${current.break_minutes / 60}h break`;
+		return `${current.start_time} → ${current.end_time}${overnight} · ${current.break_minutes / 60}h break${current.break_start_time == null ? '' : ` from ${current.break_start_time}`}`;
 	});
 	function emit(value: Value): void {
 		if (view.mode === 'edit') view.onChange(value);
@@ -41,7 +41,13 @@
 
 	function selectKind(value: string): void {
 		if (value === 'WORK') {
-			emit({ kind: 'WORK', start_time: '09:00', end_time: '17:00', break_minutes: 60 });
+			emit({
+				kind: 'WORK',
+				start_time: '09:00',
+				end_time: '17:00',
+				break_minutes: 60,
+				break_start_time: '12:00'
+			});
 			return;
 		}
 		if (value === 'REST' || value === 'OFF') emit({ kind: value });
@@ -120,6 +126,16 @@
 					{disabled}
 					oninput={(event) => emitBreakHours(event.currentTarget.value, false)}
 					onchange={(event) => emitBreakHours(event.currentTarget.value, true)}
+				/>
+			</Labelled>
+			<Labelled label="Scheduled break starts" class="text-xs" muted>
+				<Input
+					class="h-8"
+					type="time"
+					value={current.break_start_time ?? ''}
+					{disabled}
+					onchange={(event) =>
+						emit({ ...current, break_start_time: event.currentTarget.value || null })}
 				/>
 			</Labelled>
 			<p class="col-span-full text-meta">{summary}</p>

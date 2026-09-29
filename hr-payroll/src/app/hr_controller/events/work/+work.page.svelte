@@ -32,7 +32,7 @@
 		XLSX_MEDIA_TYPE
 	} from '../../../../data/collection/work_days/lib/import-template.js';
 	import { resolveEmployment } from '../../../../lib/employment-contract.js';
-	import { dateKey, isSettledId, PAYROLL_TIME_ZONE } from '../../../../lib/iso-day.js';
+	import { dateKey, isSettledId } from '../../../../lib/iso-day.js';
 	import {
 		lockMap,
 		payrollWindows,
@@ -40,7 +40,7 @@
 		type SettlementClaim
 	} from '../../../../lib/scheduling/lock.js';
 	import {
-		observedHolidayDates,
+		observedDays,
 		observedHolidays,
 		overtimeEntitled
 	} from '../../../../lib/scheduling/work-limits.js';
@@ -230,7 +230,7 @@
 						companyId: scope.id,
 						holidays: reads.holidays.current ?? [],
 						codes: reads.shifts.current ?? [],
-						precedence: versionInForce?.work_rules?.holiday_rest_precedence,
+						work: versionInForce?.work_rules,
 						plans: workDays
 							.filter((day) => day.employment_id === employment.id)
 							.map((day) => ({
@@ -415,13 +415,13 @@
 				if (person == null) return new Set();
 				const filed = (payload.roster ?? []).filter((row) => row.employee_number === number);
 				try {
-					return observedHolidayDates({
+					return observedDays({
 						dates: monthDays(calendarMonth),
 						cutoffDay: company.pay_cutoff_day ?? 1,
 						companyId,
 						holidays: reads.holidays.current ?? [],
 						codes: reads.shifts.current ?? [],
-						precedence: versionInForce?.work_rules?.holiday_rest_precedence,
+						work: versionInForce?.work_rules,
 						plans:
 							payload.roster === undefined
 								? workDays
@@ -437,7 +437,7 @@
 						rosterPeriods: filed.length > 0 ? [calendarMonth] : [],
 						patternOn: patternOn(person.id),
 						worksiteOn: (date) => activeTerm(person.id, date)?.worksite
-					});
+					}).holidays;
 				} catch {
 					return new Set();
 				}
@@ -494,7 +494,8 @@
 		const workbook = schedulingTemplateWorkbook({
 			legalEntity: company.name,
 			month: calendarMonth,
-			timezone: PAYROLL_TIME_ZONE
+			timezone: timeZone,
+			jurisdictionCode: versionInForce?.jurisdiction_code
 		});
 		saveBlob(
 			new Blob([await workbook.xlsx.writeBuffer()], { type: XLSX_MEDIA_TYPE }),

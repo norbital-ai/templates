@@ -217,10 +217,16 @@ test('MY-nihon — a weekday’s overtime is hours × round(basic ÷ 195) × 1.5
 			period: '2026-01',
 			people: [{ key: 'N', wage: 2600, citizenship: 'CITIZEN', registrations: LOCAL }]
 		},
-		// Monday 09:00–22:00 less the shift's hour = 12 h worked, 4 h past the normal eight, keyed by
-		// the fixture as the day's plan: 4 × 13.33 × 1.5 = 79.98, all OVERTIME — the eleven-hour
-		// boundary the fork used to funnel at is withdrawn.
-		(world) => work(world, 'N', '2026-01-05', [['09:00', '22:00']])
+		// Monday 09:00–22:00 with the shift's hour punched as a gap 12:00–13:00 = 12 h worked,
+		// 4 h past the normal eight, keyed by the fixture as the day's plan:
+		// 4 × 13.33 × 1.5 = 79.98, all OVERTIME — the eleven-hour boundary the fork used to funnel
+		// at is withdrawn. A break is proved by a gap between worked intervals; one worked through
+		// is worked time (EA 1955 s.60A(1)(a): the break is not payable, so it is not money).
+		(world) =>
+			work(world, 'N', '2026-01-05', [
+				['09:00', '12:00'],
+				['13:00', '22:00']
+			])
 	);
 	const slip = slips.get('N')!;
 	assert.deepEqual(lines(slip, 'OVERTIME:'), [
@@ -296,12 +302,18 @@ test('MY-nihon — the 104-hour ceiling is still reported (EA s.60A(4)(a), OTR r
 			for (let date = '2026-01-01'; date <= '2026-01-20'; date = next(date)) {
 				const weekday = new Date(`${date}T00:00:00Z`).getUTCDay();
 				if (weekday === 0) continue;
-				// The plan is the whole overtime of the day: 5 h past a weekday's shift, 12 h on the off day.
+				// The plan is the whole overtime of the day: 5 h past a weekday's shift, 12 h on the off
+				// day. A weekday's break is punched as a gap, so the shift's hour is not worked time.
 				work(
 					world,
 					'CAP',
 					date,
-					[weekday === 6 ? ['09:00', '21:00'] : ['09:00', '23:00']],
+					weekday === 6
+						? [['09:00', '21:00']]
+						: [
+								['09:00', '12:00'],
+								['13:00', '23:00']
+							],
 					weekday === 6 ? 12 : 5
 				);
 			}

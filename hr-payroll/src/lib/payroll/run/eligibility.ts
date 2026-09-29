@@ -54,6 +54,21 @@ export type PersonContext = {
 		 * the month after an anniversary (CPF Board, SPR year 2 and 3), never on the anniversary's day.
 		 */
 		readonly residency_months: number;
+		/** Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves the presence tests to declarations. */
+		readonly presence_recorded: boolean;
+		/**
+		 * Days present in the jurisdiction in the rule date's calendar year, through the rule date: an
+		 * entry or exit day is a whole day (MY ITA 1967 s.7(1A)). What a 182-day or 60-day test counts.
+		 */
+		readonly presence_days: number;
+		/**
+		 * The consecutive days in the previous calendar year of a stay that runs on, unbroken, into this
+		 * one; 0 when none crosses 1 January (MY ITA s.7(1)(b): a period linked to 182 or more
+		 * consecutive days in the adjoining basis year).
+		 */
+		readonly presence_linked_days: number;
+		/** Of the four calendar years before the rule date's, those with 90 or more days present (MY ITA s.7(1)(c)(ii)). */
+		readonly presence_years_90: number;
 	};
 	readonly employment: {
 		readonly type: string;
@@ -77,6 +92,8 @@ export type PersonContext = {
 		readonly service_start: string;
 		/** Last day of work, or empty while the stint is open. */
 		readonly exit_date: string;
+		/** Calendar days from the rule date to `exit_date`: 0 on the exit day, after it, or while open. */
+		readonly days_to_exit: number;
 		/** Whether the contract states no end: a fixed-term contract's end is its `exit_date`, unless an early `exit_reason` cut it short. */
 		readonly open_ended: boolean;
 		/** Whole months of a fixed-term contract, first day to last; 0 where open-ended. */
@@ -122,11 +139,18 @@ export type PersonContext = {
 		readonly workman: boolean;
 		/** The statutory work category itself, for an overtime predicate that names one. */
 		readonly statutory_work_category: string;
+		readonly hazardous_work: boolean;
+		readonly weather_dependent_piece: boolean;
 		/** Basic plus every other cash payment for work settling in the run; 0 outside payroll. */
 		readonly statutory_wages: number;
 		/** The worksite and its sector (a five-digit KBLI in ID) the terms record, or empty. */
 		readonly worksite: string;
 		readonly worksite_sector: string;
+		readonly ph_worksite_source_reference: string;
+		readonly ph_worksite_source_file_recorded: boolean;
+		readonly ph_sector_source_reference: string;
+		readonly ph_sector_source_file_recorded: boolean;
+		readonly worksite_sector_edition: string;
 		/** Department and grade: an employer's own catalogue row may tier on them; no statute does. */
 		readonly department: string;
 		readonly payroll_group: string;
@@ -143,6 +167,12 @@ export type PersonContext = {
 		readonly residency_since: string;
 		/** Notice days the contract states, 0 when none. */
 		readonly notice_days: number;
+		/** Months of the agreed probation served, hire through its last day or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83). */
+		readonly probation_months: number;
+		/** The wage the contract agrees for after the probation; 0 unrecorded (CN LCL arts.20, 83). */
+		readonly post_probation_wage: number;
+		/** Months from the day an open-ended contract fell due through the rule date inclusive, a part month by its days; 0 unrecorded or not yet due (CN LCL art.82 para.2). */
+		readonly open_ended_overdue_months: number;
 		/**
 		 * The working week this contract actually works, derived from the roster rather than typed.
 		 *
@@ -248,6 +278,8 @@ export type PersonContext = {
 		readonly kind: string;
 		readonly relationship: string;
 		readonly child_index: number;
+		/** -1 means the wife's prior living biological child count was not declared. */
+		readonly wife_prior_living_biological_children: number;
 		readonly date: string;
 		/** The named child's recorded citizenship, or empty. */
 		readonly child_citizenship: string;
@@ -257,6 +289,10 @@ export type PersonContext = {
 		readonly child_shared_weeks: number;
 		/** Days employed elsewhere before the named child's confinement, as declared; 0 unrecorded. */
 		readonly prior_employment_days: number;
+		/** The named child's certified estimated delivery date (CDCA s.2), or empty. */
+		readonly estimated_delivery_date: string;
+		/** The eligibility date of the application to adopt the named child (CDCA s.2), or empty. */
+		readonly adoption_eligibility_date: string;
 	};
 	/** The terms row's own part-month basis (`employment_terms.proration`); not an expression member. */
 	readonly contract_proration?: ProrationBasis | undefined;
@@ -291,12 +327,16 @@ export type PersonInput = {
 	};
 	readonly servicePeriods?:
 		readonly { readonly start: string; readonly end: string | null }[] | undefined;
+	/** Recorded stays in the jurisdiction, entry to exit day (null while running); absent is none recorded. */
+	readonly presence?:
+		readonly { readonly start: string; readonly end: string | null }[] | undefined;
 	/** The contract's allowances in force on `asOf`, summed; see `contractAllowancesOn`. */
 	readonly fixedAllowances?: number | null | undefined;
 	/** Of them, those in the gross rate of pay; absent is all of them. */
 	readonly grossAllowances?: number | null | undefined;
 	/** calendar month → code → what earlier payslips filed (`earnedByMonth`); a payroll run supplies it. */
 	readonly earnings?: ReadonlyMap<string, ReadonlyMap<string, number>> | null | undefined;
+	readonly pieceWages?: PersonHistory['piece_wages'] | undefined;
 	/** Approved time-off spans by leave code; the leave site supplies them. */
 	readonly leaveSpans?: PersonHistory['leave'] | undefined;
 	/** The contractual monthly wage averaged over the last six months; absent is this month's. */
@@ -310,8 +350,15 @@ export type PersonInput = {
 		readonly allowances?:
 			readonly { readonly catalogue_id: string; readonly amount: number }[] | null | undefined;
 		readonly statutory_work_category?: string | null | undefined;
+		readonly hazardous_work?: boolean | null | undefined;
+		readonly weather_dependent_piece?: boolean | null | undefined;
 		readonly worksite?: string | null | undefined;
 		readonly worksite_sector?: string | null | undefined;
+		readonly ph_worksite_source_reference?: string | null | undefined;
+		readonly ph_worksite_source_file?: unknown;
+		readonly ph_sector_source_reference?: string | null | undefined;
+		readonly ph_sector_source_file?: unknown;
+		readonly worksite_sector_edition?: string | null | undefined;
 		readonly department?: string | null | undefined;
 		readonly payroll_group?: string | null | undefined;
 		readonly paid_rest_days?: boolean | null | undefined;
@@ -321,6 +368,9 @@ export type PersonInput = {
 		readonly pass_type?: string | null | undefined;
 		readonly tax_residency?: string | null | undefined;
 		readonly notice_days?: unknown | undefined;
+		readonly probation_end?: string | null | undefined;
+		readonly post_probation_wage?: unknown | undefined;
+		readonly open_ended_due_on?: string | null | undefined;
 		readonly comparable_full_time_daily_hours?: unknown | undefined;
 		readonly comparable_full_time_presence?: string | null | undefined;
 		readonly proration?: unknown | undefined;
@@ -361,6 +411,8 @@ export type PersonInput = {
 				readonly child_birthdate: string;
 				readonly child_deathdate?: string | null | undefined;
 				readonly child_confinement_date?: string | null | undefined;
+				readonly estimated_delivery_date?: string | null | undefined;
+				readonly adoption_eligibility_date?: string | null | undefined;
 				readonly relationship?: string | null | undefined;
 				readonly effective_range?: unknown;
 				readonly citizenship?: string | null | undefined;
@@ -385,6 +437,7 @@ export type PersonInput = {
 		readonly kind?: string | null | undefined;
 		readonly relationship?: string | null | undefined;
 		readonly child_index?: unknown | undefined;
+		readonly wife_prior_living_biological_children?: number | null | undefined;
 		readonly date?: string | null | undefined;
 	} | null;
 	/** The version's ordinary-rate divisor over this person, where the caller has evaluated it; it turns a daily, hourly or weekly rate into `terms.monthly_basic`. */
@@ -446,6 +499,50 @@ function wholeMonthsBetween(start: string, end: string): number {
 	);
 }
 
+/**
+ * The presence counts on the rule date: recorded stays clipped to it (a stay's later days have not
+ * happened), merged where they touch, then counted by calendar year.
+ */
+function presenceOn(
+	stays: PersonInput['presence'],
+	asOf: string
+): Pick<
+	PersonContext['employee'],
+	'presence_recorded' | 'presence_days' | 'presence_linked_days' | 'presence_years_90'
+> {
+	const day = asOf.slice(0, 10);
+	const runs: { start: string; end: string }[] = [];
+	for (const stay of (stays ?? []).toSorted((a, b) => a.start.localeCompare(b.start))) {
+		const end = stay.end == null || stay.end > day ? day : stay.end;
+		if (stay.start === '' || end < stay.start) continue;
+		const last = runs.at(-1);
+		if (last != null && stay.start <= addDays(last.end, 1)) {
+			if (end > last.end) last.end = end;
+		} else runs.push({ start: stay.start, end });
+	}
+	const year = Number.parseInt(day.slice(0, 4), 10);
+	const daysIn = (y: number) =>
+		runs.reduce((sum, run) => {
+			const from = run.start > `${y}-01-01` ? run.start : `${y}-01-01`;
+			const to = run.end < `${y}-12-31` ? run.end : `${y}-12-31`;
+			return to < from ? sum : sum + inclusiveDays(from, to);
+		}, 0);
+	const crossing = runs.find((run) => run.start < `${year}-01-01` && run.end >= `${year}-01-01`);
+	const previousStart = `${year - 1}-01-01`;
+	return {
+		presence_recorded: (stays ?? []).length > 0,
+		presence_days: daysIn(year),
+		presence_linked_days:
+			crossing == null
+				? 0
+				: inclusiveDays(
+						crossing.start > previousStart ? crossing.start : previousStart,
+						`${year - 1}-12-31`
+					),
+		presence_years_90: [1, 2, 3, 4].filter((back) => daysIn(year - back) >= 90).length
+	};
+}
+
 /** The person context on one date, from approved contract and personal facts. */
 export function personContext(input: PersonInput): PersonContext {
 	const start = dateKey(input.employment.service_start);
@@ -464,7 +561,18 @@ export function personContext(input: PersonInput): PersonContext {
 	// resignation, dismissal or other early exit ends an indefinite contract without giving it a
 	// term (Labour Code 2019 art.20(1)(a)), and the model records no other term.
 	const reason = input.employment.exit_reason ?? '';
-	const fixedTerm = exit !== '' && start !== '' && (reason === '' || reason === 'END_OF_CONTRACT');
+	const probationEnd = dateKey(input.terms?.probation_end);
+	// Hire through the probation's last day, or through the rule date where that comes first.
+	const probationThrough = addDays(
+		probationEnd !== '' && probationEnd < day ? probationEnd : day,
+		1
+	);
+	const openEndedDue = dateKey(input.terms?.open_ended_due_on);
+	const fixedTerm =
+		exit !== '' &&
+		start !== '' &&
+		(reason === 'END_OF_CONTRACT' ||
+			(input.terms?.employment_type === 'CONTRACT' && reason === ''));
 	const children = (input.children ?? []).filter((child) => {
 		const birth = dateKey(child.child_birthdate);
 		return (
@@ -505,7 +613,8 @@ export function personContext(input: PersonInput): PersonContext {
 			// day of the month after the first anniversary, so a 31 March conversion is in year two for
 			// every April payroll — day-exact counting held it in year one until May.
 			residency_months:
-				residency === '' || residency > input.asOf ? 0 : wholeMonthsBetween(residency, input.asOf)
+				residency === '' || residency > input.asOf ? 0 : wholeMonthsBetween(residency, input.asOf),
+			...presenceOn(input.presence, input.asOf)
 		},
 		employment: {
 			type: input.terms?.employment_type ?? '',
@@ -518,6 +627,7 @@ export function personContext(input: PersonInput): PersonContext {
 			prior_service_months: decodeNumber(input.employment.prior_service_months ?? 0),
 			service_years: start === '' ? 0 : completedYears(start, through),
 			service_start: start,
+			days_to_exit: exit === '' || exit <= day ? 0 : inclusiveDays(day, exit) - 1,
 			exit_date: exit,
 			open_ended: !fixedTerm,
 			contract_months: !fixedTerm || exit < start ? 0 : completedMonths(start, addDays(exit, 1)),
@@ -536,6 +646,7 @@ export function personContext(input: PersonInput): PersonContext {
 						: Object.fromEntries(
 								[...input.earnings].map(([month, codes]) => [month, Object.fromEntries(codes)])
 							),
+				piece_wages: input.pieceWages ?? null,
 				leave: input.leaveSpans ?? null
 			}
 		},
@@ -555,9 +666,18 @@ export function personContext(input: PersonInput): PersonContext {
 			monthly_wage_6m_average: decodeNumber(input.monthlyWage6mAverage ?? basic + fixed),
 			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
 			statutory_work_category: input.terms?.statutory_work_category ?? '',
+			hazardous_work: input.terms?.hazardous_work === true,
+			weather_dependent_piece: input.terms?.weather_dependent_piece === true,
 			statutory_wages: decodeNumber(input.statutoryWages ?? 0),
 			worksite: input.terms?.worksite?.trim() ?? '',
 			worksite_sector: input.terms?.worksite_sector?.trim() ?? '',
+			ph_worksite_source_reference: input.terms?.ph_worksite_source_reference?.trim() ?? '',
+			ph_worksite_source_file_recorded:
+				input.terms?.ph_worksite_source_file != null && input.terms.ph_worksite_source_file !== '',
+			ph_sector_source_reference: input.terms?.ph_sector_source_reference?.trim() ?? '',
+			ph_sector_source_file_recorded:
+				input.terms?.ph_sector_source_file != null && input.terms.ph_sector_source_file !== '',
+			worksite_sector_edition: input.terms?.worksite_sector_edition?.trim() ?? '',
 			department: input.terms?.department ?? '',
 			payroll_group: input.terms?.payroll_group ?? '',
 			paid_rest_days: input.terms?.paid_rest_days ?? false,
@@ -567,6 +687,13 @@ export function personContext(input: PersonInput): PersonContext {
 			tax_residency: input.terms?.tax_residency ?? '',
 			residency_since: residency,
 			notice_days: decodeNumber(input.terms?.notice_days ?? 0),
+			probation_months:
+				probationEnd === '' || start === '' || probationThrough <= start
+					? 0
+					: exactMonths(start, probationThrough),
+			post_probation_wage: decodeNumber(input.terms?.post_probation_wage ?? 0),
+			open_ended_overdue_months:
+				openEndedDue === '' || openEndedDue > day ? 0 : exactMonths(openEndedDue, addDays(day, 1)),
 			ordinary_hours_per_week: input.week?.ordinary_hours_per_week ?? 0,
 			comparable_full_time_daily_hours: decodeNumber(
 				input.terms?.comparable_full_time_daily_hours ?? 0
@@ -643,11 +770,15 @@ export function personContext(input: PersonInput): PersonContext {
 			kind: input.event?.kind ?? '',
 			relationship: input.event?.relationship ?? '',
 			child_index: decodeNumber(input.event?.child_index ?? 0),
+			wife_prior_living_biological_children:
+				input.event?.wife_prior_living_biological_children ?? -1,
 			date: dateKey(input.event?.date),
 			child_citizenship: named?.citizenship ?? '',
 			child_age: named == null ? -1 : completedYears(dateKey(named.child_birthdate), input.asOf),
 			child_shared_weeks: named?.shared_parental_weeks ?? -1,
-			prior_employment_days: named?.prior_employment_days ?? 0
+			prior_employment_days: named?.prior_employment_days ?? 0,
+			estimated_delivery_date: dateKey(named?.estimated_delivery_date),
+			adoption_eligibility_date: dateKey(named?.adoption_eligibility_date)
 		},
 		contract_proration:
 			input.terms?.proration == null

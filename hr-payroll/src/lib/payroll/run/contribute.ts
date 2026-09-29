@@ -113,6 +113,8 @@ export type ContributionCharge = {
 type SchemeAssessment = {
 	/** `contribution_id` → the employment's registration, or `null` where no row exists. */
 	readonly facts: ReadonlyMap<string, StatutoryFactStatus>;
+	/** The declaration at assessment end, before historical insured standings replace it for pricing. */
+	readonly currentFacts?: ReadonlyMap<string, StatutoryFactStatus> | undefined;
 	/** Dated registration intervals for schemes measuring insurance coverage independently of pay. */
 	readonly coverageByScheme?: ReadonlyMap<
 		string,
@@ -141,6 +143,8 @@ type SchemeAssessment = {
 	readonly firstYear?: ((code: string) => number) | undefined;
 	/** component code → what earlier PAID payslips earned this tax year (BASIC always present). */
 	readonly yearEarned: ReadonlyMap<string, number>;
+	/** Sum of the eligible dependant counts for the tax year's twelve months, from dated declarations. */
+	readonly dependentReliefMonths?: ((schemeCode: string) => number) | undefined;
 	/** Scheme code → earlier paid assessments plus the selected prior-employer opening. */
 	readonly history: (code: string) => StatutoryHistorySummary;
 	readonly yearQuantityPayments?: ReadonlyMap<string, readonly QuantityPayment[]> | undefined;
@@ -151,6 +155,7 @@ type SchemeAssessment = {
 	>;
 	/** calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
 	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
+	readonly paidWagesByMonth?: ReadonlyMap<string, number> | undefined;
 	/** The month's earlier instalments (semi-monthly, weekly): a MONTH scheme prices the month on their sum. */
 	readonly monthPrior?: MonthPrior | undefined;
 	readonly monthlyContributionDays?:
@@ -170,6 +175,10 @@ type SchemeAssessment = {
 		readonly key: string;
 		readonly start: string;
 		readonly end: string;
+		/** The run's scheduled settlement date, which payment occasions must match. */
+		readonly payDate?: string | undefined;
+		/** Inclusive days governed by the sealed version selected for this run. */
+		readonly settingsRange?: { readonly from: string; readonly to: string | null } | null;
 		readonly index: number;
 		readonly instalments: number;
 		readonly lastOfYear: boolean;
@@ -632,11 +641,15 @@ function requireSchemeFacts(
 	context: Record<string, unknown>,
 	engine: ExpressionEngine
 ): void {
-	if (status?.kind === 'NOT_REGISTERED' && contribution.row.unregistered_action !== 'ASSESS')
+	if (
+		status?.kind === 'NOT_REGISTERED' &&
+		contribution.row.unregistered_action !== 'ASSESS' &&
+		contribution.row.unregistered_action !== 'REFUSE'
+	)
 		return;
 	requireFactValues(
 		contribution.row.elections,
-		status?.kind === 'REGISTERED' ? (status.elections ?? {}) : {},
+		status?.elections ?? {},
 		contribution.row.code,
 		(expression) => evaluateBoolean(engine, expression, context)
 	);
@@ -647,15 +660,29 @@ function schemeObject(options: {
 	readonly input: SchemeAssessment;
 	readonly contribution: ContributionConfig;
 	readonly status: StatutoryFactStatus | undefined;
-}): Record<string, unknown> {
+}): Record<string, unknown> & { readonly elections: ReturnType<typeof resolveFactValues> } {
 	const { input, contribution, status } = options;
 	const registered = status?.kind === 'REGISTERED' ? status : null;
 	const elections = resolveFactValues(
 		contribution.row.elections,
-		registered?.elections ?? {},
+		status?.elections ?? {},
 		contribution.row.code,
 		status?.kind !== 'NOT_REGISTERED'
 	);
+	const dependentMonths =
+		schemeExpressions(contribution).some((expression) =>
+			expression.includes('scheme.dependent_months')
+		) &&
+		input.period.lastOfYear &&
+		input.person.employment.exit_date === '' &&
+		input.person.terms.tax_residency === 'RESIDENT' &&
+		elections.finalisation_authorised === true &&
+		(registered?.rate_override ?? 0) <= 0
+			? (input.dependentReliefMonths?.(contribution.row.code) ??
+				refuse(
+					`${contribution.row.code}: dated dependant declarations are required for annual finalisation.`
+				))
+			: 0;
 	const mentions = schemeMentions(schemeExpressions(contribution));
 	const childClaims: Record<string, number> = Object.fromEntries(
 		mentions.childClaimKeys.map((key) => [key, 0])
@@ -672,15 +699,53 @@ function schemeObject(options: {
 	for (const [prefix, amounts] of Object.entries(deductions))
 		for (const key of mentions.deductionKeys.get(prefix) ?? []) amounts[key] ??= 0;
 	const since = registered?.since ?? '';
+	const trailingWage = (months: number): { base: number; months: number } => {
+		let month = input.period.key.slice(0, 7);
+		let wages = 0;
+		let employed = 0;
+		for (let index = 0; index < months; index += 1) {
+			month = addDays(monthBounds(month).start, -1).slice(0, 7);
+			if (month < input.person.employment.service_start.slice(0, 7)) continue;
+			const paid = input.paidWagesByMonth?.get(month);
+			if (paid == null)
+				refuse(
+					`${contribution.row.code}: paid wage for ${month} is missing from the trailing ${months}-month BPJS history.`
+				);
+			wages += paid;
+			employed += 1;
+		}
+		return { base: employed === 0 ? 0 : wages / employed, months: employed };
+	};
 	return {
 		code: contribution.row.code,
 		assessment_period: contribution.row.assessment_period,
 		registration_status: status?.kind ?? 'UNDECLARED',
+		declaration_reference:
+			status?.kind === 'NOT_REGISTERED' ? (status.declaration_reference ?? '') : '',
+		current_registration_status:
+			input.currentFacts?.get(contribution.row.id)?.kind ?? status?.kind ?? 'UNDECLARED',
 		year_to_date: { rebate: 0, ...input.yearToDate(contribution.row.code) },
 		last_year: (({ base, employee, employer }) => ({ base, employee, employer }))(
 			input.lastYear?.(contribution.row.code) ?? { base: 0, employee: 0, employer: 0 }
 		),
 		first_year: input.firstYear?.(contribution.row.code) ?? 0,
+		dependent_months: dependentMonths,
+		trailing_3m:
+			input.person.terms.statutory_work_category === 'PIECE_RATE' &&
+			!input.person.terms.weather_dependent_piece &&
+			schemeExpressions(contribution).some((expression) =>
+				expression.includes('scheme.trailing_3m')
+			)
+				? trailingWage(3)
+				: { base: 0, months: 0 },
+		trailing_12m:
+			input.person.terms.statutory_work_category === 'PIECE_RATE' &&
+			input.person.terms.weather_dependent_piece &&
+			schemeExpressions(contribution).some((expression) =>
+				expression.includes('scheme.trailing_12m')
+			)
+				? trailingWage(12)
+				: { base: 0, months: 0 },
 		projection: {
 			payslips_remaining: input.projection.payslipsRemaining,
 			future_equivalents: input.projection.futurePayslipEquivalents
@@ -690,7 +755,7 @@ function schemeObject(options: {
 		first_contribution_due_on: registered?.first_contribution_due_on ?? '',
 		since_months:
 			since === '' || since > input.period.end ? 0 : completedMonths(since, input.period.end),
-		election_keys: Object.keys(registered?.elections ?? {}),
+		election_keys: Object.keys(status?.elections ?? {}),
 		elections,
 		child_claims: childClaims,
 		...deductions
@@ -742,7 +807,7 @@ function schemeContext(options: {
 	readonly produced?: ReadonlyMap<string, Produced> | undefined;
 	readonly reads?: ReadonlyMap<string, number> | undefined;
 	readonly ordinaryReads?: ReadonlyMap<string, number> | undefined;
-}): Record<string, unknown> {
+}): Record<string, unknown> & { readonly scheme: ReturnType<typeof schemeObject> } {
 	const { input, contribution } = options;
 	const expressions = options.expressions;
 	const mentions = schemeMentions(expressions);
@@ -787,6 +852,7 @@ function schemeContext(options: {
 			year: Number.parseInt(input.period.key.slice(0, 4), 10),
 			start: input.period.start,
 			end: input.period.end,
+			pay_date: input.period.payDate ?? '',
 			month: Number.parseInt(input.period.key.slice(5, 7), 10),
 			index: input.period.index,
 			instalments: input.period.instalments,
@@ -1126,12 +1192,17 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		// nobody's payslip.
 		if (
 			contribution.row.rules.some((rule) => rule.per_unit) &&
-			(contribution.row.assessment_period !== 'PAY_PERIOD' ||
+			(contribution.row.rules.some(
+				(rule) =>
+					rule.per_unit &&
+					!rule.payment_occasion &&
+					contribution.row.assessment_period !== 'PAY_PERIOD'
+			) ||
 				contribution.row.assessment_scope === 'COMPANY' ||
 				(contribution.row.ordinary_on ?? '').trim() !== '')
 		)
 			refuse(
-				`${code}: per-unit rules require a PAY_PERIOD employment scheme without an ordinary split.`
+				`${code}: per-unit rules require a PAY_PERIOD employment scheme without an ordinary split, except dated payment occasions.`
 			);
 		if (contribution.row.assessment_scope === 'COMPANY') continue;
 		const expressions = schemeExpressions(contribution);
@@ -1331,7 +1402,8 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		if (
 			status?.kind === 'NOT_REGISTERED' &&
 			base > 0 &&
-			contribution.row.unregistered_action !== 'ASSESS'
+			contribution.row.unregistered_action !== 'ASSESS' &&
+			contribution.row.unregistered_action !== 'REFUSE'
 		) {
 			if (ordinary != null) ordinary = 0;
 			charge(0, 0, null, 0);
@@ -1447,6 +1519,15 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			continue;
 		}
 		context = selectedRuleContext(rule, context, schemeEngine, code, warnings);
+		if (
+			status?.kind === 'NOT_REGISTERED' &&
+			contribution.row.unregistered_action === 'REFUSE' &&
+			(evaluateNumber(schemeEngine, rule.employee, context) !== 0 ||
+				evaluateNumber(schemeEngine, rule.employer, context) !== 0)
+		)
+			refuse(
+				`${code}: the recorded not-registered status cannot establish an exemption. Record the scheme's accepted election and effective date before calculating payroll.`
+			);
 		// What a per-payment withholding annualises: the month's charge were every instalment this
 		// one (TH P.96/2543 cl.1(2)), never the month-to-date share this instalment happened to take.
 		if (monthlyAssessed) {
@@ -1513,7 +1594,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		let unitShares: readonly [number, number] | undefined;
 		if (rule.per_unit) {
 			if (
-				contribution.row.assessment_period !== 'PAY_PERIOD' ||
+				(!rule.payment_occasion && contribution.row.assessment_period !== 'PAY_PERIOD') ||
 				standings != null ||
 				ordinaryOn !== '' ||
 				status?.kind !== 'REGISTERED' ||
@@ -1521,6 +1602,14 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			)
 				refuse(
 					`${code}: per-unit assessment requires a pay-period scheme, one declaration, no ordinary split and no rate override.`
+				);
+			if (
+				rule.payment_occasion &&
+				contribution.row.assessment_period !== 'PAY_PERIOD' &&
+				input.period.instalments > 1
+			)
+				refuse(
+					`${code}: payment-occasion withholding across multiple payroll instalments needs dated month-to-date payment reconciliation.`
 				);
 			const entries = (status.unit_assessments ?? []).filter(
 				(entry) => entry.period === input.period.key
@@ -1539,6 +1628,26 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 						`${code}: unit assessments require nonnegative gross, positive whole units and distinct payment references.`
 					);
 				references.add(entry.reference.trim());
+				if (rule.payment_occasion) {
+					if (
+						entry.units !== 1 ||
+						!entry.paid_on ||
+						input.period.payDate == null ||
+						input.period.settingsRange == null
+					)
+						refuse(
+							`${code}: each payment occasion requires one unit, a dated payment, and a sealed settlement version.`
+						);
+					const range = input.period.settingsRange;
+					if (entry.paid_on < range.from || (range.to != null && entry.paid_on > range.to))
+						refuse(
+							`${code}: payment ${entry.reference} on ${entry.paid_on} crosses the sealed settings version; reprice under the version governing its payment date.`
+						);
+					if (entry.paid_on !== input.period.payDate)
+						refuse(
+							`${code}: payment ${entry.reference} on ${entry.paid_on} differs from this run's settlement date ${input.period.payDate}; use a run that records this payment date.`
+						);
+				}
 			}
 			if (
 				entries.length === 0 ||
@@ -1552,10 +1661,37 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				);
 			unitShares = entries.reduce<readonly [number, number]>(
 				(totals, entry) => {
-					const unitContext = { ...context, base: entry.gross / entry.units };
+					const scheme = context.scheme as ReturnType<typeof schemeObject>;
+					const unitContext = {
+						...context,
+						base: entry.gross / entry.units,
+						...(rule.payment_occasion
+							? {
+									scheme: {
+										...scheme,
+										elections: {
+											...scheme.elections,
+											withhold_below_threshold_requested:
+												entry.withhold_below_threshold_requested ??
+												scheme.elections.withhold_below_threshold_requested === true
+										}
+									}
+								}
+							: {})
+					};
+					if (rule.payment_occasion)
+						requireSchemeFacts(contribution, status, unitContext, schemeEngine);
+					const unitRule = rule.payment_occasion
+						? selectRule(contribution.row.rules, unitContext, schemeEngine)
+						: rule;
+					if (unitRule == null || (rule.payment_occasion && !unitRule.payment_occasion))
+						refuse(`${code}: no payment-occasion rule governs ${entry.reference}.`);
+					const selected = rule.payment_occasion
+						? selectedRuleContext(unitRule, unitContext, schemeEngine, code, warnings)
+						: unitContext;
 					return [
-						totals[0] + evaluateNumber(schemeEngine, rule.employee, unitContext) * entry.units,
-						totals[1] + evaluateNumber(schemeEngine, rule.employer, unitContext) * entry.units
+						totals[0] + evaluateNumber(schemeEngine, unitRule.employee, selected) * entry.units,
+						totals[1] + evaluateNumber(schemeEngine, unitRule.employer, selected) * entry.units
 					];
 				},
 				[0, 0]

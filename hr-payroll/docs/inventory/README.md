@@ -7,7 +7,17 @@ they determine an opening balance, eligibility, entitlement, rate or deadline. S
 Kunming are separate China locality profiles inside the China register; MY-nihon is a Malaysia
 profile, not Japan.
 
-Legal-review checkpoint: **27 September 2026**. All nine registers remain
+The product-compliance goal covers statutory mechanisms the HRMS must perform or present for its
+claimed jurisdictions and workflows: rule and rate selection, calculations, eligibility, warnings
+and refusals, and saved inputs and outputs. A required missing mechanism is still an open gap.
+Employer actions wholly outside the product, such as submitting a form to an authority, remain
+documented legal boundaries; their execution is not an HRMS calculation or workflow claim.
+An external action becomes a product-evidence requirement only where the HRMS claims to perform,
+record or reconcile it.
+Consequently, the count of `No`/`Partial` register rows is not a count of product defects or a
+product-compliance percentage.
+
+Legal-review checkpoint: **29 September 2026**. All nine registers remain
 uncertified because their official source and provision denominators are open.
 An enumerated row, a sealed snapshot and a successful narrow calculation each
 prove less than complete legal coverage. Implementation is being handled in a

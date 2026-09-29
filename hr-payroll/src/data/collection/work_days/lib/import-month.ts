@@ -26,7 +26,8 @@ import {
 import {
 	applicableLimits,
 	assessmentWindow,
-	observedHolidayDates,
+	observedDays,
+	observedPlan,
 	plannedDay,
 	projectionBounds,
 	rosterCodeFacts,
@@ -48,7 +49,11 @@ type AttendanceRow = Keyed & {
 	readonly clock_in: string;
 	readonly clock_out?: string | null | undefined;
 };
-type OvertimeRow = Keyed & { readonly overtime_hours: number };
+type OvertimeRow = Keyed & {
+	readonly overtime_hours: number;
+	readonly overtime_consented_at?: string | null | undefined;
+	readonly normal_hours_redistribution_agreed_at?: string | null | undefined;
+};
 export type MonthImport = {
 	readonly legal_entity: string;
 	readonly month: string;
@@ -72,6 +77,8 @@ type Halves = {
 	worked_intervals?: readonly Interval[] | null;
 	approved_overtime_hours?: number;
 	incentive_hours?: number;
+	overtime_consented_at?: string | null;
+	normal_hours_redistribution_agreed_at?: string | null;
 };
 
 /** Every text cell trimmed; an empty one is the sheet's fault, named by row. */
@@ -173,7 +180,7 @@ function attendanceValues(
 }
 
 /** Two attendance halves are the same when their instants match. */
-function sameIntervals(left: unknown, right: unknown): boolean {
+export function sameIntervals(left: unknown, right: unknown): boolean {
 	const normalize = (value: unknown) =>
 		value == null
 			? null
@@ -256,6 +263,16 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 		refuse(
 			`These clock fields are not valid local times (HH:mm):\n${formatNamedList(invalidClocks)}`
 		);
+	const invalidEvidence = (overtime ?? []).flatMap((row) =>
+		(['overtime_consented_at', 'normal_hours_redistribution_agreed_at'] as const).flatMap(
+			(field) => {
+				const value = row[field];
+				return value == null || isUtcIsoInstant(value) ? [] : [`${who(row)}: ${field} "${value}"`];
+			}
+		)
+	);
+	if (invalidEvidence.length > 0)
+		refuse(`These agreement facts must be UTC ISO instants:\n${formatNamedList(invalidEvidence)}`);
 
 	// ── one read wave: the entity's codes, patterns, contracts, month, rosters and every settings version ──
 	const [codeRows, patternRows, contractRows, versionRows] = await Promise.all([
@@ -322,8 +339,14 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 				work_date: true,
 				shift_definition_id: true,
 				worked_intervals: true,
+				sg_absence_permission: true,
+				sg_absence_reasonable_excuse: true,
+				sg_absence_decision_reference: true,
+				sg_partial_absence: true,
 				approved_overtime_hours: true,
 				incentive_hours: true,
+				overtime_consented_at: true,
+				normal_hours_redistribution_agreed_at: true,
 				emergency_cause: true,
 				payslip_id: true
 			},
@@ -467,6 +490,8 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 		plan?: string | null;
 		clock?: readonly Interval[] | null;
 		approved?: OvertimeSplit;
+		consent?: string | null;
+		redistributionAgreement?: string | null;
 	};
 	const fileDays = new Map<string, FileDay>();
 	const dayOf = (row: Keyed) => {
@@ -482,6 +507,8 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 	for (const row of overtime ?? []) {
 		const found = dayOf(row);
 		totalByKey.set(personDayKey(found.employmentId, found.workDate), row.overtime_hours);
+		found.consent = row.overtime_consented_at ?? null;
+		found.redistributionAgreement = row.normal_hours_redistribution_agreed_at ?? null;
 	}
 	const carriesPlan = roster !== undefined;
 	const carriesClock = attendance !== undefined;
@@ -495,8 +522,19 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 		work_date: day(row.work_date),
 		shift_definition_id: row.shift_definition_id == null ? null : String(row.shift_definition_id),
 		worked_intervals: row.worked_intervals as readonly Interval[] | null,
+		sg_absence_decision_recorded:
+			row.sg_absence_permission != null ||
+			row.sg_absence_reasonable_excuse != null ||
+			row.sg_absence_decision_reference != null ||
+			row.sg_partial_absence === true,
 		approved_overtime_hours: hours(row.approved_overtime_hours),
 		incentive_hours: hours(row.incentive_hours),
+		overtime_consented_at:
+			row.overtime_consented_at == null ? null : String(row.overtime_consented_at),
+		normal_hours_redistribution_agreed_at:
+			row.normal_hours_redistribution_agreed_at == null
+				? null
+				: String(row.normal_hours_redistribution_agreed_at),
 		emergency_cause: row.emergency_cause === true,
 		payslip_id: row.payslip_id
 	}));
@@ -510,6 +548,23 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 	const conflicts: string[] = [];
 	const untouched = new Set<string>();
 	for (const [at, row] of existingByKey) {
+		if (!row.sg_absence_decision_recorded) continue;
+		const file = fileDays.get(at);
+		if (
+			(file == null && (carriesPlan || carriesClock)) ||
+			(file != null &&
+				((carriesPlan && (file.plan ?? null) !== row.shift_definition_id) ||
+					(carriesClock && !sameIntervals(file.clock ?? null, row.worked_intervals))))
+		)
+			conflicts.push(
+				`${numberByEmployment.get(row.employment_id) ?? row.employment_id} on ${row.work_date} (the file changes a recorded Singapore absence decision)`
+			);
+	}
+	if (conflicts.length > 0)
+		refuse(
+			`Reassess the saved Singapore absence decision before importing changed attendance or roster:\n${formatNamedList(conflicts)}`
+		);
+	for (const [at, row] of existingByKey) {
 		if (row.payslip_id == null) continue;
 		const label = `${numberByEmployment.get(row.employment_id) ?? row.employment_id} on ${row.work_date}`;
 		const file = fileDays.get(at);
@@ -521,7 +576,10 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 			(!carriesPlan || (file.plan ?? null) === row.shift_definition_id) &&
 			(!carriesClock || sameIntervals(file.clock ?? null, row.worked_intervals)) &&
 			(!carriesOvertime ||
-				(totalByKey.get(at) ?? 0) === row.approved_overtime_hours + row.incentive_hours);
+				((totalByKey.get(at) ?? 0) === row.approved_overtime_hours + row.incentive_hours &&
+					(file.consent === undefined || file.consent === row.overtime_consented_at) &&
+					(file.redistributionAgreement === undefined ||
+						file.redistributionAgreement === row.normal_hours_redistribution_agreed_at)));
 		if (same) untouched.add(at);
 		else conflicts.push(`${label} (the file changes it)`);
 	}
@@ -635,13 +693,13 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 				: rosterRows.rows.some(
 						(row) => String(row.employment_id) === employmentId && row.period === month
 					);
-			const holidayDates = observedHolidayDates({
+			const observed = observedDays({
 				dates,
 				cutoffDay,
 				companyId: String(companyId),
 				holidays: holidays as never,
 				codes: codes as never,
-				precedence: rules?.holiday_rest_precedence,
+				work: rules,
 				plans: dates.map((date) => ({ work_date: date, shift_definition_id: explicitOn(date) })),
 				rosterPeriods: rosteredMonth ? [...rosterPeriods, month] : rosterPeriods,
 				patternOn,
@@ -655,16 +713,18 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 					const explicit = explicitOn(date);
 					const patterned = patternOn(date);
 					return {
-						...plannedDay({
-							date,
-							rosterCodeId:
-								explicit ??
-								(patterned == null
-									? null
-									: patternRosterCodeId(patterned.pattern, date, patterned.anchor)),
-							codeById
-						}),
-						holiday: holidayDates.has(date),
+						...observedPlan(
+							plannedDay({
+								date,
+								rosterCodeId:
+									explicit ??
+									(patterned == null
+										? null
+										: patternRosterCodeId(patterned.pattern, date, patterned.anchor)),
+								codeById
+							}),
+							observed
+						),
 						emergency: row?.emergency_cause === true,
 						total_overtime_hours: inMonth
 							? (totals.get(at) ?? 0)
@@ -693,7 +753,9 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 		...(carriesOvertime
 			? {
 					approved_overtime_hours: file?.approved?.approved_overtime_hours ?? 0,
-					incentive_hours: file?.approved?.incentive_hours ?? 0
+					incentive_hours: file?.approved?.incentive_hours ?? 0,
+					overtime_consented_at: file?.consent ?? null,
+					normal_hours_redistribution_agreed_at: file?.redistributionAgreement ?? null
 				}
 			: {})
 	});
@@ -724,6 +786,7 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 		.filter(([at]) => !fileDays.has(at))
 		.filter(
 			([, row]) =>
+				!row.sg_absence_decision_recorded &&
 				(carriesPlan || row.shift_definition_id == null) &&
 				(carriesClock || row.worked_intervals == null) &&
 				(carriesOvertime || row.approved_overtime_hours + row.incentive_hours === 0)

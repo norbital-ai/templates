@@ -18,7 +18,7 @@ type SelectedBreakRule = {
 
 /**
  * Whether a working day satisfied its jurisdiction's rest break, from the punches: every statute in
- * `work_rules.breaks` is a consecutive-hours rule, so the input is intervals and a break total,
+ * `work_rules.breaks` is a consecutive-hours rule, so the input is timed intervals,
  * never overtime (a break shorter than the minimum does not interrupt the hours: EA 1955
  * s.60A(1)(i)). Pure, so the day sheet, the roster gate and the transform quote one number.
  *
@@ -39,7 +39,7 @@ type WorkedIntervalLike = {
 
 type RestBreakInput = {
 	readonly intervals?: ReadonlyArray<WorkedIntervalLike> | null | undefined;
-	/** How long the day's break was (see `derivedBreakMinutes`), never when it was owed. */
+	/** Informational gap total; only the timed intervals prove a qualifying break. */
 	readonly breakMinutes?: number | null | undefined;
 	/** The version's CEL obligations, absent on every lineage that declares none. */
 	readonly breaks?: ReadonlyArray<BreakRuleLike> | null | undefined;
@@ -82,7 +82,7 @@ export type RestBreakAssessment = {
 	 * zero would claim the Act demands nothing, which is the opposite of what it says.
 	 */
 	readonly requiredMinutes: number | null;
-	/** Break actually recorded: the qualifying gaps, topped up to the flat column where it is larger. */
+	/** Break actually recorded: the qualifying timed gaps between worked intervals. */
 	readonly takenMinutes: number;
 	/** `required − taken`, floored at zero; null wherever the question cannot be answered. */
 	readonly shortfallMinutes: number | null;
@@ -174,34 +174,47 @@ export function selectBreakRule(
 /**
  * The break obligation's assessment for one day, from the version's CEL rules.
  *
- * The longest unbroken stretch is measured first — every positive gap interrupts it — and is the
- * `consecutive_hours` fact a rule's `when` reads. The selected rule then supplies the qualifying
- * threshold: a gap at or above its minimum is the period of leisure that actually breaks the run.
+ * Each candidate's minimum is evaluated first. Only gaps at or above that minimum interrupt the
+ * `consecutive_hours` run used by its trigger; shorter pauses leave the run continuous.
  */
 export function restBreakAssessment(input: RestBreakInput): RestBreakAssessment {
 	const { spans, open } = spansOf(input.intervals);
-	const longestRun = (gaps: readonly number[]): number => {
+	const longestRun = (qualifyingGapMinutes: number): number => {
 		let longest = 0;
-		let runStart = spans[0]?.start ?? 0;
-		let runEnd = spans[0]?.end ?? runStart;
+		let runMinutes = spans[0] == null ? 0 : (spans[0].end - spans[0].start) / MINUTE_MS;
+		let runEnd = spans[0]?.end ?? 0;
 		for (const span of spans.slice(1)) {
 			const gap = (span.start - runEnd) / MINUTE_MS;
-			if (gap > 0) {
-				longest = Math.max(longest, (runEnd - runStart) / MINUTE_MS);
-				runStart = span.start;
+			if (gap > 0 && gap >= qualifyingGapMinutes) {
+				longest = Math.max(longest, runMinutes);
+				runMinutes = 0;
 			}
+			runMinutes += (span.end - span.start) / MINUTE_MS;
 			runEnd = span.end;
 		}
-		return spans.length === 0 ? 0 : Math.max(longest, (runEnd - runStart) / MINUTE_MS);
+		return Math.max(longest, runMinutes);
 	};
-	const longestRunMinutes = longestRun([]);
-	const rule = selectBreakRule(input.breaks, {
-		consecutiveHours: Math.round((longestRunMinutes / 60) * 10_000) / 10_000,
+	const facts = (minutes: number) => ({
+		consecutiveHours: Math.round((minutes / 60) * 10_000) / 10_000,
 		overtimeHours: input.overtimeHours ?? 0,
 		continuousAttendance: input.continuousAttendance ?? false,
 		nightHours: input.nightHours ?? 0,
 		person: input.person ?? null
 	});
+	let longestRunMinutes = longestRun(0);
+	let rule: SelectedBreakRule | null = null;
+	for (const candidate of input.breaks ?? []) {
+		const candidateMinimum = selectBreakRule(
+			[{ ...candidate, when: 'true' }],
+			facts(longestRun(Number.POSITIVE_INFINITY))
+		)?.minimum_minutes;
+		const measured = longestRun(candidateMinimum == null ? 0 : Math.max(0, candidateMinimum));
+		const selected = selectBreakRule([candidate], facts(measured));
+		if (selected == null) continue;
+		rule = selected;
+		longestRunMinutes = measured;
+		break;
+	}
 	const threshold = rule?.minimum_minutes ?? 0;
 	let observedBreakMinutes = 0;
 	if (spans.length > 1) {
@@ -213,6 +226,8 @@ export function restBreakAssessment(input: RestBreakInput): RestBreakAssessment 
 		}
 	}
 	const recorded = input.breakMinutes ?? 0;
+	// A time entry is a span: the break a day provides is what the shift grants or the statute owes,
+	// whichever is larger, so it is taken unless the day shows a longer gap already.
 	const takenMinutes = Math.round(
 		Math.max(observedBreakMinutes, Number.isFinite(recorded) ? Math.max(0, recorded) : 0)
 	);
@@ -232,16 +247,22 @@ export function restBreakAssessment(input: RestBreakInput): RestBreakAssessment 
 }
 
 /**
- * The break a day took, derived: the shift grants a break, and whatever of it is already visible
- * as a gap between the day's punches is not deducted twice. One interval takes the whole granted
- * break off; two intervals an hour apart on a shift granting an hour take nothing further off.
- * A day with no shift, or no punches, has no break to derive.
+ * The break a day took, derived: the shift (or the statute) provides a break, and whatever of it is
+ * already visible as a gap between the day's punches is not deducted twice. One interval takes the
+ * whole provided break off; two intervals an hour apart on a shift granting an hour take nothing
+ * further off. A day with no shift, or no punches, has no break to derive.
+ *
+ * A time entry carries a start and an end and nothing else, so the break a normal day provides is
+ * deducted from the span: the predefined break is part of the work pattern, and where the statute's
+ * mandatory minimum is longer, that minimum governs.
  */
-export function derivedBreakMinutes(
+export function grantedBreakMinutes(
 	intervals: readonly WorkedIntervalLike[] | null | undefined,
 	grantedMinutes: number | null | undefined
 ): number {
 	if (intervals == null || intervals.length === 0) return 0;
+	// A day still being worked has no completed span to take a break off.
+	if (intervals.some((interval) => interval.end == null)) return 0;
 	const closed = intervals
 		.flatMap((interval) => {
 			const start = Date.parse(interval.start);
@@ -254,3 +275,35 @@ export function derivedBreakMinutes(
 		gapMinutes += Math.max(0, closed[index]!.start - closed[index - 1]!.end) / 60_000;
 	return Math.max(0, Math.round(Math.max(0, grantedMinutes ?? 0) - gapMinutes));
 }
+
+/**
+ * The break a punched day provides: the larger of the shift's granted minutes and the version's
+ * statutory mandatory minimum, less any gap the day already shows.
+ *
+ * A time entry carries a start and an end, so the break a normal day provides is read from the work
+ * pattern; where the statute owes a longer mandatory rest break, that minimum governs instead. A
+ * rule whose break counts as worked time (`counts_as_worked_time: true`) adds nothing to deduct.
+ */
+export function providedBreakMinutes(input: {
+	readonly intervals: readonly WorkedIntervalLike[] | null | undefined;
+	readonly shiftMinutes: number | null | undefined;
+	readonly breaks?: readonly BreakRuleLike[] | null | undefined;
+	readonly person?: PersonContext | null | undefined;
+	/** Hours inside the regime's night window, for a rule that owes a longer break at night (VN art.109(1)). */
+	readonly nightHours?: number | null | undefined;
+}): number {
+	const granted = Math.max(0, input.shiftMinutes ?? 0);
+	const assessment = restBreakAssessment({
+		intervals: input.intervals,
+		breakMinutes: granted,
+		breaks: input.breaks,
+		person: input.person ?? null,
+		nightHours: input.nightHours ?? 0
+	});
+	const owed =
+		assessment.rule?.counts_as_worked_time === true ? 0 : (assessment.requiredMinutes ?? 0);
+	return grantedBreakMinutes(input.intervals, Math.max(granted, owed));
+}
+
+/** The name the call sites have always used for `grantedBreakMinutes`. */
+export const derivedBreakMinutes = grantedBreakMinutes;

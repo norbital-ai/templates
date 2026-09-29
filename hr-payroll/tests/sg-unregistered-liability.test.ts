@@ -10,10 +10,10 @@ test('Singapore: incomplete CPF and SHG registration does not waive mandatory li
 			people: [
 				...(
 					[
-						['CDAC', 'CHINESE', ''],
-						['ECF', 'EURASIAN', ''],
+						['CDAC', 'CHINESE', 'NONE'],
+						['ECF', 'EURASIAN', 'NONE'],
 						['MBMF', 'MALAY', 'ISLAM'],
-						['SINDA', 'INDIAN', '']
+						['SINDA', 'INDIAN', 'NONE']
 					] as const
 				).map(([scheme, race, religion]) => ({
 					key: scheme,

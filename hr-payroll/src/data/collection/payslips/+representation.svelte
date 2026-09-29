@@ -23,7 +23,7 @@
 	import { schemeLabel } from '../../../lib/payroll/scheme-label.js';
 	import type { PayrollTrace } from '../../../lib/datatypes/payroll_trace.js';
 	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/display-formatters.js';
-	import { live } from '../../../lib/ui/live.svelte.js';
+	import { live, liveRows } from '../../../lib/ui/live.svelte.js';
 	import { plain } from '../../../lib/wire.js';
 
 	let { view }: { view: RecordView<'payslips'> } = $props();
@@ -40,6 +40,37 @@
 				})
 	);
 	const employment = $derived(summary.current?.employment_id ?? null);
+	const payableRows = liveRows(() =>
+		record == null || record.payment_mode !== 'EVENT_LEDGER'
+			? null
+			: bolt.read('payable_tranches', {
+					where: { settlement: { payslips: { eq: record.id } } },
+					select: {
+						gross_amount: true,
+						payment_allocations: { select: { gross_amount: true }, all: true }
+					},
+					all: true
+				})
+	);
+	const paymentProgress = $derived.by(() => {
+		const rows = payableRows.current ?? [];
+		const due = rows.reduce((sum, row) => sum + decodeNumber(row.gross_amount), 0);
+		const allocated = rows.reduce(
+			(sum, row) =>
+				sum +
+				row.payment_allocations.reduce(
+					(part, allocation) => part + decodeNumber(allocation.gross_amount),
+					0
+				),
+			0
+		);
+		return {
+			due,
+			allocated,
+			remaining: Math.max(0, due - allocated),
+			hasTranches: rows.length > 0
+		};
+	});
 
 	/**
 	 * The outputs, read straight off the record.
@@ -488,6 +519,27 @@
 					{employment?.employee_number ?? t('component.employment')} · {record.currency}
 				</p>
 			</Stack>
+			{#if record.payment_mode === 'EVENT_LEDGER'}
+				<Stack as="section" gap="xs" class="border-b border-border pb-4">
+					<h3 class="text-subhead">
+						{paymentProgress.allocated > 0 && paymentProgress.remaining > 0
+							? t('component.payment_partially_paid')
+							: record.status === 'PAID'
+								? t('component.payment_settled')
+								: t('component.payment_awaiting')}
+					</h3>
+					{#if paymentProgress.hasTranches}
+						<p class="text-meta">
+							{t('component.payment_gross_allocated')}: {formatNumeric(paymentProgress.allocated)} /
+							{formatNumeric(paymentProgress.due)}
+							{record.currency} ·
+							{t('component.payment_gross_remaining')}: {formatNumeric(paymentProgress.remaining)}
+						</p>
+					{:else if !payableRows.loading}
+						<p class="text-meta">{t('component.payment_plan_missing')}</p>
+					{/if}
+				</Stack>
+			{/if}
 
 			<Stack
 				as="section"

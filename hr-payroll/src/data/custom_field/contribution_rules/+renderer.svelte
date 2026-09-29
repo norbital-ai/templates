@@ -25,6 +25,7 @@
 		refusal: string;
 		warning: string;
 		per_unit: boolean;
+		payment_occasion: boolean;
 	};
 
 	type Value = readonly ContributionRule[];
@@ -55,7 +56,8 @@
 				deduction: rule.deduction ?? '',
 				refusal: rule.refusal ?? '',
 				warning: rule.warning ?? '',
-				per_unit: rule.per_unit ?? false
+				per_unit: rule.per_unit ?? false,
+				payment_occasion: rule.payment_occasion ?? false
 			}));
 		},
 		{ lazy: false }
@@ -66,6 +68,12 @@
 			key: 'per_unit',
 			label: t('renderer.unit_assessments.rule'),
 			field: fieldOf('per_unit', 'boolean'),
+			width: 140
+		},
+		{
+			key: 'payment_occasion',
+			label: t('renderer.unit_assessments.payment_occasion'),
+			field: fieldOf('payment_occasion', 'boolean'),
 			width: 140
 		},
 		{
@@ -134,7 +142,8 @@
 				...(row.deduction.trim() === '' ? {} : { deduction: row.deduction }),
 				...(row.refusal.trim() === '' ? {} : { refusal: row.refusal }),
 				...(row.warning.trim() === '' ? {} : { warning: row.warning }),
-				...(row.per_unit ? { per_unit: true } : {})
+				...(row.per_unit ? { per_unit: true } : {}),
+				...(row.payment_occasion ? { payment_occasion: true } : {})
 			}))
 		);
 	}
@@ -160,7 +169,8 @@
 			deduction: '',
 			refusal: '',
 			warning: '',
-			per_unit: false
+			per_unit: false,
+			payment_occasion: false
 		})}
 		onChange={commit}
 	/>

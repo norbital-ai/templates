@@ -322,7 +322,8 @@ export async function admitPayRequests(
 										resolved,
 										componentCode: component.code,
 										subject: person.label,
-										proposed: signOf(candidate) * pricedAt(candidate, eventDate, component.bands)
+										proposed: signOf(candidate) * pricedAt(candidate, eventDate, component.bands),
+										currency: person.currency ?? undefined
 									});
 						if (refusal !== null) refuse(refusal);
 					}

@@ -7,7 +7,7 @@
 	 */
 	import { t, type MessageKey } from '../../../lib/ui/t.js';
 	import { bolt } from '$bolt';
-	import { AppShell, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Cover, Inline, Stack } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import { Badge, Table, Tabs } from '@norbital-ai/ui';
 	import { inclusiveDays } from '../../../lib/payroll/run/dates.js';
@@ -135,21 +135,7 @@
 	{#if scope.id == null}
 		{@render empty(t('app.payroll.empty_overview'))}
 	{:else}
-		<Stack as="section" gap="md" aria-label={t('app.payroll.payroll_cycles')}>
-			<Inline align="end" justify="between" gap="md">
-				<Stack gap="xs">
-					<h2 class="text-heading">{t('app.payroll.payroll_cycles')}</h2>
-					<p class="text-sm text-muted-foreground">{t('app.payroll.payroll_cycles_description')}</p>
-				</Stack>
-				<p class="shrink-0 text-sm text-muted-foreground">
-					{#if late > 0}<span class="font-medium text-destructive"
-							>{t('app.payroll.late_count', { count: late })}</span
-						> ·{/if}
-					{unpaid === 1
-						? t('app.payroll.unpaid_run_one')
-						: t('app.payroll.unpaid_runs_many', { count: unpaid })}
-				</p>
-			</Inline>
+		<Cover as="section" gap="md" top={cyclesHeader} aria-label={t('app.payroll.payroll_cycles')}>
 			<Table
 				of={cycles}
 				key="cycles"
@@ -163,8 +149,24 @@
 					{ field: 'id', label: t('app.payroll.timing'), cell: timingCell }
 				]}
 			/>
-		</Stack>
+		</Cover>
 	{/if}
+{/snippet}
+{#snippet cyclesHeader()}
+	<Inline align="end" justify="between" gap="md">
+		<Stack gap="xs">
+			<h2 class="text-heading">{t('app.payroll.payroll_cycles')}</h2>
+			<p class="text-sm text-muted-foreground">{t('app.payroll.payroll_cycles_description')}</p>
+		</Stack>
+		<p class="shrink-0 text-sm text-muted-foreground">
+			{#if late > 0}<span class="font-medium text-destructive"
+					>{t('app.payroll.late_count', { count: late })}</span
+				> ·{/if}
+			{unpaid === 1
+				? t('app.payroll.unpaid_run_one')
+				: t('app.payroll.unpaid_runs_many', { count: unpaid })}
+		</p>
+	</Inline>
 {/snippet}
 
 {#snippet runsTab()}
@@ -198,6 +200,40 @@
 	{/if}
 {/snippet}
 
+{#snippet paymentsTab()}
+	{#if scope.id == null}
+		{@render empty(t('app.payroll.empty_runs'))}
+	{:else}
+		<Stack gap="lg">
+			<Cover as="section" gap="md" aria-label={t('app.payroll.payment_events')}>
+				<Table
+					of="payment_events"
+					toolbar={{ title: t('app.payroll.payment_events'), new: true }}
+					where={{ company_id: { eq: scope.id } }}
+					orderBy={{ paid_on: 'desc' }}
+					columns={[
+						'paid_on',
+						'employee_id',
+						'reference',
+						'currency',
+						'gross_amount',
+						'cash_amount'
+					]}
+				/>
+			</Cover>
+			<Cover as="section" gap="md" aria-label={t('app.payroll.vn_noncontract_obligations')}>
+				<Table
+					of="vn_noncontract_settlements"
+					toolbar={{ title: t('app.payroll.vn_noncontract_obligations'), new: true }}
+					where={{ company_id: { eq: scope.id } }}
+					orderBy={{ created_at: 'desc' }}
+					columns={['employee_id', 'reference', 'currency', 'agreed_gross_vnd', 'agreed_due_on']}
+				/>
+			</Cover>
+		</Stack>
+	{/if}
+{/snippet}
+
 <AppShell
 	icon="lucide:badge-dollar-sign"
 	title="Payroll"
@@ -218,6 +254,12 @@
 				title: t('app.payroll.tab_runs'),
 				icon: 'lucide:badge-dollar-sign',
 				body: runsTab
+			},
+			{
+				name: 'payments',
+				title: t('app.payroll.tab_payments'),
+				icon: 'lucide:banknote',
+				body: paymentsTab
 			}
 		]}
 	/>

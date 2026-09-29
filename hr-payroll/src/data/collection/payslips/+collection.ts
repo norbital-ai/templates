@@ -37,14 +37,21 @@ type Slip = {
 	readonly payroll_run_id: string;
 	readonly employment_id: string;
 	readonly status: string;
+	readonly payment_mode: string;
 	readonly paid_at: string | null;
 	readonly currency: string;
+	readonly statutory?: readonly { readonly payment_occasion?: boolean | null }[] | null;
 	readonly unfunded_contributions: unknown;
 	readonly funding_received: unknown;
 	readonly funding_received_on: string | null;
 	readonly funding_reference: string | null;
 };
-type Run = { readonly id: string; readonly company_id: string; readonly period: string };
+type Run = {
+	readonly id: string;
+	readonly company_id: string;
+	readonly period: string;
+	readonly pay_date?: string | null;
+};
 type Hold = {
 	readonly employment_id: string;
 	readonly category: string;
@@ -72,6 +79,14 @@ c.transform(async (inputs, ctx) => {
 		]);
 		const runById = new Map(runs.map((run) => [run.id, run]));
 		const gone = new Set(stored.flatMap((slip) => (slip == null ? [] : [slip.id])));
+		const tranches = await readAll<{ readonly id: string }>(ctx.db, 'payable_tranches', {
+			settlement: { payslips: { in: [...gone] } }
+		});
+		const [allocated] = await readAll<{ readonly id: string }>(ctx.db, 'payment_allocations', {
+			payable_tranche_id: { in: tranches.map((row) => row.id) }
+		});
+		if (allocated != null)
+			refuse('This payslip has an actual payment allocation and cannot be deleted.');
 		for (const slip of stored) {
 			const period = slip == null ? undefined : runById.get(slip.payroll_run_id)?.period;
 			if (slip == null || period == null) continue;
@@ -94,9 +109,10 @@ c.transform(async (inputs, ctx) => {
 		return slip != null && input.status === 'PAID' && slip.status !== 'PAID' ? [slip] : [];
 	});
 	const payingEmployments = [...new Set(paying.map((slip) => slip.employment_id))];
+	const affectedSlipIds = stored.flatMap((slip) => (slip == null ? [] : [slip.id]));
 	// One wave: every unpaid slip of the people being paid with its run ("paid in order" is a rule about a
 	// person's own pay), their disbursement holds and the declared exit needed for clearance.
-	const [unpaid, runs, holds, employments, terms, companies] = await Promise.all([
+	const [unpaid, runs, holds, employments, terms, companies, tranches] = await Promise.all([
 		readAll<Slip>(ctx.db, 'payslips', {
 			employment_id: { in: payingEmployments },
 			status: { ne: 'PAID' }
@@ -115,8 +131,19 @@ c.transform(async (inputs, ctx) => {
 		}),
 		readAll<WorkspaceRow<'companies'>>(ctx.db, 'companies', {
 			employments: { some: { id: { in: payingEmployments } } }
-		})
+		}),
+		readAll<{
+			readonly id: string;
+			readonly settlement: { readonly collection: string; readonly id: string };
+		}>(ctx.db, 'payable_tranches', { settlement: { payslips: { in: affectedSlipIds } } })
 	]);
+	const allocatedTranches = new Set(
+		(
+			await readAll<{ readonly payable_tranche_id: string }>(ctx.db, 'payment_allocations', {
+				payable_tranche_id: { in: tranches.map((row) => row.id) }
+			})
+		).map((row) => row.payable_tranche_id)
+	);
 	const runById = new Map(runs.map((run) => [run.id, run]));
 	const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
 	const codes = [
@@ -135,6 +162,13 @@ c.transform(async (inputs, ctx) => {
 	return updates.map((input, index) => {
 		const slip = stored[index];
 		if (slip == null) return input;
+		if (
+			tranches.some((row) => row.settlement.id === slip.id && allocatedTranches.has(row.id)) &&
+			(input.funding_received !== undefined ||
+				input.funding_received_on !== undefined ||
+				input.funding_reference !== undefined)
+		)
+			refuse('A partially paid payslip keeps its contribution funding evidence frozen.');
 		const to = input.status ?? slip.status;
 		const funding = decodeNumber(input.funding_received ?? slip.funding_received ?? 0);
 		const unfunded = decodeNumber(slip.unfunded_contributions ?? 0);
@@ -162,6 +196,19 @@ c.transform(async (inputs, ctx) => {
 				field: 'paid_at'
 			});
 		if (to !== 'PAID' || slip.status === 'PAID') return input;
+		if (
+			slip.payment_mode === 'EVENT_LEDGER' ||
+			tranches.some((tranche) => tranche.settlement.id === slip.id)
+		)
+			refuse('This payslip requires actual payment allocations before it can be settled.');
+		if (slip.statutory?.some((charge) => charge.payment_occasion === true)) {
+			const scheduled = runById.get(slip.payroll_run_id)?.pay_date;
+			if (scheduled == null || dateKey(scheduled) !== dateKey(String(paidAt)))
+				refuse(
+					'Payment-occasion withholding was calculated for the run settlement date. Recalculate payroll for the actual payment date before marking this payslip paid.',
+					{ field: 'paid_at' }
+				);
+		}
 		if (funding < unfunded)
 			refuse(
 				'Employee statutory contributions remain unfunded. Record the funds received before settling this payslip.'

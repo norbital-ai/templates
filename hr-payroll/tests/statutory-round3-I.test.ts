@@ -53,7 +53,18 @@ const holiday = (date: string) => ({
 	approval_id: null
 });
 
-type Punch = readonly [date: string, start: string, end: string, emergency?: boolean];
+/**
+ * `[date, start, end, emergency?, rest?]`. `rest` is the break the day takes, written as the gap
+ * between its worked intervals: a break owed and not taken is worked time (VN art.109(1), TW §35),
+ * so only a gap proves one was taken.
+ */
+type Punch = readonly [
+	date: string,
+	start: string,
+	end: string,
+	emergency?: boolean,
+	rest?: readonly [string, string]
+];
 
 const plant = (
 	world: PayrollWorld,
@@ -64,15 +75,19 @@ const plant = (
 ) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
 	for (const date of holidays) world.jurisdiction_holidays.push(holiday(date) as never);
-	for (const [date, start, end, emergency] of punches)
+	for (const [date, start, end, emergency, rest] of punches)
 		world.work_days.push({
 			id: `wd-${key}-${date}`,
 			employment_id: employment.id,
 			work_date: date,
 			shift_definition_id: null,
-			worked_intervals: [
-				{ start: `${date}T${start}:00${offset}`, end: `${date}T${end}:00${offset}` }
-			],
+			worked_intervals:
+				rest == null
+					? [{ start: `${date}T${start}:00${offset}`, end: `${date}T${end}:00${offset}` }]
+					: [
+							{ start: `${date}T${start}:00${offset}`, end: `${date}T${rest[0]}:00${offset}` },
+							{ start: `${date}T${rest[1]}:00${offset}`, end: `${date}T${end}:00${offset}` }
+						],
 			requested_by: null,
 			emergency_cause: emergency === true ? true : null,
 			time_off_in_lieu: null,
@@ -153,8 +168,18 @@ const chain = (options: {
 	return warnings;
 };
 
+/** Weekdays 09:00–`end`, less the shift's one-hour break, taken 13:00–14:00. */
 const days = (month: string, list: readonly number[], start: string, end: string): Punch[] =>
-	list.map((day) => [`${month}-${String(day).padStart(2, '0')}`, start, end] as const);
+	list.map(
+		(day) =>
+			[
+				`${month}-${String(day).padStart(2, '0')}`,
+				start,
+				end,
+				undefined,
+				['13:00', '14:00']
+			] as const
+	);
 
 test('Vietnam round 3 I — art.107(1): rest-day and holiday hours enter the 40-hour month', () => {
 	const warnings = chain({
@@ -165,11 +190,12 @@ test('Vietnam round 3 I — art.107(1): rest-day and holiday hours enter the 40-
 			// Nine weekdays 09:00–21:00 less the one-hour break: 11 worked, 3 beyond the normal day each
 			// — 27, inside 40 on their own.
 			...days('2026-01', [2, 5, 6, 7, 8, 9, 12, 13, 14], '09:00', '21:00'),
-			// Saturday the 10th, a rest day: 9 hours of clock, art.109(1)'s thirty minutes not working
-			// time — 8.5 hours, every one of them overtime (art.107(1), paid at art.98(1)(b)).
+			// Saturday the 10th, a rest day: 9 continuous clocked hours. Art.109(1)'s seeded thirty
+			// minutes are provided and no gap proves one taken, so 8.5 hours were worked, every one
+			// of them overtime (art.107(1), paid at art.98(1)(b)).
 			['2026-01-10', '09:00', '18:00'],
 			// Thursday 1 January, Tết Dương lịch: 09:00–18:00 less the break, 8 hours at art.98(1)(c).
-			['2026-01-01', '09:00', '18:00']
+			['2026-01-01', '09:00', '18:00', undefined, ['13:00', '14:00']]
 		]
 	});
 	// 27 + 8.5 + 8 = 43.5 > 40. The year (43.5) is inside 200.
@@ -194,12 +220,12 @@ test('Vietnam round 3 I — the 200-hour year reads two earlier months as they w
 			// January: twelve weekdays (48), the Saturday 10th (8.5, as above) and the 1st (8) = 64.5.
 			...days('2026-01', [2, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 19], '09:00', '22:00'),
 			['2026-01-10', '09:00', '18:00'],
-			['2026-01-01', '09:00', '18:00'],
+			['2026-01-01', '09:00', '18:00', undefined, ['13:00', '14:00']],
 			// February: twelve weekdays (48) and Saturday the 7th (8.5) = 56.5; the 18th is an art.108
 			// emergency, its 4 hours beyond the day outside every cap.
 			...days('2026-02', [2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 16, 17], '09:00', '22:00'),
 			['2026-02-07', '09:00', '18:00'],
-			['2026-02-18', '09:00', '22:00', true],
+			['2026-02-18', '09:00', '22:00', true, ['13:00', '14:00']],
 			// March: twelve weekdays (48) and Saturday the 7th (8.5) = 56.5.
 			...days('2026-03', [2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 16, 17], '09:00', '22:00'),
 			['2026-03-07', '09:00', '18:00'],
@@ -231,10 +257,10 @@ test('Taiwan round 3 I — the 138-hour quarter reads January as its ceiling cou
 			// January: twelve weekdays = 48, and the 1st (開國紀念日, §37) 09:00–21:00: 11 worked, the
 			// first 8 the §39 doubled day outside the total, the 3 past them inside it — 51.
 			...days('2026-01', [2, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 19], '09:00', '22:00'),
-			['2026-01-01', '09:00', '21:00'],
+			['2026-01-01', '09:00', '21:00', undefined, ['13:00', '14:00']],
 			// February: twelve weekdays = 48; the 18th is a §32(4) emergency, outside the total.
 			...days('2026-02', [2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 16, 17], '09:00', '22:00'),
-			['2026-02-18', '09:00', '23:00', true],
+			['2026-02-18', '09:00', '23:00', true, ['13:00', '14:00']],
 			// March: twelve weekdays = 48.
 			...days('2026-03', [2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 16, 17], '09:00', '22:00')
 		]
@@ -267,10 +293,12 @@ test('Taiwan round 3 I — §32(2): hours past eight on a §37 休假日 and a �
 			]
 		}).map((line) => line.match(/worked ([\d.]+) regulated overtime hours in ([^,\s]+)/)?.slice(1));
 	// The holiday worked 09:00–18:00: 8 hours, all inside the §39 day — 44, no report.
-	assert.deepEqual(month([['2026-01-01', '09:00', '18:00']]), []);
+	assert.deepEqual(month([['2026-01-01', '09:00', '18:00', undefined, ['13:00', '14:00']]]), []);
 	// The holiday worked 09:00–21:00: 11 hours, 3 past eight — 44 + 3 = 47 > 46.
-	assert.deepEqual(month([['2026-01-01', '09:00', '21:00']]), [['47', '2026-01']]);
-	// Sunday the 11th, the 例假, worked 09:00–21:00: 12 hours of clock with no break taken, none
-	// deducted (TW-D3) — 4 past eight: 44 + 4 = 48 > 46.
-	assert.deepEqual(month([['2026-01-11', '09:00', '21:00']]), [['48', '2026-01']]);
+	assert.deepEqual(month([['2026-01-01', '09:00', '21:00', undefined, ['13:00', '14:00']]]), [
+		['47', '2026-01']
+	]);
+	// Sunday the 11th, the 例假, worked 09:00–21:00: 12 continuous clocked hours; §35 provides 30
+	// minutes and no gap proves one taken, so 11.5 are worked — 3.5 past eight: 44 + 3.5 = 47.5 > 46.
+	assert.deepEqual(month([['2026-01-11', '09:00', '21:00']]), [['47.5', '2026-01']]);
 });

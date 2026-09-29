@@ -32,8 +32,39 @@ export default model({
 		minimum_wage_2026_area_reclassified: { kind: 'bool', optional: true },
 		/** The worksite a daily wage table names: a province or `province/district` (TH Notice 14). */
 		worksite: { kind: 'text', optional: true },
+		/** PH wage-order municipality evidence for this dated terms revision. */
+		ph_worksite_source_reference: { kind: 'text', optional: true },
+		ph_worksite_source_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
+		/** Dated Malaysian state or federal territory; required by the MY payroll profiles. */
+		worksite_state: {
+			kind: 'enum',
+			values: [
+				'JOHOR',
+				'KEDAH',
+				'KELANTAN',
+				'MELAKA',
+				'NEGERI_SEMBILAN',
+				'PAHANG',
+				'PERAK',
+				'PERLIS',
+				'PULAU_PINANG',
+				'SELANGOR',
+				'TERENGGANU',
+				'KUALA_LUMPUR',
+				'PUTRAJAYA',
+				'LABUAN',
+				'SABAH',
+				'SARAWAK'
+			],
+			optional: true
+		},
 		/** The worksite's sector a daily wage table names, e.g. HOTEL_TYPE_2 (TH Notice 14 cl.2). */
 		worksite_sector: { kind: 'text', optional: true },
+		/** PH wage-order industry evidence for this dated terms revision. */
+		ph_sector_source_reference: { kind: 'text', optional: true },
+		ph_sector_source_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
+		/** The KBLI edition of an ID worksite sector; dated with this terms revision. */
+		worksite_sector_edition: { kind: 'enum', values: ['2020', '2025'], optional: true },
 		/** The allowances the contract carries; `[]` when none. */
 		allowances: { kind: 'custom', of: 'contract_allowances', default: [] },
 		pay_frequency: {
@@ -56,11 +87,19 @@ export default model({
 				'COMMERCIAL_VEHICLE_OPERATOR',
 				'VESSEL_WORK',
 				'FIELD_PERSONNEL',
+				/** TH: guarding premises or property as the employee's ordinary duty. */
+				'GUARD_DUTY',
 				'PIECE_RATE',
 				'TASK_BASIS'
 			],
 			default: 'NON_MANUAL'
 		},
+		/** Ministerial Regulation hazardous work: LPA s.23 limits normal work to 7 hours a day and 42 a week. */
+		hazardous_work: { kind: 'bool', default: false },
+		/** TH LPA s.39/1: dated status used before night, overtime or holiday work is allowed. */
+		th_pregnancy_status: { kind: 'enum', values: ['PREGNANT', 'NOT_PREGNANT'], optional: true },
+		/** PP 44/2015 art.19(5): weather-dependent piece work uses twelve paid months, not three. */
+		weather_dependent_piece: { kind: 'bool', default: false },
 		employment_type: {
 			kind: 'enum',
 			values: [
@@ -74,6 +113,12 @@ export default model({
 				'DOMESTIC'
 			]
 		},
+		/** Last day of the probation the contract agrees, where one is; `terms.probation_months` (CN LCL arts.19, 83). */
+		probation_end: { kind: 'date', optional: true },
+		/** The wage the contract agrees for after the probation; `terms.post_probation_wage` (CN LCL arts.20, 83). */
+		post_probation_wage: { kind: 'money', currency: 'currency', optional: true },
+		/** The day an open-ended contract should have been concluded; `terms.open_ended_overdue_months` (CN LCL arts.14, 82 para.2). */
+		open_ended_due_on: { kind: 'date', optional: true },
 		/** Notice either side owes on termination, in days; `terms.notice_days`. */
 		notice_days: { kind: 'int', min: 0, optional: true },
 		department: { kind: 'text', optional: true },
@@ -89,6 +134,23 @@ export default model({
 		paid_rest_days: { kind: 'bool', default: false },
 		/** The entity's own benefit tier; `terms.grade`. */
 		grade: { kind: 'text', optional: true },
+		/** ID PP 36/2021 arts.20, 24 and PP 49/2025 art.21: this worker's company wage-scale grade. */
+		id_wage_scale_grade: { kind: 'text', optional: true },
+		/** The basic-wage minimum for that grade, not the government UMP/UMK. */
+		id_wage_scale_basic_minimum: { kind: 'money', currency: 'currency', optional: true },
+		id_wage_scale_effective_on: { kind: 'date', optional: true },
+		id_wage_scale_notice_on: { kind: 'date', optional: true },
+		id_wage_scale_reference: { kind: 'text', optional: true },
+		/** The company's scale and this worker's individual grade notice. */
+		id_wage_scale_evidence_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
+		/** ID: a short-contract foreigner's prior work in Indonesia, checked for BPJS participation. */
+		id_foreign_prior_indonesia_work: {
+			kind: 'enum',
+			values: ['NONE', 'ANY'],
+			optional: true
+		},
+		id_foreign_prior_work_reviewed_on: { kind: 'date', optional: true },
+		id_foreign_prior_work_reference: { kind: 'text', optional: true },
 		/** Contracted ordinary hours a week, where stated; null where the roster measures it. */
 		ordinary_hours_per_week: { kind: 'int', min: 1, optional: true },
 		/** Similar full-time employee's normal day for statutory part-time work premiums. */
@@ -97,6 +159,14 @@ export default model({
 			scale: 2,
 			min: 0.01,
 			max: 24,
+			optional: true
+		},
+		/** Similar full-time employee's normal working hours each week for part-time leave. */
+		comparable_full_time_weekly_hours: {
+			kind: 'decimal',
+			scale: 2,
+			min: 0.01,
+			max: 168,
 			optional: true
 		},
 		/** Whether a similar full-time employee exists; ABSENT invokes the statutory fallback. */

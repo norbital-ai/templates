@@ -51,6 +51,24 @@ const punch = (
 	});
 };
 
+/** The shift's granted hour taken as a gap, so the span punches as the worked time it claims. */
+const punchWithBreak = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	start: string,
+	breakStart: string,
+	breakEnd: string,
+	end: string,
+	flags: { emergency_cause?: boolean; time_off_in_lieu?: boolean } = {}
+) => {
+	punch(world, key, date, start, end, flags);
+	world.work_days.at(-1)!.worked_intervals = [
+		{ start: `${date}T${start}:00+08:00`, end: `${date}T${breakStart}:00+08:00` },
+		{ start: `${date}T${breakEnd}:00+08:00`, end: `${date}T${end}:00+08:00` }
+	];
+};
+
 const THIRD = 'OT-1.3333333333333333X';
 const TWO_THIRDS = 'OT-1.6666666666666667X';
 const TW_PERSON = { key: 'TW-60000', wage: 60_000, citizenship: 'CITIZEN' } as const;
@@ -71,13 +89,15 @@ test('Taiwan round 3 — §32(4) emergency hours are paid double and sit outside
 	const { slips, warnings } = buildStatutory(
 		{ code: 'TW', period: '2026-01', riskClass: '1', people: [TW_PERSON] },
 		(world) => {
-			// Ten weekdays, each 09:00–23:00 less the one-hour break: 13 worked, 5 extended, under
-			// an emergency. 50 extended hours in the month, past both the 46-hour month and the
-			// 12-hour day of §32(2).
+			// Ten weekdays, each 09:00–23:00 less the one-hour break the day takes: 13 worked, 5
+			// extended, under an emergency. 50 extended hours in the month, past both the 46-hour
+			// month and the 12-hour day of §32(2).
 			for (const date of EMERGENCY_DAYS)
-				punch(world, TW_PERSON.key, date, '09:00', '23:00', { emergency_cause: true });
+				punchWithBreak(world, TW_PERSON.key, date, '09:00', '13:00', '14:00', '23:00', {
+					emergency_cause: true
+				});
 			// An ordinary Tuesday in the next week, 09:00–21:00: 11 worked, 3 extended under §32(1).
-			punch(world, TW_PERSON.key, '2026-01-20', '09:00', '21:00');
+			punchWithBreak(world, TW_PERSON.key, '2026-01-20', '09:00', '13:00', '14:00', '21:00');
 		}
 	);
 	assert.deepEqual(workLines(slips.get(TW_PERSON.key)!), [
@@ -111,15 +131,25 @@ test('Taiwan round 3 — §32-1 time off elected instead of overtime pay is pric
 			// The 補休 balance expires with the annual-leave year (施行細則 §22-2), read off the catalogue.
 			world.leave_catalogue.push(...(leaveCatalogue('TW') as never[]));
 			const inLieu = { time_off_in_lieu: true };
-			// Monday 09:00–21:00: 3 extended hours under §32(1), elected as 補休: the §24(1) ladder stands aside.
-			punch(world, TW_PERSON.key, '2026-01-05', '09:00', '21:00', inLieu);
+			// Monday 09:00–21:00 less the 13:00–14:00 rest: 3 extended hours under §32(1), elected
+			// as 補休: the §24(1) ladder stands aside.
+			punchWithBreak(
+				world,
+				TW_PERSON.key,
+				'2026-01-05',
+				'09:00',
+				'13:00',
+				'14:00',
+				'21:00',
+				inLieu
+			);
 			// Saturday 休息日 09:00–12:00: 3 hours, elected as 補休 (§32-1 reaches 休息日 work).
 			punch(world, TW_PERSON.key, '2026-01-10', '09:00', '12:00', inLieu);
 			// Sunday 例假 09:00–13:00: §32-1 does not reach it; §40 pays a further day's wage, 2,000.
 			punch(world, TW_PERSON.key, '2026-01-11', '09:00', '13:00', inLieu);
-			// Tuesday 09:00–20:00 in an emergency: §32-1 reaches only §32(1)–(2) extensions, so the
-			// 2 extended hours are paid at §24(1)(3): 2 × 250 × 2 = 1,000.
-			punch(world, TW_PERSON.key, '2026-01-13', '09:00', '20:00', {
+			// Tuesday 09:00–20:00 less the 13:00–14:00 rest, in an emergency: §32-1 reaches only
+			// §32(1)–(2) extensions, so the 2 extended hours are paid at §24(1)(3): 2 × 250 × 2 = 1,000.
+			punchWithBreak(world, TW_PERSON.key, '2026-01-13', '09:00', '13:00', '14:00', '20:00', {
 				...inLieu,
 				emergency_cause: true
 			});
@@ -147,15 +177,19 @@ test('Taiwan round 3 — §32-1 time off elected instead of overtime pay is pric
 test('Singapore round 3 — s.38(4) has no time off in lieu: an elected day is still paid its overtime', () => {
 	// s.38(4): extra work "must be paid" at not less than 1.5 × the hourly basic rate. A 2,000
 	// monthly salary (inside Part 4, s.35(b): not over 2,600) on the Fourth Schedule:
-	// 12 × 2,000 ÷ (52 × 44) = 10.4895 an hour; the fixture's Monday 09:00–21:00 is 11 worked
-	// hours, 3 beyond the 8-hour day: 3 × 10.4895 × 1.5 = 47.20.
+	// 12 × 2,000 ÷ (52 × 44) = 10.4895 an hour; the fixture's Monday 09:00–21:00, less the hour the
+	// shift grants and the day takes 13:00–14:00, is 11 worked hours, 3 beyond the 8-hour day:
+	// 3 × 10.4895 × 1.5 = 47.20.
 	const { slips } = buildStatutory(
 		{
 			code: 'SG',
 			period: '2026-01',
 			people: [{ key: 'SG-2000', wage: 2000, citizenship: 'CITIZEN' }]
 		},
-		(world) => punch(world, 'SG-2000', '2026-01-05', '09:00', '21:00', { time_off_in_lieu: true })
+		(world) =>
+			punchWithBreak(world, 'SG-2000', '2026-01-05', '09:00', '13:00', '14:00', '21:00', {
+				time_off_in_lieu: true
+			})
 	);
 	const lines = workLines(slips.get('SG-2000')!);
 	assert.equal(

@@ -36,6 +36,7 @@ export default policy({
 		employment_terms: { read: true },
 		employment_statutory_facts: { read: true },
 		employment_wage_periods: { read: true },
+		presence_periods: { read: true },
 		payment_holds: { read: true },
 		payroll_runs: {
 			read: { fields: ['company_id', 'period', 'attendance_from', 'attendance_to'] }

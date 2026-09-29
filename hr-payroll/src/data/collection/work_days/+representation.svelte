@@ -37,7 +37,7 @@
 	import FormSection from '../../../lib/ui/form-section.svelte';
 	import { employmentPicker, hrCreateScope } from '../../../lib/ui/create-scope.js';
 	import { todayKey } from '../../../lib/ui/calendar.js';
-	import { dateKey, PAYROLL_TIME_ZONE } from '../../../lib/iso-day.js';
+	import { dateKey, isUtcIsoInstant, PAYROLL_TIME_ZONE } from '../../../lib/iso-day.js';
 	import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 	import { onLineage } from '../../../lib/ui/settings-scope.js';
 	import { formatDurationHours } from '../../../lib/ui/display-formatters.js';
@@ -64,9 +64,10 @@
 	import {
 		applicableLimits,
 		assessmentWindow,
-		observedHolidayDates,
+		observedDays,
 		overtimeEntitled,
 		rosterCodeFacts,
+		type ObservedDays,
 		type RosterCodeFacts
 	} from '../../../lib/scheduling/work-limits.js';
 	import {
@@ -298,12 +299,38 @@
 	let baselineAttendance = $state<AttendanceValue>({ intervals: null });
 	/** The day's planned overtime as ONE figure; the statute splits it (approved within the headroom, incentive beyond). */
 	let draftOvertime = $state<number | null>(null);
+	let draftConsent = $state('');
+	let draftRedistributionAgreement = $state('');
+	let draftThSplitBreakAgreement = $state('');
+	let draftThMinorNightPermissionAt = $state('');
+	let draftThMinorNightPermissionReference = $state('');
+	let draftThException = $state<
+		| 'CONTINUOUS_DAMAGE_IF_STOPPED'
+		| 'EMERGENCY'
+		| 'HOLIDAY_HOTEL'
+		| 'HOLIDAY_ENTERTAINMENT'
+		| 'HOLIDAY_TRANSPORT'
+		| 'HOLIDAY_FOOD_SHOP'
+		| 'HOLIDAY_DRINK_SHOP'
+		| 'HOLIDAY_CLUB'
+		| 'HOLIDAY_ASSOCIATION'
+		| 'HOLIDAY_MEDICAL_FACILITY'
+		| null
+	>(null);
+	let draftThExceptionReference = $state('');
+	let draftSgPermission = $state<'YES' | 'NO' | null>(null);
+	let draftSgExcuse = $state<'YES' | 'NO' | null>(null);
+	let draftSgReference = $state('');
+	let draftSgPartial = $state(false);
 	/** Self-service only: the operator has asked to report a punch on a day that has none. */
 	let reporting = $state(false);
 	/** The statutory flags the version's bands read. */
 	let requestedBy = $state<'EMPLOYER' | 'EMPLOYEE' | null>(null);
 	let emergency = $state(false);
 	let timeOffInLieu = $state(false);
+	let draftWorksite = $state('');
+	let draftPieceUnits = $state<number | null>(null);
+	let draftPieceUnitRate = $state<number | null>(null);
 	let saving = $state(false);
 	let notice = $state<{ tone: 'destructive' | 'default'; text: string } | null>(null);
 
@@ -322,6 +349,25 @@
 			storedApproved == null && storedIncentive == null
 				? null
 				: (storedApproved ?? 0) + (storedIncentive ?? 0);
+		draftConsent =
+			record?.overtime_consented_at == null ? '' : String(record.overtime_consented_at);
+		draftRedistributionAgreement =
+			record?.normal_hours_redistribution_agreed_at == null
+				? ''
+				: String(record.normal_hours_redistribution_agreed_at);
+		draftThSplitBreakAgreement =
+			record?.th_split_break_agreed_at == null ? '' : String(record.th_split_break_agreed_at);
+		draftThMinorNightPermissionAt =
+			record?.th_minor_night_permission_granted_at == null
+				? ''
+				: String(record.th_minor_night_permission_granted_at);
+		draftThMinorNightPermissionReference = record?.th_minor_night_permission_reference ?? '';
+		draftThException = record?.th_consent_exception ?? null;
+		draftThExceptionReference = record?.th_consent_exception_reference ?? '';
+		draftSgPermission = record?.sg_absence_permission ?? null;
+		draftSgExcuse = record?.sg_absence_reasonable_excuse ?? null;
+		draftSgReference = record?.sg_absence_decision_reference ?? '';
+		draftSgPartial = record?.sg_partial_absence === true;
 		draftAttendanceRecorded = record?.worked_intervals != null;
 		baselineAttendance = {
 			intervals:
@@ -335,6 +381,9 @@
 		requestedBy = record?.requested_by ?? null;
 		emergency = record?.emergency_cause === true;
 		timeOffInLieu = record?.time_off_in_lieu === true;
+		draftWorksite = record?.worksite ?? '';
+		draftPieceUnits = storedHours(record?.piece_units);
+		draftPieceUnitRate = storedHours(record?.piece_unit_rate);
 		const day = workDate;
 		draftIntervals =
 			day == null
@@ -506,15 +555,15 @@
 		const date = workDate ?? '';
 		const window = overtimeWindow ?? { start: date, end: date };
 		const cutoffDay = entity?.pay_cutoff_day ?? 1;
-		let observed: ReadonlySet<string> = new Set();
+		let observed: ObservedDays = { holidays: new Set(), offDays: new Set() };
 		try {
-			observed = observedHolidayDates({
+			observed = observedDays({
 				dates: [date],
 				cutoffDay,
 				companyId: companyId ?? '',
 				holidays: holidays.current ?? [],
 				codes: [...shiftsById.values()],
-				precedence: rules?.holiday_rest_precedence,
+				work: rules,
 				plans: [
 					...stored
 						.filter((day) => day.date !== date)
@@ -539,11 +588,11 @@
 					return row == null ? null : patternRosterCodeId(row.pattern, day, row.anchor);
 				},
 				codeById,
-				holidays: observed,
+				observed,
 				limits,
 				cutoffDay
 			}),
-			holiday: observed.has(date),
+			holiday: observed.holidays.has(date),
 			entitled:
 				workDate == null ||
 				overtimeEntitled(rules?.overtime_when, person(workDate), (id) =>
@@ -650,18 +699,74 @@
 				emergency !== (record?.emergency_cause === true) ||
 				timeOffInLieu !== (record?.time_off_in_lieu === true))
 	);
+	const thEvidenceTouched = $derived(
+		planWritable &&
+			settingsCode === 'TH' &&
+			(draftConsent !==
+				(record?.overtime_consented_at == null ? '' : String(record.overtime_consented_at)) ||
+				draftRedistributionAgreement !==
+					(record?.normal_hours_redistribution_agreed_at == null
+						? ''
+						: String(record.normal_hours_redistribution_agreed_at)) ||
+				draftThSplitBreakAgreement !==
+					(record?.th_split_break_agreed_at == null
+						? ''
+						: String(record.th_split_break_agreed_at)) ||
+				draftThMinorNightPermissionAt !==
+					(record?.th_minor_night_permission_granted_at == null
+						? ''
+						: String(record.th_minor_night_permission_granted_at)) ||
+				draftThMinorNightPermissionReference !==
+					(record?.th_minor_night_permission_reference ?? '') ||
+				draftThException !== (record?.th_consent_exception ?? null) ||
+				draftThExceptionReference !== (record?.th_consent_exception_reference ?? ''))
+	);
+	const wageDayWritable = $derived(mode === 'controller' && !frozen);
+	const sgEvidenceTouched = $derived(
+		wageDayWritable &&
+			settingsCode === 'SG' &&
+			(draftSgPermission !== (record?.sg_absence_permission ?? null) ||
+				draftSgExcuse !== (record?.sg_absence_reasonable_excuse ?? null) ||
+				draftSgReference !== (record?.sg_absence_decision_reference ?? '') ||
+				draftSgPartial !== (record?.sg_partial_absence === true))
+	);
+	const wageDayTouched = $derived(
+		wageDayWritable &&
+			(draftWorksite !== (record?.worksite ?? '') ||
+				draftPieceUnits !== storedHours(record?.piece_units) ||
+				draftPieceUnitRate !== storedHours(record?.piece_unit_rate))
+	);
 
 	/**
 	 * The guards the write path will apply, before it is asked: nothing changed is no save (a board's create sheet must
 	 * not land an empty person-day), and a punch the assessment refuses is named here.
 	 */
 	const saveProblem = $derived(
-		!planTouched && !attendanceTouched && !overtimeTouched && !flagsTouched
+		!planTouched &&
+			!attendanceTouched &&
+			!overtimeTouched &&
+			!flagsTouched &&
+			!thEvidenceTouched &&
+			!sgEvidenceTouched &&
+			!wageDayTouched
 			? t('roster.day_sheet_cannot_save')
-			: attendanceTouched &&
-				  (missingIntervalStart || (draftIntervals.length > 0 && assessment.problem != null))
-				? (problemMessage ?? t('roster.day_sheet_cannot_save'))
-				: null
+			: thEvidenceTouched &&
+				  ((draftConsent !== '' && !isUtcIsoInstant(draftConsent)) ||
+						(draftRedistributionAgreement !== '' && !isUtcIsoInstant(draftRedistributionAgreement)))
+				? 'Thai consent and normal-hours agreements require UTC instants (YYYY-MM-DDTHH:mm:ss.sssZ).'
+				: thEvidenceTouched && draftThException != null && draftThExceptionReference.trim() === ''
+					? 'Record the evidence reference for the Thai consent exception.'
+					: sgEvidenceTouched && (draftSgPermission == null) !== (draftSgExcuse == null)
+						? 'Record both Singapore absence permission and reasonable-excuse decisions.'
+						: sgEvidenceTouched &&
+							  (draftSgPermission != null || draftSgPartial) &&
+							  draftSgReference.trim() === ''
+							? 'Record the dated Singapore absence decision reference.'
+							: attendanceTouched &&
+								  (missingIntervalStart ||
+										(draftIntervals.length > 0 && assessment.problem != null))
+								? (problemMessage ?? t('roster.day_sheet_cannot_save'))
+								: null
 	);
 
 	/** The halves this sheet changed, and nothing else. */
@@ -682,8 +787,37 @@
 			...(overtimeTouched
 				? { approved_overtime_hours: draftApproved, incentive_hours: draftIncentive }
 				: {}),
+			...(thEvidenceTouched
+				? {
+						overtime_consented_at: draftConsent === '' ? null : Instant(draftConsent),
+						normal_hours_redistribution_agreed_at:
+							draftRedistributionAgreement === '' ? null : Instant(draftRedistributionAgreement),
+						th_split_break_agreed_at:
+							draftThSplitBreakAgreement === '' ? null : Instant(draftThSplitBreakAgreement),
+						th_minor_night_permission_granted_at:
+							draftThMinorNightPermissionAt === '' ? null : Instant(draftThMinorNightPermissionAt),
+						th_minor_night_permission_reference: draftThMinorNightPermissionReference || null,
+						th_consent_exception: draftThException,
+						th_consent_exception_reference: draftThExceptionReference || null
+					}
+				: {}),
+			...(sgEvidenceTouched
+				? {
+						sg_absence_permission: draftSgPermission,
+						sg_absence_reasonable_excuse: draftSgExcuse,
+						sg_absence_decision_reference: draftSgReference || null,
+						sg_partial_absence: draftSgPartial
+					}
+				: {}),
 			...(flagsTouched
 				? { requested_by: requestedBy, emergency_cause: emergency, time_off_in_lieu: timeOffInLieu }
+				: {}),
+			...(wageDayTouched
+				? {
+						worksite: draftWorksite || null,
+						piece_units: draftPieceUnits,
+						piece_unit_rate: draftPieceUnitRate
+					}
 				: {})
 		};
 		saving = true;
@@ -911,11 +1045,159 @@
 				{/if}
 			{/if}
 		</FormSection>
+		{#if settingsCode === 'TH'}
+			<FormSection
+				title="Thai work-time evidence"
+				hint="Record consent or an exception for each overtime or holiday-work occasion. Use UTC timestamps."
+			>
+				{#if planWritable}
+					<Stack as="label" gap="xs" class="text-xs">
+						<span>Worker consent (YYYY-MM-DDTHH:mm:ss.sssZ)</span>
+						<Input
+							type="text"
+							value={draftConsent}
+							oninput={(event) => (draftConsent = event.currentTarget.value)}
+						/>
+					</Stack>
+					<Stack as="label" gap="xs" class="text-xs">
+						<span>Normal-day agreement (YYYY-MM-DDTHH:mm:ss.sssZ)</span>
+						<Input
+							type="text"
+							value={draftRedistributionAgreement}
+							oninput={(event) => (draftRedistributionAgreement = event.currentTarget.value)}
+						/>
+					</Stack>
+					<Stack as="label" gap="xs" class="text-xs">
+						<span>Prior split-break agreement (YYYY-MM-DDTHH:mm:ss.sssZ)</span>
+						<Input
+							type="text"
+							value={draftThSplitBreakAgreement}
+							oninput={(event) => (draftThSplitBreakAgreement = event.currentTarget.value)}
+						/>
+					</Stack>
+					<Stack as="label" gap="xs" class="text-xs">
+						<span>Under-18 night-work permission granted (YYYY-MM-DDTHH:mm:ss.sssZ)</span>
+						<Input
+							type="text"
+							value={draftThMinorNightPermissionAt}
+							oninput={(event) => (draftThMinorNightPermissionAt = event.currentTarget.value)}
+						/>
+					</Stack>
+					<Stack as="label" gap="xs" class="text-xs">
+						<span>Written Director-General permission reference</span>
+						<Input
+							type="text"
+							value={draftThMinorNightPermissionReference}
+							oninput={(event) =>
+								(draftThMinorNightPermissionReference = event.currentTarget.value)}
+						/>
+					</Stack>
+					<Stack gap="xs" class="text-xs">
+						<span>Consent exception under ss.24–25</span>
+						<Combobox
+							class="w-64"
+							clearable
+							placeholder="Worker consent required"
+							options={[
+								{
+									value: 'CONTINUOUS_DAMAGE_IF_STOPPED',
+									label: 'Continuous work; stopping causes damage'
+								},
+								{ value: 'EMERGENCY', label: 'Emergency requiring immediate work' },
+								{ value: 'HOLIDAY_HOTEL', label: 'Holiday: hotel' },
+								{ value: 'HOLIDAY_ENTERTAINMENT', label: 'Holiday: entertainment' },
+								{ value: 'HOLIDAY_TRANSPORT', label: 'Holiday: transport' },
+								{ value: 'HOLIDAY_FOOD_SHOP', label: 'Holiday: food shop' },
+								{ value: 'HOLIDAY_DRINK_SHOP', label: 'Holiday: drink shop' },
+								{ value: 'HOLIDAY_CLUB', label: 'Holiday: club' },
+								{ value: 'HOLIDAY_ASSOCIATION', label: 'Holiday: association' },
+								{ value: 'HOLIDAY_MEDICAL_FACILITY', label: 'Holiday: medical facility' }
+							]}
+							value={draftThException}
+							onChange={(next) => (draftThException = next as typeof draftThException)}
+						/>
+					</Stack>
+					<Stack as="label" gap="xs" class="text-xs">
+						<span>Exception evidence reference</span>
+						<Input
+							type="text"
+							value={draftThExceptionReference}
+							oninput={(event) => (draftThExceptionReference = event.currentTarget.value)}
+						/>
+					</Stack>
+				{:else}
+					{@render fieldRow(
+						'Worker consent',
+						record?.overtime_consented_at == null ? '—' : String(record.overtime_consented_at)
+					)}
+					{@render fieldRow(
+						'Normal-day agreement',
+						record?.normal_hours_redistribution_agreed_at == null
+							? '—'
+							: String(record.normal_hours_redistribution_agreed_at)
+					)}
+					{@render fieldRow(
+						'Split-break agreement',
+						record?.th_split_break_agreed_at == null ? '—' : String(record.th_split_break_agreed_at)
+					)}
+					{@render fieldRow(
+						'Under-18 night permission',
+						record?.th_minor_night_permission_granted_at == null
+							? '—'
+							: String(record.th_minor_night_permission_granted_at)
+					)}
+					{@render fieldRow(
+						'Night permission reference',
+						record?.th_minor_night_permission_reference ?? '—'
+					)}
+					{@render fieldRow('Consent exception', record?.th_consent_exception ?? '—')}
+					{@render fieldRow('Exception reference', record?.th_consent_exception_reference ?? '—')}
+				{/if}
+			</FormSection>
+		{/if}
 	</Stack>
 {/snippet}
 
 {#snippet actualTab()}
 	<Stack gap="md">
+		{#if wageDayWritable}
+			<Cluster gap="sm" align="center">
+				<label for="workday-site">{t('roster.day_sheet_worksite')}</label>
+				<Input
+					id="workday-site"
+					value={draftWorksite}
+					oninput={(event) => (draftWorksite = event.currentTarget.value)}
+				/>
+			</Cluster>
+			{#if workDate != null && termOn(workDate)?.statutory_work_category === 'PIECE_RATE'}
+				<Cluster gap="sm" align="center">
+					<label for="piece-units">{t('roster.day_sheet_piece_units')}</label>
+					<Input
+						id="piece-units"
+						type="number"
+						min="0"
+						step="0.01"
+						value={draftPieceUnits ?? ''}
+						oninput={(event) => {
+							const value = hoursValue(event.currentTarget.value);
+							if (value !== undefined) draftPieceUnits = value;
+						}}
+					/>
+					<label for="piece-rate">{t('roster.day_sheet_piece_unit_rate')}</label>
+					<Input
+						id="piece-rate"
+						type="number"
+						min="0"
+						step="0.01"
+						value={draftPieceUnitRate ?? ''}
+						oninput={(event) => {
+							const value = hoursValue(event.currentTarget.value);
+							if (value !== undefined) draftPieceUnitRate = value;
+						}}
+					/>
+				</Cluster>
+			{/if}
+		{/if}
 		{#if attendanceWritable}
 			{#each draftIntervals as interval, index (index)}
 				<Cluster gap="xs" align="center" class="text-xs">
@@ -984,6 +1266,52 @@
 					</Button>
 				{/if}
 			</Cluster>
+			{#if settingsCode === 'SG' && wageDayWritable}
+				<Stack gap="sm" class="text-xs">
+					<p class="text-muted-foreground">Annual-leave absence decision for this work date</p>
+					<Cluster gap="sm" align="center">
+						<Stack as="label" gap="xs">
+							<span>Employer permission</span>
+							<Combobox
+								class="w-36"
+								clearable
+								placeholder="Unassessed"
+								options={[
+									{ value: 'YES', label: 'Granted' },
+									{ value: 'NO', label: 'Not granted' }
+								]}
+								value={draftSgPermission}
+								onChange={(next) => (draftSgPermission = next as typeof draftSgPermission)}
+							/>
+						</Stack>
+						<Stack as="label" gap="xs">
+							<span>Reasonable excuse</span>
+							<Combobox
+								class="w-36"
+								clearable
+								placeholder="Unassessed"
+								options={[
+									{ value: 'YES', label: 'Established' },
+									{ value: 'NO', label: 'Not established' }
+								]}
+								value={draftSgExcuse}
+								onChange={(next) => (draftSgExcuse = next as typeof draftSgExcuse)}
+							/>
+						</Stack>
+					</Cluster>
+					<Inline as="label" gap="sm">
+						<input type="checkbox" bind:checked={draftSgPartial} />Part-day absence
+					</Inline>
+					<Stack as="label" gap="xs">
+						<span>Decision evidence reference</span>
+						<Input
+							type="text"
+							value={draftSgReference}
+							oninput={(event) => (draftSgReference = event.currentTarget.value)}
+						/>
+					</Stack>
+				</Stack>
+			{/if}
 			<!-- Painted only where the version's bands read them (see `bandsRead`). -->
 			{#if showRequestedBy}
 				<Stack as="label" gap="xs" class="text-xs">
@@ -1030,6 +1358,18 @@
 					? t('roster.no_attendance')
 					: t('roster.attendance_intervals', { count: record?.worked_intervals?.length ?? 0 })
 			)}
+			{#if settingsCode === 'SG'}
+				{@render fieldRow('Employer permission', record?.sg_absence_permission ?? 'Unassessed')}
+				{@render fieldRow(
+					'Reasonable excuse',
+					record?.sg_absence_reasonable_excuse ?? 'Unassessed'
+				)}
+				{@render fieldRow('Part-day absence', record?.sg_partial_absence === true ? 'Yes' : 'No')}
+				{@render fieldRow(
+					'Decision evidence reference',
+					record?.sg_absence_decision_reference ?? '—'
+				)}
+			{/if}
 			{#if canReportMissingPunch}
 				<Inline>
 					<Button variant="outline" size="sm" type="button" onclick={reportMissingPunch}>

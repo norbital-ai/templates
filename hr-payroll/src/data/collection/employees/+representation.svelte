@@ -329,7 +329,9 @@
 				'employment_id',
 				'reference',
 				'days',
-				'encash_days'
+				'hours',
+				'encash_days',
+				'encash_hours'
 			]}
 		/>
 	{/if}

@@ -7,6 +7,7 @@ import { buildPayrollRun, gatherPayrollRun } from '../src/lib/payroll/run/engine
 import { payrollWorld, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import {
 	assessStatutory,
+	assessStatutoryUnvalidated,
 	buildStatutory,
 	createStatutoryWorld,
 	COMPANY_ID,
@@ -118,7 +119,8 @@ function person(key: string, wage: number, recipient_class: string): Person {
 		}
 	};
 }
-// These probes price withholding alone. A missing BPJS registration no longer waives the premiums
+// These probes price withholding alone; their low contract wages cannot pass payroll's wage gate.
+// A missing BPJS registration no longer waives the premiums
 // (UU 24/2011 arts.15, 19; R46), so the BPJS schemes here carry one zero rule; PPh 21 still reads
 // their zero output. The month-to-date test below keeps them to prove the employer
 // premiums reach the tax gross.
@@ -128,10 +130,10 @@ function taxOnly(world: PayrollWorld): void {
 			row.rules = [{ when: 'true', employee: '0.0', employer: '0.0' }];
 }
 const assess = (
-	options: Parameters<typeof assessStatutory>[0],
-	prepare?: Parameters<typeof assessStatutory>[1]
+	options: Parameters<typeof assessStatutoryUnvalidated>[0],
+	prepare?: Parameters<typeof assessStatutoryUnvalidated>[1]
 ) =>
-	assessStatutory(options, (world, period) => {
+	assessStatutoryUnvalidated(options, (world, period) => {
 		taxOnly(world);
 		prepare?.(world, period);
 	});

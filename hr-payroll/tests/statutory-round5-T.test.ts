@@ -19,8 +19,6 @@ import {
 	type Person
 } from './fixtures/statutory-world.ts';
 
-const OUT = { kind: 'NOT_REGISTERED' };
-
 // D07 — YA2025 TP1 in the MY / MY-nihon version of 1 December 2025. LHDN "Amendment to Specification
 // for MTD Calculations Using Computerized Calculation for 2025" (1 January 2025), part E list of
 // deductions a–p: the same caps as 2026 except learning-disability intervention (amendment 1.C:
@@ -28,7 +26,8 @@ const OUT = { kind: 'NOT_REGISTERED' };
 // food-waste-grinder/CCTV relief (Budget 2026, YA2026). Formulas D(1)–(5) are unchanged.
 //
 // December 2025 is the last month, so n = 0 and MTD = annual tax − MTD already paid (X = 0 here).
-// Opening (TP3): 11 × 5,001 = 55,011; December 5,001; EPF/SOCSO/EIS not registered, so
+// Opening (TP3): 11 × 5,001 = 55,011; December 5,001; this age-75 worker has no employee
+// EPF/SOCSO/EIS share, so
 // P = 60,012 − 9,000 − TP1 relief. Single resident (category 1): 35,001–50,000 → (P − 35,000) × 6% + 600;
 // 50,001–70,000 → (P − 50,000) × 11% + 1,500.
 const claim = (category: string, amount: number, period = '2025-12') => ({
@@ -45,14 +44,10 @@ const december = (
 ): Person => ({
 	key,
 	wage: 5001,
+	age: 75,
 	citizenship: 'CITIZEN',
 	hire_date: '2024-01-01',
 	registrations: {
-		EPF: OUT,
-		EPF_PR: OUT,
-		EPF_NON_CITIZEN: OUT,
-		SOCSO: OUT,
-		EIS: OUT,
 		PCB: {
 			kind: 'REGISTERED',
 			deduction_claims: claims,
@@ -396,11 +391,11 @@ test('D15 MY, MY-nihon, SG: every declared election and fact names its requireme
 	assert.deepEqual(unsettled, []);
 });
 
-test('D16 SG: an unrecorded residency status refuses CPF; an unrecorded race or religion warns and deducts no fund', () => {
+test('D16 SG: an unrecorded residency status, race or religion refuses statutory deductions', () => {
 	// CPF Act 1953 s.7: contributions for every citizen and PR employee, so no residency status is
 	// no CPF at all. The SHG funds deduct by NRIC race (CDAC, ECF, SINDA for citizens and PRs) and by
-	// religion (MBMF) unless opted out; the identity cannot be assumed, and a fund of undeterminable
-	// membership is not a reason to stop everyone else's pay: the run deducts no fund and says so.
+	// religion (MBMF) unless opted out; the identity cannot be assumed, so no statutory
+	// deduction can be settled until the applicable fact is recorded.
 	const run = (person: Partial<Person>) =>
 		buildStatutory({
 			code: 'SG',
@@ -421,14 +416,10 @@ test('D16 SG: an unrecorded residency status refuses CPF; an unrecorded race or 
 			.statutory.filter((row) => ['CDAC', 'ECF', 'SINDA', 'MBMF'].includes(row.scheme_code))
 			.reduce((sum, row) => sum + row.employee_amount, 0);
 	assert.match(refusal({ citizenship: '' }), /residency status: CPF/);
-	assert.match(run({ race: '' }).warnings.join('\n'), /X: CDAC: Race not stated/);
-	assert.equal(funds({ race: '' }), 0);
-	assert.match(run({ religion: '' }).warnings.join('\n'), /X: MBMF: Religion not stated/);
-	// A foreign worker has no NRIC race: nothing to warn of.
-	assert.doesNotMatch(
-		run({ citizenship: 'FOREIGNER', race: '' }).warnings.join('\n'),
-		/Race not stated/
-	);
+	assert.match(refusal({ race: '' }), /CDAC: Record the employee/);
+	assert.match(refusal({ religion: '' }), /MBMF: Record the employee/);
+	// SINDA covers the Indian community regardless of citizenship; its race must be recorded.
+	assert.match(refusal({ citizenship: 'FOREIGNER', race: '' }), /SINDA: Record the employee/);
 	// A recorded race still deducts: CDAC's $2,000–$3,500 band is $1.00.
 	assert.equal(funds({ race: 'CHINESE' }), 1);
 });

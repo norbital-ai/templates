@@ -48,13 +48,30 @@ const SHORT_SHIFT = 'c0000000-0000-4000-8000-0000000000e6';
 const employmentOf = (world: PayrollWorld) =>
 	world.employments.find((row) => row.employee_number === KEY)!;
 
-const elect = (world: PayrollWorld, date: string, start: string, end: string) => {
+/**
+ * A day of elected work, `rest` being the §35 rest it takes as the gap between the worked
+ * intervals: a break owed and not taken is worked time, so only a gap proves one was taken.
+ */
+const elect = (
+	world: PayrollWorld,
+	date: string,
+	start: string,
+	end: string,
+	rest?: readonly [string, string]
+) => {
+	const clock = (time: string) => `${date}T${time}:00+08:00`;
 	world.work_days.push({
 		id: `wd-${KEY}-${date}`,
 		employment_id: employmentOf(world).id,
 		work_date: date,
 		shift_definition_id: null,
-		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		worked_intervals:
+			rest == null
+				? [{ start: clock(start), end: clock(end) }]
+				: [
+						{ start: clock(start), end: clock(rest[0]) },
+						{ start: clock(rest[1]), end: clock(end) }
+					],
 		requested_by: null,
 		emergency_cause: null,
 		time_off_in_lieu: true,
@@ -185,7 +202,7 @@ const LEAVER = {
 const sixElectedThreeTaken =
 	(charge: Parameters<typeof takeCompTime>[2]) => (world: PayrollWorld) => {
 		shortShift(world);
-		elect(world, '2026-01-05', '09:00', '21:00');
+		elect(world, '2026-01-05', '09:00', '21:00', ['13:00', '14:00']);
 		elect(world, '2026-01-10', '09:00', '12:00');
 		takeCompTime(world, '2026-01-15', charge);
 	};
@@ -245,7 +262,8 @@ test('TW round 5 — §32-1: a deferred joiner’s elected hours are credited by
 	// The contract then ends on 20 February: the three untaken hours are paid at that day's rates,
 	//   2 h × 250 × 4/3 = 666.67; 1 h × 250 × 5/3 = 416.67.
 	const joiner = { key: KEY, wage: 60_000, citizenship: 'CITIZEN', hire_date: '2026-01-25' };
-	const plant = (world: PayrollWorld) => elect(world, '2026-01-26', '09:00', '21:00');
+	const plant = (world: PayrollWorld) =>
+		elect(world, '2026-01-26', '09:00', '21:00', ['13:00', '14:00']);
 	const january = chain({ periods: ['2026-01'], person: joiner, plant });
 	assert.deepEqual(workLines(january.slips.get(KEY)!), []);
 	assert.deepEqual(
@@ -323,7 +341,8 @@ const raisedInJune =
 			as_adjustment_entry: false,
 			approval_id: null
 		} as never);
-		// Wednesday 3 June, 09:00–21:00: three extended hours, paid — overtime, not normal hours.
+		// Wednesday 3 June, 09:00–21:00 less the 13:00–14:00 §35 rest: three extended hours, paid
+		// — overtime, not normal hours.
 		if (period === '2026-06')
 			world.work_days.push({
 				id: `wd-${KEY}-2026-06-03`,
@@ -331,7 +350,8 @@ const raisedInJune =
 				work_date: '2026-06-03',
 				shift_definition_id: null,
 				worked_intervals: [
-					{ start: '2026-06-03T09:00:00+08:00', end: '2026-06-03T21:00:00+08:00' }
+					{ start: '2026-06-03T09:00:00+08:00', end: '2026-06-03T13:00:00+08:00' },
+					{ start: '2026-06-03T14:00:00+08:00', end: '2026-06-03T21:00:00+08:00' }
 				],
 				requested_by: null,
 				emergency_cause: null,
@@ -529,6 +549,7 @@ const timeOff = (world: PayrollWorld, code: string, from: string, to: string) =>
 		reference: `${code}-${from}`,
 		from_date: from,
 		to_date: to,
+		event_date: code === 'MATERNITY_LEAVE' ? from : null,
 		half_day_start: false,
 		half_day_end: false,
 		days: charges.length,
@@ -638,12 +659,34 @@ const OLD_SYSTEM = {
 	registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } }
 } as const;
 
-test('TW round 5 — §56(1): an old-system worker with no recorded reserve rate stops the run by name', () => {
-	// 勞基法 §56(1): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內，按月提撥勞工退休準備金.
-	// Unrecorded, the rate read 0 and the reserve was silently nothing; 1% and 16% are outside the
-	// band the Act allows and are refused at the declaration.
+test('TW round 5 — §56(1): reserve rate alone cannot prove an old-system exclusion', () => {
+	// The rate alone does not prove that an active worker lawfully remained in the old system.
 	assert.throws(
-		() => buildStatutory({ code: 'TW', period: '2026-01', riskClass: '1', people: [OLD_SYSTEM] }),
+		() =>
+			buildStatutory({
+				code: 'TW',
+				period: '2026-01',
+				riskClass: '1',
+				companyFacts: { pension_reserve_rate: 2 },
+				people: [OLD_SYSTEM]
+			}),
+		/NOT_REGISTERED does not establish an old-system/
+	);
+});
+
+test('TW round 5 — §56(1): documented old-system worker requires a 2–15% reserve rate', () => {
+	const documented = {
+		...OLD_SYSTEM,
+		registrations: {
+			LABOR_PENSION: {
+				kind: 'NOT_REGISTERED',
+				declaration_reference: 'FIXTURE-2005-OLD-ELECTION-AND-SAME-UNIT-SERVICE',
+				elections: { old_system_retained: true }
+			}
+		}
+	};
+	assert.throws(
+		() => buildStatutory({ code: 'TW', period: '2026-01', riskClass: '1', people: [documented] }),
 		/§56\(1\).*Record it as the entity fact pension_reserve_rate/
 	);
 	for (const rate of [1, 16])
@@ -654,24 +697,23 @@ test('TW round 5 — §56(1): an old-system worker with no recorded reserve rate
 					period: '2026-01',
 					riskClass: '1',
 					companyFacts: { pension_reserve_rate: rate },
-					people: [OLD_SYSTEM]
+					people: [documented]
 				}),
 			rate === 1 ? /must be at least 2/ : /must be at most 15/
 		);
-	// Recorded at 2%: 50,000 × 2% = 1,000, an employer cost.
 	const { slips } = buildStatutory({
 		code: 'TW',
 		period: '2026-01',
 		riskClass: '1',
 		companyFacts: { pension_reserve_rate: 2 },
-		people: [OLD_SYSTEM]
+		people: [documented]
 	});
 	const reserve = slips
 		.get('TW-OLD')!
 		.statutory.find((row) => row.scheme_code === 'LABOR_PENSION_RESERVE')!;
 	assert.deepEqual(
 		[reserve.base_amount, reserve.employee_amount, reserve.employer_amount],
-		[50_000, 0, 1_000]
+		[50_000, 0, 1000]
 	);
 });
 
@@ -837,7 +879,7 @@ test('TW round 5 — D31: a whole month on 育嬰留職停薪 charges nothing th
 		EI: [0, 0],
 		NHI: [0, 0],
 		OCC_INJURY: [0, 0],
-		LABOR_PENSION: null
+		LABOR_PENSION: [0, 0]
 	});
 	assert.throws(
 		() =>
@@ -992,9 +1034,21 @@ test('TW round 5 — D16: an unrecorded birth date, nationality, foreign pass or
 	);
 	assert.throws(
 		() =>
-			// outside EI (no foreign-spouse or PR-professional class), so the pension's own question is the one asked
+			// documented spouse EI cover lets the pension ask for the missing foreign pass type
 			run(
-				{ ...base, citizenship: 'FOREIGNER', registrations: { EI: { kind: 'NOT_REGISTERED' } } },
+				{
+					...base,
+					citizenship: 'FOREIGNER',
+					registrations: {
+						EI: {
+							kind: 'REGISTERED',
+							elections: {
+								eligibility_class: 'FOREIGN_SPOUSE',
+								eligibility_document_reference: 'FIXTURE-ROC-SPOUSE'
+							}
+						}
+					}
+				},
 				(world) => {
 					world.employment_terms[0]!.pass_type = null as never;
 				}
@@ -1062,37 +1116,25 @@ test('TW round 5 — D22: the hosted read keeps dated entity facts and wage peri
 	);
 });
 
-// ── D28 / G16: the 2027 version ─────────────────────────────────────────────────────────────────
+// ── D28 / G16: the 2027 profile remains provisional ────────────────────────────────────────────
 
-test('TW round 5 — D28: 勞保條例 §13(2) steps the ordinary rate to its 13% cap on 1 January 2027 (12% net of 就保)', () => {
-	// §13(2): 保險費率定為百分之七點五 (the 2009 commencement), 施行後第三年調高百分之零點五，其後每年
-	// 調高百分之零點五至百分之十，並自百分之十當年起，每兩年調高百分之零點五至上限百分之十三 — MOL's
-	// announced steps: 11.5% from 1 January 2021 (勞動部 110年公告, https://www.mol.gov.tw/announcement/2099/46792/),
-	// 12% from 2023, 12.5% from 2025; the next two-yearly step is 13%, the cap, on 1 January 2027,
-	// unless the fund could pay twenty years of benefits (§13(2) 但書; it cannot). 就業保險法 §41(2)
-	// takes the 1% employment-insurance rate out of it: LI 12%. Grade 34,800 (January 2027 still
-	// on the 115年 ladder): worker 34,800 × 12% × 20% = 835.20 → 835; employer × 70% = 2,923.20 →
-	// 2,923. EI stays 1%: 69.60 → 70 and 243.60 → 244.
-	const book = assessStatutory({
-		code: 'TW',
-		period: '2027-01',
-		riskClass: '1',
-		people: [INSURED_PERSON]
-	}).get('TW-COVER')!;
-	assert.deepEqual([book.get('LI')!.employee, book.get('LI')!.employer], [835, 2923]);
-	assert.deepEqual([book.get('EI')!.employee, book.get('EI')!.employer], [70, 244]);
-});
-
-test('TW round 5 — G16: the 2027 version keeps the 115年 minimum wage until the 116年 figure is published', () => {
-	// 最低工資法 §9–§10: the 審議會 meets in the third quarter and the Executive Yuan approves; the
-	// 116年 meeting is 24 September 2026 and nothing is published on 23 September 2026. The version
-	// sealed from 1 January 2027 therefore carries 115年's NT$29,500 a month (勞動部 114年9月 公告;
-	// NT$196 an hour), and the drift automation reads MOL's announcement feeds, the BLI grade and
-	// premium tables and the gazette monthly to propose the 116年 figures when they appear.
-	const version = settingsVersions('TW').find((row) =>
-		String(row.effective_range.start).startsWith('2027-01-01')
-	)!;
-	assert.equal(version.work_rules.wages.by_region.Taiwan, 29_500);
+test('TW round 5 — D28 / G16: payroll refuses without a sealed 116年 profile', () => {
+	assert.equal(
+		settingsVersions('TW').some((row) =>
+			String(row.effective_range.start).startsWith('2027-01-01')
+		),
+		false
+	);
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: 'TW',
+				period: '2027-01',
+				riskClass: '1',
+				people: [INSURED_PERSON]
+			}),
+		/no sealed version covering 2027-01-31/
+	);
 });
 
 test('TW round 5 — WAGES is a reserved counts_toward mark, not a scheme the version must declare', () => {

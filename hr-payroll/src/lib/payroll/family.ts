@@ -76,6 +76,8 @@ export type FamilyPayItem = {
 	 * deduction's wage (SG's travel, food and housing allowances; MY's travelling allowance).
 	 */
 	readonly npl_prorates?: boolean | null | undefined;
+	/** Dated contract allowance treatment during outpatient sick leave. */
+	readonly outpatient_sick_pay?: 'INCLUDE' | 'EXCLUDE' | null | undefined;
 	/** An allowance class priced for every eligible employment, listed on the contract or not. */
 	readonly owed?: boolean | null | undefined;
 };
@@ -353,6 +355,8 @@ export type MeasureComponentOptions = {
 		readonly ordinaryDay: number;
 		readonly ordinaryHour: number;
 	};
+	/** Salary earned in this final pay period, before tax and statutory deductions. */
+	readonly unpaidSalary?: (() => number) | undefined;
 	readonly subject: PersonContext;
 	/**
 	 * The salary window's leave by code — what an entry's `person.period.leave_days`/`leave_full_days`/

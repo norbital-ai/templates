@@ -60,6 +60,7 @@ const f = customField({
 				}
 			},
 			gross_excluded_allowances: { kind: 'list', of: { kind: 'text' }, optional: true },
+			wage_excluded_allowances: { kind: 'list', of: { kind: 'text' }, optional: true },
 			overtime_when: { kind: 'text' },
 			normal_hours: { kind: 'text', optional: true },
 			rate_week_hours: { kind: 'number', optional: true },

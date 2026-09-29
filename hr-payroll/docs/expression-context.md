@@ -57,6 +57,10 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
 | `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
+| `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
+| `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
+| `employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
+| `employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
@@ -71,6 +75,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
+| `employment.days_to_exit` | Calendar days from the rule date to the exit date: 0 on the exit day or while open. A leave rule reads it on each day charged (TW 勞基法 §16(2): only inside the notice, `employment.days_to_exit < employment.exit_facts.notice_days_given`) |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
 | `employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
@@ -79,6 +84,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `employment.piece_wages_last_workdays(days)` | Earned units times unit rate on the last `days` piece-rate workdays through the final service day; refuses when a scheduled recent workday lacks earnings or explicit absence (TH LPA s.118) |
 | `employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
 | `employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
@@ -89,15 +95,18 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
-| `terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
+| `terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed, less the classes `work_rules.wage_excluded_allowances` names (MY EA s.2 “wages” (c): travelling); on a scheme’s own expression, those counting toward that scheme |
 | `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |
+| `terms.hazardous_work` | Ministerial Regulation hazardous work (TH LPA s.23) |
+| `terms.weather_dependent_piece` | Weather-dependent piece work uses twelve paid months for ID JKK, JKM and JHT |
 | `terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
 | `terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
+| `terms.worksite_sector_edition` | The KBLI edition of an ID worksite sector (2020 or 2025), or empty |
 | `terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -107,6 +116,9 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty when unrecorded; each scheme supplies its statutory default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `terms.notice_days` | Notice days the contract states, 0 when none |
+| `terms.probation_months` | Months of the agreed probation served, hire through its last day (`employment_terms.probation_end`) or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83) |
+| `terms.post_probation_wage` | The wage the contract agrees for after the probation, 0 when unrecorded (CN LCL art.20: the probation wage is at least 80% of it; art.83: damages are priced on it) |
+| `terms.open_ended_overdue_months` | Months from the day an open-ended contract should have been concluded (`employment_terms.open_ended_due_on`) through the rule date inclusive, a part month by its days; 0 when unrecorded or not yet due (CN LCL art.82 para.2) |
 | `terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
 | `terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
@@ -149,11 +161,14 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
 | `event.child_index` | Which recorded child the event concerns, 1-based; 0 when none |
+| `event.wife_prior_living_biological_children` | Wife’s prior living biological children at this birth, or -1 when unrecorded (VN Decree 168/2026 art.2(1)(b)) |
 | `event.date` | The day of the event, or empty |
 | `event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `event.child_age` | The named child’s completed years, -1 when none is named |
 | `event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
+| `event.estimated_delivery_date` | The named child’s estimated delivery date as certified by a medical practitioner (SG CDCA s.2), or empty |
+| `event.adoption_eligibility_date` | The eligibility date of the application to adopt the named child (SG CDCA s.2: the application date for a citizen or PR child, else the dependant’s pass issue date), or empty |
 | `period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
@@ -201,6 +216,10 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
 | `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
+| `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
+| `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
+| `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
+| `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
@@ -215,6 +234,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
+| `person.employment.days_to_exit` | Calendar days from the rule date to the exit date: 0 on the exit day or while open. A leave rule reads it on each day charged (TW 勞基法 §16(2): only inside the notice, `employment.days_to_exit < employment.exit_facts.notice_days_given`) |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
 | `person.employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
@@ -223,6 +243,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `person.employment.piece_wages_last_workdays(days)` | Earned units times unit rate on the last `days` piece-rate workdays through the final service day; refuses when a scheduled recent workday lacks earnings or explicit absence (TH LPA s.118) |
 | `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
 | `person.employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
@@ -233,15 +254,18 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
-| `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
+| `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed, less the classes `work_rules.wage_excluded_allowances` names (MY EA s.2 “wages” (c): travelling); on a scheme’s own expression, those counting toward that scheme |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `person.terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
+| `person.terms.hazardous_work` | Ministerial Regulation hazardous work (TH LPA s.23) |
+| `person.terms.weather_dependent_piece` | Weather-dependent piece work uses twelve paid months for ID JKK, JKM and JHT |
 | `person.terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
 | `person.terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
+| `person.terms.worksite_sector_edition` | The KBLI edition of an ID worksite sector (2020 or 2025), or empty |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -251,6 +275,9 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty when unrecorded; each scheme supplies its statutory default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `person.terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
+| `person.terms.probation_months` | Months of the agreed probation served, hire through its last day (`employment_terms.probation_end`) or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83) |
+| `person.terms.post_probation_wage` | The wage the contract agrees for after the probation, 0 when unrecorded (CN LCL art.20: the probation wage is at least 80% of it; art.83: damages are priced on it) |
+| `person.terms.open_ended_overdue_months` | Months from the day an open-ended contract should have been concluded (`employment_terms.open_ended_due_on`) through the rule date inclusive, a part month by its days; 0 when unrecorded or not yet due (CN LCL art.82 para.2) |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `person.terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
 | `person.terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
@@ -293,11 +320,14 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `person.event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
 | `person.event.child_index` | Which recorded child the event concerns, 1-based; 0 when none |
+| `person.event.wife_prior_living_biological_children` | Wife’s prior living biological children at this birth, or -1 when unrecorded (VN Decree 168/2026 art.2(1)(b)) |
 | `person.event.date` | The day of the event, or empty |
 | `person.event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `person.event.child_age` | The named child’s completed years, -1 when none is named |
 | `person.event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `person.event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
+| `person.event.estimated_delivery_date` | The named child’s estimated delivery date as certified by a medical practitioner (SG CDCA s.2), or empty |
+| `person.event.adoption_eligibility_date` | The eligibility date of the application to adopt the named child (SG CDCA s.2: the application date for a citizen or PR child, else the dependant’s pass issue date), or empty |
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `person.period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
@@ -334,12 +364,14 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `entry.window.end` | Standing allowance window end |
 | `entry.captures.remaining` | Amount still to settle |
 | `rates.ordinary_day` | Ordinary day rate for the entry date |
+| `entry.unpaid_salary` | Salary earned but unpaid on this final payslip, before tax and statutory deductions (PH RA 10361 s.32) |
 | `rates.ordinary_hour` | Ordinary hour rate for the entry date |
 | `limits.<key>` | Evaluated work limit, net worked hours |
 | `period.key` | YYYY-MM or YYYY-MM-n |
 | `period.month` | The pay month, 1–12 |
 | `period.start` | First day of the pay period |
 | `period.end` | Last day of the pay period |
+| `period.pay_date` | Scheduled day this payroll run pays income |
 | `period.index` | Which instalment of the month this period is |
 | `period.instalments` | Instalments the month is paid in |
 | `period.month_factor` | What this instalment’s wage is multiplied by to state the month’s: 1 for a month, 2 for a half, 52/12 for a week — a MONTH-assessed scheme’s base is scaled by it, so a base that already states the month divides by it |
@@ -394,6 +426,10 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
 | `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
+| `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
+| `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
+| `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
+| `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
@@ -408,6 +444,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
+| `person.employment.days_to_exit` | Calendar days from the rule date to the exit date: 0 on the exit day or while open. A leave rule reads it on each day charged (TW 勞基法 §16(2): only inside the notice, `employment.days_to_exit < employment.exit_facts.notice_days_given`) |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
 | `person.employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
@@ -416,6 +453,7 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `person.employment.piece_wages_last_workdays(days)` | Earned units times unit rate on the last `days` piece-rate workdays through the final service day; refuses when a scheduled recent workday lacks earnings or explicit absence (TH LPA s.118) |
 | `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
 | `person.employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
@@ -426,15 +464,18 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
-| `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
+| `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed, less the classes `work_rules.wage_excluded_allowances` names (MY EA s.2 “wages” (c): travelling); on a scheme’s own expression, those counting toward that scheme |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `person.terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
+| `person.terms.hazardous_work` | Ministerial Regulation hazardous work (TH LPA s.23) |
+| `person.terms.weather_dependent_piece` | Weather-dependent piece work uses twelve paid months for ID JKK, JKM and JHT |
 | `person.terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
 | `person.terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
+| `person.terms.worksite_sector_edition` | The KBLI edition of an ID worksite sector (2020 or 2025), or empty |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -444,6 +485,9 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty when unrecorded; each scheme supplies its statutory default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `person.terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
+| `person.terms.probation_months` | Months of the agreed probation served, hire through its last day (`employment_terms.probation_end`) or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83) |
+| `person.terms.post_probation_wage` | The wage the contract agrees for after the probation, 0 when unrecorded (CN LCL art.20: the probation wage is at least 80% of it; art.83: damages are priced on it) |
+| `person.terms.open_ended_overdue_months` | Months from the day an open-ended contract should have been concluded (`employment_terms.open_ended_due_on`) through the rule date inclusive, a part month by its days; 0 when unrecorded or not yet due (CN LCL art.82 para.2) |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `person.terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
 | `person.terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
@@ -486,11 +530,14 @@ Open prefixes: `limits.<key>`, `person.company.facts.<key>`, `person.facts.<key>
 | `person.event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `person.event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
 | `person.event.child_index` | Which recorded child the event concerns, 1-based; 0 when none |
+| `person.event.wife_prior_living_biological_children` | Wife’s prior living biological children at this birth, or -1 when unrecorded (VN Decree 168/2026 art.2(1)(b)) |
 | `person.event.date` | The day of the event, or empty |
 | `person.event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `person.event.child_age` | The named child’s completed years, -1 when none is named |
 | `person.event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `person.event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
+| `person.event.estimated_delivery_date` | The named child’s estimated delivery date as certified by a medical practitioner (SG CDCA s.2), or empty |
+| `person.event.adoption_eligibility_date` | The eligibility date of the application to adopt the named child (SG CDCA s.2: the application date for a citizen or PR child, else the dependant’s pass issue date), or empty |
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `person.period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
@@ -563,6 +610,10 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
 | `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
+| `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
+| `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
+| `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
+| `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
@@ -577,6 +628,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
+| `person.employment.days_to_exit` | Calendar days from the rule date to the exit date: 0 on the exit day or while open. A leave rule reads it on each day charged (TW 勞基法 §16(2): only inside the notice, `employment.days_to_exit < employment.exit_facts.notice_days_given`) |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
 | `person.employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
@@ -585,6 +637,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `person.employment.piece_wages_last_workdays(days)` | Earned units times unit rate on the last `days` piece-rate workdays through the final service day; refuses when a scheduled recent workday lacks earnings or explicit absence (TH LPA s.118) |
 | `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
 | `person.employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
@@ -595,15 +648,18 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
-| `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
+| `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed, less the classes `work_rules.wage_excluded_allowances` names (MY EA s.2 “wages” (c): travelling); on a scheme’s own expression, those counting toward that scheme |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `person.terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
+| `person.terms.hazardous_work` | Ministerial Regulation hazardous work (TH LPA s.23) |
+| `person.terms.weather_dependent_piece` | Weather-dependent piece work uses twelve paid months for ID JKK, JKM and JHT |
 | `person.terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
 | `person.terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
+| `person.terms.worksite_sector_edition` | The KBLI edition of an ID worksite sector (2020 or 2025), or empty |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -613,6 +669,9 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty when unrecorded; each scheme supplies its statutory default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `person.terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
+| `person.terms.probation_months` | Months of the agreed probation served, hire through its last day (`employment_terms.probation_end`) or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83) |
+| `person.terms.post_probation_wage` | The wage the contract agrees for after the probation, 0 when unrecorded (CN LCL art.20: the probation wage is at least 80% of it; art.83: damages are priced on it) |
+| `person.terms.open_ended_overdue_months` | Months from the day an open-ended contract should have been concluded (`employment_terms.open_ended_due_on`) through the rule date inclusive, a part month by its days; 0 when unrecorded or not yet due (CN LCL art.82 para.2) |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `person.terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
 | `person.terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
@@ -655,11 +714,14 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `person.event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
 | `person.event.child_index` | Which recorded child the event concerns, 1-based; 0 when none |
+| `person.event.wife_prior_living_biological_children` | Wife’s prior living biological children at this birth, or -1 when unrecorded (VN Decree 168/2026 art.2(1)(b)) |
 | `person.event.date` | The day of the event, or empty |
 | `person.event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `person.event.child_age` | The named child’s completed years, -1 when none is named |
 | `person.event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `person.event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
+| `person.event.estimated_delivery_date` | The named child’s estimated delivery date as certified by a medical practitioner (SG CDCA s.2), or empty |
+| `person.event.adoption_eligibility_date` | The eligibility date of the application to adopt the named child (SG CDCA s.2: the application date for a citizen or PR child, else the dependant’s pass issue date), or empty |
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `person.period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
@@ -672,6 +734,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `period.month` | The pay month, 1–12 |
 | `period.start` | First day of the pay period |
 | `period.end` | Last day of the pay period |
+| `period.pay_date` | Scheduled day this payroll run pays income |
 | `period.index` | Which instalment of the month this period is |
 | `period.instalments` | Instalments the month is paid in |
 | `period.month_factor` | What this instalment’s wage is multiplied by to state the month’s: 1 for a month, 2 for a half, 52/12 for a week — a MONTH-assessed scheme’s base is scaled by it, so a base that already states the month divides by it |
@@ -687,7 +750,9 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `year.payments` | The payments due in the tax year at this cadence, from the join to the year end (monthly: months, adding declared prior-employer months as `months_employed` does; semi-monthly: halves; weekly: paydays) |
 | `scheme.code` | The scheme code |
 | `scheme.assessment_period` | PAY_PERIOD \| MONTH \| MONTH_TO_DATE |
-| `scheme.registration_status` | REGISTERED, NOT_REGISTERED or UNDECLARED when no effective statutory declaration exists |
+| `scheme.registration_status` | The declaration priced by this rule (a historical covered standing when an insured period ended) |
+| `scheme.current_registration_status` | The declaration at assessment end; registration_status may instead be a covered historical standing priced for earlier days |
+| `scheme.declaration_reference` | The supporting reference for a documented NOT_REGISTERED election |
 | `scheme.year_to_date.base` | Base already charged this tax year: this employer’s earlier slips plus what an earlier employer declared on the fact (`opening`) |
 | `scheme.year_to_date.ordinary` | The ordinary part of the base already charged this tax year, where the scheme states `ordinary_on` |
 | `scheme.year_to_date.employee` | Employee amount already charged this tax year |
@@ -697,6 +762,11 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `scheme.last_year.employee` | Employee amount this employer charged in the tax year before this one |
 | `scheme.last_year.employer` | Employer amount this employer charged in the tax year before this one |
 | `scheme.first_year` | Earliest tax year in which one of this employer’s earlier slips charged a base on this scheme, 0 when none — ID PP 68/2009 art.6 counts the third calendar year from the first severance part |
+| `scheme.dependent_months` | Sum of registered eligible dependant counts over the tax year’s twelve months; required for an authorised annual finalisation (VN Decree 253/2026 art.48) |
+| `scheme.trailing_3m.base` | Average paid wages in the last three calendar months of this employment, across tax years (ID PP 44/2015 art.19(4)) |
+| `scheme.trailing_3m.months` | Months of this employment in the three-month lookback |
+| `scheme.trailing_12m.base` | Average paid wages in the last twelve calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5)) |
+| `scheme.trailing_12m.months` | Months of this employment in the twelve-month lookback |
 | `scheme.projection.payslips_remaining` | Payslips left in the year, this one included |
 | `scheme.projection.future_equivalents` | Future payslips of this size |
 | `scheme.rate_override` | The employment flat rate override percentage, 0 when none |
@@ -799,6 +869,10 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
 | `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
+| `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
+| `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
+| `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
+| `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
@@ -813,6 +887,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `person.employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `person.employment.exit_date` | Last day of work, or empty while open |
+| `person.employment.days_to_exit` | Calendar days from the rule date to the exit date: 0 on the exit day or while open. A leave rule reads it on each day charged (TW 勞基法 §16(2): only inside the notice, `employment.days_to_exit < employment.exit_facts.notice_days_given`) |
 | `person.employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `person.employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
 | `person.employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
@@ -821,6 +896,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `person.employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `person.employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `person.employment.piece_wages_last_workdays(days)` | Earned units times unit rate on the last `days` piece-rate workdays through the final service day; refuses when a scheduled recent workday lacks earnings or explicit absence (TH LPA s.118) |
 | `person.employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
 | `person.employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `person.employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
@@ -831,15 +907,18 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `person.terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `person.terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
-| `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
+| `person.terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed, less the classes `work_rules.wage_excluded_allowances` names (MY EA s.2 “wages” (c): travelling); on a scheme’s own expression, those counting toward that scheme |
 | `person.terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `person.terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `person.terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `person.terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `person.terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `person.terms.statutory_work_category` | Statutory work category of the terms |
+| `person.terms.hazardous_work` | Ministerial Regulation hazardous work (TH LPA s.23) |
+| `person.terms.weather_dependent_piece` | Weather-dependent piece work uses twelve paid months for ID JKK, JKM and JHT |
 | `person.terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
 | `person.terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
+| `person.terms.worksite_sector_edition` | The KBLI edition of an ID worksite sector (2020 or 2025), or empty |
 | `person.terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `person.terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `person.terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -849,6 +928,9 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty when unrecorded; each scheme supplies its statutory default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `person.terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `person.terms.notice_days` | Notice days the contract states, 0 when none |
+| `person.terms.probation_months` | Months of the agreed probation served, hire through its last day (`employment_terms.probation_end`) or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83) |
+| `person.terms.post_probation_wage` | The wage the contract agrees for after the probation, 0 when unrecorded (CN LCL art.20: the probation wage is at least 80% of it; art.83: damages are priced on it) |
+| `person.terms.open_ended_overdue_months` | Months from the day an open-ended contract should have been concluded (`employment_terms.open_ended_due_on`) through the rule date inclusive, a part month by its days; 0 when unrecorded or not yet due (CN LCL art.82 para.2) |
 | `person.terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `person.terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
 | `person.terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
@@ -891,11 +973,14 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `person.event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
 | `person.event.child_index` | Which recorded child the event concerns, 1-based; 0 when none |
+| `person.event.wife_prior_living_biological_children` | Wife’s prior living biological children at this birth, or -1 when unrecorded (VN Decree 168/2026 art.2(1)(b)) |
 | `person.event.date` | The day of the event, or empty |
 | `person.event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `person.event.child_age` | The named child’s completed years, -1 when none is named |
 | `person.event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `person.event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
+| `person.event.estimated_delivery_date` | The named child’s estimated delivery date as certified by a medical practitioner (SG CDCA s.2), or empty |
+| `person.event.adoption_eligibility_date` | The eligibility date of the application to adopt the named child (SG CDCA s.2: the application date for a citizen or PR child, else the dependant’s pass issue date), or empty |
 | `person.period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `person.period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `person.period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
@@ -908,6 +993,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `period.month` | The pay month, 1–12 |
 | `period.start` | First day of the pay period |
 | `period.end` | Last day of the pay period |
+| `period.pay_date` | Scheduled day this payroll run pays income |
 | `period.index` | Which instalment of the month this period is |
 | `period.instalments` | Instalments the month is paid in |
 | `period.month_factor` | What this instalment’s wage is multiplied by to state the month’s: 1 for a month, 2 for a half, 52/12 for a week — a MONTH-assessed scheme’s base is scaled by it, so a base that already states the month divides by it |
@@ -923,7 +1009,9 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `year.payments` | The payments due in the tax year at this cadence, from the join to the year end (monthly: months, adding declared prior-employer months as `months_employed` does; semi-monthly: halves; weekly: paydays) |
 | `scheme.code` | The scheme code |
 | `scheme.assessment_period` | PAY_PERIOD \| MONTH \| MONTH_TO_DATE |
-| `scheme.registration_status` | REGISTERED, NOT_REGISTERED or UNDECLARED when no effective statutory declaration exists |
+| `scheme.registration_status` | The declaration priced by this rule (a historical covered standing when an insured period ended) |
+| `scheme.current_registration_status` | The declaration at assessment end; registration_status may instead be a covered historical standing priced for earlier days |
+| `scheme.declaration_reference` | The supporting reference for a documented NOT_REGISTERED election |
 | `scheme.year_to_date.base` | Base already charged this tax year: this employer’s earlier slips plus what an earlier employer declared on the fact (`opening`) |
 | `scheme.year_to_date.ordinary` | The ordinary part of the base already charged this tax year, where the scheme states `ordinary_on` |
 | `scheme.year_to_date.employee` | Employee amount already charged this tax year |
@@ -933,6 +1021,11 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `scheme.last_year.employee` | Employee amount this employer charged in the tax year before this one |
 | `scheme.last_year.employer` | Employer amount this employer charged in the tax year before this one |
 | `scheme.first_year` | Earliest tax year in which one of this employer’s earlier slips charged a base on this scheme, 0 when none — ID PP 68/2009 art.6 counts the third calendar year from the first severance part |
+| `scheme.dependent_months` | Sum of registered eligible dependant counts over the tax year’s twelve months; required for an authorised annual finalisation (VN Decree 253/2026 art.48) |
+| `scheme.trailing_3m.base` | Average paid wages in the last three calendar months of this employment, across tax years (ID PP 44/2015 art.19(4)) |
+| `scheme.trailing_3m.months` | Months of this employment in the three-month lookback |
+| `scheme.trailing_12m.base` | Average paid wages in the last twelve calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5)) |
+| `scheme.trailing_12m.months` | Months of this employment in the twelve-month lookback |
 | `scheme.projection.payslips_remaining` | Payslips left in the year, this one included |
 | `scheme.projection.future_equivalents` | Future payslips of this size |
 | `scheme.rate_override` | The employment flat rate override percentage, 0 when none |
@@ -1015,6 +1108,10 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
 | `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
+| `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
+| `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
+| `employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
+| `employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
@@ -1029,6 +1126,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
+| `employment.days_to_exit` | Calendar days from the rule date to the exit date: 0 on the exit day or while open. A leave rule reads it on each day charged (TW 勞基法 §16(2): only inside the notice, `employment.days_to_exit < employment.exit_facts.notice_days_given`) |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
 | `employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
@@ -1037,6 +1135,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `employment.piece_wages_last_workdays(days)` | Earned units times unit rate on the last `days` piece-rate workdays through the final service day; refuses when a scheduled recent workday lacks earnings or explicit absence (TH LPA s.118) |
 | `employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
 | `employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
@@ -1047,15 +1146,18 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
-| `terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
+| `terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed, less the classes `work_rules.wage_excluded_allowances` names (MY EA s.2 “wages” (c): travelling); on a scheme’s own expression, those counting toward that scheme |
 | `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |
+| `terms.hazardous_work` | Ministerial Regulation hazardous work (TH LPA s.23) |
+| `terms.weather_dependent_piece` | Weather-dependent piece work uses twelve paid months for ID JKK, JKM and JHT |
 | `terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
 | `terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
+| `terms.worksite_sector_edition` | The KBLI edition of an ID worksite sector (2020 or 2025), or empty |
 | `terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -1065,6 +1167,9 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty when unrecorded; each scheme supplies its statutory default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `terms.notice_days` | Notice days the contract states, 0 when none |
+| `terms.probation_months` | Months of the agreed probation served, hire through its last day (`employment_terms.probation_end`) or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83) |
+| `terms.post_probation_wage` | The wage the contract agrees for after the probation, 0 when unrecorded (CN LCL art.20: the probation wage is at least 80% of it; art.83: damages are priced on it) |
+| `terms.open_ended_overdue_months` | Months from the day an open-ended contract should have been concluded (`employment_terms.open_ended_due_on`) through the rule date inclusive, a part month by its days; 0 when unrecorded or not yet due (CN LCL art.82 para.2) |
 | `terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
 | `terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
@@ -1107,11 +1212,14 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
 | `event.child_index` | Which recorded child the event concerns, 1-based; 0 when none |
+| `event.wife_prior_living_biological_children` | Wife’s prior living biological children at this birth, or -1 when unrecorded (VN Decree 168/2026 art.2(1)(b)) |
 | `event.date` | The day of the event, or empty |
 | `event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `event.child_age` | The named child’s completed years, -1 when none is named |
 | `event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
+| `event.estimated_delivery_date` | The named child’s estimated delivery date as certified by a medical practitioner (SG CDCA s.2), or empty |
+| `event.adoption_eligibility_date` | The eligibility date of the application to adopt the named child (SG CDCA s.2: the application date for a citizen or PR child, else the dependant’s pass issue date), or empty |
 | `period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |
@@ -1167,6 +1275,10 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.race` | Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN) |
 | `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
+| `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
+| `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
+| `employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
+| `employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
@@ -1181,6 +1293,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.payday_notice_days(given_on, pay_frequency, company_pay_frequency)` | Notice length, as `days` for the two functions above, that takes effect on the payday after the first payday on or after given_on (TH LPA s.17 para.2); empty given_on prices from the removal day |
 | `employment.service_start` | First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire |
 | `employment.exit_date` | Last day of work, or empty while open |
+| `employment.days_to_exit` | Calendar days from the rule date to the exit date: 0 on the exit day or while open. A leave rule reads it on each day charged (TW 勞基法 §16(2): only inside the notice, `employment.days_to_exit < employment.exit_facts.notice_days_given`) |
 | `employment.open_ended` | Whether the contract states no end; a fixed-term contract’s end is its `exit_date` |
 | `employment.contract_months` | Whole months of a fixed-term contract, first day to last (VN Decree 253/2026 art.50(2): under three months is the 10% withholding; Law 41/2024 art.2(2): a foreigner is insured from twelve); 0 where open-ended |
 | `employment.contract_days` | Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended |
@@ -1189,6 +1302,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employment.exit_fact_keys` | Departure keys explicitly recorded on the employment, before defaults |
 | `employment.absent_days_12m` | Rostered days with an empty punch in the twelve months to the rule date (leave rules only) |
 | `employment.earned_monthly_average(months)` | The wages earlier payslips paid (basic, regular cash for work, overtime, less unpaid days; no bonus or reimbursement) over the `months` calendar months before the rule date’s month, per month of service, a part first month counted as its share (ID Permenaker 6/2016 art.3(3)–(4); MY reg.6(2) as twelve of them). Refused where a month of service has no payslip; read on a pay request or a leave cash-out |
+| `employment.piece_wages_last_workdays(days)` | Earned units times unit rate on the last `days` piece-rate workdays through the final service day; refuses when a scheduled recent workday lacks earnings or explicit absence (TH LPA s.118) |
 | `employment.earned_monthly_average(months, excluded)` | That average with the named filed codes taken back out of each month; `["OVERTIME"]` is every priced work-day line (CN 企业职工带薪年休假实施办法 art.11: 剔除加班工资) |
 | `employment.earned_monthly_average(months, excluded, fallback)` | That average, or `fallback` where the stint served no month before the rule date’s month (CN 实施条例 art.27: a leaver in the hiring month averages the one month worked) |
 | `employment.prior_service_months` | Months worked for earlier employers before this stint, as recorded on the contract; 0 unrecorded (CN 企业职工带薪年休假实施办法 art.4: annual leave counts cumulative service across employers) |
@@ -1199,15 +1313,18 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.basic_salary` | Contracted base salary, in the cadence it is stated |
 | `terms.monthly_basic` | The basic as a month on the version’s ordinary divisor: a daily rate × `ordinary_divisor_days`, an hourly one × the contract’s hours a day × it, a weekly one × it ÷ the days a week |
 | `terms.ordinary_day` | One ordinary day’s pay: `terms.monthly_basic` over the version’s `ordinary_divisor_days` — the work-pricing day; leave cash-out has a separate dated rule; 0 where no divisor was evaluated |
-| `terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed; on a scheme’s own expression, those counting toward that scheme |
+| `terms.fixed_allowances` | The allowances on the contract in force on the rule date, summed, less the classes `work_rules.wage_excluded_allowances` names (MY EA s.2 “wages” (c): travelling); on a scheme’s own expression, those counting toward that scheme |
 | `terms.monthly_wage` | Basic salary plus the fixed allowances — the “one month’s wage” a separation or festival payment is a multiple of |
 | `terms.gross_monthly` | The gross rate of pay as a month: `terms.monthly_basic` plus the contract’s allowances less the classes `work_rules.gross_excluded_allowances` names (SG EA s.2: travelling, food, housing); at the work day the exclusions apply, elsewhere every allowance counts |
 | `terms.monthly_wage_6m_average` | The contractual monthly wage averaged over the last six months of the employment (the terms in force and the standing allowances on the first of each), for a separation payment the law measures on that average (VN art.46); the current monthly wage where the employment is younger |
 | `terms.statutory_wages` | Wages a statutory ceiling reads: basic plus every other cash payment for work in the run |
 | `terms.workman` | Statutory work category starts with MANUAL_LABOUR |
 | `terms.statutory_work_category` | Statutory work category of the terms |
+| `terms.hazardous_work` | Ministerial Regulation hazardous work (TH LPA s.23) |
+| `terms.weather_dependent_piece` | Weather-dependent piece work uses twelve paid months for ID JKK, JKM and JHT |
 | `terms.worksite` | The worksite the terms record: a province or province/locality, or empty |
 | `terms.worksite_sector` | The worksite sector the terms record (ID: the five-digit KBLI), or empty |
+| `terms.worksite_sector_edition` | The KBLI edition of an ID worksite sector (2020 or 2025), or empty |
 | `terms.department` | Department — an employer’s own catalogue tier, never a statute’s |
 | `terms.payroll_group` | Payroll group — an employer’s own label, never a statute’s |
 | `terms.paid_rest_days` | The contract pays every day of the month, unworked rest days, special days and regular holidays included (the DOLE Handbook’s monthly-paid employee, factor 365) |
@@ -1217,6 +1334,9 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `terms.tax_residency` | RESIDENT \| NON_RESIDENT \| NON_RESIDENT_NETB declared on the contract, or empty when unrecorded; each scheme supplies its statutory default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B)) |
 | `terms.residency_since` | Date residency began as `YYYY-MM-DD`, or empty when unrecorded |
 | `terms.notice_days` | Notice days the contract states, 0 when none |
+| `terms.probation_months` | Months of the agreed probation served, hire through its last day (`employment_terms.probation_end`) or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83) |
+| `terms.post_probation_wage` | The wage the contract agrees for after the probation, 0 when unrecorded (CN LCL art.20: the probation wage is at least 80% of it; art.83: damages are priced on it) |
+| `terms.open_ended_overdue_months` | Months from the day an open-ended contract should have been concluded (`employment_terms.open_ended_due_on`) through the rule date inclusive, a part month by its days; 0 when unrecorded or not yet due (CN LCL art.82 para.2) |
 | `terms.ordinary_hours_per_week` | Roster-measured working week, hours |
 | `terms.comparable_full_time_daily_hours` | Similar full-time employee’s declared normal daily hours, or 0 when unrecorded |
 | `terms.comparable_full_time_presence` | PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown |
@@ -1259,11 +1379,14 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `event.kind` | The per-event leave’s event: BIRTH \| MISCARRIAGE \| ADOPTION \| MARRIAGE \| DEATH \| …, or empty |
 | `event.relationship` | Whose event: SPOUSE \| CHILD \| PARENT \| …, or empty |
 | `event.child_index` | Which recorded child the event concerns, 1-based; 0 when none |
+| `event.wife_prior_living_biological_children` | Wife’s prior living biological children at this birth, or -1 when unrecorded (VN Decree 168/2026 art.2(1)(b)) |
 | `event.date` | The day of the event, or empty |
 | `event.child_citizenship` | The named child’s recorded citizenship, or empty |
 | `event.child_age` | The named child’s completed years, -1 when none is named |
 | `event.child_shared_weeks` | The named child’s allocated shared-parental weeks; -1 when unrecorded, 0 for an explicit zero share |
 | `event.prior_employment_days` | Days employed elsewhere before the named child’s confinement, as declared; 0 when unrecorded |
+| `event.estimated_delivery_date` | The named child’s estimated delivery date as certified by a medical practitioner (SG CDCA s.2), or empty |
+| `event.adoption_eligibility_date` | The eligibility date of the application to adopt the named child (SG CDCA s.2: the application date for a citizen or PR child, else the dependant’s pass issue date), or empty |
 | `period.unpaid_full_days` | Scheduled dates wholly unpaid, counted once per date; paid fractions do not count |
 | `period.leave_days.<CODE>` | Approved working-day leave fractions of the named code in the assessment window |
 | `period.leave_full_days.<CODE>` | Approved full working dates of the named leave code in the assessment window |

@@ -25,7 +25,20 @@ export const STATUTORY_SOURCES: Readonly<Record<string, readonly string[]>> = {
 		'https://www.msf.gov.sg',
 		'https://ask.gov.sg',
 		'https://www.muis.gov.sg',
-		'https://www.iras.gov.sg'
+		'https://www.iras.gov.sg',
+		'https://www.egazette.gov.sg',
+		'https://assets.egazette.gov.sg',
+		'https://www.parliament.gov.sg',
+		'https://www.elitigation.sg',
+		'https://www.pdpc.gov.sg',
+		'https://www.tal.sg',
+		'https://stats.mom.gov.sg',
+		'https://file.go.gov.sg',
+		'https://www.cdac.org.sg',
+		'https://www.sinda.org.sg',
+		'https://docs.developer.singpass.gov.sg',
+		'https://public.cloud.myinfo.gov.sg',
+		'https://web.archive.org'
 	],
 	TW: [
 		'https://law.moj.gov.tw',

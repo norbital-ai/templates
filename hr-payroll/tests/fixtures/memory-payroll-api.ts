@@ -26,6 +26,8 @@ export type PayrollWorld = {
 	readonly employment_terms: PayrollRow[];
 	/** Reference wage periods; a world that states none has no stored wage history. */
 	readonly employment_wage_periods?: PayrollRow[];
+	/** Recorded stays; a world that states none records no presence. */
+	readonly presence_periods?: PayrollRow[];
 	readonly employment_statutory_facts: PayrollRow[];
 	readonly claim_requests: PayrollRow[];
 	readonly adhoc_requests?: PayrollRow[];
@@ -56,6 +58,7 @@ const COLLECTIONS = [
 	'employees',
 	'employment_terms',
 	'employment_wage_periods',
+	'presence_periods',
 	'employment_statutory_facts',
 	'claim_requests',
 	'adhoc_requests',

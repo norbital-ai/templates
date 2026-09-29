@@ -3,8 +3,27 @@ import { entityFactsFault, sealedLineages } from '../../../lib/entity-facts.js';
 
 const companyFacts = collection('company_facts', {
 	read: { fields: 'all' },
-	create: { input: { columns: ['company_id', 'facts', 'effective_range'] } },
-	update: { input: { columns: ['facts', 'effective_range'] } },
+	create: {
+		input: {
+			columns: [
+				'company_id',
+				'facts',
+				'effective_range',
+				'ph_wage_class_source_reference',
+				'ph_wage_class_source_file'
+			]
+		}
+	},
+	update: {
+		input: {
+			columns: [
+				'facts',
+				'effective_range',
+				'ph_wage_class_source_reference',
+				'ph_wage_class_source_file'
+			]
+		}
+	},
 	delete: {}
 });
 export default companyFacts;

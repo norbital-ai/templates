@@ -31,13 +31,14 @@ export function leaveBalanceSummaries(context: LeaveContext, employmentId: strin
 			const rules = leaveRules(context, employmentId, catalogue.id);
 			// The row as a pool: its own entries and what its consumers took inside it.
 			const entries = leavePool(context, employmentId, rules).asPool;
-			const window = leaveWindowOf(through, catalogue.entitlement);
+			const window = leaveWindowOf(through, catalogue.entitlement, rules.hire);
 			const entitlement = rules.entitlementAt(window, asOf);
 			const summary = leaveBalanceAt({
 				entries,
 				window,
 				date: asOf,
 				entitlementAt: rules.entitlementAt,
+				carryFrom: rules.carryFrom,
 				pool: catalogue.code
 			});
 			if (
@@ -45,7 +46,7 @@ export function leaveBalanceSummaries(context: LeaveContext, employmentId: strin
 					unlimited: entitlement.unlimited,
 					ceiling: entitlement.entitlement,
 					earned: entitlement.earned,
-					activity: entries.length > 0
+					activity: entries.length > 0 || (summary.balance ?? 0) > 0
 				})
 			)
 				return [];
@@ -54,6 +55,7 @@ export function leaveBalanceSummaries(context: LeaveContext, employmentId: strin
 					catalogue_id: catalogue.id,
 					code: catalogue.code,
 					name: catalogue.name,
+					unit: entitlement.unit,
 					window,
 					entitlement: entitlement.entitlement,
 					earned: entitlement.earned,

@@ -32,6 +32,12 @@ export const wagesValueSchema = Schema.Struct({
 	part_time_monthly_full_time_week_hours: Schema.optionalKey(
 		Schema.Finite.check(Schema.isGreaterThan(0))
 	),
+	/** Working days/week → monthly equivalent of an agreed daily wage (ID PP 36/2021 art.17). */
+	daily_monthly_divisor_by_workweek: Schema.optionalKey(
+		Schema.NullOr(Schema.Record(Schema.String, Schema.Finite.check(Schema.isGreaterThan(0))))
+	),
+	/** A monthly-paid part-timer meets the order's hourly floor over contracted weekly hours. */
+	part_time_monthly_hourly_floor: Schema.optionalKey(Schema.Boolean),
 	/** A daily-paid part-timer's minimum is the hourly floor times the agreed normal hours/day. */
 	part_time_daily_hourly_floor: Schema.optionalKey(Schema.Boolean),
 	/**
@@ -48,6 +54,25 @@ export const wagesValueSchema = Schema.Struct({
 			)
 		)
 	),
+	/** Exact worksite, sector and establishment size select a seeded wage-order class. */
+	classified_by_worksite: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				single_establishment_fact: Schema.String.check(Schema.isMinLength(1)),
+				headcount_fact: Schema.String.check(Schema.isMinLength(1)),
+				rows: Schema.Array(
+					Schema.Struct({
+						worksite: Schema.String.check(Schema.isMinLength(1)),
+						sector: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+						employment_type: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
+						min_workers: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+						max_workers: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
+						rate_key: Schema.String.check(Schema.isMinLength(1))
+					})
+				)
+			})
+		)
+	),
 	/**
 	 * Worksite → daily minimum wage, where the order fixes a day's rate by place (TH Notice 14).
 	 * A key is a province or `province/district`; a district key overrides its province, and a
@@ -60,10 +85,28 @@ export const wagesValueSchema = Schema.Struct({
 	),
 	/**
 	 * `by_region` names workplaces: a person's monthly floor is read at the worksite their terms
-	 * record (`terms.worksite`), the company's region where none is (ID UU 13/2003 art.88C as
-	 * amended by UU 6/2023: the UMK binds in its regency or city, the UMP elsewhere in the province).
+	 * record (`terms.worksite`), the company's region where none is. The selected key must be exact:
+	 * an unlisted locality cannot inherit a province's UMP because its UMK may be unseeded (ID UU
+	 * 13/2003 art.88C as amended by UU 6/2023).
 	 */
 	workplace_keyed: Schema.optionalKey(Schema.Boolean),
+	/** Bare workplace keys allowed where a province-wide order alone binds (ID: DKI Jakarta). */
+	standalone_workplaces: Schema.optionalKey(
+		Schema.NullOr(Schema.Array(Schema.String.check(Schema.isMinLength(1))))
+	),
+	/** KBLI edition used by the ID sector rows and ordinary-sector attestations below. */
+	kbli_edition: Schema.optionalKey(Schema.Union([Schema.Literal('2020'), Schema.Literal('2025')])),
+	/** First day a 2025 classification can be asserted (PerBPS 7/2025 art.7). */
+	kbli_2025_from: Schema.optionalKey(calendarDay),
+	/** Verified KBLI 2025 codes with exactly one corresponding 2020 sector class. */
+	kbli_2025_to_2020: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Record(
+				Schema.String.check(Schema.isPattern(/^[0-9]{5}$/)),
+				Schema.String.check(Schema.isPattern(/^[0-9]{5}$/))
+			)
+		)
+	),
 	/**
 	 * Sector minimum wages by place (ID PP 36/2021 as amended by PP 49/2025 art.35D; DKI Kep.33/2026,
 	 * Jawa Tengah Kep.100.3.3.1/505/2025): a row binds a covered person whose worksite is at or
@@ -81,6 +124,21 @@ export const wagesValueSchema = Schema.Struct({
 					),
 					when: Schema.optionalKey(Schema.NullOr(Schema.String)),
 					amount: Schema.Finite.check(Schema.isGreaterThan(0))
+				})
+			)
+		)
+	),
+	/** Places with an incomplete sector catalogue refuse an unverified ordinary-wage fallback. */
+	strict_sector_places: Schema.optionalKey(
+		Schema.NullOr(Schema.Array(Schema.String.check(Schema.isMinLength(1))))
+	),
+	/** Place and KBLI pairs checked against the applicable order and confirmed to owe only the ordinary floor. */
+	verified_ordinary_sectors: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Array(
+				Schema.Struct({
+					place: Schema.String.check(Schema.isMinLength(1)),
+					kbli: Schema.String.check(Schema.isPattern(/^[0-9]{5}$/))
 				})
 			)
 		)
@@ -111,6 +169,12 @@ export const wagesValueSchema = Schema.Struct({
 	 * the run the same way.
 	 */
 	terms_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/** Refuse a payroll run whose covered contract fails `terms_when`. */
+	block_terms_when: Schema.optionalKey(Schema.Boolean),
+	/** Include fixed allowances when comparing the monthly contract to its wage floor. */
+	floor_includes_fixed_allowances: Schema.optionalKey(Schema.Boolean),
+	/** Refuse results-based terms whose monthly earned pay is not measured in the wage assessment. */
+	block_unmeasured_results_pay: Schema.optionalKey(Schema.Boolean),
 	/**
 	 * Scheme codes whose employee share the monthly floor is net of: the contract less the month's
 	 * employee charges of these schemes must meet it (CN-SH 沪人社规〔2025〕10号 item 4 excludes the

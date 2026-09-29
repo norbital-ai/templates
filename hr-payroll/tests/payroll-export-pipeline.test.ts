@@ -32,8 +32,11 @@ async function januaryWorld({
 	world ??= createPublicPayrollWorld({ includePayment: true });
 	if (bank) world.employments[0].bank = BANK;
 	for (const day of world.work_days)
+		// The shift's granted 60 minutes, punched as a gap — a break owed and not taken is worked
+		// time, and nine continuous hours price an hour outside ordinary paid work.
 		day.worked_intervals = [
-			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T12:30:00+08:00` },
+			{ start: `${day.work_date}T13:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
 	storeRun(world, await createRun(world, period), runId);
 	return { world, runId };

@@ -2,7 +2,7 @@ import { collection } from '@norbital-ai/bolt';
 import { readPayrollWorlds } from '../../../lib/payroll/world.js';
 import { plain } from '../../../lib/wire.js';
 import { readAll } from '../../../lib/reads.js';
-import { dateKey } from '../../../lib/iso-day.js';
+import { dateKey, isCalendarDate } from '../../../lib/iso-day.js';
 import { configurationSnapshot } from '../../../lib/payroll/run/configuration.js';
 import {
 	buildPayrollRun,
@@ -18,10 +18,11 @@ import {
 import { payrollRunPrecheck } from '../../../lib/payroll/run/precheck.js';
 import { describeIssues } from '../../../lib/payroll/run/validate.js';
 import { refuse } from '../../../lib/refuse.js';
+import { assertPhMaternityPayrollCashSafe } from '../../../lib/ph/maternity-payroll-guard.js';
 
 /**
- * A run is one write: a person chooses a company and a period, and the transform derives everything else — the
- * pay date, the windows, the governing settings version, every payslip and the pin on every source each slip
+ * A run is one write: a person chooses a company, a period, and optionally its contractual pay due
+ * date. The transform derives the settlement date, the windows, the governing settings version, every payslip and the pin on every source each slip
  * consumed — so a caller has no way to assert a single figure. The population is not a choice: the run covers
  * every eligible employment; individual cases are held per payslip (`ON_HOLD`).
  *
@@ -31,7 +32,7 @@ import { refuse } from '../../../lib/refuse.js';
  */
 const c = collection('payroll_runs', {
 	read: { fields: 'all' },
-	create: { input: { columns: ['company_id', 'period'] } },
+	create: { input: { columns: ['company_id', 'period', 'pay_due_date'] } },
 	delete: { transform: true }
 });
 
@@ -56,6 +57,7 @@ const derivedColumns = async (prepared: PreparedRun) => ({
 	settings_id: prepared.configuration.jurisdiction.id,
 	calculation_version: CALCULATION_VERSION,
 	pay_date: dateKey(prepared.window.payDate),
+	pay_due_date: dateKey(prepared.window.payDueDate),
 	attendance_from: dateKey(prepared.window.attendance.start),
 	attendance_to: dateKey(prepared.window.attendance.end)
 });
@@ -77,6 +79,19 @@ c.transform(async (inputs, ctx) => {
 			ctx.refuse(
 				'Someone in this payroll run has been paid, so the run is kept. Correct it in a later run.'
 			);
+		const slips = await readAll<{ readonly id: string }>(ctx.db, 'payslips', {
+			payroll_run_id: { in: [...gone] }
+		});
+		const tranches = await readAll<{ readonly id: string }>(ctx.db, 'payable_tranches', {
+			settlement: { payslips: { in: slips.map((row) => row.id) } }
+		});
+		const [allocated] = await readAll<{ readonly id: string }>(ctx.db, 'payment_allocations', {
+			payable_tranche_id: { in: tranches.map((row) => row.id) }
+		});
+		if (allocated != null)
+			ctx.refuse(
+				'Someone in this payroll run has a partial payment, so the run is kept. Correct it in a later run.'
+			);
 		for (const run of deleting)
 			assertPayrollRunDeletable(
 				siblings.filter((other) => other.company_id === run.company_id && !gone.has(other.id)),
@@ -94,7 +109,13 @@ c.transform(async (inputs, ctx) => {
 				'Payroll period must be YYYY-MM, or YYYY-MM-1 / YYYY-MM-2 at a semi-monthly company.',
 				{ field: 'period' }
 			);
-		return { company_id: String(input.company_id), period };
+		const payDueDate =
+			input.pay_due_date == null || input.pay_due_date === ''
+				? undefined
+				: dateKey(input.pay_due_date);
+		if (payDueDate !== undefined && !isCalendarDate(payDueDate))
+			return ctx.refuse('Pay due date must be a real calendar day.', { field: 'pay_due_date' });
+		return { company_id: String(input.company_id), period, payDueDate };
 	});
 	const companies = new Set<string>();
 	for (const run of runs) {
@@ -110,7 +131,21 @@ c.transform(async (inputs, ctx) => {
 		runs.map(async (run) => {
 			const world = worlds.get(`${run.company_id}:${run.period}`)!;
 			assertPayrollPeriodAvailable(world.payroll_runs, run.period);
-			const facts = gatherPayrollRun({ world, companyId: run.company_id, period: run.period });
+			const facts = gatherPayrollRun({
+				world,
+				companyId: run.company_id,
+				period: run.period,
+				payDueDate: run.payDueDate
+			});
+			await assertPhMaternityPayrollCashSafe(
+				ctx.db,
+				world,
+				facts.gathered.bundles.flatMap((bundle) =>
+					bundle.wageDays == null
+						? []
+						: [{ employment_id: bundle.employment.id, salary: bundle.window.salary }]
+				)
+			);
 			const blocking = payrollRunPrecheck({
 				configuration: facts.configuration,
 				window: facts.window,
@@ -123,7 +158,8 @@ c.transform(async (inputs, ctx) => {
 					`adjustments=${built.adjustmentCount} captured=${built.capturedCount}`
 			);
 			return {
-				...run,
+				company_id: run.company_id,
+				period: run.period,
 				...(await derivedColumns(facts)),
 				calculation_trace: built.calculation_trace,
 				company_charges: built.company_charges,

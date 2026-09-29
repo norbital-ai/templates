@@ -8,7 +8,10 @@ export default model({
 	fields: {
 		/** The entity facts in force from the range's start; `{}` when none (set by the transform). */
 		facts: { kind: 'custom', of: 'entity_facts' },
-		effective_range: { kind: 'period', of: 'date' }
+		effective_range: { kind: 'period', of: 'date' },
+		/** PH single-establishment and worker-count evidence for reduced regional wage classes. */
+		ph_wage_class_source_reference: { kind: 'text', optional: true },
+		ph_wage_class_source_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true }
 	},
 	// two revisions of one entity never claim one day
 	noOverlap: [{ key: ['company_id'], period: 'effective_range', name: 'company_facts_no_overlap' }]

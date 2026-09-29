@@ -269,7 +269,14 @@ for (const code of ['SG', 'VN', 'MY', 'MY-nihon', 'ID', 'TW'] as const)
 			const monthly = createStatutoryWorld({
 				code,
 				period: '2026-01',
-				region: code === 'ID' ? 'Provinsi DKI Jakarta' : code === 'TW' ? 'Taiwan' : 'I',
+				region:
+					code === 'ID'
+						? 'Provinsi DKI Jakarta'
+						: code === 'TW'
+							? 'Taiwan'
+							: code === 'MY' || code === 'MY-nihon'
+								? 'Malaysia'
+								: 'I',
 				riskClass: code === 'TW' ? '1' : 'II',
 				people: [
 					{
@@ -296,7 +303,14 @@ for (const code of ['SG', 'VN', 'MY', 'MY-nihon', 'ID', 'TW'] as const)
 				code,
 				period: '2026-01-1',
 				payFrequency: 'SEMI_MONTHLY',
-				region: code === 'ID' ? 'Provinsi DKI Jakarta' : code === 'TW' ? 'Taiwan' : 'I',
+				region:
+					code === 'ID'
+						? 'Provinsi DKI Jakarta'
+						: code === 'TW'
+							? 'Taiwan'
+							: code === 'MY' || code === 'MY-nihon'
+								? 'Malaysia'
+								: 'I',
 				riskClass: code === 'TW' ? '1' : 'II',
 				people: [
 					{
@@ -488,7 +502,7 @@ test('TW continued labour insurance survives 65 while employment insurance ends 
 	assert.equal(rows.find((row) => row.scheme_code === 'EI')?.employee_amount, 11); // Jan 16–19: 4 days.
 });
 
-test('TW wage arrears fund matches BLI’s five-worker example, including LI-exempt workers and a joiner', () => {
+test('TW wage arrears fund matches BLI’s five-worker example, including part-time workers and a joiner', () => {
 	// https://www.bli.gov.tw/0110180.html: 40,100 + 13,500 + 13,500 + 45,800 + 28,070 = 140,970.
 	// The company rounds 140,970 × 0.025% once, giving 35.
 	const world = createStatutoryWorld({
@@ -502,14 +516,12 @@ test('TW wage arrears fund matches BLI’s five-worker example, including LI-exe
 				key: 'C',
 				wage: 13000,
 				citizenship: 'CITIZEN',
-				employment_type: 'PART_TIME',
-				registrations: { LI: { kind: 'NOT_REGISTERED' } }
+				employment_type: 'PART_TIME'
 			},
 			{
 				key: 'D',
 				wage: 70000,
-				citizenship: 'CITIZEN',
-				registrations: { LI: { kind: 'NOT_REGISTERED' } }
+				citizenship: 'CITIZEN'
 			},
 			{ key: 'E', wage: 40000, citizenship: 'CITIZEN', hire_date: '2026-01-10' }
 		]
@@ -546,5 +558,5 @@ test('TW age 65+ requires an explicit labour-insurance standing; non-registratio
 		fact.status = { kind: 'NOT_REGISTERED', reason: 'Confirmed no LI coverage' };
 	world.employment_statutory_facts.push(...facts);
 	const li = settlePeriod(world, '2026-01').find((row) => row.scheme_code === 'LI');
-	assert.equal(li, undefined);
+	assert.deepEqual([li?.base_amount, li?.employee_amount, li?.employer_amount], [0, 0, 0]);
 });

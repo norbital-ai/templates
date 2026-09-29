@@ -22,6 +22,7 @@ const c = collection('allowance_catalogue', {
 				'eligibility',
 				'counts_toward',
 				'npl_prorates',
+				'outpatient_sick_pay',
 				'owed'
 			]
 		}
@@ -38,6 +39,7 @@ const c = collection('allowance_catalogue', {
 				'eligibility',
 				'counts_toward',
 				'npl_prorates',
+				'outpatient_sick_pay',
 				'owed'
 			]
 		}

@@ -48,6 +48,8 @@ export function requireFactValues(
 export type CompanyFactRevision = {
 	readonly facts: Readonly<Record<string, unknown>>;
 	readonly effective_range: unknown;
+	readonly ph_wage_class_source_reference?: string | null | undefined;
+	readonly ph_wage_class_source_file?: unknown;
 };
 
 /**

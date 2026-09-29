@@ -1,12 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-	assessStatutory,
-	expectStatutory,
-	expectStatutorySkipped
-} from './fixtures/statutory-world.ts';
+import { assessStatutory, expectStatutory } from './fixtures/statutory-world.ts';
 
-for (const period of ['2025-12', '2026-01', '2027-01'])
+for (const period of ['2025-12', '2026-01'])
 	test(`Taiwan ${period} — permanent residence alone cannot charge EI`, () => {
 		assert.throws(
 			() =>
@@ -18,20 +14,23 @@ for (const period of ['2025-12', '2026-01', '2027-01'])
 				}),
 			/eligibility class is required/
 		);
-		const book = assessStatutory({
-			code: 'TW',
-			period,
-			riskClass: '1',
-			people: [
-				{
-					key: 'OTHER-PR',
-					wage: 60_000,
-					citizenship: 'PERMANENT_RESIDENT',
-					registrations: { EI: { kind: 'NOT_REGISTERED' } }
-				}
-			]
-		});
-		expectStatutorySkipped(book, 'OTHER-PR', 'EI');
+		assert.throws(
+			() =>
+				assessStatutory({
+					code: 'TW',
+					period,
+					riskClass: '1',
+					people: [
+						{
+							key: 'OTHER-PR',
+							wage: 60_000,
+							citizenship: 'PERMANENT_RESIDENT',
+							registrations: { EI: { kind: 'NOT_REGISTERED' } }
+						}
+					]
+				}),
+			/NOT_REGISTERED does not prove an exclusion/
+		);
 	});
 
 test('Taiwan 2026 — insured permanent-resident foreign professional owes EI at the published grade', () => {

@@ -76,13 +76,26 @@ function run(scenario: Scenario) {
 					requested_by: null,
 					approval_id: null
 				});
+			// A night day is rostered to a shift that covers the hours actually worked, meal taken:
+			// clocked outside the rostered window the day reads hours outside ordinary paid work
+			// (work.ts, "Reconcile the work day before payroll").
+			if ((scenario.nightDates ?? []).length > 0)
+				world.shift_definitions[0]!.variant = {
+					kind: 'WORK',
+					start_time: '14:00',
+					end_time: '23:00',
+					break_minutes: 60
+				};
 			for (const date of scenario.nightDates ?? [])
 				world.work_days.push({
 					id: `wd-night-${date}`,
 					employment_id: employment.id,
 					work_date: date,
 					shift_definition_id: null,
-					worked_intervals: [{ start: `${date}T14:00:00+08:00`, end: `${date}T23:00:00+08:00` }],
+					worked_intervals: [
+						{ start: `${date}T14:00:00+08:00`, end: `${date}T18:00:00+08:00` },
+						{ start: `${date}T19:00:00+08:00`, end: `${date}T23:00:00+08:00` }
+					],
 					approved_overtime_hours: 0,
 					requested_by: null,
 					approval_id: null

@@ -136,6 +136,7 @@ function measure(entries) {
 			jurisdiction: {
 				id: 'settings',
 				code: 'TEST',
+				work_rules: WORK,
 				payroll: {
 					currency: 'MYR',
 					timezone: 'Asia/Kuala_Lumpur',

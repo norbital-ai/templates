@@ -43,6 +43,7 @@ import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
 import { addUnpaidWorkingDays } from './fixtures/unpaid-leave.ts';
 import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
+import { restBreakAssessment } from '../src/lib/scheduling/rest-break.ts';
 
 const VN_PEOPLE = [
 	{ key: 'VN-20M', wage: 20_000_000, age: 25, citizenship: 'CITIZEN' },
@@ -94,7 +95,8 @@ test('Vietnam — short contracts do not replace non-resident withholding with t
 				citizenship: 'FOREIGNER',
 				tax_residency: 'NON_RESIDENT',
 				hire_date: '2026-06-01',
-				exit_date: '2026-07-31'
+				exit_date: '2026-07-31',
+				exit_reason: 'END_OF_CONTRACT'
 			}
 		]
 	});
@@ -232,6 +234,61 @@ test('Vietnam — a dependant deducts 6,200,000 a month, and a non-resident is w
 	// 20,000,000 − 2,100,000 − 21,700,000 is negative: nothing is withheld.
 	expectStatutory(book, 'VN-20M-D1', 'PIT', 0, 0);
 	expectStatutory(book, 'VN-NR-20M', 'PIT', 4_000_000, 0);
+});
+
+test('Vietnam — July PIT uses registered eligible dependants, not the employee profile count (Decree 253/2026 arts.47–48)', () => {
+	const book = assessStatutory({
+		code: 'VN',
+		period: '2026-07',
+		region: 'I',
+		people: [
+			{
+				key: 'PROFILE-ONLY',
+				wage: 46_800_000,
+				citizenship: 'CITIZEN',
+				children: 1,
+				registrations: { PIT: { kind: 'REGISTERED', elections: { eligible_dependents: 0 } } }
+			},
+			{
+				key: 'REGISTERED-OTHER',
+				wage: 46_800_000,
+				citizenship: 'CITIZEN',
+				registrations: {
+					PIT: {
+						kind: 'REGISTERED',
+						elections: {
+							eligible_dependents: 1,
+							dependents_registration_reference: 'REGISTERED-PARENT'
+						}
+					}
+				}
+			}
+		]
+	});
+	expectStatutory(book, 'PROFILE-ONLY', 'PIT', 2_138_600, 0);
+	expectStatutory(book, 'REGISTERED-OTHER', 'PIT', 1_518_600, 0);
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: 'VN',
+				period: '2026-07',
+				region: 'I',
+				people: [
+					{
+						key: 'NO-REGISTRATION-EVIDENCE',
+						wage: 46_800_000,
+						citizenship: 'CITIZEN',
+						registrations: {
+							PIT: {
+								kind: 'REGISTERED',
+								elections: { eligible_dependents: 1 }
+							}
+						}
+					}
+				]
+			}),
+		/Dependant registration and eligibility evidence reference is required/
+	);
 });
 
 test('Vietnam — February relieves February’s insurance, not the year’s (Circular 111/2013 art.7)', () => {
@@ -427,15 +484,38 @@ const holiday = (date: string, name: string) => ({
 	published_at: '2025-12-01T00:00:00.000Z',
 	approval_id: null
 });
-/** A punch from `start` to `end` on `date`, in Hồ Chí Minh City's +07:00 frame. */
-const punch = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+/** `HH:MM` one hour later, for the break that separates two worked intervals. */
+const anHourLater = (time: string) => {
+	const minutes = (Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)) + 60) % 1440;
+	return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+};
+/**
+ * A punch from `start` to `end` on `date`, in Hồ Chí Minh City's +07:00 frame. `mealStart` names the
+ * hour the shift's break is taken: only a gap between worked intervals proves it, so a break the
+ * punches do not show is worked time (BLLĐ 2019 art.109(1), art.84(b)).
+ */
+const punch = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	start: string,
+	end: string,
+	mealStart?: string
+) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
+	const at = (from: string, to: string) => ({
+		start: `${date}T${from}:00+07:00`,
+		end: `${date}T${to}:00+07:00`
+	});
 	world.work_days.push({
 		id: `wd-${key}-${date}`,
 		employment_id: employment.id,
 		work_date: date,
 		shift_definition_id: null,
-		worked_intervals: [{ start: `${date}T${start}:00+07:00`, end: `${date}T${end}:00+07:00` }],
+		worked_intervals:
+			mealStart == null
+				? [at(start, end)]
+				: [at(start, mealStart), at(anHourLater(mealStart), end)],
 		approval_id: null
 	});
 };
@@ -462,7 +542,7 @@ test('Vietnam — non-resident overtime exemption changes on 1 July, independent
 					}
 				]
 			},
-			(world) => punch(world, 'NONRES-OT', workDate, '09:00', '20:00')
+			(world) => punch(world, 'NONRES-OT', workDate, '09:00', '20:00', '13:00')
 		);
 		assert.deepEqual(charge(slips.get('NONRES-OT')!, 'PIT'), [base, tax, 0]);
 	}
@@ -519,10 +599,10 @@ const week = (
 ) => {
 	const [monday, saturday, holidayDate, nightMonday] = days;
 	world.jurisdiction_holidays.push(holiday(`${month}-${holidayDate}`, 'Holiday'));
-	punch(world, key, `${month}-${monday}`, '09:00', '21:00'); // 11 worked: 3 h beyond the normal day
-	punch(world, key, `${month}-${saturday}`, '09:00', '18:00'); // rest day: 9 h clock, 8.5 h worked
-	punch(world, key, `${month}-${holidayDate}`, '09:00', '18:00'); // holiday: the normal day
-	punch(world, key, `${month}-${nightMonday}`, '09:00', '24:00'); // 14 worked: 6 h beyond, 2 of them at night
+	punch(world, key, `${month}-${monday}`, '09:00', '21:00', '13:00'); // 11 worked: 3 h beyond the normal day
+	punch(world, key, `${month}-${saturday}`, '09:00', '18:00'); // rest day: 9 h clock, no break taken, 9 h worked
+	punch(world, key, `${month}-${holidayDate}`, '09:00', '18:00', '13:00'); // holiday: the normal day
+	punch(world, key, `${month}-${nightMonday}`, '09:00', '24:00', '13:00'); // 14 worked: 6 h beyond, 2 of them at night
 };
 
 test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the art.109 break', () => {
@@ -545,10 +625,11 @@ test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the ar
 		['2026-01-01', 'OT-3.0X', 8, 2_400_000],
 		// Art.98(1)(a): the three hours beyond the normal day at 150%.
 		['2026-01-05', 'OT-1.5X', 3, 450_000],
-		// Art.98(1)(b): a rest day at 200% from its first hour. Art.109(1) owes a thirty-minute break
-		// on a day of six hours or more and, outside continuous-shift work, it is not working time —
-		// so a nine-hour clock span is eight and a half paid hours, in the seed's two rows (the normal
-		// day, then the half hour beyond it, both at 200%).
+		// Art.98(1)(b): a rest day at 200% from its first hour. A time entry is a span, so the
+		// seeded rule (BLLĐ 2019 art.109(1): `consecutive_hours >= 6.0` → 30 minutes, not worked
+		// time) is deducted from the span less any gap. The nine continuous clocked hours carry the
+		// provided half hour → 8.5 worked, in the seed's two rows (the normal day, then the half hour
+		// beyond it, both at 200%).
 		['2026-01-10', 'OT-2.0X', 8, 1_600_000],
 		['2026-01-10', 'OT-2.0X', 0.5, 100_000],
 		// Six hours beyond the normal day at 150%, and art.98(2)–(3) for the two of them after 22:00:
@@ -560,8 +641,8 @@ test('Vietnam — art.98 prices 150% / 200% / 300%, the night premium and the ar
 		// beyond, so the fifth and sixth hours are their own line at the same 150%.
 		['2026-01-12', 'OT-1.5X', 4, 600_000],
 		['2026-01-12', 'OT-1.5X', 2, 300_000],
-		// An eight-hour rest-day clock with no break: the art.109(1) half hour is not working time,
-		// so the day priced from its start is seven and a half hours at 200%, never the raw clock.
+		// An eight-hour rest-day clock (09:00–17:00) carries the seeded art.109(1) thirty minutes
+		// → 7.5 worked at 200%.
 		['2026-01-17', 'OT-2.0X', 7.5, 1_500_000]
 	]);
 	// Art.107(2)(b): overtime may not exceed 50% of the normal day — four hours. The sixth is paid
@@ -607,6 +688,8 @@ test('Vietnam — on the July 2026 version too, the overtime and night wage are 
 		[
 			['OT-3.0X', 8, 2_400_000],
 			['OT-1.5X', 3, 450_000],
+			// The rest day's nine continuous clocked hours carry the seeded art.109(1) thirty
+			// minutes, so 8.5 are worked — the normal-day row then the half hour beyond it.
 			['OT-2.0X', 8, 1_600_000],
 			['OT-2.0X', 0.5, 100_000],
 			['NIGHT_PREMIUM', 2, 120_000],
@@ -635,7 +718,26 @@ test('Vietnam — a part month prorates on working days, an allowance with it, a
 				{ key: 'VN-WHOLE', wage: 22_000_000, citizenship: 'CITIZEN' },
 				{ key: 'VN-NPL', wage: 22_000_000, citizenship: 'CITIZEN' },
 				{ key: 'VN-JOINER', wage: 22_000_000, citizenship: 'CITIZEN', hire_date: '2026-01-19' },
-				{ key: 'VN-LEAVER', wage: 22_000_000, citizenship: 'CITIZEN', exit_date: '2026-01-15' },
+				{
+					key: 'VN-LEAVER',
+					wage: 22_000_000,
+					citizenship: 'CITIZEN',
+					exit_date: '2026-01-15',
+					registrations: {
+						PIT: {
+							kind: 'REGISTERED',
+							unit_assessments: [
+								{
+									period: '2026-01',
+									gross: 11_370_000,
+									units: 1,
+									reference: 'FINAL-WAGE',
+									paid_on: '2026-01-31'
+								}
+							]
+						}
+					}
+				},
 				// A base that does not divide: 20,000,000 × 10 ÷ 22 = 9,090,909.09.
 				{ key: 'VN-JOINER-20M', wage: 20_000_000, citizenship: 'CITIZEN', hire_date: '2026-01-19' }
 			]
@@ -850,7 +952,28 @@ test('Vietnam — fourteen unpaid working days in the month is a month outside i
 		code: 'VN',
 		period: '2026-01',
 		region: 'I',
-		people: [{ key: 'VN-EARLY', wage: 22_000_000, citizenship: 'CITIZEN', exit_date: '2026-01-09' }]
+		people: [
+			{
+				key: 'VN-EARLY',
+				wage: 22_000_000,
+				citizenship: 'CITIZEN',
+				exit_date: '2026-01-09',
+				registrations: {
+					PIT: {
+						kind: 'REGISTERED',
+						unit_assessments: [
+							{
+								period: '2026-01',
+								gross: 7_000_000,
+								units: 1,
+								reference: 'FINAL-WAGE',
+								paid_on: '2026-01-31'
+							}
+						]
+					}
+				}
+			}
+		]
 	});
 	const slip = slips.get('VN-EARLY')!;
 	assert.deepEqual(
@@ -971,6 +1094,19 @@ test('Vietnam — June 2026 (the 16 May version, Decree 105/2026) charges the un
 	expectStatutory(book, COMPANY, 'UNION_FEE', 0, 400_000);
 });
 
+for (const period of ['2026-06', '2026-09'])
+	test(`Vietnam — ${period}: a union fee suspension zeroes the 2% and a reduction cuts it by the decided share (Decree 105/2026 arts.12–13)`, () => {
+		// Decree 105/2026 art.13(3)(a): a suspension by decision, by month, at most 12 months — no
+		// fee for that month. Art.12(3): a reduction of at most 20% of the art.29(1)(b) 2% fee:
+		// 2% × 20,000,000 = 400,000 × (100 − 20)% = 320,000. The member's own dues are untouched.
+		const people = [{ key: 'VN-20M', wage: 20_000_000, citizenship: 'CITIZEN' }];
+		const fee = (companyFacts: Record<string, number | boolean>) =>
+			assessStatutory({ code: 'VN', period, region: 'I', people, companyFacts });
+		expectStatutory(fee({}), COMPANY, 'UNION_FEE', 0, 400_000);
+		expectStatutory(fee({ union_fee_suspended: true }), COMPANY, 'UNION_FEE', 0, 0);
+		expectStatutory(fee({ union_fee_reduction_percent: 20 }), COMPANY, 'UNION_FEE', 0, 320_000);
+	});
+
 test('every sealed version of `VN` is priced by a golden here', () => {
 	// Not "are the numbers right" — the goldens above do that — but "was a version skipped". A
 	// golden names its version through the period it runs, so a version sealed afterwards is priced
@@ -1008,19 +1144,32 @@ test('Vietnam — a night hour of rest-day work adds 20% of the rest-day wage (a
 	// 17,600,000 ÷ 22 ÷ 8 = 100,000 an hour. Saturday: eight hours on a rest day at 200%; four of
 	// them after 22:00 (the interval runs to 02:00 the next morning, inside the 22:00–06:00
 	// window) add 20% of the rest-day wage on the band, beside the 30% night premium's own line.
-	// Art.109(1): six hours or more with night work owes forty-five minutes; none were taken, so
-	// the rest-day clock is priced net of them — 7.25 hours — and the band pays 7.25 × 200,000 +
-	// 4 × 20,000 = 1,530,000.
+	// A time entry is a span: art.109(1) provides forty-five minutes on a six-hour night shift
+	// (the seeded `consecutive_hours >= 6.0 && night_hours > 0.0` rule, not worked time), and no
+	// gap proves one taken, so 8 − 45m = 7.25 hours are worked: the band pays
+	// 7.25 × 200,000 + 4 × 20,000 = 1,530,000. (The deduction path currently measures no night
+	// window, so it provisionally takes only the seeded 30-minute rule; the 45-minute figure is
+	// the statute's and is asserted below.)
 	const saturday = lines.filter((line) => line[0] === '2026-01-10' && line[1].startsWith('OT'));
 	assert.equal(
 		saturday.reduce((sum, line) => sum + line[2], 0),
 		7.25,
-		'the 45-minute night break comes off'
+		'the provided 45-minute night break comes off the span'
 	);
 	assert.equal(
 		saturday.reduce((sum, line) => sum + line[3], 0),
 		7.25 * 200_000 + 4 * 20_000
 	);
+	const owed = restBreakAssessment({
+		intervals: [{ start: '2026-01-10T18:00:00+07:00', end: '2026-01-11T02:00:00+07:00' }],
+		breakMinutes: 0,
+		breaks: settingsVersions('VN').find((row) => row.id === settingsIdOn('VN', '2026-01-10'))!
+			.work_rules.breaks,
+		nightHours: 4
+	});
+	assert.equal(owed.requiredMinutes, 45);
+	assert.equal(owed.shortfallMinutes, 45);
+	assert.equal(owed.rule?.counts_as_worked_time, false);
 	// Sunday: the statutory holiday falls on the rest day, and work on it is 300%: 4 × 300,000.
 	assert.deepEqual(
 		lines.filter((line) => line[0] === '2026-01-11'),
@@ -1055,11 +1204,13 @@ test('Vietnam — the 300-hour sector limit, the reduced accident rate and union
 
 test('Vietnam — a holiday on the rest day is the holiday, its substitute Monday the rest day (Decree 145/2020 art.55(3))', () => {
 	// Giỗ Tổ Hùng Vương 2026 is Sunday 26 April, with Monday the 27th its substitute — the
-	// calendar's shape for a holiday on a rest day (the bank seeds both rows). Eight hours on the
-	// Sunday: the holiday coincides with the weekly rest day, so it is paid as holiday overtime —
-	// 300%; eight hours on the substitute: rest-day overtime — 200%. The company cuts off on the
-	// 21st, so both days are in the May run; each is priced at the hour of the month it was worked
-	// (art.55(1)(a)): April's 22 working days, 17,600,000 ÷ 22 ÷ 8 = 100,000, not May's 21.
+	// calendar's shape for a holiday on a rest day (the bank seeds both rows). Eight clocked hours
+	// on the Sunday with no gap: art.109(1)'s seeded thirty minutes (the day is a rest day with no
+	// shift grant) come off the span, so 7.5 hours are worked and, the holiday coinciding with the
+	// weekly rest day, they are paid as holiday overtime at 300%. Eight hours on the substitute:
+	// rest-day overtime — 200%. The company cuts off on the 21st, so both days are in the May run;
+	// each is priced at the hour of the month it was worked (art.55(1)(a)): April's 22 working
+	// days, 17,600,000 ÷ 22 ÷ 8 = 100,000, not May's 21.
 	const { slips } = buildStatutory(
 		{
 			code: 'VN',
@@ -1073,12 +1224,12 @@ test('Vietnam — a holiday on the rest day is the holiday, its substitute Monda
 				kind: 'SUBSTITUTE',
 				replaces: '2026-04-26'
 			});
-			punch(world, 'VN-HUNG', '2026-04-26', '09:00', '17:30'); // eight hours net of the art.109 break
-			punch(world, 'VN-HUNG', '2026-04-27', '09:00', '18:00'); // eight on the substitute
+			punch(world, 'VN-HUNG', '2026-04-26', '09:00', '17:00'); // eight hours, no break taken
+			punch(world, 'VN-HUNG', '2026-04-27', '09:00', '18:00', '13:00'); // eight on the substitute
 		}
 	);
 	assert.deepEqual(workLines(slips.get('VN-HUNG')!), [
-		['2026-04-26', 'OT-3.0X-STATUTORY-DAY', 8, 2_400_000],
+		['2026-04-26', 'OT-3.0X-STATUTORY-DAY', 7.5, 2_250_000],
 		['2026-04-27', 'OT-2.0X-SUBSTITUTE', 8, 1_600_000]
 	]);
 });
@@ -1162,6 +1313,225 @@ test('Vietnam — union dues stop only for a month unpaid, and a member outside 
 	assert.deepEqual(dues(0, { wage: 5_000_000, employment_type: 'INTERN' }), [2_530_000, 12_650]);
 });
 
+test('Vietnam — union dues require a dated membership declaration even without scheme registration', () => {
+	for (const period of ['2025-12', '2026-01', '2026-06', '2026-07']) {
+		const options = {
+			code: 'VN' as const,
+			period,
+			region: 'I',
+			people: [
+				{
+					key: 'VN-NONMEMBER',
+					wage: 20_000_000,
+					citizenship: 'CITIZEN',
+					registrations: {
+						UNION_DUES: {
+							kind: 'NOT_REGISTERED',
+							declaration_reference: 'MEMBERSHIP-DECLARATION-2026',
+							elections: { union_member: false }
+						}
+					}
+				}
+			]
+		};
+		const declared = buildStatutory(options);
+		assert.equal(
+			declared.slips.get('VN-NONMEMBER')!.statutory.some((row) => row.scheme_code === 'UNION_DUES'),
+			false,
+			period
+		);
+		assert.throws(
+			() =>
+				buildStatutory(options, (world) => {
+					for (const fact of world.employment_statutory_facts)
+						if (
+							fact.status.kind === 'NOT_REGISTERED' &&
+							fact.status.elections?.union_member === false
+						)
+							delete fact.status.elections.union_member;
+				}),
+			/UNION_DUES: Union member is required before calculation/,
+			period
+		);
+	}
+});
+
+test('Vietnam — a month on sickness benefit carries no union dues; a paternity spell does not waive them (Decision 61/QĐ-TLĐ art.1)', () => {
+	// Decision 61/QĐ-TLĐ art.1: no dues for a member on social-insurance benefit for a month or
+	// more. Sickness days are paid by the fund, not the employer (Law 41/2024 art.42), so each is a
+	// wholly unpaid day on the payslip. July 2026 holds 23 fixture working days: all 23 sick → no
+	// dues; 13 sick and 10 unpaid → every working day wholly unpaid, no dues (owner rule 2026-09-28);
+	// 22 sick → one day worked, the member pays 0.5% of the 30,000,000 insurance salary = 150,000
+	// (SI is nil, Law 41/2024 art.33(5)). A father's 14 paternity days (twins by caesarean, Law
+	// 41/2024 art.53(2)) end the month's SI too, but the benefit is under a month: he still pays
+	// 150,000 (fixed in place 2026-09-28; the waiver had read 14 full maternity or paternity days).
+	const july = settingsIdOn('VN', '2026-07-15');
+	const run = (code: string, leaveDays: number, unpaid = 0) => {
+		const sick = rowIn(leaveCatalogue('VN'), july, code);
+		const slip = buildStatutory(
+			{
+				code: 'VN',
+				period: '2026-07',
+				region: 'I',
+				people: [
+					{
+						key: 'VN-DUES',
+						wage: 30_000_000,
+						citizenship: 'CITIZEN',
+						gender: 'MALE',
+						registrations: {
+							UNION_DUES: { kind: 'REGISTERED', elections: { union_member: true } },
+							SI: {
+								kind: 'REGISTERED',
+								elections: {
+									continue_si_unpaid: false,
+									sickness_benefit_eligible: true,
+									long_term_sickness: false,
+									first_return_month: false,
+									maternity_benefit_eligible: true,
+									maternity_category: 'OTHER'
+								}
+							}
+						}
+					}
+				]
+			},
+			(world) => {
+				world.companies[0]!.pay_cutoff_day = 1;
+				world.leave_catalogue.push(
+					...leaveCatalogue('VN')
+						.filter((row) => row.id === sick)
+						.map((row) => ({ ...row, approval_id: null }))
+				);
+				const dates: string[] = [];
+				for (let day = 1; day <= 31; day++) {
+					const date = `2026-07-${String(day).padStart(2, '0')}`;
+					if (![0, 6].includes(new Date(`${date}T00:00:00Z`).getUTCDay())) dates.push(date);
+				}
+				const days = dates.slice(dates.length - leaveDays);
+				world.leave_entries.push({
+					id: 'e1a10000-0000-4000-8000-000000000001',
+					employment_id: world.employments[0]!.id,
+					catalogue_id: sick,
+					leave_code: code,
+					reference: 'BENEFIT-1',
+					certificate_file: code === 'PATERNITY_LEAVE' ? 'BIRTH-CERTIFICATE' : null,
+					event_kind: code === 'PATERNITY_LEAVE' ? 'MULTIPLE_BIRTH_SURGERY' : null,
+					event_relationship: code === 'PATERNITY_LEAVE' ? 'WIFE' : null,
+					event_date: code === 'PATERNITY_LEAVE' ? '2026-07-01' : null,
+					from_date: days[0]!,
+					to_date: days.at(-1)!,
+					half_day_start: false,
+					half_day_end: false,
+					days: days.length,
+					effective_on: days[0]!,
+					reason: 'Social-insurance benefit',
+					allocations: [],
+					charges: days.map((date) => ({
+						date,
+						days: 1,
+						catalogue_id: sick,
+						employment_term_id: world.employment_terms[0]!.id,
+						holiday_id: null,
+						shift_definition_id: null,
+						work_day_id: null
+					})),
+					approval_id: null
+				});
+				if (unpaid > 0) addUnpaidWorkingDays(world, '2026-07', unpaid);
+			}
+		).slips.get('VN-DUES')!;
+		const line = (scheme: string) => {
+			const row = slip.statutory.find((entry) => entry.scheme_code === scheme);
+			return row ? [row.base_amount, row.employee_amount] : [];
+		};
+		return { dues: line('UNION_DUES'), si: line('SI') };
+	};
+	assert.deepEqual(run('SICK_LEAVE', 23).dues, []);
+	assert.deepEqual(run('SICK_LEAVE', 13, 10).dues, []);
+	assert.deepEqual(run('SICK_LEAVE', 22).dues, [30_000_000, 150_000]);
+	const paternity = run('PATERNITY_LEAVE', 14);
+	assert.deepEqual(paternity.si, []);
+	assert.deepEqual(paternity.dues, [30_000_000, 150_000]);
+});
+
+test('Vietnam — a preexisting July paternity entry without the wife’s child history cannot settle (Decree 168/2026 art.2)', () => {
+	const priorPaternity = leaveCatalogue('VN').find(
+		(row) => row.code === 'PATERNITY_LEAVE' && row.settings_id === settingsIdOn('VN', '2026-06-30')
+	)!;
+	const paternity = leaveCatalogue('VN').find(
+		(row) => row.code === 'PATERNITY_LEAVE' && row.settings_id === settingsIdOn('VN', '2026-07-01')
+	)!;
+	const run = (wifePrior: number | null, relationship = 'WIFE', certificate = true) =>
+		assessStatutory(
+			{
+				code: 'VN',
+				period: '2026-07',
+				region: 'I',
+				people: [
+					{
+						key: 'VN-FATHER',
+						wage: 30_000_000,
+						citizenship: 'CITIZEN',
+						gender: 'MALE',
+						registrations: {
+							SI: {
+								kind: 'REGISTERED',
+								elections: {
+									continue_si_unpaid: false,
+									maternity_benefit_eligible: true,
+									maternity_category: 'OTHER'
+								}
+							}
+						}
+					}
+				]
+			},
+			(world) => {
+				world.leave_catalogue.push(
+					{ ...priorPaternity, approval_id: null },
+					{ ...paternity, approval_id: null }
+				);
+				world.leave_entries.push({
+					id: 'e1a10000-0000-4000-8000-000000000002',
+					employment_id: world.employments[0]!.id,
+					catalogue_id: priorPaternity.id,
+					leave_code: 'PATERNITY_LEAVE',
+					reference: 'OLDER-APPROVED-BIRTH',
+					certificate_file: certificate ? 'BIRTH-CERTIFICATE' : null,
+					event_kind: 'BIRTH',
+					event_relationship: relationship,
+					event_date: '2026-07-01',
+					event_wife_prior_living_biological_children: wifePrior,
+					from_date: '2026-07-01',
+					to_date: '2026-07-01',
+					half_day_start: false,
+					half_day_end: false,
+					days: 1,
+					effective_on: '2026-07-01',
+					reason: 'Insured paternity leave',
+					allocations: [],
+					charges: [
+						{
+							date: '2026-07-01',
+							days: 1,
+							catalogue_id: priorPaternity.id,
+							employment_term_id: world.employment_terms[0]!.id,
+							holiday_id: null,
+							shift_definition_id: null,
+							work_day_id: null
+						}
+					],
+					approval_id: null
+				});
+			}
+		);
+	assert.throws(() => run(null), /wife’s prior living biological child count on the birth date/);
+	assert.throws(() => run(1, 'OTHER'), /identify the employee’s wife/);
+	assert.throws(() => run(1, 'WIFE', false), /birth evidence and supporting reference/);
+	run(0);
+});
+
 test('Vietnam — the year-end finalisation deducts the taxpayer’s twelve months whatever the months employed (Decree 253/2026 art.48(1)(b))', () => {
 	// A joiner on 1 July 2026 at 60,000,000 with no other income of the year: the employer's
 	// finalisation in December reads the year's income, 6 × 60,000,000 = 360,000,000, less the
@@ -1187,9 +1557,40 @@ test('Vietnam — the year-end finalisation deducts the taxpayer’s twelve mont
 	// The monthly table on 60,000,000 − 5,407,000 − 15,500,000 = 39,093,000: 500,000 + 2,000,000 +
 	// 20% × 9,093,000 = 4,318,600.
 	const withheld = 4_318_600;
-	const december = assessStatutory(
-		{ code: 'VN', period: '2026-12', people, region: 'I' },
-		(world) => {
+	const settle = (dependentFromJuly = false, missingJanuary = false) =>
+		assessStatutory({ code: 'VN', period: '2026-12', people, region: 'I' }, (world) => {
+			if (dependentFromJuly || missingJanuary) {
+				const pitIds = new Set(
+					contributionSchemes('VN')
+						.filter((row) => row.code === 'PIT')
+						.map((row) => row.id)
+				);
+				for (const fact of [...world.employment_statutory_facts]) {
+					const status = fact.status as {
+						kind: string;
+						elections?: Record<string, unknown>;
+					};
+					if (!pitIds.has(fact.statutory_contribution_id) || status.kind !== 'REGISTERED') continue;
+					if (missingJanuary) {
+						fact.effective_range = { start: '2026-02-01', end: null };
+						continue;
+					}
+					world.employment_statutory_facts.push({
+						...fact,
+						id: `${fact.id}-prior`,
+						effective_range: { start: '2000-01-01', end: '2026-06-30' }
+					});
+					fact.effective_range = { start: '2026-07-01', end: null };
+					fact.status = {
+						...status,
+						elections: {
+							...status.elections,
+							eligible_dependents: 1,
+							dependents_registration_reference: 'REGISTERED-JULY'
+						}
+					};
+				}
+			}
 			const employment = world.employments.find((row) => row.employee_number === 'VN-JULY')!;
 			for (let month = 7; month <= 11; month += 1) {
 				const period = `2026-${String(month).padStart(2, '0')}`;
@@ -1230,7 +1631,7 @@ test('Vietnam — the year-end finalisation deducts the taxpayer’s twelve mont
 						},
 						{
 							scheme_code: 'PIT',
-							employee_amount: withheld,
+							employee_amount: dependentFromJuly ? 3_078_600 : withheld,
 							employer_amount: 0,
 							base_amount: 60_000_000,
 							rule_when: null,
@@ -1239,9 +1640,13 @@ test('Vietnam — the year-end finalisation deducts the taxpayer’s twelve mont
 					]
 				});
 			}
-		}
-	);
+		});
+	const december = settle();
 	expectStatutory(december, 'VN-JULY', 'PIT', 8_155_800 - 5 * withheld, 0);
+	// Six qualifying months (July–December), not the current count multiplied by twelve:
+	// 360m − 32.442m insurance − 186m self − 37.2m dependant = 104.358m taxable.
+	expectStatutory(settle(true), 'VN-JULY', 'PIT', 5_217_900 - 5 * 3_078_600, 0);
+	assert.throws(() => settle(false, true), /PIT:.*dated eligible dependant count for 2026-01/i);
 });
 
 test('Vietnam — a contract under three months is withheld 10% flat from 5,000,000 a payment, unless the commitment is on file (Decree 253/2026 art.50(2))', () => {
@@ -1256,16 +1661,46 @@ test('Vietnam — a contract under three months is withheld 10% flat from 5,000,
 				wage: 8_000_000,
 				citizenship: 'CITIZEN',
 				hire_date: '2026-01-01',
-				exit_date: '2026-02-28'
+				exit_date: '2026-02-28',
+				exit_reason: 'END_OF_CONTRACT',
+				registrations: {
+					PIT: {
+						kind: 'REGISTERED',
+						unit_assessments: [
+							{
+								period: '2026-01',
+								gross: 8_000_000,
+								units: 1,
+								reference: 'JAN-WAGE',
+								paid_on: '2026-01-31'
+							}
+						]
+					}
+				}
 			},
-			// The same on 4,000,000: under 5,000,000 a payment, nothing withheld.
+			// The same on 4,000,000: January still uses Circular 111's 2,000,000 threshold.
 			{
 				key: 'VN-2M-SMALL',
 				wage: 4_000_000,
 				employment_type: 'PART_TIME',
 				citizenship: 'CITIZEN',
 				hire_date: '2026-01-01',
-				exit_date: '2026-02-28'
+				exit_date: '2026-02-28',
+				exit_reason: 'END_OF_CONTRACT',
+				registrations: {
+					PIT: {
+						kind: 'REGISTERED',
+						unit_assessments: [
+							{
+								period: '2026-01',
+								gross: 4_000_000,
+								units: 1,
+								reference: 'JAN-WAGE',
+								paid_on: '2026-01-31'
+							}
+						]
+					}
+				}
 			},
 			// The commitment (mẫu 08/CK-TNCN) suspends the 10%: the table, which on 8,000,000 less
 			// the 15,500,000 deduction is nothing.
@@ -1275,7 +1710,22 @@ test('Vietnam — a contract under three months is withheld 10% flat from 5,000,
 				citizenship: 'CITIZEN',
 				hire_date: '2026-01-01',
 				exit_date: '2026-02-28',
-				registrations: { PIT: { kind: 'REGISTERED', elections: { commitment_form: true } } }
+				exit_reason: 'END_OF_CONTRACT',
+				registrations: {
+					PIT: {
+						kind: 'REGISTERED',
+						elections: { commitment_form: true },
+						unit_assessments: [
+							{
+								period: '2026-01',
+								gross: 8_000_000,
+								units: 1,
+								reference: 'JAN-WAGE',
+								paid_on: '2026-01-31'
+							}
+						]
+					}
+				}
 			},
 			// Three months is the progressive table: 8,000,000 − insurance − 15,500,000 < 0 → 0.
 			{
@@ -1283,12 +1733,13 @@ test('Vietnam — a contract under three months is withheld 10% flat from 5,000,
 				wage: 8_000_000,
 				citizenship: 'CITIZEN',
 				hire_date: '2026-01-01',
-				exit_date: '2026-03-31'
+				exit_date: '2026-03-31',
+				exit_reason: 'END_OF_CONTRACT'
 			}
 		]
 	});
 	expectStatutory(book, 'VN-2M-CONTRACT', 'PIT', 800_000, 0);
-	expectStatutory(book, 'VN-2M-SMALL', 'PIT', 0, 0);
+	expectStatutory(book, 'VN-2M-SMALL', 'PIT', 400_000, 0);
 	expectStatutory(book, 'VN-2M-COMMITTED', 'PIT', 0, 0);
 	expectStatutory(book, 'VN-3M-CONTRACT', 'PIT', 0, 0);
 });
@@ -1309,7 +1760,22 @@ test('Vietnam — the 2,000,000 short-contract threshold holds through December 
 				employment_type: 'PART_TIME',
 				citizenship: 'CITIZEN',
 				hire_date: '2025-11-01',
-				exit_date: '2025-12-31'
+				exit_date: '2025-12-31',
+				exit_reason: 'END_OF_CONTRACT',
+				registrations: {
+					PIT: {
+						kind: 'REGISTERED',
+						unit_assessments: [
+							{
+								period: '2025-12',
+								gross: 4_000_000,
+								units: 1,
+								reference: 'DEC-WAGE',
+								paid_on: '2025-12-31'
+							}
+						]
+					}
+				}
 			}
 		]
 	});
@@ -1331,20 +1797,23 @@ test('Vietnam — a foreigner is insured on a contract of twelve months or more 
 					wage: 20_000_000,
 					citizenship: 'FOREIGNER',
 					hire_date: '2026-01-01',
-					exit_date: '2026-06-30'
+					exit_date: '2026-06-30',
+					exit_reason: 'END_OF_CONTRACT'
 				},
 				{
 					key: 'VN-F-12M',
 					wage: 20_000_000,
 					citizenship: 'FOREIGNER',
 					hire_date: '2026-01-01',
-					exit_date: '2026-12-31'
+					exit_date: '2026-12-31',
+					exit_reason: 'END_OF_CONTRACT'
 				},
 				// A working pensioner, recorded outside SI: nothing to the fund, 20.5% + 1% to them.
 				{
 					key: 'VN-PENSIONER',
 					wage: 20_000_000,
 					citizenship: 'CITIZEN',
+					receiving_pension: true,
 					registrations: {
 						SI: { kind: 'NOT_REGISTERED' },
 						HI: { kind: 'NOT_REGISTERED' },
@@ -1569,7 +2038,8 @@ test('Vietnam — a mid-month leaver: final pay on working days, unused leave at
 	// / 3% = 1,320,000; UI 1% = 440,000 each (Region I cap 106,200,000). Leave pay is not insured.
 	// PIT, resident, tax year 2026: Decree 253/2026 art.26(2) exempts pay for untaken leave within
 	// Labour Code art.113(3) (applied to resident salary from tax period 2026, art.69(1)(a)):
-	// 22,000,000 − 4,620,000 − 15,500,000 = 1,880,000 × 5% = 94,000. Net 30,000,000 − 4,714,000.
+	// 22,000,000 of taxable wages is paid after termination. GDT letter 51/TCT-DNNCN (2021)
+	// directs 10% per payment of at least VND2m: 2,200,000. Net 30,000,000 − 4,620,000 − 2,200,000.
 	// Non-resident: Decree 253/2026 took effect 1 July 2026 (art.69), so April still taxes the leave
 	// pay with the salary (Circular 111/2013 art.2(2)): 30,000,000 × 20% = 6,000,000 (Law 04/2007
 	// art.26 as carried; no deductions).
@@ -1586,7 +2056,21 @@ test('Vietnam — a mid-month leaver: final pay on working days, unused leave at
 					citizenship: 'CITIZEN',
 					tax_residency: 'RESIDENT',
 					exit_date: '2026-04-15',
-					exit_reason: 'RESIGNATION'
+					exit_reason: 'RESIGNATION',
+					registrations: {
+						PIT: {
+							kind: 'REGISTERED',
+							unit_assessments: [
+								{
+									period: '2026-04',
+									gross: 22_000_000,
+									units: 1,
+									reference: 'FINAL-WAGE',
+									paid_on: '2026-04-30'
+								}
+							]
+						}
+					}
 				},
 				{
 					key: 'VN-LEAVER-NR',
@@ -1639,8 +2123,8 @@ test('Vietnam — a mid-month leaver: final pay on working days, unused leave at
 			undefined
 		);
 	}
-	assert.deepEqual(charge(slips.get('VN-LEAVER-R')!, 'PIT'), [22_000_000, 94_000, 0]);
-	assert.equal(slips.get('VN-LEAVER-R')!.net, 25_286_000);
+	assert.deepEqual(charge(slips.get('VN-LEAVER-R')!, 'PIT'), [22_000_000, 2_200_000, 0]);
+	assert.equal(slips.get('VN-LEAVER-R')!.net, 23_180_000);
 	assert.deepEqual(charge(slips.get('VN-LEAVER-NR')!, 'PIT'), [30_000_000, 6_000_000, 0]);
 	assert.equal(slips.get('VN-LEAVER-NR')!.net, 19_380_000);
 });
@@ -1861,7 +2345,7 @@ test('Vietnam — resident overtime in December 2025 exempts only the premium ab
 			region: 'I',
 			people: [{ key: 'VN-OT-2025', wage: 18_400_000, citizenship: 'CITIZEN' }]
 		},
-		(world) => punch(world, 'VN-OT-2025', '2025-12-08', '09:00', '20:00')
+		(world) => punch(world, 'VN-OT-2025', '2025-12-08', '09:00', '20:00', '13:00')
 	);
 	const slip = slips.get('VN-OT-2025')!;
 	assert.deepEqual(workLines(slip), [['2025-12-08', 'OT-1.5X', 2, 300_000]]);
@@ -1955,7 +2439,7 @@ test('Vietnam — a citizen past retirement age is still insured; one qualified 
  * covered by UI. Each is on 60,000,000 for the whole of the six months before leaving.
  */
 const separation = (
-	people: readonly { key: string; exit_date: string; exit_reason: string }[],
+	people: readonly { key: string; exit_date: string; exit_reason: string; pit_gross?: number }[],
 	claims: readonly (readonly [string, string])[],
 	{
 		period = '2026-09',
@@ -1973,7 +2457,25 @@ const separation = (
 				wage,
 				citizenship: 'CITIZEN',
 				tax_residency,
-				hire_date: '2006-07-01'
+				hire_date: '2006-07-01',
+				...(person.pit_gross == null
+					? {}
+					: {
+							registrations: {
+								PIT: {
+									kind: 'REGISTERED' as const,
+									unit_assessments: [
+										{
+											period,
+											gross: person.pit_gross,
+											units: 1,
+											reference: 'FINAL-WAGE',
+											paid_on: `${period}-30`
+										}
+									]
+								}
+							}
+						})
 			}))
 		},
 		(world) => {
@@ -2027,9 +2529,9 @@ test('Vietnam — severance and job-loss pay the uncovered service on the six-mo
 	//
 	// PIT, resident, tax year 2026: Decree 253/2026 art.8(3)(h) (signed text p.6; resident salary
 	// from tax period 2026, art.69(1)(a)) keeps severance and job-loss allowances out of taxable
-	// salary income. 30,000,000 − 5,407,000 − 15,500,000 (Resolution 110/2025) = 9,093,000 × 5%
-	// = 454,650. Net: severance 105,000,000 − 5,407,000 − 454,650 = 99,138,350; job loss
-	// 180,000,000 − 5,861,650 = 174,138,350.
+	// salary income. As the wage is paid after termination, art.50(2) withholds 10% of the
+	// documented VND30,000,000 payment: VND3,000,000. Net: severance 105,000,000 − 5,407,000 −
+	// 3,000,000 = 96,593,000; job loss 180,000,000 − 8,407,000 = 171,593,000.
 	//
 	// Settlement: Labour Code art.48(1) within 14 working days of the termination, the day of
 	// termination itself not counted (Civil Code 91/2015/QH13 art.147(3)). From Tuesday 15
@@ -2039,9 +2541,19 @@ test('Vietnam — severance and job-loss pay the uncovered service on the six-mo
 	// 14–18, 21–25, 28–29): the 30 September run is late.
 	const { slips, warnings } = separation(
 		[
-			{ key: 'VN-SEV', exit_date: '2026-09-15', exit_reason: 'END_OF_CONTRACT' },
-			{ key: 'VN-JOBLOSS', exit_date: '2026-09-15', exit_reason: 'REDUNDANCY' },
-			{ key: 'VN-LATE', exit_date: '2026-09-09', exit_reason: 'RESIGNATION' }
+			{
+				key: 'VN-SEV',
+				exit_date: '2026-09-15',
+				exit_reason: 'END_OF_CONTRACT',
+				pit_gross: 30_000_000
+			},
+			{
+				key: 'VN-JOBLOSS',
+				exit_date: '2026-09-15',
+				exit_reason: 'REDUNDANCY',
+				pit_gross: 30_000_000
+			},
+			{ key: 'VN-LATE', exit_date: '2026-09-09', exit_reason: 'RESIGNATION', pit_gross: 19_090_909 }
 		],
 		[
 			['VN-SEV', 'SEVERANCE_ALLOWANCE'],
@@ -2049,8 +2561,8 @@ test('Vietnam — severance and job-loss pay the uncovered service on the six-mo
 		]
 	);
 	for (const [key, code, amount, net] of [
-		['VN-SEV', 'SEVERANCE_ALLOWANCE', 75_000_000, 99_138_350],
-		['VN-JOBLOSS', 'JOB_LOSS_ALLOWANCE', 150_000_000, 174_138_350]
+		['VN-SEV', 'SEVERANCE_ALLOWANCE', 75_000_000, 96_593_000],
+		['VN-JOBLOSS', 'JOB_LOSS_ALLOWANCE', 150_000_000, 171_593_000]
 	] as const) {
 		const slip = slips.get(key)!;
 		assert.deepEqual(
@@ -2064,7 +2576,7 @@ test('Vietnam — severance and job-loss pay the uncovered service on the six-mo
 		assert.deepEqual(charge(slip, 'SI'), [50_600_000, 4_048_000, 8_855_000]);
 		assert.deepEqual(charge(slip, 'HI'), [50_600_000, 759_000, 1_518_000]);
 		assert.deepEqual(charge(slip, 'UI'), [60_000_000, 600_000, 600_000]);
-		assert.deepEqual(charge(slip, 'PIT'), [30_000_000, 454_650, 0]);
+		assert.deepEqual(charge(slip, 'PIT'), [30_000_000, 3_000_000, 0]);
 		assert.equal(slip.net, net);
 	}
 	const late = warnings.filter((line) => line.startsWith('FINAL_PAY_LATE'));
@@ -2477,9 +2989,9 @@ test('Vietnam — the seeded art.97(4) class pays interest at the payroll bank�
 	assert.ok(warnings.some((line) => line.includes('no band of the catalogue covers this entry')));
 });
 
-test('Vietnam — an open-ended contract ended by resignation is withheld on the progressive table, not the 10% (Decree 253/2026 art.50(2); Labour Code 2019 art.20)', () => {
-	// Art.50(2)'s 10% is for no labour contract or one under three months. An indefinite contract
-	// resigned after seven weeks never had a term, so the monthly table applies.
+test('Vietnam — an open-ended contract uses progressive withholding while active and 10% when paid after resignation (Decree 253/2026 art.50(2))', () => {
+	// The 14 September 2026 Hanoi Tax Authority answer applies art.50(2) to wages paid after
+	// termination, including an open-ended contract. The September wage is one dated payment.
 	const pit = (period: string) =>
 		charge(
 			buildStatutory(
@@ -2494,7 +3006,25 @@ test('Vietnam — an open-ended contract ended by resignation is withheld on the
 							citizenship: 'CITIZEN',
 							hire_date: '2026-08-01',
 							exit_date: '2026-09-18',
-							exit_reason: 'RESIGNATION'
+							exit_reason: 'RESIGNATION',
+							...(period === '2026-09'
+								? {
+										registrations: {
+											PIT: {
+												kind: 'REGISTERED' as const,
+												unit_assessments: [
+													{
+														period,
+														gross: 19_090_909,
+														units: 1,
+														reference: 'FINAL-WAGE',
+														paid_on: '2026-09-30'
+													}
+												]
+											}
+										}
+									}
+								: {})
 						}
 					]
 				},
@@ -2506,8 +3036,8 @@ test('Vietnam — an open-ended contract ended by resignation is withheld on the
 		)[1];
 	// August: 30,000,000 − 3,150,000 (10.5%) − 15,500,000 = 11,350,000 → 500,000 + 1,350,000 × 10%.
 	assert.equal(pit('2026-08'), 635_000);
-	// September, 14 of 22 working days: 19,090,909 − 3,150,000 − 15,500,000 = 440,909 × 5%.
-	assert.equal(pit('2026-09'), 22_045);
+	// September, 14 of 22 working days: 19,090,909 paid after exit × 10%.
+	assert.equal(pit('2026-09'), 1_909_091);
 });
 
 test('Vietnam — a foreigner on an open-ended contract who resigns stays insured (Law 41/2024 art.2(2); HI Law art.12(1)(c))', () => {
@@ -2527,7 +3057,25 @@ test('Vietnam — a foreigner on an open-ended contract who resigns stays insure
 						gender: 'MALE',
 						hire_date: '2026-04-01',
 						exit_date: '2026-09-18',
-						exit_reason: 'RESIGNATION'
+						exit_reason: 'RESIGNATION',
+						...(period === '2026-09'
+							? {
+									registrations: {
+										PIT: {
+											kind: 'REGISTERED' as const,
+											unit_assessments: [
+												{
+													period,
+													gross: 19_090_909,
+													units: 1,
+													reference: 'FINAL-WAGE',
+													paid_on: '2026-09-30'
+												}
+											]
+										}
+									}
+								}
+							: {})
 					}
 				]
 			},
@@ -2545,8 +3093,8 @@ test('Vietnam — a foreigner on an open-ended contract who resigns stays insure
 	}
 	// August: 30,000,000 − 2,850,000 − 15,500,000 = 11,650,000 → 500,000 + 1,650,000 × 10%.
 	assert.equal(charge(slip('2026-08'), 'PIT')[1], 665_000);
-	// September, 14 of 22 working days: 19,090,909 − 2,850,000 − 15,500,000 = 740,909 × 5%.
-	assert.equal(charge(slip('2026-09'), 'PIT')[1], 37_045);
+	// September's wage is paid after exit: 10% of 19,090,909.
+	assert.equal(charge(slip('2026-09'), 'PIT')[1], 1_909_091);
 });
 
 test('Vietnam — a fixed-term contract under one full month is outside SI, HI and UI and owed the employer’s rate as wages (Law 41/2024 art.2(1)(a); HI Law art.12(1)(a); Law 74/2025 art.31(1)(a); Labour Code art.168(3))', () => {
@@ -2556,7 +3104,21 @@ test('Vietnam — a fixed-term contract under one full month is outside SI, HI a
 		citizenship: 'CITIZEN',
 		hire_date: '2026-09-01',
 		exit_date: '2026-09-21',
-		exit_reason: 'END_OF_CONTRACT'
+		exit_reason: 'END_OF_CONTRACT',
+		registrations: {
+			PIT: {
+				kind: 'REGISTERED',
+				unit_assessments: [
+					{
+						period: '2026-09',
+						gross: 24_852_272,
+						units: 1,
+						reference: 'SEP-PAY',
+						paid_on: '2026-09-30'
+					}
+				]
+			}
+		}
 	};
 	const { slips, companyCharges } = buildStatutory(
 		{
@@ -2567,7 +3129,25 @@ test('Vietnam — a fixed-term contract under one full month is outside SI, HI a
 				{ key: 'VN-21D', ...short },
 				{ key: 'VN-21D-EQ', ...short },
 				// 1 to 30 September is one full month: insured.
-				{ ...short, key: 'VN-1M', exit_date: '2026-09-30' }
+				{
+					...short,
+					key: 'VN-1M',
+					exit_date: '2026-09-30',
+					registrations: {
+						PIT: {
+							kind: 'REGISTERED',
+							unit_assessments: [
+								{
+									period: '2026-09',
+									gross: 30_000_000,
+									units: 1,
+									reference: 'SEP-PAY',
+									paid_on: '2026-09-30'
+								}
+							]
+						}
+					}
+				}
 			]
 		},
 		(world) => {
@@ -2631,7 +3211,21 @@ test('Vietnam — through December 2025 a short fixed-term contract is outside S
 				citizenship: 'CITIZEN',
 				hire_date: '2025-12-01',
 				exit_date: '2025-12-21',
-				exit_reason: 'END_OF_CONTRACT'
+				exit_reason: 'END_OF_CONTRACT',
+				registrations: {
+					PIT: {
+						kind: 'REGISTERED',
+						unit_assessments: [
+							{
+								period: '2025-12',
+								gross: 23_576_087,
+								units: 1,
+								reference: 'DEC-PAY',
+								paid_on: '2025-12-31'
+							}
+						]
+					}
+				}
 			}
 		]
 	});

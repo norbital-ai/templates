@@ -35,11 +35,37 @@ const calculate = (
 		asOf,
 		hireDate,
 		exitDate,
-		window: leaveWindowOf(asOf, rule.year_start_month),
+		window: leaveWindowOf(asOf, rule, hireDate),
 		servedOn: () => true,
 		eligibleOn: () => true,
 		personOn: personOn(hireDate)
 	});
+
+test('service-year leave follows the hire anniversary rather than January', () => {
+	const rule: LeaveEntitlement = {
+		...base,
+		year_anchor: 'SERVICE_ANNIVERSARY',
+		availability: 'MONTHLY',
+		proration: 'COMPLETED_MONTHS'
+	};
+	assert.deepEqual(leaveWindowOf('2026-03-13', rule, '2025-03-14'), {
+		start: '2025-03-14',
+		end: '2026-03-13'
+	});
+	assert.deepEqual(leaveWindowOf('2026-03-14', rule, '2025-03-14'), {
+		start: '2026-03-14',
+		end: '2027-03-13'
+	});
+	assert.deepEqual(leaveWindowOf('2026-05-01', { ...rule, proration: 'NONE' }, '2025-03-14'), {
+		start: '2026-03-14',
+		end: '2027-03-13'
+	});
+	assert.equal(calculate(rule, '2025-04-12', '2025-03-14').available, 0);
+	assert.equal(calculate(rule, '2025-04-13', '2025-03-14').available, 1);
+	assert.equal(calculate(rule, '2026-03-13', '2025-03-14').earned, 12);
+	assert.throws(() => leaveWindowOf('2026-03-14', rule), /hire date/);
+	assert.throws(() => leaveWindowOf('2026-03-14', rule, '2024-02-29'), /29 February hire/);
+});
 
 test('upfront and monthly availability need no stored annual account or accrual entries', () => {
 	assert.equal(calculate(base, '2026-01-01').available, 12);

@@ -1,8 +1,10 @@
 <script lang="ts">
-	import RowList from '../../../lib/ui/row-list.svelte';
+	import MatrixRenderer, { type MatrixColumn } from '../../../lib/ui/grid.svelte';
 	import Labelled from '../../../lib/ui/Labelled.svelte';
 	import { t } from '../../../lib/ui/t.js';
 	import type { Patch } from '../../../lib/ui/renderer-input.js';
+	import { watch } from 'runed';
+	import Icon from '@iconify/svelte';
 	/**
 	 * The list editor for a row's declared fact keys.
 	 *
@@ -19,22 +21,74 @@
 	import type { CustomFieldView } from '@norbital-ai/ui';
 
 	type Value = readonly FactKey[];
+	type KeyRow = FactKey & { id: string };
 
 	let { view }: { view: CustomFieldView<Value> } = $props();
 	const disabled = $derived(view.mode === 'edit' ? view.disabled : true);
 	const rows = $derived<Value>(view.value ?? []);
 	const types = ['boolean', 'number', 'string'] as const;
+	let projected = $state<KeyRow[]>([]);
+	let expandedIndex = $state<number | null>(null);
+	watch(
+		() => rows,
+		(next) => {
+			projected = next.map((row, index) => ({ ...row, id: String(index) }));
+		},
+		{ lazy: false }
+	);
+	const columns: MatrixColumn<KeyRow>[] = $derived([
+		{
+			key: 'key',
+			label: t('fact_keys.key'),
+			field: { name: 'key', kind: 'text' },
+			width: 220
+		},
+		{
+			key: 'type',
+			label: t('fact_keys.type'),
+			field: { name: 'type', kind: 'enum', values: types },
+			width: 160
+		},
+		{
+			key: 'label',
+			label: t('fact_keys.label'),
+			field: { name: 'label', kind: 'text', nullable: true },
+			width: 220
+		}
+	]);
 
 	function emit(value: Value): void {
 		if (view.mode === 'edit') view.onChange(value);
 	}
-	function edit(index: number, change: Patch<Value[number]>): void {
+	function commit(next: KeyRow[]): void {
+		if (next.length !== rows.length) expandedIndex = null;
+		projected = next;
 		emit(
-			rows.map((row, position) =>
+			next.map((row, index) => {
+				const { id: _id, ...field } = row;
+				return next.length !== rows.length || row.type === rows[index]?.type
+					? field
+					: (Object.fromEntries(
+							Object.entries({
+								key: row.key,
+								label: row.label,
+								description: row.description,
+								scope: row.scope,
+								valid_when: row.valid_when,
+								validation_message: row.validation_message,
+								type: row.type
+							}).filter(([, value]) => value !== undefined)
+						) as Value[number]);
+			})
+		);
+	}
+	function edit(index: number, change: Patch<Value[number]>): void {
+		commit(
+			projected.map((row, position) =>
 				position === index
 					? (Object.fromEntries(
 							Object.entries({ ...row, ...change }).filter(([, value]) => value !== undefined)
-						) as Value[number])
+						) as KeyRow)
 					: row
 			)
 		);
@@ -45,49 +99,32 @@
 	<span>{rows.map((row) => `${row.key}:${row.type}`).join(', ') || '—'}</span>
 {:else}
 	<Stack gap="md">
-		<RowList
-			{rows}
+		<MatrixRenderer
+			bind:rows={projected}
+			{columns}
 			{disabled}
-			addLabel={t('fact_keys.add')}
-			add={() => emit([...rows, { key: '', type: 'string' }])}
-			removeLabel={t('fact_keys.remove')}
-			remove={(index) => emit(rows.filter((_, position) => position !== index))}
+			allowAddRows={!disabled}
+			addRowLabel={t('fact_keys.add')}
+			removeRowLabel={t('fact_keys.remove')}
+			createRow={() => ({ id: String(projected.length), key: '', type: 'string' as const })}
+			onChange={commit}
 		>
-			{#snippet row(row, index)}
-				<Labelled label={t('fact_keys.key')}>
-					<Input
-						value={row.key}
-						{disabled}
-						oninput={(event) => edit(index, { key: event.currentTarget.value })}
-					/>
-				</Labelled>
-				<Labelled label={t('fact_keys.type')}>
-					<Combobox
-						options={types.map((type) => ({ value: type, label: type }))}
-						value={row.type}
-						{disabled}
-						onChange={(type) =>
-							type != null &&
-							emit(
-								rows.map((row, position) =>
-									position === index
-										? ({
-												key: row.key,
-												label: row.label,
-												description: row.description,
-												scope: row.scope,
-												valid_when: row.valid_when,
-												validation_message: row.validation_message,
-												type
-											} as Value[number])
-										: row
-								)
-							)}
-					/>
-				</Labelled>
-				<Column span="all">
-					<details>
-						<summary class="cursor-pointer text-sm">{t('fact_keys.validation')}</summary>
+			{#snippet rowDetails(row, index)}
+				<div>
+					<Inline
+						as="button"
+						type="button"
+						gap="xs"
+						align="center"
+						class="min-h-8 text-sm text-muted-foreground hover:text-foreground"
+						aria-expanded={expandedIndex === index}
+						onclick={() => (expandedIndex = expandedIndex === index ? null : index)}
+						><Icon
+							icon="lucide:chevron-right"
+							class={expandedIndex === index ? 'size-3.5 rotate-90' : 'size-3.5'}
+						/>{t('fact_keys.validation')}</Inline
+					>
+					{#if expandedIndex === index}
 						<Grid gap="sm" minimum="compact" class="pt-3">
 							<label class="text-sm"
 								><Inline as="span" gap="sm"
@@ -102,13 +139,6 @@
 									/>{t('fact_keys.employment_scope')}</Inline
 								></label
 							>
-							<Labelled label={t('fact_keys.label')}>
-								<Input
-									{disabled}
-									value={row.label ?? ''}
-									oninput={(event) => edit(index, { label: event.currentTarget.value })}
-								/>
-							</Labelled>
 							<Labelled label={t('fact_keys.description')}>
 								<Input
 									{disabled}
@@ -307,9 +337,9 @@
 								</Labelled>
 							{/if}
 						</Grid>
-					</details>
-				</Column>
+					{/if}
+				</div>
 			{/snippet}
-		</RowList>
+		</MatrixRenderer>
 	</Stack>
 {/if}

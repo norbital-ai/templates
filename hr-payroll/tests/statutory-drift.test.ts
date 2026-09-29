@@ -5,6 +5,7 @@
  * lineage never stops another.
  */
 import assert from 'node:assert/strict';
+import { readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import statutoryDrift from '../src/automation/+statutory_drift.automation.ts';
 import { STATUTORY_SOURCES } from '../src/lib/statutory_sources.ts';
@@ -118,6 +119,26 @@ test('every seeded jurisdiction has official sources to research', () => {
 				STATUTORY_SOURCES[jurisdiction_code]?.length,
 				`${lineage}: no sources for ${jurisdiction_code}`
 			);
+});
+
+test('SG research may read every official site the SG seed cites', () => {
+	const dir = new URL('../seed/jurisdiction/SG/', import.meta.url);
+	// A private tax summary is cited as a cross-check, never as the law.
+	const unofficial = new Set(['https://taxsummaries.pwc.com']);
+	const cited = new Set(
+		readdirSync(dir).flatMap((file) =>
+			[...readFileSync(new URL(file, dir), 'utf8').matchAll(/https:\/\/[a-z0-9.-]+/g)].map(
+				([origin]) => origin
+			)
+		)
+	);
+	assert.ok(cited.size > 0, 'no cited origins read from the SG seed');
+	const missing = [...cited].filter(
+		(origin) => !unofficial.has(origin) && !STATUTORY_SOURCES.SG.includes(origin)
+	);
+	assert.deepEqual(missing, []);
+	// Cited in prose, not as a URL: the ICA-sourced Myinfo RaceCode table (SG-SHG04(a)).
+	assert.ok(STATUTORY_SOURCES.SG.includes('https://public.cloud.myinfo.gov.sg'));
 });
 
 test('changes become one unsealed draft; no changes, no draft', { timeout: 2000 }, async () => {

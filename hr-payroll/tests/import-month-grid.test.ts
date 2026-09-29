@@ -106,6 +106,47 @@ test('an overtime month grid reads half-hour cells and omits blanks', () => {
 	]);
 });
 
+test('a Thai long-form overtime row carries prior consent and a zero-hour redistribution agreement', () => {
+	const grids = new Map([
+		[
+			'Settings',
+			[
+				['Setting', 'Value'],
+				['legal_entity', 'Test Co'],
+				['month', '2026-01']
+			]
+		],
+		[
+			'Overtime',
+			[
+				[
+					'employee_number',
+					'work_date',
+					'overtime_hours',
+					'overtime_consented_at',
+					'normal_hours_redistribution_agreed_at'
+				],
+				['E1', '2026-01-05', '1', '2026-01-05T08:00:00+07:00', ''],
+				['E1', '2026-01-06', '0', '', '2026-01-05T12:00:00+07:00']
+			]
+		]
+	]);
+	assert.deepEqual(schedulingImportPayload(grids).overtime, [
+		{
+			employee_number: 'E1',
+			work_date: '2026-01-05',
+			overtime_hours: 1,
+			overtime_consented_at: '2026-01-05T01:00:00.000Z'
+		},
+		{
+			employee_number: 'E1',
+			work_date: '2026-01-06',
+			overtime_hours: 0,
+			normal_hours_redistribution_agreed_at: '2026-01-05T05:00:00.000Z'
+		}
+	]);
+});
+
 test('an overtime cell that is not a half-hour step between 0 and 24 refuses the sheet by name', () => {
 	const read = (cell: unknown) =>
 		expandOvertimeMonthGrid(

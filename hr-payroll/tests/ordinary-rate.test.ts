@@ -108,6 +108,8 @@ test('an absence no rule opts into is excluded, not refused', async () => {
 		assessed_on: 'BASE'
 	});
 	// Every rostered day punched over its shift: nothing is absent, so the line is never priced.
+	// The 60 minutes the shift grants are punched as a gap — a break owed and not taken is
+	// worked time, and nine continuous hours would price an hour outside ordinary paid work.
 	const variant = world.shift_definitions[0]!.variant as {
 		start_time: string;
 		end_time: string;
@@ -116,6 +118,10 @@ test('an absence no rule opts into is excluded, not refused', async () => {
 		row.worked_intervals = [
 			{
 				start: `${row.work_date}T${variant.start_time}:00+08:00`,
+				end: `${row.work_date}T12:30:00+08:00`
+			},
+			{
+				start: `${row.work_date}T13:30:00+08:00`,
 				end: `${row.work_date}T${variant.end_time}:00+08:00`
 			}
 		];

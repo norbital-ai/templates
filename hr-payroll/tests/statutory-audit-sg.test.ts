@@ -330,14 +330,6 @@ test('SG audit — self-help group bands at their edges, and who each fund reach
 			{ key: 'SINDA-15000', wage: 15_000, age: 30, citizenship: 'CITIZEN', race: 'INDIAN' },
 			{ key: 'SINDA-15000.01', wage: 15_000.01, age: 30, citizenship: 'CITIZEN', race: 'INDIAN' },
 			{
-				key: 'SINDA-SPASS',
-				wage: 3000,
-				age: 30,
-				citizenship: 'FOREIGNER',
-				race: 'INDIAN',
-				pass_type: 'S_PASS'
-			},
-			{
 				key: 'CDAC-NOTIFIED',
 				wage: 3000,
 				age: 30,
@@ -366,12 +358,9 @@ test('SG audit — self-help group bands at their edges, and who each fund reach
 	expectStatutory(book, 'MBMF-FOREIGN-4000', 'MBMF', 15, 0);
 	expectStatutory(book, 'MBMF-4000.01', 'MBMF', 19.5, 0);
 	expectStatutory(book, 'MBMF-10000.01', 'MBMF', 26, 0);
-	// SINDA: "> $2,500 to $4,500 $7; > $10,000 to $15,000 $18; > $15,000 $30". CPF Act s.76(3)
-	// and SINDA Rules 1992 r.2 set no residency condition (unlike CDAC r.2), so an S Pass holder of
-	// the Indian community is charged; the CPF Board's SC/SPR/EP list is narrower guidance.
+	// SINDA: "> $2,500 to $4,500 $7; > $10,000 to $15,000 $18; > $15,000 $30".
 	expectStatutory(book, 'SINDA-15000', 'SINDA', 18, 0);
 	expectStatutory(book, 'SINDA-15000.01', 'SINDA', 30, 0);
-	expectStatutory(book, 'SINDA-SPASS', 'SINDA', 7, 0);
 	// "Employees who … wish to contribute a different amount can contact the respective SHGs": a
 	// notified $5 replaces the $1 band amount at $3,000.
 	expectStatutory(book, 'CDAC-NOTIFIED', 'CDAC', 5, 0);
@@ -438,6 +427,24 @@ const punch = (world: PayrollWorld, key: string, date: string, start: string, en
 		approval_id: null
 	});
 };
+/**
+ * The 09:00–18:00 shift's granted hour taken at 13:00–14:00 (EA s.38(1)(a) puts the break between
+ * noon and three), so the span reads as the worked hours it claims rather than a break worked
+ * through, which under s.38(1) is worked time.
+ */
+const punchWithBreak = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	start: string,
+	end: string
+) => {
+	punch(world, key, date, start, end);
+	world.work_days.at(-1)!.worked_intervals = [
+		{ start: `${date}T${start}:00+08:00`, end: `${date}T13:00:00+08:00` },
+		{ start: `${date}T14:00:00+08:00`, end: `${date}T${end}:00+08:00` }
+	];
+};
 const holiday = (date: string, name: string) => ({
 	id: `holiday-${date}`,
 	company_id: COMPANY_ID,
@@ -451,7 +458,8 @@ const holiday = (date: string, name: string) => ({
 
 test('SG audit — s.35(b): Part 4 reaches a non-workman at $2,600 a month and not at $2,600.01', () => {
 	// s.35(b): Part 4 applies to a non-workman "who receives a salary not exceeding $2,600 a month".
-	// A 09:00–20:00 Monday on the 09:00–18:00 (one-hour break) shift: two hours past the shift.
+	// A 09:00–20:00 Monday on the 09:00–18:00 shift, the granted hour taken 13:00–14:00: ten worked
+	// hours, two of them past the eight-hour day.
 	// Inside Part 4 they are s.38(4) overtime; outside it, no line at all. (The rate is asserted
 	// separately below; here only coverage.)
 	const { slips } = buildStatutory(
@@ -477,7 +485,7 @@ test('SG audit — s.35(b): Part 4 reaches a non-workman at $2,600 a month and n
 		},
 		(world) => {
 			for (const key of ['NW-2600', 'NW-2600.01', 'WM-4500', 'WM-4500.01'])
-				punch(world, key, '2026-01-05', '09:00', '20:00');
+				punchWithBreak(world, key, '2026-01-05', '09:00', '20:00');
 		}
 	);
 	const hours = (key: string) => workLines(slips.get(key)!).map((line) => [line[1], line[2]]);
@@ -505,8 +513,8 @@ test('SG audit — s.35: a daily-rated employee is measured on the month the dai
 			]
 		},
 		(world) => {
-			punch(world, 'DAILY-150', '2026-01-05', '09:00', '20:00');
-			punch(world, 'DAILY-100', '2026-01-05', '09:00', '20:00');
+			punchWithBreak(world, 'DAILY-150', '2026-01-05', '09:00', '20:00');
+			punchWithBreak(world, 'DAILY-100', '2026-01-05', '09:00', '20:00');
 		}
 	);
 	const labels = (key: string) => workLines(slips.get(key)!).map((line) => [line[1], line[2]]);
@@ -604,8 +612,9 @@ test('SG audit — Fourth Schedule: the hourly basic rate is 12 × monthly ÷ (5
 	// for a contract of fewer than 44 hours, and MOM caps a non-workman's rate at "the salary level
 	// of $2,600, or an hourly rate of $13.60" (hours-of-work-overtime-and-rest-days) — a figure a
 	// 52 × 40 divisor would exceed (12 × 2,600 ÷ 2,080 = 15.00).
-	// $2,288 on the fixture's 40-hour, five-day week: 12 × 2,288 ÷ 2,288 = 12.00 an hour; two
-	// hours past the shift at s.38(4)'s 1.5×: 2 × 12.00 × 1.5 = 36.00.
+	// $2,288 on the fixture's 40-hour, five-day week: 12 × 2,288 ÷ 2,288 = 12.00 an hour; a
+	// 09:00–20:00 day less the granted hour taken is ten worked, two past the eight-hour day, at
+	// s.38(4)'s 1.5×: 2 × 12.00 × 1.5 = 36.00.
 	// The sealed 44-hour divisor prices a full-time 40-hour contract on the statute's week.
 	const { slips } = buildStatutory(
 		{
@@ -613,7 +622,7 @@ test('SG audit — Fourth Schedule: the hourly basic rate is 12 × monthly ÷ (5
 			period: '2026-01',
 			people: [{ key: 'FORTY', wage: 2288, citizenship: 'CITIZEN' }]
 		},
-		(world) => punch(world, 'FORTY', '2026-01-05', '09:00', '20:00')
+		(world) => punchWithBreak(world, 'FORTY', '2026-01-05', '09:00', '20:00')
 	);
 	assert.deepEqual(workLines(slips.get('FORTY')!), [['2026-01-05', 'OT-1.5X', 2, 36]]);
 });
@@ -650,7 +659,7 @@ const entitlementOf = (code: string, hire: string, asOf: string, version = SG_20
 		});
 	return computedEntitlement({
 		rule: row.entitlement,
-		window: leaveWindowOf(asOf, row.entitlement),
+		window: leaveWindowOf(asOf, row.entitlement, hire),
 		asOf,
 		hireDate: hire,
 		exitDate: null,

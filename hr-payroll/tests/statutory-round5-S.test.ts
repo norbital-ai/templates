@@ -83,25 +83,22 @@ for (const period of PERIODS) {
 		assert.equal(book.get('MWE')?.get('WTAX')?.employee ?? 0, 0);
 	});
 
-	test(`PH D16 ${period}: a kasambahay outside a transcribed domestic wage order stops withholding`, () => {
-		// RA 10361 s.24: her floor is the domestic-worker wage order, stated here for NCR only; in
-		// IV-A the minimum-wage-earner test (RR 11-2018 s.2.78.1(B)(13)) has no floor to read.
-		assert.throws(
-			() =>
-				assessStatutory({
-					code: 'PH',
-					period,
-					people: [
-						{
-							key: 'KASAMBAHAY',
-							wage: 9_000,
-							employment_type: 'DOMESTIC',
-							tax_residency: 'RESIDENT'
-						}
-					]
-				}),
-			/no minimum wage for this employee's region and employment type/
-		);
+	test(`PH D16 ${period}: the IV-A domestic order supplies the kasambahay wage floor`, () => {
+		// RB-IVA-DW-05 fixes ₱6,750 monthly throughout these periods (NWPC Region IV-A).
+		const book = assessStatutory({
+			code: 'PH',
+			period,
+			region: 'IV-A',
+			people: [
+				{
+					key: 'KASAMBAHAY',
+					wage: 9_000,
+					employment_type: 'DOMESTIC',
+					tax_residency: 'RESIDENT'
+				}
+			]
+		});
+		assert.equal(book.get('KASAMBAHAY')?.get('WTAX')?.employee ?? 0, 0);
 	});
 }
 
@@ -124,7 +121,9 @@ test('PH D15: an entity that has not recorded its establishment size stops payro
 			assessStatutory(
 				{ code: 'PH', period: '2026-04', people: [{ key: 'P', wage: 30_000 }] },
 				(world) => {
-					world.companies[0]!.facts = { small_establishment: false };
+					// The dated revision is what the run reads (configuration.ts, "the revision in
+					// force on the run's governing date"), not the standing company row.
+					world.company_facts![0]!.facts = { small_establishment: false };
 				}
 			),
 		/Retail, service or agricultural establishment of ten or fewer is required/
@@ -149,7 +148,7 @@ test('PH D15: RA 7641 reads its own fact — a small manufacturer still owes ret
 				]
 			},
 			(world) => {
-				world.companies[0]!.facts = facts;
+				world.company_facts![0]!.facts = facts;
 				const version = world.jurisdiction_settings.find((row) =>
 					String(row.effective_range.start).startsWith('2026-01-06')
 				)!;

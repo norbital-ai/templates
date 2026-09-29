@@ -43,6 +43,7 @@ import { personContext } from '../src/lib/payroll/run/eligibility.ts';
 import { restBreakAssessment } from '../src/lib/scheduling/rest-break.ts';
 import { settingsVersions, leaveCatalogue } from './fixtures/statutory-world.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
+import { priorWages } from './fixtures/prior-wages.ts';
 
 const ID_PEOPLE = [
 	// Exactly the Kabupaten Bekasi UMK 2026: what five of the bank's sixteen contracts are paid.
@@ -81,8 +82,12 @@ test('Indonesia — a validated run builds, and prices the same as the unvalidat
 	// rate to `jumlah penghasilan bruto`, undeducted. Clearing it is why the run builds — and no
 	// figure moved, because a relief edge is inert on a `PERCENT` award, which is what every TER
 	// band is. The withholding was always on gross; only validation disagreed.
-	const validated = assessStatutory(idWorld('2026-01'));
-	assert.deepEqual(validated, assessStatutoryUnvalidated(idWorld('2026-01')));
+	const lawful = {
+		...idWorld('2026-01'),
+		people: ID_PEOPLE.filter((person) => person.key !== 'ID-5M')
+	};
+	const validated = assessStatutory(lawful);
+	assert.deepEqual(validated, assessStatutoryUnvalidated(lawful));
 });
 
 test('Indonesia — the workplace region is stated, so a run builds at all', () => {
@@ -95,11 +100,15 @@ test('Indonesia — the workplace region is stated, so a run builds at all', () 
 	// the art.32(3) fallback, and the workplace is Kabupaten Bekasi: five of the sixteen contracts
 	// are paid Rp 5,938,885, its UMK 2026 to the rupiah.
 	assert.throws(
-		() => assessStatutory({ ...idWorld('2026-01'), region: undefined }),
-		/KESEHATAN bounds its base by the regional minimum wage/,
+		() => assessStatutory({ ...idWorld('2026-01'), region: null }),
+		/No sealed minimum-wage rate covers PERMANENT at ""/,
 		'a company with no region still refuses, by name'
 	);
-	const book = assessStatutory({ ...idWorld('2026-01'), region: 'Kabupaten Bekasi' });
+	const book = assessStatutory({
+		...idWorld('2026-01'),
+		region: 'Kabupaten Bekasi',
+		people: ID_PEOPLE.filter((person) => person.key !== 'ID-5M')
+	});
 	// 5% on the UMK itself — 1% participant, 4% employer — for a person paid exactly the floor.
 	expectStatutory(book, 'ID-UMK', 'KESEHATAN', 59_389, 237_555);
 });
@@ -179,27 +188,59 @@ test('Indonesia — BPJS Kesehatan covers the household of five; a further membe
 	);
 });
 
-test('Indonesia — an unrecorded PTKP status withholds no PPh 21 and warns, rather than reading TK/0', () => {
+test('Indonesia — an unrecorded PTKP status refuses PPh 21 instead of settling zero', () => {
 	// UU PPh art.7(2): the PTKP is the status at the start of the year, which the employee declares;
 	// no provision presumes TK/0 for an unknown one, and the current family record is not that
-	// declaration (PMK 168/2023 art.9(4)). Nothing is withheld on a guess, and nobody else's pay
-	// waits for the declaration: the run warns by name.
-	const run = buildStatutory(
-		{
-			...idWorld('2026-01'),
-			people: [{ key: 'ID-BLANK-15M', wage: 15_000_000, marital_status: '' }]
-		},
-		(world) => {
-			for (const fact of world.employment_statutory_facts)
-				if (fact.status.kind === 'REGISTERED') delete fact.status.elections?.ptkp_marital_status;
-		}
-	);
-	const pph21 = run.slips.get('ID-BLANK-15M')!.statutory.find((row) => row.scheme_code === 'PPH21');
-	assert.equal(pph21?.employee_amount ?? 0, 0);
-	assert.match(
-		run.warnings.join('\n'),
-		/ID-BLANK-15M: PPH21: PTKP status or dependants on 1 January/
-	);
+	// declaration (PMK 168/2023 art.9(4)). A saved run cannot silently underwithhold.
+	for (const period of ['2025-12', '2026-01', '2026-03']) {
+		assert.throws(
+			() =>
+				buildStatutory(
+					{
+						...idWorld(period),
+						people: [{ key: 'ID-BLANK-15M', wage: 15_000_000, marital_status: '' }]
+					},
+					(world) => {
+						for (const fact of world.employment_statutory_facts)
+							if (fact.status.kind === 'REGISTERED')
+								delete fact.status.elections?.ptkp_marital_status;
+					}
+				),
+			/PPH21: Declare the employee’s year-start PTKP/
+		);
+	}
+});
+
+test('Indonesia — a missing PPh 21 table band refuses a covered resident', () => {
+	for (const period of ['2025-12', '2026-01', '2026-03'])
+		assert.throws(
+			() =>
+				buildStatutory(
+					{
+						...idWorld(period),
+						people: [{ key: 'ID-TABLE-GAP', wage: 15_000_000, marital_status: 'SINGLE' }]
+					},
+					(world) => {
+						let replaced = 0;
+						for (let index = 0; index < world.statutory_contributions.length; index++) {
+							const row = world.statutory_contributions[index]!;
+							if (row.code !== 'PPH21') continue;
+							const rules = row.rules as readonly {
+								readonly when: string;
+								readonly refusal?: string;
+							}[];
+							world.statutory_contributions.splice(index, 1, {
+								...row,
+								rules: [rules.at(-1)!]
+							});
+							replaced++;
+						}
+						assert.equal(replaced, 3);
+					}
+				),
+			/PPH21: No PPh 21 rule covers this resident recipient class and taxable wage/,
+			period
+		);
 });
 
 test('Indonesia — the JP ceiling moves on 1 March 2026', () => {
@@ -799,9 +840,12 @@ test('Indonesia — the PP 35/2021 Pasal 31 ladder on an ordinary day, a rest da
 	);
 	// Pasal 31(1): the first overtime hour 1.5×, every further hour 2×.
 	// Pasal 31(3): on a rest day or holiday the first 8 hours 2×, the 9th 3×, the 10th–12th 4×.
-	// UU 13/2003 Ps.79(2)(a): a 30-minute break is owed after four continuous hours and is not
-	// working time, so the 9.5 clocked rest-day hours are 9 payable ones; the holiday's shift has
-	// its hour of break inside the clock (09:00–18:00 is eight hours worked).
+	// A time entry is a span: the seeded rule (UU 13/2003 Ps.79(2)(a), "paling sedikit setengah jam
+	// setelah bekerja selama 4 jam terus menerus", `consecutive_hours > 4.0` → 30 minutes, not
+	// worked time) is deducted from the span less any gap punched. The 9.5-hour rest-day clock
+	// (09:00–18:30) carries that provided half hour → 9.0 worked: 8 at 2×, the 9th at 3×. The
+	// holiday's pattern shift grants 60 minutes, the larger of the grant and the statute, so its
+	// eight clocked hours (09:00–18:00) are eight worked.
 	assert.deepEqual(workLinesId(slips.get('ID-OT')!), [
 		['2026-01-01', 'OT-2.0X', 8, 1_600_000],
 		['2026-01-05', 'OT-1.5X', 1, 150_000],
@@ -826,7 +870,10 @@ test('Indonesia — a holiday on a six-day worker’s shortest day prices its ow
 	// pays five hours at 2×, the sixth at 3× and the seventh to ninth at 4×. The guards' week is
 	// five seven-hour days and a five-hour Saturday (40 hours); a rostered shift shorter than the normal day is
 	// that day’s normal day, so the Saturday’s is its own five hours. Rp 17,300,000
-	// is Rp 100,000 an hour. Saturday 3 January 2026 is the holiday, worked 09:00–16:00 (seven).
+	// is Rp 100,000 an hour. Saturday 3 January 2026 is the holiday, worked 09:00–16:00: seven
+	// clocked hours; the short day grants no break, so the statute's provided 30 minutes
+	// (UU 13/2003 Ps.79(2)(a), `consecutive_hours > 4.0`) come off → 6.5 worked: five at 2×, the
+	// sixth at 3×, the remaining half hour at 4×.
 	const SHORT = 'c0000000-0000-4000-8000-0000000000d8';
 	const LONG = 'c0000000-0000-4000-8000-0000000000d7';
 	const { slips } = buildStatutory(
@@ -876,9 +923,8 @@ test('Indonesia — a holiday on a six-day worker’s shortest day prices its ow
 			punchId(world, 'ID-SAT', '2026-01-03', '09:00', '16:00');
 		}
 	);
-	// UU 13/2003 Ps.79(2)(a): the thirty-minute break owed after four continuous hours is not
-	// working time, so seven clocked hours are six and a half payable: five at 2×, one at 3×,
-	// half an hour at 4×.
+	// The provided 30 minutes come off the seven clocked hours, so 6.5 are worked: five at 2×,
+	// the sixth at 3×, the remaining half hour at 4×.
 	assert.deepEqual(workLinesId(slips.get('ID-SAT')!), [
 		['2026-01-03', 'OT-2.0X', 5, 1_000_000],
 		['2026-01-03', 'OT-3.0X', 1, 300_000],
@@ -886,7 +932,7 @@ test('Indonesia — a holiday on a six-day worker’s shortest day prices its ow
 	]);
 });
 
-test('Indonesia — a rest-day stint shorter than a normal day is priced on its payable hours, not the raw clock', () => {
+test('Indonesia — a rest-day stint past four hours provides the statutory break (UU 13/2003 Ps.79(2)(a))', () => {
 	const { slips } = buildStatutory(
 		{
 			code: 'ID',
@@ -897,10 +943,9 @@ test('Indonesia — a rest-day stint shorter than a normal day is priced on its 
 		},
 		(world) => punchId(world, 'ID-OT', '2026-01-10', '09:00', '13:20') // Saturday: 4h20 clocked
 	);
-	// UU 13/2003 Ps.79(2)(a): 4h20 crosses four continuous hours, so the thirty-minute break the day
-	// owed and did not take is not working time; 3h50 is the payable time, to the minute, at Pasal
-	// 31(3)'s 2× = 766,666.67. The bands consume the payable hours, never the raw clock (4.33 h,
-	// 866,667).
+	// UU 13/2003 Ps.79(2)(a): 4h20 crosses four continuous hours, so the seeded rule provides a
+	// thirty-minute break; no gap proves one was taken, so the provided break comes off the span:
+	// 4h20 − 30m = 3h50m = 23/6 h worked, at Pasal 31(3)'s 2× of Rp 100,000 = 766,666.67.
 	assert.deepEqual(workLinesId(slips.get('ID-OT')!), [
 		['2026-01-10', 'OT-2.0X', 23 / 6, 766_666.67]
 	]);
@@ -1117,6 +1162,10 @@ test('Indonesia — a foreign worker joins JKK, JKM and JHT from six months of w
 				wage: 20_000_000,
 				citizenship: 'FOREIGNER',
 				hire_date: '2026-01-01',
+				employment_type: 'CONTRACT',
+				id_foreign_prior_indonesia_work: 'NONE',
+				id_foreign_prior_work_reviewed_on: '2026-01-01',
+				id_foreign_prior_work_reference: 'FIXTURE-NO-PRIOR-WORK',
 				exit_date: '2026-03-31'
 			},
 			{
@@ -1124,6 +1173,7 @@ test('Indonesia — a foreign worker joins JKK, JKM and JHT from six months of w
 				wage: 20_000_000,
 				citizenship: 'FOREIGNER',
 				hire_date: '2026-01-01',
+				employment_type: 'CONTRACT',
 				exit_date: '2026-06-30'
 			},
 			{ key: 'ID-TKA-OPEN', wage: 20_000_000, citizenship: 'FOREIGNER' }
@@ -1582,6 +1632,7 @@ test('Indonesia — a resigner on 15 June: final pay, untaken leave as UPH, and 
 		]),
 		(world) => {
 			world.companies[0]!.facts = {
+				...world.companies[0]!.facts,
 				leave_cash_out_day_divisor: 21,
 				leave_cash_out_wage_basis: 'BASIC'
 			};
@@ -2392,103 +2443,63 @@ test('Indonesia — PKWT profile: the art.15 compensation at the end of a one-ye
 	assert.deepEqual(charges(slips.get('ID-PKWT')!).PPH21_FINAL_SEVERANCE, [0, 0]);
 });
 
-test('Indonesia — UMP 2026 by province: the Kesehatan floor in a workplace with no UMK (Perpres 82/2018 art.32(3))', () => {
-	// A wage of 2,000,000 is below every 2026 UMP, so the art.32(2) floor lifts the base to it.
+test('Indonesia — an explicitly named locality without a distinct UMK uses its UMP for Kesehatan', () => {
+	// The Rp2m synthetic contract is below the floor, so assess the contribution arithmetic alone.
 	const kesehatan = (region: string, period = '2026-04') =>
 		assessStatutoryUnvalidated({
 			...scenario(period, [{ key: 'ID-UMP', wage: 2_000_000 }]),
 			region
 		});
-	// Bengkulu, Kep. Gubernur K.646.DKKTRANS Tahun 2025: Rp2,827,250.90 — 1% = 28,272.51 → 28,273;
-	// 4% = 113,090.04 → 113,090.
-	expectStatutory(kesehatan('Provinsi Bengkulu'), 'ID-UMP', 'KESEHATAN', 28_273, 113_090);
-	// Banten, Kep. Gubernur 701/2025: Rp3,100,881.40 — 31,008.81 → 31,009; 124,035.26 → 124,035.
-	expectStatutory(kesehatan('Provinsi Banten'), 'ID-UMP', 'KESEHATAN', 31_009, 124_035);
-	// Aceh, Kep. Gubernur 500.15.14.1/1488/2025: Rp3,932,552 — 39,325.52 → 39,326; 157,302.08 →
-	// 157,302. The same figure on the 1 January version.
-	expectStatutory(kesehatan('Provinsi Aceh'), 'ID-UMP', 'KESEHATAN', 39_326, 157_302);
-	expectStatutory(kesehatan('Provinsi Aceh', '2026-02'), 'ID-UMP', 'KESEHATAN', 39_326, 157_302);
-	// Sulawesi Selatan, Kep. Gubernur 2129/XII/TAHUN 2025 diktum KESATU: Rp3,921,088.79 —
-	// 39,210.8879 → 39,211; 156,843.5516 → 156,844. The sen is the decree's, not a press rounding.
-	expectStatutory(kesehatan('Provinsi Sulawesi Selatan'), 'ID-UMP', 'KESEHATAN', 39_211, 156_844);
-	// Bangka Belitung, Kep. Gubernur 100.3.3.1/…/DISNAKER/2025 diktum KEDUA: Rp4,035,000 —
-	// 40,350; 161,400.
+	// Bali names Bangli at its UMP in both orders; Kepri names Tanjungpinang at its 2026 UMP.
 	expectStatutory(
-		kesehatan('Provinsi Kepulauan Bangka Belitung'),
+		kesehatan('Provinsi Bali/Kabupaten Bangli'),
 		'ID-UMP',
 		'KESEHATAN',
-		40_350,
-		161_400
+		32_075,
+		128_298
 	);
-	// December 2025 prices the 2025 UMP, not the 2026 one. Banten 2025 Rp2,905,119.90 (Pemprov
-	// Banten): 29,051.199 → 29,051; 116,204.796 → 116,205. Sulawesi Tenggara 2025 Rp3,073,551.70
-	// (Kep. Gubernur 100.3.3.1/470 Tahun 2024): 30,735.517 → 30,736; 122,942.068 → 122,942.
-	expectStatutory(kesehatan('Provinsi Banten', '2025-12'), 'ID-UMP', 'KESEHATAN', 29_051, 116_205);
 	expectStatutory(
-		kesehatan('Provinsi Sulawesi Tenggara', '2025-12'),
+		kesehatan('Provinsi Bali/Kabupaten Bangli', '2025-12'),
 		'ID-UMP',
 		'KESEHATAN',
-		30_736,
-		122_942
+		29_966,
+		119_862
 	);
-	// Nusa Tenggara Timur 2025, Kep. Gubernur NTT 430/KEP/HK/2024 (Biro Adpim NTT, 12 Dec 2024):
-	// Rp2,328,969.69 — 23,289.6969 → 23,290; 93,158.7876 → 93,159.
 	expectStatutory(
-		kesehatan('Provinsi Nusa Tenggara Timur', '2025-12'),
+		kesehatan('Provinsi Kepulauan Riau/Kota Tanjungpinang'),
 		'ID-UMP',
 		'KESEHATAN',
-		23_290,
-		93_159
+		38_795,
+		155_181
 	);
-	// A province whose decree was not read has no floor, and refuses by name rather than charging
-	// a guessed one: Papua Selatan in 2026, Aceh in December 2025, Sulawesi Tengah in 2026 (only its
-	// 2025 figure is seeded) and Nusa Tenggara Timur in 2026 (its 2026 sen is unread).
+	// An unqualified province cannot prove which locality's UMK or UMP binds.
 	for (const [region, period] of [
+		['Provinsi Bengkulu', '2026-04'],
+		['Provinsi Sulawesi Selatan', '2026-04'],
 		['Provinsi Nusa Tenggara Timur', '2026-04'],
 		['Provinsi Papua Selatan', '2026-04'],
 		['Provinsi Aceh', '2025-12'],
 		['Provinsi Sulawesi Tengah', '2026-04']
 	] as const)
-		assert.throws(
-			() => kesehatan(region, period),
-			/KESEHATAN bounds its base by the regional minimum wage/
-		);
+		assert.throws(() => kesehatan(region, period), /No sealed minimum-wage rate covers PERMANENT/);
 });
 
-test('Indonesia — the minimum-wage comparison holds a fractional UMP to the sen, never a rounded rupiah (ID-127)', () => {
+test('Indonesia — the minimum-wage comparison holds a fractional UMK to the sen, never a rounded rupiah (ID-127)', () => {
 	// Owner rule 2026-09-28 (ID-127): only PKP rounding is prescribed (UU PPh art.17(4), PMK 168/2023
-	// art.8(4)); a floor the decree states in sen is compared in sen. Sulawesi Selatan, Kep. Gubernur
-	// 2129/XII/TAHUN 2025 diktum KESATU: Rp3,921,088.79. A contract at the floor is lawful; one sen
-	// under it, or the floor rounded down to the rupiah, is below it.
-	const below = (region: string, wages: ReadonlyArray<readonly [string, number]>) =>
-		buildStatutory({
-			...scenario(
-				'2026-04',
-				wages.map(([key, wage]) => ({ key, wage }))
-			),
-			region
-		})
-			.warnings.filter((warning) => warning.startsWith('MINIMUM_WAGE_BELOW:'))
-			.map((warning) => warning.split(' ')[1]);
-	assert.deepEqual(
-		below('Provinsi Sulawesi Selatan', [
-			['SS-AT', 3_921_088.79],
-			['SS-SEN', 3_921_088.78],
-			['SS-RP', 3_921_088]
-		]),
-		['SS-SEN', 'SS-RP']
-	);
+	// art.8(4)); a floor the decree states in sen is compared in sen. A bare Sulawesi Selatan
+	// workplace now refuses because its city or regency is unknown; Banyumas has an exact UMK key.
 	// Central Java, Kep.100.3.3.1/505/2025 Lampiran I (signed 24 Dec 2025, from 1 Jan 2026): the
 	// Kabupaten Banyumas UMK Rp2,474,598.99, compared at the decree's precision. The province's UMP
 	// (Kep.100.3.3.1/504/2025, Rp2,327,386.07) is not seeded: every Central Java regency and city
 	// has a higher UMK, so a province key would floor a workplace below its own UMK.
-	assert.deepEqual(
-		below('Provinsi Jawa Tengah/Kabupaten Banyumas', [
-			['JT-AT', 2_474_598.99],
-			['JT-RP', 2_474_598]
-		]),
-		['JT-RP']
-	);
+	const banyumas = (wage: number) =>
+		buildStatutory({
+			...scenario('2026-04', [{ key: 'JT', wage }]),
+			region: 'Provinsi Jawa Tengah/Kabupaten Banyumas'
+		});
+	assert.doesNotThrow(() => banyumas(2_474_598.99));
+	assert.throws(() => banyumas(2_474_598.98), /MINIMUM_WAGE_BELOW: JT .*2474598\.99/);
+	assert.throws(() => banyumas(2_474_598), /MINIMUM_WAGE_BELOW: JT .*2474598\.99/);
 });
 
 test('Indonesia — the monthly floor is the workplace’s, raised by the sector order that binds it (engine defect 6/20)', () => {
@@ -2500,8 +2511,18 @@ test('Indonesia — the monthly floor is the workplace’s, raised by the sector
 		...scenario('2026-04', people),
 		companyFacts: facts
 	});
-	const below = (options: ReturnType<typeof book>) =>
-		buildStatutory(options).warnings.filter((warning) => warning.startsWith('MINIMUM_WAGE_BELOW:'));
+	const below = (options: ReturnType<typeof book>) => {
+		try {
+			buildStatutory(options);
+			return [];
+		} catch (error) {
+			if (!(error instanceof Error)) throw error;
+			const issues = error.message.split('\n').filter((line) => line.trim().startsWith('•'));
+			if (issues.length === 0 || issues.some((line) => !line.includes('MINIMUM_WAGE_BELOW:')))
+				throw error;
+			return issues;
+		}
+	};
 	// (1) Two West Java sites of one company (Kepgub Jabar 561.7/Kep.862-Kesra/2025): Kota Bekasi
 	// Rp5,999,443 — 1% 59,994.43 → 59,994, 4% 239,977.72 → 239,978; Kabupaten Karawang Rp5,886,853
 	// — 58,868.53 → 58,869, 235,474.12 → 235,474. Each site is held to its own UMK.
@@ -2509,10 +2530,10 @@ test('Indonesia — the monthly floor is the workplace’s, raised by the sector
 		{ key: 'BKS', wage: 2_000_000, worksite: 'Provinsi Jawa Barat/Kota Bekasi' },
 		{ key: 'KRW', wage: 2_000_000, worksite: 'Provinsi Jawa Barat/Kabupaten Karawang' }
 	]);
-	expectStatutory(assessStatutory(sites), 'BKS', 'KESEHATAN', 59_994, 239_978);
-	expectStatutory(assessStatutory(sites), 'KRW', 'KESEHATAN', 58_869, 235_474);
-	assert.match(below(sites).join('\n'), /BKS .*\/Kota Bekasi minimum wage of 5999443/);
-	assert.match(below(sites).join('\n'), /KRW .*\/Kabupaten Karawang minimum wage of 5886853/);
+	expectStatutory(assessStatutoryUnvalidated(sites), 'BKS', 'KESEHATAN', 59_994, 239_978);
+	expectStatutory(assessStatutoryUnvalidated(sites), 'KRW', 'KESEHATAN', 58_869, 235_474);
+	// The 2026 Jabar sector annex is unsealed; these remain contribution-only probes.
+	assert.throws(() => buildStatutory(sites), /sector wage order.*not verified/);
 	// (2) DKI Kep. Gubernur 33 Tahun 2026 Lampiran A row 1: KBLI 10437 Rp5,741,201, for a worker
 	// with less than one year's service (diktum KETIGA). The DKI UMP Rp5,729,876 is below it.
 	const oil = (hire: string) =>
@@ -2527,8 +2548,18 @@ test('Indonesia — the monthly floor is the workplace’s, raised by the sector
 		]);
 	assert.match(below(oil('2026-01-01')).join('\n'), /OIL .* minimum wage of 5741201/);
 	assert.deepEqual(below(oil('2015-01-01')), [], 'a year’s service is outside the sector order');
+	assert.throws(
+		() => below(oil('2025-04-15')),
+		/A sector minimum wage changes inside 2026-04-01–2026-04-30/
+	);
 	// Kesehatan stays on the UMP: 1% 57,298.76 → 57,299, 4% 229,195.04 → 229,195.
-	expectStatutory(assessStatutory(oil('2026-01-01')), 'OIL', 'KESEHATAN', 57_299, 229_195);
+	expectStatutory(
+		assessStatutoryUnvalidated(oil('2026-01-01')),
+		'OIL',
+		'KESEHATAN',
+		57_299,
+		229_195
+	);
 	// Row 10: KBLI 14111 Rp5,831,497, "EKSPOR" — only an exporting employer's.
 	const garment = (exporter: boolean) =>
 		below(
@@ -2561,13 +2592,13 @@ test('Indonesia — the monthly floor is the workplace’s, raised by the sector
 		},
 		{ key: 'DMK-UMK', wage: 3_122_805, worksite: 'Provinsi Jawa Tengah/Kabupaten Demak' }
 	]);
-	expectStatutory(assessStatutory(central), 'SMG', 'KESEHATAN', 37_017, 148_068);
+	expectStatutory(assessStatutoryUnvalidated(central), 'SMG', 'KESEHATAN', 37_017, 148_068);
 	assert.match(below(central).join('\n'), /DMK .* minimum wage of 3137685/);
 	assert.ok(!below(central).some((warning) => warning.includes('DMK-UMK ')));
 	// A bare province whose regencies and cities all carry a UMK names no floor.
 	assert.throws(
 		() => assessStatutory(book([{ key: 'JT', wage: 2_000_000, worksite: 'Provinsi Jawa Tengah' }])),
-		/KESEHATAN bounds its base by the regional minimum wage/
+		/No sealed minimum-wage rate covers PERMANENT/
 	);
 });
 
@@ -2619,4 +2650,120 @@ test('Indonesia — a non-resident’s regular wage is PPh 26 at 20% of gross, w
 	assert.deepEqual(charge.KESEHATAN, [120_000, 480_000]);
 	assert.ok(charge.JP == null || (charge.JP[0] === 0 && charge.JP[1] === 0), 'no JP unregistered');
 	assert.ok(charge.PPH21 == null || charge.PPH21[0] === 0, 'PPh 21 does not reach a non-resident');
+});
+
+test('Indonesia — a construction-services employer’s PKWT and piece workers pay JKK at 1.74% (Permenaker 5/2021 art.71; ID-124)', () => {
+	// Permenaker 5/2021 art.65: BAB IV covers the harian lepas, borongan and PKWT workers of a
+	// Pemberi Kerja Jasa Konstruksi; art.71(1) fixes their JKK at 1.74% and art.71(2) their JKM at
+	// 0.30% of the known monthly wage (Permenaker 1/2025 amends arts.67, 69, 75, not art.71). The
+	// company records risk group II (0.54%), which its open-ended worker keeps. DKI Jakarta, April 2026.
+	const build = (period: string, construction: boolean) =>
+		buildStatutory(
+			{
+				...scenario(period, [
+					{ key: 'PKWT', wage: 10_000_000, employment_type: 'CONTRACT' },
+					{ key: 'PIECE', wage: 6_000_000, statutory_work_category: 'PIECE_RATE' },
+					{ key: 'PKWTT', wage: 10_000_000 }
+				]),
+				companyFacts: { jkk_jasa_konstruksi: construction }
+			},
+			(world) =>
+				priorWages(
+					world,
+					'PIECE',
+					period === '2025-12'
+						? { '2025-09': 6_000_000, '2025-10': 6_000_000, '2025-11': 6_000_000 }
+						: period === '2026-02'
+							? { '2025-11': 6_000_000, '2025-12': 6_000_000, '2026-01': 6_000_000 }
+							: { '2026-01': 6_000_000, '2026-02': 6_000_000, '2026-03': 6_000_000 }
+				)
+		).slips;
+	for (const period of ['2025-12', '2026-02', '2026-04']) {
+		const slips = build(period, true);
+		// 1.74% × 10,000,000 = 174,000; JKM 0.30% = 30,000.
+		assert.deepEqual(charges(slips.get('PKWT')!).JKK, [0, 174_000], period);
+		assert.deepEqual(charges(slips.get('PKWT')!).JKM, [0, 30_000], period);
+		// 1.74% × 6,000,000 = 104,400.
+		assert.deepEqual(charges(slips.get('PIECE')!).JKK, [0, 104_400], period);
+		// PKWTT stays on group II: 0.54% × 10,000,000 = 54,000.
+		assert.deepEqual(charges(slips.get('PKWTT')!).JKK, [0, 54_000], period);
+	}
+	// An employer not recorded as a construction-services employer keeps its risk group.
+	assert.deepEqual(charges(build('2026-04', false).get('PKWT')!).JKK, [0, 54_000]);
+});
+
+test('Indonesia — Riau 2026: every regency and city has its UMK, and a bare Riau workplace refuses', () => {
+	// Pemprov Riau Media Center, 23 Dec 2025 (mediacenter.riau.go.id/arsip/94797). A 2,000,000 wage
+	// is below each UMK, so Perpres 82/2018 art.32(2) lifts the Kesehatan base to it.
+	const kesehatan = (region: string, period = '2026-04') =>
+		assessStatutoryUnvalidated({
+			...scenario(period, [{ key: 'ID-UMK', wage: 2_000_000 }]),
+			region
+		});
+	// Kota Pekanbaru Rp3,998,179.46: 1% = 39,981.7946 → 39,982; 4% = 159,927.1784 → 159,927.
+	expectStatutory(
+		kesehatan('Provinsi Riau/Kota Pekanbaru'),
+		'ID-UMK',
+		'KESEHATAN',
+		39_982,
+		159_927
+	);
+	// Kota Dumai Rp4,431,174.69: 44,311.7469 → 44,312; 177,246.9876 → 177,247.
+	expectStatutory(kesehatan('Provinsi Riau/Kota Dumai'), 'ID-UMK', 'KESEHATAN', 44_312, 177_247);
+	// Kabupaten Kepulauan Meranti Rp3,780,495.85 (the UMP): 37,804.9585 → 37,805;
+	// 151,219.834 → 151,220. The same on the 1 January version.
+	for (const period of ['2026-01', '2026-04'])
+		expectStatutory(
+			kesehatan('Provinsi Riau/Kabupaten Kepulauan Meranti', period),
+			'ID-UMK',
+			'KESEHATAN',
+			37_805,
+			151_220
+		);
+	// No province key: a bare Riau workplace refuses in both years.
+	for (const [region, period] of [
+		['Provinsi Riau', '2026-04'],
+		['Provinsi Riau', '2025-12']
+	] as const)
+		assert.throws(() => kesehatan(region, period), /No sealed minimum-wage rate covers PERMANENT/);
+});
+
+test('Indonesia — piece-rate BPJS uses three paid months, or twelve for weather-dependent work (PP 44/2015 art.19(4)–(5); ID-62)', () => {
+	const months = Object.fromEntries(
+		Array.from({ length: 9 }, (_, index) => [
+			`2025-${String(index + 2).padStart(2, '0')}`,
+			4_000_000
+		])
+	);
+	Object.assign(months, { '2025-11': 5_000_000, '2025-12': 6_000_000, '2026-01': 7_000_000 });
+	for (const [weather, expected] of [
+		[false, 6_000_000],
+		[true, 4_500_000]
+	] as const) {
+		const key = weather ? 'ID-PIECE-WEATHER' : 'ID-PIECE';
+		const slip = buildStatutory(
+			{
+				code: 'ID',
+				period: '2026-02',
+				region: 'Provinsi DKI Jakarta',
+				riskClass: 'II',
+				people: [
+					{
+						key,
+						wage: 8_000_000,
+						hire_date: '2025-02-01',
+						statutory_work_category: 'PIECE_RATE',
+						weather_dependent_piece: weather
+					}
+				]
+			},
+			(world) => priorWages(world, key, months)
+		).slips.get(key)!;
+		for (const code of ['JHT', 'JKK', 'JKM'])
+			assert.equal(
+				slip.statutory.find((row) => row.scheme_code === code)?.base_amount,
+				expected,
+				`${key} ${code}`
+			);
+	}
 });

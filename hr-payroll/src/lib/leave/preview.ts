@@ -17,6 +17,8 @@ export type PreviewLeaveInput = {
 	readonly calendar_month?: string | null;
 	readonly range?: { readonly start: HalfDay; readonly end: HalfDay } | null;
 	readonly exclude_entry_id?: string | null;
+	readonly hours?: number | null;
+	readonly no_pay_origin?: 'EMPLOYEE_REQUESTED' | 'OTHER' | null;
 };
 export type LeaveDayPreview = {
 	readonly eligible: boolean;
@@ -39,9 +41,12 @@ export type LeaveDayPreview = {
 	readonly second_half_available?: boolean;
 };
 export type LeavePreview = {
+	readonly unit: 'DAY' | 'HOUR';
 	readonly certificate_required: boolean;
 	readonly remaining_days: number | null;
+	readonly remaining_hours: number | null;
 	readonly chargeable_days: number | null;
+	readonly chargeable_hours: number | null;
 	readonly availability: Readonly<Record<string, LeaveDayPreview>>;
 	readonly issues: readonly { readonly code: 'INVALID_INPUT'; readonly message: string }[];
 };
@@ -110,16 +115,19 @@ export function evaluateLeavePreview(
 			(date) => date.startsWith(input.calendar_month ?? '') && rules.catalogueAt(date) != null
 		) ??
 		(input.calendar_month == null ? window.start : `${input.calendar_month}-01`);
-	const annual = leaveWindowOf(asOf, rules.catalogueOn(asOf).entitlement);
-	assertLeaveBalanceIntegrity(sameLeave, [annual], rules.entitlementAt);
+	const annual = leaveWindowOf(asOf, rules.catalogueOn(asOf).entitlement, rules.hire);
+	assertLeaveBalanceIntegrity(sameLeave, [annual], rules.entitlementAt, undefined, rules.carryFrom);
 	const balance = leaveBalanceAt({
 		entries: sameLeave,
 		window: annual,
 		date: asOf,
-		entitlementAt: rules.entitlementAt
+		entitlementAt: rules.entitlementAt,
+		carryFrom: rules.carryFrom
 	});
+	const unit = rules.entitlementAt(annual, asOf).unit;
 	const issues: { code: 'INVALID_INPUT'; message: string }[] = [];
 	let quantity: number | null = null;
+	let hours: number | null = null;
 	let certificate = false;
 	if (input.range != null) {
 		try {
@@ -136,6 +144,8 @@ export function evaluateLeavePreview(
 					half_day_start: input.range.start.half === 'SECOND',
 					half_day_end: input.range.end.half === 'FIRST',
 					days: null,
+					hours: input.hours ?? null,
+					no_pay_origin: input.no_pay_origin ?? null,
 					as_adjustment_entry: false,
 					reason: null
 				},
@@ -143,6 +153,7 @@ export function evaluateLeavePreview(
 				entries
 			);
 			quantity = plan.charges.reduce((sum, row) => sum + row.days, 0);
+			hours = unit === 'HOUR' ? plan.charges.reduce((sum, row) => sum + (row.hours ?? 0), 0) : null;
 			certificate = plan.certificateRequired;
 		} catch (error) {
 			issues.push({
@@ -171,8 +182,11 @@ export function evaluateLeavePreview(
 		}
 	}
 	return {
-		remaining_days: balance.available,
+		unit,
+		remaining_days: unit === 'DAY' ? balance.available : null,
+		remaining_hours: unit === 'HOUR' ? balance.available : null,
 		chargeable_days: quantity,
+		chargeable_hours: hours,
 		certificate_required: certificate,
 		availability,
 		issues

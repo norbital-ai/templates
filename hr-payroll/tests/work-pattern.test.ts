@@ -75,6 +75,8 @@ test('crossing midnight and paid minutes derive from the WORK code', () => {
 		start_time: '20:00',
 		end_time: '08:00',
 		break_minutes: 60,
+		// The variant names no break start, so the window carries none.
+		break_start_time: null,
 		crosses_midnight: true,
 		elapsed_minutes: 720,
 		paid_minutes: 660

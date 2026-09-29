@@ -4,12 +4,16 @@
  */
 
 import { refuse } from '../refuse.js';
+import { everyField } from '../every-field.js';
 import { readAll, type Reads } from '../reads.js';
 import type { WorkspaceRow } from '../rows.js';
+import type { CollectionName } from '@norbital-ai/bolt';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { addDays, monthBounds, monthKey, shiftPeriod } from '../../lib/payroll/run/dates.js';
 import { periodGrammarFault, resolveWindow } from '../../lib/payroll/run/period.js';
 import { decodeNumber } from '../../lib/wire.js';
+import { dateKey } from '../../lib/iso-day.js';
+import { coversDate } from './run/effective.js';
 
 type PayrollCollection =
 	| 'companies'
@@ -28,6 +32,7 @@ type PayrollCollection =
 	| 'employees'
 	| 'employment_terms'
 	| 'employment_wage_periods'
+	| 'presence_periods'
 	| 'employment_statutory_facts'
 	| 'claim_requests'
 	| 'adhoc_requests'
@@ -46,6 +51,17 @@ export type PayrollWorld = { readonly [C in PayrollCollection]: readonly Workspa
 const PAGE_LIMIT = 20_000;
 
 const APPROVED = { approval_id: { isNull: true } } as const;
+
+/**
+ * A catalogue row as the run prices it: every field but `authority`, the paragraph of statute
+ * carried on each row. One lineage's five catalogues quote about 0.7 MB of it, which put a plant
+ * run's single wave-2 crossing over the 4 MiB answer wall. No pricing path reads it — only a
+ * scheme charge carries a citation, and that comes from `statutory_contributions`, read whole.
+ */
+const priced = <C extends CollectionName>(collection: C): object =>
+	Object.fromEntries(
+		Object.entries(everyField(collection)).filter(([field]) => field !== 'authority')
+	);
 
 const complete = <T>(rows: T[], what: string): T[] => {
 	if (rows.length >= PAGE_LIMIT)
@@ -78,10 +94,15 @@ async function wave1(db: Reads, companyId: string) {
 		adhoc_requests,
 		employment_statutory_facts
 	] = await Promise.all([
-		readAll<WorkspaceRow<'jurisdiction_settings'>>(db, 'jurisdiction_settings', {
-			code: { eq: company.settings_code },
-			...APPROVED
-		}),
+		readAll<WorkspaceRow<'jurisdiction_settings'>>(
+			db,
+			'jurisdiction_settings',
+			{
+				code: { eq: company.settings_code },
+				...APPROVED
+			},
+			32
+		),
 		readAll<WorkspaceRow<'shift_definitions'>>(db, 'shift_definitions', onCompany),
 		readAll<WorkspaceRow<'shift_patterns'>>(db, 'shift_patterns', onCompany),
 		readAll<WorkspaceRow<'employments'>>(db, 'employments', onCompany),
@@ -189,6 +210,7 @@ async function wave2(
 		employees,
 		employment_terms,
 		employment_wage_periods,
+		presence_periods,
 		company_facts,
 		leave_catalogue,
 		claim_catalogue,
@@ -206,15 +228,50 @@ async function wave2(
 		readAll<WorkspaceRow<'employees'>>(db, 'employees', { id: { in: employeeIds }, ...APPROVED }),
 		readAll<WorkspaceRow<'employment_terms'>>(db, 'employment_terms', people),
 		readAll<WorkspaceRow<'employment_wage_periods'>>(db, 'employment_wage_periods', people),
+		// Every recorded stay, whatever year: a residence test reads the four basis years before.
+		readAll<WorkspaceRow<'presence_periods'>>(db, 'presence_periods', {
+			employee_id: { in: employeeIds },
+			...APPROVED
+		}),
 		readAll<WorkspaceRow<'company_facts'>>(db, 'company_facts', {
 			company_id: { eq: companyId },
 			...APPROVED
 		}),
-		readAll<WorkspaceRow<'leave_catalogue'>>(db, 'leave_catalogue', under),
-		readAll<WorkspaceRow<'claim_catalogue'>>(db, 'claim_catalogue', under),
-		readAll<WorkspaceRow<'adhoc_catalogue'>>(db, 'adhoc_catalogue', under),
-		readAll<WorkspaceRow<'allowance_catalogue'>>(db, 'allowance_catalogue', under),
-		readAll<WorkspaceRow<'loan_catalogue'>>(db, 'loan_catalogue', under),
+		readAll<WorkspaceRow<'leave_catalogue'>>(
+			db,
+			'leave_catalogue',
+			under,
+			undefined,
+			priced('leave_catalogue')
+		),
+		readAll<WorkspaceRow<'claim_catalogue'>>(
+			db,
+			'claim_catalogue',
+			under,
+			undefined,
+			priced('claim_catalogue')
+		),
+		readAll<WorkspaceRow<'adhoc_catalogue'>>(
+			db,
+			'adhoc_catalogue',
+			under,
+			undefined,
+			priced('adhoc_catalogue')
+		),
+		readAll<WorkspaceRow<'allowance_catalogue'>>(
+			db,
+			'allowance_catalogue',
+			under,
+			undefined,
+			priced('allowance_catalogue')
+		),
+		readAll<WorkspaceRow<'loan_catalogue'>>(
+			db,
+			'loan_catalogue',
+			under,
+			undefined,
+			priced('loan_catalogue')
+		),
 		// Whole calendar years: a THR ceiling counts the worker's religious holidays across the year
 		// (ID Permenaker 6/2016 art.5(2)); the configuration narrows the rest to the window.
 		readAll<WorkspaceRow<'jurisdiction_holidays'>>(db, 'jurisdiction_holidays', {
@@ -243,6 +300,45 @@ async function wave2(
 		}),
 		readAll<WorkspaceRow<'payslips'>>(db, 'payslips', { employment_id: { in: employmentIds } })
 	]);
+	// TH s.118 can read up to 400 last piece-workdays. One workday a week needs 400 weeks;
+	// sparse work beyond that horizon refuses at the severance expression instead of guessing.
+	const pieceIds =
+		governing?.jurisdiction_code === 'TH'
+			? first.employments
+					.filter((employment) => {
+						// A date period reads as its plain ends: `to` is the open end.
+						const exit = dateKey(employment.effective_range?.to);
+						return (
+							exit !== '' &&
+							exit <= window.salary.end &&
+							employment_terms.some(
+								(term) =>
+									term.employment_id === employment.id &&
+									term.statutory_work_category === 'PIECE_RATE' &&
+									coversDate(term.effective_range, exit)
+							)
+						);
+					})
+					.map((employment) => employment.id)
+			: [];
+	const pieceHistoryFrom = addDays(spanFrom, -400 * 7);
+	const [earlierPieceDays, earlierPieceRosters] = await Promise.all([
+		readAll<WorkspaceRow<'work_days'>>(
+			db,
+			'work_days',
+			{
+				employment_id: { in: pieceIds },
+				work_date: { gte: pieceHistoryFrom, lt: spanFrom },
+				...APPROVED
+			},
+			1000
+		),
+		readAll<WorkspaceRow<'rosters'>>(db, 'rosters', {
+			employment_id: { in: pieceIds },
+			period: { gte: monthKey(pieceHistoryFrom), lt: monthKey(spanFrom) },
+			...APPROVED
+		})
+	]);
 	return {
 		...first,
 		jurisdiction_settings: [...first.jurisdiction_settings, ...foreignSettings],
@@ -250,6 +346,7 @@ async function wave2(
 		employment_terms: complete(employment_terms, 'employment terms'),
 		company_facts: complete(company_facts, 'company facts'),
 		employment_wage_periods: complete(employment_wage_periods, 'wage periods'),
+		presence_periods: complete(presence_periods, 'stays'),
 		statutory_contributions: complete(statutory_contributions, 'statutory schemes'),
 		leave_catalogue: complete(leave_catalogue, 'leave catalogue'),
 		claim_catalogue: complete(claim_catalogue, 'claim catalogue'),
@@ -257,8 +354,8 @@ async function wave2(
 		allowance_catalogue: complete(allowance_catalogue, 'allowance catalogue'),
 		loan_catalogue: complete(loan_catalogue, 'loan catalogue'),
 		jurisdiction_holidays: complete(jurisdiction_holidays, 'published holidays'),
-		work_days: complete(work_days, 'work days'),
-		rosters: complete(rosters, 'rosters'),
+		work_days: complete([...earlierPieceDays, ...work_days], 'work days'),
+		rosters: complete([...earlierPieceRosters, ...rosters], 'rosters'),
 		leave_entries: complete(leave_entries, 'leave entries'),
 		loans: complete(loans, 'loans'),
 		loan_repayments: complete(loan_repayments, 'loan repayments'),

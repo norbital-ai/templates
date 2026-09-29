@@ -50,6 +50,8 @@ type OvertimeImportRow = {
 	readonly employee_number: string;
 	readonly work_date: string;
 	readonly overtime_hours: number;
+	readonly overtime_consented_at?: string;
+	readonly normal_hours_redistribution_agreed_at?: string;
 };
 
 /** The whole workbook. A sheet the file does not carry is absent; an empty sheet is `[]`. */
@@ -158,19 +160,47 @@ function longFormAttendanceRows(table: SheetTable): readonly AttendanceImportRow
 
 /** Blank overtime is no approval; a stated figure is kept, in the half-hour steps the write path enforces. */
 function longFormOvertimeRows(table: SheetTable): readonly OvertimeImportRow[] {
+	const evidence = (
+		reader: RowReader,
+		field: 'overtime_consented_at' | 'normal_hours_redistribution_agreed_at'
+	) => {
+		const value = reader.text(field);
+		if (value == null) return undefined;
+		if (
+			!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/.test(value) ||
+			!Number.isFinite(Date.parse(value))
+		) {
+			reader.reject(field, 'an ISO instant with a timezone, e.g. 2026-01-05T08:00:00+07:00');
+			return undefined;
+		}
+		return new Date(value).toISOString();
+	};
 	const parsed = readRows(table, identifyPersonDay, (reader) => {
 		const employee_number = reader.requiredText('employee_number') ?? '';
 		const work_date = reader.calendarDate('work_date') ?? '';
 		const text = reader.text('overtime_hours');
-		if (text == null) return { employee_number, work_date, overtime_hours: 0 };
+		const overtime_consented_at = evidence(reader, 'overtime_consented_at');
+		const normal_hours_redistribution_agreed_at = evidence(
+			reader,
+			'normal_hours_redistribution_agreed_at'
+		);
+		const facts = {
+			...(overtime_consented_at == null ? {} : { overtime_consented_at }),
+			...(normal_hours_redistribution_agreed_at == null
+				? {}
+				: { normal_hours_redistribution_agreed_at })
+		};
+		if (text == null) return { employee_number, work_date, overtime_hours: 0, ...facts };
 		const value = decodeNumber(text);
 		if (!Number.isFinite(value) || value < 0 || value > 24 || Math.round(value * 2) !== value * 2) {
 			reader.reject('overtime_hours', 'a number of hours in half-hour steps between 0 and 24');
-			return { employee_number, work_date, overtime_hours: 0 };
+			return { employee_number, work_date, overtime_hours: 0, ...facts };
 		}
-		return { employee_number, work_date, overtime_hours: value };
+		return { employee_number, work_date, overtime_hours: value, ...facts };
 	});
-	return parsed.filter((row) => row.overtime_hours > 0);
+	return parsed.filter(
+		(row) => row.overtime_hours > 0 || row.normal_hours_redistribution_agreed_at != null
+	);
 }
 
 /**

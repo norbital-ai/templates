@@ -120,7 +120,7 @@ function selectFactStatusesOn(
 	const fields = new Map(schemes.map((scheme) => [scheme.id, scheme.elections]));
 	const facts = new Map<string, StatutoryFactStatus>();
 	for (const [schemeId, fact] of selected) {
-		if (fact.status.kind === 'REGISTERED') {
+		if (fact.status.elections != null) {
 			const fault = factScopeFault(
 				fields.get(schemeId) ?? [],
 				fact.status.elections ?? {},
@@ -209,13 +209,8 @@ function personFactsFromSchemes(
 			code: scheme.code,
 			registered: status?.kind === 'REGISTERED',
 			since: status?.kind === 'REGISTERED' ? (status.since ?? null) : null,
-			elections: resolveFactValues(
-				scheme.elections,
-				status?.kind === 'REGISTERED' ? (status.elections ?? {}) : {},
-				scheme.code,
-				false
-			),
-			election_keys: status?.kind === 'REGISTERED' ? Object.keys(status.elections ?? {}) : []
+			elections: resolveFactValues(scheme.elections, status?.elections ?? {}, scheme.code, false),
+			election_keys: Object.keys(status?.elections ?? {})
 		};
 	});
 }

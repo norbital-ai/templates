@@ -9,7 +9,9 @@
 	<ul class="text-sm">
 		{#each view.value as row, index (index)}
 			<li>
-				{row.window.start} → {row.window.end} · {row.date} · {row.days > 0 ? '+' : ''}{row.days}
+				{row.window.start} → {row.window.end} · {row.date} · {row.hours == null
+					? `${row.days > 0 ? '+' : ''}${row.days} days`
+					: `${row.hours > 0 ? '+' : ''}${row.hours} hours`}
 			</li>
 		{/each}
 	</ul>

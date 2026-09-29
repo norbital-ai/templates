@@ -12,8 +12,11 @@ import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 function mixedFamilies() {
 	const world = createPublicPayrollWorld({ includePayment: true });
 	for (const day of world.work_days) {
+		// The shift's granted 60 minutes, punched as a gap: a break owed and not taken is worked
+		// time, and nine continuous hours price an hour outside ordinary paid work.
 		day.worked_intervals = [
-			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T12:30:00+08:00` },
+			{ start: `${day.work_date}T13:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
 	}
 	world.claim_catalogue.push({

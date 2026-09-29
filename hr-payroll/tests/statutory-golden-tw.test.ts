@@ -38,9 +38,18 @@ import {
 	type BuiltPayslip
 } from './fixtures/statutory-world.ts';
 import { monthsAt, priorWages } from './fixtures/prior-wages.ts';
-import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
+import { refusalMessage, type PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { evaluateNumber, expressionEngine } from '../src/lib/expressions/evaluate.ts';
 import { assignAllowance } from './fixtures/contract-allowances.ts';
+import { restBreakAssessment } from '../src/lib/scheduling/rest-break.ts';
+import { isEligible, personContext } from '../src/lib/payroll/run/eligibility.ts';
+import { planLeaveActivity } from '../src/lib/leave/activity.ts';
+import {
+	id as leaveId,
+	leaveContext,
+	submission as leaveSubmission,
+	timeOff as leaveTimeOff
+} from './helpers/manual-leave-context.ts';
 
 function declareInsuredAmount(world: PayrollWorld, employeeNumber: string, amount: number) {
 	const employment = world.employments.find((row) => row.employee_number === employeeNumber)!;
@@ -59,6 +68,20 @@ function declareInsuredAmount(world: PayrollWorld, employeeNumber: string, amoun
 		)
 			fact.status.elections = { ...fact.status.elections, insured_amount: amount };
 }
+
+const FOREIGN_SPOUSE_EI = {
+	kind: 'REGISTERED',
+	elections: {
+		eligibility_class: 'FOREIGN_SPOUSE',
+		eligibility_document_reference: 'FIXTURE-ROC-SPOUSE'
+	}
+} as const;
+
+const RETAINED_OLD_PENSION = {
+	kind: 'NOT_REGISTERED',
+	declaration_reference: 'FIXTURE-2005-OLD-ELECTION-AND-SAME-UNIT-SERVICE',
+	elections: { old_system_retained: true }
+} as const;
 
 test('Taiwan — a last-day February exit completes the pension month but LI charges actual exit days', () => {
 	const book = assessStatutory({
@@ -81,7 +104,7 @@ test('Taiwan — a last-day February exit completes the pension month but LI cha
 	assert.equal(slip.get('LI')!.employee, 861);
 });
 
-for (const period of ['2025-12', '2026-01', '2027-01'])
+for (const period of ['2025-12', '2026-01'])
 	test(`Taiwan ${period} — part-time NHI uses its own minimum insured grade for supplementary premiums`, () => {
 		const { slips, companyCharges } = buildStatutory(
 			{
@@ -128,7 +151,7 @@ for (const period of ['2025-12', '2026-01', '2027-01'])
 		]);
 	});
 
-for (const period of ['2025-12', '2026-01', '2027-01'])
+for (const period of ['2025-12', '2026-01'])
 	test(`Taiwan ${period} — NHI counts enrolled dependants independently of family records`, () => {
 		const book = assessStatutory({
 			code: 'TW',
@@ -195,9 +218,10 @@ for (const period of ['2025-12', '2026-01', '2027-01'])
 			);
 	});
 
-for (const period of ['2025-12', '2026-01', '2027-01'])
+for (const period of ['2025-12', '2026-01'])
 	test(`Taiwan ${period} — tax residence is declared independently of citizenship`, () => {
 		for (const citizenship of ['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER']) {
+			const ei = citizenship === 'CITIZEN' ? {} : { EI: FOREIGN_SPOUSE_EI };
 			assert.throws(
 				() =>
 					assessStatutory({
@@ -210,7 +234,7 @@ for (const period of ['2025-12', '2026-01', '2027-01'])
 								wage: 60000,
 								citizenship,
 								tax_residency: null,
-								registrations: { EI: { kind: 'NOT_REGISTERED' } }
+								registrations: ei
 							}
 						]
 					}),
@@ -227,7 +251,7 @@ for (const period of ['2025-12', '2026-01', '2027-01'])
 						citizenship,
 						tax_residency: 'RESIDENT',
 						registrations: {
-							EI: { kind: 'NOT_REGISTERED' },
+							...ei,
 							INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 						}
 					},
@@ -236,7 +260,7 @@ for (const period of ['2025-12', '2026-01', '2027-01'])
 						wage: 60000,
 						citizenship,
 						tax_residency: 'NON_RESIDENT',
-						registrations: { EI: { kind: 'NOT_REGISTERED' } }
+						registrations: ei
 					}
 				]
 			});
@@ -366,7 +390,7 @@ test('Taiwan — occupational-injury insurance is charged on its own grade ladde
 	expectStatutory(book, 'TW-150000', 'LI', 1053, 3687);
 });
 
-for (const period of ['2025-12', '2026-01', '2027-01']) {
+for (const period of ['2025-12', '2026-01']) {
 	test(`Taiwan ${period} — a withholding declaration selects the table and its dependant count`, () => {
 		// 薪資所得扣繳辦法 §§3–6: table withholding requires the declaration. Without it,
 		// regular salary follows 5%; a family record alone is not a declared tax exemption.
@@ -517,13 +541,13 @@ for (const period of ['2025-12', '2026-01', '2027-01']) {
 						key: 'NR-6',
 						wage: 40019,
 						citizenship: 'FOREIGNER',
-						registrations: { EI: { kind: 'NOT_REGISTERED' } }
+						registrations: { EI: FOREIGN_SPOUSE_EI }
 					},
 					{
 						key: 'NR-18',
 						wage: 60009,
 						citizenship: 'FOREIGNER',
-						registrations: { EI: { kind: 'NOT_REGISTERED' } }
+						registrations: { EI: FOREIGN_SPOUSE_EI }
 					},
 					{ key: 'TABLE', wage: 600001, citizenship: 'CITIZEN' },
 					{ key: 'TABLE-12', wage: 300250, citizenship: 'CITIZEN', children: 12 },
@@ -575,7 +599,6 @@ test('Taiwan — resident withholding at the 5% election, and its NT$2,000 exemp
 				wage: 28_590,
 				citizenship: 'CITIZEN',
 				registrations: {
-					EI: { kind: 'NOT_REGISTERED' },
 					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 				}
 			},
@@ -644,7 +667,7 @@ test('Taiwan — withholding cuts to the 元 under 稅款解繳作業辦法 §5,
 	expectStatutory(book, 'TW-45019', 'INCOME_TAX', 2250, 0);
 });
 
-test('Taiwan — a non-resident is withheld at 18%, and is outside employment insurance', () => {
+test('Taiwan — a non-resident foreign spouse is withheld at 6% or 18% and remains EI-covered', () => {
 	const book = assessStatutory({
 		code: 'TW',
 		period: '2026-01',
@@ -654,13 +677,13 @@ test('Taiwan — a non-resident is withheld at 18%, and is outside employment in
 				key: 'TW-NR-40000',
 				wage: 40_000,
 				citizenship: 'FOREIGNER',
-				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+				registrations: { EI: FOREIGN_SPOUSE_EI }
 			},
 			{
 				key: 'TW-NR-60000',
 				wage: 60_000,
 				citizenship: 'FOREIGNER',
-				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+				registrations: { EI: FOREIGN_SPOUSE_EI }
 			}
 		]
 	});
@@ -672,8 +695,8 @@ test('Taiwan — a non-resident is withheld at 18%, and is outside employment in
 	// The §13 NT$2,000 exemption does not extend to non-residents, and the resident election is
 	// not available to them at all.
 	expectStatutorySkipped(book, 'TW-NR-40000', 'INCOME_TAX');
-	// 就業保險法 §5 confines employment insurance to insured persons of ROC nationality aged 15–65.
-	expectStatutorySkipped(book, 'TW-NR-40000', 'EI');
+	// 就業保險法 §5 also covers a documented ROC-national spouse, regardless of tax residence.
+	expectStatutory(book, 'TW-NR-40000', 'EI', 80, 281);
 	// Labour insurance, health insurance and the labour pension reach them like anyone else.
 	expectStatutory(book, 'TW-NR-60000', 'LI', 1053, 3687);
 	expectStatutory(book, 'TW-NR-60000', 'NHI', 943, 2942);
@@ -697,13 +720,13 @@ test('Taiwan — the 民國114年 grade tables of the first sealed version', () 
 				key: 'TW-NR-42885',
 				wage: 42_885,
 				citizenship: 'FOREIGNER',
-				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+				registrations: { EI: FOREIGN_SPOUSE_EI }
 			},
 			{
 				key: 'TW-NR-42886',
 				wage: 42_886,
 				citizenship: 'FOREIGNER',
-				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+				registrations: { EI: FOREIGN_SPOUSE_EI }
 			}
 		]
 	});
@@ -738,8 +761,8 @@ test('Taiwan — the 民國114年 grade tables of the first sealed version', () 
 	// 42,885, and 18% above it. Tax truncates to whole NT dollars: 2,573 and 7,719.
 	expectStatutory(book, 'TW-NR-42885', 'INCOME_TAX_NON_RESIDENT', 2573, 0);
 	expectStatutory(book, 'TW-NR-42886', 'INCOME_TAX_NON_RESIDENT', 7719, 0);
-	// 就業保險法 §5 keeps employment insurance to ROC nationals on this version too.
-	expectStatutorySkipped(book, 'TW-NR-42885', 'EI');
+	// A documented foreign spouse also has EI coverage in this 2025 version.
+	expectStatutory(book, 'TW-NR-42885', 'EI', 88, 307);
 	// 職災 charges on the 民國114年 投保薪資 grade (勞動部 113-11-15 勞動保3字第1130087585號令,
 	// 22 grades 28,590–72,800): 42,885 insures at the 43,900 grade → 0.25% × 43,900 = 109.75 → 110.
 	expectStatutory(book, 'TW-NR-42885', 'OCC_INJURY', 0, 110);
@@ -759,7 +782,7 @@ test('Taiwan — the dollar above a grade insures at the next grade', () => {
 				key: 'TW-NR-44250.01',
 				wage: 44_250.01,
 				citizenship: 'FOREIGNER',
-				registrations: { EI: { kind: 'NOT_REGISTERED' } }
+				registrations: { EI: FOREIGN_SPOUSE_EI }
 			}
 		]
 	});
@@ -782,31 +805,17 @@ test('Taiwan — the dollar above a grade insures at the next grade', () => {
 	expectStatutory(book, 'TW-NR-44250.01', 'INCOME_TAX_NON_RESIDENT', 7965, 0);
 });
 
-test('Taiwan — the 1 January 2027 version steps labour insurance to 12%', () => {
-	// 勞保條例 §13(2): from the year the ordinary rate reaches 10% it rises 0.5% every two years
-	// to 13% — 11.5% in 民國114年, 12% in 民國116年 (13% combined with 就保, announced 2026-08).
-	// Every other scheme, and the 民國115年 grade tables, carry over unchanged until the 116年
-	// minimum wage publishes.
-	const book = assessStatutory({
-		code: 'TW',
-		period: '2027-01',
-		riskClass: '1',
-		people: [
-			{ key: 'TW-28590', wage: 28_590, citizenship: 'CITIZEN' },
-			{ key: 'TW-40000', wage: 40_000, citizenship: 'CITIZEN' },
-			{ key: 'TW-60000', wage: 60_000, citizenship: 'CITIZEN' }
-		]
-	});
-	// 29,500 × 12% = 3,540 → 708 / 2,478 (was 679 / 2,375 at 11.5%).
-	expectStatutory(book, 'TW-28590', 'LI', 708, 2478);
-	// 40,100 × 12% = 4,812 → 962.40 → 962 / 3,368.40 → 3,368.
-	expectStatutory(book, 'TW-40000', 'LI', 962, 3368);
-	// The 45,800 ceiling grade × 12% = 5,496 → 1,099.20 → 1,099 / 3,847.20 → 3,847.
-	expectStatutory(book, 'TW-60000', 'LI', 1099, 3847);
-	// Employment insurance, health insurance and the pension grade do not move.
-	expectStatutory(book, 'TW-28590', 'EI', 59, 207);
-	expectStatutory(book, 'TW-40000', 'NHI', 622, 1940);
-	expectStatutory(book, 'TW-40000', 'LABOR_PENSION', 0, 2406);
+test('Taiwan — 2027 payroll refuses without a sealed 116年 statutory version', () => {
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: 'TW',
+				period: '2027-01',
+				riskClass: '1',
+				people: [{ key: 'TW-40000', wage: 40_000, citizenship: 'CITIZEN' }]
+			}),
+		/no sealed version covering 2027-01-31/
+	);
 });
 
 test('Taiwan — a spouse is a health-insurance dependant, and the count still caps at three', () => {
@@ -922,17 +931,17 @@ test('Taiwan — the 民國114年 second grade, 28,800, that the 115年 tables d
 test('Taiwan — one national minimum wage, 28,590 in 2025 and 29,500 from 2026 (LSA §21)', () => {
 	// 勞動基準法 §21(1): wages may not be below the basic wage. There is no regional table, so the
 	// version states the one figure under a single key a company names as its region, the way the
-	// Malaysian lineage states its national floor. 技術生 (LSA §64–69) are outside §21.
+	// Malaysian lineage states its national floor. Training status needs separate evidence.
 	const floors = settingsVersions('TW').map((version) => [
 		version.effective_range.start.slice(0, 10),
 		version.work_rules.wages.by_region,
 		version.work_rules.wages.applies_when
 	]);
 	assert.deepEqual(floors, [
-		['2025-12-01', { Taiwan: 28_590 }, 'employment.type != "INTERN"'],
-		['2026-01-01', { Taiwan: 29_500 }, 'employment.type != "INTERN"'],
-		['2027-01-01', { Taiwan: 29_500 }, 'employment.type != "INTERN"']
+		['2025-12-01', { Taiwan: 28_590 }, ''],
+		['2026-01-01', { Taiwan: 29_500 }, '']
 	]);
+	assert.throws(() => settingsIdOn('TW', '2027-01-01'), /No sealed TW settings on 2027-01-01/);
 });
 
 test('Taiwan — a wage agreed below the minimum is paid the minimum (最低工資法 §5)', () => {
@@ -994,15 +1003,33 @@ const holiday = (date: string, name: string) => ({
 	published_at: '2025-12-01T00:00:00.000Z',
 	approval_id: null
 });
-/** A punch from `start` to `end` on `date`, in Taipei's +08:00 frame. */
-const punch = (world: PayrollWorld, key: string, date: string, start: string, end: string) => {
+/**
+ * A punch from `start` to `end` on `date`, in Taipei's +08:00 frame. `rest` is the §35 rest the day
+ * takes, written as the gap between the worked intervals: 勞基法 §35 gives 30 minutes after four
+ * continuous hours, and a rest the punches do not show is worked time.
+ */
+const punch = (
+	world: PayrollWorld,
+	key: string,
+	date: string,
+	start: string,
+	end: string,
+	rest?: readonly [string, string]
+) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
+	const clock = (time: string) => `${date}T${time}:00+08:00`;
 	world.work_days.push({
 		id: `wd-${key}-${date}`,
 		employment_id: employment.id,
 		work_date: date,
 		shift_definition_id: null,
-		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		worked_intervals:
+			rest == null
+				? [{ start: clock(start), end: clock(end) }]
+				: [
+						{ start: clock(start), end: clock(rest[0]) },
+						{ start: clock(rest[1]), end: clock(end) }
+					],
 		approval_id: null
 	});
 };
@@ -1038,11 +1065,11 @@ test('Taiwan — §24 prices 4/3 then 5/3 on a work day and a 休息日, §39 do
 		},
 		(world) => {
 			world.jurisdiction_holidays.push(holiday('2026-01-01', '開國紀念日'));
-			punch(world, 'TW-60000', '2026-01-05', '09:00', '21:00'); // Monday: 11 worked, 3 extended
+			punch(world, 'TW-60000', '2026-01-05', '09:00', '21:00', ['12:00', '13:00']); // Monday: 11 worked, 3 extended
 			punch(world, 'TW-60000', '2026-01-10', '09:00', '12:00'); // Saturday 休息日: 3 worked
-			punch(world, 'TW-60000', '2026-01-01', '09:00', '18:00'); // Thursday holiday: the normal day
-			punch(world, 'TW-60000', '2026-01-12', '09:00', '22:00'); // Monday: 12 worked, the §32(2) day
-			punch(world, 'TW-60000', '2026-01-13', '09:00', '23:00'); // Tuesday: 13 worked, over it
+			punch(world, 'TW-60000', '2026-01-01', '09:00', '18:00', ['12:00', '13:00']); // Thursday holiday: the normal day
+			punch(world, 'TW-60000', '2026-01-12', '09:00', '22:00', ['12:00', '13:00']); // Monday: 12 worked, the §32(2) day
+			punch(world, 'TW-60000', '2026-01-13', '09:00', '23:00', ['12:00', '13:00']); // Tuesday: 13 worked, over it
 		}
 	);
 	const slip = slips.get('TW-60000')!;
@@ -1399,7 +1426,7 @@ test('Taiwan — a part-timer insures at the part-time grades, the worker’s vo
 				citizenship: 'FOREIGNER',
 				tax_residency: 'RESIDENT',
 				registrations: {
-					EI: { kind: 'NOT_REGISTERED' },
+					EI: FOREIGN_SPOUSE_EI,
 					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 				}
 			}
@@ -1526,14 +1553,6 @@ test('Taiwan — the second review: 災保 has no grade under the basic wage, th
 					registrations: {
 						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 					}
-				},
-				// A migrant worker on a work permit is outside the 勞退 new scheme (勞退條例 §7(1)).
-				{
-					key: 'TW-MIGRANT',
-					wage: 30_000,
-					citizenship: 'FOREIGNER',
-					pass_type: 'WORK_PERMIT',
-					registrations: { EI: { kind: 'NOT_REGISTERED' } }
 				}
 			]
 		},
@@ -1561,7 +1580,25 @@ test('Taiwan — the second review: 災保 has no grade under the basic wage, th
 	// 50,000 × 5% = 2,500 on the salary alone.
 	expectStatutory(book, 'TW-BONUS-60000', 'INCOME_TAX', 0, 0);
 	expectStatutory(book, 'TW-BONUS-5PCT', 'INCOME_TAX', 2500, 0);
-	assert.equal(book.get('TW-MIGRANT')!.get('LABOR_PENSION'), undefined);
+	// The current model has no dated proof of migrant pension or EI exclusion.
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: 'TW',
+				period: '2026-01',
+				riskClass: '1',
+				people: [
+					{
+						key: 'TW-MIGRANT',
+						wage: 30_000,
+						citizenship: 'FOREIGNER',
+						pass_type: 'WORK_PERMIT',
+						registrations: { EI: { kind: 'NOT_REGISTERED' } }
+					}
+				]
+			}),
+		/NOT_REGISTERED does not prove an exclusion/
+	);
 });
 
 test('Taiwan — an hourly worker is insured for every enrolled day of the month, on a month’s figure (勞保條例施行細則 §27, §28-1)', () => {
@@ -1671,9 +1708,10 @@ test('Taiwan — encashed leave is outside 薪資所得, overtime beyond the mon
 					approval_id: null
 				} as never
 			];
-			// Ten weekdays of 09:00–23:00: 13 worked, 5 beyond the day — 50 in the month.
+			// Ten weekdays of 09:00–23:00 less the 12:00–13:00 §35 rest: 13 worked, 5 beyond the day
+			// — 50 in the month.
 			for (const day of ['05', '06', '07', '08', '09', '12', '13', '14', '15', '16'])
-				punch(world, 'TW-FIFTY', `2026-01-${day}`, '09:00', '23:00');
+				punch(world, 'TW-FIFTY', `2026-01-${day}`, '09:00', '23:00', ['12:00', '13:00']);
 		}
 	);
 	const encash = slips.get('TW-ENCASH')!;
@@ -1870,13 +1908,15 @@ test('Taiwan — work on the 例假 earns a further day’s wage whatever the ho
 	]);
 });
 
-test('Taiwan — a 休息日 pays every hour worked; an untaken §35 break is not deducted (勞基法 §24(2), §35)', () => {
-	// 48,000 a month: 48,000 ÷ 30 ÷ 8 = 200 an hour. Two Saturday 休息日 clocks with no break. §24(2)
-	// prices the first two hours at 200 × 4/3 and every hour after at 200 × 5/3. §35 owes 30
-	// minutes after four continuous hours; a break owed and not taken is a compliance breach, and
-	// the minutes were worked, so every clocked hour is paid.
+test('Taiwan — a 休息日 pays every worked hour beyond the provided §35 rest (勞基法 §24(2), §35)', () => {
+	// 48,000 a month: 48,000 ÷ 30 ÷ 8 = 200 an hour. Two Saturday 休息日 clocks with no punched gap.
+	// §24(2) prices the first two hours at 200 × 4/3 and every hour after at 200 × 5/3. §35 owes 30
+	// minutes after more than four continuous hours (`consecutive_hours > 4.0` in the version's
+	// `work_rules.breaks`), and the day has no shift to grant one, so the statute's 30 minutes come
+	// off the span and 9.5 hours are paid. The four-hour stint crosses no trigger, so nothing is
+	// deducted there.
 	// 4 h: 2 × 266.67 = 533.33 + 2 × 333.33 = 666.67 → 1,200.
-	// 10 h: 533.33 + 8 × 333.33 = 2,666.67 → 3,200.
+	// 10 h: 533.33 + 7.5 × 333.33 = 2,500 → 3,033.33.
 	const { slips } = buildStatutory(
 		{
 			code: 'TW',
@@ -1893,15 +1933,30 @@ test('Taiwan — a 休息日 pays every hour worked; an untaken §35 break is no
 		['2026-05-09', THIRD, 2, 533.33],
 		['2026-05-09', TWO_THIRDS, 2, 666.67],
 		['2026-05-16', THIRD, 2, 533.33],
-		['2026-05-16', TWO_THIRDS, 8, 2666.67]
+		['2026-05-16', TWO_THIRDS, 7.5, 2500]
 	]);
 });
 
-test('Taiwan — the old-system pension reserve is the entity’s declared 2–15% of its old-system workers’ wages (勞基法 §56(1))', () => {
-	// The entity declares 6%. One worker in service since 1998 who stayed on the old system (no
-	// 勞退 registration), 50,000 a month; one on the new system at the same wage; a migrant
-	// worker outside 勞退, who is on the 勞基法 pension system (MOL 1140153402A). The reserve is
-	// 6% of each old-system worker's wages: 3,000 apiece, an employer cost on each payslip.
+test('Taiwan — retained old-system pension requires dated proof and funds the employer reserve', () => {
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: 'TW',
+				period: '2026-01',
+				riskClass: '1',
+				companyFacts: { pension_reserve_rate: 6 },
+				people: [
+					{
+						key: 'TW-OLD',
+						wage: 50_000,
+						citizenship: 'CITIZEN',
+						hire_date: '1998-03-01',
+						registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } }
+					}
+				]
+			}),
+		/NOT_REGISTERED does not establish an old-system/
+	);
 	const { slips } = buildStatutory({
 		code: 'TW',
 		period: '2026-01',
@@ -1913,25 +1968,59 @@ test('Taiwan — the old-system pension reserve is the entity’s declared 2–1
 				wage: 50_000,
 				citizenship: 'CITIZEN',
 				hire_date: '1998-03-01',
-				registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } }
+				registrations: { LABOR_PENSION: RETAINED_OLD_PENSION }
 			},
-			{ key: 'TW-NEW', wage: 50_000, citizenship: 'CITIZEN' },
-			{
-				key: 'TW-MIGRANT',
-				wage: 50_000,
-				citizenship: 'FOREIGNER',
-				hire_date: '1998-03-01',
-				registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' }, EI: { kind: 'NOT_REGISTERED' } }
-			}
+			{ key: 'TW-NEW', wage: 50_000, citizenship: 'CITIZEN' }
 		]
 	});
 	assert.deepEqual(charge(slips.get('TW-OLD')!, 'LABOR_PENSION_RESERVE'), [50_000, 0, 3000]);
-	assert.deepEqual(charge(slips.get('TW-MIGRANT')!, 'LABOR_PENSION_RESERVE'), [50_000, 0, 3000]);
+	assert.equal(charge(slips.get('TW-OLD')!, 'LABOR_PENSION')?.[2] ?? 0, 0);
 	assert.equal(
 		slips.get('TW-NEW')!.statutory.find((row) => row.scheme_code === 'LABOR_PENSION_RESERVE')
 			?.employer_amount ?? 0,
 		0
 	);
+});
+
+test('Taiwan — pre-2005 pension retention applies in 2025 and refuses unsupported later hires', () => {
+	const oldWorker = {
+		key: 'TW-OLD-2025',
+		wage: 50_000,
+		citizenship: 'CITIZEN',
+		hire_date: '1998-03-01',
+		registrations: { LABOR_PENSION: RETAINED_OLD_PENSION }
+	} as const;
+	const book = assessStatutory({
+		code: 'TW',
+		period: '2025-12',
+		riskClass: '1',
+		companyFacts: { pension_reserve_rate: 6 },
+		people: [oldWorker]
+	});
+	expectStatutory(book, 'TW-OLD-2025', 'LABOR_PENSION_RESERVE', 0, 3000);
+	for (const person of [
+		{ ...oldWorker, hire_date: '2005-07-01' },
+		{
+			...oldWorker,
+			registrations: {
+				LABOR_PENSION: {
+					kind: 'NOT_REGISTERED',
+					elections: { old_system_retained: true }
+				}
+			}
+		}
+	])
+		assert.throws(
+			() =>
+				assessStatutory({
+					code: 'TW',
+					period: '2026-01',
+					riskClass: '1',
+					companyFacts: { pension_reserve_rate: 6 },
+					people: [person]
+				}),
+			/NOT_REGISTERED does not establish an old-system/
+		);
 });
 
 test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on the excess over the 定額免稅', () => {
@@ -2337,7 +2426,7 @@ test('Taiwan — the §31 bonus premium runs on the year’s accumulated bonuses
 // Round-2 gap closure (2026-09-28). Each figure is computed by hand from the cited provision.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-test('Taiwan — 資遣費: the new system caps at six months (勞退條例 §12(1)); retained old-system years pay a month each, a part month whole, uncapped (勞基法 §17)', () => {
+test('Taiwan — 資遣費: the new system caps at six months and retained old-system years are payable', () => {
 	// 勞工退休金條例 §12(1) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030020): 每滿一年
 	// 發給二分之一個月之平均工資，未滿一年者，以比例計給；最高以發給六個月平均工資為限. 勞基法 §17(1)
 	// (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=17): 每滿一年發給相當於一個月
@@ -2351,8 +2440,8 @@ test('Taiwan — 資遣費: the new system caps at six months (勞退條例 §12
 	//    months give 0.5 × 247.5 / 12 = 10.3125 → capped at 6. 50,000 × (77/12 + 6) = 620,833.33 →
 	//    620,833. Full 30-day §16 notice given, so no notice pay. 115年度 退職所得 exempt to 206,000 ×
 	//    27 = 5,562,000: nothing withheld.
-	//  - OLD-ONLY: stayed on the old system (not registered for 勞退), 1 Mar 2003 – 31 Jan 2026 is 275
-	//    months, all §17: 40,000 × 275/12 = 916,666.67 → 916,667, above what the §12 cap would allow.
+	// OLD-ONLY retained the LSA system with documented 2005 election and same-unit service:
+	// 40,000 × 275/12 = 916,666.67 → 916,667.
 	const people = [
 		{ key: 'TW-SEV-CAP', wage: 50_000, hire: '2010-02-01', facts: {} },
 		{
@@ -2386,7 +2475,7 @@ test('Taiwan — 資遣費: the new system caps at six months (勞退條例 §12
 				hire_date: person.hire,
 				exit_date: '2026-01-31',
 				exit_reason: 'REDUNDANCY',
-				...(person.old ? { registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } } } : {})
+				...('old' in person ? { registrations: { LABOR_PENSION: RETAINED_OLD_PENSION } } : {})
 			}))
 		},
 		(world) => {
@@ -2424,7 +2513,7 @@ test('Taiwan — 資遣費: the new system caps at six months (勞退條例 §12
 	assert.equal(paid('TW-SEV-OLD-ONLY'), 916_667);
 });
 
-test('Taiwan — 舊制退休金: two bases a year for fifteen years, one after, 45 at most; a part year half or whole; +20% for a job-caused disability (勞基法 §53–§55)', () => {
+test('Taiwan — 舊制退休金: 45-base cap, half-year rounding and job-caused disability', () => {
 	// 勞基法 §55(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=55): 按其
 	// 工作年資，每滿一年給與兩個基數。但超過十五年之工作年資，每滿一年給與一個基數，最高總數以四十五個
 	// 基數為限。未滿半年者以半年計；滿半年者以一年計 — §55(1)(2) 加給百分之二十 for a §54(1)(2)
@@ -2432,12 +2521,9 @@ test('Taiwan — 舊制退休金: two bases a year for fifteen years, one after,
 	// wage at approved retirement. §53: 15 years at 55, 25 years, 10 years at 60; §54(1): 65, or
 	// disability. 勞退條例 §11(2) pays retained old-system seniority the same on a §53/§54 end. Six
 	// earlier payslips at the wage make a month's average wage that wage. All exit 31 Jan 2026.
-	//  - OLD-43: 1 Feb 1998, never left the old system, 336 months = 28 years: 30 + 13 = 43 bases ×
-	//    50,000 = 2,150,000; aged 60 with 28 years (§53). 115年度 exempt to 206,000 × 28: no tax.
-	//  - CAP: 1 Sep 1984 (after the Act applied, 1 Aug 1984), aged 65 (§54(1)(1)); 497 months = 41
-	//    years 5 months → 41.5: 15 + 41.5 = 56.5 → 45 bases × 200,000 = 9,000,000. 退職所得: 年資 41
-	//    years 5 months counts 41.5; exempt to 206,000 × 41.5 = 8,549,000, half taxable to 414,000 ×
-	//    41.5 = 17,181,000: (9,000,000 − 8,549,000) / 2 = 225,500 × 6% = 13,530.
+	// OLD-43: 28 years old system: (30 + 13) × 50,000 = 2,150,000.
+	// CAP: 41 years 5 months old system reaches the 45-base cap: 45 × 200,000 = 9,000,000.
+	// Both have documented 2005 election and same-unit service.
 	//  - HALF: 1 Aug 2000, aged 50, 25 years 6 months' service (§53(2): 25 years at any age); 63
 	//    retained months = 5 years 3 months → 5.5: 11 bases × 50,000 = 550,000.
 	//  - DUTY: 1 Feb 2003, aged 45, 23 years — eligible only as a §54(1)(2) disability retirement;
@@ -2500,7 +2586,7 @@ test('Taiwan — 舊制退休金: two bases a year for fifteen years, one after,
 				hire_date: person.hire,
 				exit_date: '2026-01-31',
 				exit_reason: 'RETIREMENT',
-				...(person.old ? { registrations: { LABOR_PENSION: { kind: 'NOT_REGISTERED' } } } : {})
+				...('old' in person ? { registrations: { LABOR_PENSION: RETAINED_OLD_PENSION } } : {})
 			}))
 		},
 		(world) => {
@@ -2788,14 +2874,12 @@ test('Taiwan — §13: no §11 or §20 termination inside the §59 medical perio
 	assert.equal(severance(run('ARTICLE_14', 'RESIGNATION')), 45_000);
 });
 
-test('Taiwan — a foreign professional is on the new pension system from 2026; one who elected the old system accrues the reserve (外國專業人才延攬及僱用法 §24)', () => {
+test('Taiwan — an insured PR foreign professional owes the new pension; old-system election needs proof', () => {
 	// BLI 2026 notice (https://www.bli.gov.tw/0109916.html, updated 2026-08-06): 外國專業人才及外國
 	// 特定專業人才，無論是否取得永久居留身分，自115年1月1日起適用勞退新制; one employed before may keep
 	// the old system by electing in writing by 30 June 2026, 屆期未選擇者一律適用勞退新制.
-	//  - NEW: a non-PR professional (EMPLOYMENT_PASS) on 40,000, grade 40,100: employer 6% = 2,406.
-	//  - ELECTED-OLD: the same, hired 2020, elected the old system (not registered for 勞退): no 6%;
-	//    the entity's declared 6% 勞基法 §56(1) reserve on the month's wages, 40,000 × 6% = 2,400.
-	// Neither is EI-covered (就業保險法 §5: nationals, spouses and qualifying PR only).
+	// A professional with PR and documented EI cover owes 6% on the 40,100 pension grade: 2,406.
+	// An old-system election requires dated evidence; NOT_REGISTERED alone cannot price its reserve.
 	const { slips } = buildStatutory({
 		code: 'TW',
 		period: '2026-01',
@@ -2805,19 +2889,16 @@ test('Taiwan — a foreign professional is on the new pension system from 2026; 
 			{
 				key: 'TW-FP-NEW',
 				wage: 40_000,
-				citizenship: 'FOREIGNER',
+				citizenship: 'PERMANENT_RESIDENT',
 				pass_type: 'EMPLOYMENT_PASS',
-				registrations: { EI: { kind: 'NOT_REGISTERED' } }
-			},
-			{
-				key: 'TW-FP-OLD',
-				wage: 40_000,
-				citizenship: 'FOREIGNER',
-				pass_type: 'EMPLOYMENT_PASS',
-				hire_date: '2020-01-01',
 				registrations: {
-					EI: { kind: 'NOT_REGISTERED' },
-					LABOR_PENSION: { kind: 'NOT_REGISTERED' }
+					EI: {
+						kind: 'REGISTERED',
+						elections: {
+							eligibility_class: 'FOREIGN_PROFESSIONAL_PR',
+							eligibility_document_reference: 'FIXTURE-PR-PROFESSIONAL'
+						}
+					}
 				}
 			}
 		]
@@ -2828,21 +2909,374 @@ test('Taiwan — a foreign professional is on the new pension system from 2026; 
 			?.employer_amount ?? 0,
 		0
 	);
-	assert.deepEqual(charge(slips.get('TW-FP-OLD')!, 'LABOR_PENSION_RESERVE'), [40_000, 0, 2400]);
-	assert.equal(
-		slips.get('TW-FP-OLD')!.statutory.find((row) => row.scheme_code === 'LABOR_PENSION')
-			?.employer_amount ?? 0,
-		0
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: 'TW',
+				period: '2026-01',
+				riskClass: '1',
+				companyFacts: { pension_reserve_rate: 6 },
+				people: [
+					{
+						key: 'TW-FP-OLD',
+						wage: 40_000,
+						citizenship: 'PERMANENT_RESIDENT',
+						pass_type: 'EMPLOYMENT_PASS',
+						hire_date: '2020-01-01',
+						registrations: {
+							EI: {
+								kind: 'REGISTERED',
+								elections: {
+									eligibility_class: 'FOREIGN_PROFESSIONAL_PR',
+									eligibility_document_reference: 'FIXTURE-PR-PROFESSIONAL'
+								}
+							},
+							LABOR_PENSION: { kind: 'NOT_REGISTERED' }
+						}
+					}
+				]
+			}),
+		/NOT_REGISTERED does not establish an old-system/
 	);
 });
 
-for (const period of ['2025-12', '2026-01', '2027-01'])
+test('Taiwan — a documented pre-2026 foreign professional may keep the old pension system', () => {
+	const person = {
+		key: 'TW-FP-ELECTED',
+		wage: 40_000,
+		citizenship: 'PERMANENT_RESIDENT',
+		pass_type: 'EMPLOYMENT_PASS',
+		hire_date: '2020-01-01',
+		registrations: {
+			EI: {
+				kind: 'REGISTERED',
+				elections: {
+					eligibility_class: 'FOREIGN_PROFESSIONAL_PR',
+					eligibility_document_reference: 'FIXTURE-PR-PROFESSIONAL'
+				}
+			},
+			LABOR_PENSION: {
+				kind: 'NOT_REGISTERED',
+				declaration_reference: 'FIXTURE-2026-06-30-WRITTEN-ELECTION-AND-SAME-UNIT',
+				elections: {
+					professional_work_class: 'FOREIGN_PROFESSIONAL',
+					professional_old_election_on: '2026-06-30'
+				}
+			}
+		}
+	} as const;
+	const run = (candidate: Parameters<typeof buildStatutory>[0]['people'][number]) =>
+		buildStatutory({
+			code: 'TW',
+			period: '2026-07',
+			riskClass: '1',
+			companyFacts: { pension_reserve_rate: 6 },
+			people: [candidate]
+		});
+	const { slips } = run(person);
+	assert.equal(charge(slips.get(person.key)!, 'LABOR_PENSION')?.[2] ?? 0, 0);
+	assert.deepEqual(charge(slips.get(person.key)!, 'LABOR_PENSION_RESERVE'), [40_000, 0, 2400]);
+	for (const candidate of [
+		{ ...person, hire_date: '2026-01-01' },
+		{
+			...person,
+			registrations: {
+				...person.registrations,
+				LABOR_PENSION: {
+					...person.registrations.LABOR_PENSION,
+					elections: {
+						...person.registrations.LABOR_PENSION.elections,
+						professional_old_election_on: '2026-07-01'
+					}
+				}
+			}
+		},
+		{
+			...person,
+			registrations: {
+				...person.registrations,
+				LABOR_PENSION: {
+					...person.registrations.LABOR_PENSION,
+					declaration_reference: ''
+				}
+			}
+		},
+		{ ...person, pass_type: null },
+		{ ...person, pass_type: 'WORK_PERMIT' }
+	])
+		assert.throws(() => run(candidate), /NOT_REGISTERED does not establish an old-system/);
+});
+
+for (const { period, transition, election, residencySince, passType, age } of [
+	{
+		period: '2025-12',
+		transition: 'FOREIGN_PROFESSIONAL_2018',
+		election: '2018-08-06',
+		residencySince: '2017-01-01',
+		passType: 'EMPLOYMENT_PASS',
+		age: 40
+	},
+	{
+		period: '2026-01',
+		transition: 'FOREIGN_PROFESSIONAL_2018',
+		election: '2018-08-06',
+		residencySince: '2017-01-01',
+		passType: 'EMPLOYMENT_PASS',
+		age: 40
+	},
+	{
+		period: '2025-12',
+		transition: 'FOREIGN_NONPROFESSIONAL_2019',
+		election: '2019-11-15',
+		residencySince: '2018-01-01',
+		passType: 'OTHER',
+		age: 40
+	},
+	{
+		period: '2026-01',
+		transition: 'FOREIGN_NONPROFESSIONAL_2019',
+		election: '2019-11-15',
+		residencySince: '2018-01-01',
+		passType: 'OTHER',
+		age: 40
+	}
+])
+	test(`Taiwan ${period} — documented ${transition} retains old pension at the same unit`, () => {
+		// BLI transition guide §§5–6: https://www.bli.gov.tw/en/0010369.html.
+		const person = {
+			key: 'TW-PR-OLD',
+			wage: 40_000,
+			citizenship: 'PERMANENT_RESIDENT',
+			residency_since: residencySince,
+			pass_type: passType,
+			age,
+			hire_date: '2017-01-01',
+			registrations: {
+				EI:
+					transition === 'FOREIGN_PROFESSIONAL_2018'
+						? period === '2025-12'
+							? {
+									kind: 'NOT_REGISTERED',
+									declaration_reference: 'FIXTURE-PR-PROFESSIONAL-PRE2026-NONCOVERAGE',
+									elections: { pr_professional_pre2026_excluded: true }
+								}
+							: {
+									kind: 'REGISTERED',
+									elections: {
+										eligibility_class: 'FOREIGN_PROFESSIONAL_PR',
+										eligibility_document_reference: 'FIXTURE-PR-PROFESSIONAL-CLASS'
+									}
+								}
+						: {
+								kind: 'NOT_REGISTERED',
+								declaration_reference: 'FIXTURE-PR-NONPROFESSIONAL-NONSPOUSE-BLI-CLASS',
+								elections: { pr_nonprofessional_excluded: true }
+							},
+				LABOR_PENSION: {
+					kind: 'NOT_REGISTERED',
+					declaration_reference: 'FIXTURE-PR-WRITTEN-OLD-ELECTION-SAME-UNIT',
+					elections: {
+						pr_old_transition_class: transition,
+						pr_old_election_on: election
+					}
+				}
+			}
+		} as const;
+		const run = (candidate: Parameters<typeof buildStatutory>[0]['people'][number]) =>
+			buildStatutory({
+				code: 'TW',
+				period,
+				riskClass: '1',
+				companyFacts: { pension_reserve_rate: 6 },
+				people: [candidate]
+			});
+		const { slips } = run(person);
+		const slip = slips.get(person.key)!;
+		assert.equal(
+			charge(slip, 'EI')?.[1] ?? 0,
+			transition === 'FOREIGN_PROFESSIONAL_2018' && period === '2026-01' ? 80 : 0
+		);
+		assert.equal(charge(slip, 'LABOR_PENSION')?.[2] ?? 0, 0);
+		assert.deepEqual(charge(slip, 'LABOR_PENSION_RESERVE'), [40_000, 0, 2400]);
+		for (const candidate of [
+			{
+				...person,
+				hire_date: transition === 'FOREIGN_PROFESSIONAL_2018' ? '2018-02-08' : '2019-05-17'
+			},
+			{
+				...person,
+				residency_since: transition === 'FOREIGN_PROFESSIONAL_2018' ? '2018-02-09' : '2019-05-18'
+			},
+			{
+				...person,
+				registrations: {
+					...person.registrations,
+					LABOR_PENSION: {
+						...person.registrations.LABOR_PENSION,
+						elections: {
+							...person.registrations.LABOR_PENSION.elections,
+							pr_old_election_on:
+								transition === 'FOREIGN_PROFESSIONAL_2018' ? '2018-08-07' : '2019-11-16'
+						}
+					}
+				}
+			},
+			{
+				...person,
+				registrations: {
+					...person.registrations,
+					LABOR_PENSION: { ...person.registrations.LABOR_PENSION, declaration_reference: '' }
+				}
+			}
+		])
+			assert.throws(() => run(candidate), /NOT_REGISTERED does not establish an old-system/);
+		if (transition === 'FOREIGN_PROFESSIONAL_2018' && period === '2025-12')
+			assert.throws(
+				() =>
+					run({
+						...person,
+						registrations: { ...person.registrations, EI: { kind: 'NOT_REGISTERED' } }
+					}),
+				/NOT_REGISTERED does not prove an exclusion/
+			);
+	});
+
+test('Taiwan — PR nonprofessional EI exclusion needs dated classification and evidence', () => {
+	const person = {
+		key: 'TW-PR-EI-EXCLUDED',
+		wage: 40_000,
+		citizenship: 'PERMANENT_RESIDENT',
+		residency_since: '2020-01-01',
+		pass_type: 'OTHER',
+		registrations: {
+			EI: {
+				kind: 'NOT_REGISTERED',
+				declaration_reference: 'FIXTURE-PR-NONPROFESSIONAL-NONSPOUSE-BLI-CLASS',
+				elections: { pr_nonprofessional_excluded: true }
+			}
+		}
+	} as const;
+	const run = (candidate: Parameters<typeof buildStatutory>[0]['people'][number]) =>
+		buildStatutory({ code: 'TW', period: '2026-01', riskClass: '1', people: [candidate] });
+	assert.equal(charge(run(person).slips.get(person.key)!, 'EI')?.[1] ?? 0, 0);
+	for (const candidate of [
+		{ ...person, residency_since: '' },
+		{ ...person, residency_since: '2026-02-01' },
+		{
+			...person,
+			registrations: {
+				EI: { ...person.registrations.EI, declaration_reference: '' }
+			}
+		},
+		{
+			...person,
+			registrations: {
+				EI: { ...person.registrations.EI, elections: { pr_nonprofessional_excluded: false } }
+			}
+		}
+	])
+		assert.throws(() => run(candidate), /NOT_REGISTERED does not prove an exclusion/);
+});
+
+for (const period of ['2025-12', '2026-01'])
+	test(`Taiwan ${period} — a later PR grant with a declared old-pension election refuses until the six-month window is verified`, () => {
+		// BLI transition guide §6: https://www.bli.gov.tw/en/0010369.html.
+		// A grant after the 2019 commencement starts an individual six-month election window.
+		assert.throws(
+			() =>
+				buildStatutory({
+					code: 'TW',
+					period,
+					riskClass: '1',
+					companyFacts: { pension_reserve_rate: 6 },
+					people: [
+						{
+							key: 'TW-LATER-PR-OLD',
+							wage: 40_000,
+							citizenship: 'PERMANENT_RESIDENT',
+							residency_since: '2024-03-01',
+							pass_type: 'OTHER',
+							hire_date: '2017-01-01',
+							registrations: {
+								EI: {
+									kind: 'NOT_REGISTERED',
+									declaration_reference: 'FIXTURE-PR-NONPROFESSIONAL-NONSPOUSE-BLI-CLASS',
+									elections: { pr_nonprofessional_excluded: true }
+								},
+								LABOR_PENSION: {
+									kind: 'NOT_REGISTERED',
+									declaration_reference: 'FIXTURE-2024-PR-GRANT-WRITTEN-ELECTION',
+									elections: {
+										pr_old_transition_class: 'FOREIGN_NONPROFESSIONAL_2019',
+										pr_old_election_on: '2024-08-31'
+									}
+								}
+							}
+						}
+					]
+				}),
+			/NOT_REGISTERED does not establish an old-system/
+		);
+	});
+
+for (const period of ['2025-12', '2026-01'])
+	test(`Taiwan ${period} — a documented four-worker company has EI and OCC cover without an LI unit`, () => {
+		const worker = (index: number) => ({
+			key: `TW-SMALL-${index}`,
+			wage: 40_000,
+			citizenship: 'CITIZEN',
+			registrations: {
+				LI: {
+					kind: 'NOT_REGISTERED',
+					declaration_reference: 'FIXTURE-BLI-NO-LI-UNIT-AND-EI-OCC-ENROLMENT'
+				}
+			}
+		});
+		const people = [1, 2, 3, 4].map(worker);
+		const companyFacts = {
+			li_unit_class: 'COMPANY_OR_SHOP',
+			li_no_insurance_unit: true,
+			li_unit_evidence_reference: 'FIXTURE-BLI-UNIT-HISTORY-FOUR-WORKERS'
+		};
+		const run = (
+			candidates: Parameters<typeof buildStatutory>[0]['people'],
+			facts: Parameters<typeof buildStatutory>[0]['companyFacts'] = companyFacts
+		) =>
+			buildStatutory({
+				code: 'TW',
+				period,
+				riskClass: '1',
+				companyFacts: facts,
+				people: candidates
+			});
+		const { slips } = run(people);
+		assert.equal(charge(slips.get('TW-SMALL-1')!, 'LI')?.[1] ?? 0, 0);
+		assert.equal(charge(slips.get('TW-SMALL-1')!, 'LI')?.[2] ?? 0, 0);
+		assert.ok((charge(slips.get('TW-SMALL-1')!, 'EI')?.[2] ?? 0) > 0);
+		assert.ok((charge(slips.get('TW-SMALL-1')!, 'OCC_INJURY')?.[2] ?? 0) > 0);
+		assert.throws(
+			() => run([...people, worker(5)]),
+			/NOT_REGISTERED does not prove a noncompulsory employer or worker class/
+		);
+		assert.throws(
+			// The evidence reference is required whenever the no-LI-unit fact is declared: with no
+			// reference recorded at all, the run refuses before it reads the unit class.
+			() => run(people, { li_unit_class: 'COMPANY_OR_SHOP', li_no_insurance_unit: true }),
+			/BLI unit-class and no-LI-unit evidence reference is required/
+		);
+		assert.throws(
+			() => run([{ ...worker(1), registrations: {} }, ...people.slice(1)]),
+			/an employer declared to have no LI unit cannot also price a registered LI worker/
+		);
+	});
+
+for (const period of ['2025-12', '2026-01'])
 	test(`Taiwan ${period} — employment insurance stops on the 65th birthday itself (BLI 就業保險 FAQ 承保業務 Q4)`, () => {
 		// 就業保險法 §5(1): 年滿十五歲以上，六十五歲以下. BLI (https://www.bli.gov.tw/0017586.html,
 		// updated 2024-05-30): 本局會主動自其滿65歲當日將其改列為不適用就業保險身分 — the birthday is the
 		// first uncovered day. Born on the 15th: days 1–14 insured on the 30-day month (勞保施行細則
 		// §28-1). 40,100 × 1% × 14/30 = 187.13 → 20% = 37.43 → 37; 70% = 130.99 → 131. The 1% rate
-		// and the 40,100 grade stand in each of the three sealed versions.
+		// and the 40,100 grade stand in each sealed version.
 		const [year, month] = period.split('-');
 		const book = assessStatutory({
 			code: 'TW',
@@ -3136,4 +3570,355 @@ test('Taiwan — a joiner on the 31st is owed that day: 1/30 of the month, now o
 	}
 	assert.equal(run('2026-03', '2026-03-31', 21).gross, 0);
 	assert.equal(run('2026-04', '2026-03-31', 21).gross, 46_500);
+});
+
+test('Taiwan — §35: the break follows four continuous hours; four exactly owe none (勞基法 §35)', () => {
+	// 勞基法 §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35): 勞工繼續工作
+	// 四小時，至少應有三十分鐘之休息。但實行輪班制或其工作有連續性或緊急性者，雇主得在工作時間內，另行調配其休息時間.
+	// The rest comes after the four hours: a 09:00–13:00 run owes nothing; 09:00–13:30 owed 30 minutes
+	// at 13:00 and took none (shortfall 30), outside working time; on the proviso's shift or continuous
+	// work the same 30 minutes is rearranged inside working time.
+	for (const version of settingsVersions('TW')) {
+		const run = (end: string, facts: Record<string, boolean> = {}) =>
+			restBreakAssessment({
+				intervals: [
+					{ start: '2026-06-15T09:00:00.000+08:00', end: `2026-06-15T${end}:00.000+08:00` }
+				],
+				breakMinutes: 0,
+				breaks: version.work_rules.breaks,
+				person: { company: { facts } } as never
+			});
+		assert.equal(run('13:00').rule, null, version.id);
+		const over = run('13:30');
+		assert.equal(over.requiredMinutes, 30, version.id);
+		assert.equal(over.shortfallMinutes, 30, version.id);
+		assert.equal(over.rule?.counts_as_worked_time, false, version.id);
+		assert.equal(
+			run('13:30', { shift_or_continuous_work: true }).rule?.counts_as_worked_time,
+			true
+		);
+		assert.equal(run('13:00', { shift_or_continuous_work: true }).rule, null, version.id);
+	}
+});
+
+/** One MANUAL or SEPARATION §59 request in the run's period. */
+function injuryRequest(
+	world: PayrollWorld,
+	code: string,
+	index: number,
+	event: string,
+	period: string,
+	amount = 0
+) {
+	const employment = world.employments[index]!;
+	const catalogue = world.adhoc_catalogue!.find(
+		(row) => row.code === code && row.settings_id === TW_2026
+	)!;
+	world.adhoc_requests!.push({
+		id: `d5900000-0000-4000-8000-0000000${String(index).padStart(2, '0')}${code.length.toString().padStart(3, '0')}`,
+		employment_id: employment.id,
+		catalogue_id: catalogue.id,
+		amount,
+		event_date: event,
+		pay_period: period,
+		payslip_id: null,
+		reason: `勞基法 §59: ${code}`,
+		evidence_file: 'designated-hospital-assessment.pdf',
+		as_adjustment_entry: false,
+		approval_id: null
+	});
+}
+
+// Six months before an April 2026 accident: Oct–Dec 2025 at 30,000, Jan–Mar 2026 at 36,000 — 198,000
+// over 31 + 30 + 31 + 31 + 28 + 31 = 182 days. 勞基法 §2(4) 平均工資 a day = 198,000 ÷ 182; a month of
+// it (勞動部 台(83)勞動二字第25564號) is 198,000 ÷ 6 = 33,000.
+const INJURY_WAGES = {
+	...monthsAt('2025-10', '2025-12', 30_000),
+	...monthsAt('2026-01', '2026-03', 36_000)
+};
+
+test('Taiwan — §59(1) medical costs are paid as entered and touch no wage, insured or tax base (勞基法 §59(1), 施行細則 §10(7), 所得稅法 §4(1)(3))', () => {
+	// 勞基法 §59(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=59): 雇主應補償其
+	// 必需之醫療費用. 施行細則 §10(7) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=10):
+	// 職業災害補償費 is not 工資; 所得稅法 §4(1)(3) exempts 傷害之損害賠償金. NT$36,000 a month, NT$12,345 of
+	// receipts: gross and net both rise by exactly 12,345, every statutory row as without it.
+	const run = (amount: number) =>
+		buildStatutory(
+			{
+				code: 'TW',
+				period: '2026-04',
+				riskClass: '1',
+				people: [{ key: 'TW-MED', wage: 36_000, citizenship: 'CITIZEN' }]
+			},
+			(world) => {
+				if (amount > 0)
+					injuryRequest(world, 'OCC_INJURY_MEDICAL', 0, '2026-04-06', '2026-04', amount);
+			}
+		).slips.get('TW-MED')!;
+	const whole = run(0);
+	const paid = run(12_345);
+	assert.equal(
+		paid.adjustments.find((row) => row.component_code === 'OCC_INJURY_MEDICAL')?.amount,
+		12_345
+	);
+	assert.equal(paid.gross, whole.gross + 12_345);
+	assert.deepEqual(paid.statutory, whole.statutory);
+	assert.equal(paid.net, whole.net + 12_345);
+});
+
+test('Taiwan — §59(2) proviso: forty months of 平均工資 at once; §59(3) disability at the occupational grade days (勞基法 §59, 勞保條例 §54, 失能給付標準 §5)', () => {
+	// §59(2) 但書: 雇主得一次給付四十個月之平均工資 — 40 × 33,000 = 1,320,000.
+	// §59(3): 按其平均工資及其失能程度…依勞工保險條例有關之規定. 勞保條例 §54(1)
+	// (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=54): 增給百分之五十; 勞工保險失能
+	// 給付標準 §5 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050023): grade 7 = 440 days, × 1.5 =
+	// 660; grade 15 = 30 days × 1.5 = 45. 660 × 198,000 ÷ 182 = 718,021.98 → 718,022; 45 × 198,000 ÷ 182 =
+	// 48,956.04 → 48,956. Each not 工資 and tax-exempt: statutory rows as without it.
+	const people = ['TW-LUMP', 'TW-G07', 'TW-G15', 'TW-NONE'];
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-04',
+			riskClass: '1',
+			people: people.map((key) => ({
+				key,
+				wage: 36_000,
+				citizenship: 'CITIZEN',
+				hire_date: '2020-01-01'
+			}))
+		},
+		(world) => {
+			for (const key of people) priorWages(world, key, INJURY_WAGES);
+			injuryRequest(world, 'OCC_INJURY_LUMP_SUM', 0, '2026-04-06', '2026-04');
+			injuryRequest(world, 'OCC_DISABILITY_G07', 1, '2026-04-06', '2026-04');
+			injuryRequest(world, 'OCC_DISABILITY_G15', 2, '2026-04-06', '2026-04');
+		}
+	);
+	const line = (key: string, code: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === code)?.amount;
+	assert.equal(line('TW-LUMP', 'OCC_INJURY_LUMP_SUM'), 1_320_000);
+	assert.equal(line('TW-G07', 'OCC_DISABILITY_G07'), 718_022);
+	assert.equal(line('TW-G15', 'OCC_DISABILITY_G15'), 48_956);
+	for (const key of ['TW-LUMP', 'TW-G07', 'TW-G15'])
+		assert.deepEqual(slips.get(key)!.statutory, slips.get('TW-NONE')!.statutory, key);
+	// Every version carries the fifteen grades at 1.5 × the 失能給付標準 §5 days.
+	const days = [1800, 1500, 1260, 1110, 960, 810, 660, 540, 420, 330, 240, 150, 90, 60, 45];
+	for (const version of settingsVersions('TW')) {
+		const rows = readCatalogue().filter((row) => row.settings_id === version.id);
+		days.forEach((day, index) => {
+			const row = rows.find(
+				(r) => r.code === `OCC_DISABILITY_G${String(index + 1).padStart(2, '0')}`
+			)!;
+			assert.ok(
+				row.bands[0]!.amount.startsWith(`round_unit(${day}.0 * `),
+				`${version.id} G${index + 1}`
+			);
+		});
+	}
+});
+
+function readCatalogue(): { settings_id: string; code: string; bands: { amount: string }[] }[] {
+	return JSON.parse(
+		readFileSync(new URL('../seed/jurisdiction/TW/adhoc_catalogue.json', import.meta.url), 'utf8')
+	);
+}
+
+test('Taiwan — §59(4) an occupational death: five months’ funeral costs and forty months’ death compensation; an ordinary death neither', () => {
+	// 勞基法 §59(4): 雇主除給與五個月平均工資之喪葬費外，並應一次給與其遺屬四十個月平均工資之死亡補償.
+	// Death 15 April 2026 after the INJURY_WAGES months: 5 × 33,000 = 165,000; 40 × 33,000 = 1,320,000.
+	// A stated 平均工資 of NT$1,000 a day: 5 × 30,000 = 150,000 and 40 × 30,000 = 1,200,000. A death
+	// not from an occupational accident is owed neither.
+	const people = [
+		{ key: 'TW-DEATH', facts: { occupational_death: true } },
+		{ key: 'TW-DEATH-STATED', facts: { occupational_death: true, average_daily_wage: 1_000 } },
+		{ key: 'TW-DEATH-ORDINARY', facts: {} }
+	];
+	const { slips } = buildStatutory(
+		{
+			code: 'TW',
+			period: '2026-04',
+			riskClass: '1',
+			people: people.map((person) => ({
+				key: person.key,
+				wage: 36_000,
+				citizenship: 'CITIZEN',
+				hire_date: '2020-01-01',
+				exit_date: '2026-04-15',
+				exit_reason: 'DEATH'
+			}))
+		},
+		(world) => {
+			for (const [index, person] of people.entries()) {
+				const employment = world.employments[index]! as { exit_facts?: unknown };
+				employment.exit_facts = {
+					...((employment.exit_facts as object | undefined) ?? {}),
+					...person.facts
+				};
+				priorWages(world, person.key, INJURY_WAGES);
+				injuryRequest(world, 'OCC_DEATH_FUNERAL', index, '2026-04-15', '2026-04');
+				injuryRequest(world, 'OCC_DEATH_COMPENSATION', index, '2026-04-15', '2026-04');
+			}
+		}
+	);
+	const line = (key: string, code: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === code)?.amount ?? 0;
+	assert.equal(line('TW-DEATH', 'OCC_DEATH_FUNERAL'), 165_000);
+	assert.equal(line('TW-DEATH', 'OCC_DEATH_COMPENSATION'), 1_320_000);
+	assert.equal(line('TW-DEATH-STATED', 'OCC_DEATH_FUNERAL'), 150_000);
+	assert.equal(line('TW-DEATH-STATED', 'OCC_DEATH_COMPENSATION'), 1_200_000);
+	assert.equal(line('TW-DEATH-ORDINARY', 'OCC_DEATH_FUNERAL'), 0);
+	assert.equal(line('TW-DEATH-ORDINARY', 'OCC_DEATH_COMPENSATION'), 0);
+});
+
+test('Taiwan — §16(2) paid job-search leave follows the notice ground: §11, the §13 proviso and §20, not §12, §14 or §15', () => {
+	// 勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到
+	// 前項預告後，為另謀工作得於工作時間請假外出…請假期間之工資照給. §16(1) is the notice of a §11 or §13-proviso
+	// termination; §20 applies §16. A redundancy with no ground stated is read as §11 (as SEVERANCE_PAY
+	// reads it); a §14 resignation, a §12 dismissal (OTHER) or an unexited worker gets none.
+	const person = (exit_reason: string, facts: Record<string, string> = {}, exit = '2026-06-30') =>
+		personContext({
+			employee: null,
+			employment: {
+				service_start: '2020-01-01',
+				exit_date: exit,
+				exit_reason,
+				exit_facts: { notice_days_given: 30, ...facts }
+			},
+			terms: null,
+			company: { facts: {} },
+			asOf: '2026-06-15'
+		} as never);
+	for (const row of leaveCatalogue('TW').filter((r) => r.code === 'JOB_SEARCH_LEAVE')) {
+		const cases: [string, Record<string, string>, boolean, string?][] = [
+			['REDUNDANCY', {}, true],
+			['RETRENCHMENT', {}, true],
+			['DISMISSAL', { lsa_termination_ground: 'ARTICLE_11' }, true],
+			['UNILATERAL', { lsa_termination_ground: 'ARTICLE_13_PROVISO' }, true],
+			['MUTUAL', { lsa_termination_ground: 'ARTICLE_20' }, true],
+			['RESIGNATION', { lsa_termination_ground: 'ARTICLE_14' }, false],
+			['DISMISSAL', { lsa_termination_ground: 'OTHER' }, false],
+			['RESIGNATION', {}, false],
+			['REDUNDANCY', {}, false, '']
+		];
+		for (const [reason, facts, expected, exit] of cases)
+			assert.equal(
+				isEligible(row.eligibility, person(reason, facts, exit)),
+				expected,
+				`${row.settings_id} ${reason} ${JSON.stringify(facts)}`
+			);
+		assert.equal(row.is_npl, false, 'paid: 工資照給');
+	}
+});
+
+test('Taiwan — §16(2) job-search leave is capped at two working days a week and only inside the notice period', () => {
+	// 勞基法 §16(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=16): 勞工於接到
+	// 前項預告後，為另謀工作得於工作時間請假外出。其請假時數，每星期不得超過二日之工作時間. Exit Tue 30 Jun 2026
+	// with notice_days_given 30 (the day after notice to the last day): notice on Sun 31 May, the window
+	// Mon 1 Jun – Tue 30 Jun. The week is Monday to Sunday (register TW-LEAVE-08). Every day is rostered.
+	for (const row of leaveCatalogue('TW').filter((r) => r.code === 'JOB_SEARCH_LEAVE'))
+		assert.equal(row.entitlement.weekly_days, 2, `${row.settings_id} weekly_days`);
+	const context = leaveContext();
+	context.employments[0] = {
+		...context.employments[0]!,
+		effective_range: { start: '2020-01-01', end: '2026-06-30' },
+		exit_reason: 'REDUNDANCY',
+		exit_facts: { lsa_termination_ground: 'ARTICLE_11', notice_days_given: 30 }
+	};
+	const seeded = leaveCatalogue('TW').find((r) => r.code === 'JOB_SEARCH_LEAVE')!;
+	context.catalogues.push({ ...seeded, id: leaveId(90), settings_id: leaveId(6) } as never);
+	const take = (from: string, to: string, n: number) =>
+		planLeaveActivity(
+			context,
+			{ ...leaveSubmission(leaveTimeOff(from, to), `J${n}`), catalogue_id: leaveId(90) },
+			leaveId(n)
+		);
+	const refusalOf = (run: () => unknown): string => {
+		try {
+			run();
+			return '';
+		} catch (error) {
+			return refusalMessage(error);
+		}
+	};
+	// Mon 1 – Tue 2 Jun: two days, paid (工資照給).
+	const first = take('2026-06-01', '2026-06-02', 50);
+	assert.equal(first.days, 2);
+	context.entries.push({ ...first, id: leaveId(50), approval_id: null });
+	// A third day in the same week is over 每星期二日.
+	assert.match(
+		refusalOf(() => take('2026-06-03', '2026-06-03', 51)),
+		/allows 2 days a week; 2 are already taken in the week of 2026-06-01/
+	);
+	// Mon 8 Jun is the next week.
+	assert.equal(take('2026-06-08', '2026-06-08', 52).days, 1);
+	// Three days asked in one fresh week: 3 > 2.
+	assert.match(
+		refusalOf(() => take('2026-06-15', '2026-06-17', 53)),
+		/allows 2 days a week; 0 are already taken in the week of 2026-06-15/
+	);
+	// The exit day itself: 0 days to exit < 30.
+	assert.equal(take('2026-06-30', '2026-06-30', 54).days, 1);
+	// Fri 29 May (32 days to exit) and Sun 31 May, the notice day (30, not < 30), are before the window.
+	assert.match(
+		refusalOf(() => take('2026-05-29', '2026-05-29', 55)),
+		/INELIGIBLE/
+	);
+	assert.match(
+		refusalOf(() => take('2026-05-31', '2026-05-31', 56)),
+		/INELIGIBLE/
+	);
+	// No notice recorded: no §16(2) leave. A notice actually given for 20 or 30 days begins on the
+	// following day. A recorded zero (pay in lieu, §16(3)) gives no leave.
+	const person = (start: string, asOf: string, facts: Record<string, unknown> = {}) =>
+		personContext({
+			employee: null,
+			employment: {
+				service_start: start,
+				exit_date: '2026-06-30',
+				exit_reason: 'REDUNDANCY',
+				exit_facts: facts
+			},
+			terms: null,
+			company: { facts: {} },
+			asOf
+		} as never);
+	const cases: [string, string, Record<string, unknown>, boolean][] = [
+		['2024-06-01', '2026-06-11', {}, false],
+		['2024-06-01', '2026-06-10', { notice_days_given: 20 }, false],
+		['2024-06-01', '2026-06-11', { notice_days_given: 20 }, true],
+		['2020-01-01', '2026-06-01', {}, false],
+		['2020-01-01', '2026-05-31', { notice_days_given: 30 }, false],
+		['2020-01-01', '2026-06-01', { notice_days_given: 30 }, true],
+		['2020-01-01', '2026-06-30', { notice_days_given: 0 }, false],
+		['2020-01-01', '2026-06-25', { notice_days_given: 6 }, true],
+		['2020-01-01', '2026-06-24', { notice_days_given: 6 }, false]
+	];
+	for (const [start, asOf, facts, expected] of cases)
+		assert.equal(
+			isEligible(seeded.eligibility, person(start, asOf, facts)),
+			expected,
+			`${start} ${asOf} ${JSON.stringify(facts)}`
+		);
+	// The same employment read with the notice struck out of its record. It is a context of its own:
+	// the person cache is keyed on the context, and this one's employment was amended in place.
+	const unnoticed = leaveContext();
+	unnoticed.employments[0] = {
+		...unnoticed.employments[0]!,
+		effective_range: { start: '2020-01-01', end: '2026-06-30' },
+		exit_reason: 'REDUNDANCY',
+		exit_facts: { lsa_termination_ground: 'ARTICLE_11' }
+	};
+	unnoticed.catalogues.push({ ...seeded, id: leaveId(90), settings_id: leaveId(6) } as never);
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				unnoticed,
+				{
+					...leaveSubmission(leaveTimeOff('2026-06-08', '2026-06-08'), 'J57'),
+					catalogue_id: leaveId(90)
+				},
+				leaveId(57)
+			)
+		),
+		/INELIGIBLE/
+	);
 });

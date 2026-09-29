@@ -21,8 +21,9 @@
  * - Employment (Termination and Lay-Off Benefits) Regulations 1980 regs. 3, 4, 6; JTKSM FAQ
  *   "How is the termination benefit payment calculated" (12 months' wages ÷ 365 days).
  * - Employment Act 1955 ss.12(2)–(3), 13(1).
- * - Minimum Wages Order 2024 [P.U.(A) 376/2024] para 4: RM1,700 a month; RM65.38 / RM78.46 /
- *   RM98.08 a day for a six-, five- or four-day week; RM8.72 an hour.
+ * - Minimum Wages Order 2024 [P.U.(A) 376/2024] para 5(1)–(2), effective 1 August 2025:
+ *   RM1,700 a month; RM65.38 / RM78.46 / RM98.08 a day for a six-, five- or four-day week;
+ *   RM8.72 an hour; no-basic piece, task, trip and commission pay at least RM1,700 a month.
  * - HRD Corp Employers FAQ (Wayback copy): compulsory at ten or more Malaysian employees (1%),
  *   optional at five to nine (0.5%).
  */
@@ -49,17 +50,24 @@ const OUT = { kind: 'NOT_REGISTERED' } as const;
 const LOCAL = { EPF_NON_CITIZEN: OUT };
 const FOREIGN = { EPF: OUT, EPF_PR: OUT, EIS: OUT };
 
-const versionIdOn = (date: string) =>
-	settingsVersions('MY').find(
+const versionIdOn = (world: PayrollWorld, date: string) =>
+	settingsVersions(world.companies[0]?.settings_code === 'MY-nihon' ? 'MY-nihon' : 'MY').find(
 		(v) =>
 			String(v.effective_range.start).slice(0, 10) <= date &&
 			date < String(v.effective_range.end).slice(0, 10)
 	)!.id;
 
 /** Plant one ad hoc request of catalogue `code` for `key`, priced in the run's period. */
-function adhoc(world: PayrollWorld, key: string, code: string, amount: number, date: string) {
+function adhoc(
+	world: PayrollWorld,
+	key: string,
+	code: string,
+	amount: number,
+	date: string,
+	evidenced = false
+) {
 	const row = world.adhoc_catalogue!.find(
-		(candidate) => candidate.code === code && candidate.settings_id === versionIdOn(date)
+		(candidate) => candidate.code === code && candidate.settings_id === versionIdOn(world, date)
 	)!;
 	const employment = world.employments.find((candidate) => candidate.employee_number === key)!;
 	world.adhoc_requests!.push({
@@ -71,7 +79,14 @@ function adhoc(world: PayrollWorld, key: string, code: string, amount: number, d
 		pay_period: date.slice(0, 7),
 		payslip_id: null,
 		reason: code,
-		evidence_file: null,
+		evidence_file: evidenced
+			? {
+					storage_key: `my-result-${key}-${code}-${date}`,
+					file_name: 'result-ledger.pdf',
+					mime_type: 'application/pdf',
+					file_size: 1
+				}
+			: null,
 		as_adjustment_entry: false,
 		approval_id: null
 	});
@@ -224,21 +239,28 @@ test('MY audit — SOCSO, EIS and SKBBK on the printed rows, the ceiling and the
 	// Ceiling row 65: 44.65.
 	expectStatutory(june, 'L-6500', 'SKBBK', 44.65, 0);
 
-	// September 2026: voluntary for locals who released (NOT_REGISTERED); mandatory for foreigners.
+	// An undated NOT_REGISTERED status does not prove a local employee's accepted release.
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: 'MY',
+				period: '2026-09',
+				people: [
+					{
+						key: 'L-UNVERIFIED',
+						wage: 1750,
+						citizenship: 'CITIZEN',
+						registrations: { ...LOCAL, SKBBK: OUT }
+					}
+				]
+			}),
+		/SKBBK: the recorded not-registered status cannot establish an exemption/
+	);
 	const september = assessStatutory({
 		code: 'MY',
 		period: '2026-09',
-		people: [
-			{
-				key: 'L-RELEASED',
-				wage: 1750,
-				citizenship: 'CITIZEN',
-				registrations: { ...LOCAL, SKBBK: OUT }
-			},
-			{ key: 'F-1750', wage: 1750, citizenship: 'FOREIGNER', registrations: FOREIGN }
-		]
+		people: [{ key: 'F-1750', wage: 1750, citizenship: 'FOREIGNER', registrations: FOREIGN }]
 	});
-	expectStatutory(september, 'L-RELEASED', 'SKBBK', 0, 0);
 	expectStatutory(september, 'F-1750', 'SKBBK', 13.15, 0);
 });
 
@@ -658,35 +680,679 @@ test('MY audit — a retrenchment notice is never shorter than s.12(2) whatever 
 test('MY audit — a daily rate is measured against the Order’s rate for the person’s working week', () => {
 	// MWO 2024 para 4 table: a five-day week's daily minimum is RM78.46 (1,700 × 12 ÷ 52 ÷ 5). The
 	// fixture pattern is Monday–Friday. RM70 a day is above the six-day RM65.38 but below the
-	// five-day RM78.46 — the run must report it. RM80 a day is above it and must not.
-	const { warnings } = buildStatutory({
+	// five-day RM78.46, so the run must refuse. RM80 a day is above it and may be paid.
+	const daily = (wage: number) =>
+		buildStatutory({
+			code: 'MY',
+			period: '2026-01',
+			region: 'Malaysia',
+			people: [
+				{
+					key: `DAILY-${wage}`,
+					wage,
+					pay_frequency: 'DAILY',
+					citizenship: 'CITIZEN',
+					registrations: LOCAL
+				}
+			]
+		});
+	assert.throws(
+		() => daily(70),
+		/MINIMUM_WAGE_BELOW: DAILY-70 is contracted at .* below the Malaysia minimum wage/
+	);
+	assert.ok(daily(80).slips.has('DAILY-80'));
+});
+
+test('MY audit — a piece-classified worker with basic wages is assessed against that basic', () => {
+	const { slips } = buildStatutory({
 		code: 'MY',
 		period: '2026-01',
 		region: 'Malaysia',
 		people: [
 			{
-				key: 'DAILY-70',
-				wage: 70,
-				pay_frequency: 'DAILY',
-				citizenship: 'CITIZEN',
-				registrations: LOCAL
-			},
-			{
-				key: 'DAILY-80',
-				wage: 80,
-				pay_frequency: 'DAILY',
+				key: 'PIECE-WITH-BASIC',
+				wage: 1700,
+				statutory_work_category: 'PIECE_RATE',
 				citizenship: 'CITIZEN',
 				registrations: LOCAL
 			}
 		]
 	});
-	assert.ok(
-		warnings.some((line) =>
-			/DAILY-70 is contracted at .* below the Malaysia minimum wage/.test(line)
-		),
-		warnings.join('\n')
+	assert.equal(slips.get('PIECE-WITH-BASIC')?.gross, 1700);
+});
+
+test('MY audit — full-month no-basic piece wages are measured, captured and assessed', () => {
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		const key = `${code}-PIECE_RATE`;
+		const world = createStatutoryWorld({
+			code,
+			period: '2026-01',
+			region: 'Malaysia',
+			people: [
+				{
+					key,
+					wage: 0,
+					statutory_work_category: 'PIECE_RATE',
+					citizenship: 'CITIZEN',
+					registrations: LOCAL
+				}
+			]
+		});
+		world.companies[0]!.pay_cutoff_day = 1;
+		for (const [date, amount] of [
+			['2026-01-09', 1_000],
+			['2026-01-30', 800]
+		] as const)
+			world.work_days.push({
+				id: `wd-${key}-${date}`,
+				employment_id: world.employments[0]!.id,
+				work_date: date,
+				shift_definition_id: null,
+				worked_intervals: null,
+				piece_units: 1,
+				piece_unit_rate: amount,
+				approval_id: null
+			});
+		const built = buildPayrollRun(
+			gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+		);
+		const slip = built.payslip_payroll_run[0]!;
+		assert.equal(slip.gross, 1_800);
+		assert.deepEqual(
+			slip.base.map((row) => [row.component_code, row.amount]),
+			[['BASIC', 1_800]]
+		);
+		assert.deepEqual(built.captures[0]?.workDays, [`wd-${key}-2026-01-09`, `wd-${key}-2026-01-30`]);
+	}
+});
+
+test('MY audit — full-month piece pay gets a separate minimum-wage top-up before contributions', () => {
+	const run = (
+		amount: number,
+		cutoff = 1,
+		hire = '2015-01-01',
+		category = 'PIECE_RATE',
+		code: 'MY' | 'MY-nihon' = 'MY',
+		frequency: Person['pay_frequency'] = 'MONTHLY',
+		record = true
+	) =>
+		buildStatutory(
+			{
+				code,
+				period: '2026-01',
+				region: 'Malaysia',
+				people: [
+					{
+						key: 'RESULTS',
+						wage: 0,
+						statutory_work_category: category,
+						pay_frequency: frequency,
+						hire_date: hire,
+						citizenship: 'CITIZEN',
+						registrations: LOCAL
+					}
+				]
+			},
+			(world) => {
+				world.companies[0]!.pay_cutoff_day = cutoff;
+				if (!record) return;
+				world.work_days.push({
+					id: 'wd-results-jan-30',
+					employment_id: world.employments[0]!.id,
+					work_date: '2026-01-30',
+					shift_definition_id: null,
+					worked_intervals: null,
+					piece_units: amount === 0 ? 0 : 1,
+					piece_unit_rate: amount === 0 ? 1 : amount,
+					approval_id: null
+				});
+			}
+		);
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		const topped = run(1_699.99, 1, '2015-01-01', 'PIECE_RATE', code);
+		const slip = topped.slips.get('RESULTS')!;
+		assert.equal(slip.gross, 1_700);
+		assert.deepEqual(
+			slip.base.map((line) => [line.component_code, line.amount]),
+			[
+				['BASIC', 1_699.99],
+				['MINIMUM_WAGE_TOP_UP', 0.01]
+			]
+		);
+		assert.ok(topped.warnings.some((line) => line.includes('MINIMUM_WAGE_TOP_UP')));
+		const ordinary = buildStatutory({
+			code,
+			period: '2026-01',
+			region: 'Malaysia',
+			people: [{ key: 'RESULTS', wage: 1_700, citizenship: 'CITIZEN', registrations: LOCAL }]
+		}).slips.get('RESULTS')!;
+		assert.deepEqual(
+			slip.statutory.map((line) => [
+				line.scheme_code,
+				line.base_amount,
+				line.employee_amount,
+				line.employer_amount
+			]),
+			ordinary.statutory.map((line) => [
+				line.scheme_code,
+				line.base_amount,
+				line.employee_amount,
+				line.employer_amount
+			])
+		);
+		assert.equal(slip.net, ordinary.net);
+		assert.equal(run(0, 1, '2015-01-01', 'PIECE_RATE', code).slips.get('RESULTS')?.gross, 1_700);
+		assert.equal(
+			run(1_699.99, 1, '2015-01-01', 'PIECE_RATE', code, 'DAILY').slips.get('RESULTS')?.gross,
+			1_700
+		);
+	}
+	assert.throws(
+		() => run(0, 1, '2015-01-01', 'PIECE_RATE', 'MY', 'MONTHLY', false),
+		/record actual piece units, including zero/
 	);
-	assert.ok(!warnings.some((line) => /DAILY-80 is contracted/.test(line)), warnings.join('\n'));
+	assert.throws(
+		() => run(1_800, 21),
+		/full calendar month on the same attendance and salary window/
+	);
+	assert.throws(
+		() => run(1_800, 1, '2026-01-02'),
+		/full calendar month on the same attendance and salary window/
+	);
+	assert.throws(
+		() => run(1_800, 1, '2015-01-01', 'TASK_BASIS'),
+		/task, trip and commission results need monthly terms and typed wage requests/
+	);
+});
+
+test('MY audit — a recorded task result cannot be posted as piece wages before its earning class is known', () => {
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		const world = createStatutoryWorld({
+			code,
+			period: '2026-01',
+			region: 'Malaysia',
+			people: [
+				{
+					key: 'TASK-RESULT',
+					wage: 0,
+					statutory_work_category: 'TASK_BASIS',
+					citizenship: 'CITIZEN',
+					registrations: LOCAL
+				}
+			]
+		});
+		world.companies[0]!.pay_cutoff_day = 1;
+		world.work_days.push({
+			id: 'wd-unclassified-task',
+			employment_id: world.employments[0]!.id,
+			work_date: '2026-01-30',
+			shift_definition_id: null,
+			worked_intervals: null,
+			piece_units: 1,
+			piece_unit_rate: 1_800,
+			approval_id: null
+		});
+		assert.throws(
+			() =>
+				buildPayrollRun(
+					gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+				),
+			/task, trip and commission results need monthly terms and typed wage requests/
+		);
+	}
+});
+
+test('MY audit — evidenced monthly task, trip and commission earnings settle under their own statutory classes', () => {
+	for (const code of ['MY', 'MY-nihon'] as const)
+		for (const [wageClass, ordinaryPCB] of [
+			['TASK_MONTHLY_WAGE', 1_800],
+			['TRIP_MONTHLY_WAGE', 1_800],
+			['COMMISSION_MONTHLY', 1_800],
+			['COMMISSION_IRREGULAR', 0]
+		] as const) {
+			const result = buildStatutory(
+				{
+					code,
+					period: '2026-09',
+					region: 'Malaysia',
+					people: [
+						{
+							key: 'RESULT',
+							wage: 0,
+							statutory_work_category: 'TASK_BASIS',
+							citizenship: 'CITIZEN',
+							registrations: LOCAL
+						}
+					]
+				},
+				(world) => {
+					world.companies[0]!.pay_cutoff_day = 1;
+					adhoc(world, 'RESULT', wageClass, 1_000, '2026-09-10', true);
+					adhoc(world, 'RESULT', wageClass, 800, '2026-09-25', true);
+				}
+			);
+			const slip = result.slips.get('RESULT')!;
+			assert.equal(slip.gross, 1_800, `${code} ${wageClass} gross`);
+			assert.deepEqual(
+				slip.adjustments
+					.filter((line) => line.component_code === wageClass)
+					.map((line) => line.amount),
+				[1_000, 800],
+				`${code} ${wageClass} saved earnings`
+			);
+			for (const scheme of ['EPF', 'SOCSO', 'EIS', 'SKBBK'])
+				assert.equal(
+					slip.statutory.find((line) => line.scheme_code === scheme)?.base_amount,
+					1_800,
+					`${code} ${wageClass} ${scheme} base`
+				);
+			assert.equal(
+				slip.statutory.find((line) => line.scheme_code === 'PCB')?.ordinary_amount,
+				ordinaryPCB
+			);
+			assert.equal(slip.statutory.find((line) => line.scheme_code === 'HRDF')?.base_amount ?? 0, 0);
+		}
+});
+
+test('MY audit — task, trip and commission wages refuse unevidenced, cross-month and untyped results', () => {
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		const run = (wageClass: string, date: string, evidenced: boolean) =>
+			buildStatutory(
+				{
+					code,
+					period: '2026-09',
+					region: 'Malaysia',
+					people: [
+						{
+							key: 'RESULT',
+							wage: 0,
+							statutory_work_category: 'TASK_BASIS',
+							citizenship: 'CITIZEN',
+							registrations: LOCAL
+						}
+					]
+				},
+				(world) => {
+					world.companies[0]!.pay_cutoff_day = 1;
+					adhoc(world, 'RESULT', wageClass, 1_800, date, evidenced);
+					world.adhoc_requests!.at(-1)!.pay_period = '2026-09';
+				}
+			);
+		assert.throws(() => run('TASK_MONTHLY_WAGE', '2026-09-10', false), /positive evidenced wages/);
+		assert.throws(() => run('TRIP_MONTHLY_WAGE', '2026-08-31', true), /positive evidenced wages/);
+		assert.throws(
+			() => run('ADJ', '2026-09-10', true),
+			/task, trip and commission wages cannot be verified/
+		);
+	}
+});
+
+test('MY audit — a short full-month result wage receives a saved statutory top-up before contribution', () => {
+	for (const code of ['MY', 'MY-nihon'] as const)
+		for (const wageClass of [
+			'TASK_MONTHLY_WAGE',
+			'TRIP_MONTHLY_WAGE',
+			'COMMISSION_MONTHLY',
+			'COMMISSION_IRREGULAR'
+		]) {
+			const result = buildStatutory(
+				{
+					code,
+					period: '2026-09',
+					region: 'Malaysia',
+					people: [
+						{
+							key: 'RESULT',
+							wage: 0,
+							statutory_work_category: 'TASK_BASIS',
+							citizenship: 'CITIZEN',
+							registrations: LOCAL
+						}
+					]
+				},
+				(world) => {
+					world.companies[0]!.pay_cutoff_day = 1;
+					adhoc(world, 'RESULT', wageClass, 1_699.99, '2026-09-25', true);
+				}
+			);
+			const slip = result.slips.get('RESULT')!;
+			assert.equal(slip.gross, 1_700, `${code} ${wageClass} gross`);
+			assert.deepEqual(
+				slip.base
+					.filter((line) => line.component_code === 'MINIMUM_WAGE_TOP_UP')
+					.map((line) => line.amount),
+				[0.01],
+				`${code} ${wageClass} top-up`
+			);
+			assert.equal(slip.statutory.find((line) => line.scheme_code === 'EPF')?.base_amount, 1_700);
+			assert.ok(result.warnings.some((line) => line.includes('MINIMUM_WAGE_TOP_UP')));
+		}
+});
+
+test('MY audit — task/trip wage and commission top-up refuse unresolved HRD levy at a liable employer', () => {
+	for (const code of ['MY', 'MY-nihon'] as const)
+		for (const [wageClass, amount] of [
+			['TASK_MONTHLY_WAGE', 1_800],
+			['TRIP_MONTHLY_WAGE', 1_800],
+			['COMMISSION_MONTHLY', 1_500]
+		] as const)
+			assert.throws(
+				() =>
+					buildStatutory(
+						{
+							code,
+							period: '2026-09',
+							region: 'Malaysia',
+							people: Array.from({ length: 10 }, (_, index): Person => ({
+								key: `C${index}`,
+								wage: index === 0 ? 0 : 3_000,
+								statutory_work_category: index === 0 ? 'TASK_BASIS' : undefined,
+								citizenship: 'CITIZEN',
+								registrations: LOCAL
+							}))
+						},
+						(world) => {
+							world.companies[0]!.pay_cutoff_day = 1;
+							adhoc(world, 'C0', wageClass, amount, '2026-09-25', true);
+						}
+					),
+				/need an HRD Corp levy classification/,
+				`${code} ${wageClass}`
+			);
+});
+
+test('MY audit — an evidenced zero-results month pays and pins the full minimum-wage top-up', () => {
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		const world = createStatutoryWorld({
+			code,
+			period: '2026-09',
+			region: 'Malaysia',
+			people: [
+				{
+					key: 'ZERO',
+					wage: 0,
+					statutory_work_category: 'TASK_BASIS',
+					citizenship: 'CITIZEN',
+					registrations: LOCAL
+				}
+			]
+		});
+		world.companies[0]!.pay_cutoff_day = 1;
+		adhoc(world, 'ZERO', 'RESULTS_ZERO_MONTH', 0, '2026-09-30', true);
+		const attestation = world.adhoc_requests!.at(-1)!;
+		const built = buildPayrollRun(
+			gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-09' })
+		);
+		const slip = built.payslip_payroll_run.find(
+			(row) => row.employment_id === world.employments[0]!.id
+		)!;
+		assert.equal(slip.gross, 1_700, `${code} zero-result gross`);
+		assert.deepEqual(
+			slip.base
+				.filter((line) => line.component_code === 'MINIMUM_WAGE_TOP_UP')
+				.map((line) => line.amount),
+			[1_700]
+		);
+		assert.ok(
+			built.captures.some((row) => row.adhoc.includes(String(attestation.id))),
+			`${code} attestation pin`
+		);
+		for (const scheme of ['EPF', 'SOCSO', 'EIS', 'SKBBK', 'PCB'])
+			assert.equal(
+				slip.statutory.find((line) => line.scheme_code === scheme)?.base_amount,
+				1_700,
+				`${code} ${scheme} top-up base`
+			);
+	}
+});
+
+test('MY audit — zero-results attestation requires month-end, zero, evidence, uniqueness and no result wage', () => {
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		const run = (change: (world: PayrollWorld) => void) => {
+			const world = createStatutoryWorld({
+				code,
+				period: '2026-09',
+				region: 'Malaysia',
+				people: [
+					{
+						key: 'ZERO',
+						wage: 0,
+						statutory_work_category: 'TASK_BASIS',
+						citizenship: 'CITIZEN',
+						registrations: LOCAL
+					}
+				]
+			});
+			world.companies[0]!.pay_cutoff_day = 1;
+			adhoc(world, 'ZERO', 'RESULTS_ZERO_MONTH', 0, '2026-09-30', true);
+			change(world);
+			return buildPayrollRun(
+				gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-09' })
+			);
+		};
+		assert.throws(
+			() =>
+				run((world) => {
+					world.adhoc_requests!.pop();
+				}),
+			/task, trip and commission wages cannot be verified/
+		);
+		assert.throws(
+			() =>
+				run((world) => {
+					world.adhoc_requests!.at(-1)!.event_date = '2026-09-29';
+				}),
+			/zero-results attestation/
+		);
+		assert.throws(
+			() =>
+				run((world) => {
+					world.adhoc_requests!.at(-1)!.pay_period = '2026-10';
+				}),
+			/zero-results attestation/
+		);
+		assert.throws(
+			() =>
+				run((world) => {
+					world.adhoc_requests!.at(-1)!.amount = 1;
+				}),
+			/zero-results attestation/
+		);
+		assert.throws(
+			() =>
+				run((world) => {
+					world.adhoc_requests!.at(-1)!.evidence_file = null;
+				}),
+			/zero-results attestation/
+		);
+		assert.throws(
+			() =>
+				run((world) => {
+					adhoc(world, 'ZERO', 'RESULTS_ZERO_MONTH', 0, '2026-09-30', true);
+				}),
+			/zero-results attestation/
+		);
+		assert.throws(
+			() =>
+				run((world) => {
+					adhoc(world, 'ZERO', 'TASK_MONTHLY_WAGE', 100, '2026-09-20', true);
+				}),
+			/zero-results attestation/
+		);
+	}
+});
+
+test('MY audit — a generic SKBBK registration status cannot release liability in a saved run', () => {
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		for (const [period, citizenship, registrations] of [
+			['2026-06', 'CITIZEN', LOCAL],
+			['2026-09', 'FOREIGNER', FOREIGN]
+		] as const) {
+			const world = createStatutoryWorld({
+				code,
+				period,
+				region: 'Malaysia',
+				people: [
+					{
+						key: 'SKBBK-STATUS',
+						wage: 1_700,
+						citizenship,
+						registrations: { ...registrations, SKBBK: OUT }
+					}
+				]
+			});
+			world.companies[0]!.pay_cutoff_day = 1;
+			assert.throws(
+				() =>
+					buildPayrollRun(
+						gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period })
+					),
+				/SKBBK: the recorded not-registered status cannot establish an exemption/
+			);
+		}
+		for (const skbbk of [undefined, { kind: 'REGISTERED' }]) {
+			const world = createStatutoryWorld({
+				code,
+				period: '2026-09',
+				region: 'Malaysia',
+				people: [
+					{
+						key: 'SKBBK-PARTICIPANT',
+						wage: 1_700,
+						citizenship: 'CITIZEN',
+						registrations: { ...LOCAL, ...(skbbk == null ? {} : { SKBBK: skbbk }) }
+					}
+				]
+			});
+			world.companies[0]!.pay_cutoff_day = 1;
+			assert.equal(
+				buildPayrollRun(
+					gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-09' })
+				).payslip_payroll_run.length,
+				1
+			);
+		}
+	}
+});
+
+test('MY audit — an HRD liable employer cannot levy unclassified zero-basic piece earnings', () => {
+	const people: Person[] = [
+		{
+			key: 'PIECE-HRD',
+			wage: 0,
+			statutory_work_category: 'PIECE_RATE',
+			citizenship: 'CITIZEN',
+			registrations: LOCAL
+		},
+		...Array.from({ length: 9 }, (_, index) => ({
+			key: `HRD-${index}`,
+			wage: 1_700,
+			citizenship: 'CITIZEN',
+			registrations: LOCAL
+		}))
+	];
+	assert.throws(
+		() =>
+			buildStatutory({ code: 'MY', period: '2026-01', region: 'Malaysia', people }, (world) => {
+				world.companies[0]!.pay_cutoff_day = 1;
+				world.work_days.push({
+					id: 'wd-piece-hrd',
+					employment_id: world.employments[0]!.id,
+					work_date: '2026-01-30',
+					shift_definition_id: null,
+					worked_intervals: null,
+					piece_units: 1,
+					piece_unit_rate: 1_800,
+					approval_id: null
+				});
+			}),
+		/zero-basic piece or task\/trip wages, or a commission minimum-wage top-up, need an HRD Corp levy classification/
+	);
+});
+
+test('MY audit — an explicit Sabah or Sarawak worksite cannot use the Peninsular payroll profile', () => {
+	for (const code of ['MY', 'MY-nihon'] as const)
+		for (const worksite of ['Sabah/Kota Kinabalu', 'Malaysia/Sarawak/Kuching'])
+			assert.throws(
+				() =>
+					buildStatutory({
+						code,
+						period: '2026-01',
+						region: 'Malaysia',
+						people: [
+							{
+								key: 'EAST-WORKSITE',
+								wage: 1_700,
+								worksite,
+								citizenship: 'CITIZEN',
+								registrations: LOCAL
+							}
+						]
+					}),
+				/Sabah and Sarawak worksite payroll needs its Labour Ordinance profile/
+			);
+});
+
+test('MY audit — each salary day needs a typed Peninsular or Labuan worksite state before a payslip is built', () => {
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		const run = (state: string | null) => {
+			const world = createStatutoryWorld({
+				code,
+				period: '2026-01',
+				region: 'Malaysia',
+				people: [
+					{
+						key: 'STATE',
+						wage: 1_700,
+						citizenship: 'CITIZEN',
+						worksite_state: state,
+						registrations: LOCAL
+					}
+				]
+			});
+			world.companies[0]!.pay_cutoff_day = 1;
+			return buildPayrollRun(
+				gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+			);
+		};
+		assert.equal(run('JOHOR').payslip_payroll_run.length, 1);
+		assert.equal(run('LABUAN').payslip_payroll_run.length, 1);
+		assert.throws(
+			() => run(null),
+			/record a supported Peninsular Malaysia or Labuan worksite state/
+		);
+		assert.throws(
+			() => run('UNKNOWN'),
+			/record a supported Peninsular Malaysia or Labuan worksite state/
+		);
+		for (const state of ['SABAH', 'SARAWAK'])
+			assert.throws(
+				() => run(state),
+				new RegExp(`${state} worksite on 2026-01-01 needs its Labour Ordinance payroll profile`)
+			);
+		const world = createStatutoryWorld({
+			code,
+			period: '2026-01',
+			region: 'Malaysia',
+			people: [{ key: 'CHANGED-STATE', wage: 1_700, citizenship: 'CITIZEN', registrations: LOCAL }]
+		});
+		world.companies[0]!.pay_cutoff_day = 1;
+		const first = world.employment_terms[0]!;
+		first.effective_range = { start: '2015-01-01', end: '2026-01-15' };
+		world.employment_terms.push({
+			...first,
+			id: 'b0000000-0000-4000-8000-000000000099',
+			effective_range: { start: '2026-01-16', end: null },
+			worksite_state: null
+		});
+		assert.throws(
+			() =>
+				buildPayrollRun(
+					gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
+				),
+			/record a supported Peninsular Malaysia or Labuan worksite state on employment terms for 2026-01-16/
+		);
+	}
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────

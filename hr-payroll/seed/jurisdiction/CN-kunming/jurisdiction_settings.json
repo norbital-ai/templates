@@ -12,7 +12,7 @@
 			"end": "2026-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "CN",
-		"change_summary": "First sealed Kunming version: base 4,357–21,789, pension 16/8, medical 7/2 + maternity 0.9, unemployment 0.7/0.3 to 31 December 2025, housing fund cap 32,470, minimum wage 2,170 / 2,020.",
+		"change_summary": "First sealed Kunming version: base 4,357–21,789, pension 16/8, medical 7/2 + maternity 0.9, unemployment 0.7/0.3 to 31 December 2025, housing fund cap 32,470, minimum wage 2,170 / 2,020. Mo Han category III minimum wage is 1,870 / 19.",
 		"work_rules": {
 			"proration": {
 				"by": "FIXED_DAYS",
@@ -82,16 +82,45 @@
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"wages": {
 				"by_region": {
-					"CATEGORY_I": 2170,
-					"CATEGORY_II": 2020
+					"云南省/昆明市/五华区": 2170,
+					"云南省/昆明市/盘龙区": 2170,
+					"云南省/昆明市/西山区": 2170,
+					"云南省/昆明市/官渡区": 2170,
+					"云南省/昆明市/呈贡区": 2170,
+					"云南省/昆明市/晋宁区": 2170,
+					"云南省/昆明市/安宁市": 2170,
+					"云南省/昆明市/嵩明县": 2170,
+					"云南省/昆明市/东川区": 2020,
+					"云南省/昆明市/富民县": 2020,
+					"云南省/昆明市/宜良县": 2020,
+					"云南省/昆明市/石林彝族自治县": 2020,
+					"云南省/昆明市/禄劝彝族苗族自治县": 2020,
+					"云南省/昆明市/寻甸回族彝族自治县": 2020,
+					"云南省/西双版纳傣族自治州/勐腊县/磨憨镇": 1870
 				},
 				"hourly_by_region": {
-					"CATEGORY_I": 21,
-					"CATEGORY_II": 20
+					"云南省/昆明市/五华区": 21,
+					"云南省/昆明市/盘龙区": 21,
+					"云南省/昆明市/西山区": 21,
+					"云南省/昆明市/官渡区": 21,
+					"云南省/昆明市/呈贡区": 21,
+					"云南省/昆明市/晋宁区": 21,
+					"云南省/昆明市/安宁市": 21,
+					"云南省/昆明市/嵩明县": 21,
+					"云南省/昆明市/东川区": 20,
+					"云南省/昆明市/富民县": 20,
+					"云南省/昆明市/宜良县": 20,
+					"云南省/昆明市/石林彝族自治县": 20,
+					"云南省/昆明市/禄劝彝族苗族自治县": 20,
+					"云南省/昆明市/寻甸回族彝族自治县": 20,
+					"云南省/西双版纳傣族自治州/勐腊县/磨憨镇": 19
 				},
 				"applies_when": "",
 				"block_below_when": "employment.type != \"PART_TIME\" && terms.pay_frequency == \"MONTHLY\"",
-				"authority": "云人社发〔2025〕19号 from 1 October 2025: CNY2,170 / 2,020 a month, CNY21 / 20 an hour (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf). Category I: Wuhua, Panlong, Xishan, Guandu, Chenggong, Jinning, Anning, Songming; category II: Kunming’s other counties and Dongchuan (`company.region` must name the actual worksite district). The Yunnan floor includes the employee’s social insurance and housing fund, so a gross comparison is the law."
+				"authority": "云人社发〔2025〕19号 from 1 October 2025: CNY2,170 / 2,020 a month, CNY21 / 20 an hour (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf). Category I: Wuhua, Panlong, Xishan, Guandu, Chenggong, Jinning, Anning, Songming; category II: Kunming’s other counties and Dongchuan (`company.region` must name the actual worksite district). The Yunnan floor includes the employee’s social insurance and housing fund, so a gross comparison is the law. For a verified Mo Han worksite, CATEGORY_III follows the provincial notice’s “other counties” class: Mo Han town remains within Mengla County despite Kunming trusteeship (Yunnan Ethnic Affairs Commission,  https://mz.yn.gov.cn/html/2026/jichulao_0702/4064382.html). Record the actual worksite; do not infer it from the employer’s registered address. The exact worksite is recorded on each worker’s terms using a key in this table; no company-wide CATEGORY_I/II/III fallback is accepted. The district inventory is the Yunnan Civil Affairs Department’s administrative-division table (https://ynmz.yn.gov.cn/bmfw/xzqh/xzqhsz/). Mo Han retains its Mengla County key despite Kunming trusteeship; the housing-fund payer is separately blocked pending issuer verification.",
+				"workplace_keyed": true,
+				"terms_when": "terms.worksite != \"\"",
+				"block_terms_when": true
 			},
 			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53).",
 			"encashment": {
@@ -137,7 +166,12 @@
 				"https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml",
 				"https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml",
 				"https://zfgjj.km.gov.cn/c/2026-01-04/5047947.shtml",
-				"https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf"
+				"https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf",
+				"https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html",
+				"https://ylbz.yn.gov.cn/index.php?c=show&id=125",
+				"https://www.yn.gov.cn/zwgk/zfxxgkpt/gkptzcwj/ynsrmzfxxyxgzml/202305/t20230505_258597.html",
+				"https://mz.yn.gov.cn/html/2026/jichulao_0702/4064382.html",
+				"https://ynmz.yn.gov.cn/bmfw/xzqh/xzqhsz/"
 			],
 			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
 		},
@@ -160,16 +194,6 @@
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
 				"description": "The unit selects one equal employer and worker rate, 5–12%; a lower rate needs an approved reduction."
-			},
-			{
-				"key": "housing_fund_supplementary_rate",
-				"type": "number",
-				"default_value": 0,
-				"minimum": 0,
-				"maximum": 5,
-				"integer": true,
-				"label": "Supplementary housing-fund rate each side (%)",
-				"description": "Shanghai supplementary fund, 1–5% equal each side, only where the unit elected it; 0 where it did not."
 			}
 		],
 		"exit_facts": [
@@ -177,7 +201,7 @@
 				"key": "lcl_termination_ground",
 				"type": "string",
 				"label": "Labour Contract Law ground",
-				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination.",
+				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination. REG_6: the worker would not conclude a written contract after the first month, so the employer ended it by written notice (Implementing Regulation art.6 para.1: 依照劳动合同法第四十七条的规定支付经济补偿).",
 				"options": [
 					"ART_36_EMPLOYER",
 					"ART_36_WORKER",
@@ -189,7 +213,8 @@
 					"ART_44_1",
 					"ART_44_2_3",
 					"ART_44_4_5",
-					"ART_87"
+					"ART_87",
+					"REG_6"
 				],
 				"required_when": "employment.exit_reason != \"\""
 			},
@@ -240,6 +265,22 @@
 				"description": "Implementing Regulation art.10: service with the former employer the worker was moved from not by their own choice counts as service here, unless the former employer already paid 经济补偿 for it. The uncompensated months carried.",
 				"minimum": 0,
 				"integer": true,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_early_retirement_years",
+				"type": "number",
+				"label": "Actual years from early retirement to statutory retirement age",
+				"description": "财税〔2018〕164号 item 5(2): the actual years (实际年度数) from completing the early-retirement formalities to the statutory retirement age, over which an early-retirement subsidy is spread. 0 where no early-retirement subsidy is paid; IIT_EARLY_RETIREMENT refuses a subsidy while it is 0.",
+				"minimum": 0,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_internal_retirement_months",
+				"type": "number",
+				"label": "Months from internal retirement to statutory retirement age",
+				"description": "国税发〔1999〕58号 item 1: months over which the one-off internal-retirement income is averaged to choose the monthly IIT rate. Zero means unrecorded and refuses a positive payment.",
+				"minimum": 0,
 				"default_value": 0
 			}
 		],
@@ -295,7 +336,7 @@
 			"end": "2026-09-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "CN",
-		"change_summary": "Unemployment reduction expired; pension/unemployment/injury on the 2026 bounds 4,403–22,017 from 1 January (owner rule 2026-09-28: 2026年度 is the calendar year; medical keeps 2025’s to 31 August); housing-fund ceiling 32,543 from 1 January 2026.",
+		"change_summary": "Unemployment reduction expired; pension/unemployment/injury on the 2026 bounds 4,403–22,017 from 1 January (owner rule 2026-09-28: 2026年度 is the calendar year; medical keeps 2025’s to 31 August); housing-fund ceiling 32,543 from 1 January 2026. Mo Han category III minimum wage is 1,870 / 19.",
 		"work_rules": {
 			"proration": {
 				"by": "FIXED_DAYS",
@@ -365,16 +406,45 @@
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"wages": {
 				"by_region": {
-					"CATEGORY_I": 2170,
-					"CATEGORY_II": 2020
+					"云南省/昆明市/五华区": 2170,
+					"云南省/昆明市/盘龙区": 2170,
+					"云南省/昆明市/西山区": 2170,
+					"云南省/昆明市/官渡区": 2170,
+					"云南省/昆明市/呈贡区": 2170,
+					"云南省/昆明市/晋宁区": 2170,
+					"云南省/昆明市/安宁市": 2170,
+					"云南省/昆明市/嵩明县": 2170,
+					"云南省/昆明市/东川区": 2020,
+					"云南省/昆明市/富民县": 2020,
+					"云南省/昆明市/宜良县": 2020,
+					"云南省/昆明市/石林彝族自治县": 2020,
+					"云南省/昆明市/禄劝彝族苗族自治县": 2020,
+					"云南省/昆明市/寻甸回族彝族自治县": 2020,
+					"云南省/西双版纳傣族自治州/勐腊县/磨憨镇": 1870
 				},
 				"hourly_by_region": {
-					"CATEGORY_I": 21,
-					"CATEGORY_II": 20
+					"云南省/昆明市/五华区": 21,
+					"云南省/昆明市/盘龙区": 21,
+					"云南省/昆明市/西山区": 21,
+					"云南省/昆明市/官渡区": 21,
+					"云南省/昆明市/呈贡区": 21,
+					"云南省/昆明市/晋宁区": 21,
+					"云南省/昆明市/安宁市": 21,
+					"云南省/昆明市/嵩明县": 21,
+					"云南省/昆明市/东川区": 20,
+					"云南省/昆明市/富民县": 20,
+					"云南省/昆明市/宜良县": 20,
+					"云南省/昆明市/石林彝族自治县": 20,
+					"云南省/昆明市/禄劝彝族苗族自治县": 20,
+					"云南省/昆明市/寻甸回族彝族自治县": 20,
+					"云南省/西双版纳傣族自治州/勐腊县/磨憨镇": 19
 				},
 				"applies_when": "",
 				"block_below_when": "employment.type != \"PART_TIME\" && terms.pay_frequency == \"MONTHLY\"",
-				"authority": "云人社发〔2025〕19号 from 1 October 2025: CNY2,170 / 2,020 a month, CNY21 / 20 an hour (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf). Category I: Wuhua, Panlong, Xishan, Guandu, Chenggong, Jinning, Anning, Songming; category II: Kunming’s other counties and Dongchuan (`company.region` must name the actual worksite district). The Yunnan floor includes the employee’s social insurance and housing fund, so a gross comparison is the law."
+				"authority": "云人社发〔2025〕19号 from 1 October 2025: CNY2,170 / 2,020 a month, CNY21 / 20 an hour (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf). Category I: Wuhua, Panlong, Xishan, Guandu, Chenggong, Jinning, Anning, Songming; category II: Kunming’s other counties and Dongchuan (`company.region` must name the actual worksite district). The Yunnan floor includes the employee’s social insurance and housing fund, so a gross comparison is the law. For a verified Mo Han worksite, CATEGORY_III follows the provincial notice’s “other counties” class: Mo Han town remains within Mengla County despite Kunming trusteeship (Yunnan Ethnic Affairs Commission,  https://mz.yn.gov.cn/html/2026/jichulao_0702/4064382.html). Record the actual worksite; do not infer it from the employer’s registered address. The exact worksite is recorded on each worker’s terms using a key in this table; no company-wide CATEGORY_I/II/III fallback is accepted. The district inventory is the Yunnan Civil Affairs Department’s administrative-division table (https://ynmz.yn.gov.cn/bmfw/xzqh/xzqhsz/). Mo Han retains its Mengla County key despite Kunming trusteeship; the housing-fund payer is separately blocked pending issuer verification.",
+				"workplace_keyed": true,
+				"terms_when": "terms.worksite != \"\"",
+				"block_terms_when": true
 			},
 			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53).",
 			"encashment": {
@@ -420,7 +490,12 @@
 				"https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml",
 				"https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml",
 				"https://zfgjj.km.gov.cn/c/2026-01-04/5047947.shtml",
-				"https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf"
+				"https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf",
+				"https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html",
+				"https://ylbz.yn.gov.cn/index.php?c=show&id=125",
+				"https://www.yn.gov.cn/zwgk/zfxxgkpt/gkptzcwj/ynsrmzfxxyxgzml/202305/t20230505_258597.html",
+				"https://mz.yn.gov.cn/html/2026/jichulao_0702/4064382.html",
+				"https://ynmz.yn.gov.cn/bmfw/xzqh/xzqhsz/"
 			],
 			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
 		},
@@ -441,7 +516,7 @@
 				"minimum": 0,
 				"maximum": 2,
 				"label": "Employer unemployment rate on the agency notice (%)",
-				"description": "No 2026 instrument continuing the reduced unemployment rate was located (register CN-SH06 / CN-KM27); the rate the agency assesses is recorded until one is sealed. Unrecorded refuses the run."
+				"description": "No signed 2026 reduced-rate renewal with a proved effective interval was found (register CN-KM27); record the agency-assessed rate for this employer. Unrecorded refuses the run."
 			},
 			{
 				"key": "unemployment_employee_rate",
@@ -461,16 +536,6 @@
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
 				"description": "The unit selects one equal employer and worker rate, 5–12%; a lower rate needs an approved reduction."
-			},
-			{
-				"key": "housing_fund_supplementary_rate",
-				"type": "number",
-				"default_value": 0,
-				"minimum": 0,
-				"maximum": 5,
-				"integer": true,
-				"label": "Supplementary housing-fund rate each side (%)",
-				"description": "Shanghai supplementary fund, 1–5% equal each side, only where the unit elected it; 0 where it did not."
 			}
 		],
 		"exit_facts": [
@@ -478,7 +543,7 @@
 				"key": "lcl_termination_ground",
 				"type": "string",
 				"label": "Labour Contract Law ground",
-				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination.",
+				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination. REG_6: the worker would not conclude a written contract after the first month, so the employer ended it by written notice (Implementing Regulation art.6 para.1: 依照劳动合同法第四十七条的规定支付经济补偿).",
 				"options": [
 					"ART_36_EMPLOYER",
 					"ART_36_WORKER",
@@ -490,7 +555,8 @@
 					"ART_44_1",
 					"ART_44_2_3",
 					"ART_44_4_5",
-					"ART_87"
+					"ART_87",
+					"REG_6"
 				],
 				"required_when": "employment.exit_reason != \"\""
 			},
@@ -541,6 +607,22 @@
 				"description": "Implementing Regulation art.10: service with the former employer the worker was moved from not by their own choice counts as service here, unless the former employer already paid 经济补偿 for it. The uncompensated months carried.",
 				"minimum": 0,
 				"integer": true,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_early_retirement_years",
+				"type": "number",
+				"label": "Actual years from early retirement to statutory retirement age",
+				"description": "财税〔2018〕164号 item 5(2): the actual years (实际年度数) from completing the early-retirement formalities to the statutory retirement age, over which an early-retirement subsidy is spread. 0 where no early-retirement subsidy is paid; IIT_EARLY_RETIREMENT refuses a subsidy while it is 0.",
+				"minimum": 0,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_internal_retirement_months",
+				"type": "number",
+				"label": "Months from internal retirement to statutory retirement age",
+				"description": "国税发〔1999〕58号 item 1: months over which the one-off internal-retirement income is averaged to choose the monthly IIT rate. Zero means unrecorded and refuses a positive payment.",
+				"minimum": 0,
 				"default_value": 0
 			}
 		],
@@ -596,7 +678,7 @@
 			"end": "9999-12-31T00:00:00.000Z"
 		},
 		"jurisdiction_code": "CN",
-		"change_summary": "Minimum wage 2,270 / 2,120; base 4,403–22,017 for every fund (medical expressly from 1 September; the others confirmed in use by the 7 September county notice); new-account housing-fund floor 2,270 / 2,120.",
+		"change_summary": "Minimum wage 2,270 / 2,120; base 4,403–22,017 for every fund (medical expressly from 1 September; the others confirmed in use by the 7 September county notice); new-account housing-fund floor 2,270 / 2,120. Mo Han category III minimum wage is 1,970 / 20 from September 2026.",
 		"work_rules": {
 			"proration": {
 				"by": "FIXED_DAYS",
@@ -666,16 +748,45 @@
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"wages": {
 				"by_region": {
-					"CATEGORY_I": 2270,
-					"CATEGORY_II": 2120
+					"云南省/昆明市/五华区": 2270,
+					"云南省/昆明市/盘龙区": 2270,
+					"云南省/昆明市/西山区": 2270,
+					"云南省/昆明市/官渡区": 2270,
+					"云南省/昆明市/呈贡区": 2270,
+					"云南省/昆明市/晋宁区": 2270,
+					"云南省/昆明市/安宁市": 2270,
+					"云南省/昆明市/嵩明县": 2270,
+					"云南省/昆明市/东川区": 2120,
+					"云南省/昆明市/富民县": 2120,
+					"云南省/昆明市/宜良县": 2120,
+					"云南省/昆明市/石林彝族自治县": 2120,
+					"云南省/昆明市/禄劝彝族苗族自治县": 2120,
+					"云南省/昆明市/寻甸回族彝族自治县": 2120,
+					"云南省/西双版纳傣族自治州/勐腊县/磨憨镇": 1970
 				},
 				"hourly_by_region": {
-					"CATEGORY_I": 22,
-					"CATEGORY_II": 21
+					"云南省/昆明市/五华区": 22,
+					"云南省/昆明市/盘龙区": 22,
+					"云南省/昆明市/西山区": 22,
+					"云南省/昆明市/官渡区": 22,
+					"云南省/昆明市/呈贡区": 22,
+					"云南省/昆明市/晋宁区": 22,
+					"云南省/昆明市/安宁市": 22,
+					"云南省/昆明市/嵩明县": 22,
+					"云南省/昆明市/东川区": 21,
+					"云南省/昆明市/富民县": 21,
+					"云南省/昆明市/宜良县": 21,
+					"云南省/昆明市/石林彝族自治县": 21,
+					"云南省/昆明市/禄劝彝族苗族自治县": 21,
+					"云南省/昆明市/寻甸回族彝族自治县": 21,
+					"云南省/西双版纳傣族自治州/勐腊县/磨憨镇": 20
 				},
 				"applies_when": "",
 				"block_below_when": "employment.type != \"PART_TIME\" && terms.pay_frequency == \"MONTHLY\"",
-				"authority": "Yunnan HRSS 29 August 2026 from 1 September 2026: CNY2,270 / 2,120 a month, CNY22 / 21 an hour (https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html). Category I: Wuhua, Panlong, Xishan, Guandu, Chenggong, Jinning, Anning, Songming; category II: Kunming’s other counties and Dongchuan (`company.region` must name the actual worksite district). The Yunnan floor includes the employee’s social insurance and housing fund, so a gross comparison is the law."
+				"authority": "Yunnan HRSS 29 August 2026 from 1 September 2026: CNY2,270 / 2,120 a month, CNY22 / 21 an hour (https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html). Category I: Wuhua, Panlong, Xishan, Guandu, Chenggong, Jinning, Anning, Songming; category II: Kunming’s other counties and Dongchuan (`company.region` must name the actual worksite district). The Yunnan floor includes the employee’s social insurance and housing fund, so a gross comparison is the law. For a verified Mo Han worksite, CATEGORY_III follows the provincial notice’s “other counties” class: Mo Han town remains within Mengla County despite Kunming trusteeship (Yunnan Ethnic Affairs Commission,  https://mz.yn.gov.cn/html/2026/jichulao_0702/4064382.html). Record the actual worksite; do not infer it from the employer’s registered address. The exact worksite is recorded on each worker’s terms using a key in this table; no company-wide CATEGORY_I/II/III fallback is accepted. The district inventory is the Yunnan Civil Affairs Department’s administrative-division table (https://ynmz.yn.gov.cn/bmfw/xzqh/xzqhsz/). Mo Han retains its Mengla County key despite Kunming trusteeship; the housing-fund payer is separately blocked pending issuer verification.",
+				"workplace_keyed": true,
+				"terms_when": "terms.worksite != \"\"",
+				"block_terms_when": true
 			},
 			"authority": "Labour Law arts.36, 41, 44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): eight-hour day; overtime normally at most one hour a day, three for special reasons, 36 a month; art.44 at least 150% for extended hours, 200% for rest-day work where no compensatory rest is arranged, 300% for statutory-holiday work. MOHRSS 人社部发〔2025〕2号 from 1 January 2025: 21.75 paid days a month and eight hours a day convert a monthly wage to a day and an hour (https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html). No national, Shanghai or Kunming text read for the register prescribes how a part month is prorated; the seed applies the same 21.75-day conversion: a joiner or leaver is paid the monthly wage ÷ 21.75 for each working day of the employment (statutory holidays on them counted), never above the month, and an unpaid day is deducted at the same day. That is a reading of the conversion, not an express proration rule (no register row). No national or Shanghai statute sets a night-work premium (register CN-N53).",
 			"encashment": {
@@ -721,7 +832,12 @@
 				"https://ybj.km.gov.cn/c/2023-02-08/4665265.shtml",
 				"https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml",
 				"https://zfgjj.km.gov.cn/c/2026-01-04/5047947.shtml",
-				"https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf"
+				"https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf",
+				"https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html",
+				"https://ylbz.yn.gov.cn/index.php?c=show&id=125",
+				"https://www.yn.gov.cn/zwgk/zfxxgkpt/gkptzcwj/ynsrmzfxxyxgzml/202305/t20230505_258597.html",
+				"https://mz.yn.gov.cn/html/2026/jichulao_0702/4064382.html",
+				"https://ynmz.yn.gov.cn/bmfw/xzqh/xzqhsz/"
 			],
 			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
 		},
@@ -742,7 +858,7 @@
 				"minimum": 0,
 				"maximum": 2,
 				"label": "Employer unemployment rate on the agency notice (%)",
-				"description": "No 2026 instrument continuing the reduced unemployment rate was located (register CN-SH06 / CN-KM27); the rate the agency assesses is recorded until one is sealed. Unrecorded refuses the run."
+				"description": "No signed 2026 reduced-rate renewal with a proved effective interval was found (register CN-KM27); record the agency-assessed rate for this employer. Unrecorded refuses the run."
 			},
 			{
 				"key": "unemployment_employee_rate",
@@ -762,16 +878,6 @@
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
 				"description": "The unit selects one equal employer and worker rate, 5–12%; a lower rate needs an approved reduction."
-			},
-			{
-				"key": "housing_fund_supplementary_rate",
-				"type": "number",
-				"default_value": 0,
-				"minimum": 0,
-				"maximum": 5,
-				"integer": true,
-				"label": "Supplementary housing-fund rate each side (%)",
-				"description": "Shanghai supplementary fund, 1–5% equal each side, only where the unit elected it; 0 where it did not."
 			}
 		],
 		"exit_facts": [
@@ -779,7 +885,7 @@
 				"key": "lcl_termination_ground",
 				"type": "string",
 				"label": "Labour Contract Law ground",
-				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination.",
+				"description": "The LCL article the contract ended under. ART_36_EMPLOYER / ART_36_WORKER: a mutual ending proposed by the employer / the worker; ART_37 resignation; ART_38 resignation for the employer’s fault; ART_39 dismissal for fault; ART_40, ART_41; ART_44_1 fixed-term expiry; ART_44_2_3 retirement or death; ART_44_4_5 bankruptcy, revocation or closure; ART_87 an unlawful termination. REG_6: the worker would not conclude a written contract after the first month, so the employer ended it by written notice (Implementing Regulation art.6 para.1: 依照劳动合同法第四十七条的规定支付经济补偿).",
 				"options": [
 					"ART_36_EMPLOYER",
 					"ART_36_WORKER",
@@ -791,7 +897,8 @@
 					"ART_44_1",
 					"ART_44_2_3",
 					"ART_44_4_5",
-					"ART_87"
+					"ART_87",
+					"REG_6"
 				],
 				"required_when": "employment.exit_reason != \"\""
 			},
@@ -842,6 +949,22 @@
 				"description": "Implementing Regulation art.10: service with the former employer the worker was moved from not by their own choice counts as service here, unless the former employer already paid 经济补偿 for it. The uncompensated months carried.",
 				"minimum": 0,
 				"integer": true,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_early_retirement_years",
+				"type": "number",
+				"label": "Actual years from early retirement to statutory retirement age",
+				"description": "财税〔2018〕164号 item 5(2): the actual years (实际年度数) from completing the early-retirement formalities to the statutory retirement age, over which an early-retirement subsidy is spread. 0 where no early-retirement subsidy is paid; IIT_EARLY_RETIREMENT refuses a subsidy while it is 0.",
+				"minimum": 0,
+				"default_value": 0
+			},
+			{
+				"key": "iit164_internal_retirement_months",
+				"type": "number",
+				"label": "Months from internal retirement to statutory retirement age",
+				"description": "国税发〔1999〕58号 item 1: months over which the one-off internal-retirement income is averaged to choose the monthly IIT rate. Zero means unrecorded and refuses a positive payment.",
+				"minimum": 0,
 				"default_value": 0
 			}
 		],

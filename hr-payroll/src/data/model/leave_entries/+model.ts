@@ -31,15 +31,23 @@ export default model({
 		to_date: { kind: 'date', optional: true },
 		half_day_start: { kind: 'bool', optional: true },
 		half_day_end: { kind: 'bool', optional: true },
+		/** Whether no-pay leave was granted at the employee's request (SG EA ss.88, 88A). */
+		no_pay_origin: {
+			kind: 'enum',
+			values: ['EMPLOYEE_REQUESTED', 'OTHER'],
+			optional: true
+		},
 		/** Time off: the chargeable total. Adjustment: signed, non-zero. Reversal: the source's days. */
 		days: { kind: 'decimal', scale: 3, optional: true },
-		/** Time off by the hour: the hours, one day at a time. */
+		/** Hourly time off, carry-forward or signed adjustment. */
 		hours: { kind: 'decimal', scale: 3, optional: true },
 		/** The days an encashment converts to money. */
 		encash_days: { kind: 'decimal', scale: 3, optional: true },
+		/** Hour-denominated statutory departure payout. */
+		encash_hours: { kind: 'decimal', scale: 3, optional: true },
 		effective_on: { kind: 'date', optional: true },
 		due_on: { kind: 'date', optional: true },
-		/** Carry-forward: the window the days land in. */
+		/** Carry-forward: the window the days or hours land in. */
 		destination_from: { kind: 'date', optional: true },
 		destination_to: { kind: 'date', optional: true },
 		available_from: { kind: 'date', optional: true },
@@ -49,6 +57,8 @@ export default model({
 		event_kind: { kind: 'text', optional: true },
 		event_relationship: { kind: 'text', optional: true },
 		event_child_index: { kind: 'int', min: 1, optional: true },
+		/** Wife's earlier living biological children at this birth (VN Decree 168/2026 art.2(1)(b)). */
+		event_wife_prior_living_biological_children: { kind: 'int', min: 0, optional: true },
 		event_date: { kind: 'date', optional: true },
 		/** Stoppage paid at an agreed share of the day wage (VN Labour Code art.99(2), (3)): 0.7 is 70%. */
 		agreed_pay_fraction: { kind: 'decimal', scale: 4, min: 0, max: 1, optional: true },

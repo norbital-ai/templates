@@ -835,6 +835,7 @@
 		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
 		"eligibility": "employee.gender == \"MALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
+			"requires_wife_prior_living_biological_children": true,
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
@@ -2283,6 +2284,7 @@
 		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
 		"eligibility": "employee.gender == \"MALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
+			"requires_wife_prior_living_biological_children": true,
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
@@ -3731,6 +3733,7 @@
 		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
 		"eligibility": "employee.gender == \"MALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
+			"requires_wife_prior_living_biological_children": true,
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
@@ -4818,6 +4821,7 @@
 		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
 		"eligibility": "employee.gender == \"MALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
+			"requires_wife_prior_living_biological_children": true,
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
@@ -6266,6 +6270,7 @@
 		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
 		"eligibility": "employee.gender == \"MALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
+			"requires_wife_prior_living_biological_children": true,
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
@@ -7683,7 +7688,7 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (Nghỉ thai sản)",
-		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months for the mother’s second child from 1 July 2026 (Law on Population 113/2025; `event.child_index >= 2`), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
+		"authority": "Labour Code 2019 art.139(1) with Law on Social Insurance 41/2024/QH15 art.53 — six months before and after childbirth, one further month for each child from the second in a multiple birth, paid from the social insurance fund at 100% of the average contribution salary of the six months before the leave. Applied 2026-09-18: six months per birth, one more for every further child of a multiple birth (art.139(1); one further month read for a twin or more), seven months from 1 July 2026 only where the mother had exactly one living biological child at this birth (Population Law 113/2025 art.14(1)(a), Decree 168/2026 art.2(1)(a); `children.natural_surviving_before(event.date) == 1`; complete dated child history is required), for a member of six months’ contributions in the twelve before the birth (Law 41/2024 art.50; `facts.SI.since_months`); paid by the fund at the six-month average, not by the employer (`paid_by: FUND`). Applied 2026-09-19 (2): Labour Code 2019 art.139: every female employee has the six months’ leave; the allowance is the fund’s (`paid_by: FUND`) and needs six months of contributions in the twelve before the birth (Law on Social Insurance 2024 art.50) — a mother short of it is on leave without the allowance, not without the leave.",
 		"eligibility": "employee.gender == \"FEMALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
 		"entitlement": {
 			"availability": "PER_EVENT",
@@ -7691,7 +7696,7 @@
 			"proration": "NONE",
 			"bands": [
 				{
-					"eligibility": "event.child_index >= 2",
+					"eligibility": "children.natural_surviving_before(event.date) == 1",
 					"days": "210.0 + 30.0 * double(children.born_on(event.date) > 1 ? children.born_on(event.date) - 1 : (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] ? 1 : 0))"
 				},
 				{
@@ -7711,9 +7716,10 @@
 		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
 		"code": "PATERNITY_LEAVE",
 		"name": "Paternity leave (Nghỉ khi vợ sinh con)",
-		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`).",
-		"eligibility": "employee.gender == \"MALE\" && event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\", \"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"]",
+		"authority": "Law on Social Insurance 41/2024/QH15 art.53(2) — five working days for an insured father, seven where the birth is by caesarean section or before 32 weeks, ten for twins with three more for each further child, and fourteen for twins delivered by caesarean section; the leave must fall within 60 days of the birth. Applied 2026-09-18: five working days per birth, seven for a caesarean or a birth before 32 weeks, ten for twins and fourteen for twins by caesarean (Law 41/2024 art.53(2); `event.kind`); paid by the fund (`paid_by: FUND`). From 1 July 2026, Decree 168/2026/NĐ-CP art.2(1)(b) grants ten working days for a second child where the wife had exactly one prior living biological child; the wife’s event-specific count is required for single births, while multiple-birth grants remain higher. Official Gazette https://congbao.chinhphu.vn/van-ban/nghi-dinh-so-168-2026-nd-cp-469560/65154.htm.",
+		"eligibility": "employee.gender == \"MALE\" && event.relationship == \"WIFE\" && (event.kind in [\"MULTIPLE_BIRTH\", \"MULTIPLE_BIRTH_SURGERY\"] || (event.kind in [\"BIRTH\", \"BIRTH_SURGERY\", \"PRETERM_BIRTH\"] && event.wife_prior_living_biological_children >= 0))",
 		"entitlement": {
+			"requires_wife_prior_living_biological_children": true,
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
@@ -7727,7 +7733,7 @@
 					"days": "10.0 + 3.0 * double(children.born_on(event.date) > 2 ? children.born_on(event.date) - 2 : 0)"
 				},
 				{
-					"eligibility": "event.child_index >= 2",
+					"eligibility": "event.wife_prior_living_biological_children == 1",
 					"days": 10
 				},
 				{

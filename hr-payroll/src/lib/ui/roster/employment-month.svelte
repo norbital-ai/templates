@@ -240,11 +240,8 @@
 				companyId: company.id,
 				holidays: reads.holidays.current ?? [],
 				codes: reads.shifts.current ?? [],
-				precedence: settingsInForce(
-					reads.settings.current ?? [],
-					activeSettingsCode,
-					scheduleMonthStart
-				)?.work_rules?.holiday_rest_precedence,
+				work: settingsInForce(reads.settings.current ?? [], activeSettingsCode, scheduleMonthStart)
+					?.work_rules,
 				plans: scheduleWorkDays.map((day) => ({
 					work_date: dateKey(day.work_date),
 					shift_definition_id: day.shift_definition_id ?? null

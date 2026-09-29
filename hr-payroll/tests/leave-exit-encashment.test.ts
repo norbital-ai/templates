@@ -6,6 +6,7 @@ import encashmentDue from '../src/automation/+leave_encashment_due.automation.ts
 import { exitEncashments, exitReference } from '../src/lib/leave/exit-encashment.ts';
 import { leaveBalanceSummaries } from '../src/lib/leave/summary.ts';
 import { matches } from './helpers/ctx.ts';
+import { leaveCatalogue } from './fixtures/statutory-world.ts';
 import type { LeaveContext } from '../src/lib/leave/context.ts';
 import {
 	approve,
@@ -335,4 +336,58 @@ test('the daily catch-up settles each contract whose deferred day has come, and 
 	const failed = await encashmentDue.body({}, failing.ctx);
 	assert.equal(failed.failures.length, 1);
 	assert.deepEqual(failed.completed, []);
+});
+
+test('Thailand s.67 pays carried annual leave on every exit and only earned current-year leave on eligible dismissal', async () => {
+	// LPA s.67, Ministry consolidation: https://www.mol.go.th/wp-content/uploads/sites/2/2018/03/301.pdf
+	const annual = leaveCatalogue('TH').find((row) => row.code === 'ANNUAL_LEAVE')!;
+	const make = () => {
+		const context = closed(leaveContext());
+		context.employments[0]!.effective_range = { start: '2024-01-01', end: EXIT };
+		context.versions[0]!.jurisdiction_code = 'TH';
+		context.versions[0]!.exit_facts = [
+			{
+				key: 'dismissed_for_cause',
+				type: 'boolean',
+				label: 's.119 cause',
+				required_when: 'employment.exit_reason == "DISMISSAL"'
+			}
+		];
+		context.catalogues[0] = { ...annual, id: id(7), settings_id: id(6) };
+		approve(
+			context,
+			{
+				from_date: '2025-01-01',
+				to_date: '2025-12-31',
+				destination_from: '2026-01-01',
+				destination_to: '2026-12-31',
+				available_from: '2026-01-01',
+				expires_on: '2026-12-31',
+				effective_on: '2026-01-01',
+				days: 2,
+				reason: 'Agreed carry-forward'
+			},
+			11
+		);
+		return context;
+	};
+	for (const [reason, cause, used, expected] of [
+		['RESIGNATION', null, false, 2],
+		['DISMISSAL', true, false, 2],
+		['DISMISSAL', false, false, 2 + (6 * 181) / 365],
+		['RESIGNATION', null, true, 1],
+		['DISMISSAL', false, true, 1 + (6 * 181) / 365]
+	] as const) {
+		const context = make();
+		if (used) approve(context, timeOff('2026-03-02'), 12);
+		if (cause != null) context.employments[0]!.exit_facts = { dismissed_for_cause: cause };
+		const result = await run(context, reason);
+		assert.equal(result.result.status, 'raised');
+		assert.equal(result.writes.length, 1);
+		assert.ok(Math.abs(result.result.raised[0]!.days - expected) < 1e-9, reason);
+		const [approved] = planLeaveBatch(context, result.writes);
+		assert.ok(approved, `${reason} must hold a fundable encashment`);
+		assert.ok(Math.abs(approved.encash_days - expected) < 1e-9, reason);
+		assert.equal(approved.allocations[0]?.credit_entry_id, id(11));
+	}
 });

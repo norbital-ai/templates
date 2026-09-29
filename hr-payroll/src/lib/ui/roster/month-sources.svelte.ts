@@ -127,6 +127,7 @@ export function monthSources(scope: {
 				bolt.read('jurisdiction_settings', {
 					select: {
 						code: true,
+						jurisdiction_code: true,
 						name: true,
 						sealed_at: true,
 						voided_at: true,

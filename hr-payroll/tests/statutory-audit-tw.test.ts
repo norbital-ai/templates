@@ -63,25 +63,18 @@ const addBonus = (world: PayrollWorld, period: string, amount: number, index = 0
 	});
 };
 
-// ─── 勞工保險條例 §13: the 2027 step to 12% ─────────────────────────────────────────────────────
-test('TW audit — 2027 labour insurance at 12% on the 115年 ladder', () => {
-	// §13(2): 10% in 2019, then +0.5% every two years to 13% — 11.5% from 2025, 12% from 2027
-	// (BLI 0014162 lists 11.5% from 114-01-01). Shares §15(1): 20% / 70%.
-	// Grade 29,500: 29,500 × 12% = 3,540 → employee 708.00, employer 2,478.00.
-	// Grade 45,800 (ceiling): 45,800 × 12% = 5,496 → 1,099.20 → 1,099; 3,847.20 → 3,847.
-	// Employment insurance stays 1%: 29,500 → 59.00 / 206.50 → 207 (half-up).
-	const book = assessStatutory({
-		code: 'TW',
-		period: '2027-01',
-		riskClass: '1',
-		people: [
-			{ key: 'FLOOR', wage: 29_500, citizenship: 'CITIZEN' },
-			{ key: 'CEILING', wage: 90_000, citizenship: 'CITIZEN' }
-		]
-	});
-	expectStatutory(book, 'FLOOR', 'LI', 708, 2478);
-	expectStatutory(book, 'CEILING', 'LI', 1099, 3847);
-	expectStatutory(book, 'FLOOR', 'EI', 59, 207);
+// ─── No governing 116年 wage and insurance grade profile ───────────────────────────────────────
+test('TW audit — 2027 payroll refuses until a sealed 116年 version exists', () => {
+	assert.throws(
+		() =>
+			assessStatutory({
+				code: 'TW',
+				period: '2027-01',
+				riskClass: '1',
+				people: [{ key: 'FLOOR', wage: 29_500, citizenship: 'CITIZEN' }]
+			}),
+		/no sealed version covering 2027-01-31/
+	);
 });
 
 // ─── 勞工職業災害保險及保護法 §16(4): an experience-rated unit's notified rate ─────────────────────
@@ -108,43 +101,39 @@ test('TW audit — occupational accident premium at the table rate and at a noti
 });
 
 // ─── 勞基法 §56(1): the old-system reserve covers foreign workers outside 勞退條例 ─────────────────
-test('TW audit — the §56 reserve includes old-system migrant workers, ten-year rule from April 2026', () => {
+test('TW audit — migrant old-system reserve waits for dated pension and EI exclusion proof', () => {
 	// 勞退條例 §7 does not cover a migrant worker, so the LSA (old) pension applies and §56(1)
 	// requires the monthly 2–15% reserve on their wages. 勞動部 1140153402A: from 2026-04-01 a
 	// blue-collar migrant worker with under ten years at the unit is left out of the 薪資總額.
-	// Entity rate 6%, wage 30,000: 30,000 × 6% = 1,800.
-	//  - 2026-02, migrant hired 2023-01-01 (3 years): included → 1,800.
-	//  - 2026-05, the same worker: excluded → 0.
-	//  - 2026-05, migrant hired 2014-01-01 (12 years): included → 1,800.
-	for (const [period, hire, expected] of [
-		['2026-02', '2023-01-01', 1800],
-		['2026-05', '2023-01-01', 0],
-		['2026-05', '2014-01-01', 1800]
+	// The current facts do not prove the old-system and EI exclusions, so no reserve amount is priced.
+	for (const [period, hire] of [
+		['2026-02', '2023-01-01'],
+		['2026-05', '2023-01-01'],
+		['2026-05', '2014-01-01']
 	] as const) {
-		const { slips } = buildStatutory({
-			code: 'TW',
-			period,
-			riskClass: '1',
-			companyFacts: { pension_reserve_rate: 6 },
-			people: [
-				{
-					key: 'MIGRANT',
-					wage: 30_000,
-					citizenship: 'FOREIGNER',
-					pass_type: 'WORK_PERMIT',
-					tax_residency: 'RESIDENT',
-					hire_date: hire,
-					registrations: {
-						LABOR_PENSION: { kind: 'NOT_REGISTERED' },
-						EI: { kind: 'NOT_REGISTERED' }
-					}
-				}
-			]
-		});
-		assert.equal(
-			charge(slips.get('MIGRANT')!, 'LABOR_PENSION_RESERVE')?.[2] ?? 0,
-			expected,
-			`${period} ${hire}`
+		assert.throws(
+			() =>
+				buildStatutory({
+					code: 'TW',
+					period,
+					riskClass: '1',
+					companyFacts: { pension_reserve_rate: 6 },
+					people: [
+						{
+							key: 'MIGRANT',
+							wage: 30_000,
+							citizenship: 'FOREIGNER',
+							pass_type: 'WORK_PERMIT',
+							tax_residency: 'RESIDENT',
+							hire_date: hire,
+							registrations: {
+								LABOR_PENSION: { kind: 'NOT_REGISTERED' },
+								EI: { kind: 'NOT_REGISTERED' }
+							}
+						}
+					]
+				}),
+			/NOT_REGISTERED does not prove an exclusion/
 		);
 	}
 });
@@ -259,16 +248,14 @@ test('TW audit — non-resident 6% / 18% boundary in 2025 and 2026', () => {
 				{
 					key: 'AT',
 					wage: at,
-					citizenship: 'FOREIGNER',
-					tax_residency: 'NON_RESIDENT',
-					registrations: { EI: { kind: 'NOT_REGISTERED' } }
+					citizenship: 'CITIZEN',
+					tax_residency: 'NON_RESIDENT'
 				},
 				{
 					key: 'ABOVE',
 					wage: above,
-					citizenship: 'FOREIGNER',
-					tax_residency: 'NON_RESIDENT',
-					registrations: { EI: { kind: 'NOT_REGISTERED' } }
+					citizenship: 'CITIZEN',
+					tax_residency: 'NON_RESIDENT'
 				}
 			]
 		});
@@ -502,6 +489,15 @@ test('TW audit — missing part-time contract hours refuse instead of erasing th
 				},
 				(world) => {
 					world.employment_terms[0]!.ordinary_hours_per_week = null;
+					// The fixture's usual named cycle supplies 40 contracted hours even without the
+					// terms column. A declared week with no paid-minute guarantee supplies none.
+					world.shift_patterns[0]!.pattern = {
+						expectation: {
+							days_per_week: 5,
+							minimum_paid_minutes_per_week: null,
+							maximum_paid_minutes_per_week: null
+						}
+					};
 				}
 			),
 		/contracted weekly hours are required for the part-time monthly minimum wage/

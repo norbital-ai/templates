@@ -201,23 +201,17 @@ for (const period of VERSION_PERIODS) {
 		assert.deepEqual(owed(book, 'H-9000', 'HDMF'), [180, 180]);
 	});
 
-	test(`PH audit ${period}: a kasambahay under ₱5,000 pays nothing; the employer pays both shares (RA 10361 s.30)`, () => {
-		const book = assessStatutory({
-			code: 'PH',
-			period,
-			// NCR: the one region whose domestic-worker wage order the versions state (NCR-DW-05/06),
-			// so WTAX can place her below the floor; elsewhere it refuses (round 5).
-			region: 'NCR',
-			people: [{ key: 'K-4000', wage: 4000, employment_type: 'DOMESTIC' }]
-		});
-		// SSS: 4,000 → MSC 5,000: 250 + 500 = 750, all employer.
-		assert.deepEqual(owed(book, 'K-4000', 'SSS'), [0, 750]);
-		// PhilHealth: the ₱10,000 floor, 500, all employer.
-		assert.deepEqual(owed(book, 'K-4000', 'PHIC'), [0, 500]);
-		// Pag-IBIG: 4,000 > 1,500 → 2% + 2% = 80 + 80 = 160, all employer.
-		assert.deepEqual(owed(book, 'K-4000', 'HDMF'), [0, 160]);
-		// EC is employer-only in every case: MSC 5,000 < 15,000 → ₱10.
-		assert.deepEqual(owed(book, 'K-4000', 'SSS_EC'), [0, 10]);
+	test(`PH audit ${period}: a kasambahay below the NCR domestic wage order cannot be paid`, () => {
+		assert.throws(
+			() =>
+				assessStatutory({
+					code: 'PH',
+					period,
+					region: 'NCR',
+					people: [{ key: 'K-4000', wage: 4000, employment_type: 'DOMESTIC' }]
+				}),
+			/MINIMUM_WAGE_BELOW: K-4000/
+		);
 	});
 }
 
@@ -434,14 +428,34 @@ const holiday = (world, date: string, kind: 'PUBLIC_HOLIDAY' | 'SPECIAL_HOLIDAY'
 		published_at: '2025-12-01T00:00:00.000Z',
 		approval_id: null
 	});
-const punch = (world, key: string, date: string, start: string, end: string) => {
+const anHourLater = (time: string) => {
+	const minutes = (Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5)) + 60) % 1440;
+	return `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+};
+const punch = (
+	world,
+	key: string,
+	date: string,
+	start: string,
+	end: string,
+	mealStart?: string
+) => {
 	const employment = world.employments.find((row) => row.employee_number === key)!;
+	const at = (from: string, to: string) => ({
+		start: `${date}T${from}:00+08:00`,
+		end: `${date}T${to}:00+08:00`
+	});
 	world.work_days.push({
 		id: `wd-${key}-${date}`,
 		employment_id: employment.id,
 		work_date: date,
 		shift_definition_id: null,
-		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		// The shift's granted hour is only a break the punches show: a gap between worked intervals
+		// (PD 442 art.84(b), art.85; `work_rules.breaks` owes the 60 minutes).
+		worked_intervals:
+			mealStart == null
+				? [at(start, end)]
+				: [at(start, mealStart), at(anHourLater(mealStart), end)],
 		requested_by: null,
 		approval_id: null
 	});
@@ -464,8 +478,8 @@ test('PH audit 2026-01: a worked regular holiday is 200% of the day in all, a wo
 			holiday(world, '2026-01-05', 'PUBLIC_HOLIDAY');
 			holiday(world, '2026-01-06', 'SPECIAL_HOLIDAY');
 			for (const key of ['HOL-M', 'HOL-D']) {
-				punch(world, key, '2026-01-05', '09:00', '18:00');
-				punch(world, key, '2026-01-06', '09:00', '18:00');
+				punch(world, key, '2026-01-05', '09:00', '18:00', '13:00');
+				punch(world, key, '2026-01-06', '09:00', '18:00', '13:00');
 			}
 		}
 	);
@@ -644,7 +658,7 @@ test('PH audit 2026-01: retirement pay is 22.5 days a year, six months counting 
 // The sealed data itself: wage floors and the obligation register.
 // ─────────────────────────────────────────────────────────────────────────────
 
-test('PH audit: wage-order floors are the daily rate × 313 ÷ 12 on each version, by area and sector', () => {
+test('PH audit: NCR and IV-A wage-order floors are the daily rate × 313 ÷ 12 on each version', () => {
 	// Wage Order NCR-26 (18 Jul 2025): ₱695 non-agriculture, ₱658 agriculture / retail-service of
 	// 15 or fewer / manufacturing under 10. NCR-28 (26 Sep 2026): +₱60 → ₱755 / ₱718.
 	// IVA-22 (5 Oct 2025): ₱600 EMA and component cities; ₱550 1st class; ₱510 reclassified 1st
@@ -710,7 +724,8 @@ test('PH audit: wage-order floors are the daily rate × 313 ÷ 12 on each versio
 	};
 	for (const version of settingsVersions('PH')) {
 		const start = String(version.effective_range.start).slice(0, 10);
-		assert.deepEqual(version.work_rules.wages.by_region, expected[start], start);
+		for (const [region, floor] of Object.entries(expected[start]!))
+			assert.equal(version.work_rules.wages.by_region[region], floor, `${start} ${region}`);
 	}
 });
 

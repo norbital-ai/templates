@@ -4,7 +4,7 @@
 		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
-		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit; agreed carry-forward credits and current-year earned days have separate exit predicates.",
 		"eligibility": "employment.service_months >= 12",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -12,6 +12,7 @@
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
 			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
 					"eligibility": "",
@@ -30,7 +31,7 @@
 		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (ลาป่วย)",
-		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate (`evidence_after_days` 2: the certificate is asked for once more than two working days are charged, i.e. from the third); s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -39,7 +40,7 @@
 			"bands": []
 		},
 		"evidence": "NONE",
-		"evidence_after_days": 3,
+		"evidence_after_days": 2,
 		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
 		"is_npl": false,
 		"can_encash": false,
@@ -119,6 +120,7 @@
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
 					"eligibility": "",
@@ -153,11 +155,51 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "c8c67131-49d1-5266-80e4-90694119bb82",
+		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"code": "TRAINING_LEAVE",
+		"name": "Training or skills-development leave (ลาเพื่อฝึกอบรมหรือพัฒนาความรู้ความสามารถ)",
+		"authority": "Labour Protection Act s.36 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09) and Ministerial Regulation No.5 B.E.2541 (https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/170.pdf): a worker may take leave for an eligible timed training course or official educational examination, notifying the reason and showing available evidence at least seven days in advance. The employer may refuse after at least 30 days or three approved occasions in that year, or on demonstrated business harm. LPA ss.56–59 do not require employer pay for this leave; a more favourable employment term still controls. Purpose, notice, previous occasions and refusal grounds require manual approval evidence (register TH-LEAVE-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "449f6146-d10c-5de6-9429-cc5d1300ca52",
+		"settings_id": "529af1bd-463e-54e3-8017-18b06fcc936e",
+		"code": "YOUNG_WORKER_TRAINING_LEAVE",
+		"name": "Young-worker education or training leave (การลาศึกษาอบรมของลูกจ้างเด็ก)",
+		"authority": "Labour Protection Act s.52 as amended by No.2 B.E.2551 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): an employee under 18 may leave for a meeting, seminar, training or other activity held by an educational institution or a public/private body approved by the Director-General, with advance notice and any available evidence. The employer pays normal working-day wages for up to 30 days in a year. Charged-day age and prior paid days set the pay fraction; organiser approval and calendar-day treatment still need manual/source review (register TH-LEAVE-07, TH-HR-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "13b379c2-317c-5d76-b8dc-dcd0f8961221",
 		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
-		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit; agreed carry-forward credits and current-year earned days have separate exit predicates.",
 		"eligibility": "employment.service_months >= 12",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -165,6 +207,7 @@
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
 			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
 					"eligibility": "",
@@ -183,7 +226,7 @@
 		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (ลาป่วย)",
-		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate (`evidence_after_days` 2: the certificate is asked for once more than two working days are charged, i.e. from the third); s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -192,7 +235,7 @@
 			"bands": []
 		},
 		"evidence": "NONE",
-		"evidence_after_days": 3,
+		"evidence_after_days": 2,
 		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
 		"is_npl": false,
 		"can_encash": false,
@@ -266,12 +309,13 @@
 		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
-		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). The Act has no express rule for maternity leave already in progress on 7 December 2025; a crossing event needs legal review before this HRMS can determine its duration and paid-day limits (register TH-LEAVE-01).",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
 					"eligibility": "",
@@ -306,6 +350,46 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "8e20c510-beb9-5700-a586-64395072321d",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "TRAINING_LEAVE",
+		"name": "Training or skills-development leave (ลาเพื่อฝึกอบรมหรือพัฒนาความรู้ความสามารถ)",
+		"authority": "Labour Protection Act s.36 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09) and Ministerial Regulation No.5 B.E.2541 (https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/170.pdf): a worker may take leave for an eligible timed training course or official educational examination, notifying the reason and showing available evidence at least seven days in advance. The employer may refuse after at least 30 days or three approved occasions in that year, or on demonstrated business harm. LPA ss.56–59 do not require employer pay for this leave; a more favourable employment term still controls. Purpose, notice, previous occasions and refusal grounds require manual approval evidence (register TH-LEAVE-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "b269b195-4876-5363-a060-9a08179a490f",
+		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
+		"code": "YOUNG_WORKER_TRAINING_LEAVE",
+		"name": "Young-worker education or training leave (การลาศึกษาอบรมของลูกจ้างเด็ก)",
+		"authority": "Labour Protection Act s.52 as amended by No.2 B.E.2551 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): an employee under 18 may leave for a meeting, seminar, training or other activity held by an educational institution or a public/private body approved by the Director-General, with advance notice and any available evidence. The employer pays normal working-day wages for up to 30 days in a year. Charged-day age and prior paid days set the pay fraction; organiser approval and calendar-day treatment still need manual/source review (register TH-LEAVE-07, TH-HR-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "07a23b8f-3bec-51ea-929e-5f092232c668",
 		"settings_id": "f0e17e06-628c-5b2f-8e93-65c3f97148ee",
 		"code": "CHILD_BIRTH_LEAVE",
@@ -335,7 +419,7 @@
 		"code": "CHILD_CARE_LEAVE",
 		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
 		"authority": "Labour Protection Act s.41 para.4 and s.59/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
-		"eligibility": "",
+		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -359,7 +443,7 @@
 		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
-		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit; agreed carry-forward credits and current-year earned days have separate exit predicates.",
 		"eligibility": "employment.service_months >= 12",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -367,6 +451,7 @@
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
 			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
 					"eligibility": "",
@@ -385,7 +470,7 @@
 		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (ลาป่วย)",
-		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate (`evidence_after_days` 2: the certificate is asked for once more than two working days are charged, i.e. from the third); s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -394,7 +479,7 @@
 			"bands": []
 		},
 		"evidence": "NONE",
-		"evidence_after_days": 3,
+		"evidence_after_days": 2,
 		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
 		"is_npl": false,
 		"can_encash": false,
@@ -468,12 +553,13 @@
 		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
-		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). The Act has no express rule for maternity leave already in progress on 7 December 2025; a crossing event needs legal review before this HRMS can determine its duration and paid-day limits (register TH-LEAVE-01).",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
 					"eligibility": "",
@@ -508,6 +594,46 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "3a4e0d92-a65a-5b55-886a-c7b861b659b4",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "TRAINING_LEAVE",
+		"name": "Training or skills-development leave (ลาเพื่อฝึกอบรมหรือพัฒนาความรู้ความสามารถ)",
+		"authority": "Labour Protection Act s.36 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09) and Ministerial Regulation No.5 B.E.2541 (https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/170.pdf): a worker may take leave for an eligible timed training course or official educational examination, notifying the reason and showing available evidence at least seven days in advance. The employer may refuse after at least 30 days or three approved occasions in that year, or on demonstrated business harm. LPA ss.56–59 do not require employer pay for this leave; a more favourable employment term still controls. Purpose, notice, previous occasions and refusal grounds require manual approval evidence (register TH-LEAVE-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "9ea0e08e-1eda-5490-820c-6741bec4cc6d",
+		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
+		"code": "YOUNG_WORKER_TRAINING_LEAVE",
+		"name": "Young-worker education or training leave (การลาศึกษาอบรมของลูกจ้างเด็ก)",
+		"authority": "Labour Protection Act s.52 as amended by No.2 B.E.2551 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): an employee under 18 may leave for a meeting, seminar, training or other activity held by an educational institution or a public/private body approved by the Director-General, with advance notice and any available evidence. The employer pays normal working-day wages for up to 30 days in a year. Charged-day age and prior paid days set the pay fraction; organiser approval and calendar-day treatment still need manual/source review (register TH-LEAVE-07, TH-HR-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "821941be-248e-5332-a184-7e1f18088489",
 		"settings_id": "2125160c-ebf6-58d9-83d8-f541e14f1cfe",
 		"code": "CHILD_BIRTH_LEAVE",
@@ -537,7 +663,7 @@
 		"code": "CHILD_CARE_LEAVE",
 		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
 		"authority": "Labour Protection Act s.41 para.4 and s.59/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
-		"eligibility": "",
+		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -561,7 +687,7 @@
 		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
-		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit; agreed carry-forward credits and current-year earned days have separate exit predicates.",
 		"eligibility": "employment.service_months >= 12",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -569,6 +695,7 @@
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
 			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
 					"eligibility": "",
@@ -587,7 +714,7 @@
 		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (ลาป่วย)",
-		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate (`evidence_after_days` 2: the certificate is asked for once more than two working days are charged, i.e. from the third); s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -596,7 +723,7 @@
 			"bands": []
 		},
 		"evidence": "NONE",
-		"evidence_after_days": 3,
+		"evidence_after_days": 2,
 		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
 		"is_npl": false,
 		"can_encash": false,
@@ -670,12 +797,13 @@
 		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
-		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). The Act has no express rule for maternity leave already in progress on 7 December 2025; a crossing event needs legal review before this HRMS can determine its duration and paid-day limits (register TH-LEAVE-01).",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
 					"eligibility": "",
@@ -710,6 +838,46 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "d2cf2a3f-d11a-5356-bded-2dda306b8a15",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "TRAINING_LEAVE",
+		"name": "Training or skills-development leave (ลาเพื่อฝึกอบรมหรือพัฒนาความรู้ความสามารถ)",
+		"authority": "Labour Protection Act s.36 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09) and Ministerial Regulation No.5 B.E.2541 (https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/170.pdf): a worker may take leave for an eligible timed training course or official educational examination, notifying the reason and showing available evidence at least seven days in advance. The employer may refuse after at least 30 days or three approved occasions in that year, or on demonstrated business harm. LPA ss.56–59 do not require employer pay for this leave; a more favourable employment term still controls. Purpose, notice, previous occasions and refusal grounds require manual approval evidence (register TH-LEAVE-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d1ff2a5d-b014-535d-81e2-98006d9757d6",
+		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
+		"code": "YOUNG_WORKER_TRAINING_LEAVE",
+		"name": "Young-worker education or training leave (การลาศึกษาอบรมของลูกจ้างเด็ก)",
+		"authority": "Labour Protection Act s.52 as amended by No.2 B.E.2551 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): an employee under 18 may leave for a meeting, seminar, training or other activity held by an educational institution or a public/private body approved by the Director-General, with advance notice and any available evidence. The employer pays normal working-day wages for up to 30 days in a year. Charged-day age and prior paid days set the pay fraction; organiser approval and calendar-day treatment still need manual/source review (register TH-LEAVE-07, TH-HR-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "86aa1610-33c1-5765-96bd-4d9c9214b8a0",
 		"settings_id": "b67b80a5-c3e9-5503-b3a1-07932104e17a",
 		"code": "CHILD_BIRTH_LEAVE",
@@ -739,7 +907,7 @@
 		"code": "CHILD_CARE_LEAVE",
 		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
 		"authority": "Labour Protection Act s.41 para.4 and s.59/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
-		"eligibility": "",
+		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -763,7 +931,7 @@
 		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
-		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit; agreed carry-forward credits and current-year earned days have separate exit predicates.",
 		"eligibility": "employment.service_months >= 12",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -771,6 +939,7 @@
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
 			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
 					"eligibility": "",
@@ -789,7 +958,7 @@
 		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (ลาป่วย)",
-		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate (`evidence_after_days` 2: the certificate is asked for once more than two working days are charged, i.e. from the third); s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -798,7 +967,7 @@
 			"bands": []
 		},
 		"evidence": "NONE",
-		"evidence_after_days": 3,
+		"evidence_after_days": 2,
 		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
 		"is_npl": false,
 		"can_encash": false,
@@ -872,12 +1041,13 @@
 		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
-		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). The Act has no express rule for maternity leave already in progress on 7 December 2025; a crossing event needs legal review before this HRMS can determine its duration and paid-day limits (register TH-LEAVE-01).",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
 					"eligibility": "",
@@ -912,6 +1082,46 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "003c5dba-bee7-5126-93fb-b4028f3c8a30",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "TRAINING_LEAVE",
+		"name": "Training or skills-development leave (ลาเพื่อฝึกอบรมหรือพัฒนาความรู้ความสามารถ)",
+		"authority": "Labour Protection Act s.36 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09) and Ministerial Regulation No.5 B.E.2541 (https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/170.pdf): a worker may take leave for an eligible timed training course or official educational examination, notifying the reason and showing available evidence at least seven days in advance. The employer may refuse after at least 30 days or three approved occasions in that year, or on demonstrated business harm. LPA ss.56–59 do not require employer pay for this leave; a more favourable employment term still controls. Purpose, notice, previous occasions and refusal grounds require manual approval evidence (register TH-LEAVE-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "dfc0dc3c-f8bd-50be-9fa9-6abb3dade2b3",
+		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
+		"code": "YOUNG_WORKER_TRAINING_LEAVE",
+		"name": "Young-worker education or training leave (การลาศึกษาอบรมของลูกจ้างเด็ก)",
+		"authority": "Labour Protection Act s.52 as amended by No.2 B.E.2551 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): an employee under 18 may leave for a meeting, seminar, training or other activity held by an educational institution or a public/private body approved by the Director-General, with advance notice and any available evidence. The employer pays normal working-day wages for up to 30 days in a year. Charged-day age and prior paid days set the pay fraction; organiser approval and calendar-day treatment still need manual/source review (register TH-LEAVE-07, TH-HR-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "87a3115a-0182-5a27-9915-a4c76245c3d6",
 		"settings_id": "8e7ffe92-54b1-544d-b50b-1e4727cb9430",
 		"code": "CHILD_BIRTH_LEAVE",
@@ -941,7 +1151,7 @@
 		"code": "CHILD_CARE_LEAVE",
 		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
 		"authority": "Labour Protection Act s.41 para.4 and s.59/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
-		"eligibility": "",
+		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -965,7 +1175,7 @@
 		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
-		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit; agreed carry-forward credits and current-year earned days have separate exit predicates.",
 		"eligibility": "employment.service_months >= 12",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -973,6 +1183,7 @@
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
 			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
 					"eligibility": "",
@@ -991,7 +1202,7 @@
 		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
-		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit; agreed carry-forward credits and current-year earned days have separate exit predicates.",
 		"eligibility": "employment.service_months >= 12",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -999,6 +1210,7 @@
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
 			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
 					"eligibility": "",
@@ -1017,7 +1229,7 @@
 		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (ลาป่วย)",
-		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate (`evidence_after_days` 2: the certificate is asked for once more than two working days are charged, i.e. from the third); s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1026,7 +1238,7 @@
 			"bands": []
 		},
 		"evidence": "NONE",
-		"evidence_after_days": 3,
+		"evidence_after_days": 2,
 		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
 		"is_npl": false,
 		"can_encash": false,
@@ -1037,7 +1249,7 @@
 		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (ลาป่วย)",
-		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate (`evidence_after_days` 2: the certificate is asked for once more than two working days are charged, i.e. from the third); s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1046,7 +1258,7 @@
 			"bands": []
 		},
 		"evidence": "NONE",
-		"evidence_after_days": 3,
+		"evidence_after_days": 2,
 		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
 		"is_npl": false,
 		"can_encash": false,
@@ -1183,12 +1395,13 @@
 		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
-		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). The Act has no express rule for maternity leave already in progress on 7 December 2025; a crossing event needs legal review before this HRMS can determine its duration and paid-day limits (register TH-LEAVE-01).",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
 					"eligibility": "",
@@ -1208,12 +1421,13 @@
 		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
-		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). The Act has no express rule for maternity leave already in progress on 7 December 2025; a crossing event needs legal review before this HRMS can determine its duration and paid-day limits (register TH-LEAVE-01).",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
 					"eligibility": "",
@@ -1248,6 +1462,46 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "9eb7206b-3bcd-560b-ba3c-019440a4218e",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "TRAINING_LEAVE",
+		"name": "Training or skills-development leave (ลาเพื่อฝึกอบรมหรือพัฒนาความรู้ความสามารถ)",
+		"authority": "Labour Protection Act s.36 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09) and Ministerial Regulation No.5 B.E.2541 (https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/170.pdf): a worker may take leave for an eligible timed training course or official educational examination, notifying the reason and showing available evidence at least seven days in advance. The employer may refuse after at least 30 days or three approved occasions in that year, or on demonstrated business harm. LPA ss.56–59 do not require employer pay for this leave; a more favourable employment term still controls. Purpose, notice, previous occasions and refusal grounds require manual approval evidence (register TH-LEAVE-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "3bc59a8f-4a28-507b-a6e1-2898e9faf807",
+		"settings_id": "f302aeb5-efb4-5204-8ce6-da6507f1e64f",
+		"code": "YOUNG_WORKER_TRAINING_LEAVE",
+		"name": "Young-worker education or training leave (การลาศึกษาอบรมของลูกจ้างเด็ก)",
+		"authority": "Labour Protection Act s.52 as amended by No.2 B.E.2551 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): an employee under 18 may leave for a meeting, seminar, training or other activity held by an educational institution or a public/private body approved by the Director-General, with advance notice and any available evidence. The employer pays normal working-day wages for up to 30 days in a year. Charged-day age and prior paid days set the pay fraction; organiser approval and calendar-day treatment still need manual/source review (register TH-LEAVE-07, TH-HR-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "54dc4234-a99c-52dd-95b5-fac07321bfaa",
 		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
 		"code": "UNPAID_LEAVE",
@@ -1263,6 +1517,46 @@
 		"evidence": "NONE",
 		"evidence_after_days": null,
 		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "011c1219-504c-5199-acbd-52acd93bb950",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "TRAINING_LEAVE",
+		"name": "Training or skills-development leave (ลาเพื่อฝึกอบรมหรือพัฒนาความรู้ความสามารถ)",
+		"authority": "Labour Protection Act s.36 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09) and Ministerial Regulation No.5 B.E.2541 (https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/170.pdf): a worker may take leave for an eligible timed training course or official educational examination, notifying the reason and showing available evidence at least seven days in advance. The employer may refuse after at least 30 days or three approved occasions in that year, or on demonstrated business harm. LPA ss.56–59 do not require employer pay for this leave; a more favourable employment term still controls. Purpose, notice, previous occasions and refusal grounds require manual approval evidence (register TH-LEAVE-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "d859efc9-9cd2-5503-beea-f34e6f4a7b85",
+		"settings_id": "1fce18d5-07cb-53d2-b503-eafccc925897",
+		"code": "YOUNG_WORKER_TRAINING_LEAVE",
+		"name": "Young-worker education or training leave (การลาศึกษาอบรมของลูกจ้างเด็ก)",
+		"authority": "Labour Protection Act s.52 as amended by No.2 B.E.2551 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): an employee under 18 may leave for a meeting, seminar, training or other activity held by an educational institution or a public/private body approved by the Director-General, with advance notice and any available evidence. The employer pays normal working-day wages for up to 30 days in a year. Charged-day age and prior paid days set the pay fraction; organiser approval and calendar-day treatment still need manual/source review (register TH-LEAVE-07, TH-HR-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"is_npl": false,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -1320,7 +1614,7 @@
 		"code": "CHILD_CARE_LEAVE",
 		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
 		"authority": "Labour Protection Act s.41 para.4 and s.59/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
-		"eligibility": "",
+		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -1345,7 +1639,7 @@
 		"code": "CHILD_CARE_LEAVE",
 		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
 		"authority": "Labour Protection Act s.41 para.4 and s.59/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
-		"eligibility": "",
+		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
@@ -1369,7 +1663,7 @@
 		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (วันหยุดพักผ่อนประจำปี)",
-		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit (carry-forward is by agreement and not modelled, so a resignation or a s.119 dismissal pays nothing here).",
+		"authority": "Labour Protection Act s.30: an employee who has worked continuously for one year is entitled to at least six working days of annual leave a year (a shorter-serving employee may be given leave pro rata — not modelled); s.56 it is paid; s.67 on an employer termination other than for a s.119 cause the year of termination is paid pro rata, and carried-forward leave is paid on every exit; agreed carry-forward credits and current-year earned days have separate exit predicates.",
 		"eligibility": "employment.service_months >= 12",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1377,6 +1671,7 @@
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
 			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
 					"eligibility": "",
@@ -1395,7 +1690,7 @@
 		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
 		"code": "SICK_LEAVE",
 		"name": "Sick leave (ลาป่วย)",
-		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate; s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
+		"authority": "Labour Protection Act s.32: leave for actual sickness; from three working days the employer may require a medical certificate (`evidence_after_days` 2: the certificate is asked for once more than two working days are charged, i.e. from the third); s.57: paid up to 30 working days a year. Work injury and maternity are not sick leave.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1404,7 +1699,7 @@
 			"bands": []
 		},
 		"evidence": "NONE",
-		"evidence_after_days": 3,
+		"evidence_after_days": 2,
 		"pay_fraction": "leave.taken(\"SICK_LEAVE\") < 30.0 ? 1.0 : 0.0",
 		"is_npl": false,
 		"can_encash": false,
@@ -1478,12 +1773,13 @@
 		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
 		"code": "MATERNITY_LEAVE",
 		"name": "Maternity leave (ลาเพื่อคลอดบุตร)",
-		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). Leave straddling 7 December 2025 needs a transition rule the Act states and the seed does not model (register TH-LEAVE-01).",
+		"authority": "Labour Protection Act s.41 as amended by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): up to 120 days for each pregnancy, holidays counted; s.59 as amended: the employer pays wages for up to 60 days of it. The Social Security Fund’s separate maternity benefit is the insurer’s (register TH-SS-03). The Act has no express rule for maternity leave already in progress on 7 December 2025; a crossing event needs legal review before this HRMS can determine its duration and paid-day limits (register TH-LEAVE-01).",
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,
 			"proration": "NONE",
+			"calendar_days": true,
 			"bands": [
 				{
 					"eligibility": "",
@@ -1518,6 +1814,46 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "6e67c48e-c1d8-564e-873e-d57f5b323447",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "TRAINING_LEAVE",
+		"name": "Training or skills-development leave (ลาเพื่อฝึกอบรมหรือพัฒนาความรู้ความสามารถ)",
+		"authority": "Labour Protection Act s.36 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09) and Ministerial Regulation No.5 B.E.2541 (https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/170.pdf): a worker may take leave for an eligible timed training course or official educational examination, notifying the reason and showing available evidence at least seven days in advance. The employer may refuse after at least 30 days or three approved occasions in that year, or on demonstrated business harm. LPA ss.56–59 do not require employer pay for this leave; a more favourable employment term still controls. Purpose, notice, previous occasions and refusal grounds require manual approval evidence (register TH-LEAVE-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "bd6dca6c-10a6-56c4-8b8c-d263e4efbbce",
+		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
+		"code": "YOUNG_WORKER_TRAINING_LEAVE",
+		"name": "Young-worker education or training leave (การลาศึกษาอบรมของลูกจ้างเด็ก)",
+		"authority": "Labour Protection Act s.52 as amended by No.2 B.E.2551 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): an employee under 18 may leave for a meeting, seminar, training or other activity held by an educational institution or a public/private body approved by the Director-General, with advance notice and any available evidence. The employer pays normal working-day wages for up to 30 days in a year. Charged-day age and prior paid days set the pay fraction; organiser approval and calendar-day treatment still need manual/source review (register TH-LEAVE-07, TH-HR-07).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "OPTIONAL",
+		"evidence_after_days": null,
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"is_npl": false,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "cfaea3be-7206-5efc-8acf-4d17291768b5",
 		"settings_id": "23a9e67e-c327-590b-af06-1d7581441f8b",
 		"code": "CHILD_BIRTH_LEAVE",
@@ -1547,7 +1883,7 @@
 		"code": "CHILD_CARE_LEAVE",
 		"name": "Leave to care for a newborn with a certified condition (ลาเพื่อดูแลบุตร)",
 		"authority": "Labour Protection Act s.41 para.4 and s.59/1 added by No.9 B.E.2568 (in force 7 December 2025, https://ratchakitcha.soc.go.th/documents/89818.pdf): after maternity leave, up to 15 days where the child has a certified illness, complication or disability, paid at 50% of the wage (register TH-LEAVE-02).",
-		"eligibility": "",
+		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
 			"year_start_month": 1,

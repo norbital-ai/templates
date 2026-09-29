@@ -1,5 +1,13 @@
 import { expect, it } from 'vitest';
-import { committed, NIHON_MY, workspace } from './kit.ts';
+import {
+	committed,
+	NIHON_MY,
+	recordNihonBirthDates,
+	recordNihonEisFacts,
+	recordNihonEpfFacts,
+	recordNihonWorksites,
+	workspace
+} from './kit.ts';
 import { settingsVersions } from '../fixtures/statutory-world.ts';
 
 const MY_JAN_2026 = settingsVersions('MY-nihon').find(
@@ -10,6 +18,10 @@ const TERMS = '19944fee-1768-544c-a662-6bbf0be20395';
 
 it('saved MY First Schedule allowance removes overtime coverage above RM4,000', async () => {
 	const t = await workspace({ now: '2026-03-01T02:00:00.000Z' });
+	await recordNihonBirthDates(t);
+	await recordNihonWorksites(t);
+	await recordNihonEisFacts(t);
+	await recordNihonEpfFacts(t);
 	const admin = t.as(t.admin);
 	const sua = (
 		await admin.read('allowance_catalogue', {
@@ -36,6 +48,7 @@ it('saved MY First Schedule allowance removes overtime coverage above RM4,000', 
 			allowances: [{ catalogue_id: sua.id, amount: 200 }],
 			pay_frequency: 'MONTHLY',
 			work_classification: 'EA_COVERED',
+			worksite_state: 'SELANGOR',
 			statutory_work_category: 'NON_MANUAL',
 			employment_type: 'PERMANENT',
 			shift_pattern_id: '471d2ff0-2c76-5b66-9ffd-de10ab16813d',
@@ -79,4 +92,4 @@ it('saved MY First Schedule allowance removes overtime coverage above RM4,000', 
 		})
 	).rows[0]!;
 	expect(capturedDay.payslip_id).toBe(slip.id);
-});
+}, 30_000);

@@ -161,8 +161,8 @@ const unregistered = (code: string) =>
 	);
 
 test('MY run: a loan instalment past the s.24(8) half stays outstanding and the run says why', () => {
-	// Wages 3,000, no statutory deductions registered → half = 1,500. The air-ticket instalment
-	// (1,000, due 5 Jan) fits; the festive-advance instalment (800, due 10 Jan) would make 1,800.
+	// Wages 3,000 with statutory contributions: the air-ticket instalment (1,000, due 5 Jan)
+	// fits the half-wage limit; the festive advance (800, due 10 Jan) exceeds it.
 	const version = versionOn('MY', '2026-01-15');
 	const catalogue = readLawFile(
 		resolve(import.meta.dirname, '../seed/jurisdiction/MY/loan_catalogue')
@@ -171,9 +171,7 @@ test('MY run: a loan instalment past the s.24(8) half stays outstanding and the 
 		{
 			code: 'MY',
 			period: '2026-01',
-			people: [
-				{ key: 'BORROWER', wage: 3000, citizenship: 'CITIZEN', registrations: unregistered('MY') }
-			]
+			people: [{ key: 'BORROWER', wage: 3000, citizenship: 'CITIZEN' }]
 		},
 		(world) => {
 			world.loan_catalogue.push(
@@ -215,7 +213,10 @@ test('MY run: a loan instalment past the s.24(8) half stays outstanding and the 
 		slip.adjustments.map((row) => [row.component_code, row.amount]),
 		[['LOAN_RECOVERY_AIR_TICKET', 1000]]
 	);
-	assert.equal(slip.net, 2000);
+	assert.equal(
+		slip.net,
+		slip.gross - slip.statutory.reduce((sum, charge) => sum + charge.employee_amount, 0) - 1000
+	);
 	assert.ok(
 		warnings.some(
 			(line) =>
@@ -307,7 +308,21 @@ const vnLate = (exit: string, holidays: readonly string[] = []) =>
 					wage: 10_000_000,
 					exit_date: exit,
 					exit_reason: 'RESIGNATION',
-					citizenship: 'CITIZEN'
+					citizenship: 'CITIZEN',
+					registrations: {
+						PIT: {
+							kind: 'REGISTERED',
+							unit_assessments: [
+								{
+									period: '2026-01',
+									gross: exit === '2026-01-09' ? 3_181_818 : 4_090_909,
+									units: 1,
+									reference: 'FINAL-WAGE',
+									paid_on: '2026-01-31'
+								}
+							]
+						}
+					}
 				}
 			]
 		},

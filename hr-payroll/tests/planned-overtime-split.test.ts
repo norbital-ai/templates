@@ -12,7 +12,7 @@ import test from 'node:test';
 import workDays from '../src/data/collection/work_days/+collection.ts';
 import {
 	applicableLimits,
-	observedHolidayDates,
+	observedDays,
 	observedHolidays,
 	overtimeEntitled,
 	splitPlannedOvertime
@@ -407,7 +407,7 @@ test('the day sheet shows the most approved overtime the day can hold, the other
 		],
 		projected: () => 'W',
 		codeById: new Map([['W', code]]),
-		holidays: new Set(),
+		observed: { holidays: new Set(), offDays: new Set() },
 		limits: [limit('monthly_ot', 'MONTH', 'OVERTIME_HOURS', 10)],
 		cutoffDay: 1
 	});
@@ -447,18 +447,18 @@ test('the observed holiday is the one payroll prices: a Sunday holiday is carrie
 	});
 	const observed = (holidays, precedence) =>
 		[
-			...observedHolidayDates({
+			...observedDays({
 				dates: [dayOf(1)],
 				cutoffDay: 1,
 				companyId: 'co',
 				holidays,
 				codes,
-				precedence,
+				work: { holiday_rest_precedence: precedence },
 				plans: [],
 				rosterPeriods: [],
 				patternOn: () => ({ pattern, anchor: '2026-06-29' }),
 				worksiteOn: () => null
-			})
+			}).holidays
 		].toSorted();
 	// Sunday the 5th is the rest day: under SUBSTITUTE the holiday is observed on Monday the 6th,
 	// under its own name and carried from the 5th.
@@ -469,7 +469,7 @@ test('the observed holiday is the one payroll prices: a Sunday holiday is carrie
 		companyId: 'co',
 		holidays: [row(dayOf(5))],
 		codes,
-		precedence: 'SUBSTITUTE',
+		work: { holiday_rest_precedence: 'SUBSTITUTE' },
 		plans: [],
 		rosterPeriods: [],
 		patternOn: () => ({ pattern, anchor: '2026-06-29' }),

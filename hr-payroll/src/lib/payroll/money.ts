@@ -2,7 +2,12 @@
 import type { WorkspaceRow } from '../rows.js';
 import type { CatalogueBand } from '../datatypes/catalogue_band.js';
 import type { CatalogueComponent, Configuration } from '../../lib/payroll/run/configuration.js';
-import { inclusiveDays, requiredDateKey, type IsoDate } from '../../lib/payroll/run/dates.js';
+import {
+	daysBetween,
+	inclusiveDays,
+	requiredDateKey,
+	type IsoDate
+} from '../../lib/payroll/run/dates.js';
 import { contractAllowancesOn } from './contract-allowances.js';
 import { configuredMonthlyWageAverage } from './contribution.js';
 import { defaultPayPeriod, type PayCadence } from '../../lib/payroll/run/period.js';
@@ -41,6 +46,15 @@ import { stint } from '../employment-contract.js';
 import { activeTimeOff } from '../leave/activity.js';
 import { dateKey } from '../iso-day.js';
 import { payRequestTerms } from '../component_entry_cap_subject.js';
+import {
+	patternAnchor,
+	patternDaysPerWeek,
+	patternWorkload,
+	termPattern,
+	termPatternRow
+} from '../scheduling/work-pattern.js';
+import { resolveSchedule } from '../../lib/payroll/run/schedule.js';
+import { ordinaryDivisorDays } from './run/ordinary-rate.js';
 import type { PayslipAdjustment } from '../datatypes/payslip_adjustments.js';
 import { oppositeBucket, settlementBucket } from './family.js';
 import type {
@@ -202,6 +216,7 @@ export function entryContext(options: {
 	readonly daysInMonth: number;
 	readonly ordinaryDay: number;
 	readonly ordinaryHour: number;
+	readonly unpaidSalary?: number | undefined;
 	readonly limits: Readonly<Record<string, number>>;
 	readonly captures: { readonly paidToDate: number; readonly remaining: number };
 	readonly year?: (() => YearContext) | undefined;
@@ -225,6 +240,7 @@ export function entryContext(options: {
 		person: options.subject,
 		entry: {
 			amount: Math.abs(decodeNumber(entry.amount)),
+			unpaid_salary: options.unpaidSalary ?? 0,
 			days: 0,
 			hours: 0,
 			quantity: 0,
@@ -354,6 +370,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		// off-boarding but prices a festival wage, not a termination benefit.
 		const expressions = [
 			options.component.eligibility,
+			options.component.qualifies_when ?? '',
 			...options.component.bands.flatMap((band) => [
 				band.when ?? '',
 				band.amount ?? '',
@@ -365,6 +382,11 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 		);
 		const readsSeparationAverage = expressions.some((expression) =>
 			expression.includes('monthly_wage_6m_average')
+		);
+		const readsOrdinaryTerms = expressions.some((expression) =>
+			/terms\.(ordinary_day|monthly_basic|ordinary_hours_per_week|working_days_per_week)/.test(
+				expression
+			)
 		);
 		/** The person the entry is priced for, or the departure declaration it lacks. */
 		const subjectOn = (source: PayRequest): PersonContext | string => {
@@ -411,7 +433,124 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 						)
 					}
 				: options.configuration.company;
-			const subject = personContext({
+			const terms = payRequestTerms(options.bundle.termsHistory, options.bundle.employment, asOf);
+			const cnContractClaim =
+				options.configuration.jurisdiction.jurisdiction_code === 'CN' &&
+				options.component.family === 'ADHOC' &&
+				[
+					'PROBATION_EXCESS_DAMAGES',
+					'PROBATION_WAGE_SHORTFALL',
+					'OPEN_ENDED_CONTRACT_WAGE'
+				].includes(options.component.code);
+			if (cnContractClaim && employment.exit_date != null && asOf > employment.exit_date)
+				refuse(
+					`${options.component.code}: record the liability event date no later than the employment exit.`
+				);
+			if (terms == null) {
+				if (cnContractClaim)
+					refuse(
+						`${options.component.code}: no dated employment terms govern the liability event on ${asOf}.`
+					);
+				if (!separation && !readsOrdinaryTerms) return options.subject;
+				refuse(`No employment terms govern the pay request on ${asOf}.`);
+			}
+			if (
+				cnContractClaim &&
+				options.component.code !== 'OPEN_ENDED_CONTRACT_WAGE' &&
+				dateKey(terms.probation_end) === ''
+			)
+				refuse(`${options.component.code}: record probation_end on dated employment terms.`);
+			if (
+				cnContractClaim &&
+				options.component.code === 'PROBATION_WAGE_SHORTFALL' &&
+				!(decodeNumber(terms.post_probation_wage ?? 0) > 0)
+			)
+				refuse('PROBATION_WAGE_SHORTFALL: record post_probation_wage on dated employment terms.');
+			if (cnContractClaim && options.component.code === 'OPEN_ENDED_CONTRACT_WAGE') {
+				const due = dateKey(terms.open_ended_due_on);
+				if (due === '' || due < dateKey(employment.service_start) || due > asOf)
+					refuse(
+						'OPEN_ENDED_CONTRACT_WAGE: record an open_ended_due_on from service start through the liability event date.'
+					);
+			}
+			const pattern = termPattern(terms, options.configuration.patternById);
+			if (pattern == null) refuse(`No work pattern governs the pay request on ${asOf}.`);
+			const days = patternDaysPerWeek(pattern, options.configuration.shiftById);
+			const hours =
+				terms.ordinary_hours_per_week ??
+				(patternWorkload(pattern, options.configuration.shiftById)?.average_weekly_paid_minutes ??
+					0) / 60;
+			if (readsOrdinaryTerms && !(hours > 0))
+				refuse(`No ordinary work week governs the pay request on ${asOf}.`);
+			const week = { ordinary_hours_per_week: hours, working_days_per_week: days };
+			const pieceWages: { date: string; amount: number | null }[] = (
+				options.bundle.pieceWorkDays ?? []
+			)
+				.filter((day) => day.piece_units != null && dateKey(day.work_date) <= asOf)
+				.map((day) => {
+					if (day.piece_unit_rate == null)
+						refuse(`Piece unit rate is missing on ${dateKey(day.work_date)}.`);
+					return {
+						date: dateKey(day.work_date),
+						amount: decodeNumber(day.piece_units) * decodeNumber(day.piece_unit_rate)
+					};
+				});
+			if (
+				separation &&
+				version.jurisdiction_code === 'TH' &&
+				options.component.code === 'SEVERANCE_PAY' &&
+				terms.statutory_work_category === 'PIECE_RATE' &&
+				pieceWages.length > 0
+			) {
+				const oldest = pieceWages.map((row) => row.date).toSorted()[0]!;
+				const dates = daysBetween(oldest, asOf);
+				const pieceDays = new Map(
+					options.bundle.pieceWorkDays.map((day) => [dateKey(day.work_date), day])
+				);
+				const termOn = (date: IsoDate) => {
+					const row = payRequestTerms(options.bundle.termsHistory, options.bundle.employment, date);
+					if (row == null) refuse(`Piece-rate severance needs dated terms on ${date}.`);
+					return row;
+				};
+				const scheduled = resolveSchedule({
+					window: { start: oldest, end: asOf },
+					dates,
+					terms: (date) => {
+						const pattern = termPatternRow(termOn(date), options.configuration.patternById);
+						return {
+							work_pattern: pattern?.pattern ?? null,
+							pattern_anchor: patternAnchor(pattern),
+							normal_daily_hours: 8
+						};
+					},
+					workDays: options.bundle.pieceWorkDays,
+					rosters: options.bundle.rosters,
+					configuration: options.configuration
+				});
+				const leave = activeTimeOff(options.bundle.leave.entries).map((entry) => ({
+					from: dateKey(entry.from_date),
+					to: dateKey(entry.to_date)
+				}));
+				for (const date of dates) {
+					const row = pieceDays.get(date);
+					if (
+						row?.piece_units != null ||
+						row?.worked_intervals?.length === 0 ||
+						leave.some((entry) => entry.from <= date && date <= entry.to)
+					)
+						continue;
+					const day = scheduled.get(date);
+					const unrostered =
+						termPatternRow(termOn(date), options.configuration.patternById) == null;
+					if (
+						unrostered ||
+						(row?.worked_intervals?.length ?? 0) > 0 ||
+						(day?.dayType === 'ORDINARY' && day.shift != null)
+					)
+						pieceWages.push({ date, amount: null });
+				}
+			}
+			const personInput = {
 				employee: options.bundle.employee,
 				employment: stint(options.bundle.employment, version.exit_facts ?? []),
 				fixedAllowances: contractAllowancesOn(options.bundle, options.configuration, asOf),
@@ -419,13 +558,15 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 					? configuredMonthlyWageAverage(options.bundle, options.configuration, asOf, version)
 					: null,
 				earnings: options.earnedByMonth ?? null,
+				pieceWages,
 				// The approved time off, as calendar spans: 施行細則 §2's periods and MY s.60E(3B)'s days.
 				leaveSpans: activeTimeOff(options.bundle.leave.entries).map((row) => ({
 					code: row.leave_code,
 					from: dateKey(row.from_date),
 					to: dateKey(row.to_date)
 				})),
-				terms: payRequestTerms(options.bundle.termsHistory, options.bundle.employment, asOf),
+				terms,
+				week,
 				children: options.bundle.children,
 				company,
 				period: { ...options.subject.period, ...options.leavePeriod?.() },
@@ -439,7 +580,15 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 					)
 				),
 				asOf
-			});
+			};
+			const divisorDays = readsOrdinaryTerms
+				? ordinaryDivisorDays({
+						expression: version.work_rules.ordinary_divisor_days,
+						person: personContext(personInput),
+						employeeNumber: options.bundle.employment.employee_number
+					})
+				: undefined;
+			const subject = personContext({ ...personInput, divisorDays });
 			if (!(separation && readsExitFacts)) return subject;
 			// The declared cause decides a separation amount (ID PP 35/2021 arts.40–57): a leaver
 			// whose departure is recorded without it cannot be priced for this class, which is
@@ -494,6 +643,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				daysInMonth: monthDays(options.salary.start),
 				ordinaryDay: rates.ordinaryDay,
 				ordinaryHour: rates.ordinaryHour,
+				unpaidSalary: options.unpaidSalary?.() ?? 0,
 				limits: Object.fromEntries(
 					options.configuration.limits.map((limit) => [limit.key, limit.max_hours])
 				),
@@ -582,7 +732,8 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				resolved,
 				componentCode: options.component.code,
 				subject: options.bundle.employment.employee_number,
-				proposed: sign * payable
+				proposed: sign * payable,
+				currency
 			});
 			if (refusal !== null) throw new Error(refusal);
 		}

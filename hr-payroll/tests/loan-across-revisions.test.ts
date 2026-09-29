@@ -77,9 +77,12 @@ function loanWorld(options: LoanWorldOptions = {}) {
 	// a code that does; drop it so the only revision question is the loan's.
 	clearAllowances(world);
 	// Punch every rostered day so the wage is not eaten by absence; this test is about the grid.
+	// The shift's granted 60 minutes go in as a gap: a break owed and not taken is worked time,
+	// and nine continuous hours price an hour outside ordinary paid work.
 	for (const day of world.work_days) {
 		day.worked_intervals = [
-			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T12:30:00+08:00` },
+			{ start: `${day.work_date}T13:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
 		];
 	}
 

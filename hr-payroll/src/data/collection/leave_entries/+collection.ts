@@ -21,9 +21,11 @@ const c = collection('leave_entries', {
 				'to_date',
 				'half_day_start',
 				'half_day_end',
+				'no_pay_origin',
 				'days',
 				'hours',
 				'encash_days',
+				'encash_hours',
 				'as_adjustment_entry',
 				'reversal_of_id',
 				'effective_on',
@@ -36,6 +38,7 @@ const c = collection('leave_entries', {
 				'event_kind',
 				'event_relationship',
 				'event_child_index',
+				'event_wife_prior_living_biological_children',
 				'event_date',
 				'agreed_pay_fraction'
 			]
@@ -56,6 +59,12 @@ const c = collection('leave_entries', {
 				catalogue_id: { kind: 'id', of: 'leave_catalogue' },
 				/** A calendar month, YYYY-MM. */
 				calendar_month: { kind: 'text', optional: true },
+				hours: { kind: 'decimal', scale: 3, optional: true },
+				no_pay_origin: {
+					kind: 'enum',
+					values: ['EMPLOYEE_REQUESTED', 'OTHER'],
+					optional: true
+				},
 				range: {
 					kind: 'object',
 					optional: true,
@@ -107,19 +116,25 @@ c.transform(async (inputs, ctx) => {
 	const rows = inputs.map(
 		(input) => plain(input) as Partial<LeaveSubmission> & { certificate_file?: unknown }
 	);
-	const ranges = rows.flatMap((row) => {
+	const dates = rows.flatMap((row) => {
 		const range = leaveActivityOf(row) === 'TIME_OFF' ? timeOffRangeOf(row) : null;
-		return range == null ? [] : [range];
+		return range == null
+			? [
+					row.from_date,
+					row.to_date,
+					row.effective_on,
+					row.due_on,
+					row.destination_from,
+					row.destination_to
+				].filter((date): date is string => date != null)
+			: [range.start.date, range.end.date];
 	});
 	const window =
-		ranges.length === 0
+		dates.length === 0
 			? undefined
 			: {
-					start: ranges.map((row) => row.start.date).toSorted()[0]!,
-					end: ranges
-						.map((row) => row.end.date)
-						.toSorted()
-						.at(-1)!
+					start: dates.toSorted()[0]!,
+					end: dates.toSorted().at(-1)!
 				};
 	const context = await readLeaveContext(
 		ctx.db,
@@ -134,7 +149,11 @@ c.transform(async (inputs, ctx) => {
 /** Balances as the caller: the same read and rules as approval, over the caller's own grants. */
 c.query('leave_balances', async (input, ctx) => {
 	const { employment_id, as_of } = plain(input) as { employment_id: string; as_of: string };
-	return leaveBalanceSummaries(await readLeaveContext(ctx, [employment_id]), employment_id, as_of);
+	return leaveBalanceSummaries(
+		await readLeaveContext(ctx, [employment_id], { start: as_of, end: as_of }),
+		employment_id,
+		as_of
+	);
 });
 
 c.query('preview_leave', async (input, ctx) =>

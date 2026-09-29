@@ -41,6 +41,8 @@ export function leaveEncashmentRate(options: {
 	const { bundle, configuration, entry } = options;
 	if (!entry.effective_on) throw new Error('Leave cash-out requires a conversion date.');
 	const exit = employmentDates(bundle.employment).exit;
+	if (entry.encash_hours != null && (exit == null || entry.effective_on !== exit))
+		throw new Error('Hourly leave cash-out requires the recorded departure date.');
 	let eventDate = exit != null && exit < entry.effective_on ? exit : entry.effective_on;
 	let version = settingsInForce(
 		configuration.lineageVersions,
@@ -287,5 +289,9 @@ export function leaveEncashmentRate(options: {
 	if (!Number.isFinite(rate) || rate < 0)
 		throw new Error('Leave cash-out daily pay must be finite and nonnegative.');
 	// Preserve the quotient. The completed award rounds once in the payroll currency.
-	return rate;
+	if (entry.encash_hours == null) return rate;
+	const normalHours = hoursPerWeek / daysPerWeek;
+	if (!(normalHours > 0))
+		throw new Error('Hourly leave cash-out requires positive contractual daily hours.');
+	return rate / normalHours;
 }

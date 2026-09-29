@@ -22,6 +22,10 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 */
 	availability: Schema.Literals(['UPFRONT', 'MONTHLY', 'UNLIMITED', 'PER_EVENT', 'CREDITED']),
 	year_start_month: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
+	/** A statutory service year starts on each anniversary of the employment hire date. */
+	year_anchor: Schema.optionalKey(Schema.Literals(['CALENDAR', 'SERVICE_ANNIVERSARY'])),
+	/** Carry unused current-year entitlement into the next leave year, expiring at its end. */
+	auto_carry_one_year: Schema.optionalKey(Schema.Boolean),
 	/**
 	 * `HALF_MONTHS`: a calendar month counts as one once at least half its days are eligible (VN
 	 * Decree 145/2020 art.66(2): a part month worked or paid for half its working days is a month).
@@ -33,6 +37,8 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 		'HALF_MONTHS',
 		'CALENDAR_DAYS'
 	]),
+	/** The entitlement counts every calendar day, including rest days and holidays. */
+	calendar_days: Schema.optionalKey(Schema.Boolean),
 	/** The most PER_EVENT entries of this leave an employee may take in a lifetime; absent is no cap. */
 	lifetime_events: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
 	/**
@@ -83,6 +89,11 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 */
 	rolling_months: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
 	/**
+	 * The most days of this leave charged in any calendar week, Monday to Sunday, whatever else
+	 * grants them (TW 勞基法 §16(2): job-search leave 每星期不得超過二日之工作時間, `2`). Absent is no cap.
+	 */
+	weekly_days: Schema.optionalKey(Schema.NullOr(Schema.Finite.check(Schema.isGreaterThan(0)))),
+	/**
 	 * How a prorated grant rounds: to the half day (the default), to the whole day with a half
 	 * or more rounding up (MY EA s.60E(1); SG EA s.88A(3)), or not at all (PH SIL: the DOLE
 	 * Handbook converts 2/12 × 5 = 0.833 days), or down to the whole day (CN 企业职工带薪年休假实施办法
@@ -111,12 +122,20 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 * s.88A(8) withhold it on a dismissal for misconduct. Absent or empty is every leaver.
 	 */
 	encash_on_exit_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/** Exit pay-out predicate for leave carried from an earlier leave year; absent uses the ordinary predicate. */
+	encash_carry_on_exit_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/**
 	 * A number over the person the matched band's days are multiplied by, before any proration
 	 * and rounding: a part-timer's share of the full-time grant by contracted hours (SG Part-Time
 	 * Employees Regulations; TW 僱用部分時間工作勞工應行注意事項). Absent or empty is the whole grant.
 	 */
 	scale: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/** Refuse part-time grants until this hourly entitlement can be balanced and paid in hours. */
+	requires_hourly_for_part_time: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/** Paid outpatient leave excludes a classified shift allowance from its gross-pay basis. */
+	outpatient_sick_excludes_shift_allowance: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/** A dated event grant whose payment needs the wife's prior living biological child count. */
+	requires_wife_prior_living_biological_children: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	bands: Schema.Array(
 		Schema.Struct({
 			/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */

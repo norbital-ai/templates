@@ -120,14 +120,31 @@ const COMP = leaveCatalogue('TW').find(
 		row.code === 'COMPENSATORY_TIME_OFF' && row.settings_id === settingsIdOn('TW', '2026-01-15')
 )!;
 
-const elect = (world: PayrollWorld, date: string, start: string, end: string) => {
+/**
+ * A day of elected work, `rest` being the §35 rest it takes as the gap between the worked
+ * intervals: a break owed and not taken is worked time, so only a gap proves one was taken.
+ */
+const elect = (
+	world: PayrollWorld,
+	date: string,
+	start: string,
+	end: string,
+	rest?: readonly [string, string]
+) => {
 	const employment = world.employments.find((row) => row.employee_number === PERSON.key)!;
+	const clock = (time: string) => `${date}T${time}:00+08:00`;
 	world.work_days.push({
 		id: `wd-${PERSON.key}-${date}`,
 		employment_id: employment.id,
 		work_date: date,
 		shift_definition_id: null,
-		worked_intervals: [{ start: `${date}T${start}:00+08:00`, end: `${date}T${end}:00+08:00` }],
+		worked_intervals:
+			rest == null
+				? [{ start: clock(start), end: clock(end) }]
+				: [
+						{ start: clock(start), end: clock(rest[0]) },
+						{ start: clock(rest[1]), end: clock(end) }
+					],
 		requested_by: null,
 		emergency_cause: null,
 		time_off_in_lieu: true,
@@ -245,7 +262,7 @@ test('TW round 4 — §32-1: six elected hours, two taken as 補休, the four le
 		periods: ['2026-01'],
 		exit: '2026-01-20',
 		plant: (world) => {
-			elect(world, '2026-01-05', '09:00', '21:00');
+			elect(world, '2026-01-05', '09:00', '21:00', ['13:00', '14:00']);
 			elect(world, '2026-01-10', '09:00', '12:00');
 			takeCompTime(world, '2026-01-15', 2);
 		}
@@ -264,7 +281,7 @@ test('TW round 4 — §32-1: untaken hours are paid when the agreed period expir
 	// first 4/3 hour. The February run, whose window reaches the expiry, pays what is left:
 	//   1 h × 250 × 4/3 = 333.33 and 1 h × 250 × 5/3 = 416.67.
 	const plant = (world: PayrollWorld) => {
-		elect(world, '2026-01-05', '09:00', '21:00');
+		elect(world, '2026-01-05', '09:00', '21:00', ['13:00', '14:00']);
 		takeCompTime(world, '2026-01-26', 1);
 	};
 	const january = chain({
@@ -295,7 +312,8 @@ test('TW round 4 — §32-1 with no agreed period: the credit lives to the end o
 	// No period recorded: 細則 §22-2 and MOL's 加班補休規定 Q&A make 31 December 2026 (ANNUAL_LEAVE's
 	// calendar year) the last day. February's run pays nothing; the run whose salary window
 	// reaches 31 December pays all three hours: 666.67 + 416.67.
-	const plant = (world: PayrollWorld) => elect(world, '2026-01-05', '09:00', '21:00');
+	const plant = (world: PayrollWorld) =>
+		elect(world, '2026-01-05', '09:00', '21:00', ['13:00', '14:00']);
 	const february = chain({ periods: ['2026-01', '2026-02'], plant });
 	assert.deepEqual(workLines(february.slips.get(PERSON.key)!), []);
 	const december = chain({ periods: ['2026-01', '2026-12'], plant });

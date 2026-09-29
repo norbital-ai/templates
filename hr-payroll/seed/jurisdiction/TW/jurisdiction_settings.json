@@ -131,18 +131,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -151,7 +151,7 @@
 				"hourly_by_region": {
 					"Taiwan": 190
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 190.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 28590.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$28,590 a month and NT$190 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate."
@@ -657,6 +657,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -792,18 +798,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -812,7 +818,7 @@
 				"hourly_by_region": {
 					"Taiwan": 196
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate."
@@ -1327,6 +1333,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -1462,18 +1474,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -1482,7 +1494,7 @@
 				"hourly_by_region": {
 					"Taiwan": 196
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate."
@@ -1997,6 +2009,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -2132,18 +2150,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -2152,7 +2170,7 @@
 				"hourly_by_region": {
 					"Taiwan": 190
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 190.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 28590.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$28,590 a month and NT$190 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate."
@@ -2659,6 +2677,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -2794,18 +2818,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -2814,7 +2838,7 @@
 				"hourly_by_region": {
 					"Taiwan": 196
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate."
@@ -3330,6 +3354,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -3465,18 +3495,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -3485,7 +3515,7 @@
 				"hourly_by_region": {
 					"Taiwan": 196
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate."
@@ -4001,6 +4031,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -4136,18 +4172,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -4156,7 +4192,7 @@
 				"hourly_by_region": {
 					"Taiwan": 190
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 190.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 28590.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$28,590 a month and NT$190 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. For a monthly-paid part-timer, 僱用部分時間工作勞工應行注意事項 §6(2)(1) holds the monthly minimum proportional to working time; 勞動基準法 §30(1) sets 40 normal weekly hours. The hourly figure independently governs hourly pay. Sources: https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=6&id=FL072875 ; https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=30&id=FL014930 . For daily pay, the same guidance requires at least the hourly minimum times the agreed normal working hours of the day. 最低工資法 §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate.",
@@ -4665,6 +4701,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -4800,18 +4842,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -4820,7 +4862,7 @@
 				"hourly_by_region": {
 					"Taiwan": 196
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. For a monthly-paid part-timer, 僱用部分時間工作勞工應行注意事項 §6(2)(1) holds the monthly minimum proportional to working time; 勞動基準法 §30(1) sets 40 normal weekly hours. The hourly figure independently governs hourly pay. Sources: https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=6&id=FL072875 ; https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=30&id=FL014930 . For daily pay, the same guidance requires at least the hourly minimum times the agreed normal working hours of the day. 最低工資法 §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate.",
@@ -5338,6 +5380,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -5473,18 +5521,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -5493,7 +5541,7 @@
 				"hourly_by_region": {
 					"Taiwan": 196
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. For a monthly-paid part-timer, 僱用部分時間工作勞工應行注意事項 §6(2)(1) holds the monthly minimum proportional to working time; 勞動基準法 §30(1) sets 40 normal weekly hours. The hourly figure independently governs hourly pay. Sources: https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=6&id=FL072875 ; https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=30&id=FL014930 . For daily pay, the same guidance requires at least the hourly minimum times the agreed normal working hours of the day. 最低工資法 §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate.",
@@ -6011,6 +6059,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -6146,18 +6200,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -6166,7 +6220,7 @@
 				"hourly_by_region": {
 					"Taiwan": 196
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. For a monthly-paid part-timer, 僱用部分時間工作勞工應行注意事項 §6(2)(1) holds the monthly minimum proportional to working time; 勞動基準法 §30(1) sets 40 normal weekly hours. The hourly figure independently governs hourly pay. Sources: https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=6&id=FL072875 ; https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=30&id=FL014930 . For daily pay, the same guidance requires at least the hourly minimum times the agreed normal working hours of the day. 最低工資法 §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate.",
@@ -6694,6 +6748,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -6829,18 +6889,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -6849,7 +6909,7 @@
 				"hourly_by_region": {
 					"Taiwan": 196
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. For a monthly-paid part-timer, 僱用部分時間工作勞工應行注意事項 §6(2)(1) holds the monthly minimum proportional to working time; 勞動基準法 §30(1) sets 40 normal weekly hours. The hourly figure independently governs hourly pay. Sources: https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=6&id=FL072875 ; https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=30&id=FL014930 . For daily pay, the same guidance requires at least the hourly minimum times the agreed normal working hours of the day. 最低工資法 §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate.",
@@ -7377,6 +7437,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -7512,18 +7578,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -7532,7 +7598,7 @@
 				"hourly_by_region": {
 					"Taiwan": 190
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 190.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 28590.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$28,590 a month and NT$190 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. For a monthly-paid part-timer, 僱用部分時間工作勞工應行注意事項 §6(2)(1) holds the monthly minimum proportional to working time; 勞動基準法 §30(1) sets 40 normal weekly hours. The hourly figure independently governs hourly pay. Sources: https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=6&id=FL072875 ; https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=30&id=FL014930 . For daily pay, the same guidance requires at least the hourly minimum times the agreed normal working hours of the day. 最低工資法 §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate.",
@@ -7660,6 +7726,29 @@
 				"minimum": 2,
 				"maximum": 15,
 				"description": "勞動基準法 §56(1): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內，按月提撥勞工退休準備金 — the percentage the competent authority approved for this entity's 勞工退休準備金. Required once the entity has a worker on the old (LSA) pension system: the LABOR_PENSION_RESERVE scheme refuses the run by name while it is unrecorded; an entity with no such worker leaves it blank."
+			},
+			{
+				"key": "li_unit_class",
+				"type": "string",
+				"label": "Labour-insurance employer unit class",
+				"description": "COMPANY_OR_SHOP is a company or registered shop under Labour Insurance Act §6(1)(2). Its LI mandate begins at five employees; EI and occupational insurance remain mandatory for eligible workers below five. BLI: https://www.bli.gov.tw/0018645.html",
+				"options": ["COMPANY_OR_SHOP"],
+				"required_when": "company.facts.li_no_insurance_unit"
+			},
+			{
+				"key": "li_no_insurance_unit",
+				"type": "boolean",
+				"label": "No mandatory or voluntary LI insurance unit",
+				"description": "True only with BLI-confirmed unit history showing that this company/shop has fewer than five workers, never entered mandatory LI, and has not opened a voluntary LI unit. A formerly mandatory unit remains mandatory after its workforce drops to four; an optional unit cannot selectively omit employees. EI and occupational cover still apply. BLI: https://www.bli.gov.tw/0102422.html ; https://www.bli.gov.tw/0018645.html",
+				"default_value": false
+			},
+			{
+				"key": "li_unit_evidence_reference",
+				"type": "string",
+				"label": "BLI unit-class and no-LI-unit evidence reference",
+				"description": "Reference the dated BLI unit-status and employer headcount history supporting li_no_insurance_unit. It does not substitute for EI/OCC enrolment evidence.",
+				"min_length": 1,
+				"required_when": "company.facts.li_no_insurance_unit"
 			},
 			{
 				"key": "time_off_in_lieu_months",
@@ -8051,6 +8140,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -8186,18 +8281,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -8206,7 +8301,7 @@
 				"hourly_by_region": {
 					"Taiwan": 196
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. For a monthly-paid part-timer, 僱用部分時間工作勞工應行注意事項 §6(2)(1) holds the monthly minimum proportional to working time; 勞動基準法 §30(1) sets 40 normal weekly hours. The hourly figure independently governs hourly pay. Sources: https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=6&id=FL072875 ; https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=30&id=FL014930 . For daily pay, the same guidance requires at least the hourly minimum times the agreed normal working hours of the day. 最低工資法 §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate.",
@@ -8335,6 +8430,29 @@
 				"minimum": 2,
 				"maximum": 15,
 				"description": "勞動基準法 §56(1): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內，按月提撥勞工退休準備金 — the percentage the competent authority approved for this entity's 勞工退休準備金. Required once the entity has a worker on the old (LSA) pension system: the LABOR_PENSION_RESERVE scheme refuses the run by name while it is unrecorded; an entity with no such worker leaves it blank."
+			},
+			{
+				"key": "li_unit_class",
+				"type": "string",
+				"label": "Labour-insurance employer unit class",
+				"description": "COMPANY_OR_SHOP is a company or registered shop under Labour Insurance Act §6(1)(2). Its LI mandate begins at five employees; EI and occupational insurance remain mandatory for eligible workers below five. BLI: https://www.bli.gov.tw/0018645.html",
+				"options": ["COMPANY_OR_SHOP"],
+				"required_when": "company.facts.li_no_insurance_unit"
+			},
+			{
+				"key": "li_no_insurance_unit",
+				"type": "boolean",
+				"label": "No mandatory or voluntary LI insurance unit",
+				"description": "True only with BLI-confirmed unit history showing that this company/shop has fewer than five workers, never entered mandatory LI, and has not opened a voluntary LI unit. A formerly mandatory unit remains mandatory after its workforce drops to four; an optional unit cannot selectively omit employees. EI and occupational cover still apply. BLI: https://www.bli.gov.tw/0102422.html ; https://www.bli.gov.tw/0018645.html",
+				"default_value": false
+			},
+			{
+				"key": "li_unit_evidence_reference",
+				"type": "string",
+				"label": "BLI unit-class and no-LI-unit evidence reference",
+				"description": "Reference the dated BLI unit-status and employer headcount history supporting li_no_insurance_unit. It does not substitute for EI/OCC enrolment evidence.",
+				"min_length": 1,
+				"required_when": "company.facts.li_no_insurance_unit"
 			},
 			{
 				"key": "time_off_in_lieu_months",
@@ -8744,6 +8862,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	},
@@ -8752,8 +8876,8 @@
 		"code": "TW",
 		"name": "Taiwan — 1 January 2027",
 		"sealed_at": "2026-09-26T13:27:00.000Z",
-		"voided_at": null,
-		"void_reason": null,
+		"voided_at": "2026-09-28T21:07:53.000Z",
+		"void_reason": "Provisional 2027 wage floor and dependent insurance/pension grades were sealed before the 116年 minimum-wage amount received Executive Yuan approval and an operative MOL order. The 115年 NT$29,500/196 floor cannot govern payroll from 2027-01-01. Preserve this source snapshot; issue a newly sealed 116年 version only after official rates and grades are published.",
 		"cloned_from_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
 		"effective_range": {
 			"start": "2027-01-01T00:00:00.000Z",
@@ -8879,18 +9003,18 @@
 			],
 			"breaks": [
 				{
-					"when": "consecutive_hours >= 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
+					"when": "consecutive_hours > 4.0 && has(company.facts.shift_or_continuous_work) && company.facts.shift_or_continuous_work",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": true
 				},
 				{
-					"when": "consecutive_hours >= 4.0",
+					"when": "consecutive_hours > 4.0",
 					"owed_minutes": "30.0",
 					"counts_as_worked_time": false
 				}
 			],
 			"holiday_rest_precedence": "SUBSTITUTE",
-			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001",
+			"authority": "勞動基準法第24條第1項 — extended work is paid at no less than 4/3 of the ordinary hourly wage for the first two hours and 5/3 beyond, in force in this form since 2018-03-01; 第32條第2項 caps normal plus extended work at 12 hours a day, extended work at 46 hours a month and, where a union or a labour-management conference consents, at 138 hours in any three months; 第35條 gives 30 minutes' rest after four continuous hours; 第36條 gives two days' rest in every seven, one of them the 例假 that may not be worked; 第37條 and 紀念日及節日實施條例第8條 move a holiday that falls on a rest day to a 補假 rather than absorbing it; 第39條 pays a further day's wage for work on a holiday. Applied 2026-09-18: §30 the normal day is eight hours (`normal_hours`); §32(2) 54 overtime hours a month on consent (`limits[].when` over the entity fact `overtime_consent`); §35 proviso: for shift or continuous work the break is rescheduled inside working time and counts as worked (`shift_or_continuous_work`); §84-1: a NON_EA classification at an establishment with an approved 責任制 agreement is outside the overtime ladder (`responsibility_system`). Applied 2026-09-23: §24(1)(3) — hours extended under §32(4) (natural disaster, incident or emergency) are paid at double the ordinary hourly wage (`EMERGENCY-2.0X` over `emergency_cause`), and §32(2) caps only the §32(1) extension, so those hours count toward no ceiling (§36(3) says the same of rest-day work so forced); §32-1 — where the worker elects time off for a §32(1)–(2) extension or 休息日 work, the hours are credited hour for hour instead of paid (the ordinary-day and 休息日 ladders stand aside where `time_off_in_lieu` holds; not for 例假, holiday or §32(4) work, which §32-1 does not reach); hours untaken at the agreed expiry (no later than the end of the annual-leave year, 施行細則 §22-2) or on termination are paid by payroll at that day's overtime rates (`time_off_in_lieu`). Source: https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 Corrected in place 2026-09-28 (round 6, a transcription error in every version): §35 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=35) reads 勞工繼續工作四小時，至少應有三十分鐘之休息 — the rest follows four continuous hours, so a run of exactly four hours owes none and the trigger is `consecutive_hours > 4.0`, not `>= 4.0`.",
 			"normal_hours": "8.0",
 			"wages": {
 				"by_region": {
@@ -8899,7 +9023,7 @@
 				"hourly_by_region": {
 					"Taiwan": 196
 				},
-				"applies_when": "employment.type != \"INTERN\"",
+				"applies_when": "",
 				"substitutes_below": true,
 				"scale": "terms.pay_frequency == \"DAILY\" && terms.working_days_per_week > 0.0 && terms.ordinary_hours_per_week > 0.0 ? 196.0 * 30.0 * terms.ordinary_hours_per_week / terms.working_days_per_week / 29500.0 : 1.0",
 				"authority": "最低工資法 §4–§5 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5): NT$29,500 a month and NT$196 an hour. `hourly_by_region` holds an hourly rate (and a part-timer’s month, pro rata to its hours) to the hourly figure, and `scale` a daily rate to the hourly figure for the contract’s normal hours a day; a monthly salary is held to the monthly figure. For a monthly-paid part-timer, 僱用部分時間工作勞工應行注意事項 §6(2)(1) holds the monthly minimum proportional to working time; 勞動基準法 §30(1) sets 40 normal weekly hours. The hourly figure independently governs hourly pay. Sources: https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=6&id=FL072875 ; https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=30&id=FL014930 . For daily pay, the same guidance requires at least the hourly minimum times the agreed normal working hours of the day. 最低工資法 §5 議定之工資低於最低工資者，以本法所定之最低工資為其工資數額: a covered contract below the floor is paid the floor in its own unit (`substitutes_below`), not the agreed rate.",
@@ -9437,6 +9561,12 @@
 				"type": "boolean",
 				"label": "Disability caused by the job (勞基法 §55(1)(2))",
 				"description": "勞基法 §55(1)(2): the §54(1)(2) disability was caused by performing the job; the retirement pay is increased by 20%. Unrecorded is no."
+			},
+			{
+				"key": "occupational_death",
+				"type": "boolean",
+				"label": "Death from an occupational accident or disease (勞基法 §59(4))",
+				"description": "勞基法 §59(4): the worker died of an occupational injury or occupational disease. The employer pays five months’ 平均工資 as funeral costs and forty months’ as death compensation to the survivors (OCC_DEATH_FUNERAL, OCC_DEATH_COMPENSATION), 平均工資 read as SEVERANCE_PAY reads it (`average_daily_wage` × 30 where stated). Unrecorded is no."
 			}
 		]
 	}

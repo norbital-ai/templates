@@ -87,6 +87,7 @@ const settings = collection('jurisdiction_settings', {
 							'eligibility',
 							'counts_toward',
 							'npl_prorates',
+							'outpatient_sick_pay',
 							'owed'
 						]
 					}

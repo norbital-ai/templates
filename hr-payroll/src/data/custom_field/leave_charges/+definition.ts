@@ -11,10 +11,11 @@ const f = customField({
 			fields: {
 				date: { kind: 'text' },
 				days: { kind: 'number' },
+				hours: { kind: 'number', optional: true },
 				catalogue_id: { kind: 'text' },
 				employment_term_id: { kind: 'text' },
 				holiday_id: { kind: 'text', optional: true },
-				shift_definition_id: { kind: 'text' },
+				shift_definition_id: { kind: 'text', optional: true },
 				work_day_id: { kind: 'text', optional: true }
 			}
 		}
@@ -23,9 +24,13 @@ const f = customField({
 export default f;
 f.validate((rows) => {
 	for (const row of rows) {
-		if (!(row.days > 0 && row.days <= 1 && Number.isInteger(row.days * 8)))
+		if (
+			!(row.days > 0 && row.days <= 1) ||
+			(row.hours == null ? !Number.isInteger(row.days * 8) : !(row.hours > 0))
+		)
 			return 'A charge is a whole or half day, or an eighth of one for a row taken by the hour.';
-		const ids = [row.catalogue_id, row.employment_term_id, row.shift_definition_id];
+		const ids = [row.catalogue_id, row.employment_term_id];
+		if (row.shift_definition_id != null) ids.push(row.shift_definition_id);
 		if (row.holiday_id != null) ids.push(row.holiday_id);
 		if (row.work_day_id != null) ids.push(row.work_day_id);
 		if (!isCalendarDate(row.date) || !ids.every(isSettledId))

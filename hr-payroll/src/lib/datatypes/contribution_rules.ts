@@ -27,6 +27,8 @@ export const contributionRuleSchema = Schema.Struct({
 	employer: cel,
 	/** Price each declared payment's average unit, then multiply by its units and sum. */
 	per_unit: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/** Assess each dated payment independently; a payment is exactly one unit. */
+	payment_occasion: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	/** Rebatable payments made this period, retained separately for subsequent assessments. */
 	rebate: Schema.optionalKey(Schema.NullOr(cel)),
 	/** Allowable deduction evaluated once after selection, readable as scheme.deduction. */
@@ -45,6 +47,8 @@ export type ContributionRule = Schema.Schema.Type<typeof contributionRuleSchema>
 const contributionRulesValueSchema = Schema.Array(contributionRuleSchema).check(
 	Schema.makeFilter((rules) => {
 		for (const rule of rules) {
+			if (rule.payment_occasion && !rule.per_unit)
+				return 'Payment-occasion assessment requires per-unit assessment.';
 			if (rule.per_unit && (rule.deduction != null || rule.rebate != null))
 				return 'Per-unit assessment cannot combine a period deduction or rebate.';
 			for (const expression of [rule.when, rule.deduction ?? '0.0'])

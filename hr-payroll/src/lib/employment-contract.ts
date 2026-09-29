@@ -132,7 +132,7 @@ export function leaveTermsThrough(
 			? (candidates.toSorted()[0] ?? null)
 			: activity === 'CARRY_FORWARD'
 				? (entry.to_date ?? null)
-				: activity === 'ADJUSTMENT' && (entry.days ?? 0) < 0
+				: activity === 'ADJUSTMENT' && (entry.hours ?? entry.days ?? 0) < 0
 					? (entry.effective_on ?? null)
 					: null;
 	return date == null ? null : [date, ...(exit == null ? [] : [exit])].toSorted()[0]!;

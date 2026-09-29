@@ -1,9 +1,10 @@
-import { collection } from '@norbital-ai/bolt';
+import { collection, type TransformRow } from '@norbital-ai/bolt';
 import { dateKey } from '../../../lib/iso-day.js';
 import { addDays, monthBounds } from '../../../lib/payroll/run/dates.js';
-import { coversDate } from '../../../lib/payroll/run/effective.js';
+import { coversDate, readRange } from '../../../lib/payroll/run/effective.js';
+import { leaveWindowOf } from '../../../lib/leave/entitlement.js';
 import { isEligible, personContext } from '../../../lib/payroll/run/eligibility.js';
-import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
+import { settingsInForce, stableJson } from '../../../lib/jurisdiction_settings.js';
 import { selectBreakRule } from '../../../lib/scheduling/rest-break.js';
 import { leaveCoverage, type LeaveRequestLike } from '../../../lib/scheduling/leave-coverage.js';
 import {
@@ -17,7 +18,8 @@ import {
 	applicableLimits,
 	assessmentWindow,
 	breachSentence,
-	observedHolidayDates,
+	observedDays,
+	observedPlan,
 	overtimeHeadroom,
 	plannedDay,
 	projectedLimitBreaches,
@@ -43,7 +45,7 @@ import {
 	type StatutoryWeeklyRestRule
 } from './lib/schedule-rules.js';
 import { kioskPunch } from './lib/kiosk-punch.js';
-import { importMonth } from './lib/import-month.js';
+import { importMonth, sameIntervals } from './lib/import-month.js';
 import { decodeNumber } from '../../../lib/wire.js';
 
 const columns = [
@@ -51,9 +53,23 @@ const columns = [
 	'work_date',
 	'shift_definition_id',
 	'worked_intervals',
+	'sg_absence_permission',
+	'sg_absence_reasonable_excuse',
+	'sg_absence_decision_reference',
+	'sg_partial_absence',
 	'approved_overtime_hours',
+	'overtime_consented_at',
+	'th_consent_exception',
+	'th_consent_exception_reference',
+	'th_split_break_agreed_at',
+	'th_minor_night_permission_granted_at',
+	'th_minor_night_permission_reference',
+	'normal_hours_redistribution_agreed_at',
 	'comparable_full_time_daily_hours',
 	'incentive_hours',
+	'worksite',
+	'piece_units',
+	'piece_unit_rate',
 	'requested_by',
 	'emergency_cause',
 	'time_off_in_lieu'
@@ -66,7 +82,7 @@ const c = collection('work_days', {
 	read: { fields: 'all' },
 	create: { input: { columns } },
 	update: { input: { columns } },
-	delete: {},
+	delete: { transform: true },
 	actions: {
 		kiosk_punch: {
 			description:
@@ -107,7 +123,13 @@ const c = collection('work_days', {
 					optional: true,
 					of: {
 						kind: 'object',
-						fields: { employee_number: row, work_date: row, overtime_hours: { kind: 'number' } }
+						fields: {
+							employee_number: row,
+							work_date: row,
+							overtime_hours: { kind: 'number' },
+							overtime_consented_at: { kind: 'text', optional: true },
+							normal_hours_redistribution_agreed_at: { kind: 'text', optional: true }
+						}
 					}
 				}
 			},
@@ -133,6 +155,8 @@ const on = (date: string) => date as `${number}-${number}-${number}`;
 const key = (employmentId: string, date: string) => `${employmentId}:${date}`;
 
 type WorkedInterval = { readonly start: string; readonly end: string | null };
+/** A batch element that carries columns: a `$delete` row is only ever the `deleting` case below. */
+type Write = TransformRow<'work_days'>;
 
 /**
  * Attendance is an ordered set of observations. `null` is a work day with no attendance recorded — a plan and nothing
@@ -211,6 +235,171 @@ function leaveOwnsDayProblem(
  */
 c.transform(async (inputs, ctx) => {
 	const { existing, db } = ctx;
+	// An explicitly typed alias, so a refusal narrows what follows it (TS control flow).
+	const refuse: (message: string, at?: { field?: string }) => never = (message, at) =>
+		ctx.refuse(message, at as never);
+	const annualInputs = new Set([
+		'work_date',
+		'shift_definition_id',
+		'worked_intervals',
+		'sg_absence_permission',
+		'sg_absence_reasonable_excuse',
+		'sg_absence_decision_reference',
+		'sg_partial_absence'
+	]);
+	/** One guarded row: the stored row (or this write) and every work date its change touches. */
+	const guarded: { stored: Write; dates: string[] }[] = inputs.flatMap((input, index) => {
+		const stored = existing[index] as Write | undefined;
+		if (stored == null) {
+			// A new observed presence does not assert an absence or change the saved roster.
+			// Kiosk punches must remain recordable after leave has been approved.
+			const write = input as Write;
+			const absenceOrPlan =
+				(write.worked_intervals != null && write.worked_intervals.length === 0) ||
+				write.shift_definition_id != null ||
+				write.sg_absence_permission != null ||
+				write.sg_absence_reasonable_excuse != null ||
+				write.sg_absence_decision_reference != null ||
+				write.sg_partial_absence != null;
+			return absenceOrPlan ? [{ stored: write, dates: [day(write.work_date)] }] : [];
+		}
+		const deleting = '$delete' in input;
+		const changed =
+			deleting ||
+			Object.entries(input).some(([field, value]) => {
+				if (!annualInputs.has(field)) return false;
+				const prior = stored[field as keyof typeof stored];
+				if (field === 'worked_intervals') {
+					if (sameIntervals(value, prior)) return false;
+					// A punch or correction that still records presence cannot change the
+					// whole-day unexcused numerator. Missing/empty attendance can.
+					return !(
+						Array.isArray(value) &&
+						value.length > 0 &&
+						(prior == null || (Array.isArray(prior) && prior.length > 0))
+					);
+				}
+				return stableJson(value) !== stableJson(prior);
+			});
+		return changed
+			? [
+					{
+						stored,
+						dates: [
+							...new Set([
+								day(stored.work_date),
+								...(!deleting && input.work_date !== undefined ? [day(input.work_date)] : [])
+							])
+						]
+					}
+				]
+			: [];
+	});
+	// A batch is one verb: a delete is never counted with a create or an update.
+	const deletes = inputs.filter((input) => '$delete' in input).length;
+	if (deletes !== 0 && deletes !== inputs.length)
+		refuse('Delete work days separately from creating or updating them.');
+	if (guarded.length > 0) {
+		const employmentIds = [...new Set(guarded.map(({ stored }) => String(stored.employment_id)))];
+		const employments = await db.read('employments', {
+			where: { id: { in: employmentIds as never[] } },
+			select: { id: true, company_id: true, effective_range: true },
+			all: true
+		});
+		const byEmployment = new Map(employments.rows.map((row) => [String(row.id), row]));
+		const companies = await db.read('companies', {
+			where: { id: { in: [...new Set(employments.rows.map((row) => row.company_id))] } },
+			select: { id: true, settings_code: true },
+			all: true
+		});
+		const companyCode = new Map(companies.rows.map((row) => [String(row.id), row.settings_code]));
+		const sgRows = guarded.filter(({ stored }) => {
+			const employment = byEmployment.get(String(stored.employment_id));
+			return employment != null && companyCode.get(String(employment.company_id)) === 'SG';
+		});
+		if (sgRows.length > 0) {
+			const sgIds = [
+				...new Set(sgRows.map(({ stored }) => String(stored.employment_id)))
+			] as never[];
+			const [versions, catalogues, annualEntries] = await Promise.all([
+				db.read('jurisdiction_settings', {
+					where: { code: { eq: 'SG' } },
+					select: {
+						id: true,
+						code: true,
+						sealed_at: true,
+						voided_at: true,
+						effective_range: true,
+						approval_id: true
+					},
+					all: true
+				}),
+				db.read('leave_catalogue', {
+					where: { code: { eq: 'ANNUAL_LEAVE' } },
+					select: { settings_id: true, code: true, entitlement: true, approval_id: true },
+					all: true
+				}),
+				db.read('leave_entries', {
+					where: {
+						employment_id: { in: sgIds },
+						leave_code: { eq: 'ANNUAL_LEAVE' }
+					},
+					select: {
+						employment_id: true,
+						approval_id: true,
+						payslip_id: true,
+						from_date: true,
+						to_date: true,
+						effective_on: true,
+						due_on: true,
+						destination_from: true,
+						destination_to: true
+					},
+					all: true
+				})
+			]);
+			for (const { stored, dates: affectedDates } of sgRows) {
+				const employmentId = String(stored.employment_id);
+				const employment = byEmployment.get(employmentId);
+				const hire = dateKey(readRange(employment?.effective_range)?.start ?? '');
+				for (const workDate of affectedDates) {
+					const version = settingsInForce(versions.rows, 'SG', workDate);
+					const catalogue = catalogues.rows.find(
+						(row) => row.settings_id === version?.id && row.approval_id == null
+					);
+					if (hire === '' || version == null || catalogue == null)
+						refuse(`Singapore annual leave cannot assess a change to work day ${workDate}.`);
+					const period = catalogue.entitlement;
+					const source = leaveWindowOf(workDate, period, hire);
+					const successor = leaveWindowOf(addDays(source.end, 1), period, hire);
+					const captured = annualEntries.rows.some((entry) => {
+						if (
+							String(entry.employment_id) !== employmentId ||
+							(entry.approval_id != null && entry.payslip_id == null)
+						)
+							return false;
+						const dates = [
+							entry.from_date,
+							entry.to_date,
+							entry.effective_on,
+							entry.due_on,
+							entry.destination_from,
+							entry.destination_to
+						].filter((date) => date != null);
+						return dates.some((date) => {
+							const recorded = day(date);
+							return recorded >= source.start && recorded <= successor.end;
+						});
+					});
+					if (captured)
+						ctx.refuse(
+							`Singapore work day ${workDate} cannot change after annual leave in its service year or carry year was approved or paid.`
+						);
+				}
+			}
+		}
+	}
+	if (inputs.every((input) => '$delete' in input)) return inputs;
 	type Coordinate = PlanChange;
 	const coordinates: Coordinate[] = [];
 	const changes: Coordinate[] = [];
@@ -218,23 +407,24 @@ c.transform(async (inputs, ctx) => {
 	const ownEmergencyByKey = new Map<string, boolean>();
 	for (const [index, input] of inputs.entries()) {
 		const stored = existing[index];
-		const employmentId = String(input.employment_id ?? stored?.employment_id ?? '');
-		const workDate = day(input.work_date ?? stored?.work_date);
+		const write = input as Write;
+		const employmentId = String(write.employment_id ?? stored?.employment_id ?? '');
+		const workDate = day(write.work_date ?? stored?.work_date);
 		if (employmentId === '' || workDate === '') continue;
 		const coordinate = {
 			employment_id: employmentId,
 			work_date: workDate,
 			shift_definition_id:
-				input.shift_definition_id !== undefined
-					? (input.shift_definition_id ?? null)
+				write.shift_definition_id !== undefined
+					? (write.shift_definition_id ?? null)
 					: (stored?.shift_definition_id ?? null)
 		};
 		coordinates.push(coordinate);
-		if (input.approved_overtime_hours !== undefined)
-			ownApprovedByKey.set(key(employmentId, workDate), hours(input.approved_overtime_hours));
-		if (input.emergency_cause !== undefined)
-			ownEmergencyByKey.set(key(employmentId, workDate), input.emergency_cause === true);
-		if (input.shift_definition_id !== undefined || input.approved_overtime_hours !== undefined)
+		if (write.approved_overtime_hours !== undefined)
+			ownApprovedByKey.set(key(employmentId, workDate), hours(write.approved_overtime_hours));
+		if (write.emergency_cause !== undefined)
+			ownEmergencyByKey.set(key(employmentId, workDate), write.emergency_cause === true);
+		if (write.shift_definition_id !== undefined || write.approved_overtime_hours !== undefined)
 			changes.push(coordinate);
 	}
 	// The days a moved row leaves are judged too, so the neighbourhood covers them.
@@ -256,15 +446,19 @@ c.transform(async (inputs, ctx) => {
 	const spanEnd = addDays(monthBounds(to.slice(0, 7)).end, REST_RUN_PAD_DAYS);
 	const ids = employmentIds as never[];
 
-	// Wave 1: the people, their terms, the months around the write, their leave and payslips, the rosters of record and
-	// every settings version, each with only what the checks read (one wave crosses as one answer; a whole plant's
+	const employments = await db.read('employments', {
+		where: { id: { in: ids } },
+		select: { id: true, company_id: true, employee_number: true, effective_range: true },
+		all: true
+	});
+	const companyIds = [...new Set(employments.rows.map((row) => String(row.company_id)))];
+	const companyKeys = companyIds as never[];
+	const companies = await db.read('companies', { where: { id: { in: companyKeys } }, all: true });
+	const settingsCodes = [...new Set(companies.rows.map((row) => row.settings_code))] as never[];
+	// Wave 1: the people's terms, the months around the write, their leave and payslips, the rosters of record and
+	// their companies' settings versions, each with only what the checks read (a whole plant's
 	// payslips with every field did not fit).
-	const [employments, terms, monthRows, requests, slips, rosterRows, versions] = await Promise.all([
-		db.read('employments', {
-			where: { id: { in: ids } },
-			select: { id: true, company_id: true, employee_number: true, effective_range: true },
-			all: true
-		}),
+	const [terms, monthRows, requests, slips, rosterRows, versions] = await Promise.all([
 		db.read('employment_terms', {
 			where: { employment_id: { in: ids } },
 			select: {
@@ -327,6 +521,7 @@ c.transform(async (inputs, ctx) => {
 			all: true
 		}),
 		db.read('jurisdiction_settings', {
+			where: { code: { in: settingsCodes } },
 			select: {
 				id: true,
 				code: true,
@@ -340,7 +535,6 @@ c.transform(async (inputs, ctx) => {
 		})
 	]);
 	const employmentById = new Map(employments.rows.map((row) => [String(row.id), row]));
-	const companyIds = [...new Set(employments.rows.map((row) => String(row.company_id)))];
 	const settingsVersions = versions.rows.map((version) => ({
 		...version,
 		id: String(version.id),
@@ -363,12 +557,9 @@ c.transform(async (inputs, ctx) => {
 			: projectionWindow.start;
 	const calendarEnd =
 		projectionWindow == null || spanEnd > projectionWindow.end ? spanEnd : projectionWindow.end;
-	const companyKeys = companyIds as never[];
-
 	// Wave 2: the entities, their runs, codes and patterns, and the wider projection and the calendar the hour ceilings
 	// ask for, keyed by what wave 1 named.
-	const [companies, runs, codeRows, patternRows, projectionRows, holidayRows] = await Promise.all([
-		db.read('companies', { where: { id: { in: companyKeys } }, all: true }),
+	const [runs, codeRows, patternRows, projectionRows, holidayRows] = await Promise.all([
 		db.read('payroll_runs', { where: { company_id: { in: companyKeys } }, all: true }),
 		db.read('shift_definitions', { where: { company_id: { in: companyKeys } }, all: true }),
 		db.read('shift_patterns', { where: { company_id: { in: companyKeys } }, all: true }),
@@ -533,12 +724,13 @@ c.transform(async (inputs, ctx) => {
 		const planned = new Set(
 			inputs.flatMap((input, index) => {
 				const stored = existing[index];
-				return input.shift_definition_id === undefined
+				const write = input as Write;
+				return write.shift_definition_id === undefined
 					? []
 					: [
 							key(
-								String(input.employment_id ?? stored?.employment_id),
-								day(input.work_date ?? stored?.work_date)
+								String(write.employment_id ?? stored?.employment_id),
+								day(write.work_date ?? stored?.work_date)
 							)
 						];
 			})
@@ -637,13 +829,13 @@ c.transform(async (inputs, ctx) => {
 					date,
 					plannedDay({ date, rosterCodeId: codeIdOn(date), codeById: codeFactsById })
 				);
-			const holidayDates = observedHolidayDates({
+			const observed = observedDays({
 				dates: [...planByDate.keys()],
 				cutoffDay,
 				companyId: String(entity?.id ?? ''),
 				holidays: holidays as never,
 				codes: codes as never,
-				precedence: version.work_rules?.holiday_rest_precedence,
+				work: version.work_rules,
 				plans: [...storedByKey]
 					.filter(([storedKey]) => storedKey.startsWith(`${employmentId}:`))
 					.map(([storedKey, shiftId]) => {
@@ -677,13 +869,12 @@ c.transform(async (inputs, ctx) => {
 					days: [...planByDate.values()].map((plan) => {
 						const at = key(employmentId, plan.date);
 						return {
-							...plan,
+							...observedPlan(plan, observed),
 							approved_overtime_hours:
 								(written ? ownApprovedByKey.get(at) : undefined) ??
 								storedApprovedByKey.get(at) ??
 								0,
-							emergency: (written ? ownEmergencyByKey.get(at) : undefined) ?? emergencyKeys.has(at),
-							holiday: holidayDates.has(plan.date)
+							emergency: (written ? ownEmergencyByKey.get(at) : undefined) ?? emergencyKeys.has(at)
 						};
 					}),
 					limits: applicable,
@@ -777,7 +968,8 @@ c.transform(async (inputs, ctx) => {
 	}
 
 	const assignments: Parameters<typeof assertNoOverlap>[1][number][] = [];
-	for (const [index, input] of inputs.entries()) {
+	for (const [index, row] of inputs.entries()) {
+		const input = row as Write;
 		const stored = existing[index];
 		const employmentId = String(input.employment_id ?? stored?.employment_id ?? '');
 		if (employmentId === '') ctx.refuse('A work day must reference an employment on file.');
@@ -790,6 +982,11 @@ c.transform(async (inputs, ctx) => {
 		const intervals = (
 			input.worked_intervals !== undefined ? input.worked_intervals : stored?.worked_intervals
 		) as readonly WorkedInterval[] | null | undefined;
+		const pieceUnits = input.piece_units !== undefined ? input.piece_units : stored?.piece_units;
+		const pieceRate =
+			input.piece_unit_rate !== undefined ? input.piece_unit_rate : stored?.piece_unit_rate;
+		if ((pieceUnits == null) !== (pieceRate == null))
+			ctx.refuse('Piece units and wage per unit must be recorded together.');
 		const problem =
 			workedIntervalsProblem(intervals) ??
 			plannedHoursProblem(
@@ -799,6 +996,78 @@ c.transform(async (inputs, ctx) => {
 				input.incentive_hours !== undefined ? input.incentive_hours : stored?.incentive_hours
 			);
 		if (problem != null) ctx.refuse(problem);
+		if (versionOn(employmentId, workDate)?.code === 'SG') {
+			const permission =
+				input.sg_absence_permission !== undefined
+					? input.sg_absence_permission
+					: stored?.sg_absence_permission;
+			const excuse =
+				input.sg_absence_reasonable_excuse !== undefined
+					? input.sg_absence_reasonable_excuse
+					: stored?.sg_absence_reasonable_excuse;
+			const reference =
+				input.sg_absence_decision_reference !== undefined
+					? input.sg_absence_decision_reference
+					: stored?.sg_absence_decision_reference;
+			const partial =
+				input.sg_partial_absence !== undefined
+					? input.sg_partial_absence === true
+					: stored?.sg_partial_absence === true;
+			if ((permission == null) !== (excuse == null))
+				ctx.refuse(`${workDate} needs both Singapore absence permission and excuse decisions.`);
+			if ((permission != null || partial) && !reference?.trim())
+				ctx.refuse(`${workDate} needs a reference for its Singapore absence decision.`);
+			if (permission != null && intervals == null)
+				ctx.refuse(`${workDate} needs recorded attendance for its Singapore absence decision.`);
+			if (permission != null && intervals != null && intervals.length > 0 && !partial)
+				ctx.refuse(`${workDate} needs partial-absence classification for worked attendance.`);
+			if (partial && intervals == null)
+				ctx.refuse(`${workDate} needs recorded attendance for its partial absence.`);
+		}
+		if (versionOn(employmentId, workDate)?.code === 'TH') {
+			const approved = hours(
+				input.approved_overtime_hours !== undefined
+					? input.approved_overtime_hours
+					: stored?.approved_overtime_hours
+			);
+			const incentive = hours(
+				input.incentive_hours !== undefined ? input.incentive_hours : stored?.incentive_hours
+			);
+			const consent =
+				input.overtime_consented_at !== undefined
+					? input.overtime_consented_at
+					: stored?.overtime_consented_at;
+			const exception =
+				input.th_consent_exception !== undefined
+					? input.th_consent_exception
+					: stored?.th_consent_exception;
+			const exceptionReference =
+				input.th_consent_exception_reference !== undefined
+					? input.th_consent_exception_reference
+					: stored?.th_consent_exception_reference;
+			if (exception != null && !exceptionReference?.trim())
+				ctx.refuse(`${workDate} needs documentary evidence for the Thai consent exception.`);
+			const minorNightPermission =
+				input.th_minor_night_permission_granted_at !== undefined
+					? input.th_minor_night_permission_granted_at
+					: stored?.th_minor_night_permission_granted_at;
+			const minorNightReference =
+				input.th_minor_night_permission_reference !== undefined
+					? input.th_minor_night_permission_reference
+					: stored?.th_minor_night_permission_reference;
+			if ((minorNightPermission == null) !== !minorNightReference?.trim())
+				ctx.refuse(
+					`${workDate} needs both the Thai under-18 night-work permission date and written reference.`
+				);
+			if (incentive > 0)
+				ctx.refuse(
+					'Thailand overtime or holiday work above the legal limit cannot be saved as incentive hours.'
+				);
+			if (approved > 0 && consent == null && exception == null)
+				ctx.refuse(
+					`${workDate} needs the worker’s consent for this overtime or holiday-work occasion.`
+				);
+		}
 		const windows =
 			windowsByCompany.get(String(employmentById.get(employmentId)?.company_id ?? '')) ?? [];
 		// leave owns the day's attendance and overtime; a plan alone, or a write that clears them, is not recorded work

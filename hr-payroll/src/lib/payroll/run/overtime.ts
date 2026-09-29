@@ -41,7 +41,7 @@ export type WorkDayLike = {
 		readonly start: string;
 		readonly end: string | null;
 	}> | null;
-	/** The day's break, derived by the caller (`derivedBreakMinutes`); absent reads as none. */
+	/** The day's provided break, from the work pattern or the statute; absent reads as none. */
 	readonly break_minutes?: number | undefined;
 	/** The planned overtime within the limits, breaks included; absent reads as none. */
 	readonly approved_overtime_hours?: number | null | undefined;
@@ -103,16 +103,16 @@ function midnight(date: IsoDate, utcOffsetMinutes: number): number {
  * Hours actually worked on a day, from the clocks.
  *
  * On a scheduled day `from` is the shift start: time clocked before it is discarded, because an
- * employee who arrives early is not working, and not paid, until their shift begins. The unpaid
- * break is deducted from what remains, never below zero — the break is a derived duration, not a
- * window, so an overlap test is not available here.
+ * employee who arrives early is not working, and not paid, until their shift begins. The provided
+ * break is deducted from what remains, never below zero — a time entry is a span and the break is a
+ * derived duration, not a window, so an overlap test is not available here.
  */
 function clockedWorkHours(entry: WorkDayLike, from: number = Number.NEGATIVE_INFINITY): number {
 	const elapsed = overlapHours(normalizedWorkedIntervals(entry), from, Number.POSITIVE_INFINITY);
 	return Math.max(0, elapsed - Math.max(0, entry.break_minutes ?? 0) / 60);
 }
 
-/** The hours of the intervals inside `[start, end)`. */
+/** The hours of the intervals inside `[start, end)`; their gaps are already excluded. */
 function overlapHours(intervals: readonly Interval[], start: number, end: number): number {
 	return intervals.reduce(
 		(total, interval) =>

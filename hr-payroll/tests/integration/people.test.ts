@@ -9,6 +9,7 @@ import {
 	declareSgSdl,
 	DION,
 	NORBITAL_SG,
+	recordSgShgFacts,
 	refused,
 	SG_2026_Q1,
 	SG_EMPLOYMENT,
@@ -77,6 +78,7 @@ it('payment assessments are refused on a scheme that does not assess per unit', 
 
 it('an employee reads their own payslips and no one else’s', async () => {
 	await declareSgSdl(t, SG_2026_Q1);
+	await recordSgShgFacts(t);
 	committed(
 		await admin().act('payroll_runs.create', { company_id: NORBITAL_SG, period: '2026-01' })
 	);

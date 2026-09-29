@@ -93,6 +93,79 @@ test('planned hours are half-hour steps, within the 24 a day has', async () => {
 	await assert.rejects(plan(-1), /zero or a positive/);
 });
 
+test('Thailand work-day writes require a consent fact and cannot turn excess into incentive', async () => {
+	const thai = workDayTables({ versions: [{ ...VERSION, code: 'TH', jurisdiction_code: 'TH' }] });
+	thai.companies[0].settings_code = 'TH';
+	const write = (extra) =>
+		writeDay(
+			workDays,
+			{ employment_id: 'emp-1', work_date: '2026-07-01', ...extra },
+			undefined,
+			thai
+		);
+	await assert.rejects(write({ approved_overtime_hours: 1 }), /worker’s consent/);
+	await assert.rejects(
+		write({ approved_overtime_hours: 1, overtime_consented_at: at('00:00'), incentive_hours: 0.5 }),
+		/above the legal limit cannot be saved as incentive/
+	);
+	await write({ approved_overtime_hours: 1, overtime_consented_at: at('00:00') });
+});
+
+test('Thailand work-day writes retain a referenced s.24–25 consent exception', async () => {
+	const thai = workDayTables({ versions: [{ ...VERSION, code: 'TH', jurisdiction_code: 'TH' }] });
+	thai.companies[0].settings_code = 'TH';
+	const write = (extra) =>
+		writeDay(
+			workDays,
+			{ employment_id: 'emp-1', work_date: '2026-07-01', approved_overtime_hours: 1, ...extra },
+			undefined,
+			thai
+		);
+	await assert.rejects(
+		write({ th_consent_exception: 'CONTINUOUS_DAMAGE_IF_STOPPED' }),
+		/evidence for the Thai consent exception/
+	);
+	await assert.rejects(write({ emergency_cause: true }), /worker’s consent/);
+	const saved = await write({
+		th_consent_exception: 'CONTINUOUS_DAMAGE_IF_STOPPED',
+		th_consent_exception_reference: 'incident-log-42'
+	});
+	assert.equal(saved.th_consent_exception, 'CONTINUOUS_DAMAGE_IF_STOPPED');
+	assert.equal(saved.th_consent_exception_reference, 'incident-log-42');
+	const emergency = await write({
+		th_consent_exception: 'EMERGENCY',
+		th_consent_exception_reference: 'emergency-report-7'
+	});
+	assert.equal(emergency.th_consent_exception, 'EMERGENCY');
+});
+
+test('Thailand work-day writes retain split-rest agreement and paired minor-night permit evidence', async () => {
+	const thai = workDayTables({ versions: [{ ...VERSION, code: 'TH', jurisdiction_code: 'TH' }] });
+	thai.companies[0].settings_code = 'TH';
+	const write = (extra) =>
+		writeDay(
+			workDays,
+			{ employment_id: 'emp-1', work_date: '2026-07-01', ...extra },
+			undefined,
+			thai
+		);
+	await assert.rejects(
+		write({ th_minor_night_permission_granted_at: at('00:00') }),
+		/both the Thai under-18 night-work permission date and written reference/
+	);
+	await assert.rejects(
+		write({ th_minor_night_permission_reference: 'DG-123' }),
+		/both the Thai under-18 night-work permission date and written reference/
+	);
+	const saved = await write({
+		th_split_break_agreed_at: at('00:00'),
+		th_minor_night_permission_granted_at: at('00:00'),
+		th_minor_night_permission_reference: 'DG-123'
+	});
+	assert.equal(saved.th_split_break_agreed_at, at('00:00'));
+	assert.equal(saved.th_minor_night_permission_reference, 'DG-123');
+});
+
 test('a punched day freezes its plan unless the write restates the attendance', async () => {
 	const write = (input, existing) => writeDay(workDays, input, existing, basic);
 	await assert.rejects(
@@ -423,19 +496,40 @@ test('a pattern whose cycle breaches a daily ceiling never becomes a base', asyn
 	);
 });
 
-test('the break is derived: the shift grants it, and a gap between punches already took it', () => {
+test('a seven-WORK shift pattern is refused by the weekly rest rule', async () => {
+	const tables = workDayTables({ codes: CODES, versions: [{ ...VERSION, work_rules: NIHON }] });
+	await assert.rejects(
+		runTransform(
+			patterns,
+			[
+				{
+					company_id: 'co-1',
+					code: 'ALL-WORK',
+					pattern: { days: Array.from({ length: 7 }, () => ({ roster_code_id: 'c-8' })) },
+					effective_range: { from: '2026-07-06', to: null }
+				}
+			],
+			{ tables }
+		),
+		/pattern ALL-WORK.*consecutive worked day\(s\) with no rest day/s
+	);
+});
+
+test('a time entry is a span: the provided break comes off it, and a recorded gap is not taken twice', () => {
 	const one = [{ start: at('01:00'), end: at('09:00') }];
 	const split = [
 		{ start: at('01:00'), end: at('04:00') },
 		{ start: at('05:00'), end: at('09:00') }
 	];
+	// The provided break comes off the span; a gap already shown accounts for it and is not taken again,
+	// and a break longer than the recorded gap is still the break the shift provides.
 	assert.equal(derivedBreakMinutes(one, 60), 60);
 	assert.equal(derivedBreakMinutes(split, 60), 0);
 	assert.equal(derivedBreakMinutes(split, 90), 30);
 	assert.equal(derivedBreakMinutes(null, 60), 0);
 	assert.equal(
 		derivedBreakMinutes([{ start: at('01:00'), end: null }], 60),
-		60,
+		0,
 		'an open interval is not a gap'
 	);
 });
