@@ -1,5 +1,7 @@
 # The blank workspace
 
+The user guide, with screens of every app, is [docs/README.md](docs/README.md).
+
 This is an empty Norbital workspace: one starter collection (`notes`, read-only), no apps and no
 automations. It is the starting point for building a workspace from scratch with the workspace
 agent.
