@@ -523,6 +523,7 @@ export default messages({
 	'component.registration_number': 'Registration number',
 	'component.release': 'Release',
 	'component.release_selected_description': 'Return the selected held payslips to draft.',
+	'component.applies_when': 'Applies when',
 	'component.religion': 'Religion',
 	'component.repayment_schedule': 'Repayment schedule',
 	'component.residency_since': 'Residency start date',

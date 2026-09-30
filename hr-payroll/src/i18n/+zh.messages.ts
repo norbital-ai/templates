@@ -479,6 +479,7 @@ export default messages({
 	'component.registration_number': '注册编号',
 	'component.release': '释放',
 	'component.release_selected_description': '将所选暂扣的工资单恢复为草稿。',
+	'component.applies_when': '适用条件',
 	'component.religion': '宗教',
 	'component.repayment_schedule': '还款计划',
 	'component.residency_since': '居留身份起始日期',

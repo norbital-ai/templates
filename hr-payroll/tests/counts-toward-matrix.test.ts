@@ -163,6 +163,8 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		KASAMBAHAY_FORFEITURE: [],
 		STATUTORY_ADJUSTMENT: [],
 		THIRTEENTH_MONTH_PAY: ['WTAX.SPECIAL'],
+		// PD 851: the year-end 13th month (SCHEDULED) carries the same tax treatment as the separation share.
+		THIRTEENTH_MONTH_PAY_YEAR_END: ['WTAX.SPECIAL'],
 		allowance: [...PH_WAGES, 'WTAX.ORDINARY'],
 		// SSS IRR (RA 11199) Rule 12 s.6(iii): compensation includes "Bonuses (except Christmas bonus)".
 		// Circular 460 p.2: fund salary is remuneration "however designated" for services rendered (PH-HD02).
@@ -281,6 +283,8 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		RETROACTIVE_PAY: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
 		SPECIAL_ALLOWANCE: [...ID_BPJS, 'PPH21.ORDINARY', 'PPH21_DAILY', 'PPH26'],
 		THR: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
+		// Permenaker 6/2016: THR before the worker's own holiday (SCHEDULED), taxed as THR.
+		THR_HOLIDAY: ['PPH21.ADDITIONAL', 'PPH21_DAILY', 'PPH26'],
 		// PP 68/2009 art.1 angka 4: uang pesangon is any payment, under whatever name, made in connection
 		// with the end of service, so uang pisah carries the final severance rates like pesangon;
 		// only a non-resident's enters PPh 26.
