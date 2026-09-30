@@ -2764,3 +2764,390 @@ register(
 		]
 	}
 );
+
+// ── Round 2026-09-30 (batch 10): notice tiers, national service, young worker, reliefs, ORP allowance ──
+/** A no-notice retrenchment on the last day of January 2026; `wages12m` states the twelve months before it (reg.6(2)). */
+const retrenchedWithoutNotice = (wages12m: number) => ({
+	exit_reason: 'RETRENCHMENT',
+	exit_facts: {
+		leaving_malaysia: false,
+		wages_12m: wages12m,
+		notice_termination_party: 'EMPLOYER',
+		notice_approved_apprenticeship: false,
+		notice_exception: 'NONE',
+		notice_given: false,
+		notice_waived_days: 0,
+		notice_structural_ground: 'REDUCED_WORK',
+		notice_exception_reference: 'PROBE retrenchment without notice'
+	}
+});
+/** A national service call-up: s.18A(d) leave of absence, unpaid by the s.18A formula. */
+const nationalService = (job: string, from: string, to: string): ProbeInput => ({
+	collection: 'leave_entries',
+	values: {
+		employment_id: `@${job}`,
+		catalogue_id: '@law:leave_catalogue:NATIONAL_SERVICE_LEAVE',
+		reference: `PROBE-NS-${job}-${from}`,
+		from_date: from,
+		to_date: to,
+		half_day_start: false,
+		half_day_end: false,
+		reason: 'Called up for national service training (National Service Training Act 2003)'
+	}
+});
+
+register(
+	// ── s.12(2)(b)–(c): the six- and eight-week indemnity tiers ────────────────────────────────────
+	{
+		id: 'MY-EA05-2',
+		profile: 'MY',
+		description:
+			'Two citizens retrenched with the last day 31 January 2026 and no notice: one employed from 1 January 2023 on RM3,000 (three years one month: six weeks’ indemnity, 15-day benefit tier), one from 1 January 2020 on RM2,600 (six years one month: eight weeks, 20-day tier).',
+		citation: [
+			`${EA} s.12(2)(b)–(c): six weeks at two to under five years’ service, eight weeks at five or more, on the date the notice would have been given (here the last day, none given); s.12(3): not less for a retrenchment; s.13(1): the terminating party pays the wages that would have accrued during the notice term. Six weeks = 1 February – 14 March 2026: the whole of February and 14 of March’s 31 days: 3,000 + 3,000 × 14/31 = 3,000 + 1,354.8387 = 4,354.84. Eight weeks = 1 February – 28 March: 2,600 + 2,600 × 28/31 = 2,600 + 2,348.3871 = 4,948.39 (each notice day at the wage that would have accrued, apportioned by the month’s own days as s.18A does)`,
+			`${TLB}: 1 January 2023 – 31 January 2026 = 37 months: 15 × 37/12 × 36,000/365 = 19,980,000/4,380 = 4,561.6438 → 4,561.64; 1 January 2020 – 31 January 2026 = 73 months: 20 × 73/12 × 31,200/365 = 45,552,000/4,380 = 10,400.00 (the twelve months’ wages stated as the exit fact wages_12m)`,
+			`${EPF_WAGES}; KWSP Employer FAQ 11 lists payment in lieu of notice and termination benefits among non-wages: bases 3,000 ("2,980.01 to 3,000.00" RM330 / RM390) and 2,600 ("2,580.01 to 2,600.00" RM286 / RM338)`,
+			`${SOCSO}: neither payment is Act 4 s.2(24) wages (as MY-EA05-1 and MY-SR10-1 record): row 34 RM51.65 / RM14.75; row 30 (exceeding RM2,500, not RM2,600) RM44.65 / RM12.75`,
+			`${EIS}: row 34 RM5.90 each; row 30 RM5.10 each`,
+			`${ITA_SCH6} para 15(1)(b): RM10,000 a completed year exempts each benefit (30,000 ≥ 4,561.64; 60,000 ≥ 10,400). ${PCB}, D(b)(2), the indemnity as additional remuneration: RM3,000: P = 2,670 × 12 + 4,354.84 − 9,000 = 27,394.84; 7,394.84 × 3% = 221.84 − 250 < 0, nil. RM2,600: K2 = 286; P = 2,314 × 12 + 4,948.39 − 9,000 = 23,716.39; 3,716.39 × 3% = 111.49 − 250 < 0, nil`,
+			'Net: 3,000 + 4,354.84 + 4,561.64 = 11,916.48 − 330 − 14.75 − 5.90 = 11,565.83 (employer 447.55); 2,600 + 4,948.39 + 10,400 = 17,948.39 − 286 − 12.75 − 5.10 = 17,644.54 (employer 338 + 44.65 + 5.10 = 387.75)'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2019-12-30'),
+			...citizen('six_weeks', 'Six Weeks', 3000, {
+				from: '2023-01-01',
+				to: '2026-01-31',
+				employment: retrenchedWithoutNotice(36000)
+			}),
+			...citizen('eight_weeks', 'Eight Weeks', 2600, {
+				from: '2020-01-01',
+				to: '2026-01-31',
+				employment: retrenchedWithoutNotice(31200)
+			}),
+			...['six_weeks_job', 'eight_weeks_job'].flatMap((job) => [
+				adhoc(job, 'NOTICE_IN_LIEU', 0, '2026-01-31', '2026-01'),
+				adhoc(job, 'TERMINATION_BENEFIT', 0, '2026-01-31', '2026-01')
+			])
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'six_weeks_job',
+				lines: {
+					gross: 11916.48,
+					net: 11565.83,
+					employer_cost: 447.55,
+					BASIC: 3000,
+					NOTICE_IN_LIEU: 4354.84,
+					TERMINATION_BENEFIT: 4561.64,
+					'EPF.employee': 330,
+					'EPF.employer': 390,
+					'SOCSO.employee': 14.75,
+					'SOCSO.employer': 51.65,
+					'EIS.employee': 5.9,
+					'EIS.employer': 5.9,
+					'PCB.employee': 0
+				}
+			},
+			{
+				employment: 'eight_weeks_job',
+				lines: {
+					gross: 17948.39,
+					net: 17644.54,
+					employer_cost: 387.75,
+					BASIC: 2600,
+					NOTICE_IN_LIEU: 4948.39,
+					TERMINATION_BENEFIT: 10400,
+					'EPF.employee': 286,
+					'EPF.employer': 338,
+					'SOCSO.employee': 12.75,
+					'SOCSO.employer': 44.65,
+					'EIS.employee': 5.1,
+					'EIS.employer': 5.1,
+					'PCB.employee': 0
+				}
+			}
+		]
+	},
+
+	// ── s.18A(d): national service, alone and with a joiner’s s.18A(a) in the same month ─────────────
+	{
+		id: 'MY-EA11-4',
+		profile: 'MY',
+		description:
+			'Two citizens on RM3,000 called up for five days of national service training in January 2026: one employed throughout (Monday 12 – Friday 16 January), one who joined on Monday 5 January (Monday 19 – Friday 23 January): s.18A(d), and s.18A(a) with (d) in one month.',
+		citation: [
+			`${EA} s.18A(a), (d): monthly wages × days eligible in the wage period / days of the wage period. Employed throughout: 31 − 5 = 26 days, 3,000 × 26/31 = 2,516.1290 → 2,516.13. Joined 5 January: 1–4 January not employed and 5 days of national service, 31 − 4 − 5 = 22 days, 3,000 × 22/31 = 2,129.0323 → 2,129.03`,
+			`${EPF_A}: "2,500.01 to 2,520.00" employer RM328, employee RM278; "2,120.01 to 2,140.00" employer RM279, employee RM236`,
+			`${SOCSO}: row 30 (exceeding RM2,500, not RM2,600) RM44.65 / RM12.75; row 26 (exceeding RM2,100, not RM2,200) RM37.65 / RM10.75`,
+			`${EIS}: row 30 RM5.10 each; row 26 RM4.30 each`,
+			`${PCB}: K2 = 278, P = 2,238.13 × 12 − 9,000 = 17,857.56; 12,857.56 × 1% − 400 < 0, nil; the joiner is lower still`,
+			'Net: 2,516.13 − 278 − 12.75 − 5.10 = 2,220.28 (employer 328 + 44.65 + 5.10 = 377.75); 2,129.03 − 236 − 10.75 − 4.30 = 1,877.98 (employer 279 + 37.65 + 4.30 = 320.95)'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('ns_serving', 'Hakim Khidmat', 3000),
+			...citizen('ns_joiner', 'Amir Baharu', 3000, { from: '2026-01-05' }),
+			nationalService('ns_serving_job', '2026-01-12', '2026-01-16'),
+			nationalService('ns_joiner_job', '2026-01-19', '2026-01-23')
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'ns_serving_job',
+				lines: {
+					gross: 2516.13,
+					net: 2220.28,
+					employer_cost: 377.75,
+					'EPF.employee': 278,
+					'EPF.employer': 328,
+					'SOCSO.employee': 12.75,
+					'SOCSO.employer': 44.65,
+					'EIS.employee': 5.1,
+					'EIS.employer': 5.1
+				}
+			},
+			{
+				employment: 'ns_joiner_job',
+				lines: {
+					gross: 2129.03,
+					net: 1877.98,
+					employer_cost: 320.95,
+					'EPF.employee': 236,
+					'EPF.employer': 279,
+					'SOCSO.employee': 10.75,
+					'SOCSO.employer': 37.65,
+					'EIS.employee': 4.3,
+					'EIS.employer': 4.3
+				}
+			}
+		]
+	},
+
+	// ── Act 800 First Schedule para 8: no EIS below eighteen ──────────────────────────────────────
+	{
+		id: 'MY-EIS-01-1',
+		profile: 'MY',
+		description:
+			'A citizen aged 17 (born 15 September 2008) employed since 1 October 2025 on RM1,700 in January 2026: EPF and SOCSO First Category as for anyone, no EIS below eighteen.',
+		citation: [
+			`${ACT800} First Schedule para 8: "Any employee who has not attained the age of eighteen years or who has attained the age of sixty years" is outside the Act: no EIS`,
+			`${ACT4} First Schedule para 12 excludes from the Invalidity Scheme only from fifty-five (first liable) or sixty; no lower age: ${SOCSO}: row 21 (RM1,600–1,700) First Category RM28.85 / RM8.25`,
+			`${EPF_A}: "1,680.01 to 1,700.00" employer RM221, employee RM187 (EPF liability from age 14: KWSP, Employer mandatory contribution, https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)`,
+			'Minimum Wages Order 2024, P.U.(A) 376/2024 para 3(1): RM1,700 a month, paid in full',
+			`${PCB}: P = (1,700 − 187) × 12 − 9,000 = 9,156; 4,156 × 1% − 400 < 0, nil`,
+			'Net: 1,700 − 187 − 8.25 = 1,504.75; employer cost 221 + 28.85 = 249.85'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2025-09-29'),
+			...citizen('young', 'Irfan Muda', 1700, { born: '2008-09-15', from: '2025-10-01' })
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'young_job',
+				lines: {
+					gross: 1700,
+					net: 1504.75,
+					employer_cost: 249.85,
+					BASIC: 1700,
+					'EPF.employee': 187,
+					'EPF.employer': 221,
+					'SOCSO.employee': 8.25,
+					'SOCSO.employer': 28.85,
+					'EIS.employee': 0,
+					'EIS.employer': 0
+				}
+			}
+		]
+	},
+
+	// ── A missing EIS registration is refused ─────────────────────────────────────────────────────
+	{
+		id: 'MY-REG-01-4',
+		profile: 'MY',
+		description:
+			'A citizen on RM3,000 whose EIS registration is recorded NOT_REGISTERED: the run is refused rather than paying the month without the Act 800 contribution.',
+		citation: [
+			`${ACT800} s.18(1)–(2): the contributions in respect of an employee comprise an employer and an employee contribution at the Second Schedule rates on the monthly wages; the First Schedule lists the only excluded employees, and a citizen aged 35 is none of them — registration is a separate employer duty and exempts no one`
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('no_eis', 'Emir NoEIS', 3000, { schemes: ['EPF', 'SOCSO'] }),
+			unregistered('no_eis', 'EIS', '2024-01-02')
+		],
+		period: '2026-01',
+		refused: 'EIS: the recorded not-registered status cannot establish an exemption',
+		expected: []
+	},
+
+	// ── HRD: the optional class at its lower edge ─────────────────────────────────────────────────
+	{
+		id: 'MY-HRD-01-4',
+		profile: 'MY',
+		description:
+			'A Part I employer with exactly five Malaysian employees that opted to register: the lower edge of the optional class, 0.5% on its citizen on RM3,000.',
+		citation: [
+			`${HRD}; First Schedule Part II as substituted by P.U.(A) 84/2021 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf): an employer with five to nine Malaysian employees may register; s.15(2): 0.5% × 3,000 = 15.00`,
+			...PLAIN_3000_CITED,
+			'Net: 2,649.35; employer cost 447.55 + 15 = 462.55'
+		],
+		company: hrd('OPTIONAL', 5, { hrd_optional_last_high_year: 0 }),
+		inputs: [...officeWeek('2024-01-01'), ...citizen('fifth', 'Lima Optional', 3000)],
+		period: '2026-01',
+		expected: [
+			{ employment: 'fifth_job', lines: { ...PLAIN_3000, employer_cost: 462.55, 'HRDF.employer': 15 } }
+		]
+	},
+
+	// ── MTD reliefs: disabled spouse, disabled self, tertiary and disabled children ──────────────────
+	{
+		id: 'MY-PCB-02-2',
+		profile: 'MY',
+		description:
+			'Three citizens on RM8,000 in January 2026: married to a disabled spouse without income, with one child of 20 at university in Malaysia (category 2); single and certified disabled (category 1); married to a working spouse with one disabled child under 18 and one disabled child of 19 at diploma level in Malaysia (category 3).',
+		citation: [
+			`${PCB}. D.2 para 14(i): (b) spouse RM4,000; (c) a child over 18 in full-time diploma-level study in Malaysia counts as four children (RM8,000), a disabled child as four (RM8,000), a disabled child studying at diploma level as eight (RM16,000); (e) disabled individual RM7,000; (f) disabled husband/wife a further RM6,000. Base as MY-EPF-01-2: K1 = 880, K2 = 283.63, P before family reliefs 83,000.07`,
+			'Disabled spouse and tertiary child (category 2): P = 83,000.07 − 4,000 − 6,000 − 8,000 = 65,000.07; row 50,001–70,000: 15,000.07 × 11% = 1,650.0077 → 1,650.00 + 1,500 = 3,150.00 / 12 = 262.50',
+			'Disabled individual (category 1): P = 76,000.07; row 70,001–100,000: 6,000.07 × 19% = 1,140.0133 → 1,140.01 + 3,700 = 4,840.01 / 12 = 403.3341 → 403.33 → 403.35',
+			'Two disabled children (category 3): P = 83,000.07 − 8,000 − 16,000 = 59,000.07; 9,000.07 × 11% = 990.0077 → 990.00 + 1,500 = 2,490.00 / 12 = 207.50',
+			`${EPF_A}: RM880 / RM960; ${SOCSO}: row 65 RM104.15 / RM29.75; ${EIS}: row 65 RM11.90 each`,
+			'Net: 8,000 − 880 − 29.75 − 11.90 = 7,078.35, less 262.50 = 6,815.85, less 403.35 = 6,675.00, less 207.50 = 6,870.85; employer cost 1,076.05 each'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('carer', 'Rosli Penjaga', 8000, {
+				person: {
+					marital_status: 'MARRIED',
+					spouse_status: 'WITHOUT_INCOME',
+					children: [{ child_birthdate: '2005-03-01', relationship: 'CHILD' }]
+				},
+				pcb: {
+					elections: { pcb_spouse_disabled: true },
+					child_claims: [
+						{
+							year: '2026',
+							relief_class: 'TERTIARY',
+							full_count: 1,
+							half_count: 0,
+							reference: 'TP1 2026 child at university'
+						}
+					]
+				}
+			}),
+			...citizen('oku', 'Salmah OKU', 8000, {
+				gender: 'FEMALE',
+				pcb: { elections: { pcb_disabled: true } }
+			}),
+			...citizen('oku_parent', 'Lim OKU Parent', 8000, {
+				person: {
+					marital_status: 'MARRIED',
+					spouse_status: 'WITH_INCOME',
+					children: [
+						{ child_birthdate: '2014-06-01', relationship: 'CHILD' },
+						{ child_birthdate: '2006-08-01', relationship: 'CHILD' }
+					]
+				},
+				pcb: {
+					child_claims: [
+						{
+							year: '2026',
+							relief_class: 'DISABLED',
+							full_count: 1,
+							half_count: 0,
+							reference: 'TP1 2026 disabled child'
+						},
+						{
+							year: '2026',
+							relief_class: 'DISABLED_TERTIARY',
+							full_count: 1,
+							half_count: 0,
+							reference: 'TP1 2026 disabled child at diploma level'
+						}
+					]
+				}
+			})
+		],
+		period: '2026-01',
+		expected: (
+			[
+				['carer_job', 262.5],
+				['oku_job', 403.35],
+				['oku_parent_job', 207.5]
+			] as const
+		).map(([employment, pcb]) => ({
+			employment,
+			lines: {
+				gross: 8000,
+				net: Math.round((7078.35 - pcb) * 100) / 100,
+				employer_cost: 1076.05,
+				'EPF.employee': 880,
+				'EPF.employer': 960,
+				'SOCSO.employee': 29.75,
+				'SOCSO.employer': 104.15,
+				'EIS.employee': 11.9,
+				'EIS.employer': 11.9,
+				'PCB.employee': pcb
+			}
+		}))
+	},
+
+	// ── s.60I: a fixed allowance is in the ordinary rate that prices overtime ──────────────────────
+	{
+		id: 'MY-EA36-1',
+		profile: 'MY',
+		description:
+			'A citizen on RM2,340 basic plus a fixed RM260 scale-up allowance works 10 hours on Monday 5 January 2026: the s.60I ordinary rate is the RM2,600 of s.2 wages ÷ 26, so the two overtime hours are 1.5 × RM12.50.',
+		citation: [
+			`${EA} s.2 "wages": basic wages and all other payments in cash payable for work done, excluding only (a)–(f) (accommodation, employer fund contributions, travelling allowance, special expenses, gratuity, annual bonus): the fixed allowance is wages; s.60I(1)(a), (1A), (1)(b): ORP = 2,600 / 26 = 100.00, hourly 100 / 8 = 12.50; s.60A(3)(a): 09:00–13:00, 14:00–18:00, 18:30–20:30 = 10 h, 2 over: 2 × 1.5 × 12.50 = 37.50`,
+			`${EPF_WAGES}: base 2,340 + 260 = 2,600, "2,580.01 to 2,600.00" RM338 / RM286`,
+			`${SOCSO}; Act 4 and Act 800 wages include overtime: base 2,637.50, row 31 (RM2,600–2,700) RM46.35 / RM13.25`,
+			`${EIS}: row 31 RM5.30 each`,
+			`${PCB}: K2 = 286; P = 2,314 × 12 + 37.50 − 9,000 < 20,000 and 13,805.50 × 1% − 400 < 0: nil`,
+			'Net: 2,637.50 − 286 − 13.25 − 5.30 = 2,332.95; employer cost 338 + 46.35 + 5.30 = 389.65'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('allowanced', 'Aminah Elaun', 2340, {
+				gender: 'FEMALE',
+				terms: { allowances: [{ catalogue_id: '@law:allowance_catalogue:SUA', amount: 260 }] }
+			}),
+			worked(
+				'allowanced_job',
+				'2026-01-05',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00'],
+					['18:30', '20:30']
+				],
+				2
+			)
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'allowanced_job',
+				lines: {
+					gross: 2637.5,
+					net: 2332.95,
+					employer_cost: 389.65,
+					BASIC: 2340,
+					SUA: 260,
+					'EPF.employee': 286,
+					'EPF.employer': 338,
+					'SOCSO.employee': 13.25,
+					'SOCSO.employer': 46.35,
+					'EIS.employee': 5.3,
+					'EIS.employer': 5.3,
+					'PCB.employee': 0
+				}
+			}
+		]
+	}
+);

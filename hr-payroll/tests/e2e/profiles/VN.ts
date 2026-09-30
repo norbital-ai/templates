@@ -313,6 +313,15 @@ export function generateProfiles(): Scenario[] {
 		], { period, employee: { birthDate: '1963-01-05', receivingPension: true, unionMember: member } });
 	add('pensioner-joiner-mid-month', ['VN-LC168-01', 'VN-PRORATE-01'], ['equivalent prorated to working days'], { employee: { birthDate: '1963-01-05', receivingPension: true }, contract: { start: '2026-09-16' } });
 
+	// ---- probation contract outside UI from 2026 (Law 74/2025 art.31(2)); UI equivalent under LC art.168(3) ----
+	for (const period of ['2026-01', '2026-06', '2026-09'])
+		add(`probation-${period}`, ['VN-UI-01', 'VN-LC168-01', 'VN-SI-01'], ['probation: no UI line', 'UI 1% equivalent with the wage'], {
+			period, contract: { monthly: 20_000_000, probation: true }
+		});
+	// ---- approved 0.3% occupational-accident rate (D58 art.4(1)/art.5 via D158 art.43(2)) ----
+	for (const [period, m] of [['2026-03', 20_000_000], ['2026-03', 46_800_001], ['2026-09', 50_600_000]] as const)
+		add(`oa-reduced-${period}-${m}`, ['VN-SI-05', 'VN-UNION-01'], ['employer SI 17.3%', 'union fee unchanged'], { period, company: { oaReduced: true }, contract: { monthly: m } });
+
 	// ---- seeded sweep: random wages, regions, periods, dependants, OT and unpaid days ----
 	const periods = ['2025-12', '2026-02', '2026-05', '2026-08', '2026-10', '2026-12'];
 	for (let i = 0; i < 40; i++) {

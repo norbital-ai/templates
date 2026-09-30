@@ -3357,7 +3357,7 @@
 	{
 		"id": "6baae213-26eb-5309-96cf-424635c7ddaf",
 		"code": "JP",
-		"name": "Japan — 31 March 2026",
+		"name": "Japan — 1 April 2026",
 		"sealed_at": "2026-09-30T00:00:00.000Z",
 		"voided_at": null,
 		"void_reason": null,
@@ -4028,7 +4028,7 @@
 	{
 		"id": "276722b5-bd39-576a-8b30-32ee27b88026",
 		"code": "JP",
-		"name": "Japan — 31 March 2026",
+		"name": "Japan — 1 May 2026",
 		"sealed_at": "2026-09-30T00:00:00.000Z",
 		"voided_at": null,
 		"void_reason": null,
@@ -18790,7 +18790,7 @@
 	{
 		"id": "2e2e40ae-abc5-50b2-85b3-1856e6c01c66",
 		"code": "JP",
-		"name": "Japan — 2 December 2026",
+		"name": "Japan — 1 September 2027",
 		"sealed_at": "2026-09-30T00:00:00.000Z",
 		"voided_at": null,
 		"void_reason": null,
@@ -19461,7 +19461,7 @@
 	{
 		"id": "6af67f21-41f7-5909-ad5f-03880a27609b",
 		"code": "JP",
-		"name": "Japan — 2 December 2026",
+		"name": "Japan — 1 October 2027",
 		"sealed_at": "2026-09-30T00:00:00.000Z",
 		"voided_at": null,
 		"void_reason": null,
@@ -20132,7 +20132,7 @@
 	{
 		"id": "d332ad73-ace8-587c-b828-7ff445d45af2",
 		"code": "JP",
-		"name": "Japan — 2 December 2026",
+		"name": "Japan — 1 September 2028",
 		"sealed_at": "2026-09-30T00:00:00.000Z",
 		"voided_at": null,
 		"void_reason": null,
@@ -20803,7 +20803,7 @@
 	{
 		"id": "c8778531-6a74-51a8-ba91-bdc1ea899844",
 		"code": "JP",
-		"name": "Japan — 2 December 2026",
+		"name": "Japan — 1 October 2028",
 		"sealed_at": "2026-09-30T00:00:00.000Z",
 		"voided_at": null,
 		"void_reason": null,
@@ -21474,7 +21474,7 @@
 	{
 		"id": "1d5201d9-4621-5f15-8a12-fc6460040fca",
 		"code": "JP",
-		"name": "Japan — 2 December 2026",
+		"name": "Japan — 1 September 2029",
 		"sealed_at": "2026-09-30T00:00:00.000Z",
 		"voided_at": null,
 		"void_reason": null,
@@ -22145,7 +22145,7 @@
 	{
 		"id": "6e83fbbd-23f9-5c21-bf1b-0ba203dd7f6c",
 		"code": "JP",
-		"name": "Japan — 2 December 2026",
+		"name": "Japan — 1 October 2029",
 		"sealed_at": "2026-09-30T00:00:00.000Z",
 		"voided_at": null,
 		"void_reason": null,

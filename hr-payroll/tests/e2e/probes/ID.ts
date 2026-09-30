@@ -3623,6 +3623,179 @@ function floorCases(): ProbeCase[] {
 				wage: 2_571_426.9
 			}
 		),
+		// ─── Round 11 (2026-09-30): further decree lines, conditions and boundaries ───────────────
+		floorCase(
+			'ID-54-7',
+			'DKI Jakarta 2026 UMSP lines whose employer condition is recorded true — assets above Rp1 trillion (21012, 64121), export-oriented footwear (15201) and Astra group (29200, 30911) — each worker paid exactly its floor, February 2026.',
+			[
+				'DKI Kep.33/2026 annex (https://jdih.jakarta.go.id/dokumenPeraturanDirectory/0031/2026KEPGUB003133.pdf; tracker ID-54, figures as the tracker transcribed them — the signed PDF is a scan with no text layer, re-fetched 2026-09-30): 21012 assets above Rp1 trillion Rp5,741,201; 64121 assets above Rp1 trillion Rp5,872,985; 15201 export Rp5,872,985; 29200 Astra group Rp5,904,114; 30911 Astra group Rp5,943,938',
+				'Service under one year (dictum KETIGA); binding floor = the higher of the UMP Rp5,729,876 and every matching row whose condition the employer records (tracker ID-54 owner default)',
+				'Every figure: JHT 2% / 3.7%, JP 1% / 2%, JKK group I 0.24%, JKM 0.30%, Kesehatan 1% / 4% of the floor wage (above the workplace UMK, under the Rp12,000,000 cap), each half-up to the rupiah; PPh 21 TER A on wage + JKK + JKM + Kesehatan employer (PP 58/2023 Lampiran A: 0% to Rp5,400,000; 0.25% to 5,650,000; 0.5% to 5,950,000)'
+			],
+			'2026-02',
+			'Provinsi DKI Jakarta',
+			[
+				{ ref: 'dk8', worksite: 'Provinsi DKI Jakarta', sector: '21012', wage: 5_741_201, c: [114_824, 212_424, 57_412, 114_824, 13_779, 17_224, 57_412, 229_648, 45_014] },
+				{ ref: 'dk9', worksite: 'Provinsi DKI Jakarta', sector: '64121', wage: 5_872_985, c: [117_460, 217_300, 58_730, 117_460, 14_095, 17_619, 58_730, 234_919, 46_047] },
+				{ ref: 'dka', worksite: 'Provinsi DKI Jakarta', sector: '15201', wage: 5_872_985, c: [117_460, 217_300, 58_730, 117_460, 14_095, 17_619, 58_730, 234_919, 46_047] },
+				{ ref: 'dkb', worksite: 'Provinsi DKI Jakarta', sector: '29200', wage: 5_904_114, c: [118_082, 218_452, 59_041, 118_082, 14_170, 17_712, 59_041, 236_165, 46_291] },
+				{ ref: 'dkc', worksite: 'Provinsi DKI Jakarta', sector: '30911', wage: 5_943_938, c: [118_879, 219_926, 59_439, 118_879, 14_265, 17_832, 59_439, 237_758, 46_603] }
+			],
+			{ umsp_assets_over_1_trillion: true, umsp_export_oriented: true, umsp_astra_group: true }
+		),
+		floorCase(
+			'ID-54-8',
+			'The same DKI Jakarta KBLI 21012 and 29200 at an employer that records neither condition (assets not above Rp1 trillion, not Astra group), February 2026: the conditional UMSP rows do not bind, so the UMP Rp5,729,876 does.',
+			[
+				'DKI Kep.33/2026 annex: the 21012 and 29200 rows bind only “ASET DI ATAS 1 TRILIUN” and Astra-group employers (https://jdih.jakarta.go.id/dokumenPeraturanDirectory/0031/2026KEPGUB003133.pdf; tracker ID-54)',
+				'DKI UMP 2026 Rp5,729,876: Kep. Gubernur DKI 1142/2025 (tracker ID-94)',
+				'Every figure: JHT 2% / 3.7%, JP 1% / 2%, JKK group I 0.24%, JKM 0.30%, Kesehatan 1% / 4% of the floor wage (above the workplace UMK, under the Rp12,000,000 cap), each half-up to the rupiah; PPh 21 TER A on wage + JKK + JKM + Kesehatan employer (PP 58/2023 Lampiran A: 0% to Rp5,400,000; 0.25% to 5,650,000; 0.5% to 5,950,000; 0.75% to 6,300,000)'
+			],
+			'2026-02',
+			'Provinsi DKI Jakarta',
+			[
+				{ ref: 'dkf1', worksite: 'Provinsi DKI Jakarta', sector: '21012', wage: 5_729_876, c: [114_598, 212_005, 57_299, 114_598, 13_752, 17_190, 57_299, 229_195, 44_925] },
+				{ ref: 'dkf2', worksite: 'Provinsi DKI Jakarta', sector: '29200', wage: 5_729_876, c: [114_598, 212_005, 57_299, 114_598, 13_752, 17_190, 57_299, 229_195, 44_925] }
+			],
+			{ umsp_assets_over_1_trillion: false, umsp_export_oriented: false, umsp_astra_group: false }
+		),
+		floorCase(
+			'ID-80-5',
+			'East Java 2026 UMSK in the ten regencies beside Surabaya (Kep.938/2025), one listed KBLI each, each worker paid exactly its floor above the regency UMK, February 2026.',
+			[
+				'East Java Kep. Gubernur 100.3.3.1/938/013/2025 Lampiran (signed PDF https://files.jdih.jatimprov.go.id/jdih-prod/uploads/topics/2025kg00350938.pdf, re-read 2026-09-30): Sidoarjo 46691 Rp5.344.782; Gresik 55112 Rp5.348.757; Pasuruan 10520 Rp5.340.808; Mojokerto 32202 Rp5.328.887; Tuban 23941 Rp3.380.572; Madiun 30200 Rp2.686.460; Malang 21012 Rp3.938.160; Bangkalan 30111 Rp2.670.819; Probolinggo 35111 Rp3.317.559 (Banyuwangi is ID-172-2)',
+				'East Java Kep.100.3.3.1/937/013/2025 (signed PDF https://files.jdih.jatimprov.go.id/jdih-prod/uploads/topics/2025kg00350937.pdf, re-read 2026-09-30): UMK Sidoarjo 5.191.541, Gresik 5.195.401, Pasuruan 5.187.681, Mojokerto 5.176.101, Tuban 3.229.092, Kabupaten Madiun 2.553.221, Kabupaten Malang 3.802.862, Bangkalan 2.550.274, Kabupaten Probolinggo 3.164.526 — each UMSK above it',
+				'Every figure: JHT 2% / 3.7%, JP 1% / 2%, JKK group I 0.24%, JKM 0.30%, Kesehatan 1% / 4% of the floor wage (above the workplace UMK, under the Rp12,000,000 cap), each half-up to the rupiah; PPh 21 TER A on wage + JKK + JKM + Kesehatan employer (PP 58/2023 Lampiran A: 0% to Rp5,400,000; 0.25% to 5,650,000; 0.5% to 5,950,000)'
+			],
+			'2026-02',
+			'Provinsi Jawa Timur/Kabupaten Sidoarjo',
+			[
+				{ ref: 'sda', worksite: 'Provinsi Jawa Timur/Kabupaten Sidoarjo', sector: '46691', wage: 5_344_782, c: [106_896, 197_757, 53_448, 106_896, 12_827, 16_034, 53_448, 213_791, 13_969] },
+				{ ref: 'grs', worksite: 'Provinsi Jawa Timur/Kabupaten Gresik', sector: '55112', wage: 5_348_757, c: [106_975, 197_904, 53_488, 106_975, 12_837, 16_046, 53_488, 213_950, 13_979] },
+				{ ref: 'psr', worksite: 'Provinsi Jawa Timur/Kabupaten Pasuruan', sector: '10520', wage: 5_340_808, c: [106_816, 197_610, 53_408, 106_816, 12_818, 16_022, 53_408, 213_632, 13_958] },
+				{ ref: 'mjk', worksite: 'Provinsi Jawa Timur/Kabupaten Mojokerto', sector: '32202', wage: 5_328_887, c: [106_578, 197_169, 53_289, 106_578, 12_789, 15_987, 53_289, 213_155, 13_927] },
+				{ ref: 'tbn', worksite: 'Provinsi Jawa Timur/Kabupaten Tuban', sector: '23941', wage: 3_380_572, c: [67_611, 125_081, 33_806, 67_611, 8_113, 10_142, 33_806, 135_223, 0] },
+				{ ref: 'mdn', worksite: 'Provinsi Jawa Timur/Kabupaten Madiun', sector: '30200', wage: 2_686_460, c: [53_729, 99_399, 26_865, 53_729, 6_448, 8_059, 26_865, 107_458, 0] },
+				{ ref: 'mlg', worksite: 'Provinsi Jawa Timur/Kabupaten Malang', sector: '21012', wage: 3_938_160, c: [78_763, 145_712, 39_382, 78_763, 9_452, 11_814, 39_382, 157_526, 0] },
+				{ ref: 'bkl', worksite: 'Provinsi Jawa Timur/Kabupaten Bangkalan', sector: '30111', wage: 2_670_819, c: [53_416, 98_820, 26_708, 53_416, 6_410, 8_012, 26_708, 106_833, 0] },
+				{ ref: 'pbl', worksite: 'Provinsi Jawa Timur/Kabupaten Probolinggo', sector: '35111', wage: 3_317_559, c: [66_351, 122_750, 33_176, 66_351, 7_962, 9_953, 33_176, 132_702, 0] }
+			]
+		),
+		floorCase(
+			'ID-83-5',
+			'Central Java 2026 UMSK of Cilacap, Demak, Kabupaten Semarang and Kabupaten Tegal, and the other two Kota Semarang groups, each worker paid exactly its floor, February 2026.',
+			[
+				'Central Java Kep. Gubernur 100.3.3.1/505/2025 Lampiran II (authenticated PDF https://jdih.jatengprov.go.id/produk_hukum/kepgub/sk_100.3.3.1-505_th_2025_auten.pdf, re-read 2026-09-30): Cilacap 35111 Rp2.800.916; Demak 25920 Rp3.137.685; Kabupaten Semarang 08109 Rp2.955.088 and 46610 Rp2.950.088; Kota Semarang 15201 Rp3.707.534 and 22220 Rp3.703.651; Tegal 15201 Rp2.495.993 and 31009 Rp2.490.077; each above its Lampiran I UMK (Cilacap 2.773.184, Demak 3.122.805, Kabupaten Semarang 2.940.088, Kota Semarang 3.701.709, Tegal 2.484.162)',
+				'Every figure: JHT 2% / 3.7%, JP 1% / 2%, JKK group I 0.24%, JKM 0.30%, Kesehatan 1% / 4% of the floor wage (above the workplace UMK, under the Rp12,000,000 cap), each half-up to the rupiah; PPh 21 TER A on wage + JKK + JKM + Kesehatan employer (PP 58/2023 Lampiran A: 0% to Rp5,400,000; 0.25% to 5,650,000; 0.5% to 5,950,000)'
+			],
+			'2026-02',
+			'Provinsi Jawa Tengah/Kabupaten Demak',
+			[
+				{ ref: 'clp', worksite: 'Provinsi Jawa Tengah/Kabupaten Cilacap', sector: '35111', wage: 2_800_916, c: [56_018, 103_634, 28_009, 56_018, 6_722, 8_403, 28_009, 112_037, 0] },
+				{ ref: 'dmk', worksite: 'Provinsi Jawa Tengah/Kabupaten Demak', sector: '25920', wage: 3_137_685, c: [62_754, 116_094, 31_377, 62_754, 7_530, 9_413, 31_377, 125_507, 0] },
+				{ ref: 'smgk', worksite: 'Provinsi Jawa Tengah/Kabupaten Semarang', sector: '08109', wage: 2_955_088, c: [59_102, 109_338, 29_551, 59_102, 7_092, 8_865, 29_551, 118_204, 0] },
+				{ ref: 'smgk2', worksite: 'Provinsi Jawa Tengah/Kabupaten Semarang', sector: '46610', wage: 2_950_088, c: [59_002, 109_153, 29_501, 59_002, 7_080, 8_850, 29_501, 118_004, 0] },
+				{ ref: 'smg3', worksite: 'Provinsi Jawa Tengah/Kota Semarang', sector: '15201', wage: 3_707_534, c: [74_151, 137_179, 37_075, 74_151, 8_898, 11_123, 37_075, 148_301, 0] },
+				{ ref: 'smg4', worksite: 'Provinsi Jawa Tengah/Kota Semarang', sector: '22220', wage: 3_703_651, c: [74_073, 137_035, 37_037, 74_073, 8_889, 11_111, 37_037, 148_146, 0] },
+				{ ref: 'tgl', worksite: 'Provinsi Jawa Tengah/Kabupaten Tegal', sector: '15201', wage: 2_495_993, c: [49_920, 92_352, 24_960, 49_920, 5_990, 7_488, 24_960, 99_840, 0] },
+				{ ref: 'tgl2', worksite: 'Provinsi Jawa Tengah/Kabupaten Tegal', sector: '31009', wage: 2_490_077, c: [49_802, 92_133, 24_901, 49_802, 5_976, 7_470, 24_901, 99_603, 0] }
+			]
+		),
+		floorCase(
+			'ID-138-4',
+			'Banten 2026 UMSK groups beside Cilegon Sektor 1 (Kep.704/2025): Kabupaten Serang Sektor I and II, Kota Cilegon Sektor 2 and 3, Kota Tangerang Selatan Sektor I and II, each worker paid exactly its floor, February 2026.',
+			[
+				'Banten Kep. Gubernur 704/2025 Lampiran I–II (signed text re-read 2026-09-30): Kabupaten Serang Sektor I Rp5.345.521,19 (20111), Sektor II Rp5.290.521,19 (10130); Kota Cilegon Sektor 2 Rp5.566.663,21 (10415), Sektor 3 Rp5.499.553,85 (68130); Kota Tangerang Selatan Sektor I Rp5.297.813,00 (46631), Sektor II Rp5.272.842,00 (47111) (tracker ID-138)',
+				'Every figure: JHT 2% / 3.7%, JP 1% / 2%, JKK group I 0.24%, JKM 0.30%, Kesehatan 1% / 4% of the floor wage (above the workplace UMK, under the Rp12,000,000 cap), each half-up to the rupiah; PPh 21 TER A on wage + JKK + JKM + Kesehatan employer (PP 58/2023 Lampiran A: 0% to Rp5,400,000; 0.25% to 5,650,000; 0.5% to 5,950,000)'
+			],
+			'2026-02',
+			'Provinsi Banten/Kabupaten Serang',
+			[
+				{ ref: 'srg1', worksite: 'Provinsi Banten/Kabupaten Serang', sector: '20111', wage: 5_345_521.19, c: [106_910, 197_784, 53_455, 106_910, 12_829, 16_037, 53_455, 213_821, 13_971] },
+				{ ref: 'srg2', worksite: 'Provinsi Banten/Kabupaten Serang', sector: '10130', wage: 5_290_521.19, c: [105_810, 195_749, 52_905, 105_810, 12_697, 15_872, 52_905, 211_621, 13_827] },
+				{ ref: 'clg2', worksite: 'Provinsi Banten/Kota Cilegon', sector: '10415', wage: 5_566_663.21, c: [111_333, 205_967, 55_667, 111_333, 13_360, 16_700, 55_667, 222_667, 29_097] },
+				{ ref: 'clg3', worksite: 'Provinsi Banten/Kota Cilegon', sector: '68130', wage: 5_499_553.85, c: [109_991, 203_483, 54_996, 109_991, 13_199, 16_499, 54_996, 219_982, 28_746] },
+				{ ref: 'tgs1', worksite: 'Provinsi Banten/Kota Tangerang Selatan', sector: '46631', wage: 5_297_813, c: [105_956, 196_019, 52_978, 105_956, 12_715, 15_893, 52_978, 211_913, 13_846] },
+				{ ref: 'tgs2', worksite: 'Provinsi Banten/Kota Tangerang Selatan', sector: '47111', wage: 5_272_842, c: [105_457, 195_095, 52_728, 105_457, 12_655, 15_819, 52_728, 210_914, 13_781] }
+			]
+		),
+		floorCase(
+			'ID-99-4',
+			'Bali December 2025: Jembrana, Karangasem, Klungkung and Bangli, expressly on the UMP, at Rp2,996,561 for a non-sector KBLI, 1 December joiners.',
+			[
+				'Bali Kep.946/2024 (announcement B.21.500.15/18055/IV/DISNAKER.ESDM): a regency not given a UMK uses the UMP (https://cloud-ng.baliprov.go.id/disnakeresdm/2024/12/Pengumuman-UMK-dan-UMSK-Tahun-2025.pdf); Kep.939/2024: UMP 2025 Rp2.996.561,00 (https://cloud-ng.baliprov.go.id/disnakeresdm/2024/12/PENGUMUMAN-UMP-dan-UMSP-Tahun-2025.pdf) (tracker ID-99)',
+				'Every figure: JHT 2% / 3.7%, JP 1% / 2%, JKK group I 0.24%, JKM 0.30%, Kesehatan 1% / 4% of the floor wage, each half-up to the rupiah; a 1 December joiner’s December is the last tax period, and a year’s income of one month at this wage is below the PTKP Rp54,000,000, so PPh 21 is 0 (PMK 168/2023 art.10)'
+			],
+			'2025-12',
+			'Provinsi Bali/Kabupaten Jembrana',
+			[
+				{ ref: 'jbr', worksite: 'Provinsi Bali/Kabupaten Jembrana', sector: '62019', wage: 2_996_561, c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0] },
+				{ ref: 'kas', worksite: 'Provinsi Bali/Kabupaten Karangasem', sector: '62019', wage: 2_996_561, c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0] },
+				{ ref: 'klk', worksite: 'Provinsi Bali/Kabupaten Klungkung', sector: '62019', wage: 2_996_561, c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0] },
+				{ ref: 'bgl25', worksite: 'Provinsi Bali/Kabupaten Bangli', sector: '62019', wage: 2_996_561, c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0] }
+			]
+		),
+		floorCase(
+			'ID-98-3',
+			'Bali December 2025 provincial UMSP Rp3,052,834 for other KBLI 2020 letter-I lines (55130, 55900, 56301) at UMP-valued regencies, and for a Denpasar restaurant (56101) the higher Denpasar UMK Rp3,298,116.50, 1 December joiners.',
+			[
+				'Bali Kep.939/2024: UMSP Rp3,052,834.00 for tourism accommodation and food service under KBLI 2020 letter I (https://cloud-ng.baliprov.go.id/disnakeresdm/2024/12/PENGUMUMAN-UMP-dan-UMSP-Tahun-2025.pdf; tracker ID-98); Kep.946/2024: Denpasar Rp3,298,116.50 (tracker ID-99)',
+				'Binding floor = the higher of the ordinary floor and every matching sector floor: PP 49/2025 art.35D (tracker ID-03)',
+				'Every figure: JHT 2% / 3.7%, JP 1% / 2%, JKK group I 0.24%, JKM 0.30%, Kesehatan 1% / 4% of the floor wage, each half-up to the rupiah; a 1 December joiner’s December is the last tax period, and a year’s income of one month at this wage is below the PTKP Rp54,000,000, so PPh 21 is 0 (PMK 168/2023 art.10)'
+			],
+			'2025-12',
+			'Provinsi Bali/Kabupaten Klungkung',
+			[
+				{ ref: 'klk2', worksite: 'Provinsi Bali/Kabupaten Klungkung', sector: '55130', wage: 3_052_834, c: [61_057, 112_955, 30_528, 61_057, 7_327, 9_159, 30_528, 122_113, 0] },
+				{ ref: 'kas2', worksite: 'Provinsi Bali/Kabupaten Karangasem', sector: '55900', wage: 3_052_834, c: [61_057, 112_955, 30_528, 61_057, 7_327, 9_159, 30_528, 122_113, 0] },
+				{ ref: 'jbr2', worksite: 'Provinsi Bali/Kabupaten Jembrana', sector: '56301', wage: 3_052_834, c: [61_057, 112_955, 30_528, 61_057, 7_327, 9_159, 30_528, 122_113, 0] },
+				{ ref: 'dps2', worksite: 'Provinsi Bali/Kota Denpasar', sector: '56101', wage: 3_298_116.5, c: [65_962, 122_030, 32_981, 65_962, 7_915, 9_894, 32_981, 131_925, 0] }
+			]
+		),
+		floorCase(
+			'ID-103-4',
+			'The January 2026 boundary in Bali: from 1 January the Badung UMSK Rp3,828,912.60 covers a four-star hotel (in December 2025 it fell to the UMK, ID-100-3), and a Bangli star hotel is on the 2026 provincial tourism UMSP Rp3,267,693, January 2026.',
+			[
+				'Bali Kep.1021/2025: Badung UMSK Rp3,828,912.60 for KBLI letter I with four- or five-star hotel classification, from 1 January 2026 (tracker ID-103); Kep.1011/2025: provincial tourism UMSP Rp3,267,693.00 for the star-hotel subgroup (tracker ID-101) (https://cloud-ng.baliprov.go.id/disnakeresdm/2025/12/PENGUMUMAN-DAN-SK-UMP-UMSP-2026.pdf)',
+				'JP on the January 2026 ceiling Rp10,547,400 (not reached)',
+				'Every figure: JHT 2% / 3.7%, JP 1% / 2%, JKK group I 0.24%, JKM 0.30%, Kesehatan 1% / 4% of the floor wage (above the workplace UMK, under the Rp12,000,000 cap), each half-up to the rupiah; PPh 21 TER A on wage + JKK + JKM + Kesehatan employer (PP 58/2023 Lampiran A: 0% to Rp5,400,000; 0.25% to 5,650,000; 0.5% to 5,950,000)'
+			],
+			'2026-01',
+			'Provinsi Bali/Kabupaten Badung',
+			[
+				{ ref: 'bdg4j', worksite: 'Provinsi Bali/Kabupaten Badung', sector: '55110', wage: 3_828_912.6, c: [76_578, 141_670, 38_289, 76_578, 9_189, 11_487, 38_289, 153_157, 0] },
+				{ ref: 'bgl4j', worksite: 'Provinsi Bali/Kabupaten Bangli', sector: '55110', wage: 3_267_693, c: [65_354, 120_905, 32_677, 65_354, 7_842, 9_803, 32_677, 130_708, 0] }
+			],
+			{ umsp_hotel_star: 4 }
+		),
+		floorCase(
+			'ID-81-2',
+			'Kabupaten Jepara December 2025, a large business: KBLI 29300 is on the amended UMSK Rp2,701,582 above the Jepara UMK, a 1 December joiner.',
+			[
+				'Central Java Kep.561/45/2024 as amended by Kep.100.3.3.1/45/2025 (effective 10 February 2025): Jepara annex II item 1, large businesses only, KBLI 29300 Rp2,701,582 (https://jdih.jatengprov.go.id/inventarisasi-hukum/file/kepgub_100-3-3-1-45_th_2025/sk_100.3.3.1-45_th_2025.pdf; tracker ID-81)',
+				'Every figure: JHT 2% / 3.7%, JP 1% / 2%, JKK group I 0.24%, JKM 0.30%, Kesehatan 1% / 4% of the floor wage, each half-up to the rupiah; a 1 December joiner’s December is the last tax period, and a year’s income of one month at this wage is below the PTKP Rp54,000,000, so PPh 21 is 0 (PMK 168/2023 art.10)'
+			],
+			'2025-12',
+			'Provinsi Jawa Tengah/Kabupaten Jepara',
+			[
+				{ ref: 'jpr', worksite: 'Provinsi Jawa Tengah/Kabupaten Jepara', sector: '29300', wage: 2_701_582, c: [54_032, 99_959, 27_016, 54_032, 6_484, 8_105, 27_016, 108_063, 0] }
+			],
+			{ umsp_large_business: true }
+		),
+		floorCase(
+			'ID-81-3',
+			'The same Jepara KBLI 29300 at an employer recorded as not a large business, December 2025: the UMSK does not bind, so the 2025 Jepara UMK Rp2,610,224 does, a 1 December joiner.',
+			[
+				'Central Java Kep.561/45/2024 Lampiran I: Kabupaten Jepara UMK 2025 Rp2,610,224; the amended annex II item 1 binds large businesses only (Kep.100.3.3.1/45/2025; tracker ID-81, https://jdih.jatengprov.go.id/produk_hukum/kepgub/sk_561-45_th_2024.pdf)',
+				'Every figure: JHT 2% / 3.7%, JP 1% / 2%, JKK group I 0.24%, JKM 0.30%, Kesehatan 1% / 4% of the floor wage, each half-up to the rupiah; a 1 December joiner’s December is the last tax period, and a year’s income of one month at this wage is below the PTKP Rp54,000,000, so PPh 21 is 0 (PMK 168/2023 art.10)'
+			],
+			'2025-12',
+			'Provinsi Jawa Tengah/Kabupaten Jepara',
+			[
+				{ ref: 'jpr2', worksite: 'Provinsi Jawa Tengah/Kabupaten Jepara', sector: '29300', wage: 2_610_224, c: [52_204, 96_578, 26_102, 52_204, 6_265, 7_831, 26_102, 104_409, 0] }
+			],
+			{ umsp_large_business: false }
+		),
 	].map((probe) =>
 		probe.id === 'ID-36-1'
 			? {
@@ -4105,4 +4278,540 @@ const round10: ProbeCase[] = [
 	}
 ];
 
-register(...cases, ...round10);
+// ─── Round 11 (2026-09-30): six-day week, the daily overtime ceiling, boundaries and refusals ──
+/** A Monday–Saturday week of 7-hour days (08:00–16:00 less an hour's break), Sunday the rest day: 7 h × 6 (PP 35/2021 art.21(2)(a)). */
+const sixDayWeek = (from: string): ProbeInput[] => [
+	{
+		collection: 'shift_definitions',
+		ref: 'office7',
+		values: {
+			company_id: '@company',
+			code: 'OFFICE7',
+			name: 'Office day (0800 to 1600)',
+			variant: { kind: 'WORK', start_time: '08:00', end_time: '16:00', break_minutes: 60 },
+			effective_range: { from, to: null }
+		}
+	},
+	{
+		collection: 'shift_definitions',
+		ref: 'rest',
+		values: {
+			company_id: '@company',
+			code: 'REST',
+			name: 'Rest day',
+			variant: { kind: 'REST' },
+			effective_range: { from, to: null }
+		}
+	},
+	{
+		collection: 'shift_patterns',
+		ref: 'week',
+		values: {
+			company_id: '@company',
+			code: 'OFFICE7x6-REST',
+			name: '6 x OFFICE7, REST',
+			pattern: {
+				days: ['@office7', '@office7', '@office7', '@office7', '@office7', '@office7', '@rest'].map(
+					(roster_code_id) => ({ roster_code_id })
+				)
+			},
+			effective_range: { from, to: null }
+		}
+	}
+];
+/** The ID-14-1 BPJS lines at Rp8,650,000 (the Rp50,000 overtime hour). */
+const EIGHT_SIX_FIVE: Lines = {
+	'JHT.employee': 173_000,
+	'JHT.employer': 320_050,
+	'JP.employee': 86_500,
+	'JP.employer': 173_000,
+	'JKK.employer': 20_760,
+	'JKM.employer': 25_950,
+	'KESEHATAN.employee': 86_500,
+	'KESEHATAN.employer': 346_000
+};
+const OT_REF =
+	'PP 35/2021 art.31(1): ordinary day, first overtime hour 1.5×, further hours 2×; art.32(2): the hour is 1/173 of the monthly wage — 8,650,000 ÷ 173 = 50,000 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)';
+/** A foreign worker on a five-month PKWT from 1 February 2026 (the ID-175-1 stint), non-resident, with the given prior-work record. */
+const shortForeigner = (ref: string, facts: Row | null, evidence: boolean): ProbeInput[] => [
+	...worker({
+		ref,
+		wage: 20_000_000,
+		citizenship: 'FOREIGNER',
+		tax: 'NON_RESIDENT',
+		type: 'CONTRACT',
+		hire: '2026-02-01',
+		exit: '2026-06-30',
+		...(facts == null ? {} : { terms_facts: facts })
+	}),
+	...(evidence
+		? [
+				{
+					collection: 'fact_evidence',
+					values: {
+						subject: { collection: 'employment_terms', id: `@${ref}_terms` },
+						fact_key: 'foreign_prior_work_reviewed_on',
+						reference: `PROBE-IMIGRASI-CHECK-${ref}`
+					}
+				} satisfies ProbeInput
+			]
+		: [])
+];
+const KES_FOREIGN =
+	'A foreign worker joins BPJS Kesehatan after six months of work in Indonesia, measured on cumulative Indonesian work, not the current contract: Perpres 82/2018 art.1 angka 2 as restated by Perpres 59/2024 (https://peraturan.bpk.go.id/Download/344279/Perpres%20Nomor%2059%20Tahun%202024.pdf); tracker ID-175 recorded default: a short contract alone never excludes the worker — the run refuses until a dated prior-work review of NONE inside the service is on file with its reference';
+const KES_FOREIGN_REFUSAL =
+	'Verify dated prior work in Indonesia before excluding a foreign worker on a short contract from BPJS Kesehatan';
+
+const round11: ProbeCase[] = [
+	{
+		id: 'ID-107-1',
+		profile: 'ID',
+		description:
+			'A six-day week (7 h × 6, Sunday the only rest day) on Rp8,650,000, February 2026: three ordered hours past a 7-hour Monday, and eleven on the Sunday rest day priced on the six-day ladder (1–7 h 2×, 8th 3×, 9th–11th 4×).',
+		citation: [
+			'PP 35/2021 art.21(2)(a): 7 hours a day, 40 a week, on a six-day week; art.31(2)(a): on a rest day or holiday of a six-day week, the first 7 hours 2×, the 8th 3×, the 9th–11th 4× (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)',
+			OT_REF,
+			'UU 13/2003 art.79(2)(b): one rest day after six working days (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf)',
+			'Mon 2 Feb 08:00–12:00 + 13:00–16:00 + 16:30–19:30 = 10 h, 3 past the 7-hour day: 1 × 1.5 × 50,000 + 2 × 2 × 50,000 = 275,000',
+			'Sun 8 Feb 08:00–12:00 + 12:30–16:30 + 17:00–20:00 = 11 h: 7 × 2 + 1 × 3 + 3 × 4 = 29 hours’ pay = 1,450,000',
+			SRC.TER,
+			'BPJS on the wage only (as ID-09-1): JHT 173,000 / 320,050; JP 86,500 / 173,000; JKK 20,760; JKM 25,950; Kesehatan 86,500 / 346,000; gross 8,650,000 + 1,725,000 = 10,375,000; TER gross 10,375,000 + 20,760 + 25,950 + 346,000 = 10,767,710, TER A 10,700,001–11,050,000 at 3% = 323,031.30 → 323,031',
+			'Net 10,375,000 − 173,000 − 86,500 − 86,500 − 323,031 = 9,705,969'
+		],
+		company: company(),
+		inputs: [
+			...sixDayWeek('2025-06-02'),
+			...worker({ ref: 'enam', wage: 8_650_000 }),
+			ordered(punch('enam', '2026-02-02', ['08:00', '12:00'], ['13:00', '16:00'], ['16:30', '19:30']), 3),
+			ordered(punch('enam', '2026-02-08', ['08:00', '12:00'], ['12:30', '16:30'], ['17:00', '20:00']), 11)
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'enam_job',
+				lines: {
+					...EIGHT_SIX_FIVE,
+					gross: 10_375_000,
+					net: 9_705_969,
+					'PPH21.employee': 323_031
+				}
+			}
+		]
+	},
+	{
+		id: 'ID-09-2',
+		profile: 'ID',
+		description:
+			'Five overtime hours on an ordinary Monday (2 February 2026, five-day week, Rp8,650,000): approving all five is refused at the work-day write (at most 4 a day); four approved and the fifth keyed as incentive are paid at their band, and the run reports the breach.',
+		citation: [
+			'PP 35/2021 art.26(1): overtime at most 4 hours a day and 18 a week (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); tracker ID-43 (LIT-07): approved overtime stays within the ceiling and the rest is keyed as incentive hours',
+			OT_REF,
+			'09:00–12:00 + 12:30–16:30 + 17:00–21:00 + 21:30–23:30 = 13 h, 5 past the 8-hour day, no stint over four hours: 1 × 1.5 × 50,000 + 4 × 2 × 50,000 = 475,000 (the fifth hour, an incentive hour, keeps the 2× of its band)',
+			SRC.TER,
+			'Gross 9,125,000; TER gross 9,125,000 + 20,760 + 25,950 + 346,000 = 9,517,710, TER A 8,550,001–9,650,000 at 1.75% = 166,559.93 → 166,560; net 9,125,000 − 173,000 − 86,500 − 86,500 − 166,560 = 8,612,440'
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({ ref: 'lembur', wage: 8_650_000 }),
+			{
+				...ordered(
+					punch('lembur', '2026-02-02', ['09:00', '12:00'], ['12:30', '16:30'], ['17:00', '21:00'], ['21:30', '23:30']),
+					5
+				),
+				refused: 'Overtime for .* is refused: .*Approved overtime may not exceed the statutory limit'
+			},
+			(() => {
+				const day = ordered(
+					punch('lembur', '2026-02-02', ['09:00', '12:00'], ['12:30', '16:30'], ['17:00', '21:00'], ['21:30', '23:30']),
+					4
+				);
+				return { ...day, values: { ...day.values, incentive_hours: 1 } };
+			})()
+		],
+		period: '2026-02',
+		warnings: [
+			'DAILY_OVERTIME_LIMIT_EXCEEDED: P-ID-lembur worked 5\\.00 overtime hours on 2026-02-02, above the 4-hour daily overtime limit'
+		],
+		expected: [
+			{
+				employment: 'lembur_job',
+				lines: { ...EIGHT_SIX_FIVE, gross: 9_125_000, net: 8_612_440, 'PPH21.employee': 166_560 }
+			}
+		]
+	},
+	{
+		id: 'ID-19-3',
+		profile: 'ID',
+		description:
+			'Two joiners at Kabupaten Bekasi on Rp10,000,000, January 2026: one hired 15 January is paid 17/31 = Rp5,483,870.97, under the Rp5,938,885 UMK, so Kesehatan is lifted to the whole UMK; one hired 12 January is paid 20/31 = Rp6,451,612.90, above it, and is charged on the wage paid.',
+		citation: [
+			SRC.KES,
+			'West Java Kep. Gubernur 862/2025: Kabupaten Bekasi UMK 2026 Rp5,938,885 (https://jdih.jabarprov.go.id/page/eksekusi_download/32/2025kg00320862.pdf; tracker ID-96); the Kesehatan floor is the workplace UMK (Perpres 82/2018 art.32(2)–(3) as amended by Perpres 59/2024)',
+			SRC.PRORATE,
+			SRC.JHT,
+			SRC.JP,
+			SRC.TER,
+			'15 January joiner: JHT 200,000 / 370,000, JKK 24,000, JKM 30,000 on the monthly rate; JP on 5,483,870.97 = 54,838.71 → 54,839 / 109,677.42 → 109,677; Kesehatan on the UMK 59,388.85 → 59,389 / 237,555.40 → 237,555; TER gross 5,483,870.97 + 24,000 + 30,000 + 237,555 = 5,775,425.97, TER A 5,650,001–5,950,000 at 0.5% = 28,877.13 → 28,877; net 5,483,870.97 − 200,000 − 54,839 − 59,389 − 28,877 = 5,140,765.97',
+			'12 January joiner: JP on 6,451,612.90 = 64,516 / 129,032; Kesehatan 64,516 / 258,064.52 → 258,065; TER gross 6,763,677.90 at 1.25% (6,750,001–7,500,000) = 84,545.97 → 84,546; net 6,451,612.90 − 200,000 − 64,516 − 64,516 − 84,546 = 6,038,034.90'
+		],
+		company: company({ region: 'Provinsi Jawa Barat/Kabupaten Bekasi' }),
+		inputs: [
+			...week('2025-06-02'),
+			...(
+				[
+					['bks1', '2026-01-15'],
+					['bks2', '2026-01-12']
+				] as const
+			).flatMap(([ref, hire]) =>
+				worker({ ref, wage: 10_000_000, hire, worksite: 'Provinsi Jawa Barat/Kabupaten Bekasi' })
+			)
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'bks1_job',
+				lines: {
+					gross: 5_483_870.97,
+					net: 5_140_765.97,
+					'JHT.employee': 200_000,
+					'JHT.employer': 370_000,
+					'JP.employee': 54_839,
+					'JP.employer': 109_677,
+					'JKK.employer': 24_000,
+					'JKM.employer': 30_000,
+					'KESEHATAN.employee': 59_389,
+					'KESEHATAN.employer': 237_555,
+					'PPH21.employee': 28_877
+				}
+			},
+			{
+				employment: 'bks2_job',
+				lines: {
+					gross: 6_451_612.9,
+					net: 6_038_034.9,
+					'JHT.employee': 200_000,
+					'JHT.employer': 370_000,
+					'JP.employee': 64_516,
+					'JP.employer': 129_032,
+					'JKK.employer': 24_000,
+					'JKM.employer': 30_000,
+					'KESEHATAN.employee': 64_516,
+					'KESEHATAN.employer': 258_065,
+					'PPH21.employee': 84_546
+				}
+			}
+		]
+	},
+	{
+		id: 'ID-52-7',
+		profile: 'ID',
+		description:
+			'A BPJS-verified labour-intensive employer (PP 7/2025) in December 2025, group I, a 1 December joiner on Rp10,000,000: JKK halved to 0.12% on the December 2025 version.',
+		citation: [
+			'PP 7/2025 arts.3(3)–(4), 4(1), 10 as extended by PP 36/2025 art.10A: JKK I 0.120% for contribution months February 2025 to January 2026 (https://jdih.kemnaker.go.id/peraturan/detail/2641/peraturan-pemerintah-nomor-7-tahun-2025; https://jdih.kemnaker.go.id/download.php?id=2720; tracker ID-52)',
+			SRC.JHT,
+			SRC.JP,
+			SRC.KES,
+			SRC.LAST,
+			'JKK 0.12% × 10,000,000 = 12,000; JHT 200,000 / 370,000; JP 100,000 / 200,000 (under the 10,547,400 ceiling); JKM 30,000; Kesehatan 100,000 / 400,000 (above the 2025 DKI UMP 5,396,761)',
+			'December is the joiner’s last tax period: 10,000,000 + 12,000 + 30,000 + 400,000 = 10,442,000 − biaya jabatan 500,000 (one month) − JHT 200,000 − JP 100,000 − PTKP 54,000,000 < 0 → PPh 21 0; net 10,000,000 − 200,000 − 100,000 − 100,000 = 9,600,000'
+		],
+		company: company({ facts: { jkk_padat_karya: true } }),
+		inputs: [...week('2025-06-02'), ...worker({ ref: 'padat25', wage: 10_000_000, hire: '2025-12-01' })],
+		period: '2025-12',
+		expected: [
+			{
+				employment: 'padat25_job',
+				lines: {
+					net: 9_600_000,
+					'JHT.employee': 200_000,
+					'JHT.employer': 370_000,
+					'JP.employee': 100_000,
+					'JP.employer': 200_000,
+					'JKK.employer': 12_000,
+					'JKM.employer': 30_000,
+					'KESEHATAN.employee': 100_000,
+					'KESEHATAN.employer': 400_000
+				}
+			}
+		]
+	},
+	...(
+		[
+			['ID-69-3', '1971-06-15', false],
+			['ID-69-4', '1972-06-15', true]
+		] as const
+	).map(
+		([id, dob, refusedRun]): ProbeCase => ({
+			id,
+			profile: 'ID',
+			description: refusedRun
+				? 'A citizen aged 53 (born 15 June 1972) recorded NOT_REGISTERED for JKP, February 2026: still under 54, so JKP participation is required and the run is refused.'
+				: 'A citizen aged exactly 54 (born 15 June 1971) recorded NOT_REGISTERED for JKP, February 2026: a worker who has reached 54 is outside JKP, so the run commits on the ID-14-1 figures.',
+			citation: [
+				'PP 37/2021 art.4 as amended by PP 6/2025 art.I(1): JKP covers an Indonesian worker “belum mencapai usia 54 (lima puluh empat) tahun” at registration (https://jdih.kemnaker.go.id/asset/data_puu/2025pp006.pdf)',
+				'JKP has no payslip charge beyond the full JKK bill: PP 6/2025 art.I(2) (tracker ID-18)',
+				...(refusedRun ? [] : [SRC.TER, 'ID-14-1 figures (JP applies below pension age 59): net 9,338,650'])
+			],
+			company: company(),
+			inputs: [
+				...week('2025-06-02'),
+				...worker({ ref: 'jkp54', wage: 10_000_000, dob }),
+				{
+					collection: 'employment_statutory_facts',
+					values: {
+						employee_id: '@jkp54',
+						statutory_contribution_id: '@law:statutory_contributions:JKP',
+						effective_range: { from: '2025-06-02', to: null },
+						status: { kind: 'NOT_REGISTERED', reason: 'The employer has not registered the worker for JKP' }
+					}
+				}
+			],
+			period: '2026-02',
+			...(refusedRun
+				? {
+						refused: 'JKP cannot be marked not registered for an Indonesian worker under 54',
+						expected: []
+					}
+				: { expected: [{ employment: 'jkp54_job', lines: TEN_MILLION }] })
+		})
+	),
+	...(
+		[
+			['ID-175-2', 'with no prior-work review on file', null, false],
+			[
+				'ID-175-3',
+				'whose prior-work review (NONE) is dated 15 January 2026, before the service began, so it does not speak for this stint',
+				{ foreign_prior_work: 'NONE', foreign_prior_work_reviewed_on: '2026-01-15' },
+				true
+			],
+			[
+				'ID-175-4',
+				'whose review found earlier work in Indonesia (ANY), so six months of cumulative work cannot be ruled out',
+				{ foreign_prior_work: 'ANY', foreign_prior_work_reviewed_on: '2026-02-01' },
+				true
+			]
+		] as const
+	).map(
+		([id, what, facts, evidence]): ProbeCase => ({
+			id,
+			profile: 'ID',
+			description: `The ID-175-1 foreign worker (five-month PKWT from 1 February 2026, non-resident, Rp20,000,000) ${what}: the short contract alone does not exclude Kesehatan, so the run is refused.`,
+			citation: [KES_FOREIGN],
+			company: company(),
+			inputs: [...week('2025-06-02'), ...shortForeigner(`asing${id.slice(-1)}`, facts, evidence)],
+			period: '2026-02',
+			refused: KES_FOREIGN_REFUSAL,
+			expected: []
+		})
+	),
+	{
+		id: 'ID-13-4',
+		profile: 'ID',
+		description:
+			'Tahun Baru Imlek on 17 February 2026: a Konghucu PKWTT worker hired 1 December 2025 on Rp10,000,000 who resigns on 30 January (18 days before the holiday) is owed a one-twelfth THR in the final pay; a PKWT worker whose contract ends the same day before the holiday is not, so that request is refused and the PKWT compensation is paid.',
+		citation: [
+			'Permenaker 6/2016 art.7(1)–(3): a PKWTT worker whose employment ends within 30 days before the religious holiday is owed THR; a PKWT worker whose contract ends before the holiday is not; arts.2(1), 3(1)(b): after one month of service, months ÷ 12 × one month’s wage (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf); Tahun Baru Imlek is a religious holiday (art.1 angka 2) and a 2026 national holiday on 17 February (SKB 2026, tracker ID-120)',
+			'PP 35/2021 arts.15–16: PKWT compensation 1 month ÷ 12 × 10,000,000 = 833,333.33 → 833,333 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); PP 35/2021 art.50: resignation, UPH and uang pisah per PK/PP/PKB (Rp2,000,000 recorded)',
+			SRC.PRORATE,
+			SRC.PP68,
+			SRC.LAST,
+			'Paid 10,000,000 × 30/31 = 9,677,419.35; JHT 200,000 / 370,000; JKK 24,000; JKM 30,000; JP 96,774.19 → 96,774 / 193,548.39 → 193,548; Kesehatan 96,774 / 387,096.77 → 387,097',
+			'THR 10,000,000 × 1/12 = 833,333.33 (one completed month, 1 December – 30 January); last period: 9,677,419.35 + 833,333.33 + 24,000 + 30,000 + 387,097 − biaya jabatan 500,000 − JHT 200,000 − JP 96,774 − PTKP 54,000,000 < 0 → PPh 21 0; uang pisah and PKWT compensation under Rp50m at 0% final',
+			'Net PKWTT 9,677,419.35 + 833,333.33 + 2,000,000 − 200,000 − 96,774 − 96,774 = 12,117,204.68; PKWT 9,677,419.35 + 833,333 − 393,548 = 10,117,204.35'
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({
+				ref: 'imlek1',
+				wage: 10_000_000,
+				hire: '2025-12-01',
+				exit: '2026-01-30',
+				religion: 'KONGHUCU',
+				exit_reason: 'RESIGNATION',
+				exit_facts: departure('VOLUNTARY_RESIGNATION', {
+					thr_holiday_date: '2026-02-17',
+					separation_pay_amount: 2_000_000,
+					separation_pay_reference: 'PKB-PROBE-UANG-PISAH'
+				})
+			}),
+			adhoc('imlek1', 'THR', '2026-01-30'),
+			adhoc('imlek1', 'UANG_PISAH', '2026-01-30'),
+			...worker({
+				ref: 'imlek2',
+				wage: 10_000_000,
+				type: 'CONTRACT',
+				hire: '2025-12-01',
+				exit: '2026-01-30',
+				religion: 'KONGHUCU',
+				exit_reason: 'END_OF_CONTRACT',
+				exit_facts: departure(null, { thr_holiday_date: '2026-02-17' })
+			}),
+			{
+				...adhoc('imlek2', 'THR', '2026-01-30'),
+				refused: 'THR is not offered to .*: its eligibility rule does not hold'
+			},
+			adhoc('imlek2', 'PKWT_COMPENSATION', '2026-01-30')
+		],
+		period: '2026-01',
+		expected: (
+			[
+				['imlek1_job', { THR: 833_333.33, UANG_PISAH: 2_000_000 }, 12_117_204.68],
+				['imlek2_job', { PKWT_COMPENSATION: 833_333 }, 10_117_204.35]
+			] as const
+		).map(([employment, pay, net]) => ({
+			employment,
+			lines: {
+				...(pay as Lines),
+				net,
+				BASIC: 9_677_419.35,
+				'JHT.employee': 200_000,
+				'JHT.employer': 370_000,
+				'JP.employee': 96_774,
+				'JP.employer': 193_548,
+				'JKK.employer': 24_000,
+				'JKM.employer': 30_000,
+				'KESEHATAN.employee': 96_774,
+				'KESEHATAN.employer': 387_097
+			}
+		}))
+	},
+	{
+		id: 'ID-170-1',
+		profile: 'ID',
+		description:
+			'Idul Fitri twice in the entry’s calendar year (21 March 2026 and a second, synthetic occurrence tagged on 22 December 2026 — no published SKB has one): a Muslim worker hired 1 September 2025 on Rp12,000,000 is paid two six-twelfths THRs in March; a third request is refused.',
+		citation: [
+			'Permenaker 6/2016 art.5(1)–(2): THR once a year, but where the same religious holiday falls more than once in a year, THR for each occurrence (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf; tracker ID-170)',
+			'Arts.2–3: six months of service, 6/12 × 12,000,000 = 6,000,000 each; ceiling 2 × 6,000,000 = 12,000,000, so a third 6,000,000 is refused',
+			SRC.TER,
+			SRC.JP,
+			'ID-13-2 figures: BPJS on 12,000,000 (JHT 240,000 / 444,000; JP on 11,086,300 110,863 / 221,726; JKK 28,800; JKM 36,000; Kesehatan 120,000 / 480,000); TER gross 24,544,800 at 10% = 2,454,480; net 24,000,000 − 240,000 − 110,863 − 120,000 − 2,454,480 = 21,074,657'
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...(
+				[
+					['2026-03-21', 'Idul Fitri 1447 H', 'SKB 2026 (probe)'],
+					['2026-12-22', 'Idul Fitri (synthetic second occurrence)', 'synthetic (probe)']
+				] as const
+			).map(
+				([date, name, source]): ProbeInput => ({
+					collection: 'jurisdiction_holidays',
+					values: {
+						company_id: '@company',
+						date,
+						name,
+						kind: 'PUBLIC_HOLIDAY',
+						given_to: 'EVERYONE',
+						religion: 'ISLAM',
+						source,
+						published_at: '2026-01-02T00:00:00.000Z'
+					}
+				})
+			),
+			...worker({ ref: 'fitri2', wage: 12_000_000, hire: '2025-09-01', religion: 'ISLAM' }),
+			adhoc('fitri2', 'THR', '2026-03-10'),
+			adhoc('fitri2', 'THR', '2026-03-11'),
+			{ ...adhoc('fitri2', 'THR', '2026-03-12'), refused: 'THR entitlement exceeded' }
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'fitri2_job',
+				lines: {
+					THR: 12_000_000,
+					net: 21_074_657,
+					'JHT.employee': 240_000,
+					'JHT.employer': 444_000,
+					'JP.employee': 110_863,
+					'JP.employer': 221_726,
+					'JKK.employer': 28_800,
+					'JKM.employer': 36_000,
+					'KESEHATAN.employee': 120_000,
+					'KESEHATAN.employer': 480_000,
+					'PPH21.employee': 2_454_480
+				}
+			}
+		]
+	},
+	...(
+		[
+			['ID-06-4', 9_000_000, true],
+			['ID-06-5', 3_000_000, false]
+		] as const
+	).map(
+		([id, deduction, refusedRun]): ProbeCase => ({
+			id,
+			profile: 'ID',
+			description: refusedRun
+				? 'The ID-28-1 leaver (hired 5 January 2026, Rp10,000,000, let go on 23 January for efficiency to prevent loss) with a Rp9,000,000 art.63 deduction from the final pay: above half of the final payment however it is read (half of the whole 16,129,032.26 is 8,064,516.13; half of the wage 3,064,516.13), so the run is refused.'
+				: 'The same leaver with a Rp3,000,000 art.63 deduction from the final pay: within half of the final wage payment (3,064,516.13), so it is taken and the pesangon is paid.',
+			citation: [
+				'PP 36/2021 art.65: the art.63(1) deductions total at most 50% of each wage payment, the final one included (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf; tracker ID-06)',
+				...(refusedRun
+					? []
+					: [
+							SRC.PESANGON,
+							SRC.PRORATE,
+							SRC.LAST,
+							'ID-28-1 figures: net 15,806,452.26 − 3,000,000 = 12,806,452.26'
+						])
+			],
+			company: company(),
+			inputs: [
+				...week('2025-06-02'),
+				...worker({
+					ref: 'akhir',
+					wage: 10_000_000,
+					hire: '2026-01-05',
+					exit: '2026-01-23',
+					exit_reason: 'REDUNDANCY',
+					exit_facts: departure('EFFICIENCY_PREVENT_LOSS', { separation_wage_basis: 'MONTHLY' })
+				}),
+				adhoc('akhir', 'PESANGON', '2026-01-23'),
+				adhoc('akhir', 'DEDUCTION', '2026-01-20', deduction)
+			],
+			period: '2026-01',
+			...(refusedRun
+				? {
+						refused: 'DEDUCTION_CEILING_EXCEEDED: P-ID-akhir: deductions exceed the lawful ceiling',
+						expected: []
+					}
+				: {
+						expected: [
+							{
+								employment: 'akhir_job',
+								lines: {
+									PESANGON: 10_000_000,
+									DEDUCTION: 3_000_000,
+									net: 12_806_452.26,
+									BASIC: 6_129_032.26,
+									'JHT.employee': 200_000,
+									'JHT.employer': 370_000,
+									'JP.employee': 61_290,
+									'JP.employer': 122_581,
+									'JKK.employer': 24_000,
+									'JKM.employer': 30_000,
+									'KESEHATAN.employee': 61_290,
+									'KESEHATAN.employer': 245_161
+								}
+							}
+						]
+					})
+		})
+	),
+	unresolved(
+		'ID-99-5',
+		'A workplace recorded as "Provinsi Bali/Kota Singaraja" (Singaraja is a town in Kabupaten Buleleng, not a city or regency with a wage decision), February 2026: an unrecognised locality never inherits the provincial UMP, so the run is refused.',
+		'Bali Kep.1021/2025 names four UMKs and expressly places Bangli, Buleleng, Jembrana, Karangasem and Klungkung on the UMP (https://cloud-ng.baliprov.go.id/disnakeresdm/2025/12/PENGUMUMAN-DAN-SK-UMP-UMSP-2026.pdf; tracker ID-99, ID-102)',
+		'2026-02',
+		'Provinsi Bali/Kota Singaraja',
+		'Kota Singaraja'
+	)
+];
+
+register(...cases, ...round10, ...round11);

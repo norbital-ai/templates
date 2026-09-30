@@ -34,10 +34,16 @@
  *          https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2732.htm
  *   LTA    地方税法 arts.321-3–321-5 https://laws.e-gov.go.jp/law/325AC0000000226 (resident-tax special collection)
  *   CUR    通貨の単位及び貨幣の発行等に関する法律 art.3 https://laws.e-gov.go.jp/law/362AC0000000042 (50銭 half-up)
+ *   RRT    地方税法 §§50-4, 328-2, 328-3, 20-4-2 as Yokohama restates them (read 2026-09-30):
+ *          https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/y-shizei/kojin-shiminzei-kenminzei/kojin-shiminzei-shosai/tokurei.html
+ *          — 退職所得の金額 as income tax (1,000円未満切捨て), 市民税 6% + 県民税 4%, each 100円未満切捨て
  *
  * Owner-rule defaults (law silent) follow the `reason` recorded in docs/inventory/japan.csv and are marked DEFAULT.
  * Out of scope (the scenario lists them in `unsupported` rather than guessing): the 令和7年分 and 令和9年分 withholding
- * tables (pay due in 2025 or from 2027), 日額表/丙欄, resident tax on retirement income, in-kind pay.
+ * tables (pay due in 2025 or from 2027), the December year-end adjustment (JP-TAX-03: needs the whole year's pay and the
+ * worker's deduction declarations), 日額表/丙欄, in-kind pay, and any payslip a 令和8年度 floor still AWAITING-LAW would
+ * bind (unsupported '*': nothing can be pinned). No public-holiday calendar: LSA grants no national-holiday rest, so the
+ * Mon–Fri roster is the scheduled calendar (a seeded holiday calendar would move WORKING_DAYS proration in holiday months).
  * Pure TypeScript; nothing is imported from src.
  */
 
@@ -82,7 +88,9 @@ export type Scenario = {
 		dailyHours: number;
 		/** terms fact: annual scheduled hours (最低賃金法施行規則 art.2 / 労基則 art.19 divisor ÷ 12) */
 		annualScheduledHours: number;
-		commuting: null | { mode: 'TRANSIT' | 'VEHICLE'; amount: number; km: number };
+		/** monthly 通勤手当 paid; km = one-way vehicle/bicycle distance; transitFare = the transit part of a MIXED commute;
+	 *  parking = employer-paid monthly parking (JP-TAX-07, from 1 April 2026) */
+	commuting: null | { mode: 'TRANSIT' | 'VEHICLE' | 'MIXED'; amount: number; km: number; transitFare?: number; parking?: number };
 		withholding: { column: 'KOU' | 'OTSU'; dependants: number; method: 'TABLE' | 'ELECTRONIC' };
 		/** municipality special-collection notice: the June installment and the July–May installment */
 		residentTax: null | { june: number; monthly: number };
@@ -172,6 +180,9 @@ const daysOf = (p: string) => Array.from({ length: daysIn(p) }, (_, i) => `${p}-
 const minutes = (hhmm: string) => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3, 5);
 
 // ---------- statutory tables (each from the source cited) ----------
+/** 令和8年度 floors the tracker records as enacted (IMPLEMENTED); every other *-R8 row is AWAITING-LAW on 2026-09-30. */
+const ENACTED_R8 = new Set(['JP-RF01-R8', 'JP-RF04-R8', 'JP-RF08-R8', 'JP-RF14-R8', 'JP-RF24-R8', 'JP-RF25-R8', 'JP-RF29-R8']);
+const awaiting = (row: string) => row.endsWith('-R8') && !ENACTED_R8.has(row);
 /** KK / JP-KK01..47: Kyokai branch general health rate % [令和7 (insurance months to 2026-02), 令和8 (from 2026-03)];
  *  MWA / JP-RF01..47(-R8): regional minimum wage JPY/hour by 発効日 (R6 = the 令和6年度 rate still in force on 2025-12-01). */
 export const PREFECTURES: Record<string, { kk: string; health: readonly [number, number]; mw: readonly (readonly [string, number, string])[] }> = {
@@ -539,9 +550,16 @@ const vehicleExempt = (km: number, payDate: string) => {
 	const v = bands.find(([under]) => km < under)![1];
 	return payDate < '2026-04-01' ? Math.min(v, 38_700) : v;
 };
-/** COMM: public transport up to JPY150,000 a month. */
-const commutingExempt = (c: NonNullable<Scenario['employee']['commuting']>, payDate: string) =>
-	Math.min(c.amount, c.mode === 'TRANSIT' ? 150_000 : vehicleExempt(c.km, payDate));
+/** COMM / JP-TAX-07: transit up to JPY150,000; vehicle by band, plus (pay due from 1 April 2026, 2 km or more) parking up
+ *  to JPY5,000; transit plus vehicle = fare + band (+ parking), together capped at JPY150,000. */
+const commutingExempt = (c: NonNullable<Scenario['employee']['commuting']>, payDate: string) => {
+	const parking = payDate >= '2026-04-01' && c.km >= 2 ? Math.min(c.parking ?? 0, 5_000) : 0;
+	const limit =
+		c.mode === 'TRANSIT' ? 150_000
+		: c.mode === 'VEHICLE' ? vehicleExempt(c.km, payDate) + parking
+		: Math.min(150_000, (c.transitFare ?? 0) + vehicleExempt(c.km, payDate) + parking);
+	return Math.min(c.amount, limit);
+};
 
 // ---------- income tax (NTA 令和8年分) ----------
 /** 月額表 by 社会保険料等控除後の給与等の金額 A. DEFAULT: an amount the table computes with a fraction is truncated. */
@@ -615,12 +633,10 @@ const serviceYears = (hire: string, last: string) => {
 };
 
 // ---------- the payslip ----------
-const floorOn = (pref: string, day: string) => {
-	const segs = PREFECTURES[pref]!.mw;
-	return [...segs].reverse().find(([from]) => from <= day)![1];
-};
+const segmentOn = (pref: string, day: string) => [...PREFECTURES[pref]!.mw].reverse().find(([from]) => from <= day)!;
+const floorOn = (pref: string, day: string) => segmentOn(pref, day)[1];
 
-type Minutes = { INLAW: number; OT: number; OT60: number; HOL: number; NIGHT: number };
+type Minutes = { INLAW: number; OT: number; OT60: number; HOL: number; REST: number; NIGHT: number };
 
 /** LSA arts.32, 35, 37; PREM: classify each minute worked in the period (week = Sunday–Saturday, DEFAULT absent a
  *  work-rules week; Sunday is the 法定休日, Saturday a 所定休日). */
@@ -628,7 +644,7 @@ function classify(s: Scenario, employed: (d: string) => boolean): Minutes {
 	const e = s.employee;
 	const start = `${s.period}-01`;
 	const end = monthEnd(s.period);
-	const out: Minutes = { INLAW: 0, OT: 0, OT60: 0, HOL: 0, NIGHT: 0 };
+	const out: Minutes = { INLAW: 0, OT: 0, OT60: 0, HOL: 0, REST: 0, NIGHT: 0 };
 	const unpaid = new Set(s.time.unpaidLeaveDays);
 	const paid = new Set(s.time.paidLeaveDays);
 	const explicit = new Map(s.time.work.map((w) => [w.date, w]));
@@ -660,7 +676,9 @@ function classify(s: Scenario, employed: (d: string) => boolean): Minutes {
 					kind = 'ORD';
 					week++;
 				} else if (day < 480 && week < 2400) {
-					kind = 'INLAW'; // 法内残業: paid at 100%, no premium
+					// within 8h/40h: no §37 premium. DEFAULT (JP-OT-02 owner rule): 100% on a scheduled day (法内残業), 125% on a
+					// 所定休日 (Saturday); neither is statutory overtime, so neither enters the 60-hour count
+					kind = wd === 6 ? 'REST' : 'INLAW';
 					week++;
 				} else kind = 'OT'; // beyond 8h a day or 40h a week
 				day++;
@@ -715,6 +733,9 @@ function core(s: Scenario, withTax: boolean): Core {
 	const scheduled = days.filter((d) => dow(d) >= 1 && dow(d) <= 5);
 	const monthlyHours = e.annualScheduledHours / 12; // MWA施行規則 art.2(1)(iv); LSAR art.19(1)(iv)
 	const effective = (d: string) => Math.max(e.monthlySalary, floorOn(s.company.prefecture, d) * monthlyHours);
+	// a floor not yet enacted cannot be applied, nor ignored where it would bind
+	if (days.some((d) => employed(d) && awaiting(segmentOn(s.company.prefecture, d)[2]) && floorOn(s.company.prefecture, d) * monthlyHours > e.monthlySalary))
+		unsupported.push('* (a 令和8年度 floor AWAITING-LAW binds this payslip)');
 	const dayRate = (d: string) => effective(d) / scheduled.length;
 	const unpaid = new Set(s.time.unpaidLeaveDays);
 	const base = yen(scheduled.filter(employed).reduce((a, d) => a + dayRate(d), 0));
@@ -726,7 +747,7 @@ function core(s: Scenario, withTax: boolean): Core {
 	const hourly = yen(effective(end) / monthlyHours); // DEFAULT: the period-end effective wage; hourly rounded to the yen
 	const t = classify(s, employed);
 	const band = (mins: number, mult: number) => yen(((mins / 60) * hourly * mult));
-	const overtime = band(t.INLAW, 1) + band(t.OT, 1.25) + band(t.OT60, 1.5) + band(t.HOL, 1.35);
+	const overtime = band(t.INLAW, 1) + band(t.REST, 1.25) + band(t.OT, 1.25) + band(t.OT60, 1.5) + band(t.HOL, 1.35);
 	const night = band(t.NIGHT, 0.25);
 	set('OVERTIME', { amount: overtime });
 	set('NIGHT_PREMIUM', { amount: night });
@@ -791,9 +812,11 @@ function core(s: Scenario, withTax: boolean): Core {
 	let eiBonus = 0;
 	if (e.employmentInsurance.registered) {
 		const [ee, er] = EI_RATES[s.company.eiClass][end >= '2026-04-01' ? 1 : 0];
-		eiSalary = halfDown((wages * ee) / 1000);
-		eiBonus = bonus > 0 ? halfDown((bonus * ee) / 1000) : 0;
-		add('EMPLOYMENT_INSURANCE', { employee: eiSalary + eiBonus, employer: trunc(((wages + bonus) * er) / 1000) }, wages + bonus);
+		// JP-EI02 DEFAULT: one premium on the payslip's wage, bonus included; split pro rata for withholding (JP-TAX-01)
+		const eiEmployee = halfDown(((wages + bonus) * ee) / 1000);
+		eiSalary = wages + bonus > 0 ? (eiEmployee * wages) / (wages + bonus) : 0;
+		eiBonus = eiEmployee - eiSalary;
+		add('EMPLOYMENT_INSURANCE', { employee: eiEmployee, employer: trunc(((wages + bonus) * er) / 1000) }, wages + bonus);
 	}
 	// ----- workers' compensation: employer only, every worker, sub-yen dropped (DEFAULT) -----
 	const wcRate = s.company.wcMeritRate ?? WC_RATES[s.company.wcBusinessType];
@@ -829,37 +852,44 @@ function core(s: Scenario, withTax: boolean): Core {
 	// ----- income tax -----
 	if (withTax) {
 		const year = payDate.slice(0, 4);
-		if (year !== '2026') unsupported.push(`INCOME_TAX (pay due ${payDate}: the 令和${year === '2025' ? 7 : 9}年分 table is not transcribed)`);
-		else if (!e.taxResident) {
-			// NR: 20.42% of the Japanese-source payment, no deductions
-			set('INCOME_TAX', { employee: trunc((taxableSalary * 20.42) / 100) + trunc((bonus * 20.42) / 100) });
-		} else {
-			let tax = monthlyTax(taxableSalary - salarySI, e.withholding);
-			if (s.bonus) {
+		const outside = year !== '2026';
+		if (outside) unsupported.push(`INCOME_TAX (pay due ${payDate}: the 令和${year === '2025' ? 7 : 9}年分 table is not transcribed)`);
+		else if (!e.taxResident) set('INCOME_TAX', { employee: trunc((taxableSalary * 20.42) / 100) }); // NR: 20.42%, no deductions
+		else if (P.endsWith('-12') && e.withholding.column === 'KOU')
+			unsupported.push('INCOME_TAX (December: the year-end adjustment settles the year, JP-TAX-03)');
+		else set('INCOME_TAX', { employee: monthlyTax(taxableSalary - salarySI, e.withholding) });
+		// INCOME_TAX_BONUS (JP-TAX-21): 告示115号 3項 on the bonus after its own social insurance
+		if (s.bonus) {
+			if (outside) unsupported.push('INCOME_TAX_BONUS (outside 令和8年分)');
+			else if (!e.taxResident) set('INCOME_TAX_BONUS', { employee: trunc((bonus * 20.42) / 100) });
+			else {
 				const net = bonus - bonusSI;
-				const priorMonth = addMonths(P, -1);
-				const prior = monthEnd(priorMonth) >= e.hireDate ? core({ ...steady(s), period: priorMonth }, false) : null;
-				const priorNet = prior ? prior.taxableSalary - prior.salarySI : 0;
-				if (priorNet <= 0 || net > 10 * priorNet)
-					// 告示115号 3項1号イ(2)/ロ(2): through the monthly table on 1/6 of the bonus (bonus period ≤ 6 months, DEFAULT)
-					tax += (monthlyTax(priorNet + net / 6, e.withholding) - monthlyTax(priorNet, e.withholding)) * 6;
-				else tax += trunc((net * bonusRate(priorNet, e.withholding)) / 100);
+				const priorNet = priorMonthNetPay(s);
+				const tax =
+					priorNet <= 0 || net > 10 * priorNet
+						? // 3項1号イ(2)/ロ(2): through the monthly table on 1/6 of the bonus (bonus period ≤ 6 months, DEFAULT)
+							(monthlyTax(priorNet + net / 6, e.withholding) - monthlyTax(priorNet, e.withholding)) * 6
+						: trunc((net * bonusRate(priorNet, e.withholding)) / 100);
+				set('INCOME_TAX_BONUS', { employee: tax });
 			}
-			set('INCOME_TAX', { employee: tax });
 		}
-		const retirementIncome = retirementPay + noticePay; // 所得税法 art.30: notice pay on dismissal is 退職手当等
+		const retirementIncome = retirementPay + noticePay; // 所得税法 art.30: notice pay on dismissal is 退職手当等 (基本通達 30-5)
 		if (retirementIncome > 0) {
-			unsupported.push('RETIREMENT_RESIDENT_TAX (地方税法 art.50-2/328 special collection not transcribed)');
-			if (year !== '2026') unsupported.push('RETIREMENT_INCOME_TAX (outside 令和8年分)');
-			else if (!e.taxResident || !s.exit!.retirementDeclaration)
-				set('RETIREMENT_INCOME_TAX', { employee: trunc((retirementIncome * 20.42) / 100) }); // RET / NR
+			if (outside) unsupported.push('RETIREMENT_INCOME_TAX, RESIDENT_TAX_RETIREMENT (outside 令和8年分)');
 			else {
 				const years = serviceYears(e.hireDate, s.exit!.date);
 				const deduction = years <= 20 ? Math.max(800_000, 400_000 * years) : 8_000_000 + 700_000 * (years - 20);
 				const excess = Math.max(0, retirementIncome - deduction);
 				const half = years <= 5 && excess > 3_000_000 ? 1_500_000 + (excess - 3_000_000) : excess / 2; // 短期退職手当等
 				const taxable = Math.floor(half / 1000) * 1000;
-				set('RETIREMENT_INCOME_TAX', { employee: taxable > 0 ? retirementTableTax(taxable) : 0 });
+				if (!e.taxResident || !s.exit!.retirementDeclaration)
+					set('RETIREMENT_INCOME_TAX', { employee: trunc((retirementIncome * 20.42) / 100) }); // RET §201(3) / NR
+				else set('RETIREMENT_INCOME_TAX', { employee: taxable > 0 ? retirementTableTax(taxable) : 0 });
+				// RRT: residents only (§50-2 reaches 所得税法 §199 payments); without the 申告書 the same computation (JP-RES-02 DEFAULT)
+				if (e.taxResident)
+					set('RESIDENT_TAX_RETIREMENT', {
+						employee: Math.floor((taxable * 0.06) / 100 + EPS) * 100 + Math.floor((taxable * 0.04) / 100 + EPS) * 100
+					});
 			}
 		}
 		// ----- resident tax: LTA arts.321-3–321-5, the notified installment June–May -----
@@ -871,8 +901,9 @@ function core(s: Scenario, withTax: boolean): Core {
 					mm <= 4 ? e.residentTax.monthly * (5 - mm + 1)
 					: s.exit.residentTaxLumpRequested ? due + e.residentTax.monthly * (12 - mm + 5)
 					: due;
-				const before = Object.entries(lines).reduce((a, [, l]) => a + (l.amount ?? 0) - (l.employee ?? 0), 0);
-				if (remaining <= before) due = remaining; // DEFAULT: an insufficient final pay keeps the ordinary installment
+				// §321-5(2): the lump where the pay (給与又は退職手当等) exceeds the remaining tax; else this installment (DEFAULT)
+				const pay = Object.values(lines).reduce((a, l) => a + (l.amount ?? 0), 0);
+				if (pay > remaining) due = remaining;
 			}
 			set('RESIDENT_TAX', { employee: due });
 		}
@@ -882,6 +913,15 @@ function core(s: Scenario, withTax: boolean): Core {
 
 /** The same employment in an ordinary month: no bonus, no exit, no leave or extra work. */
 const steady = (s: Scenario): Scenario => ({ ...s, bonus: null, exit: null, time: { unpaidLeaveDays: [], paidLeaveDays: [], work: [] } });
+
+/** 前月の社会保険料等控除後の給与等の金額 for the bonus table (the INCOME_TAX_BONUS election prior_month_net_pay): an
+ *  ordinary previous month of the same employment, 0 before hire. */
+export function priorMonthNetPay(s: Scenario): number {
+	const m = addMonths(s.period, -1);
+	if (monthEnd(m) < s.employee.hireDate) return 0;
+	const prior = core({ ...steady(s), period: m }, false);
+	return prior.taxableSalary - prior.salarySI;
+}
 
 export function computePayslip(s: Scenario): Payslip {
 	const c = core(s, true);
@@ -894,7 +934,13 @@ export function computePayslip(s: Scenario): Payslip {
 
 /** The payslip as the probe harness's line keys: component amounts, `<scheme>.employee|employer`, and totals. */
 export function probeLines(p: Payslip): Record<string, number> {
+	if (p.unsupported.some((u) => u.startsWith('*'))) return {};
 	const out: Record<string, number> = { gross: p.gross, net: p.net, total_deductions: p.total_deductions, employer_cost: p.employer_cost };
+	// an unsupported line is a deduction the oracle cannot state, so the totals it enters cannot be pinned either
+	if (p.unsupported.length > 0) {
+		delete out.net;
+		delete out.total_deductions;
+	}
 	for (const [code, l] of Object.entries(p.lines)) {
 		if (l.amount !== undefined) out[code] = l.amount;
 		if (l.employee !== undefined) out[`${code}.employee`] = l.employee;

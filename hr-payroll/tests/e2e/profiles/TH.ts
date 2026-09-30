@@ -7,7 +7,7 @@
  * No Math.random: the only variation comes from a seeded mulberry32.
  */
 import type { ExitCause, Scenario, Sector, WorkClass, Worksite } from '../oracle/TH';
-import { addDays, addYears, monthEnd } from '../oracle/TH';
+import { WORKSITE_DAILY, addDays, addYears, monthEnd } from '../oracle/TH';
 
 type Patch = {
 	period?: string;
@@ -119,6 +119,21 @@ export function generateProfiles(): Scenario[] {
 				employee: { pay: monthly(m) }
 			});
 		}
+	// every N14 rate group, district override and province remainder: the floor month and one satang a day short
+	for (const [worksite, floor] of Object.entries(WORKSITE_DAILY) as [Worksite, number][]) {
+		const district = /_(KO_SAMUI|MUEANG|HAT_YAI)$/.test(worksite);
+		const remainder = ['CHIANG_MAI', 'SONGKHLA', 'SURAT_THANI'].includes(worksite);
+		const rows = district || remainder ? ['TH-WAGE-01', 'TH-WAGE-02'] : ['TH-WAGE-01'];
+		const tag = district ? 'district override' : remainder ? 'province remainder' : 'rate group';
+		add(`mw-${worksite.toLowerCase()}-at`, rows, [`${tag} ${floor}`, 'monthly at day × 30'], {
+			company: { worksite },
+			employee: { pay: monthly(floor * 30) }
+		});
+		add(`mw-${worksite.toLowerCase()}-below`, rows, [`${tag} ${floor}`, 'one satang a day short refused'], {
+			company: { worksite },
+			employee: { pay: monthly(cents(floor * 30 - 0.3)) }
+		});
+	}
 	add('mw-short-day-full-wage', ['TH-WAGE-04'], ['full normal-day wage, 7-hour day'], {
 		employee: { pay: daily(400, 20), normalDailyHours: 7 }
 	});
@@ -257,6 +272,32 @@ export function generateProfiles(): Scenario[] {
 			employee: { pay: monthly(36000), workClass },
 			time: { overtimeHours: 6, holidayWork: { kind: 'WEEKLY', hours: 8, overtimeHours: 2 } }
 		});
+	// guards (s.65(9)): MR 2552 1× before 24 Apr 2026; MR 2568 1.25× / 2.5× and the cl.4 long-day supplement after
+	for (const period of ['2026-03', '2026-05'])
+		add(`guard-monthly-${period}`, ['TH-WORK-03', 'TH-WORK-06'], [period < '2026-04' ? 'MR 2552 1×' : 'MR 2568 1.25×/2.5×'], {
+			period,
+			employee: { pay: monthly(15000), workClass: 'GUARD' },
+			time: { overtimeHours: 10, holidayWork: { kind: 'WEEKLY', hours: 8, overtimeHours: 2 } }
+		});
+	add('guard-daily-ot-2026-06', ['TH-WORK-03'], ['MR 2568 cl.3, daily'], {
+		period: '2026-06',
+		employee: { pay: daily(400, 22), workClass: 'GUARD' },
+		time: { overtimeHours: 6 }
+	});
+	for (const [period, hours, pay, branch] of [
+		['2026-05', 12, daily(400, 16), 'cl.4 supplement 4 h a day'],
+		['2026-07', 9, daily(420, 21), 'cl.4 supplement 1 h a day'],
+		['2026-07', 12, monthly(18000), 'monthly guard: no cl.4 supplement'],
+		['2026-03', 12, daily(400, 16), 'before MR 2568: 12-hour normal day refused (s.23)']
+	] as const)
+		add(`guard-long-day-${period}-${hours}h-${pay.basis.toLowerCase()}`, ['TH-WORK-03', 'TH-WORK-07', 'TH-SS-13'], [branch], {
+			period,
+			employee: { pay, workClass: 'GUARD', normalDailyHours: hours }
+		});
+	add('refuse-ordinary-9h-normal-day', ['TH-WORK-07'], ['s.23 eight-hour normal day'], { employee: { normalDailyHours: 9 } });
+	add('refuse-hazardous-8h-normal-day', ['TH-WORK-07'], ['s.23 seven-hour hazardous day'], {
+		employee: { hazardous: true, normalDailyHours: 8 }
+	});
 	// refusals: s.31 hazardous, s.39/1 pregnant, s.48 under-18
 	add('refuse-hazardous-ot', ['TH-WORK-07'], ['s.31 no OT in hazardous work'], {
 		employee: { hazardous: true, normalDailyHours: 7 },
@@ -440,13 +481,13 @@ export function generateProfiles(): Scenario[] {
 	add('ewf-unpaid-leave', ['TH-EWF-02'], ['unpaid days out'], { period: '2026-11', leave: { unpaidDays: 2 } });
 
 	// ---- seeded mixed profiles (combinations) ----
-	const worksites: Worksite[] = ['BANGKOK', 'SONGKHLA_HAT_YAI'];
-	for (let i = 0; i < 30; i++) {
+	const worksites = Object.keys(WORKSITE_DAILY) as Worksite[];
+	for (let i = 0; i < 20; i++) {
 		const m = cents(12000 + Math.floor(random() * 120000));
 		const period = ['2026-02', '2026-06', '2026-10', '2026-11'][Math.floor(random() * 4)]!;
 		add(`mix-${i}`, ['TH-PIT-01', 'TH-SS-01', 'TH-WORK-06', 'TH-EWF-02'], ['combined'], {
 			period,
-			company: { worksite: worksites[Math.floor(random() * 2)]!, headcount: 5 + Math.floor(random() * 40) },
+			company: { worksite: worksites[Math.floor(random() * worksites.length)]!, headcount: 5 + Math.floor(random() * 40) },
 			employee: { pay: monthly(m), ly01: Math.floor(random() * 5) * 10000 },
 			time: { overtimeHours: Math.floor(random() * 12) },
 			leave: { unpaidDays: Math.floor(random() * 3) },

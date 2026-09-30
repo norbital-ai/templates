@@ -404,5 +404,425 @@
 			"NHI_SUPPLEMENT_EMPLOYER",
 			"OCC_INJURY"
 		]
+	},
+	{
+		"id": "8ccbbebf-2746-561c-9c9b-4af3a12dac6e",
+		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "c1b17b83-b5fd-5f55-8657-1e2d1aac0c8c",
+		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "205a5c2b-dd1a-580a-88a3-cd30b9618bbb",
+		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "9ffe6ea4-dc1b-5a30-a8e4-2cd8bd9b7ee0",
+		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "8ca6de71-c5b5-551e-98b9-2b1523ced20d",
+		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "04686ca3-7a4f-50c4-b070-7bed94168ac7",
+		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "dd6ae3d3-6b58-513a-a41d-15db8e8deaf5",
+		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "ac7f9c79-06d2-57d5-9774-32fa0920be46",
+		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "ecc45dd0-4438-588a-901d-a801b4697f18",
+		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "c3caaa26-0b88-5985-9d4e-416efe40efa8",
+		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "fc6f7954-5013-5d18-ba65-e8ef238648fa",
+		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "02772356-d40c-561f-9d2a-f7d079a6638e",
+		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "1bacc3a1-d48e-577d-956e-d940b74b6ded",
+		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
+	},
+	{
+		"id": "fb5f4247-c4c5-53fb-b9ef-e4e457de470c",
+		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
+		"code": "FULL_ATTENDANCE_BONUS",
+		"name": "全勤獎金 (full-attendance bonus)",
+		"authority": "全勤獎金 (full-attendance bonus): the amount is the contract's (keyed on the employment terms); the law only limits what leave may take from it. 勞工請假規則 §9 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030006&flno=9, in this form from 2026-01-01, read 2026-09-30): (1) 婚假、喪假、公傷病假及公假, 妊娠未滿三個月流產未請產假而請普通傷病假, and 依第七條 親自照顧家庭成員 事假 are not 缺勤 and cannot affect it; (2) other 普通傷病假 takes it only 按請普通傷病假日數依比例計算 — MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, updated 2026-01-09): at most bonus ÷ 30 per sick day. 性別平等工作法 §21(2) likewise protects 生理假, 產假, 陪產檢及陪產假, 產檢假, 家庭照顧假 and the other §14–§20 leaves (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014). Owner rule 2026-09-28 defaults (law silent): each SICK_LEAVE, HOSPITALISED_SICK_LEAVE or ordinary PERSONAL_LEAVE (事假 not for family care, which the law leaves to the contract) working day in the window takes bonus ÷ 30, the deduction floored to the 元 so it never exceeds the ratio, never below nothing; every other leave takes nothing; an unpaid day does not prorate it again (`npl_prorates` false). A 2025-12 version applies the same arithmetic: before 2026 the rule protected fewer leaves but a pro-rata cut was always lawful. Not distinguished: a sick-leave day for a miscarriage under three months (§9(1)(2)) — record it as MATERNITY_LEAVE MISCARRIAGE_UNDER_2M / MISCARRIAGE_2M. It is 工資 (勞動基準法 §2(3): 經常性給與), so it enters the insured wages, the §56 reserve wage and 薪資所得 as the meal allowance does, without the meal exemption.",
+		"eligibility": "",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"limit": null
+			}
+		],
+		"counts_toward": [
+			"EI",
+			"INCOME_TAX",
+			"INCOME_TAX_NON_RESIDENT",
+			"LABOR_PENSION",
+			"LABOR_PENSION_RESERVE",
+			"LI",
+			"NHI",
+			"NHI_PART_TIME",
+			"NHI_SUPPLEMENT_EMPLOYER",
+			"OCC_INJURY"
+		],
+		"npl_prorates": false
 	}
 ]

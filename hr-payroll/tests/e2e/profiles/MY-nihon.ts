@@ -8,7 +8,11 @@
  * employment_terms inputs, `month.work` time entries on the company's week (09:00 start, 60-minute break, Monday–
  * Friday OFFICE, Saturday the earlier contractual REST day, Sunday the last REST day), `month.unpaidLeave` unpaid
  * leave entries, `month.bonus` a BONUS ad hoc request, `employment.exit` the departure with its exit facts, and
- * `month.holidays` the company's paid gazetted holidays of the month. The expectation is `probeLines(oracle)`.
+ * `month.holidays` the company's paid gazetted holidays of the month. Optional fields map to their own inputs:
+ * `employee.tp3` the TP3 opening balances, `presence` the recorded stays, `sch6Para21EmploymentDays` the recorded
+ * employment-exercised days with the para 21 election, `skbbkReleased` the dated SKBBK release fact, `childrenHalf`
+ * the shared-child claims, `company.hrdHeadcount`/`hrdHighRateYear` the declared HRD class facts, and
+ * `month.maternityFrom`/`sickLeave`/`paternityLeave` leave entries. The expectation is `probeLines(oracle)`.
  *
  * No Math.random: variation comes from a seeded mulberry32 stream, so the list is identical on every call.
  */
@@ -30,7 +34,14 @@ export type Scenario = {
 	branches: string[];
 	/** YYYY-MM, the run's period. */
 	period: string;
-	company: { hrd: 'COMPULSORY' | 'OPTIONAL' | 'NOT_LIABLE'; msic: string };
+	company: {
+		hrd: 'COMPULSORY' | 'OPTIONAL' | 'NOT_LIABLE';
+		msic: string;
+		/** Malaysian employees on the payroll (Act 612 First Schedule thresholds); absent → the declared class decides. */
+		hrdHeadcount?: number;
+		/** Last year an OPTIONAL employer's count exceeded its class limit (Act 612 s.15(4)-(7)). */
+		hrdHighRateYear?: number;
+	};
 	employee: {
 		citizenship: Citizenship;
 		birthDate: string;
@@ -38,6 +49,17 @@ export type Scenario = {
 		/** MTD category: 1 single, 2 married with a non-working spouse, 3 married with a working spouse. */
 		pcbCategory: 1 | 2 | 3;
 		children: number;
+		/** Qualifying children also claimed by another individual (ITA s.48(4): 50% each). */
+		childrenHalf?: number;
+		gender?: 'F' | 'M';
+		/** Form TP3: previous employers' figures earlier in the tax year (∑Y, ∑K, X, Z). */
+		tp3?: { remuneration: number; epf: number; mtd: number; zakat: number };
+		/** Recorded stays: days present in the year through the period end, and in each of the 1..4 preceding years. */
+		presence?: { ytd: number; prior: [number, number, number, number] };
+		/** ITA Sch.6 para 21 claim: days employment was exercised in Malaysia in the basis year. */
+		sch6Para21EmploymentDays?: number;
+		/** An accepted SKBBK (LINDUNG 24 Jam) release in force for the period. */
+		skbbkReleased?: boolean;
 		/** Zakat paid through salary this month. */
 		zakat: number;
 		/** First day SOCSO/EIS contributions were payable for this person (no earlier employment: the hire date). */
@@ -73,6 +95,11 @@ export type Scenario = {
 		daysWorked?: number;
 		hoursWorked?: number;
 		bonus: number;
+		/** Confinement day that starts the 98-day maternity period (EA s.37(1)(a)). */
+		maternityFrom?: string;
+		/** Certified sick-leave days (EA s.60F) and paternity days (s.60FA) taken in the period. */
+		sickLeave?: string[];
+		paternityLeave?: string[];
 		/** The company's paid gazetted holidays falling in the period. */
 		holidays: string[];
 	};
@@ -146,6 +173,17 @@ export function generateProfiles(): Scenario[] {
 		daysWorked?: number;
 		hoursWorked?: number;
 		bonus?: number;
+		childrenHalf?: number;
+		gender?: 'F' | 'M';
+		tp3?: Scenario['employee']['tp3'];
+		presence?: Scenario['employee']['presence'];
+		sch6?: number;
+		skbbkReleased?: boolean;
+		hrdHeadcount?: number;
+		hrdHighRateYear?: number;
+		maternityFrom?: string;
+		sickLeave?: string[];
+		paternityLeave?: string[];
 	};
 	const add = (x: Spec) => {
 		if (seen.has(x.id)) throw new Error(`duplicate scenario ${x.id}`);
@@ -171,7 +209,12 @@ export function generateProfiles(): Scenario[] {
 			rows: [...rows].sort(),
 			branches: x.branches,
 			period: x.period,
-			company: { hrd: x.hrd ?? 'COMPULSORY', msic: x.msic ?? '29300' },
+			company: {
+				hrd: x.hrd ?? 'COMPULSORY',
+				msic: x.msic ?? '29300',
+				...(x.hrdHeadcount === undefined ? {} : { hrdHeadcount: x.hrdHeadcount }),
+				...(x.hrdHighRateYear === undefined ? {} : { hrdHighRateYear: x.hrdHighRateYear })
+			},
 			employee: {
 				citizenship,
 				birthDate,
@@ -179,6 +222,12 @@ export function generateProfiles(): Scenario[] {
 				pcbCategory: x.pcbCategory ?? 1,
 				children: x.children ?? 0,
 				zakat: x.zakat ?? 0,
+				...(x.childrenHalf === undefined ? {} : { childrenHalf: x.childrenHalf }),
+				...(x.gender === undefined ? {} : { gender: x.gender }),
+				...(x.tp3 === undefined ? {} : { tp3: x.tp3 }),
+				...(x.presence === undefined ? {} : { presence: x.presence }),
+				...(x.sch6 === undefined ? {} : { sch6Para21EmploymentDays: x.sch6 }),
+				...(x.skbbkReleased === undefined ? {} : { skbbkReleased: x.skbbkReleased }),
 				firstContributionDate: x.firstContributionDate ?? hireDate
 			},
 			employment: {
@@ -197,6 +246,9 @@ export function generateProfiles(): Scenario[] {
 				daysWorked: x.daysWorked,
 				hoursWorked: x.hoursWorked,
 				bonus: x.bonus ?? 0,
+				...(x.maternityFrom === undefined ? {} : { maternityFrom: x.maternityFrom }),
+				...(x.sickLeave === undefined ? {} : { sickLeave: x.sickLeave }),
+				...(x.paternityLeave === undefined ? {} : { paternityLeave: x.paternityLeave }),
 				holidays: HOLIDAYS[x.period] ?? []
 			}
 		});
@@ -471,6 +523,153 @@ export function generateProfiles(): Scenario[] {
 				rate: 3000,
 				hireDate: '2021-01-01'
 			});
+
+	// 11. Round 9 branches (tracker updated 2026-09-30).
+	// ITA s.48(4): a child also claimed by another individual gives each claimant 50% (tracker MY-PCB-02 LIT-09).
+	for (const [full, half] of [[0, 2], [1, 1], [0, 1], [2, 3]] as const)
+		for (const cat of [2, 3] as const)
+			add({
+				id: `pcb-half-children-cat${cat}-${full}f${half}h`,
+				description: `category ${cat}, ${full} whole and ${half} shared children, RM5,000`,
+				rows: ['MY-PCB-02'],
+				branches: ['PCB:child-relief-s48(4)-half', `children=${full}+${half}/2`],
+				period: '2026-01',
+				rate: 5000,
+				pcbCategory: cat,
+				children: full,
+				childrenHalf: half,
+				hireDate: '2020-01-01'
+			});
+	// Form TP3: a July joiner carrying a previous employer's remuneration, EPF, MTD and zakat (MY-PCB-03).
+	for (const [key, tp3, bonus] of [
+		['no-zakat', { remuneration: 30000, epf: 3300, mtd: 600, zakat: 0 }, 0],
+		['zakat', { remuneration: 30000, epf: 3300, mtd: 300, zakat: 300 }, 0],
+		['epf-cap', { remuneration: 48000, epf: 3960, mtd: 2400, zakat: 0 }, 0],
+		['bonus', { remuneration: 30000, epf: 3300, mtd: 600, zakat: 150 }, 5000]
+	] as const)
+		add({
+			id: `tp3-${key}`,
+			description: `joins 1 Jul 2026 on RM6,000 with TP3 ${JSON.stringify(tp3)}${bonus ? ` and a RM${bonus} bonus` : ''}`,
+			rows: ['MY-PCB-03', 'MY-PCB-01', ...(bonus ? ['MY-13M-01'] : [])],
+			branches: ['PCB:TP3-opening', tp3.zakat ? 'PCB:Z-previous-zakat' : 'PCB:Z=0', tp3.epf + 660 * 6 > 4000 ? 'PCB:K-cap-4000' : 'PCB:K-under-cap'],
+			period: '2026-07',
+			rate: 6000,
+			bonus,
+			tp3,
+			hireDate: '2026-07-01'
+		});
+	// ITA s.7(1)(a)/(c)(ii): recorded stays decide residence at the period end (MY-PCB-06); recorded NON_RESIDENT.
+	for (const [key, period, ytd, prior] of [
+		['c-ii-3of4', '2026-03', 90, [90, 90, 89, 90]],
+		['c-ii-2of4', '2026-03', 90, [90, 89, 89, 90]],
+		['c-ii-4of4-ytd89', '2026-03', 89, [120, 120, 120, 120]],
+		['a-182', '2026-07', 182, [0, 0, 0, 0]],
+		['a-181', '2026-07', 181, [0, 0, 0, 0]]
+	] as const)
+		add({
+			id: `presence-${key}`,
+			description: `foreign worker, recorded non-resident, ${ytd} days present in the year to ${period}, prior ${prior.join('/')}`,
+			rows: ['MY-PCB-06', 'MY-PCB-07'],
+			branches: [key.startsWith('a') ? 's7(1)(a):182-days' : 's7(1)(c)(ii):90+3-of-4', `ytd=${ytd}`],
+			period,
+			citizenship: 'FOREIGNER',
+			taxResidency: 'NON_RESIDENT',
+			presence: { ytd, prior: [...prior] as [number, number, number, number] },
+			rate: 5001,
+			hireDate: '2025-01-01'
+		});
+	// ITA Sch.6 paras 21-22: a non-resident's employment exercised ≤ 60 days in the year is exempt (MY-PCB-07).
+	for (const days of [41, 60, 61, 90])
+		add({
+			id: `sch6-para21-${days}d`,
+			description: `non-resident claiming Sch.6 para 21 with ${days} employment days by March`,
+			rows: ['MY-PCB-07'],
+			branches: [days <= 60 ? 'Sch6-para21:exempt' : 'Sch6-para22(a):over-60-30%'],
+			period: '2026-03',
+			citizenship: 'FOREIGNER',
+			taxResidency: 'NON_RESIDENT',
+			sch6: days,
+			rate: 6000,
+			hireDate: '2026-01-01'
+		});
+	// SKBBK release (MY-SKBBK-04): from the 8 July 2026 version a local's accepted release ends the charge; a
+	// non-citizen's does not; June 2026 contributions stay mandatory.
+	for (const [cz, period] of [['CITIZEN', '2026-09'], ['PERMANENT_RESIDENT', '2026-09'], ['FOREIGNER', '2026-09'], ['CITIZEN', '2026-06']] as const)
+		add({
+			id: `skbbk-release-${cz.toLowerCase()}-${period}`,
+			description: `${cz} with an accepted SKBBK release, ${period}`,
+			rows: ['MY-SKBBK-04', 'MY-SKBBK-01'],
+			branches: [cz !== 'FOREIGNER' && period >= '2026-07' ? 'SKBBK:released' : 'SKBBK:release-no-effect'],
+			period,
+			citizenship: cz,
+			skbbkReleased: true,
+			rate: 4000,
+			hireDate: '2021-01-01'
+		});
+	// HRD thresholds (MY-HRD-01) and the optional employer's rate ladder (MY-HRDA06, s.15(4)-(7)).
+	for (const headcount of [9, 10])
+		add({
+			id: `hrd-headcount-${headcount}`,
+			description: `Part I industry, ${headcount} Malaysian employees`,
+			rows: ['MY-HRD-01'],
+			branches: [headcount >= 10 ? 'HRD:Part-I-liable' : 'HRD:below-threshold'],
+			period: '2026-09',
+			hrd: 'COMPULSORY',
+			hrdHeadcount: headcount,
+			rate: 3000,
+			hireDate: '2021-01-01'
+		});
+	for (const [key, headcount, highYear] of [
+		['s15-5-same-year', 8, 2026],
+		['s15-6-next-year', 9, 2025],
+		['s15-7-increase', 10, 2025],
+		['s15-4-exceeds', 12, undefined]
+	] as const)
+		add({
+			id: `hrd-optional-${key}`,
+			description: `optional employer, ${headcount} employees, last high-rate year ${highYear ?? 'none'}`,
+			rows: ['MY-HRDA06', 'MY-HRD-01'],
+			branches: [`HRD:${key}`],
+			period: '2026-09',
+			hrd: 'OPTIONAL',
+			hrdHeadcount: headcount,
+			hrdHighRateYear: highYear,
+			rate: 3000,
+			hireDate: '2021-01-01'
+		});
+	// Maternity (MY-EA21/22/24): 98 days from confinement; allowance when employed ≥ 90 days in the 9 months before.
+	for (const [key, period, confinement, hireDate] of [
+		['allowance-2024', '2026-01', '2026-01-20', '2024-03-01'],
+		['no-allowance-50d', '2026-01', '2026-01-20', '2025-12-01'],
+		['no-allowance-89d', '2026-09', '2026-09-20', '2026-06-23'],
+		['allowance-90d', '2026-09', '2026-09-20', '2026-06-22'],
+		['allowance-mid-to-end', '2026-09', '2026-09-01', '2022-01-01']
+	] as const)
+		add({
+			id: `maternity-${key}`,
+			description: `confinement ${confinement}, hired ${hireDate}, RM3,000`,
+			rows: ['MY-EA21', 'MY-EA22', 'MY-EA24', 'MY-EA11'],
+			branches: [key.startsWith('allowance') ? 's37(2)(c):wages-unabated' : 's37(2)(a):no-allowance-s18A(c)'],
+			period,
+			gender: 'F',
+			maternityFrom: confinement,
+			rate: 3000,
+			hireDate
+		});
+	add({ id: 'sick-2d', description: 'two certified sick days, RM3,000', rows: ['MY-EA34'], branches: ['s60F:paid-unabated'], period: '2026-09', rate: 3000, sickLeave: ['2026-09-08', '2026-09-09'], hireDate: '2021-01-01' });
+	add({
+		id: 'paternity-7d',
+		description: 'seven consecutive paternity days, married, 12+ months service, RM3,000',
+		rows: ['MY-EA35'],
+		branches: ['s60FA:paid-unabated'],
+		period: '2026-09',
+		gender: 'M',
+		rate: 3000,
+		paternityLeave: ['2026-09-21', '2026-09-22', '2026-09-23', '2026-09-24', '2026-09-25', '2026-09-26', '2026-09-27'],
+		hireDate: '2021-01-01'
+	});
+	// Overtime keyed in half-hour steps (MY-SR07 LIT-07 recorded default 0.5 h).
+	add({ id: 'ot-workday-1.5h', description: '1.5 h beyond the normal 8 on Tue 8 Sep, RM3,000', rows: ['MY-EA31', 'MY-SR07', 'MY-EA36'], branches: ['s60A(3)(a):1.5x', 'ot=1.5h-step-0.5'], period: '2026-09', rate: 3000, work: [{ date: '2026-09-08', hours: 9.5 }], hireDate: '2021-01-01' });
 
 	return out;
 }

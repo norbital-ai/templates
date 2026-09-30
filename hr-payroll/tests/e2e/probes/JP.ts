@@ -1256,6 +1256,43 @@ register(
 		}
 	}),
 	jp({
+		id: 'JP-TAX-20-1',
+		description:
+			'A day-hire taken on 18 May 2026 and withheld by the 丙欄 is paid 300,000 for June 2026’s 22 working days: 255,930 after insurance is 11,633.18 a day, 65 a day on the 日額表 丙欄, 1,430.',
+		citation: [
+			...SI,
+			'健康保険法 §3(1)(ii)イ (https://laws.e-gov.go.jp/law/211AC0000000070): a day-hire kept on beyond one month becomes insured; the case records the enrolment from hire. June 2026 pay collects May 2026 on the 300,000 grade (born 1990, no care): 健康保険 300,000 × 9.85% ÷ 2 = 14,775; 支援金 345; 厚生年金 27,450; 拠出金 1,080; 雇用保険 1,500 / 2,550; 労災 900.',
+			'所得税法 §185(1)(iii) (https://laws.e-gov.go.jp/law/340AC0000000033): pay for each day worked to a worker employed for not more than two months is withheld on the 丙欄. 令和8年分 日額表 (平成24年財務省告示第115号別表第二, https://www.nta.go.jp/publication/pamph/gensen/zeigakuhyo2026/data/08-14.xls, read 2026-09-30) row 11,600–11,700: 丙欄 65. June 2026 has 22 Monday–Friday days; 300,000 − (14,775 + 345 + 27,450 + 1,500) = 255,930; ÷ 22 = 11,633.18 → 65 × 22 = 1,430 (equal daily pay, the recorded default of JP-TAX-20).'
+		],
+		period: '2026-06',
+		people: [
+			sato({
+				ref: 'hei',
+				name: 'Hei Daichi',
+				hired: '2026-05-18',
+				wage: 300_000,
+				grade: 300_000,
+				terms: { withholding_column: 'HEI' }
+			})
+		],
+		expected: {
+			hei: {
+				gross: 300_000,
+				'HEALTH.employee': 14_775,
+				'HEALTH.employer': 14_775,
+				'CHILD_SUPPORT.employee': 345,
+				'CHILD_SUPPORT.employer': 345,
+				'PENSION.employee': 27_450,
+				'PENSION.employer': 27_450,
+				'CHILD_CONTRIBUTION.employer': 1_080,
+				'EMPLOYMENT_INSURANCE.employee': 1_500,
+				'EMPLOYMENT_INSURANCE.employer': 2_550,
+				'WORKERS_COMP.employer': 900,
+				'INCOME_TAX.employee': 1_430
+			}
+		}
+	}),
+	jp({
 		id: 'JP-TAX-15-1',
 		description:
 			'A 1 December 2026 joiner on 300,000 (甲欄, no dependants) brings the prior employer’s 源泉徴収票 (3,300,000 paid, 480,000 insurance, 60,000 withheld): the December 年末調整 under the 令和8年分 rules refunds 13,200.',
@@ -1370,14 +1407,16 @@ register(
 	jp({
 		id: 'JP-RES-04-1',
 		description:
-			'Two leavers on 30 September 2026 under the same notice: one requested the lump collection (September plus October–May, 135,000), the other did not (September’s 15,000 only).',
+			'Four leavers on 30 September 2026: a lump-collection request (September plus October–May, 135,000), no request and a TRANSFER to a new employer (September’s 15,000 only), and a lump request the final pay cannot cover (September’s 40,000 only).',
 		citation: [
 			...SI,
 			SRC.tax,
 			SRC.residentTax,
 			'健康保険法 §36, §156(3), §167(1); 厚生年金保険法 §14, §19(1), §84(1): loss on 1 October, so September pay deducts the August and September insurance months on the 300,000 grade: 2 × 14,775 = 29,550, 2 × 345 = 690, 2 × 27,450 = 54,900, 拠出金 2 × 1,080 = 2,160. 雇用保険 1,500 / 2,550; 労災 900.',
 			'源泉所得税: 乙欄 on 300,000 − (29,550 + 690 + 54,900 + 1,500) = 213,360 → 月額表 令和8年分 乙欄 213,000–215,000 → 24,100.',
-			'住民税: the event (30 September) falls in June–December. Nakamura requested the lump collection: the October–May installments 8 × 15,000 = 120,000 are less than the 300,000 final pay, so 15,000 + 120,000 = 135,000. Kobayashi made no request: September’s 15,000 only; the rest passes to 普通徴収.'
+			'住民税: the event (30 September) falls in June–December. Nakamura requested the lump collection: the October–May installments 8 × 15,000 = 120,000 are less than the 300,000 final pay, so 15,000 + 120,000 = 135,000. Kobayashi made no request: September’s 15,000 only; the rest passes to 普通徴収.',
+			'Kato moves to a new employer that continues the special collection (TRANSFER, 特別徴収継続): September’s 15,000 only; the new employer withholds October–May.',
+			'Saito requested the lump collection under a notice of 40,500 (June) and 40,000 a month: the October–May installments 8 × 40,000 = 320,000 exceed the 300,000 final pay, so §321-5(2) collects none of them from it — September’s 40,000 only.'
 		],
 		period: '2026-09',
 		people: [
@@ -1397,13 +1436,33 @@ register(
 				grade: 300_000,
 				left: '2026-09-30',
 				terms: NOTICE
+			}),
+			sato({
+				ref: 'kato',
+				name: 'Kato Riku',
+				wage: 300_000,
+				grade: 300_000,
+				left: '2026-09-30',
+				terms: NOTICE,
+				exitFacts: { resident_tax_exit_collection: 'TRANSFER' }
+			}),
+			sato({
+				ref: 'saito',
+				name: 'Saito Aoi',
+				wage: 300_000,
+				grade: 300_000,
+				left: '2026-09-30',
+				terms: { ...NOTICE, resident_tax_june_amount: 40_500, resident_tax_monthly_amount: 40_000 },
+				exitFacts: { resident_tax_exit_collection: 'LUMP_SUM' }
 			})
 		],
 		expected: Object.fromEntries(
 			(
 				[
 					['nakamura', 135_000],
-					['kobayashi', 15_000]
+					['kobayashi', 15_000],
+					['kato', 15_000],
+					['saito', 40_000]
 				] as const
 			).map(([ref, residentTax]) => [
 				ref,
@@ -1488,6 +1547,230 @@ register(
 					'INCOME_TAX.employee': 24_100,
 					'RETIREMENT_INCOME_TAX.employee': incomeTax,
 					'RESIDENT_TAX_RETIREMENT.employee': localTax
+				}
+			])
+		)
+	}),
+	jp({
+		id: 'JP-TAX-25-2',
+		description:
+			'A 26-year leaver retiring by reason of a disability: the over-20-year 退職所得控除 plus the 1,000,000 disability addition.',
+		citation: [
+			...SI,
+			SRC.tax,
+			SRC.retirement,
+			SRC.retirementLocal,
+			'所得税法 §30(6)(iii), 施行令 §71: a retirement caused directly by becoming disabled adds 1,000,000 to the deduction (NTA No.2732).',
+			'Ordinary lines as JP-TAX-25-1 (September leaver on the 300,000 grade and wage, 乙欄 24,100).',
+			'Kimura, 1 April 2001 – 30 September 2026: 25 years 6 months → 26 years (recorded); deduction 8,000,000 + 700,000 × (26 − 20) = 12,200,000 + 1,000,000 = 13,200,000; (21,000,000 − 13,200,000) ÷ 2 = 3,900,000; 3,900,000 × 20% − 427,500 = 352,500 × 102.1% = 359,902.5 → 359,902. 退職所得割 3,900,000 × 6% = 234,000 + × 4% = 156,000 → 390,000.'
+		],
+		period: '2026-09',
+		people: [
+			sato({
+				ref: 'kimura',
+				name: 'Kimura Daiki',
+				hired: '2001-04-01',
+				wage: 300_000,
+				grade: 300_000,
+				left: '2026-09-30',
+				exitFacts: {
+					retirement_income_declaration: true,
+					retirement_service_years: 26,
+					retirement_disability: true
+				}
+			})
+		],
+		extra: (job) => [retirementAllowance(job('kimura'), 21_000_000, '2026-09-30')],
+		expected: {
+			kimura: {
+				...SEPTEMBER_LEAVER,
+				'RETIREMENT_INCOME_TAX.employee': 359_902,
+				'RESIDENT_TAX_RETIREMENT.employee': 390_000
+			}
+		}
+	}),
+	jp({
+		id: 'JP-TAX-26-1',
+		description:
+			'A 特定役員退職手当等: an 役員等 for the whole four years of service is taxed on the whole excess over the deduction, no halving.',
+		citation: [
+			...SI,
+			SRC.tax,
+			SRC.retirement,
+			SRC.retirementLocal,
+			'所得税法 §30(5) (特定役員退職手当等: 役員等勤続年数 five years or less): 退職所得 = payment − deduction, without the 1/2 (NTA No.2732).',
+			'Ordinary lines as JP-TAX-25-1 (September leaver on the 300,000 grade and wage, 乙欄 24,100).',
+			'Hayashi, 1 October 2022 – 30 September 2026, 4 years all as an 役員等 (recorded): deduction 400,000 × 4 = 1,600,000; 5,000,000 − 1,600,000 = 3,400,000; 3,400,000 × 20% − 427,500 = 252,500 × 102.1% = 257,802.5 → 257,802. 退職所得割 3,400,000 × 6% = 204,000 + × 4% = 136,000 → 340,000.'
+		],
+		period: '2026-09',
+		people: [
+			sato({
+				ref: 'hayashi',
+				name: 'Hayashi Yuto',
+				hired: '2022-10-01',
+				wage: 300_000,
+				grade: 300_000,
+				left: '2026-09-30',
+				exitFacts: {
+					retirement_income_declaration: true,
+					retirement_service_years: 4,
+					retirement_officer_service_years: 4
+				}
+			})
+		],
+		extra: (job) => [retirementAllowance(job('hayashi'), 5_000_000, '2026-09-30')],
+		expected: {
+			hayashi: {
+				...SEPTEMBER_LEAVER,
+				'RETIREMENT_INCOME_TAX.employee': 257_802,
+				'RESIDENT_TAX_RETIREMENT.employee': 340_000
+			}
+		}
+	}),
+	jp({
+		id: 'JP-TAX-26-2',
+		description:
+			'Ten years of service of which three as an 役員等: the 施行令 §71-2 split into 特定役員 and other parts is not configured, so the run is refused.',
+		citation: [SRC.retirement, '所得税法 §30(4)–(5), (7); 所得税法施行令 §71-2 (https://laws.e-gov.go.jp/law/340CO0000000096)'],
+		period: '2026-09',
+		people: [
+			sato({
+				ref: 'shimizu',
+				name: 'Shimizu Rin',
+				hired: '2016-10-01',
+				wage: 300_000,
+				grade: 300_000,
+				left: '2026-09-30',
+				exitFacts: {
+					retirement_income_declaration: true,
+					retirement_service_years: 10,
+					retirement_officer_service_years: 3
+				}
+			})
+		],
+		extra: (job) => [retirementAllowance(job('shimizu'), 5_000_000, '2026-09-30')],
+		refused: '71-2',
+		expected: {}
+	}),
+	jp({
+		id: 'JP-TAX-28-1',
+		description:
+			'The 施行令 §70 overlap reduction declared as years, its 800,000 floor, and an already-paid same-year allowance combined.',
+		citation: [
+			...SI,
+			SRC.tax,
+			SRC.retirement,
+			SRC.retirementLocal,
+			'所得税法 §30(6)(i)–(ii), 施行令 §70: the deduction less the 退職所得控除 of the overlapping years (from 1 January 2026 an allowance received in the previous nine years where a DC lump sum was, as the declaration states), at least 800,000; §201(1)(ii), 地方税法 §328-6(1)(ii): a same-year allowance already paid is added and its withheld tax deducted.',
+			'Ordinary lines as JP-TAX-25-1 (September leaver on the 300,000 grade and wage, 乙欄 24,100). Each: 1 April 2014 – 30 September 2026, 13 years (recorded), 400,000 × 13 = 5,200,000.',
+			'Matsumoto, 3 overlapping years: 5,200,000 − 1,200,000 = 4,000,000; (6,000,000 − 4,000,000) ÷ 2 = 1,000,000 × 5% = 50,000 × 102.1% = 51,050. 退職所得割 60,000 + 40,000 = 100,000.',
+			'Inoue, 12 overlapping years: 5,200,000 − 4,800,000 = 400,000 < 800,000 → 800,000; (2,000,000 − 800,000) ÷ 2 = 600,000 × 5% = 30,000 × 102.1% = 30,630. 退職所得割 36,000 + 24,000 = 60,000.',
+			'Kimura Aoi, no overlap, a 2,000,000 GENERAL allowance already paid this year (20,420 income tax, 40,000 退職所得割 withheld): (6,000,000 + 2,000,000 − 5,200,000) ÷ 2 = 1,400,000 × 5% = 70,000 × 102.1% = 71,470 − 20,420 = 51,050; 退職所得割 84,000 + 56,000 = 140,000 − 40,000 = 100,000.'
+		],
+		period: '2026-09',
+		people: (
+			[
+				['matsumoto', 'Matsumoto Hina', { retirement_deduction_reduction_years: 3 }],
+				['inoue', 'Inoue Sora', { retirement_deduction_reduction_years: 12 }],
+				[
+					'kimura',
+					'Kimura Aoi',
+					{
+						retirement_prior_same_year_amount: 2_000_000,
+						retirement_prior_same_year_income_tax: 20_420,
+						retirement_prior_same_year_resident_tax: 40_000,
+						retirement_prior_same_year_kind: 'GENERAL'
+					}
+				]
+			] as const
+		).map(([ref, name, facts]) =>
+			sato({
+				ref,
+				name,
+				hired: '2014-04-01',
+				wage: 300_000,
+				grade: 300_000,
+				left: '2026-09-30',
+				exitFacts: { retirement_income_declaration: true, retirement_service_years: 13, ...facts }
+			})
+		),
+		extra: (job) => [
+			retirementAllowance(job('matsumoto'), 6_000_000, '2026-09-30'),
+			retirementAllowance(job('inoue'), 2_000_000, '2026-09-30'),
+			retirementAllowance(job('kimura'), 6_000_000, '2026-09-30')
+		],
+		expected: Object.fromEntries(
+			(
+				[
+					['matsumoto', 51_050, 100_000],
+					['inoue', 30_630, 60_000],
+					['kimura', 51_050, 100_000]
+				] as const
+			).map(([ref, incomeTax, localTax]) => [
+				ref,
+				{
+					...SEPTEMBER_LEAVER,
+					'RETIREMENT_INCOME_TAX.employee': incomeTax,
+					'RESIDENT_TAX_RETIREMENT.employee': localTax
+				}
+			])
+		)
+	}),
+	jp({
+		id: 'JP-RES-01-2',
+		description:
+			'A notice received late spreads over the months after it: a first month of August withholds its first installment in August; a first month of September withholds nothing in August.',
+		citation: [
+			...SI,
+			SRC.tax,
+			SRC.residentTax,
+			'Ordinary lines as JP-RES-01-1: August 2026 pay collects the July 2026 insurance month on the 300,000 grade (14,775 / 345 / 27,450 / 拠出金 1,080; 雇用保険 1,500 / 2,550; 労災 900) and 乙欄 on 255,930 → 37,600.',
+			'Ueda: a 令和8年度 notice of 166,700 over August–May (10 installments): 166,700 ÷ 10 = 16,670 → 16,600 a month, the sub-JPY100 fractions in the first: 166,700 − 9 × 16,600 = 17,300 in August. Kudo: a notice whose first month is September — nothing in August.'
+		],
+		period: '2026-08',
+		people: [
+			sato({
+				ref: 'ueda',
+				name: 'Ueda Mao',
+				wage: 300_000,
+				grade: 300_000,
+				terms: {
+					...NOTICE,
+					resident_tax_first_month: 8,
+					resident_tax_june_amount: 17_300,
+					resident_tax_monthly_amount: 16_600
+				}
+			}),
+			sato({
+				ref: 'kudo',
+				name: 'Kudo Itsuki',
+				wage: 300_000,
+				grade: 300_000,
+				terms: { ...NOTICE, resident_tax_first_month: 9 }
+			})
+		],
+		expected: Object.fromEntries(
+			(
+				[
+					['ueda', 17_300],
+					['kudo', 0]
+				] as const
+			).map(([ref, residentTax]) => [
+				ref,
+				{
+					gross: 300_000,
+					'HEALTH.employee': 14_775,
+					'HEALTH.employer': 14_775,
+					'CHILD_SUPPORT.employee': 345,
+					'CHILD_SUPPORT.employer': 345,
+					'PENSION.employee': 27_450,
+					'PENSION.employer': 27_450,
+					'CHILD_CONTRIBUTION.employer': 1_080,
+					'EMPLOYMENT_INSURANCE.employee': 1_500,
+					'EMPLOYMENT_INSURANCE.employer': 2_550,
+					'WORKERS_COMP.employer': 900,
+					'INCOME_TAX.employee': 37_600,
+					'RESIDENT_TAX.employee': residentTax
 				}
 			])
 		)

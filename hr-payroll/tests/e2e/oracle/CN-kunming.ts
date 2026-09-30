@@ -1,19 +1,23 @@
 /**
  * Independent oracle for CN-kunming: an expected payslip computed from the law alone, never from `src/**` or `seed/**`.
  *
- * Every rule below cites the tracker row (`docs/inventory/china.csv`) and the official instrument that row reads. Where
- * the law is silent the owner rule applies (law silent → a lawful, consistent default); each such default is marked
- * `DEFAULT:` with the reason. Where the law needs a figure no official source gives (an agency determination, a missing
- * 2026 renewal instrument), the figure is a declared scenario fact, or the key is returned in `unpriced` and the caller
- * must not judge it.
+ * Every rule cites the tracker row (`docs/inventory/china.csv`, branch-level ids) and the official instrument it reads.
+ * Where the law is silent the owner rule applies (law silent → a lawful, consistent default); each such default is
+ * marked `DEFAULT:` with its reason. Where the law needs a figure no official source gives (an agency determination, a
+ * missing 2026 renewal instrument), the figure is a declared scenario fact, or the key is returned in `unpriced` and the
+ * caller must not judge it.
  *
  * Line keys follow `tests/e2e/payroll-probe.ts`: `gross`, `net`, `total_deductions`, component codes (summed), and
- * `<scheme>.employee` / `<scheme>.employer` for each statutory charge. Scheme codes are the tracker's `config_path`
- * codes (PENSION, MEDICAL, MATERNITY, UNEMPLOYMENT, INJURY, HOUSING_FUND, IIT, IIT_BONUS, IIT_SEVERANCE); pay component
- * codes are the tracker's catalogue codes where it names one (OVERTIME, BONUS, ANNUAL_BONUS_SEPARATE, SEVERANCE_PAY,
- * MATERNITY_ALLOWANCE_OFFSET) and otherwise descriptive (BASIC, UNPAID_LEAVE, LEAVE_ENCASHMENT). `bases` gives the
- * contribution base per scheme. Compare `gross`, `net` and the statutory keys first; a component split may differ
- * (e.g. the engine may put overtime above the art.41 limits on INCENTIVE — the sum is what the law fixes).
+ * `<scheme>.employee` / `<scheme>.employer` per statutory charge. Scheme and component codes are the tracker's
+ * `config_path` codes (PENSION, MEDICAL, MATERNITY, UNEMPLOYMENT, INJURY, HOUSING_FUND, IIT, IIT_BONUS, IIT_SEVERANCE,
+ * IIT_EARLY_RETIREMENT, IIT_INTERNAL_RETIREMENT; OVERTIME, BONUS, ANNUAL_BONUS_SEPARATE, SEVERANCE_PAY,
+ * NO_WRITTEN_CONTRACT_WAGE, OPEN_ENDED_CONTRACT_WAGE, PROBATION_EXCESS_DAMAGES, PROBATION_WAGE_SHORTFALL,
+ * MATERNITY_ALLOWANCE_OFFSET, MATERNITY_BENEFIT_EMPLOYER, HEAT_ALLOWANCE, EARLY_RETIREMENT_SUBSIDY,
+ * INTERNAL_RETIREMENT_SUBSIDY, ONE_CHILD_SUBSIDY, CHILDCARE_SUBSIDY, TRAVEL_ALLOWANCE, MISSED_MEAL_SUBSIDY) and
+ * otherwise descriptive (BASIC, UNPAID_LEAVE, LEAVE_ENCASHMENT, and the post-tax LOSS_RECOVERY and
+ * COURT_ORDERED_SUPPORT, which are negative, outside gross and inside total_deductions). `bases` gives each
+ * contribution base. Compare gross, net and the statutory keys first; a component split may differ (the engine may
+ * put overtime above the art.41 limits on another code — the sum is what the law fixes).
  */
 import type { Scenario, Region } from '../profiles/CN-kunming.ts';
 
@@ -29,15 +33,15 @@ export type Payslip = {
 };
 
 // ---------------------------------------------------------------------------------------------------------------
-// Rounding. Social insurance: to the fen, half-up, per side — CN-X-SI-ROUNDING (law silent; owner-rule default, no
-// instrument prescribes coarser rounding). Housing fund: each side to the whole yuan, 四舍五入, separately —
-// 昆公积金规〔2020〕2号 art.13 (CN-KM05, CN-KM20). Tax: to the fen — STA 2018 No.61 (CN-N38 "Tax to the fen").
-// Pay lines: DEFAULT the fen, half-up (law silent; the exact amount to the smallest unit).
-const fen = (x: number) => Math.sign(x) * Math.round(Math.abs(x) * 100 + 1e-7) / 100;
+// Rounding. Social insurance: to the fen, half-up, per side — CN-X-SI-ROUNDING.social-insurance-fen (law silent;
+// owner-rule default). Housing fund: each side to the whole yuan, 四舍五入, separately — 昆公积金规〔2020〕2号 art.13
+// (CN-KM05.per-side-rounding, CN-KM20.per-side-rounding, CN-X-SI-ROUNDING.housing-fund-yuan). Tax: to the fen.
+// Pay lines: DEFAULT the fen, half-up (law silent).
+const fen = (x: number) => (Math.sign(x) * Math.round(Math.abs(x) * 100 + 1e-7)) / 100;
 const yuan = (x: number) => Math.sign(x) * Math.round(Math.abs(x) + 1e-9);
 
 // ---------------------------------------------------------------------------------------------------------------
-// Calendar helpers (UTC, ISO dates).
+// Calendar (UTC, ISO dates).
 const ms = (d: string) => Date.parse(`${d}T00:00:00Z`);
 const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
 const addDays = (d: string, n: number) => iso(ms(d) + n * 86_400_000);
@@ -46,24 +50,39 @@ const monthEnd = (p: string) => {
 	const [y, m] = p.split('-').map(Number);
 	return iso(Date.UTC(y!, m!, 0));
 };
-const weekday = (d: string) => new Date(ms(d)).getUTCDay();
-/** Mon–Fri days in [from, to]. DEFAULT: the statutory-holiday/调休 calendar is not applied (CN-N03 is a GAP); a
- * weekday holiday is a paid day inside the 21.75 conversion (人社部发〔2025〕2号 counts holidays as paid days). */
-export const weekdays = (from: string, to: string) => {
-	let n = 0;
-	for (let d = from; d <= to; d = addDays(d, 1)) if (weekday(d) % 6 !== 0) n++;
-	return n;
+const addMonths = (p: string, n: number) => {
+	const [y, m] = p.split('-').map(Number);
+	return iso(Date.UTC(y!, m! - 1 + n, 1)).slice(0, 7);
 };
-const nextPeriod = (p: string) => addDays(monthEnd(p), 1).slice(0, 7);
+const weekday = (d: string) => new Date(ms(d)).getUTCDay();
+const nextPeriod = (p: string) => addMonths(p, 1);
 const max = (a: string, b: string) => (a > b ? a : b);
 const min = (a: string, b: string) => (a < b ? a : b);
 
+// Paid days — 人社部发〔2025〕2号 (CN-N02.day-conversion-21-75): 21.75 = (365 − 104 rest days) ÷ 12, so every
+// working day and every statutory holiday is a paid day and a rest day is not. The 2026 schedule 国办发明电〔2025〕7号
+// (https://www.gov.cn/zhengce/zhengceku/202511/content_7047091.htm, read 2026-09-30; CN-N03.adjusted-workdays): weekend
+// workdays 4 Jan, 14 Feb, 28 Feb, 9 May, 20 Sep, 10 Oct; 1 Jan, 16–19 Feb (除夕 to 初三, Order 795's four Spring Festival
+// days), 25 Sep are statutory holidays on weekdays; 2 Jan, 20 Feb, 23 Feb are 调休 rest weekdays. May and October 2026 mix
+// 补假 with 调休 in a way the notice does not split day by day, so no span there is priced.
+const WEEKEND_WORKDAYS = new Set(['2026-01-04', '2026-02-14', '2026-02-28', '2026-05-09', '2026-09-20', '2026-10-10']);
+const REST_WEEKDAYS = new Set(['2026-01-02', '2026-02-20', '2026-02-23']);
+const isPaidDay = (d: string) => {
+	if (/^2026-(05|10)-/.test(d)) throw new Error(`no day-level 2026 schedule priced for ${d}`);
+	return WEEKEND_WORKDAYS.has(d) || (weekday(d) % 6 !== 0 && !REST_WEEKDAYS.has(d));
+};
+export const paidDays = (from: string, to: string) => {
+	let n = 0;
+	for (let d = from; d <= to; d = addDays(d, 1)) if (isPaidDay(d)) n++;
+	return n;
+};
+
 // ---------------------------------------------------------------------------------------------------------------
-// Minimum wage — CN-KM01 (云人社发〔2025〕19号, from 1 Oct 2025) and CN-KM02 (Yunnan HRSS notice of 29 Aug 2026, from
-// 1 Sep 2026). Class I: Wuhua/Panlong/Xishan/Guandu/Chenggong/Jinning, Anning, Songming; class II: other Kunming
-// counties and Dongchuan; class III: Mo Han (remains in Mengla County, "other counties" class). The monthly floor
-// includes the worker's own SI/fund shares and excludes overtime and specified allowances (最低工资规定 art.12,
-// CN-N50), so it is tested on the contract wage for normal hours. The hourly floor binds part-time (LCL art.72, CN-N27).
+// Minimum wage — CN-KM01.class-i-2170/class-ii-2020/mo-han-1870/hourly-floors (云人社发〔2025〕19号, 1 Oct 2025) and
+// CN-KM02.class-i-2270/class-ii-2120/mo-han-1970/hourly-floors (Yunnan HRSS 29 Aug 2026, 1 Sep 2026). The monthly floor
+// includes the worker's own SI/fund shares (CN-KM01.qualifying-pay, CN-KM02.qualifying-pay) and excludes overtime and
+// specified allowances (最低工资规定 art.12, CN-N50.excluded-components), so it is tested on the contract wage for
+// normal hours (CN-N50.floor-test). Hourly floors bind non-full-time work (LCL art.72, CN-N27.hourly-minimum).
 const MIN_WAGE = [
 	{ from: '2025-10-01', monthly: { I: 2170, II: 2020, III: 1870 }, hourly: { I: 21, II: 20, III: 19 } },
 	{ from: '2026-09-01', monthly: { I: 2270, II: 2120, III: 1970 }, hourly: { I: 22, II: 21, III: 20 } }
@@ -73,40 +92,44 @@ export const minimumWage = (day: string, region: Region) => {
 	if (row === undefined) throw new Error(`no Kunming minimum wage sourced before 2025-10-01 (${day})`);
 	return { monthly: row.monthly[region], hourly: row.hourly[region] };
 };
+/** LCL Implementing Regulation art.14 (CN-X-WORKSITE.performance-place-standard): the performance place's standard;
+ * the parties may agree the higher employer-registration standard (CN-X-WORKSITE.higher-agreed-employer-standard). */
+const floorOn = (s: Scenario, day: string) => {
+	const own = minimumWage(day, s.employment.wageRegion);
+	const agreed = s.employment.agreedRegion;
+	if (agreed === undefined) return own;
+	const higher = minimumWage(day, agreed);
+	return { monthly: Math.max(own.monthly, higher.monthly), hourly: Math.max(own.hourly, higher.hourly) };
+};
 
 // ---------------------------------------------------------------------------------------------------------------
-// Social-insurance bases — CN-KM03. 2025 (Yunnan 2025 parameters): 4,357–21,789 for every scheme (CN-KM04's October
-// 2025 base). 云人社发〔2026〕8号: 4,403–22,017. Medical/maternity from its express start, 1 Sep 2026. Pension,
-// unemployment, injury: the notice names only 2026年度 — DEFAULT (owner rule, recorded in CN-KM03) from January 2026.
+// Social-insurance bases — CN-KM03. 2025 (CN-KM03.piu-floor-2025/piu-ceiling-2025): 4,357–21,789 every scheme.
+// 云人社发〔2026〕8号: 4,403–22,017; pension/unemployment/injury from January 2026 (CN-KM03.piu-floor-2026/piu-ceiling-2026,
+// recorded default: the notice's 2026年度); medical/maternity keep 2025's to 31 Aug and switch 1 Sep 2026
+// (CN-KM03.medical-*). SI follows the employing unit, not the worksite (CN-X-WORKSITE.si-follows-employment).
 type SiScheme = 'PENSION' | 'MEDICAL' | 'MATERNITY' | 'UNEMPLOYMENT' | 'INJURY';
 export const siBounds = (scheme: SiScheme, day: string): [number, number] => {
 	const medical = scheme === 'MEDICAL' || scheme === 'MATERNITY';
-	const switchDay = medical ? '2026-09-01' : '2026-01-01';
-	return day < switchDay ? [4357, 21789] : [4403, 22017];
+	return day < (medical ? '2026-09-01' : '2026-01-01') ? [4357, 21789] : [4403, 22017];
 };
-
-// Rates. Pension 16% employer / 8% worker — Yunnan service pack Q82 and the 7 Sep 2026 county HRSS notice (CN-KM25).
-// Medical 7% employer / 2% worker — Kunming NHSA/Finance notice of 30 Dec 2022 (employer 8% → 7% excl. maternity) and
-// Yunnan Government Order 86 art.6 (worker 2%) (CN-KM04). Maternity 0.9% employer, worker nothing — Kunming 2024
-// maternity rules item 2 (CN-KM32). Injury employer only at the agency-assigned class rate 0.2–1.9% — 云人社发〔2020〕14号
-// (CN-KM26); the assigned rate is a declared fact. Unemployment 0.7% / 0.3% — the 2025 HRSS notice through 31 Dec 2025
-// and the 7 Sep 2026 county notice ("目前，延续实施") (CN-KM27); January–August 2026 has no sourced instrument, so the
-// rate there is the operator's declared fact, or unpriced.
+// Pension 16% / 8% (CN-KM25.unit-covered-16-8). Medical 7% / 2% (CN-KM04.employer-7pct, CN-KM04.employee-2pct).
+// Maternity 0.9% employer only (CN-KM32.employer-premium-0-9). Injury employer only at the recorded class rate
+// 0.2–1.9% or its assigned float (CN-KM26.recorded-class-rate, CN-KM26.assigned-float) — a declared fact.
+// Unemployment 0.7/0.3 to 31 Dec 2025 (CN-KM27.reduced-2025) and from September 2026 (CN-KM27.rate-from-sep-2026,
+// "目前，延续实施"); January–August 2026 has no sourced instrument (CN-KM27.rate-jan-aug-2026): the declared fact, else
+// unpriced.
 const RATE = {
 	PENSION: { employer: 0.16, employee: 0.08 },
 	MEDICAL: { employer: 0.07, employee: 0.02 },
 	MATERNITY: { employer: 0.009, employee: 0 }
 } as const;
 const unemploymentRates = (day: string, s: Scenario) =>
-	day < '2026-01-01' || day >= '2026-09-01'
-		? { employer: 0.007, employee: 0.003 }
-		: s.facts.unemploymentRates;
+	day < '2026-01-01' || day >= '2026-09-01' ? { employer: 0.007, employee: 0.003 } : s.facts.unemploymentRates;
 
-// Housing fund — CN-KM05 / CN-KM20 / CN-N08. Cap: 32,470 for 2025 (昆公积金〔2025〕61号); 32,543 for 2026 (昆公积金〔2026〕69号,
-// final, retroactive to 1 Jan 2026). Floors: 2,170 / 2,020 / 1,870 from October 2025 and kept for all contributors by
-// the 4 Jan 2026 interim notice; 2,270 / 2,120 / 1,970 from 1 Sep 2026 (Mo Han–Mo Ding class III). DEFAULT: the text
-// is silent on unchanged existing accounts, so the dated floor applies to every account (one consistent reading; the
-// interim notice already applies its floor to all). Rate 5–12%, equal both sides (management measure arts.10–14).
+// Housing fund — CN-KM05 / CN-KM20 / CN-N08. Cap 32,470 for 2025 (CN-KM05.ceiling-2025); 32,543 for 2026, retroactive
+// to 1 January (CN-KM05.ceiling-2026). Floors 2,170 / 2,020 / 1,870 from October 2025, 2,270 / 2,120 / 1,970 from
+// 1 Sep 2026 (CN-KM05.new-account-floor-*). DEFAULT (CN-KM05.existing-account-floor, law not explicit): the dated
+// floor binds every account — the 4 Jan 2026 interim notice already applies its floor to all contributors.
 export const fundBounds = (day: string, region: Region): [number, number] => {
 	const cap = day < '2026-01-01' ? 32470 : 32543;
 	const floor = (day < '2026-09-01' ? { I: 2170, II: 2020, III: 1870 } : { I: 2270, II: 2120, III: 1970 })[region];
@@ -115,9 +138,8 @@ export const fundBounds = (day: string, region: Region): [number, number] => {
 const clamp = (x: number, [lo, hi]: [number, number]) => Math.min(Math.max(x, lo), hi);
 
 // ---------------------------------------------------------------------------------------------------------------
-// IIT tables — CN-N38 (STA 2018 No.61 annex tables 1 and 3). Resident annual cumulative table; the monthly table is
-// the non-resident wage table and the monthly conversion table for the separate annual bonus (MOF/STA 2023 No.30) and
-// the non-resident multi-month bonus (MOF/STA 2019 No.35 item 3(2), CN-KM-A1). Bands are ceiling-inclusive.
+// IIT tables — STA 2018 No.61 annex tables 1 and 3 (CN-N38.resident-annual-table, CN-N38.non-resident-monthly-table).
+// Bands are ceiling-inclusive.
 const ANNUAL = [
 	[36000, 0.03, 0],
 	[144000, 0.1, 2520],
@@ -136,142 +158,316 @@ const MONTHLY = [
 	[80000, 0.35, 7160],
 	[Infinity, 0.45, 15160]
 ] as const;
-const band = (table: typeof ANNUAL | typeof MONTHLY, x: number) => table.find(([to]) => x <= to)!;
-const onTable = (table: typeof ANNUAL | typeof MONTHLY, x: number) => {
+type Table = typeof ANNUAL | typeof MONTHLY;
+const band = (table: Table, x: number) => table.find(([to]) => x <= to)!;
+const onTable = (table: Table, x: number) => {
 	if (x <= 0) return 0;
 	const [, rate, qd] = band(table, x);
 	return Math.max(0, x * rate - qd);
 };
 
+/** Special additional deductions a month — CN-N16 (国发〔2022〕8号 as raised by the 2023 increase: child education and
+ * infant care CNY2,000 per child, elderly support CNY3,000 for an only child, a shared ≤ CNY1,500 otherwise; continuing
+ * education CNY400 a month for a degree, CNY3,600 in the certificate year), CN-N54.capital-city-1500 (rent 1,500 in a
+ * provincial capital), CN-N16.housing-loan-interest (CNY1,000), deducted as declared (STA 2022 No.7 arts.25–26,
+ * CN-N16.sharing-elections). `raw` is a declared monthly total the generator uses to aim at a table seam. */
+function specialMonthly(s: Scenario, period: string): number | string {
+	const d = s.tax.special;
+	if (d === undefined) return s.tax.specialDeductionsMonthly ?? 0;
+	if (d.from !== undefined && period < d.from) return 0;
+	if (d.rent && d.loanInterest) return 'housing rent and housing-loan interest in one year (国发〔2018〕41号, CN-N54.rent-or-loan)';
+	if ((d.elderlyShare ?? 0) > 1500) return 'a non-only child’s elderly-support share above 1,500';
+	let m = (d.children ?? 0) * 2000 * (d.childShare ?? 1) + (d.infants ?? 0) * 2000 * (d.childShare ?? 1);
+	m += d.elderlyOnlyChild ? 3000 : (d.elderlyShare ?? 0);
+	if (d.continuingEducation === 'DEGREE') m += 400;
+	if (d.continuingEducation === 'CERTIFICATE' && period === s.period) m += 3600;
+	if (d.rent) m += 1500;
+	if (d.loanInterest) m += 1000;
+	return m + (s.tax.specialDeductionsMonthly ?? 0);
+}
+
 // ---------------------------------------------------------------------------------------------------------------
-// One month.
 type Month = {
 	lines: Record<string, number>;
 	bases: Record<string, number>;
-	/** wage income for cumulative IIT (IIT Law art.6: 工资薪金) */
+	/** 工资薪金 income for IIT (IIT Law art.6) */
 	wageIncome: number;
-	/** worker SI + fund shares, deductible for a resident (IIT Law art.6(1) 专项扣除) */
+	/** wage due excluding overtime and exit items — the 12-month average (CN-N06, CN-N19.severance-wage-base) */
+	averageWage: number;
+	/** worker SI + fund shares (IIT Law art.6(1) 专项扣除) */
 	employeeShares: number;
 	warnings: string[];
 	unpriced: string[];
 	refused?: Payslip['refused'];
 };
+const refusal = (stage: 'input' | 'run', reason: string): Month => ({
+	lines: {},
+	bases: {},
+	wageIncome: 0,
+	averageWage: 0,
+	employeeShares: 0,
+	warnings: [],
+	unpriced: [],
+	refused: { stage, reason }
+});
 
 const contractWageOn = (s: Scenario, day: string) =>
 	s.employment.raise !== undefined && day >= s.employment.raise.from
 		? s.employment.raise.monthlyWage
 		: s.employment.monthlyWage;
 
-/** Basic pay for the employed span of a month — CN-N02 (人社部发〔2025〕2号: 21.75 paid days a month) and CN-N04.
- * Whole month: the monthly wage; a rise inside it splits the month by working days (CN-KM-WP03, recorded default of
- * CN-N02: "a mid-month rise splits one month's 21.75 across its two rates by working days"). Part month (joiner or
- * leaver): working days in the span × monthly ÷ 21.75 (CN-N02 recorded default), DEFAULT capped at the monthly wage. */
-function basicPay(s: Scenario, period: string) {
+/** Basic pay for the employed span of a month — CN-N02.day-conversion-21-75, CN-N04.exit-settlement. Whole month: the
+ * monthly wage; a rise inside it splits the month by paid days (CN-N02 recorded default). Part month: paid days in the
+ * span × monthly ÷ 21.75 (CN-N02 recorded default, law silent), DEFAULT capped at the monthly wage. */
+function basicPay(s: Scenario, period: string, monthly: (day: string) => number) {
 	const from = max(monthStart(period), s.employment.hireDate);
 	const to = min(monthEnd(period), s.employment.exitDate ?? '9999-12-31');
 	if (from > to) return 0;
-	const all = weekdays(monthStart(period), monthEnd(period));
-	const worked = weekdays(from, to);
-	const segments: [string, string][] = [];
 	const rise = s.employment.raise?.from;
-	if (rise !== undefined && rise > from && rise <= to) segments.push([from, addDays(rise, -1)], [rise, to]);
-	else segments.push([from, to]);
-	if (worked === all)
-		return segments.reduce((sum, [a, b]) => sum + (contractWageOn(s, a) * weekdays(a, b)) / all, 0);
-	const pay = segments.reduce((sum, [a, b]) => sum + (contractWageOn(s, a) / 21.75) * weekdays(a, b), 0);
-	return Math.min(pay, contractWageOn(s, to));
+	const riseInside = rise !== undefined && rise > from && rise <= to;
+	if (from === monthStart(period) && to === monthEnd(period) && !riseInside) return monthly(to);
+	const all = paidDays(monthStart(period), monthEnd(period));
+	const worked = paidDays(from, to);
+	const segments: [string, string][] = riseInside ? [[from, addDays(rise!, -1)], [rise!, to]] : [[from, to]];
+	if (worked === all) return segments.reduce((sum, [a, b]) => sum + (monthly(a) * paidDays(a, b)) / all, 0);
+	const pay = segments.reduce((sum, [a, b]) => sum + (monthly(a) / 21.75) * paidDays(a, b), 0);
+	return Math.min(pay, monthly(to));
 }
 
-function month(s: Scenario, period: string, final: boolean): Month {
+/** Leave the Yunnan regulation and national rules grant, in calendar days (Yunnan Population and Family Planning
+ * Regulation 2022 arts.18, 19, 35; 国劳总薪字〔1980〕29号; Female Workers Regulation art.7; Kunming maternity rules;
+ * Yunnan Order 232; 工伤保险条例 art.33). A longer request is refused at input. */
+function leaveGrant(leave: NonNullable<Scenario['time']['leave']>): number | undefined {
+	switch (leave.code) {
+		// CN-KM30.yunnan-15-days + CN-KM30.national-component / CN-N51.marriage-leave: 15 + national 1–3;
+		// DEFAULT the discretionary national maximum, 3 → 18 (the tracker's "typically 18")
+		case 'MARRIAGE_LEAVE':
+			return 18;
+		// CN-N51.funeral-leave: 1–3 days; DEFAULT the maximum 3
+		case 'FUNERAL_LEAVE':
+			return 3;
+		// CN-KM12.one-child-ten-days / two-or-more-fifteen-days / ends-at-third-birthday
+		case 'CHILDCARE_LEAVE':
+			return (leave.childrenUnder3 ?? 0) >= 2 ? 15 : (leave.childrenUnder3 ?? 0) === 1 ? 10 : 0;
+		// CN-KM31.*: Yunnan regulation art.19
+		case 'FAMILY_PLANNING_PROCEDURE_LEAVE':
+			return (<Record<string, number>>{
+				IUD_INSERTION: 7,
+				IUD_REMOVAL: 7,
+				TUBAL_LIGATION: 30,
+				VASECTOMY: 15,
+				TUBAL_REVERSAL: 30,
+				VAS_REVERSAL: 15,
+				REMEDIAL_UNDER_4_MONTHS: 15,
+				REMEDIAL_4_MONTHS_OR_MORE: 42
+			})[leave.procedure ?? 'IUD_INSERTION'];
+		// CN-N20.maternity-98-days / difficult-birth-15 / additional-infant-15 / miscarriage, CN-KM12.maternity-and-
+		// partner-days (98 + Yunnan 60 = 158); miscarriage under 4 months 15, at 4 months 42 (national art.7); DEFAULT at
+		// 7 months or more the full leave (the Kunming fund days, CN-KM32.fund-benefits)
+		case 'MATERNITY_LEAVE': {
+			const mo = leave.miscarriageMonths;
+			if (mo !== undefined) return mo < 4 ? 15 : mo < 7 ? 42 : 158;
+			return 158 + (leave.difficultBirth ? 15 : 0) + 15 * (leave.extraInfants ?? 0);
+		}
+		// CN-KM12.maternity-and-partner-days: 30 partner-care days
+		case 'PATERNITY_LEAVE':
+			return 30;
+		// CN-KM11.dysmenorrhoea-leave: 1–2 days; DEFAULT the maximum 2
+		case 'DYSMENORRHOEA_LEAVE':
+			return 2;
+		// CN-N21.stop-work-original-wage, CN-KM-WP13.original-wage-twelve-months / extension-twelve-months: 12 + 12 months
+		case 'WORK_INJURY_LEAVE':
+			return 731;
+	}
+	return undefined;
+}
+
+/** The 12-month average wage before the exit month — Regulation art.27 (CN-N19.severance-wage-base: bonus and allowances
+ * included) and the annual-leave day wage (CN-N06.day-wage-twelve-month-average: overtime excluded, bonus included), over
+ * the actual shorter tenure; a stint with no month before the exit month reads the contract wage (CN-SH-A2.art47-average).
+ * DEFAULT: a month before the first run is the contract monthly wage (no history is declared). */
+function average12(s: Scenario, history: Map<string, number>, exitPeriod: string) {
+	const hireMonth = s.employment.hireDate.slice(0, 7);
+	const months: number[] = [];
+	for (let i = 12; i >= 1; i--) {
+		const p = addMonths(exitPeriod, -i);
+		if (p < hireMonth) continue;
+		months.push(history.get(p) ?? contractWageOn(s, monthEnd(p)));
+	}
+	if (months.length === 0) return s.employment.monthlyWage;
+	return months.reduce((a, b) => a + b, 0) / months.length;
+}
+
+const POST_TAX = new Set(['LOSS_RECOVERY', 'COURT_ORDERED_SUPPORT']);
+const UNTAXED_SUBSIDY = new Set(['ONE_CHILD_SUBSIDY', 'CHILDCARE_SUBSIDY', 'TRAVEL_ALLOWANCE', 'MISSED_MEAL_SUBSIDY']);
+
+function month(s: Scenario, period: string, final: boolean, history = new Map<string, number>()): Month {
 	const first = monthStart(period);
 	const last = monthEnd(period);
 	const lines: Record<string, number> = {};
 	const bases: Record<string, number> = {};
 	const warnings: string[] = [];
 	const unpriced: string[] = [];
-	const add = (code: string, amount: number) => {
-		if (amount !== 0) lines[code] = fen((lines[code] ?? 0) + amount);
+	let wageIncome = 0;
+	let averageWage = 0;
+	const add = (code: string, amount: number, taxable = true, average = true) => {
+		if (amount === 0) return;
+		lines[code] = fen((lines[code] ?? 0) + amount);
+		if (taxable) wageIncome += amount;
+		if (average) averageWage += amount;
 	};
 	const pt = s.employment.partTime;
-	const region = s.employment.wageRegion;
+	const probation = s.employment.probationWage;
 
-	// --- minimum wage (CN-KM01/02, CN-KM-WP03 art.8, CN-N50; part-time hourly LCL art.72, CN-N27)
+	// CN-N09.tax-residence: the method follows tax residence, which must be recorded
+	if (s.employee.taxResident === null) return refusal('run', 'tax residence not recorded');
+
+	// --- minimum wage (CN-KM01/02, CN-KM-WP03.minimum-wage-floor, CN-N50.floor-test, CN-N14.minimum-wage)
 	const onDay = max(first, s.employment.hireDate);
-	const floor = minimumWage(onDay, region);
+	const floor = floorOn(s, onDay);
 	if (pt !== undefined) {
 		if (pt.hourlyRate < floor.hourly)
-			return refusal('run', `hourly wage ${pt.hourlyRate} below the ${region} hourly minimum ${floor.hourly}`);
-	} else {
+			return refusal('run', `hourly wage ${pt.hourlyRate} below the hourly minimum ${floor.hourly}`);
+	} else if (probation === undefined) {
 		for (const day of [onDay, s.employment.raise?.from].filter((d): d is string => d !== undefined && d <= last)) {
-			const need = minimumWage(max(day, first), region).monthly;
+			const need = floorOn(s, max(day, first)).monthly;
 			if (contractWageOn(s, day) < need)
-				return refusal('run', `monthly wage ${contractWageOn(s, day)} below the ${region} minimum ${need}`);
+				return refusal('run', `monthly wage ${contractWageOn(s, day)} below the minimum ${need}`);
 		}
 	}
 
 	// --- pay
-	let wageIncome = 0;
 	if (pt !== undefined) {
 		add('BASIC', pt.hourlyRate * pt.hours);
 	} else {
-		add('BASIC', basicPay(s, period));
-		const dayRate = contractWageOn(s, last) / 21.75; // CN-N02: 21.75 conversion days
-		if (final && s.time.unpaidDays) add('UNPAID_LEAVE', -dayRate * s.time.unpaidDays); // CN-N04, CN-KM-WP12 (art.25)
-		// Overtime — Labour Law art.44 (CN-N01, CN-KM-WP08): hourly = monthly ÷ 21.75 ÷ 8 (人社部发〔2025〕2号);
-		// weekday 150%; rest day 200% unless compensatory rest is arranged; statutory holiday 300%, never replaced.
+		// LCL art.20 and Regulation art.15 (CN-N19.probation-wage-floor): the probation wage is at least 80% of the agreed
+		// wage (recorded default comparator) and the local minimum; the shortfall is owed.
+		const monthly = (day: string) => (probation !== undefined ? probation : contractWageOn(s, day));
+		add('BASIC', basicPay(s, period, monthly));
+		if (probation !== undefined) {
+			const due = Math.max(0.8 * s.employment.monthlyWage, floor.monthly);
+			if (due > probation) add('PROBATION_WAGE_SHORTFALL', due - probation);
+		}
+		const dayRate = contractWageOn(s, last) / 21.75; // CN-N02.day-conversion-21-75
+		// CN-N04.unpaid-personal-leave, CN-KM-WP12.personal-leave-absent-only (art.25): only the absent day's wage
+		if (final && s.time.unpaidDays) add('UNPAID_LEAVE', -dayRate * s.time.unpaidDays);
+		// CN-N04.stoppage, CN-KM-WP15.first-wage-cycle (art.28): stoppage not caused by the worker within the first wage
+		// cycle pays the contracted wage — no deduction. Night work carries no statutory premium (CN-N53.night-premium).
+		// Overtime — Labour Law art.44 (CN-N01.*, CN-KM-WP08.*): hour = monthly ÷ 21.75 ÷ 8 (CN-N02.hour-conversion-8);
+		// weekday 150%; rest day 200% unless compensatory rest is arranged; statutory holiday 300%, never replaced
+		// (CN-N40.holiday-no-substitution). Excluded from the 12-month leave average (CN-N06).
 		const ot = final ? s.time.overtime : undefined;
 		if (ot !== undefined) {
 			const hour = contractWageOn(s, last) / 21.75 / 8;
-			add('OVERTIME', fen(hour * 1.5 * (ot.weekdayHours ?? 0)));
-			if (!ot.restDayCompensatoryRest) add('OVERTIME', fen(hour * 2 * (ot.restDayHours ?? 0)));
-			add('OVERTIME', fen(hour * 3 * (ot.holidayHours ?? 0)));
-			// Labour Law art.41 (CN-N40): extended hours at most 3 a day and 36 a month. Pay is still owed on
-			// hours worked; the breach is a report, not a forfeit. Rest-day and holiday work are not 延长工作时间.
+			const addOt = (x: number) => add('OVERTIME', fen(x), true, false);
+			addOt(hour * 1.5 * (ot.weekdayHours ?? 0));
+			if (!ot.restDayCompensatoryRest) addOt(hour * 2 * (ot.restDayHours ?? 0));
+			addOt(hour * 3 * (ot.holidayHours ?? 0));
+			// Labour Law art.41 (CN-N40.daily-three-hour-cap, CN-N40.monthly-36-hour-cap): at most 3 a day and 36 a
+			// month; hours beyond are still paid, the breach is reported. Rest-day/holiday work is not 延长工作时间.
 			if ((ot.weekdayHours ?? 0) > 36) warnings.push('monthly overtime limit|36');
 			if ((ot.maxDailyWeekdayHours ?? 0) > 3) warnings.push('daily overtime limit|3');
 		}
-		// Paid statutory leave: no deduction (CN-KM-WP12, CN-KM30, CN-KM12, CN-KM31, CN-N51, CN-KM-WP13).
+		// Heat allowance — 云人社发〔2013〕98号 with the national measure art.17 (CN-KM13.outdoor-35, CN-KM13.indoor-33,
+		// CN-N26.kunming-allowance): CNY10 per person per qualifying working day, inside total wages (taxable), outside the
+		// minimum-wage test.
+		if (final && s.pay.heatDays) add('HEAT_ALLOWANCE', 10 * s.pay.heatDays);
+		// Statutory leave is paid (CN-N04.paid-civic-and-leave-time, CN-KM-WP12.*, CN-KM30.calendar-day-counting,
+		// CN-KM31.calendar-day-counting); a request longer than the grant is refused.
 		const leave = final ? s.time.leave : undefined;
 		if (leave !== undefined) {
-			const over = leaveRefusal(leave);
-			if (over !== undefined) return refusal('input', over);
+			const grant = leaveGrant(leave);
+			if (grant !== undefined && leave.calendarDays > grant)
+				return refusal('input', `${leave.code}: ${leave.calendarDays} calendar days exceed the ${grant} granted`);
 		}
-		// Maternity — CN-KM32: the fund allowance (employer prior-year average ÷ 30 × leave days, an agency
-		// determination, declared) paid to the employer offsets the wage; the employer tops up to the wage (recorded
-		// owner default; 女职工劳动保护特别规定 art.5). Allowance at or above the wage: nothing more is due.
-		if (final && s.pay.maternityAllowance !== undefined)
-			add('MATERNITY_ALLOWANCE_OFFSET', -Math.min(s.pay.maternityAllowance, lines.BASIC ?? 0));
+		// Maternity — CN-KM32.allowance-offset-top-up: the fund allowance (employer prior-year average ÷ 30 × leave days,
+		// an agency determination, declared) paid to the worker comes off the leave wage; the employer tops up to the
+		// wage (recorded default, 女职工劳动保护特别规定 art.5). Paid to the employer, the wage is paid in full.
+		// CN-KM32.non-enrolling-employer (item 3) and CN-N20.insured-benefit-or-wage: an employer that did not enrol pays
+		// the allowance and the CNY1,000 nutrition grant per infant itself. 财税〔2008〕8号: maternity-insurance allowances
+		// and subsidies are exempt from IIT: the offset lowers the taxable wage, the employer's substitute benefit is exempt
+		// (DEFAULT: item 3 pays it under the maternity measure, so the exemption follows it).
+		const ma = final ? s.pay.maternity : undefined;
+		if (ma !== undefined) {
+			const offset = -Math.min(ma.allowance, lines.BASIC ?? 0);
+			if (!s.facts.siRegistered) {
+				add('MATERNITY_ALLOWANCE_OFFSET', offset);
+				add('MATERNITY_BENEFIT_EMPLOYER', ma.allowance + 1000 * (ma.infants ?? 1), false);
+			} else if (ma.paidTo === 'WORKER') add('MATERNITY_ALLOWANCE_OFFSET', offset);
+			else if (ma.allowance > (lines.BASIC ?? 0)) unpriced.push('MATERNITY_ALLOWANCE_EXCESS');
+		}
 	}
-	wageIncome = Object.values(lines).reduce((a, b) => a + b, 0);
 
-	// --- bonus (CN-N53: contractual; paid, it is wages)
+	// --- bonus (CN-N53.annual-bonus: contractual; paid, it is wages)
+	if (s.pay.priorBonus !== undefined && s.pay.priorBonus.period === period) add('BONUS', s.pay.priorBonus.amount);
 	const bonus = final ? s.pay.bonus : undefined;
 	if (bonus !== undefined) {
-		if (bonus.kind === 'BONUS') {
-			add('BONUS', bonus.amount);
-			wageIncome += bonus.amount;
-		} else {
-			if (bonus.usedThisYear)
-				return refusal('run', `${bonus.kind} already used this calendar year (once per person per year)`);
+		if (bonus.kind === 'BONUS') add('BONUS', bonus.amount); // CN-N10.ordinary-bonus-joins-wage
+		else {
+			// CN-N10.once-per-year, CN-KM-A1.once-per-year
+			if (bonus.usedThisYear) return refusal('run', `${bonus.kind} already used this calendar year`);
 			if (bonus.kind === 'ANNUAL_BONUS_SEPARATE' && !s.employee.taxResident)
 				return refusal('run', 'the separate annual-bonus method is a resident election (MOF/STA 2023 No.30)');
 			if (bonus.kind === 'MULTI_MONTH_NONRESIDENT' && s.employee.taxResident)
 				return refusal('run', 'the multi-month bonus spread is a non-resident method (MOF/STA 2019 No.35)');
-			// both separate methods are elected through the ANNUAL_BONUS_SEPARATE class (CN-KM-A1 config_path)
-			add('ANNUAL_BONUS_SEPARATE', bonus.amount);
+			// both separate methods sit on the ANNUAL_BONUS_SEPARATE class (CN-KM-A1 config_path); in the average, not IIT
+			add('ANNUAL_BONUS_SEPARATE', bonus.amount, false);
+		}
+	}
+
+	// --- untaxed subsidies — 国税发〔1994〕89号 item 2 (CN-N55.*): not of wage nature, not taxed; 误餐补助 only at the
+	// finance standard for actual missed meals and 差旅费津贴 only for actual travel, otherwise wage income. The
+	// only-child health fee (CN-KM38.health-fee, ≥ CNY10 a month) is an 独生子女补贴. DEFAULT: outside the average.
+	for (const sub of final ? (s.pay.subsidies ?? []) : [])
+		add(sub.code, sub.amount, !(UNTAXED_SUBSIDY.has(sub.code) && sub.qualifying), false);
+
+	// --- contract claims settled this month (CN-N19, CN-N41): wage-nature income, taxed as wages (DEFAULT: the law is
+	// silent on their IIT class; they are paid by reason of employment). Outside the average (DEFAULT: one-off claims).
+	if (final && pt === undefined) {
+		const c = s.contract;
+		const wage = s.employment.monthlyWage;
+		// LCL art.82 para.1 and Regulation arts.6–7 (CN-N19.written-contract-double-wage, CN-N12.no-written-contract,
+		// CN-N41.no-written-contract-double-wage): from the day after the first month to the day before signing, at most
+		// 11 months. DEFAULT part month: paid days ÷ 21.75 (CN-N02).
+		if (c?.signedDate !== undefined) {
+			const from = firstDayAfterFirstMonth(s.employment.hireDate);
+			const to = c.signedDate === null ? last : addDays(c.signedDate, -1);
+			const months = Math.min(11, monthsOf(from, to));
+			if (months > 0) add('NO_WRITTEN_CONTRACT_WAGE', wage * months, true, false);
+		}
+		// LCL arts.14, 82 para.2 (CN-N41.open-ended-second-wage): a second wage from the day it was due, no cap.
+		if (c?.openEndedDueDate !== undefined) {
+			const to = c.openEndedConcludedDate == null ? last : addDays(c.openEndedConcludedDate, -1);
+			const months = monthsOf(c.openEndedDueDate, to);
+			if (months > 0) add('OPEN_ENDED_CONTRACT_WAGE', wage * months, true, false);
+		}
+		// LCL arts.19, 70, 83 (CN-N19.probation-limits, CN-N12.probation, CN-N41.probation-*, CN-N27.no-probation):
+		// probation served beyond the limit is paid at the post-probation wage.
+		if (c?.probation !== undefined) {
+			const p = c.probation;
+			const term = p.termMonths;
+			const allowed = p.partTime || (term !== null && term < 3) ? 0 : term === null || term >= 36 ? 6 : term >= 12 ? 2 : 1;
+			const excess = Math.max(0, p.servedMonths - allowed);
+			if (excess > 0) add('PROBATION_EXCESS_DAMAGES', wage * excess, true, false);
 		}
 	}
 
 	// --- social insurance
 	let employeeShares = 0;
 	const employed = s.employment.hireDate <= last && (s.employment.exitDate ?? '9999') >= first;
-	// DEFAULT: a month in which the worker is employed on any day is a contribution month on the full declared base
-	// (Social Insurance Law art.58 enrolment within 30 days of hire; law silent on part months — one consistent rule).
-	// Enrolment status does not matter: an unregistered worker is still assessed (CN-KM28, CN-N37).
+	// DEFAULT: a month employed on any day is a contribution month on the full declared base (Social Insurance Law art.58;
+	// law silent on part months). Missing enrolment, a signed waiver or probation do not remove the premium
+	// (CN-N07.unregistered-still-assessed, CN-KM28.unenrolled-still-assessed, CN-KM28.no-excuse-grounds,
+	// CN-N37.si-waiver-void). Age alone does not end coverage (CN-N13.coverage-during-delay); a pension recipient is
+	// outside (CN-N13.pensioned-retiree). A foreign worker is insured like anyone (CN-N25.ordinary-social-insurance),
+	// except schemes a bilateral-agreement certificate exempts (CN-N25.treaty-exemption); HK/Macao/Taiwan residents are
+	// insured at ordinary rates (CN-N48).
 	const retired = s.employee.pensionRecipient === true;
+	const exempt = new Set(s.facts.treatyExempt ?? []);
 	if (employed && pt === undefined && !retired) {
 		const declared = s.facts.siBase ?? s.employment.monthlyWage;
 		const charge = (scheme: SiScheme, rates: { employer: number; employee: number }) => {
+			if (exempt.has(scheme)) return;
 			const base = clamp(declared, siBounds(scheme, first));
 			bases[scheme] = base;
 			const employee = fen(base * rates.employee);
@@ -280,37 +476,39 @@ function month(s: Scenario, period: string, final: boolean): Month {
 			if (employer !== 0) lines[`${scheme}.employer`] = employer;
 			employeeShares += employee;
 		};
-		charge('PENSION', RATE.PENSION);
-		charge('MEDICAL', RATE.MEDICAL);
-		charge('MATERNITY', RATE.MATERNITY);
-		const u = unemploymentRates(first, s);
+		charge('PENSION', RATE.PENSION); // CN-N07.pension
+		charge('MEDICAL', RATE.MEDICAL); // CN-N07.medical
+		charge('MATERNITY', RATE.MATERNITY); // CN-N07.maternity
+		const u = unemploymentRates(first, s); // CN-N07.unemployment
 		if (u === undefined) unpriced.push('UNEMPLOYMENT.employee', 'UNEMPLOYMENT.employer');
 		else charge('UNEMPLOYMENT', u);
-		charge('INJURY', { employer: s.facts.injuryRate, employee: 0 });
-		// CN-KM04: the major-medical employer charge (0.6% × provincial average wage per head, truncated) and the
-		// worker's CNY1 a month have no verified 2026 figure or official original — not judged.
+		charge('INJURY', { employer: s.facts.injuryRate, employee: 0 }); // CN-N07.work-injury
+		// CN-KM04.major-medical-employer / major-medical-worker: no verified 2026 figure or agency original — not judged.
 		unpriced.push('major-medical');
 	}
-	// Part-time: employer-only injury insurance (Yunnan injury measure art.2, CN-KM14); the base is unsourced.
+	// Non-full-time: employer-only injury insurance (CN-KM14.all-employees-employer-only, CN-N27.injury-cover); base
+	// unsourced. Managed post-age workers from 1 Jul 2026 (CN-N14.work-injury-cover): employer-only injury, unsourced.
 	if (employed && pt !== undefined) unpriced.push('INJURY.employer');
-	// Over-age managed workers from 1 Jul 2026 (Order 56, CN-N14): employer-only injury; amount unsourced.
 	if (employed && retired && first >= '2026-07-01') unpriced.push('INJURY.employer');
 
-	// --- housing fund (CN-KM05, CN-KM18, CN-KM20, CN-N08)
+	// --- housing fund (CN-KM05, CN-KM18, CN-KM20, CN-N08). Retirees do not contribute (CN-KM18.retirees); HK/Macao/
+	// Taiwan workers and foreigners by participation (CN-KM18.optional-participants) — `fundRate: null` is outside.
 	const rate = s.facts.fundRate;
 	if (employed && pt === undefined && !retired && rate !== null) {
-		if (rate < 0.05) return refusal('input', `fund rate ${rate} below 5% needs fund-centre approval (CN-KM21)`);
-		if (rate > 0.12) return refusal('input', `fund rate ${rate} above the 12% maximum (CN-KM20)`);
+		// CN-KM21.eligibility-and-approvals: below 5% only by approval; CN-KM05.rate-5-12, CN-KM20.uniform-unit-rate
+		if (rate < 0.05) return refusal('input', `fund rate ${rate} below 5% needs fund-centre approval`);
+		if (rate > 0.12) return refusal('input', `fund rate ${rate} above the 12% maximum`);
 		const hireMonth = s.employment.hireDate.slice(0, 7);
-		// First-ever account: nothing in the joining month; from the second month on that month's full wage
-		// (management measure arts.10–14, CN-KM20). Transferred: from the first month on the full monthly wage.
-		const firstEverJoining = s.facts.fundAccount === 'FIRST_EVER' && hireMonth === period;
-		if (!firstEverJoining) {
+		// CN-KM20.first-ever-joining-month / first-ever-second-month (CN-N08.first-ever-second-month): nothing in the
+		// joining month, then that month's wage; CN-KM20.transferred-first-month (CN-N08.transferred-first-month): the
+		// full monthly wage from the first month; CN-KM20.existing-worker-base (CN-N08.existing-worker-base): the prior
+		// calendar-year monthly average, declared.
+		if (!(s.facts.fundAccount === 'FIRST_EVER' && hireMonth === period)) {
 			const declared =
 				s.facts.fundAccount === 'EXISTING'
-					? (s.facts.fundBase ?? s.employment.monthlyWage) // prior calendar-year average, declared
+					? (s.facts.fundBase ?? s.employment.monthlyWage)
 					: contractWageOn(s, last);
-			const base = clamp(declared, fundBounds(first, region));
+			const base = clamp(declared, fundBounds(first, s.employment.wageRegion));
 			bases.HOUSING_FUND = base;
 			const share = yuan(base * rate);
 			lines['HOUSING_FUND.employee'] = share;
@@ -323,171 +521,174 @@ function month(s: Scenario, period: string, final: boolean): Month {
 	if (final && s.exit !== undefined) {
 		const e = s.exit;
 		const exitDay = s.employment.exitDate!;
-		// Severance — LCL arts.46–47, 87 and Implementing Regulation arts.20, 27 (CN-N12, CN-N19, CN-N41).
+		const avg = average12(s, history, period);
 		if (pt === undefined) {
-			const due = severanceDue(s);
-			if (due > 0) add('SEVERANCE_PAY', due);
+			const due = severanceDue(s, avg, history.get(addMonths(period, -1)) ?? s.employment.monthlyWage);
+			if (due > 0) add('SEVERANCE_PAY', due, false, false);
 		}
-		// Annual-leave cash on exit — Paid Annual Leave Regulation and enterprise measure arts.10–12 (CN-N05/N06/N18):
-		// floor(days worked this year ÷ 365 × full-year days) − days taken, never below 0, no clawback; paid at the
-		// further 200% of the day wage (the 300% includes normal pay), day wage = the previous 12 months' average
-		// excluding overtime ÷ 21.75. DEFAULT (tracker): no prior history differs from the contract wage.
+		// Annual-leave cash on exit (CN-N05.*, CN-N06.unused-on-exit-300, CN-N18.exit-entitlement, CN-N06.no-clawback,
+		// CN-N18.no-clawback): floor(days at the employer this year ÷ 365 × full-year days) − days taken, never below 0,
+		// at a further 200% of the day wage (12-month average excluding overtime ÷ 21.75, CN-N06.day-wage-twelve-month-
+		// average). Bands on cumulative service with every employer (CN-N05.prior-employer-service): ≥12 months 5, ≥120 10,
+		// ≥240 15 (DEFAULT: the band at the exit day, the recorded mid-year crossing default). Qualification from the day
+		// twelve months complete (CN-N05.qualifying-twelve-months recorded default), so the year counts from that day.
 		if (pt === undefined) {
-			const service = (s.employee.priorServiceMonths ?? 0) + monthsBetween(s.employment.hireDate, exitDay);
+			const prior = s.employee.priorServiceMonths ?? 0;
+			const service = prior + monthsBetween(s.employment.hireDate, exitDay);
 			if (service >= 12) {
 				const full = service >= 240 ? 15 : service >= 120 ? 10 : 5;
-				const yearStart = max(`${exitDay.slice(0, 4)}-01-01`, s.employment.hireDate);
+				const qualified = prior >= 12 ? s.employment.hireDate : addMonthsToDate(s.employment.hireDate, 12 - prior);
+				const yearStart = max(`${exitDay.slice(0, 4)}-01-01`, qualified);
 				const days = (ms(exitDay) - ms(yearStart)) / 86_400_000 + 1;
 				const owed = Math.max(0, Math.floor((days / 365) * full + 1e-9) - (e.leaveTakenThisYear ?? 0));
-				if (owed > 0) {
-					const cash = fen(owed * (s.employment.monthlyWage / 21.75) * 2);
-					add('LEAVE_ENCASHMENT', cash);
-					wageIncome += cash;
-				}
+				if (owed > 0) add('LEAVE_ENCASHMENT', fen(owed * (avg / 21.75) * 2), true, false);
 			}
 		}
-		// Final pay within five working days after the employment ends — 昆明市工资支付条例 art.13 (CN-KM-WP06).
+		// Retirement lump sums (CN-N39.early-retirement, CN-N39.internal-retirement): taxed apart below.
+		if (s.pay.earlyRetirement) add('EARLY_RETIREMENT_SUBSIDY', s.pay.earlyRetirement.amount, false, false);
+		// Final pay within five working days after the end — 昆明市工资支付条例 art.13 (CN-KM-WP06.five-working-days); the
+		// run pays on the period's last day (DEFAULT), so a deadline before it is reported.
 		if (addWorkingDays(exitDay, 5) < last) warnings.push('final pay|five working days');
 	}
-	return { lines, bases, wageIncome, employeeShares, warnings, unpriced };
+	if (final && s.pay.internalRetirement) add('INTERNAL_RETIREMENT_SUBSIDY', s.pay.internalRetirement.amount, false, false);
+	return { lines, bases, wageIncome, averageWage, employeeShares, warnings, unpriced };
 }
-
-const refusal = (stage: 'input' | 'run', reason: string): Month => ({
-	lines: {},
-	bases: {},
-	wageIncome: 0,
-	employeeShares: 0,
-	warnings: [],
-	unpriced: [],
-	refused: { stage, reason }
-});
 
 const addWorkingDays = (d: string, n: number) => {
 	let day = d;
 	while (n > 0) {
 		day = addDays(day, 1);
-		if (weekday(day) % 6 !== 0) n--;
+		if (isPaidDay(day)) n--;
 	}
 	return day;
 };
+const addMonthsToDate = (d: string, n: number) => {
+	const [y, m, dd] = d.split('-').map(Number);
+	return iso(Date.UTC(y!, m! - 1 + n, dd!));
+};
+/** The day after the first month of employment (LCL art.82: 自用工之日起超过一个月): hire 1 Jan → 1 Feb. */
+const firstDayAfterFirstMonth = (hire: string) => addMonthsToDate(hire, 1);
+/** Whole months in [from, to] plus a part month by paid days ÷ 21.75 (CN-N02 default). */
+function monthsOf(from: string, to: string) {
+	if (from > to) return 0;
+	const whole = monthsBetween(from, to);
+	const rest = addMonthsToDate(from, whole);
+	return whole + (rest <= to ? paidDays(rest, to) / 21.75 : 0);
+}
 
-/** Whole calendar months from `from` to `to` inclusive of the last day (a hire on the 16th and an exit on the 15th
- * six months later is 6 months). */
+/** Whole calendar months from `from` to `to` inclusive of the last day (hire 16th, exit 15th six months on = 6). */
 export function monthsBetween(from: string, to: string) {
 	const end = addDays(to, 1);
 	const [fy, fm, fd] = from.split('-').map(Number);
 	const [ty, tm, td] = end.split('-').map(Number);
 	return (ty! - fy!) * 12 + (tm! - fm!) - (td! < fd! ? 1 : 0);
 }
-/** true when a part month remains after the whole months */
-const partMonth = (from: string, to: string) => {
-	const m = monthsBetween(from, to);
-	const [y, mo, d] = from.split('-').map(Number);
-	const anniversary = iso(Date.UTC(y!, mo! - 1 + m, d!));
-	return anniversary <= to;
-};
 
-/** Leave requests the Yunnan regulation does not grant (Yunnan Population and Family Planning Regulation arts.18, 19,
- * 35; national 国劳总薪字〔1980〕29号). Calendar-day leave: working days inside it are paid. */
-function leaveRefusal(leave: NonNullable<Scenario['time']['leave']>): string | undefined {
-	const grant: Record<string, number | undefined> = {
-		// art.18: 15 days on top of the national 1–3 days; DEFAULT the discretionary maximum 3 (CN-N51) → 18
-		MARRIAGE_LEAVE: 18,
-		// art.18 para 2: each parent 10 days a year while a child is under 3; 15 with two or more under 3 (CN-KM12)
-		CHILDCARE_LEAVE:
-			(leave.childrenUnder3 ?? 0) >= 2 ? 15 : (leave.childrenUnder3 ?? 0) === 1 ? 10 : 0,
-		// 国劳总薪字〔1980〕29号 1–3 days; DEFAULT the maximum 3 (CN-N51)
-		FUNERAL_LEAVE: 3,
-		// art.19: IUD insertion 7 days (CN-KM31)
-		FAMILY_PLANNING_PROCEDURE_LEAVE: 7,
-		// 工伤保险条例 art.33: stop-work period up to 12 + 12 months (CN-N21, CN-KM-WP13)
-		WORK_INJURY_LEAVE: 731
-	};
-	const days = grant[leave.code];
-	if (days === undefined) return undefined;
-	if (leave.calendarDays > days)
-		return `${leave.code}: ${leave.calendarDays} calendar days exceed the ${days} the law grants`;
-	return undefined;
-}
-
-/** LCL art.47: one month per full year; a remainder of six months or more counts a year, under six months half a month;
- * the monthly wage is the prior-12-month average of the wage due (Regulation art.27), 3× the local average monthly wage
- * caps it and then the years at 12; art.87 doubles it; art.40 adds one month in lieu of 30 days' notice at the previous
- * month's wage (Regulation art.20). For a leaver hired in the exit month the average and the previous month are the
- * contract monthly wage (CN-SH-A2 recorded default). Hire dates are after 1 Jan 2008 (art.97 not exercised). */
-export function severanceDue(s: Scenario) {
+/** LCL art.47 (CN-N12.service-year-severance, CN-N41.severance-whole-years / six-to-twelve-months / under-six-months):
+ * one month per full year; a remainder of six months or more counts a year, under six months (days included) half a
+ * month. Monthly wage: the 12-month average of the wage due, not below the local minimum (Regulation art.27,
+ * CN-N19.severance-wage-base). Above 3× the declared local average monthly wage the wage is capped at 3× and the
+ * years at 12 (CN-N12.high-earner-cap). Art.87 doubles it, counted from hire (Regulation art.25; CN-N12.unlawful-
+ * termination, CN-N41.art87-double). Art.40 adds one month in lieu of 30 days' notice at the previous month's wage
+ * (Regulation art.20; CN-N12.termination-notice, CN-N41.art40-notice-or-pay, CN-SH-A2.art20-previous-month). Paid on
+ * mutual termination proposed by the employer, arts.40/41, unlawful termination, and fixed-term expiry unless an equal or
+ * better renewal was refused (LCL art.46; CN-N41.fixed-term-expiry); not on resignation or art.39 misconduct, nor to
+ * non-full-time workers (LCL art.71, CN-N27.termination-without-compensation). Service before 1 Jan 2008 is compensated
+ * under the rules then in force — a declared amount — and art.47 years count from 2008 (LCL art.97); service transferred
+ * for non-worker reasons joins (Regulation art.10) — declared months. */
+export function severanceDue(s: Scenario, average: number, previousMonth: number) {
 	const e = s.exit!;
-	const hire = s.employment.hireDate;
-	const exit = s.employment.exitDate!;
+	const unlawful = e.cause === 'UNLAWFUL';
 	const pays =
 		e.cause === 'MUTUAL_EMPLOYER' ||
 		e.cause === 'ART40' ||
 		e.cause === 'ART41' ||
-		e.cause === 'UNLAWFUL' ||
+		unlawful ||
 		(e.cause === 'EXPIRY' && !e.renewalOfferRefused);
 	if (!pays) return 0;
-	const months = monthsBetween(hire, exit);
+	const hire = s.employment.hireDate;
+	const exit = s.employment.exitDate!;
+	const from = unlawful || hire >= '2008-01-01' ? hire : '2008-01-01';
+	const months = monthsBetween(from, exit) + (e.transferredServiceMonths ?? 0);
 	const years = Math.floor(months / 12);
 	const rem = months % 12;
-	let n = years + (rem >= 6 ? 1 : rem > 0 || partMonth(hire, exit) ? 0.5 : 0);
-	// Regulation art.27 floor: not below the local minimum wage
-	let avg = Math.max(s.employment.monthlyWage, minimumWage(exit, s.employment.wageRegion).monthly);
+	const partTail = remainderDays(from, exit, months - (e.transferredServiceMonths ?? 0));
+	let n = years + (rem >= 6 ? 1 : rem > 0 || partTail ? 0.5 : 0);
+	let avg = Math.max(average, minimumWage(exit, s.employment.wageRegion).monthly);
 	const cap = 3 * e.localAverageMonthlyWage;
 	if (avg > cap) {
 		avg = cap;
 		n = Math.min(n, 12);
 	}
-	let due = n * avg * (e.cause === 'UNLAWFUL' ? 2 : 1);
-	if (e.cause === 'ART40' && (e.noticeDaysGiven ?? 0) < 30) due += s.employment.monthlyWage;
+	let due = n * avg * (unlawful ? 2 : 1);
+	if (!unlawful && hire < '2008-01-01') due += e.pre2008Compensation ?? 0;
+	if (e.cause === 'ART40' && (e.noticeDaysGiven ?? 0) < 30) due += previousMonth;
 	return fen(due);
 }
+/** true when days remain after the whole months of [from, to] */
+const remainderDays = (from: string, to: string, whole: number) => addMonthsToDate(from, whole) <= to;
 
 // ---------------------------------------------------------------------------------------------------------------
 /** The expected payslip for the scenario's `period`, having run every month from `runsFrom` (cumulative IIT). */
 export function computePayslip(s: Scenario): Payslip {
-	// Child labour — 禁止使用童工规定 art.2 (CN-N29): no one under 16 may be recruited.
+	const none = (refused: Payslip['refused']): Payslip => ({ refused, lines: {}, bases: {}, warnings: [], unpriced: [] });
+	// 禁止使用童工规定 arts.2, 4 (CN-N29.under-16-ban): no one under 16 may be recruited.
 	if (ageOn(s.employee.birthDate, s.employment.hireDate) < 16)
-		return { refused: { stage: 'input', reason: 'under 16 (child labour prohibited)' }, lines: {}, bases: {}, warnings: [], unpriced: [] };
+		return none({ stage: 'input', reason: 'under 16 (child labour prohibited)' });
 
 	const year = s.period.slice(0, 4);
+	const history = new Map<string, number>();
 	let cumIncome = 0;
 	let cumShares = 0;
+	let cumSpecial = 0;
+	let cumPension = 0;
+	let cumOther = 0;
 	let cumWithheld = 0;
 	let monthsEmployed = 0;
 	let out: Month | undefined;
 	for (let p = s.runsFrom; p <= s.period; p = nextPeriod(p)) {
 		const final = p === s.period;
-		const m = month(s, p, final);
-		if (m.refused) return { refused: m.refused, lines: {}, bases: {}, warnings: [], unpriced: [] };
+		const m = month(s, p, final, history);
+		if (m.refused) return none(m.refused);
+		history.set(p, m.averageWage);
 		if (p.slice(0, 4) === year && s.employment.hireDate <= monthEnd(p)) monthsEmployed++;
-		// Resident: cumulative withholding — STA 2018 No.61 art.6 (CN-N09, CN-N38).
 		let iit = 0;
 		if (s.employee.taxResident) {
+			// Resident cumulative withholding — STA 2018 No.61 art.6 (CN-N09.resident-cumulative, CN-N38.resident-annual-
+			// table); a negative balance withholds nothing, no payroll refund (CN-N09.no-payroll-refund).
+			const special = specialMonthly(s, p);
+			if (typeof special === 'string') return none({ stage: 'input', reason: special });
 			cumIncome += m.wageIncome;
 			cumShares += m.employeeShares;
+			cumSpecial += special;
+			// MOF/STA 2024 No.21 (CN-N43.personal-pension): vouchers deductible to CNY12,000 a year.
+			cumPension = Math.min(12000, cumPension + (s.tax.personalPensionMonthly ?? 0));
+			// 财税〔2017〕39号 (CN-N43.commercial-health-insurance): CNY200 a month.
+			cumOther += Math.min(200, s.tax.commercialHealthMonthly ?? 0);
 			const monthNo = Number(p.slice(5, 7));
-			// basic deduction: 5,000 × months employed at this unit this year; STA 2020 No.13 (CN-N44) first wage income
-			// this year → 5,000 × months from January; STA 2020 No.19 (CN-N11) election → 60,000 from January.
-			const basic = s.tax.basic60kElection
-				? 60000
-				: s.tax.firstIncomeThisYear
-					? 5000 * monthNo
-					: 5000 * monthsEmployed;
-			// declared special additional deductions, deducted as declared (STA 2022 No.7 arts.25–26, CN-N16, CN-N54)
-			const special = (s.tax.specialDeductionsMonthly ?? 0) * monthsEmployed;
-			const taxable = fen(cumIncome - cumShares - basic - special);
+			// Basic deduction 5,000 × months at this unit this year; STA 2020 No.13 (CN-N44.first-wage-mid-year) first wage
+			// income this year → 5,000 × months from January; STA 2020 No.19 (CN-N11) election → 60,000 from January.
+			const basic = s.tax.basic60kElection ? 60000 : s.tax.firstIncomeThisYear ? 5000 * monthNo : 5000 * monthsEmployed;
+			const taxable = fen(cumIncome - cumShares - basic - cumSpecial - cumPension - cumOther);
 			const cumTax = fen(onTable(ANNUAL, taxable));
 			iit = Math.max(0, fen(cumTax - cumWithheld));
 			cumWithheld = fen(cumWithheld + iit);
 		} else {
-			// Non-resident: (month's wage − 5,000) on the monthly table, no SI/fund relief (IIT Law art.6(2), CN-N38).
-			iit = fen(onTable(MONTHLY, fen(m.wageIncome - 5000)));
+			// Non-resident: (month's wage − 5,000) on the monthly table, no SI/fund relief (IIT Law art.6(2);
+			// CN-N09.non-resident-monthly, CN-N38.non-resident-monthly-table). China-source wage by China workdays ÷ calendar
+			// days where declared (MOF/STA 2019 No.35 item 2, CN-N45.workday-apportionment; all pay from this employer).
+			const days = s.employee.chinaWorkDays;
+			const calendar = Number(monthEnd(p).slice(8));
+			const wage = days === undefined ? m.wageIncome : (m.wageIncome * days) / calendar;
+			iit = fen(onTable(MONTHLY, fen(wage - 5000)));
 		}
 		if (iit > 0) m.lines['IIT.employee'] = iit;
 		if (final) out = m;
 	}
 	const m = out!;
-	// Separate bonus taxes (CN-N10, CN-KM-A1).
+	const wageThisMonth = m.wageIncome;
+	// Separate bonus taxes: resident ÷ 12 (MOF/STA 2023 No.30; CN-N10.separate-election); non-resident multi-month
+	// [(bonus ÷ 6) × rate − QD] × 6 (MOF/STA 2019 No.35 item 3(2); CN-KM-A1.six-month-spread).
 	const bonus = s.pay.bonus;
 	if (bonus?.kind === 'ANNUAL_BONUS_SEPARATE') {
 		const [, rate, qd] = band(MONTHLY, bonus.amount / 12);
@@ -498,21 +699,47 @@ export function computePayslip(s: Scenario): Payslip {
 		const tax = fen(onTable(MONTHLY, bonus.amount / 6) * 6);
 		if (tax > 0) m.lines['IIT_BONUS.employee'] = tax;
 	}
-	// Severance tax — 财税〔2018〕164号 item 5(1) (CN-N39): exempt to 3 × the local prior-year average annual wage; the
-	// excess taxed alone on the annual table. DEFAULT (owner rule, CN-N39): the same declared average as art.47.
+	// 财税〔2018〕164号 item 5(1) (CN-N39.termination-lump-sum): exempt to 3 × the local prior-year average annual wage, the
+	// excess alone on the annual table. DEFAULT (CN-N39): the same declared average as art.47.
 	const severance = m.lines.SEVERANCE_PAY ?? 0;
 	if (severance > 0) {
-		const excess = fen(severance - 36 * s.exit!.localAverageMonthlyWage);
-		const tax = fen(onTable(ANNUAL, excess));
+		const tax = fen(onTable(ANNUAL, fen(severance - 36 * s.exit!.localAverageMonthlyWage)));
 		if (tax > 0) m.lines['IIT_SEVERANCE.employee'] = tax;
 	}
+	// 164号 item 5(2) (CN-N39.early-retirement): (lump ÷ years to statutory age − 60,000) on the annual table × years.
+	const early = s.pay.earlyRetirement;
+	if (early !== undefined) {
+		const tax = fen(onTable(ANNUAL, early.amount / early.yearsToStatutoryAge - 60000) * early.yearsToStatutoryAge);
+		if (tax > 0) m.lines['IIT_EARLY_RETIREMENT.employee'] = tax;
+	}
+	// 164号 item 5(3) with 国税发〔1999〕58号 art.1 (CN-N39.internal-retirement): lump ÷ months to statutory age + the month's
+	// wage − the 5,000 deduction sets the monthly-table rate; the tax is (wage + lump − 5,000) × rate − QD. DEFAULT (law
+	// silent under cumulative withholding): the wage keeps its own IIT line, and IIT_INTERNAL_RETIREMENT is that total less
+	// the same method's tax on the wage alone.
+	const internal = s.pay.internalRetirement;
+	if (internal !== undefined) {
+		const [, rate, qd] = band(MONTHLY, internal.amount / internal.monthsToStatutoryAge + wageThisMonth - 5000);
+		const total = Math.max(0, (wageThisMonth + internal.amount - 5000) * rate - qd);
+		const tax = fen(total - onTable(MONTHLY, wageThisMonth - 5000));
+		if (tax > 0) m.lines['IIT_INTERNAL_RETIREMENT.employee'] = tax;
+	}
 
-	const pay = Object.entries(m.lines).filter(([k]) => !k.includes('.'));
+	const pay = Object.entries(m.lines).filter(([k]) => !k.includes('.') && !POST_TAX.has(k));
 	const gross = fen(pay.reduce((a, [, v]) => a + v, 0));
+	// Post-tax deductions. Court-ordered 抚养费/赡养费 as ordered (劳部发〔1994〕489号 art.15, 昆明市工资支付条例 art.16;
+	// CN-N04.lawful-deductions, CN-KM-WP09.court-ordered-support). Loss the worker caused (489号 art.16, 条例 art.29;
+	// CN-N04.employee-loss-deduction-cap, CN-KM-WP16.*): at most 20% of the month's wage, and what remains may not fall
+	// below the local monthly minimum. DEFAULT: "the month's wage" is the month's gross pay.
+	if (s.pay.courtOrder) m.lines.COURT_ORDERED_SUPPORT = -fen(s.pay.courtOrder);
+	if (s.pay.lossClaim) {
+		const floor = floorOn(s, max(monthStart(s.period), s.employment.hireDate)).monthly;
+		const allowed = fen(Math.max(0, Math.min(s.pay.lossClaim, 0.2 * gross, gross - floor)));
+		if (allowed > 0) m.lines.LOSS_RECOVERY = -allowed;
+	}
 	const deductions = fen(
 		Object.entries(m.lines)
-			.filter(([k]) => k.endsWith('.employee'))
-			.reduce((a, [, v]) => a + v, 0)
+			.filter(([k]) => k.endsWith('.employee') || POST_TAX.has(k))
+			.reduce((a, [, v]) => a + Math.abs(v), 0)
 	);
 	m.lines.gross = gross;
 	m.lines.total_deductions = deductions;

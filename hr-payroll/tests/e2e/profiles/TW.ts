@@ -17,6 +17,7 @@ type Patch = {
 	leave?: Partial<Scenario['leave']>;
 	bonus?: Partial<Scenario['bonus']>;
 	garnishment?: number;
+	occInjuryMedical?: number;
 	exit?: Scenario['exit'];
 };
 
@@ -31,6 +32,9 @@ const base = (): Omit<Scenario, 'id' | 'rows' | 'branches'> => ({
 		hireDate: '2020-01-01',
 		pay: { basis: 'MONTHLY', monthly: 36000, raise: null },
 		partTimeWeeklyHours: null,
+		worksEveryWorkday: false,
+		shortTermHire: false,
+		oldSystemServiceMonths: 0,
 		mealAllowance: 0,
 		declaredWage: null,
 		nhiDependants: 0,
@@ -38,10 +42,22 @@ const base = (): Omit<Scenario, 'id' | 'rows' | 'branches'> => ({
 		taxMethod: 'TABLE',
 		pension: { system: 'NEW', voluntaryRate: 0 },
 		disability: null,
+		dependantDisability: [],
 		liAfter65: false
 	},
 	time: { weekdayOvertime: [], restDayWork: [], holidayWork: [], restDayEmergencyDays: 0 },
-	leave: { personalDays: 0, sickDays: 0, sickPriorDays: 0, parentalWholeMonth: false },
+	leave: {
+		personalDays: 0,
+		sickDays: 0,
+		sickPriorDays: 0,
+		menstrualDays: 0,
+		menstrualPriorDays: 0,
+		maternityDays: 0,
+		paternityDays: 0,
+		occInjuryDays: 0,
+		parentalWholeMonth: false
+	},
+	occInjuryMedical: 0,
 	bonus: { amount: 0, priorThisYear: 0 },
 	garnishment: 0,
 	exit: null
@@ -89,6 +105,7 @@ export function generateProfiles(): Scenario[] {
 			leave: { ...b.leave, ...p.leave },
 			bonus: { ...b.bonus, ...p.bonus },
 			garnishment: p.garnishment ?? 0,
+			occInjuryMedical: p.occInjuryMedical ?? 0,
 			exit: p.exit ?? null
 		});
 	};
@@ -343,6 +360,76 @@ export function generateProfiles(): Scenario[] {
 			},
 			exit: exitOf(X, 'RETIREMENT', { averageMonthlyWage: avg, dutyDisability: disability })
 		});
+
+	// ---- R9 branches: part-time NHI, short-term hire, other leave, mixed severance, rate change, dependants ----
+	for (const [h, every, m] of [[10, true, 14750], [10, false, 14750], [10, false, 30000], [8, false, 29500], [8, false, 29499], [11, true, 16225]] as const)
+		add(`pt-nhi-${h}h-${every ? 'every' : 'some'}-${m}`, ['TW-NHI-05', 'TW-NHI-02', 'TW-LI-05', 'TW-MW-02'], [
+			every ? 'every-workday-enrolled' : m >= 29500 ? 'not-enrolled-part-time-supplement' : 'not-enrolled-below-threshold'
+		], { employee: { pay: monthly(m), partTimeWeeklyHours: h, worksEveryWorkday: every } });
+	add('pt-nhi-bonus', ['TW-NHI-02', 'TW-NHI-05'], ['not-enrolled-bonus-in-payment'], {
+		employee: { pay: monthly(20000), partTimeWeeklyHours: 10 },
+		bonus: { amount: 10000 }
+	});
+	for (const [period, hire, exit] of [['2026-03', '2026-03-10', '2026-03-12'], ['2026-03', '2026-03-30', '2026-03-31']] as const)
+		add(`short-term-${hire}`, ['TW-LI-05', 'TW-LI-02', 'TW-NHI-11'], ['short-term-hire-full-minimum'], {
+			period,
+			employee: { pay: monthly(7500), partTimeWeeklyHours: 12, shortTermHire: true, hireDate: hire },
+			exit: exitOf(exit, 'RESIGNATION')
+		});
+	for (const [d, prior, sick, sickPrior] of [[1, 0, 0, 0], [1, 2, 0, 0], [2, 3, 0, 0], [1, 3, 0, 30], [2, 4, 3, 26]] as const)
+		add(`menstrual-${d}-after-${prior}-sick-${sick}-${sickPrior}`, ['TW-LEAVE-05', 'TW-LEAVE-02'], [
+			prior + d <= 3 ? 'menstrual-apart' : sickPrior + sick >= 30 ? 'menstrual-beyond-sick-unpaid' : 'menstrual-counted-to-sick'
+		], { leave: { menstrualDays: d, menstrualPriorDays: prior, sickDays: sick, sickPriorDays: sickPrior } });
+	for (const [hire, days] of [['2025-09-01', 20], ['2025-09-02', 20], ['2026-01-05', 31]] as const)
+		add(`maternity-${hire}-${days}`, ['TW-LEAVE-05', 'TW-LEAVE-09'], [hire <= '2025-09-01' ? 'maternity-full-pay' : 'maternity-half-pay'], {
+			employee: { hireDate: hire },
+			leave: { maternityDays: days }
+		});
+	add('paternity-7', ['TW-LEAVE-05'], ['paternity-full-pay'], { leave: { paternityDays: 7 } });
+	add('hospitalised-sick', ['TW-LEAVE-02'], ['hospitalised-within-30', 'hospitalised-beyond-30'], { leave: { sickDays: 12, sickPriorDays: 22 } });
+	add('occ-injury-whole', ['TW-EXIT-05'], ['original-wage-whole'], { leave: { occInjuryDays: 31 } });
+	add('occ-injury-medical', ['TW-EXIT-05'], ['medical-outside-bases'], { leave: { occInjuryDays: 10 }, occInjuryMedical: 8200 });
+	for (const [oldMonths, total] of [[186, 260], [186, 400], [60, 120]] as const)
+		add(`severance-mixed-${oldMonths}-${total}`, ['TW-EXIT-02', 'TW-TAX-03'], ['old-system-months-beside-new-cap'], {
+			employee: { hireDate: hireFor(X, total), oldSystemServiceMonths: oldMonths },
+			exit: exitOf(X, 'LAYOFF_S11', { noticeDaysGiven: 30, averageMonthlyWage: 45000 })
+		});
+	for (const [months, days] of [[120, 0], [120, 5], [300, 0]] as const)
+		add(`severance-old-${months}m${days}d`, ['TW-EXIT-01', 'TW-EXIT-02', 'TW-PEN-13', 'TW-TAX-03'], ['old-system-s17'], {
+			employee: { hireDate: hireFor(X, months, days), pension: { system: 'OLD_RETAINED', reserveRate: 0.02 } },
+			exit: exitOf(X, 'LAYOFF_S11', { noticeDaysGiven: 0, averageMonthlyWage: 40000 })
+		});
+	for (const [period, avg, months] of [['2025-12', 60000, 120], ['2025-12', 150000, 120], ['2026-12', 150000, 120]] as const)
+		add(`severance-tax-${period}-${avg}`, ['TW-TAX-03', 'TW-EXIT-02'], [period === '2025-12' ? '114-exemption' : '115-exemption'], {
+			period,
+			employee: { hireDate: hireFor(`${period}-15`, months) },
+			exit: exitOf(`${period}-15`, 'LAYOFF_S11', { noticeDaysGiven: 30, averageMonthlyWage: avg })
+		});
+	for (const [from, period] of [['2026-04-01', '2026-03'], ['2026-04-01', '2026-04']] as const)
+		add(`pen-rate-change-${period}`, ['TW-PEN-12'], [period < from.slice(0, 7) ? 'old-rate-before-effect' : 'new-rate-from-first'], {
+			period,
+			employee: { pension: { system: 'NEW', voluntaryRate: 0.03, rateChange: { from, voluntaryRate: 0.06 } } }
+		});
+	for (const [deps, dis] of [[1, ['SEVERE']], [2, [null, 'MODERATE']], [3, ['MILD', 'MILD', 'SEVERE']]] as const)
+		add(`nhi-dep-disabled-${deps}-${dis.join('-')}`, ['TW-NHI-14', 'TW-NHI-01'], ['dependant-own-subsidy'], {
+			employee: { nhiDependants: deps, dependantDisability: [...dis] }
+		});
+	add('pen-old-professional-2026', ['TW-PEN-02', 'TW-EXIT-03'], ['professional-old-system-election'], {
+		period: '2026-07',
+		employee: { citizenship: 'FOREIGN_PROFESSIONAL', hireDate: '2023-04-01', pension: { system: 'OLD_RETAINED', reserveRate: 0.02 } }
+	});
+	add('pen-old-later-pr', ['TW-PEN-15', 'TW-EXIT-03'], ['later-pr-old-system-election'], {
+		employee: { citizenship: 'FOREIGN_PR', hireDate: '2018-03-01', pension: { system: 'OLD_RETAINED', reserveRate: 0.04 } }
+	});
+	add('annual-payout-tax-exempt', ['TW-LEAVE-01', 'TW-TAX-05'], ['payout-outside-salary-income'], {
+		employee: { hireDate: hireFor(X, 120), pay: monthly(95000) },
+		exit: exitOf(X, 'RESIGNATION', { annualLeaveTaken: 0 })
+	});
+	add('notice-pay-retirement-income', ['TW-EXIT-01', 'TW-TAX-03'], ['notice-pay-is-retirement-income'], {
+		employee: { hireDate: hireFor(X, 48), pay: monthly(95000) },
+		exit: exitOf(X, 'LAYOFF_S11', { noticeDaysGiven: 0, averageMonthlyWage: 95000 })
+	});
+	add('wage-arrears-part-month', ['TW-ADMIN-11', 'TW-LI-02'], ['thirty-day-part-month'], { employee: { hireDate: '2026-03-16', pay: monthly(45800) } });
 
 	// ---- seeded mixed profiles (combinations) ----
 	const random = rng(20260930);

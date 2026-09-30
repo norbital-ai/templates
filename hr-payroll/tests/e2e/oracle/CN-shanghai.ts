@@ -11,7 +11,8 @@
  * reports the head as `unpriced` rather than inventing a figure.
  *
  * Money is exact: cents as BigInt, every rate as a decimal rational, rounding only where the law (or the recorded
- * default) rounds.
+ * default) rounds. Row ids in comments are the tracker's branch ids (`CN-N41.art87-double`); a bare id names every
+ * branch of that row.
  */
 import type { Scenario } from '../profiles/CN-shanghai.ts';
 
@@ -223,9 +224,53 @@ type Month = {
 	wageIncome: bigint;
 	si: Record<string, { base: bigint; ee: bigint; er: bigint }>;
 	separate: Record<string, { base: bigint; ee: bigint }>;
+	/** CN-N39.internal-retirement: the lump sum and the months to statutory age, taxed with this month's wage. */
+	internal?: { lump: bigint; months: bigint };
 	refused?: { code: string; rows: string[] };
 	warnings: string[];
 	unpriced: { row: string; what: string }[];
+};
+
+/**
+ * Labour Law art.44 overtime on the contract wage (CN-N01.weekday-extended-150, .rest-day-200,
+ * .rest-day-compensatory-rest, .holiday-300; CN-N40.rest-day-compensatory-rest, .holiday-no-substitution). CN-SH03.contract-base
+ * (Shanghai wage measure items 9, 13): the base is the contract monthly wage (a bonus stays out,
+ * CN-SH03.listed-items-excluded), ÷ 21.75 ÷ 8 (CN-N02). Extended weekday 150%; rest day 200% unless compensatory rest is
+ * arranged (then nothing); statutory holiday 300%, never replaceable by time off.
+ */
+function overtimePay(W: bigint, list: Scenario['month']['overtime']) {
+	let halfHourPercent = 0n; // Σ (hours × 2) × percent
+	let weekdayHours = 0;
+	const daily = new Map<string, number>();
+	for (const o of list) {
+		const t = dayType(o.date);
+		const pct = t === 'HOLIDAY' ? 300n : t === 'REST' ? (o.compensatoryRest ? 0n : 200n) : 150n;
+		halfHourPercent += BigInt(Math.round(o.hours * 2)) * pct;
+		if (t === 'WORKDAY') {
+			weekdayHours += o.hours;
+			daily.set(o.date, (daily.get(o.date) ?? 0) + o.hours);
+		}
+	}
+	// W × hours × pct / (21.75 × 8 × 100), one rounding to the fen (law silent on rounding; the fen is exact).
+	const pay = div(W * halfHourPercent * PAID_DAYS.d, PAID_DAYS.n * HOURS_PER_DAY * 2n * 100n);
+	// Art.41 (CN-N40.daily-three-hour-cap, .monthly-36-hour-cap): at most 3 h a day and 36 h a month of extended hours.
+	// Pay is still owed on every hour (art.44); the cap is reported, not forfeited.
+	const warnings: string[] = [];
+	if ([...daily.values()].some((h) => h > 3)) warnings.push('DAILY_OVERTIME_LIMIT_EXCEEDED');
+	if (weekdayHours > 36) warnings.push('OVERTIME_LIMIT_EXCEEDED');
+	return { pay, warnings };
+}
+
+/** Months between two dates that must be whole (the claim scenarios only use whole-month spans). */
+function wholeMonths(from: string, toExclusive: string) {
+	if (toExclusive <= from) return 0;
+	const span = serviceSpan(from, toExclusive);
+	if (span.days !== 0) throw new Error(`oracle: ${from}–${toExclusive} is not whole months; part months are not transcribed`);
+	return span.months;
+}
+const addMonths = (iso0: string, n: number) => {
+	const [y, m, d] = iso0.split('-').map(Number);
+	return iso(new Date(Date.UTC(y!, m! - 1 + n, d!)));
 };
 
 // ─── One month ─────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -255,7 +300,8 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 	if (e.kind === 'PART_TIME') {
 		// LCL art.68/72 (CN-N27): hourly pay; 沪人社规〔2025〕10号 hourly floor CNY25 (CN-SH01).
 		const rate = cents(e.hourlyWage ?? 0);
-		if (rate < MIN_HOURLY) out.refused = { code: 'MINIMUM_WAGE_HOURLY', rows: ['CN-SH01', 'CN-N50', 'CN-N27'] };
+		if (rate < MIN_HOURLY)
+				out.refused = { code: 'MINIMUM_WAGE_HOURLY', rows: ['CN-SH01.hourly-floor', 'CN-N27.hourly-minimum', 'CN-N50.floor-test'] };
 		const h = q(s.month.partTimeHours);
 		add('BASIC', div(rate * h.n, h.d));
 	} else if (wholeMonth) {
@@ -272,30 +318,15 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 		add('UNPAID_LEAVE', -div(W * BigInt(s.month.unpaidLeaveDays) * PAID_DAYS.d, PAID_DAYS.n));
 	}
 
-	// ── Overtime, Labour Law art.44 (CN-N01, SH03, N40) ──
-	if (isPeriod && s.month.overtime.length > 0) {
-		// SH03 (Shanghai wage measure item 9): base is the contract monthly wage (a bonus stays out), ÷ 21.75 ÷ 8.
-		// Rates: extended weekday 150%; rest day 200% unless compensatory rest is arranged (then nothing);
-		// statutory holiday 300%, never replaceable by time off (art.44(3), CN-N40).
-		let halfHourPercent = 0n; // Σ (hours × 2) × percent
-		let weekdayHours = 0;
-		const daily = new Map<string, number>();
-		for (const o of s.month.overtime) {
-			const t = dayType(o.date);
-			const pct = t === 'HOLIDAY' ? 300n : t === 'REST' ? (o.compensatoryRest ? 0n : 200n) : 150n;
-			halfHourPercent += BigInt(Math.round(o.hours * 2)) * pct;
-			if (t === 'WORKDAY') {
-				weekdayHours += o.hours;
-				daily.set(o.date, (daily.get(o.date) ?? 0) + o.hours);
-			}
-		}
-		// W × hours × pct / (21.75 × 8 × 100), one rounding to the fen (law silent on rounding; the fen is exact).
-		add('OVERTIME', div(W * halfHourPercent * PAID_DAYS.d, PAID_DAYS.n * HOURS_PER_DAY * 2n * 100n));
-		// Art.41: at most 3 h a day and 36 h a month of extended hours. Pay is still owed on every hour (art.44);
-		// the cap is reported, not forfeited.
-		if ([...daily.values()].some((h) => h > 3)) out.warnings.push('DAILY_OVERTIME_LIMIT_EXCEEDED');
-		if (weekdayHours > 36) out.warnings.push('OVERTIME_LIMIT_EXCEEDED');
+	// ── Overtime (CN-N01, SH03, N40) ──
+	const ot = isPeriod ? s.month.overtime : (s.earlier.find((x) => x.ym === ym)?.overtime ?? []);
+	if (ot.length > 0) {
+		const { pay, warnings } = overtimePay(W, ot);
+		add('OVERTIME', pay);
+		if (isPeriod) out.warnings.push(...warnings);
 	}
+	const earlierBonus = isPeriod ? 0 : (s.earlier.find((x) => x.ym === ym)?.bonus ?? 0);
+	if (earlierBonus > 0) add('BONUS', cents(earlierBonus));
 
 	// ── Allowances and bonuses ──
 	if (isPeriod && s.month.heatExposed) {
@@ -310,12 +341,80 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 			// 国税发〔1994〕89号 item 2 (CN-N55): not of wage nature, untaxed, outside every base.
 			add(code, cents(amount ?? 0), false);
 
+	// ── Paid leave (CN-N04.paid-civic-and-leave-time, N06.leave-taken-normal-pay, N51, SH13, SH17, SH51, N21) ──
+	// Statutory paid leave within the entitlement is paid at the normal wage: nothing on the payslip changes. Work-injury
+	// stop-work leave (CN-N21.stop-work-original-wage; Shanghai CN-SH20.twelve-month-average-pay): with every earlier
+	// month a whole month at the contract wage, the 12-month average equals the contract wage.
+
+	// ── Maternity (CN-N20.insured-benefit-or-wage; CN-SH21 to 30 Jun 2026, CN-SH14 from 1 Jul 2026) ──
+	const mat = isPeriod ? s.month.maternity : undefined;
+	if (mat !== undefined) {
+		if (mat.from > monthStart(ym) || mat.to < monthEnd(ym)) throw new Error('oracle: a part month of maternity is not transcribed');
+		// SH21 / SH14 item 4: the allowance paid to the worker offsets the leave wage; the employer pays the shortfall.
+		// RECORDED: the allowance for this month's leave days is the agency's determination (unit average bounded to
+		// 60–300% of the city average ÷ 30 × days), carried by the scenario.
+		const A = cents(mat.allowance);
+		add('MATERNITY_ALLOWANCE_OFFSET', -(A < W ? A : W));
+		// SH21 / SH14 item 4(1) (CN-*.fund-threshold-advance): under 12 cumulative and under 9 consecutive insured months the
+		// fund pays months/12 and the employer advances the rest. DEFAULT: the advance is the insurance allowance itself,
+		// so it stays untaxed (财税〔2008〕8号: 生育津贴 exempt) — not wage income.
+		if (mat.insuredMonthsCumulative < 12 && mat.insuredMonthsConsecutive < 9)
+			add('MATERNITY_BENEFIT_EMPLOYER', div(A * BigInt(12 - mat.insuredMonthsCumulative), 12n), false);
+		// Item 4(2) (CN-*.above-cap-excess): the employer pays its average above 300% of the city average ÷ 30 × days.
+		// RECORDED: the monthly excess is the agency's figure. DEFAULT: employer-paid, so wage income.
+		if (mat.unitAverageExcessOverCap > 0)
+			add('MATERNITY_BENEFIT_EMPLOYER', div(cents(mat.unitAverageExcessOverCap) * BigInt(daysBetween(monthStart(ym), addDays(monthEnd(ym), 1))), 30n));
+	}
+
+	// ── Contract claims settled this period (LCL arts.19–20, 70, 82–83; Regulation arts.6–7, 15) ──
+	const c: Scenario['claims'] = isPeriod ? s.claims : {};
+	if (c.probation !== undefined) {
+		// Art.19 (CN-N41.probation-*): no probation under a 3-month term or for non-full-time work (art.70); 3 months to
+		// under 1 year → 1 month; 1 to under 3 years → 2; 3 years or open-ended → 6.
+		const t = c.probation.termMonths;
+		const limit = e.kind === 'PART_TIME' ? 0 : t === null ? 6 : t < 3 ? 0 : t < 12 ? 1 : t < 36 ? 2 : 6;
+		// Art.83 (CN-N12.probation, N19.probation-limits): damages at the post-probation monthly wage for each month
+		// served beyond the limit. DEFAULT: paid through payroll as income connected with employment (wage income).
+		const excess = Math.max(0, c.probation.servedMonths - limit);
+		add('PROBATION_EXCESS_DAMAGES', cents(c.probation.postProbationWage) * BigInt(excess));
+	}
+	if (c.probationWageShortfall !== undefined) {
+		// Art.20, Regulation art.15 (CN-N19.probation-wage-floor, CN-SH04.probation-80pct): the probation wage is at least
+		// 80% of the agreed wage (recorded default: the agreed-wage comparator); the shortfall is owed as wages.
+		const floor = div(cents(c.probationWageShortfall.agreedWage) * 80n, 100n);
+		add('PROBATION_WAGE_SHORTFALL', max0(floor - W));
+	}
+	if (c.noWrittenContract !== undefined) {
+		// Art.82 para.1, Regulation arts.6–7 (CN-N12.no-written-contract, N19.written-contract-double-wage,
+		// N41.no-written-contract-double-wage): a second wage from the day after the first month to the day before
+		// signing, at most 11 months (a full year unsigned is deemed open-ended). DEFAULT: wage income.
+		const start = addMonths(e.hireDate, 1);
+		const stop = c.noWrittenContract.signedOn ?? addMonths(e.hireDate, 12);
+		add('NO_WRITTEN_CONTRACT_WAGE', W * BigInt(Math.min(11, wholeMonths(start, stop))));
+	}
+	if (c.openEnded !== undefined) {
+		// Art.82 para.2 (CN-N41.open-ended-second-wage): a second wage from the day an open-ended contract was due until it
+		// is concluded. The due day is recorded, not derived. DEFAULT: wage income.
+		add('OPEN_ENDED_CONTRACT_WAGE', W * BigInt(wholeMonths(c.openEnded.dueOn, c.openEnded.concludedOn)));
+	}
+	const ir = isPeriod ? s.month.internalRetirement : undefined;
+	if (ir !== undefined) {
+		// CN-N39.internal-retirement: the lump sum is not comprehensive wage income on its own; it is taxed with this
+		// month's wage (computePayslip).
+		out.internal = { lump: cents(ir.lump), months: BigInt(ir.months) };
+		add('INTERNAL_RETIREMENT_SUBSIDY', out.internal.lump, false);
+	}
+
 	// ── Social insurance (CN-N07, SH05, SH06, SH07) ──
 	const pensioner = s.worker.pensionRecipient; // CN-N13, SH41 art.21: a pension recipient is outside SI and fund
 	if (e.kind === 'PART_TIME') {
 		// 劳社部发〔2003〕12号: a non-full-time employer owes work-injury insurance; its Shanghai base is not in the tracker.
-		out.unpriced.push({ row: 'CN-N27', what: 'INJURY for a non-full-time worker (base not transcribed)' });
-	} else if (!pensioner) {
+		out.unpriced.push({ row: 'CN-N27.injury-cover', what: 'INJURY for a non-full-time worker (base not transcribed)' });
+	} else if (pensioner) {
+		// CN-SH25.post-retirement-workers: 沪人社规〔2025〕22号 offers a separate work-injury-only enrolment; whether this
+		// employer enrolled, and at what floating rate, is not transcribed.
+		out.unpriced.push({ row: 'CN-SH25.post-retirement-workers', what: 'INJURY for a pensioned retiree (separate enrolment)' });
+	} else {
 		const year = contributionYear(ym);
 		const [lo, hi] = SI_BOUNDS[year];
 		const base = clamp(cents(s.contributions.siBase), lo, hi);
@@ -358,16 +457,19 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 	}
 
 	// ── Minimum wage (CN-SH01, N50) ──
-	if (e.kind === 'FULL_TIME' && wholeMonth && (!isPeriod || s.month.unpaidLeaveDays === 0)) {
+	if (mat !== undefined) {
+		// MOLSS Order 21 art.3: the minimum applies to pay for normal work; a month wholly on maternity leave has none.
+	} else if (e.kind === 'FULL_TIME' && wholeMonth && (!isPeriod || s.month.unpaidLeaveDays === 0)) {
 		// Qualifying pay = contract wage for the normal hours, less the employee's SI and fund shares; overtime and the
 		// listed allowances (heat, night, meals, commute, housing) are outside by construction.
 		const ee = ['PENSION', 'MEDICAL', 'UNEMPLOYMENT', 'HOUSING_FUND'].reduce(
 			(t, k) => t + (out.si[k]?.ee ?? 0n),
 			0n
 		);
-		if (W - ee < MIN_MONTHLY) out.refused = { code: 'MINIMUM_WAGE', rows: ['CN-SH01', 'CN-N50'] };
+		if (W - ee < MIN_MONTHLY)
+			out.refused = { code: 'MINIMUM_WAGE', rows: ['CN-SH01.below-floor-refusal', 'CN-N50.floor-test'] };
 	} else if (e.kind === 'FULL_TIME') {
-		out.unpriced.push({ row: 'CN-SH01', what: 'minimum-wage test on a part month or with unpaid leave' });
+		out.unpriced.push({ row: 'CN-SH01.net-of-employee-contributions', what: 'minimum-wage test on a part month or with unpaid leave' });
 	}
 
 	if (isPeriod) exitPay(s, ym, out, W);
@@ -386,10 +488,26 @@ function exitPay(s: Scenario, ym: string, out: Month, W: bigint) {
 	const hiredThisMonth = ymOf(e.hireDate) === ym;
 	if (!hiredThisMonth && !e.hireDate.endsWith('-01'))
 		throw new Error('oracle: an average over a part first month is not transcribed; hire on the 1st');
-	// Implementing Regulation art.27 (应得工资) with LCL art.47 (actual months if under 12): with every earlier month a
-	// whole month at the contract wage, the average is the contract wage. DEFAULT (CN-SH-A2): hired in the exit month
-	// → the contract monthly wage. Floored at the minimum wage (art.27).
-	const avg = W < MIN_MONTHLY ? MIN_MONTHLY : W;
+	// Implementing Regulation art.27 (CN-N19.severance-wage-base): the monthly wage is the wage due, bonus and allowances
+	// included, averaged over the 12 months before the end (LCL art.47: the actual months if under 12). With every such
+	// month a whole month at the contract wage, the average is the contract wage. DEFAULT (CN-SH-A2.art47-average): hired
+	// in the exit month → the contract monthly wage. Floored at the minimum wage (art.27).
+	// CN-N06.day-wage-twelve-month-average: the annual-leave day wage averages the same months, overtime excluded.
+	const window = { sev: W * 12n, leave: W * 12n };
+	if (s.earlier.length > 0) {
+		// The window is the 12 months ending with the exit month; the scenario exits on its last day, hired ≥ 12 months
+		// before, so every month in it is a whole month (the ones before the tax year at the contract wage alone).
+		if (e.exitDate !== monthEnd(ym) || serviceSpan(e.hireDate, end).months < 12)
+			throw new Error('oracle: an average with earlier pay needs a month-end exit after ≥ 12 months');
+		for (const x of s.earlier) {
+			const bonus = cents(x.bonus ?? 0);
+			window.leave += bonus;
+			window.sev += bonus + (x.overtime ? overtimePay(W, x.overtime).pay : 0n);
+		}
+	}
+	const floorAvg = (sum: bigint): Q => (sum < MIN_MONTHLY * 12n ? { n: MIN_MONTHLY, d: 1n } : { n: sum, d: 12n });
+	const avgSev = floorAvg(window.sev);
+	const avgLeave = floorAvg(window.leave);
 
 	// ── Annual leave on exit (CN-N05, N06, N18) ──
 	if (e.kind === 'FULL_TIME') {
@@ -404,40 +522,62 @@ function exitPay(s: Scenario, ym: string, out: Month, W: bigint) {
 		// Measure art.10–11 (CN-N06): unused days at 300% of the day wage, 100% already paid → a further 200%; the day
 		// wage is the 12-month average excluding overtime ÷ 21.75.
 		if (payable > 0)
-			out.components.ANNUAL_LEAVE_ENCASHMENT = div(avg * BigInt(payable) * 2n * PAID_DAYS.d, PAID_DAYS.n);
+			out.components.ANNUAL_LEAVE_ENCASHMENT = div(
+				avgLeave.n * BigInt(payable) * 2n * PAID_DAYS.d,
+				avgLeave.d * PAID_DAYS.n
+			);
 		out.wageIncome += out.components.ANNUAL_LEAVE_ENCASHMENT ?? 0n;
 	}
 
-	// ── Economic compensation, LCL arts.46–47, 87; Implementing Regulation art.20 (CN-N41, N12, SH50) ──
-	if (e.kind === 'PART_TIME') return; // LCL art.71: no economic compensation on ending non-full-time work
+	// ── Early retirement (CN-N39.early-retirement): 财税〔2018〕164号 item 5(2) ──
+	if (x.earlyRetirement !== undefined) {
+		// The lump sum spread evenly over the actual years to statutory age, each year less 60,000, on the annual table,
+		// multiplied back: Y × [(L ÷ Y − 60,000) × rate − QD] = (L − 60,000Y) × rate − Y × QD, one rounding to the fen.
+		const L = cents(x.earlyRetirement.subsidy);
+		const Y = BigInt(x.earlyRetirement.years);
+		const taxable = L - 6000000n * Y;
+		let tax = 0n;
+		if (taxable > 0n) {
+			const [, rate, qd] = ANNUAL_TABLE.find(([u]) => u === null || taxable <= u * Y)!;
+			tax = div(taxable * rate, 100n) - qd * Y;
+		}
+		out.components.EARLY_RETIREMENT_SUBSIDY = L;
+		out.separate.IIT_EARLY_RETIREMENT = { base: L, ee: tax };
+	}
+
+	// ── Economic compensation, LCL arts.46–47, 87; Implementing Regulation art.20 (CN-N12, N41, SH50) ──
+	if (e.kind === 'PART_TIME') return; // LCL art.71 (CN-N27.termination-without-compensation): none on non-full-time work
 	const due =
 		['ART36_EMPLOYER', 'ART38', 'ART40', 'ART41'].includes(x.ground) ||
 		(x.ground === 'ART44_EXPIRY' && !x.renewalOfferRefused); // art.46(5)
-	if (!due && x.ground !== 'ART87') return; // art.37 resignation, art.39 dismissal, employee-proposed art.36
+	// None on art.37 resignation, art.39 dismissal, an employee-proposed art.36 agreement, or retirement (art.44(2)).
+	if (!due && x.ground !== 'ART87') return;
 	// Art.47: one month per full year; a remainder of six months or more counts a year, under six months half.
 	const r = span.months % 12;
 	let years = Math.floor(span.months / 12) + (r >= 6 ? 1 : r > 0 || span.days > 0 ? 0.5 : 0);
 	const exitYear = Number(e.exitDate.slice(0, 4));
 	const city = CITY_AVERAGE_BY_EXIT_YEAR[exitYear];
 	if (city === undefined) throw new Error(`oracle: no city average for a ${exitYear} exit`);
-	let base = avg;
-	// Art.47 para.2: above 3 × the city average, the base is capped there and the years at twelve.
-	if (avg > 3n * city) {
-		base = 3n * city;
+	let base = avgSev;
+	// Art.47 para.2 (CN-N12.high-earner-cap, CN-SH50.three-times-wage-cap, .twelve-year-cap): above 3 × the city average,
+	// the base is capped there and the years at twelve.
+	if (avgSev.n > 3n * city * avgSev.d) {
+		base = { n: 3n * city, d: 1n };
 		years = Math.min(years, 12);
 	}
 	const halves = BigInt(Math.round(years * 2));
-	// Art.87 (Implementing Regulation art.25): unlawful termination is twice the art.47 standard, instead of it.
-	let pay = x.ground === 'ART87' ? div(base * halves * 2n, 2n) : div(base * halves, 2n);
-	// Art.40 + Implementing Regulation art.20: without 30 days' written notice, one month's pay at the prior month's
-	// wage (the contract wage; CN-SH-A2 for a hire in the exit month).
+	// Art.87 (CN-N41.art87-double; Implementing Regulation art.25): twice the art.47 standard, instead of it.
+	let pay = div(base.n * halves * (x.ground === 'ART87' ? 2n : 1n), base.d * 2n);
+	// Art.40 + Implementing Regulation art.20 (CN-N12.termination-notice, N41.art40-notice-or-pay): without 30 days'
+	// written notice, one month's pay at the prior month's wage standard (the contract wage; CN-SH-A2.art20-previous-month
+	// for a hire in the exit month).
 	if (x.ground === 'ART40' && x.noticeDaysGiven < 30) pay += W;
 	if (pay === 0n) return;
 	out.components.SEVERANCE_PAY = pay;
-	// 财税〔2018〕164号 item 5(1) (CN-N39): exempt up to 3 × the local prior-year average annual wage (36 × the monthly
+	// 财税〔2018〕164号 item 5(1) (CN-N39.termination-lump-sum): exempt up to 3 × the local prior-year average annual wage (36 × the monthly
 	// figure, DEFAULT CN-SH50 series); the excess taxed alone on the annual table, outside comprehensive income.
 	if (!s.worker.taxResident) {
-		out.unpriced.push({ row: 'CN-N39', what: 'termination lump sum of a non-resident' });
+		out.unpriced.push({ row: 'CN-N39.termination-lump-sum', what: 'termination lump sum of a non-resident' });
 		return;
 	}
 	out.separate.IIT_SEVERANCE = { base: pay, ee: tableTax(ANNUAL_TABLE, max0(pay - 36n * city)) };
@@ -448,7 +588,7 @@ function annualBonus(s: Scenario, out: Month) {
 	out.components.ANNUAL_BONUS_SEPARATE = B;
 	// STA rule (CN-N10): the separate method at most once per person per year.
 	if (s.tax.annualBonusSeparateUsedThisYear) {
-		out.refused = { code: 'ANNUAL_BONUS_SEPARATE_ONCE_PER_YEAR', rows: ['CN-N10'] };
+		out.refused = { code: 'ANNUAL_BONUS_SEPARATE_ONCE_PER_YEAR', rows: ['CN-N10.once-per-year'] };
 		return;
 	}
 	if (s.worker.taxResident) {
@@ -493,13 +633,33 @@ export function computePayslip(s: Scenario): Expected {
 	const sd = s.tax.specialDeductions;
 	const rentAndLoan = sd.rent && sd.loanInterest;
 	if (refused || (rentAndLoan && s.worker.taxResident)) {
-		result.refused = refused ?? { code: 'RENT_AND_LOAN_INTEREST', rows: ['CN-N54', 'CN-N16'] };
+		result.refused = refused ?? {
+			code: 'RENT_AND_LOAN_INTEREST',
+			rows: ['CN-N54.rent-or-loan', 'CN-N16.housing-rent', 'CN-N16.housing-loan-interest']
+		};
 		return result;
 	}
 
 	// ── IIT on wages (CN-N09, N38, N11, N44) ──
 	let iit = 0n;
-	if (s.worker.taxResident) {
+	if (now.internal !== undefined) {
+		// CN-N39.internal-retirement: 财税〔2018〕164号 item 5(3) with 国税发〔1999〕58号 art.1 — the lump sum ÷ the months to
+		// statutory age, plus this month's wage, less the month's deduction, sets the rate (monthly table); the tax is
+		// (wage + lump sum − deduction) × rate − QD. DEFAULT: the deduction is the CNY5,000 basic expense plus the
+		// employee's insurance and fund shares (IIT Law art.6(1) 专项扣除); only a January period is transcribed, so no
+		// earlier cumulative withholding interacts.
+		if (months.length !== 1 || !s.period.endsWith('-01'))
+			throw new Error('oracle: internal retirement is transcribed for a January period only');
+		const eeShares = Object.values(now.si).reduce((u, c) => u + c.ee, 0n);
+		const deduction = BASIC_EXPENSE + eeShares;
+		const probe = now.wageIncome + div(now.internal.lump, now.internal.months) - deduction;
+		const [, rate, qd] = MONTHLY_TABLE.find(([u]) => u === null || probe <= u)!;
+		const taxable = now.wageIncome + now.internal.lump - deduction;
+		now.separate.IIT_INTERNAL_RETIREMENT = {
+			base: now.wageIncome + now.internal.lump,
+			ee: probe <= 0n ? 0n : max0(div(taxable * rate, 100n) - qd)
+		};
+	} else if (s.worker.taxResident) {
 		const special =
 			BigInt(sd.childEducationChildren + sd.infantCareChildren) * 200000n +
 			cents(sd.elderSupport) +

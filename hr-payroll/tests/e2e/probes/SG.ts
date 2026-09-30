@@ -271,6 +271,8 @@ function sg(c: {
 	company?: Row;
 	/** RegExp source: the run itself is refused (then `lines` is not read). */
 	refused?: string;
+	/** RegExp sources, one per warning line the run must save (and no other). */
+	warnings?: readonly string[];
 }): ProbeCase {
 	return {
 		id: c.id,
@@ -280,6 +282,7 @@ function sg(c: {
 		company: { facts: { sdl_individual_employer: false, ...c.company } },
 		inputs: [...officeWeek(c.since ?? HIRED), ...c.inputs],
 		period: c.period,
+		...(c.warnings === undefined ? {} : { warnings: c.warnings }),
 		...(c.refused === undefined
 			? { expected: [{ employment: 'e_job', lines: c.lines }] }
 			: { expected: [], refused: c.refused })
@@ -2393,5 +2396,357 @@ register(
 		period: '2025-12',
 		inputs: [...citizen(8000), bonus(3000, '2025-12-15', 'Year-end bonus')],
 		lines: pay(11000, { CPF: [2080, 1768], CDAC: [3, 0], SDL: [0, 11.25] })
+	})
+);
+
+// ── 2026-09-30 batch 10: branches the goldens prove and no probe read (tracker rows named per case) ─────────
+const CPF_2027_SPR =
+	'CPF Board, CPF Contribution Rate Table from 1 January 2027, Tables 2–5 (read 2026-09-30): Table 2 (1st-year G/G) 55 & below >$750 9%/5% max $720/$400; Table 3 (2nd-year G/G) above 60–65 >$750 11%/7.5% max $880/$600; Table 4 (1st-year F/G) above 55–60 >$750 21.5%/5% max $1,720/$400; Table 5 (2nd-year F/G) above 60–65 >$750 20.5%/7.5% max $1,640/$600; OW ceiling $8,000 (https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/jan2027cpfcontributionrates.pdf)';
+const SPR_APPROVAL =
+	'CPF Board, contributing more CPF for a new SPR employee: full employer / graduated employee rates need a joint application approved by the Board (https://www.cpf.gov.sg/service/article/how-can-i-contribute-more-cpf-for-my-employee-who-just-obtained-his-singapore-permanent-resident-spr-status)';
+const SHG_DUAL =
+	'CPF Board: "the first race listed determines the applicable SHG"; a mixed-race employee may also choose to contribute to the second fund (https://www.cpf.gov.sg/service/article/how-do-i-determine-which-self-help-group-shg-my-employee-should-contribute-to); SINDA Rules 1992 r.2 (Sikhs and Tamils are of the Indian community) (https://sso.agc.gov.sg/SL/CPFA1953-R5); tracker SG-SHG04(c) owner rule: the second fund by recorded election, a second SINDA election on an Indian-community first race refused';
+const CPF_BASE_3000 = `${CPF_2026}: 37% × 3,000 = 1,110; employee 600; employer 510`;
+
+/** A CPF or fund registration saved as incomplete. */
+const unregistered = (scheme: string): ProbeInput => ({
+	collection: 'employment_statutory_facts',
+	values: {
+		employee_id: '@e',
+		employment_id: '@e_job',
+		statutory_contribution_id: `@law:statutory_contributions:${scheme}`,
+		effective_range: { from: HIRED, to: null },
+		status: { kind: 'NOT_REGISTERED', reason: 'Registration pending' }
+	}
+});
+const dismissed = (from: string, to: string, salary: number, more: Partial<Terms> = {}): Partial<Hire> => ({
+	from,
+	to,
+	terms: [{ salary, ...more }],
+	exit: {
+		exit_reason: 'DISMISSAL',
+		exit_facts: { misconduct_dismissal: false, final_pay_not_possible: false }
+	}
+});
+
+register(
+	// ── SG-CPF01.unregistered, SG-SHG01.unregistered ──────────────────────────────────────────────────────────
+	sg({
+		id: 'SG-CPF01-4',
+		description:
+			'A Chinese citizen on SGD 3,000 in February 2026 whose CPF and CDAC registrations are saved NOT_REGISTERED: both are still assessed, each with a registration warning.',
+		citation: [
+			'CPF Act 1953 s.7(1): every employer shall pay contributions for every employee — the duty does not wait on the employer’s registration (https://sso.agc.gov.sg/Act/CPFA1953?ProvIds=pr7-)',
+			'CPF (CDAC) Rules 1992 r.3(1): the employer shall deduct from each employee of the community (https://sso.agc.gov.sg/SL/CPFA1953-R6?ProvIds=pr3-)',
+			CPF_BASE_3000,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 7.50`
+		],
+		period: '2026-02',
+		inputs: [...citizen(3000), unregistered('CPF'), unregistered('CDAC')],
+		lines: pay(3000, { CPF: [600, 510], CDAC: [1, 0], SDL: [0, 7.5] }),
+		warnings: ['CPF: registration incomplete', 'CDAC: registration incomplete']
+	}),
+
+	// ── SG-SHG04(c).other-first-cdac, SG-SHG04(c).dual-sinda-refused ───────────────────────────────────────────
+	sg({
+		id: 'SG-SHG04c-2',
+		description:
+			'A Sikh-Chinese citizen (first NRIC race Sikh) on SGD 3,000 in February 2026 who elects CDAC as well: SINDA plus CDAC.',
+		citation: [SHG_DUAL, `${SHG}: SINDA $7, CDAC $1`, CPF_BASE_3000, `${SDL}: 7.50`],
+		period: '2026-02',
+		inputs: [
+			...hire({ name: 'Harpreet Lim', born: '1996-04-18', race: 'SIKH', terms: [{ salary: 3000 }] }),
+			registration('CDAC', HIRED, {
+				reference_number: 'PROBE-CDAC',
+				elections: {
+					shg_dual_cdac: true,
+					shg_secondary_race: 'CHINESE',
+					shg_instruction_reference: 'CDAC-DUAL-2'
+				}
+			})
+		],
+		lines: pay(3000, { CPF: [600, 510], SINDA: [7, 0], CDAC: [1, 0], SDL: [0, 7.5] })
+	}),
+	sg({
+		id: 'SG-SHG04c-3',
+		description:
+			'A Tamil-Sikh citizen (first NRIC race Tamil, already SINDA) with a second SINDA election: the election is refused.',
+		citation: [SHG_DUAL],
+		period: '2026-02',
+		inputs: [
+			...hire({ name: 'Kumar Singh', born: '1996-04-18', race: 'TAMIL', terms: [{ salary: 3000 }] }),
+			registration('SINDA', HIRED, {
+				reference_number: 'PROBE-SINDA',
+				elections: {
+					shg_dual_sinda: true,
+					shg_secondary_race: 'SIKH',
+					shg_instruction_reference: 'SINDA-DUAL-3'
+				}
+			})
+		],
+		lines: {},
+		refused: 'dual SINDA election'
+	}),
+
+	// ── SG-CPF09.year-seams: the SPR year turns the month after the anniversary month ──────────────────────────
+	...(
+		[
+			['SG-CPF09-1', '2025-09-10', '2026-09', 'first anniversary month (September 2026): still Table 2 (1st year G/G), 9% × 3,000 = 270; employee 5% = 150; employer 120', [150, 120]],
+			['SG-CPF09-2', '2025-09-10', '2026-10', 'the month after the first anniversary: Table 3 (2nd year G/G), 24% × 3,000 = 720; employee 15% = 450; employer 270', [450, 270]],
+			['SG-CPF09-3', '2024-09-10', '2026-09', 'second anniversary month (September 2026): still Table 3, 720; 450 / 270', [450, 270]],
+			['SG-CPF09-4', '2024-09-10', '2026-10', 'the month after the second anniversary: Table 1 full rates, 37% = 1,110; 600 / 510', [600, 510]]
+		] as const
+	).map(([id, since, period, rule, cpf]) =>
+		sg({
+			id,
+			description: `An SPR since ${since}, aged 30, on SGD 3,000 in ${period}: ${rule.split(':')[0]}.`,
+			citation: [CPF_SPR, `${CPF_2026}: ${rule}`, `${SHG}: CDAC $1 (SPR)`, `${SDL}: 7.50`],
+			period,
+			inputs: citizen(3000, {
+				from: since < HIRED ? HIRED : since,
+				terms: [{ salary: 3000, residency: 'PERMANENT_RESIDENT', since }]
+			}),
+			lines: pay(3000, { CPF: [cpf[0], cpf[1]], CDAC: [1, 0], SDL: [0, 7.5] })
+		})
+	),
+
+	// ── SG-CPF31.spr-tables: the 2027 SPR tables ──────────────────────────────────────────────────────────────
+	...(
+		[
+			['SG-CPF31-1', '1996-04-18', '2026-06-10', null, 'Table 2, 55 & below: 9% × 3,000 = 270; employee 5% = 150; employer 120', [150, 120]],
+			['SG-CPF31-2', '1964-05-10', '2025-06-10', null, 'Table 3, above 60–65: 11% × 3,000 = 330; employee 7.5% = 225; employer 105', [225, 105]],
+			['SG-CPF31-3', '1969-05-10', '2026-06-10', 'CPF-JOINT-APPROVAL-6', 'Table 4, above 55–60: 21.5% × 3,000 = 645; employee 5% = 150; employer 495', [150, 495]],
+			['SG-CPF31-4', '1964-05-10', '2025-06-10', 'CPF-JOINT-APPROVAL-7', 'Table 5, above 60–65: 20.5% × 3,000 = 615; employee 7.5% = 225; employer 390', [225, 390]]
+		] as const
+	).map(([id, born, since, approval, rule, cpf]) =>
+		sg({
+			id,
+			description: `An SPR since ${since}, born ${born}, on SGD 3,000 in January 2027: ${rule.split(':')[0]}.`,
+			citation: [
+				CPF_SPR,
+				`${CPF_2027_SPR}: ${rule}`,
+				...(approval == null ? [] : [SPR_APPROVAL]),
+				CPF_AGE,
+				`${SHG}: CDAC $1 (SPR)`,
+				`${SDL}: 7.50`
+			],
+			period: '2027-01',
+			inputs: [
+				...citizen(3000, {
+					born,
+					from: since,
+					terms: [{ salary: 3000, residency: 'PERMANENT_RESIDENT', since }]
+				}),
+				...(approval == null
+					? []
+					: [
+							registration('CPF', since, {
+								reference_number: 'PROBE-CPF',
+								elections: {
+									spr_full_rate: false,
+									spr_full_employer_rate: true,
+									spr_approval_reference: approval
+								}
+							})
+						])
+			],
+			lines: pay(3000, { CPF: [cpf[0], cpf[1]], CDAC: [1, 0], SDL: [0, 7.5] })
+		})
+	),
+
+	// ── SG-EA01.manager: s.88(4) reaches a manager ─────────────────────────────────────────────────────────────
+	sg({
+		id: 'SG-EA01-1',
+		description:
+			'A manager (MANAGERIAL) on SGD 3,000 works eight hours on Hari Raya Haji, Wednesday 27 May 2026, at a company that pays: outside Part 4, but s.88(4) still earns the extra day.',
+		citation: [
+			`${EA_35}: a manager is outside Part 4 (overtime, rest days) only`,
+			`${EA_88}: (4) extra day at the basic rate; the company records no time-off election (public_holiday_compensation default PAY)`,
+			MOM_PH,
+			`${EA_PART4}: Third Schedule 12 × 3,000 ÷ 260 = 138.4615 → 138.46`,
+			`${CPF_2026}: 37% × 3,138.46 = 1,161.23 → 1,161; employee 627.69 → 627; employer 534`,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 7.846 → 7.85`
+		],
+		period: '2026-05',
+		inputs: [
+			...citizen(3000, { terms: [{ salary: 3000, classification: 'MANAGERIAL' }] }),
+			holiday('2026-05-01', 'Labour Day'),
+			holiday('2026-05-27', 'Hari Raya Haji'),
+			workDay('2026-05-27', [['09:00', '13:00'], ['14:00', '18:00']], { approved_overtime_hours: 8 })
+		],
+		lines: pay(3138.46, { CPF: [627, 534], CDAC: [1, 0], SDL: [0, 7.85] })
+	}),
+
+	// ── SG-EA19.classification-change: Part 4 from the dated change ───────────────────────────────────────────
+	sg({
+		id: 'SG-EA19-6',
+		description:
+			'A SGD 2,288 employee is MANAGERIAL to 15 September 2026 and EA_COVERED from Wednesday 16 September; two planned overtime hours on Monday 7 (manager) and on Monday 21 September (covered): only the second is paid.',
+		citation: [
+			`${EA_35}: Part 4 reaches the employee only while not in a managerial or executive position`,
+			`${EA_PART4}: 21 September 2 h × 12.00 × 1.5 = 36.00`,
+			`${EA_20A}: 2,288 × 11 ÷ 22 + 2,288 × 11 ÷ 22 = 2,288`,
+			`${CPF_2026}: 37% × 2,324 = 859.88 → 860; employee 464.80 → 464; employer 396`,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 5.81`
+		],
+		period: '2026-09',
+		inputs: [
+			...citizen(2288, {
+				terms: [
+					{ salary: 2288, classification: 'MANAGERIAL', to: '2026-09-15' },
+					{ salary: 2288, from: '2026-09-16' }
+				]
+			}),
+			workDay('2026-09-07', [['09:00', '13:00'], ['14:00', '20:00']], { approved_overtime_hours: 2 }),
+			workDay('2026-09-21', [['09:00', '13:00'], ['14:00', '20:00']], { approved_overtime_hours: 2 })
+		],
+		lines: pay(2324, { CPF: [464, 396], CDAC: [1, 0], SDL: [0, 5.81] })
+	}),
+
+	// ── SG-EA34.part-year, SG-EA34.service-ladder: the leaver’s annual leave ──────────────────────────────────
+	sg({
+		id: 'SG-EA34-1',
+		description:
+			'A citizen on SGD 4,400 hired Monday 5 January 2026, dismissed (not for misconduct) with last day Friday 29 May 2026: 4 completed months give 2.33 days, a fraction under one-half, so 2 untaken days are paid.',
+		citation: [
+			`${EA_88A}: 7 × 4 ÷ 12 = 2.33 → 2 days (s.88A(3): a fraction of one-half or more is a day, this one is not); 2 × 12 × 4,400 ÷ 260 = 406.15`,
+			`${EA_20A}: May 2026 holds 21 working days (no holiday published for the case), all worked → 4,400`,
+			`${CPF_ACT}: leave pay on termination is AW (tracker SG-CPF04)`,
+			`${CPF_2026}: 37% × 4,806.15 = 1,778.28 → 1,778; employee 961.23 → 961; employer 817`,
+			`${SHG}: CDAC $1.50 on 4,806.15`,
+			`${SDL}: over 4,500 → $11.25`
+		],
+		period: '2026-05',
+		inputs: [
+			...citizen(4400, dismissed('2026-01-05', '2026-05-29', 4400)),
+			...attended('2026-01-05', '2026-05-29'),
+			encash(2, ['2026-01-05', '2027-01-04'], '2026-05-29')
+		],
+		lines: pay(4806.15, { CPF: [961, 817], CDAC: [1.5, 0], SDL: [0, 11.25] })
+	}),
+	sg({
+		id: 'SG-EA34-2',
+		since: '2018-02-26',
+		description:
+			'A citizen on SGD 4,400 with service since 1 March 2018, dismissed (not for misconduct) with last day Friday 18 September 2026, in the ninth service year: 14 days a year (the top of the ladder) × 6 completed months = 7 untaken days paid.',
+		citation: [
+			`${EA_88A}: s.88A(1) 7 days in the first year rising by one to 14 in the eighth year and after; ninth year (from 1 March 2026) 14 × 6 ÷ 12 = 7; 7 × 12 × 4,400 ÷ 260 = 1,421.54`,
+			'Employment Act 1968 s.88A(5): attendance through 28 February 2026 is the opening declaration, 0 unexcused days (tracker SG-EA34 owner rule) (https://sso.agc.gov.sg/Act/EmA1968?ProvIds=pr88A-)',
+			`${EA_20A} (b): 1–18 September holds 14 of 22 working days: 4,400 × 14 ÷ 22 = 2,800`,
+			`${CPF_2026}: 37% × 4,221.54 = 1,561.97 → 1,562; employee 844.31 → 844; employer 718`,
+			`${SHG}: CDAC $1.50 on 4,221.54`,
+			`${SDL}: 0.25% × 4,221.54 = 10.55`
+		],
+		period: '2026-09',
+		inputs: [
+			...citizen(
+				4400,
+				dismissed('2018-03-01', '2026-09-18', 4400, { opening: { through: '2026-02-28', absent: 0 } })
+			),
+			...attended('2026-03-01', '2026-09-18'),
+			encash(7, ['2026-03-01', '2027-02-28'], '2026-09-18')
+		],
+		lines: pay(4221.54, { CPF: [844, 718], CDAC: [1.5, 0], SDL: [0, 10.55] })
+	}),
+
+	// ── SG-SDL02.no-wages: a whole month of no-pay leave ──────────────────────────────────────────────────────
+	sg({
+		id: 'SG-SDL02-2',
+		description:
+			'A citizen on SGD 3,000 on no-pay leave at his own request for the whole of September 2026: no wages, so no CPF, fund or levy.',
+		citation: [
+			`${EA_20A} (c): 0 of 22 days worked → 0`,
+			'SDL Act 1979 s.3(1)–(2): the levy is on the remuneration paid for the month; none is paid or payable (https://sso.agc.gov.sg/Act/SDLA1979#pr3-)',
+			`${CPF_2026}: TW $50 or less → nil`,
+			'CPF Board, self-help groups: deducted from the month’s wages; no wages, no deduction (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups)'
+		],
+		period: '2026-09',
+		inputs: [...citizen(3000), unpaid('2026-09-01', '2026-09-30')],
+		lines: pay(0, {})
+	}),
+
+	// ── SG-CPF21.changed-ow: a raised OW re-estimates the AW ceiling ──────────────────────────────────────────
+	sg({
+		id: 'SG-CPF21-5',
+		description:
+			'A citizen raised from SGD 5,000 to SGD 8,000 on 1 March 2026 (January–February contributed on 5,000) is paid a SGD 100,000 bonus on 10 March: the ceiling is re-estimated on the new OW.',
+		citation: [
+			`${CPF_AW}: estimated OW 10,000 + 8,000 × 10 (March–December) = 90,000 → ceiling 12,000 (on the old 5,000 forecast it would be 42,000)`,
+			`${CPF_2026}: 37% × (8,000 + 12,000) = 7,400; employee 4,000; employer 3,400`,
+			CPF_WAGES,
+			`${SHG}: CDAC $3 on 108,000`,
+			`${SDL}: capped at $11.25`
+		],
+		period: '2026-03',
+		inputs: [
+			...citizen(5000, {
+				terms: [
+					{ salary: 5000, to: '2026-02-28' },
+					{ salary: 8000, from: '2026-03-01' }
+				]
+			}),
+			registration('CPF', HIRED, {
+				reference_number: 'PROBE-CPF',
+				opening: [
+					{
+						year: '2026',
+						base: 10000,
+						ordinary: 10000,
+						employee: 2000,
+						employer: 1700,
+						origin: 'CURRENT_EMPLOYER',
+						reference: 'This employer’s CPF submissions, January–February 2026'
+					}
+				]
+			}),
+			bonus(100000, '2026-03-10', 'Performance bonus')
+		],
+		lines: pay(108000, { CPF: [4000, 3400], CDAC: [3, 0], SDL: [0, 11.25] })
+	}),
+
+	// ── SG-CPF22.concurrent: a concurrent employer’s OW does not consume this ceiling ─────────────────────────
+	sg({
+		id: 'SG-CPF22-3',
+		description:
+			'The SG-CPF21-2 employee (SGD 8,000, January–November contributed here) also works concurrently for another employer (SGD 55,000 OW there): the December SGD 20,000 bonus still meets this employer’s own $6,000 ceiling.',
+		citation: [
+			'CPF Board, AW ceiling for concurrent employment: each employer applies its own AW ceiling (https://www.cpf.gov.sg/service/article/how-do-i-apply-the-additional-wage-ceiling-for-the-following-scenarios-a-employee-a-is-working-for-two-companies-concurrently-b-employee-b-is-transferred-from-another-entity)',
+			`${CPF_AW}: 102,000 − (88,000 + 8,000) = 6,000; the concurrent 55,000 is not counted`,
+			`${CPF_2026}: 37% × (8,000 + 6,000) = 5,180; employee 2,800; employer 2,380`,
+			`${SHG}: CDAC $3 on 28,000`,
+			`${SDL}: capped at $11.25`
+		],
+		period: '2026-12',
+		inputs: [
+			...citizen(8000),
+			registration('CPF', HIRED, {
+				reference_number: 'PROBE-CPF',
+				opening: [
+					{
+						year: '2026',
+						base: 88000,
+						ordinary: 88000,
+						employee: 17600,
+						employer: 14960,
+						origin: 'CURRENT_EMPLOYER',
+						reference: 'This employer’s CPF submissions, January–November 2026'
+					},
+					{
+						year: '2026',
+						base: 55000,
+						ordinary: 55000,
+						employee: 11000,
+						employer: 9350,
+						origin: 'OTHER_EMPLOYER',
+						reference: 'Concurrent employer’s CPF statement, January–November 2026'
+					}
+				]
+			}),
+			bonus(20000, '2026-12-15', '13th-month payment')
+		],
+		lines: pay(28000, { CPF: [2800, 2380], CDAC: [3, 0], SDL: [0, 11.25] })
 	})
 );

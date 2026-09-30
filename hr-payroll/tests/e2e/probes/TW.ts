@@ -4090,3 +4090,300 @@ register(
 		})
 	)
 );
+
+// ── Round 10 (2026-09-30): compulsory-scheme refusals, employer pension rate, welfare fund, §54 retirement ──
+const WELFARE_ACT =
+	'職工福利金條例 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, 最後修正 104-07-01, read 2026-09-30)';
+/** A citizen on NT$40,000 whose `code` fact is NOT_REGISTERED with no lawful exclusion: the run is refused. */
+const unexempt = (
+	id: string,
+	code: 'LI' | 'EI' | 'NHI' | 'OCC_INJURY',
+	law: string,
+	refused: string
+): ProbeCase =>
+	tw({
+		id,
+		description: `A 35-year-old citizen at an ordinary unit whose ${code} is recorded NOT_REGISTERED with no recorded exclusion: the run is refused rather than the compulsory charge waived.`,
+		citation: [
+			law,
+			'Tracker TW-SCOPE-02: an unregistered compulsory scheme without a lawful exemption refuses payroll.'
+		],
+		period: '2026-03',
+		refused,
+		people: [
+			citizen('hsu3', 'Hsu Ming-che', 40_000, all(40_100), {
+				born: '1990-05-10',
+				standing: {
+					[code]: { kind: 'NOT_REGISTERED', reason: 'Not yet declared to the insurer' }
+				} as Person['standing']
+			})
+		],
+		expected: {}
+	});
+
+register(
+	unexempt(
+		'TW-SCOPE-02-3',
+		'LI',
+		'勞工保險條例 §6(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=6, read 2026-09-30): 年滿十五歲以上，六十五歲以下之左列勞工，應以其雇主 … 為投保單位，全部參加勞工保險為被保險人 — no unit-class or age exclusion is recorded.',
+		'NOT_REGISTERED does not prove a noncompulsory employer or worker class'
+	),
+	unexempt(
+		'TW-SCOPE-02-4',
+		'EI',
+		'就業保險法 §5(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=5, read 2026-09-30): 年滿十五歲以上，六十五歲以下之下列受僱勞工，應以其雇主 … 為投保單位，參加本保險為被保險人 — a citizen employee.',
+		'NOT_REGISTERED does not prove an exclusion'
+	),
+	unexempt(
+		'TW-SCOPE-02-5',
+		'NHI',
+		'全民健康保險法 §10(1)(1)(二) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=10, read 2026-09-30): 第一類 公、民營事業、機構之受僱者 — insured through this employer unless another unit or class is evidenced.',
+		'NOT_REGISTERED at this active employment does not prove insurance through another unit'
+	),
+	unexempt(
+		'TW-SCOPE-02-6',
+		'OCC_INJURY',
+		'勞工職業災害保險及保護法 §6(1)(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050031&flno=6, read 2026-09-30): 年滿十五歲以上之下列勞工，應以其雇主為投保單位，參加本保險為被保險人: 受僱於 … 依法已辦理登記、設有稅籍 … 之雇主 — regardless of headcount.',
+		'NOT_REGISTERED does not establish an employer/worker exception'
+	),
+	tw({
+		id: 'TW-PEN-01-2',
+		description:
+			'An employer that declared an 8% 勞退 rate for a citizen on NT$40,000: 40,100 × 8% = 3,208, above the statutory 6% floor; the worker’s side is unchanged.',
+		citation: [
+			...EVERY,
+			`${PENSION_ACT} §14(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=14, read 2026-09-30): 雇主應為第七條第一項規定之勞工負擔提繳之退休金，不得低於勞工每月工資百分之六 — a floor, so a declared higher rate is paid as declared.`,
+			'40,100 (as TW-EXIT-05-2): 勞保 922 / 3,228; 就保 80 / 281; 健保 622 / 1,940; 災保 48. 勞退 40,100 × 8% = 3,208. The table withholds nothing.',
+			'Net 40,000 − (922 + 80 + 622) = 38,376; employer 3,228 + 281 + 1,940 + 3,208 + 48 = 8,705.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('lu3', 'Lu Chia-wen', 40_000, all(40_100), {
+				elections: { LABOR_PENSION: { employer_rate: 8 } }
+			})
+		],
+		expected: {
+			lu3: {
+				gross: 40_000,
+				net: 38_376,
+				employer_cost: 8705,
+				'LI.employee': 922,
+				'LI.employer': 3228,
+				'EI.employee': 80,
+				'EI.employer': 281,
+				'NHI.employee': 622,
+				'NHI.employer': 1940,
+				'LABOR_PENSION.employer': 3208,
+				'OCC_INJURY.employer': 48
+			}
+		}
+	}),
+	tw({
+		id: 'TW-WELFARE-01-1',
+		description:
+			'An entity with an established 職工福利委員會: a citizen on NT$36,000 has 0.5% of the month’s 薪津, 180, withheld for the 職工福利金; every other line is as TW-LEAVE-05-2.',
+		citation: [
+			...EVERY,
+			`${WELFARE_ACT} §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 — 36,000 × 0.5% = 180. Tracker TW-WELFARE-01 defaults (law silent): 薪津 is the month’s salary net of unpaid days, rounded to the 元.`,
+			'36,300: 835 / 2,922, 73 / 254, 563 / 1,757, 勞退 2,178, 災保 44. The table withholds nothing (所得稅法 §14 excludes no welfare deduction).',
+			'Net 36,000 − (835 + 73 + 563 + 180) = 34,349; employer 7,155.'
+		],
+		company: { facts: { welfare_committee_established: true } },
+		period: '2026-03',
+		people: [citizen('wei3', 'Wei Shu-fen', 36_000, all(36_300), { gender: 'FEMALE' })],
+		expected: {
+			wei3: {
+				gross: 36_000,
+				net: 34_349,
+				employer_cost: 7155,
+				'WELFARE_FUND.employee': 180,
+				'LI.employee': 835,
+				'LI.employer': 2922,
+				'EI.employee': 73,
+				'EI.employer': 254,
+				'NHI.employee': 563,
+				'NHI.employer': 1757,
+				'LABOR_PENSION.employer': 2178,
+				'OCC_INJURY.employer': 44
+			}
+		}
+	}),
+	tw({
+		id: 'TW-EXIT-06-3',
+		description:
+			'An art. 54(1)(2) forced retirement for a disability NOT caused by duty on 15 March 2026: aged 44 with 22 old-system years (no age/service ground of its own), 30 + 7 = 37 bases, no 20% — 1,655,801.',
+		citation: [
+			...EVERY,
+			`${SRC.lsa} §54(1)(2): 身心障礙不堪勝任工作者 may be retired; §55(1)(1): 每滿一年給與兩個基數 … 超過十五年 … 每滿一年給與一個基數; §55(1)(2): the 20% is added only where the disability is 因執行職務所致 (${LSA_ALL}).`,
+			'264 months = 22 years → 15 × 2 + 7 = 37 bases × 1.0; 270,000 ÷ 181 × 30 × 37 = 1,655,801.10 → 1,655,801.',
+			'所得稅法 §14(1) 第九類: 22 × 206,000 exempt, no withholding. §56(1) reserve 2% × 22,500 = 450. 15 insured days on 45,800: 527 / 1,843, 46 / 160, 災保 27; no 健保 in the withdrawal month.',
+			'Gross 22,500 + 1,655,801 = 1,678,301; net 1,677,728; employer 1,843 + 160 + 27 + 450 = 2,480.'
+		],
+		company: { facts: { pension_reserve_rate: 2 } },
+		period: '2026-03',
+		people: [
+			citizen(
+				'tu3',
+				'Tu Kuo-hua',
+				45_000,
+				{ LI: 45_800, EI: 45_800, NHI: 45_800, OCC_INJURY: 45_800 },
+				{
+					born: '1981-06-01',
+					hired: '2004-03-16',
+					left: '2026-03-15',
+					exit_reason: 'RETIREMENT',
+					exit_facts: {
+						average_daily_wage: 270_000 / 181,
+						old_system_service_months: 264,
+						retirement_disability: true,
+						retirement_disability_duty_caused: false
+					},
+					standing: { LABOR_PENSION: OLD_SYSTEM }
+				}
+			)
+		],
+		extra: (job) => [
+			adhoc(job('tu3'), 'RETIREMENT_PAY', 0, '2026-03-15', 'RETIREMENT_PAY on departure 2026-03-15')
+		],
+		expected: {
+			tu3: {
+				gross: 1_678_301,
+				net: 1_677_728,
+				employer_cost: 2480,
+				RETIREMENT_PAY: 1_655_801,
+				'LI.employee': 527,
+				'LI.employer': 1843,
+				'EI.employee': 46,
+				'EI.employer': 160,
+				'OCC_INJURY.employer': 27,
+				'LABOR_PENSION_RESERVE.employer': 450
+			}
+		}
+	})
+);
+
+const HOLIDAY_ACT =
+	'紀念日及節日實施條例 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=D0020095, 公布 114-05-28, read 2026-09-30)';
+/** The TW-HOURS-02-1 worker on NT$54,000 (5% election, 55,400 健保/勞退 grade); `holiday` is the §39 day. */
+const holidaySlip = (holiday: number) => ({
+	gross: 54_000 + holiday,
+	net: 54_000 + holiday - (1053 + 92 + 859 + 2700),
+	employer_cost: 10_079,
+	...(holiday === 0 ? {} : { OVERTIME: holiday }),
+	'LI.employee': 1053,
+	'LI.employer': 3687,
+	'EI.employee': 92,
+	'EI.employer': 321,
+	'NHI.employee': 859,
+	'NHI.employer': 2681,
+	'LABOR_PENSION.employer': 3324,
+	'OCC_INJURY.employer': 66,
+	'INCOME_TAX.employee': 2700
+});
+const HOLIDAY_PAY = [
+	...EVERY,
+	SRC.fivePercent,
+	`${SRC.lsa} §37(1): 內政部所定應放假之紀念日、節日 … 均應休假; §39: 第三十七條所定之休假 … 工資應由雇主照給。雇主經徵得勞工同意於休假日工作者，工資應加倍發給 — a further day’s wage, 54,000 ÷ 30 = 1,800.`,
+	'Grades as TW-HOURS-02-1: 勞保 ceiling 1,053 / 3,687, 92 / 321; 健保 55,400: 859 / 2,681; 勞退 3,324; 災保 66. 5% × 54,000 = 2,700 (holiday pay within the standard is not 薪資收入).'
+];
+
+register(
+	tw({
+		id: 'TW-HOURS-04-1',
+		description:
+			'教師節 on Monday 28 September 2026, a holiday the 2025 Act added: the worker who rests keeps the whole month’s wage; the one who works it with consent is paid a further day, 1,800.',
+		citation: [
+			...HOLIDAY_PAY,
+			`${HOLIDAY_ACT} §6: 兒童節、清明節、勞動節、端午節、教師節及中秋節：均放假一日; §3/§4: 孔子誕辰紀念日 (九月二十八日) 放假一日.`,
+			'Resting: 54,000, net 49,296. Working: 55,800, net 51,096. Employer 10,079 each.'
+		],
+		period: '2026-09',
+		people: [
+			citizen('lo3', 'Lo Chia-hui', 54_000, all(45_800, 55_400), { tax: FIVE }),
+			citizen('pan3', 'Pan Yu-ting', 54_000, all(45_800, 55_400), { tax: FIVE, gender: 'FEMALE' })
+		],
+		extra: (job) => [
+			{
+				collection: 'jurisdiction_holidays',
+				values: {
+					company_id: '@company',
+					date: '2026-09-28',
+					name: '教師節（孔子誕辰紀念日）',
+					kind: 'PUBLIC_HOLIDAY',
+					published_at: '2025-12-01T00:00:00.000Z'
+				}
+			},
+			asked(worked(job('pan3'), '2026-09-28', ['09:00', '12:00'], ['13:00', '18:00']), 8)
+		],
+		expected: { lo3: holidaySlip(0), pan3: holidaySlip(1800) }
+	}),
+	tw({
+		id: 'TW-HOURS-06-1',
+		description:
+			'臺灣光復暨金門古寧頭大捷紀念日 falls on Sunday 25 October 2026, the 例假: the holiday is carried to Monday 26 October (補假), so work on that Monday is paid a further day, 1,800.',
+		citation: [
+			...HOLIDAY_PAY,
+			`${HOLIDAY_ACT} §4(5): 臺灣光復暨金門古寧頭大捷紀念日 放假一日; §8: 紀念日及節日之放假日逢例假日者，應予補假. Tracker TW-HOURS-06 default (law silent on the date): the 補假 is the next working day unless the entity publishes another agreed replacement (work_rules.holiday_rest_precedence SUBSTITUTE).`,
+			'Gross 55,800; net 51,096; employer 10,079.'
+		],
+		period: '2026-10',
+		people: [citizen('chu3', 'Chu Wei-lun', 54_000, all(45_800, 55_400), { tax: FIVE })],
+		extra: (job) => [
+			{
+				collection: 'jurisdiction_holidays',
+				values: {
+					company_id: '@company',
+					date: '2026-10-25',
+					name: '臺灣光復暨金門古寧頭大捷紀念日',
+					kind: 'PUBLIC_HOLIDAY',
+					published_at: '2025-12-01T00:00:00.000Z'
+				}
+			},
+			asked(worked(job('chu3'), '2026-10-26', ['09:00', '12:00'], ['13:00', '18:00']), 8)
+		],
+		expected: { chu3: holidaySlip(1800) }
+	})
+);
+
+const BONUS = {
+	allowances: [{ catalogue_id: '@law:allowance_catalogue:FULL_ATTENDANCE_BONUS', amount: 3000 }]
+};
+const bonusSlip = (gross: number, bonus: number) => ({
+	gross,
+	net: gross - (922 + 80 + 622),
+	employer_cost: 7903,
+	FULL_ATTENDANCE_BONUS: bonus,
+	'LI.employee': 922,
+	'LI.employer': 3228,
+	'EI.employee': 80,
+	'EI.employer': 281,
+	'NHI.employee': 622,
+	'NHI.employer': 1940,
+	'LABOR_PENSION.employer': 2406,
+	'OCC_INJURY.employer': 48
+});
+
+register(
+	tw({
+		id: 'TW-LEAVE-04-1',
+		description:
+			'A NT$3,000 全勤獎金 on NT$36,000: two 普通傷病假 days take only 3,000 ÷ 30 × 2 = 200 of it; two 公假 days take nothing.',
+		citation: [
+			...EVERY,
+			`${LEAVE_RULES} §9: (1)(1) 勞工請婚假、喪假、公傷病假及公假 雇主不得視為缺勤而影響其全勤獎金; (2) 普通傷病假 … 全勤獎金之扣發，應按請普通傷病假日數依比例計算. MOL Q&A (https://www.mol.gov.tw/1607/28162/28166/28180/86983/87103/post, read 2026-09-30): 3,000 元 全勤獎金, 病假一天 → 扣除不得超過100元【3,000元÷30日】.`,
+			`${LEAVE_RULES} §4(3): 普通傷病假 工資折半 — 2 × 36,000 ÷ 30 × ½ = 1,200 off the salary.`,
+			'39,000 of 工資 → 40,100 (as TW-EXIT-05-2): 922 / 3,228, 80 / 281, 622 / 1,940, 勞退 2,406, 災保 48. The table withholds nothing.',
+			'Sick: 34,800 + 2,800 = 37,600, net 35,976. 公假: 36,000 + 3,000 = 39,000, net 37,376. Employer 7,903 each.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('sun3', 'Sun Hui-ling', 36_000, all(40_100), { gender: 'FEMALE', terms: BONUS }),
+			citizen('ho3', 'Ho Chien-hung', 36_000, all(40_100), { terms: BONUS })
+		],
+		extra: (job) => [
+			leave(job('sun3'), 'SICK_LEAVE', 'SICK-TW-SUN3', '2026-03-10', '2026-03-11'),
+			leave(job('ho3'), 'OFFICIAL_LEAVE', 'OFFICIAL-TW-HO3', '2026-03-10', '2026-03-11')
+		],
+		expected: { sun3: bonusSlip(37_600, 2800), ho3: bonusSlip(39_000, 3000) }
+	})
+);

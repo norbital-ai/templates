@@ -45,7 +45,8 @@ export type Scenario = {
 	branches: string[];
 	/** YYYY-MM; a monthly run paid on the period's last day (DEFAULT: the pay date is the period end) */
 	period: string;
-	company: { region: Region };
+	/** oaReduced: the approved 0.3% occupational-accident rate (Decree 58/2020 art.4(1) as amended by D158 art.43(2), art.5) */
+	company: { region: Region; oaReduced?: boolean };
 	employee: {
 		birthDate: string;
 		sex: 'M' | 'F';
@@ -69,6 +70,8 @@ export type Scenario = {
 		allowance: number;
 		/** part-time on an hourly rate: gross = rate × hours; null = full time monthly */
 		partTime: null | { hourly: number; hours: number };
+		/** a probation contract (Labour Code art.24): outside UI from 1 January 2026 (Law 74/2025 art.31(2)) */
+		probation?: boolean;
 		/** date UI contributions began for this employer (citizens); null = never */
 		uiFrom: string | null;
 	};
@@ -271,7 +274,9 @@ export function computePayslip(sc: Scenario): Payslip {
 	const hiOnPayslip = siSubject; // HI follows the SI subject test for these classes (HI art.12(1)(a),(c))
 	// UI: citizens only; not pensioners; 2026 (Law 74/2025 art.31(1)(a)) one month or more; December 2025 (Law 38/2013
 	// art.43(1)(b)) every fixed term (VN-SI-01 Issue 44, VN-UI-01).
-	const uiSubject = !foreign && !e.receivingPension && (is2026 ? contractMonths >= 1 : true);
+	// Law 74/2025 art.31(2): a worker on a probation contract is outside UI from 1 January 2026 (VN-UI-01 Issue 45;
+	// December 2025 under Law 38/2013 left as insured, the tracker's open branch).
+	const uiSubject = !foreign && !e.receivingPension && (is2026 ? contractMonths >= 1 && !k.probation : true);
 	if (k.partTime && contractWage < referenceLevel(period))
 		throw new Error('part-time below the reference level is outside these scenarios (VN-LC168-01-2 unproven)');
 
@@ -284,9 +289,9 @@ export function computePayslip(sc: Scenario): Payslip {
 	let eeIns = 0;
 	let erIns = 0;
 	if (siSubject && !unpaidMonth) {
-		// SI art.33(1)(a) 8%; art.34(1) 14% + 3% + D58 art.4(1) 0.5%
+		// SI art.33(1)(a) 8%; art.34(1) 14% + 3% + D58 art.4(1) 0.5% (0.3% on approval, art.5; VN-SI-05)
 		const ee = r0(siBase * 0.08);
-		const er = r0(siBase * 0.175);
+		const er = r0(siBase * (sc.company.oaReduced ? 0.173 : 0.175));
 		lines.SI = { employee: ee, employer: er, base: siBase };
 		eeIns += ee;
 		erIns += er;

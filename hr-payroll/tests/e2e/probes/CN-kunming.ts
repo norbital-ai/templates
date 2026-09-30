@@ -1753,3 +1753,177 @@ register(
 		'Mo Han housing-fund category-III floor'
 	)
 );
+
+// ─────────────────────────── Round 11 (30 Sep 2026): floors and qualifying pay without a probe ──
+
+const MIN_WAGE_2026 =
+	'Yunnan HRSS 29 Aug 2026 (https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html): from 1 September 2026 category I CNY2,270, gross including the worker’s insurance and fund but excluding overtime pay (CN-KM02); 最低工资规定 (MOLSS Order 21) art.12 forbids paying below it';
+/** A floor case whose month also carries approved extended hours that would lift gross above the floor. */
+const belowFloorWithOvertime = (
+	id: string,
+	description: string,
+	citation: string[],
+	period: string,
+	wage: number,
+	days: readonly string[],
+	refused: string
+): ProbeCase => {
+	const base = belowFloor(id, description, citation, period, wage, refused);
+	return {
+		...base,
+		inputs: [
+			...base.inputs,
+			...days.map((date) =>
+				punch(
+					'low',
+					date,
+					[
+						['09:00', '13:00'],
+						['14:00', '21:00']
+					],
+					3
+				)
+			)
+		]
+	};
+};
+
+register(
+	{
+		id: 'CN-KM03-4',
+		profile: 'CN-kunming',
+		description:
+			'December 2025, a Wuhua worker hired Monday 1 December at CNY4,000: every insurance on the 2025 floor 4,357, the reduced 2025 unemployment rates, a 12% fund on the 4,000 wage.',
+		citation: [
+			'2025 base 4,357–21,789 (https://www.dhlc.gov.cn/fsx/Web/_F0_0_6C9DO9USE71563368BE04C9C90.htm; CN-KM03); unemployment 0.7% / 0.3% through 31 Dec 2025 (CN-KM27).',
+			'Pension 4,357 × 16% / 8% = 697.12 / 348.56; medical × 7% = 304.99, × 2% = 87.14; maternity × 0.9% = 39.213 → 39.21; unemployment × 0.7% = 30.499 → 30.50, × 0.3% = 13.071 → 13.07; injury × 0.2% = 8.714 → 8.71 (fen half-up, CN-X-SI-ROUNDING).',
+			'Fund 4,000 × 12% = 480 each side (above the 2,170 class I floor, CN-KM05).',
+			'IIT (month 1 here): 4,000 − 928.77 − 5,000 < 0 → nothing. Net 4,000 − 928.77 = 3,071.23; employer 697.12 + 304.99 + 39.21 + 30.50 + 8.71 + 480 = 1,560.53.'
+		],
+		company: { facts: FACTS_2025 },
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({ ref: 'fu', name: 'Fu Qiang', wage: 4000, from: '2025-12-01' })
+		],
+		period: '2025-12',
+		expected: [
+			{
+				employment: 'fu_job',
+				lines: {
+					gross: 4000,
+					total_deductions: 928.77,
+					net: 3071.23,
+					employer_cost: 1560.53,
+					'PENSION.employee': 348.56,
+					'PENSION.employer': 697.12,
+					'MEDICAL.employee': 87.14,
+					'MEDICAL.employer': 304.99,
+					'MATERNITY.employer': 39.21,
+					'UNEMPLOYMENT.employee': 13.07,
+					'UNEMPLOYMENT.employer': 30.5,
+					'INJURY.employer': 8.71,
+					'HOUSING_FUND.employee': 480,
+					'HOUSING_FUND.employer': 480
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-KM05-3',
+		profile: 'CN-kunming',
+		description:
+			'September 2026, a Fumin (class II) worker transferred in on Tuesday 1 September at CNY10,000 with a fund base declared at the new class II floor 2,120 and a 5% fund: 106 each side.',
+		citation: [
+			'New, transferred and reopened accounts from 1 September 2026: class I 2,270, class II 2,120 (CN-KM05; see the file header); 2,120 × 5% = 106 each side (昆公积金规〔2020〕2号 art.13, per side 四舍五入).',
+			'Insurance on 10,000 inside 4,403–22,017: pension 800 / 1,600, medical 200 / 700, maternity 90, unemployment 30 / 70, injury 20.',
+			'IIT (month 1 here): 10,000 − 1,136 − 5,000 = 3,864 × 3% = 115.92. Net 10,000 − 1,251.92 = 8,748.08; employer 1,600 + 700 + 90 + 70 + 20 + 106 = 2,586.'
+		],
+		company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({
+				ref: 'fm',
+				name: 'Fan Mei',
+				gender: 'FEMALE',
+				wage: 10000,
+				hfBase: 2120,
+				worksite: FUMIN,
+				from: '2026-09-01',
+				hf: { first_ever_account: false }
+			})
+		],
+		period: '2026-09',
+		expected: [
+			{
+				employment: 'fm_job',
+				lines: {
+					gross: 10000,
+					total_deductions: 1251.92,
+					net: 8748.08,
+					employer_cost: 2586,
+					'PENSION.employee': 800,
+					'PENSION.employer': 1600,
+					'MEDICAL.employee': 200,
+					'MEDICAL.employer': 700,
+					'MATERNITY.employer': 90,
+					'UNEMPLOYMENT.employee': 30,
+					'UNEMPLOYMENT.employer': 70,
+					'INJURY.employer': 20,
+					'HOUSING_FUND.employee': 106,
+					'HOUSING_FUND.employer': 106,
+					'IIT.employee': 115.92
+				}
+			}
+		]
+	},
+	{
+		...fundRefused(
+			'CN-KM05-4',
+			'September 2026, the CN-KM05-3 transfer declares a fund base of 2,100: above the old class II 2,020, below the new 2,120 — the run is refused.',
+			['New, transferred and reopened accounts from 1 September 2026: class II floor 2,120 (CN-KM05); 2,100 < 2,120.'],
+			{ hfBase: 2100, worksite: FUMIN, from: '2026-09-01', hf: { first_ever_account: false } },
+			'declared housing-fund base is below'
+		),
+		period: '2026-09'
+	},
+	belowFloorWithOvertime(
+		'CN-KM01-4',
+		'January 2026, a Wuhua worker contracted at CNY2,100 who works six approved extended hours (Tuesday 6 and Wednesday 7 January): with overtime gross would be 2,208.62, but overtime is outside the minimum-wage comparison — the run is refused.',
+		[
+			MIN_WAGE_2025,
+			'云人社发〔2025〕19号 item on qualifying pay (CN-KM01): 延长工作时间工资 is excluded from the comparison. 2,100 ÷ 21.75 ÷ 8 × 1.5 × 6 = 108.62 (CN-N02); 2,100 < 2,170 on the contract wage alone.'
+		],
+		'2026-01',
+		2100,
+		['2026-01-06', '2026-01-07'],
+		'MINIMUM_WAGE_BELOW: P-KM-low is contracted at 2100 a month'
+	),
+	belowFloorWithOvertime(
+		'CN-KM02-4',
+		'September 2026, a Wuhua worker contracted at CNY2,200 who works six approved extended hours (Tuesday 8 and Wednesday 9 September): with overtime gross would be 2,313.79, but overtime is outside the comparison — the run is refused against 2,270.',
+		[MIN_WAGE_2026, '2,200 ÷ 21.75 ÷ 8 × 1.5 × 6 = 113.79 (CN-N02); 2,200 < 2,270 on the contract wage alone.'],
+		'2026-09',
+		2200,
+		['2026-09-08', '2026-09-09'],
+		'MINIMUM_WAGE_BELOW: P-KM-low is contracted at 2200 a month'
+	)
+);
+
+register({
+	id: 'CN-KM01-5',
+	profile: 'CN-kunming',
+	description:
+		'January 2026, a Fumin (class II) worker contracted at CNY2,000, under the class II minimum 2,020: the run is refused (against CN-KM01-1 at 2,020, which passes).',
+	citation: [
+		'云人社发〔2025〕19号 (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf): Kunming’s other counties CNY2,020 from 1 October 2025 (CN-KM01); 最低工资规定 art.12 and 昆明市工资支付条例 art.8 (CN-KM-WP03): 2,000 < 2,020.',
+		'Declared bases 2,300 (above the 2,020 class II fund floor) so only the wage floor is in question.'
+	],
+	company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+	inputs: [
+		...officeWeek(SINCE),
+		...worker({ ref: 'low', name: 'Floor CN-KM01-5', wage: 2000, siBase: 2300, hfBase: 2300, worksite: FUMIN })
+	],
+	period: '2026-01',
+	refused: 'MINIMUM_WAGE_BELOW: P-KM-low is contracted at 2000 a month',
+	expected: []
+});

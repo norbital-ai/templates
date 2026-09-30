@@ -58,7 +58,13 @@ const SAME_LAW = {
 	'MY-EA35-1': 'MY-nihon-EA35-1',
 	'MY-PCB-07-2': 'MY-nihon-PCB-07-2',
 	'MY-EPF-03-3': 'MY-nihon-EPF-03-3',
-	'MY-SKBBK-04-1': 'MY-nihon-SKBBK-04-1'
+	'MY-SKBBK-04-1': 'MY-nihon-SKBBK-04-1',
+	'MY-EA05-2': 'MY-nihon-EA05-2',
+	'MY-EA11-4': 'MY-nihon-EA11-4',
+	'MY-EIS-01-1': 'MY-nihon-EIS-01-1',
+	'MY-REG-01-4': 'MY-nihon-REG-01-4',
+	'MY-HRD-01-4': 'MY-nihon-HRD-01-4',
+	'MY-PCB-02-2': 'MY-nihon-PCB-02-2'
 } as const;
 
 register(

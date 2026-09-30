@@ -25,7 +25,8 @@
  *  [HB]    DOLE Handbook on Workers' Statutory Monetary Benefits 2024 (holiday, premium, OT, ND, SIL, 13th month,
  *          separation, retirement) https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf
  *  [LC]    Labor Code arts.87, 93, 94, 95, 298–299, 302 (renumbered) https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/26/25306
- *  [RA10361] Kasambahay Law s.32 (15 days' indemnity / forfeiture) https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514
+ *  [RA10361] Kasambahay Law s.30 (coverage after one month's service; employer shoulders premiums below P5,000),
+ *          s.32 (15 days' indemnity / forfeiture) https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514
  *  [RA12063] EBET apprentice at least 75% of the applicable minimum wage https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/98026
  *  [PROC]  2026 holidays (Proclamation 1006 and amendments; tracker PH-HR36)
  */
@@ -396,6 +397,16 @@ export function computePayslip(s: PHScenario): Payslip {
 	charges.PHIC = phic(emp.monthlyBasic);
 	const hd = hdmf(s, fundSalary, periodStart);
 	if (hd) charges.HDMF = hd;
+	if (domestic) {
+		// [RA10361] s.30: a domestic worker "who has rendered at least one (1) month of service shall be covered" by
+		// SSS, PhilHealth and Pag-IBIG. DEFAULT: judged at the end of the employed window (month end or exit).
+		if (wholeMonths(emp.hireDate, addDays(to, 1)) < 1) for (const k of ['SSS', 'SSS_EC', 'SSS_MPF', 'PHIC', 'HDMF']) delete charges[k];
+		// [RA10361] s.30: premiums "shall be shouldered by the employer" unless the worker receives P5,000 and above per
+		// month. SSS (CI 2024-007) and Pag-IBIG (Circular 460 1.5) carry their own household branches above; for
+		// PhilHealth, DEFAULT: the same month's compensation decides, and below P5,000 the employer pays the whole premium.
+		else if (sssComp < 5000 && charges.PHIC)
+			charges.PHIC = { employee: 0, employer: r2(charges.PHIC.employee + charges.PHIC.employer), base: charges.PHIC.base };
+	}
 	const eeContrib = Object.values(charges).reduce((a, c) => a + c.employee, 0);
 
 	// Withholding tax.

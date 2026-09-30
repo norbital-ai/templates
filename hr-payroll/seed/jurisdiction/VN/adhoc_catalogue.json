@@ -936,7 +936,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -956,7 +958,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -976,7 +980,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -996,7 +1002,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1016,7 +1024,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1036,7 +1046,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1056,7 +1068,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1076,7 +1090,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1096,7 +1112,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1116,7 +1134,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1136,7 +1156,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1156,7 +1178,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1176,7 +1200,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1196,7 +1222,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1216,7 +1244,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1236,7 +1266,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1256,7 +1288,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1276,7 +1310,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1296,7 +1332,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1316,7 +1354,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1336,7 +1376,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1356,7 +1398,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1376,7 +1420,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1396,7 +1442,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1416,7 +1464,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1436,7 +1486,9 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -1456,7 +1508,469 @@
 				"limit": null
 			}
 		],
-		"counts_toward": ["PIT"],
+		"counts_toward": [
+			"PIT"
+		],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "a06cd073-02f1-5f23-a908-f22b294b3899",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "32f03037-1bf4-5742-91b3-e2d0aafd6d24",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "49e6223b-75cf-5be8-a15d-50ba7cf68bb7",
+		"settings_id": "3e9ec72c-8248-57c4-a30d-336b620f13b0",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "2cde018a-16b0-5f79-a823-338ff0fa1733",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "bc92d7dc-dfe1-5e15-a433-99c9c59450d4",
+		"settings_id": "5affd360-4551-50a3-9b69-8e2d883b90b6",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "5be6c08b-2f29-5c61-afbb-bee6215dc0d1",
+		"settings_id": "c2a6f8dc-1baa-53f2-a469-372d6fdf9962",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "8159346a-b20c-5722-bed9-1c0a870b0446",
+		"settings_id": "7c39ad83-e7f5-5945-8f0a-48f69a7672fa",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "bbe8c4a8-7347-5945-802e-d705f7856a48",
+		"settings_id": "88af2811-6efb-5c3d-a8e7-c6abe8058f86",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "56cf2c77-bf88-5124-a8ad-37ecc4b7ba3f",
+		"settings_id": "87c4fcc3-34ee-56b8-afb4-7be3c8900c05",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "0e1356c7-845e-5cc3-87c8-cf56d57109ae",
+		"settings_id": "0a34c1a5-88ad-5252-a198-fecfd596ca80",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "400761ea-8135-5c4a-bc1f-dfb10e0a71cb",
+		"settings_id": "c568b5b3-afad-54c6-a2fc-3f3f65140921",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f6f65b19-52ba-51c5-8af2-59bc76f4597b",
+		"settings_id": "54a64216-a80f-5f39-a09a-bc56baf97202",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "3f91eb9b-4497-5cc8-93f3-595db07a1675",
+		"settings_id": "653e6cb8-16f8-58c5-ab45-3f0a710a32ef",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "a29c1284-3433-5536-af79-2490086a1a28",
+		"settings_id": "bd218876-976e-5449-a96e-8786339c81c2",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "39bc301d-439d-5e53-8f5f-d90279331957",
+		"settings_id": "c07f6541-3c32-5143-ab6f-33ba0a7ea171",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "2419571c-a8ba-5c84-9d79-197dbb49c492",
+		"settings_id": "d925f077-0984-5101-9621-e1beb7f30225",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "fb2d6418-0fd6-5940-a17f-74abf98adc11",
+		"settings_id": "0435bc9b-8d8d-529a-86ca-4a992ca1198b",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "23836b17-5300-514a-bf41-af6c5c10259f",
+		"settings_id": "967b7d06-1e8b-53ff-9a3e-375fa142b847",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c801c295-57ad-5990-9555-e4f156fccb53",
+		"settings_id": "00bed3e1-b0f0-54dd-bfff-7cc75ddd0a90",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c420f78e-a34f-5444-8d39-178362bf4c87",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "316e4c4d-fd9d-5908-af27-d713564a98fa",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "963da4da-85b9-5fab-aedf-2ea26eb10113",
+		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "a00cea02-bffa-5ed9-9c46-68bf3867230e",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"code": "PROPERTY_DAMAGE_COMPENSATION",
+		"name": "Khấu trừ bồi thường thiệt hại (property damage compensation, Labour Code arts.102, 129)",
+		"authority": "Labour Code 45/2019/QH14 art.102 (Official Gazette 993+994 of 26 December 2019 p.45, text layer read 2026-09-30, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): (1) the employer may deduct wages only to compensate damage to tools, equipment or property under art.129; (2) the worker has the right to know the reason; (3) the monthly deduction may not exceed 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT — the version's `payroll.deduction_ceiling` (share 0.3, NET_OF_STATUTORY on SI, HI, UI, PIT), which refuses a run past it. Art.129(1): negligent, non-serious damage of at most 10 months' regional minimum wage is compensated at most 3 months' wage, deducted monthly under art.102(3); art.130 the level is decided on fault, actual damage and circumstances. HR raises one request per monthly instalment of a compensation already decided, the amount the decided instalment, with the written compensation decision as evidence (art.102(2): the reason is disclosed). Added 2026-09-30 (VN-LC102-01): a missing class of unchanged law, fixed in place in every version. Owner rule 2026-09-28 default (law silent on the tax treatment of the instalment): the deduction counts toward no scheme — the salary income it is taken from stays taxable and insured as paid; lawful because no PIT or SI text lists a compensation deduction as a reduction of taxable or insured salary.",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
 		"raised_by": "MANUAL"
 	}
 ]

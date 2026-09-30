@@ -31,8 +31,15 @@
  *           (tracker MY-HRD-01/02, MY-HRD11, MY-HRDA02)
  *   [BASES] Act 4 s.2(24), Act 800 s.2, Act 452 s.2, Act 612 s.2 as recorded in tracker MY-WAGEBASE-01
  *
+ *   [ITA]   Income Tax Act 1967 as at 1 January 2026, s.7(1)(a),(c)(ii), s.48(4), Sch.6 paras 21-22, Sch.1 para 1A
+ *           https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf
+ *           (tracker MY-PCB-02 LIT-09, MY-PCB-06 LIT-03, MY-PCB-07)
+ *   [LINDUNG] PERKESO LINDUNG 24 Jam FAQ 13 July 2026 (tracker MY-SKBBK-04: a local's accepted release ends the
+ *           charge from the 8 July 2026 version; a non-citizen's release has no effect; June 2026 stays mandatory)
+ *           https://www.perkeso.gov.my/images/lindung/lindung-24-jam/130726-FAQ_LINDUNG_24_JAM.pdf
+ *
  * Probe-tenant data assumption (not law): the harness records no earlier payslip in the tax year, so the MTD
- * accumulators ∑(Y−K), K, X and Z are zero and no TP1/TP3 is filed.
+ * accumulators ∑(Y−K), K, X and Z are zero unless the scenario files a TP3 (previous employer); no TP1 is filed.
  *
  * Where the law is silent or ambiguous and the tracker records no owner default, the key is listed in
  * `unresolved` with the reason; a comparison must skip those keys rather than invent a figure.
@@ -198,7 +205,10 @@ function annualTax(P: number, category: 1 | 2 | 3) {
 	const [M, R, B1, B2] = row;
 	return (P - M) * R + (category === 2 ? B2 : B1);
 }
-/** [MTD] D(b)1-2 with ∑(Y−K) = K = X = Z = 0 (see the header), EPF relief limit RM4,000 (E(14)(i)(d)). */
+/**
+ * [MTD] D(b)1-2 (spec pp.10-12, re-read 2026-09-30). EPF relief limit RM4,000 (E(14)(i)(d)); "K + K1 + K2 + Kt not
+ * exceeding the total qualifying amount per year". ∑(Y−K), K, X, Z come from a TP3 (previous employer) or are nil.
+ */
 function residentMtd(o: {
 	month: number;
 	Y1: number;
@@ -206,27 +216,36 @@ function residentMtd(o: {
 	Yt: number;
 	Kt: number;
 	category: 1 | 2 | 3;
+	/** Qualifying-child units C: whole children plus ITA s.48(4) 50% shares. */
 	children: number;
 	zakat: number;
+	prior: { remuneration: number; epf: number; mtd: number; zakat: number };
 }) {
 	const n = 12 - o.month;
 	const LIMIT = 4000;
-	const K1 = Math.min(o.K1, LIMIT);
-	const Kt = Math.min(o.Kt, LIMIT - K1);
-	// D RM9,000 automatic; S RM4,000 only in category 2; Q RM2,000 per qualifying child (E(14)(i)(a)-(c)).
+	const K = Math.min(o.prior.epf, LIMIT);
+	const sumYK = o.prior.remuneration - K;
+	const X = o.prior.mtd;
+	const Z = o.prior.zakat; // "accumulated zakat paid in the current year other than zakat for the current month"
+	const K1 = Math.min(o.K1, LIMIT - K);
+	const Kt = Math.min(o.Kt, LIMIT - K - K1);
+	// D RM9,000 automatic; S RM4,000 only in category 2; Q RM2,000 × C, C = 0 in category 1 (spec p.10-11, E(14)(i)(a)-(c)).
 	const reliefs = 9000 + (o.category === 2 ? 4000 : 0) + (o.category === 1 ? 0 : 2000 * o.children);
-	const k2 = (kt: number) => (n === 0 ? 0 : Math.min(trunc2((LIMIT - (K1 + kt)) / n), K1));
-	// Step 1: normal remuneration only.
-	const P1 = trunc2(o.Y1 - K1 + (o.Y1 - k2(0)) * n - reliefs);
-	const raw = Math.max(0, trunc2((annualTax(P1, o.category) - 0) / (n + 1)));
+	// K2 = [RM4,000 − (K + K1 + Kt)] / n or K1, whichever is lower.
+	const k2 = (kt: number) => (n === 0 ? 0 : Math.max(0, Math.min(trunc2((LIMIT - (K + K1 + kt)) / n), K1)));
+	// Step 1: normal remuneration only; [C] = [(P − M)R + B − (Z + X)] / (n + 1).
+	const P1 = trunc2(sumYK + o.Y1 - K1 + (o.Y1 - k2(0)) * n - reliefs);
+	const raw = Math.max(0, trunc2((annualTax(P1, o.category) - (Z + X)) / (n + 1)));
 	const mtdN = up5(raw);
 	// E(3): below RM10 before zakat the employer does not deduct; E(4)/E(5): zakat nets the current month's MTD, never below nil.
 	const normalPaid = mtdN < 10 ? 0 : Math.max(0, r2(mtdN - o.zakat));
 	if (o.Yt <= 0) return { pcb: normalPaid, P: P1, note: null as string | null };
-	// Step 1[E] total MTD for the year on normal remuneration; Steps 2-4 additional remuneration.
-	const yearNormal = mtdN * (n + 1);
-	const P2 = trunc2(o.Y1 - K1 + (o.Y1 - k2(Kt)) * n + (o.Yt - Kt) - reliefs);
-	const addRaw = trunc2(trunc2(annualTax(P2, o.category)) - yearNormal + 0);
+	// Step 1[E] total MTD for the year = X + [Step C × (n + 1)]; Step 4 = Step 3 total tax − (Step 1[E] + zakat
+	// which has been paid). The zakat is read as subtracted with 1[E]: Step C already netted Z, so the additional MTD
+	// is then the extra tax the additional remuneration causes.
+	const yearNormal = X + mtdN * (n + 1);
+	const P2 = trunc2(sumYK + o.Y1 - K1 + (o.Y1 - k2(Kt)) * n + (o.Yt - Kt) - reliefs);
+	const addRaw = trunc2(trunc2(annualTax(P2, o.category)) - yearNormal - Z);
 	const add = addRaw <= 0 ? 0 : up5(addRaw);
 	const addPaid = add < 10 ? 0 : add; // E(4)(c)
 	const note = mtdN > 0 && mtdN < 10 ? 'Step 1[E] with a sub-RM10 normal MTD is not settled by E(3)-(5)' : null;
@@ -275,7 +294,22 @@ export function computePayslip(s: Scenario): Expected {
 	const from = e.hireDate > first ? e.hireDate : first;
 	const to = s.employment.exit && s.employment.exit.date < last ? s.employment.exit.date : last;
 	if (e.payBasis === 'MONTHLY') {
-		const unpaid = s.month.unpaidLeave.filter((d) => d >= from && d <= to).length;
+		// [EA] s.37(1)(a): 98 consecutive days from confinement. s.37(2)(a): the allowance is due only if employed at
+		// any time in the 4 months before confinement and for ≥ 90 days in the 9 months before (confinement day
+		// excluded); s.37(2)(c): a monthly-rated employee whose wages are not abated is deemed paid the allowance.
+		// Without the allowance the days are unpaid, so s.18A(c) prorates them. s.60F / s.60FA sick and paternity
+		// days are paid leave: no abatement.
+		const unpaidDays = new Set(s.month.unpaidLeave);
+		const mat = s.month.maternityFrom;
+		if (mat) {
+			const c = day(mat);
+			const nineBefore = Date.UTC(+mat.slice(0, 4), +mat.slice(5, 7) - 1 - 9, +mat.slice(8, 10));
+			const served = Math.round((c - Math.max(day(e.hireDate), nineBefore)) / DAY);
+			const allowance = day(e.hireDate) < c && served >= 90;
+			out.branches.push(allowance ? `s37(2)(c):unabated(${served}d)` : `s37(2)(a):no-allowance(${served}d)`);
+			if (!allowance) for (let i = 0; i < 98; i++) unpaidDays.add(iso(c + i * DAY));
+		}
+		const unpaid = [...unpaidDays].filter((d) => d >= from && d <= to).length;
 		const eligible = Math.round((day(to) - day(from)) / DAY) + 1 - unpaid;
 		if (eligible === dim) {
 			earn('BASIC', e.rate);
@@ -429,7 +463,9 @@ export function computePayslip(s: Scenario): Expected {
 		}
 		// SKBBK (non-employment injury): A1788, First Phase from the June 2026 contribution month, employee-borne,
 		// no age limit, citizens and foreigners alike (P.U.(B)196/2026; tracker MY-SKBBK-01/04).
-		if (s.period >= '2026-06') {
+		const released = s.employee.skbbkReleased === true && s.employee.citizenship !== 'FOREIGNER' && s.period >= '2026-07';
+		if (released) out.branches.push('SKBBK:released');
+		else if (s.period >= '2026-06') {
 			scheme('SKBBK', (second ? SOCSO_SECOND[row]![1] : SOCSO_FIRST[row]![3]) / 100, 0, perkesoBase);
 			out.branches.push('SKBBK:first-phase');
 		}
@@ -453,9 +489,20 @@ export function computePayslip(s: Scenario): Expected {
 	// [MTD] D(a): 30% for a non-resident or one not known to be resident; its note: resident MTD for a foreign
 	// worker on an employment contract of 182 days or more. Open-ended contract → recorded residency (tracker MY-PCB-06 default).
 	const contractDays = e.contractEnd ? Math.round((day(e.contractEnd) - day(e.hireDate)) / DAY) + 1 : 0;
-	const resident = s.employee.taxResidency === 'RESIDENT' || (cz === 'FOREIGNER' && contractDays >= 182);
+	// [ITA] s.7(1)(a): 182 days in the basis year; s.7(1)(c)(ii): 90 days in the year and ≥ 90 days in 3 of the 4
+	// preceding years. Recorded stays decide at the period end (tracker MY-PCB-06); otherwise the recorded status.
+	const pr = s.employee.presence;
+	const byPresence = pr !== undefined && (pr.ytd >= 182 || (pr.ytd >= 90 && pr.prior.filter((d) => d >= 90).length >= 3));
+	if (pr) out.branches.push(`s7(1):${byPresence ? 'resident' : 'not-by-presence'}`);
+	const resident = s.employee.taxResidency === 'RESIDENT' || (cz === 'FOREIGNER' && contractDays >= 182) || byPresence;
+	// [ITA] Sch.6 para 21: a non-resident's employment exercised in Malaysia for ≤ 60 days in the year is exempt;
+	// para 22(a): over 60 days the exemption fails (then Sch.1 para 1A 30%).
+	const sch6 = s.employee.sch6Para21EmploymentDays;
 	let pcb: number;
-	if (resident) {
+	if (!resident && sch6 !== undefined && sch6 <= 60) {
+		pcb = 0;
+		out.branches.push(`Sch6-para21:exempt(${sch6}d)`);
+	} else if (resident) {
 		const K1 = epNormal?.employee ?? 0;
 		const res = residentMtd({
 			month: m,
@@ -464,8 +511,9 @@ export function computePayslip(s: Scenario): Expected {
 			Yt,
 			Kt: Math.max(0, (ep?.employee ?? 0) - K1), // E(13)(iii): total EPF less EPF on normal remuneration
 			category: s.employee.pcbCategory,
-			children: s.employee.children,
-			zakat: s.employee.zakat
+			children: s.employee.children + 0.5 * (s.employee.childrenHalf ?? 0), // [ITA] s.48(4): 50% each
+			zakat: s.employee.zakat,
+			prior: s.employee.tp3 ?? { remuneration: 0, epf: 0, mtd: 0, zakat: 0 }
 		});
 		pcb = res.pcb;
 		if (res.note) unresolved('PCB', res.note);
@@ -483,12 +531,18 @@ export function computePayslip(s: Scenario): Expected {
 	// HRDF levy: Act 612 s.14(1)/(2) — citizens only (s.2 "employee"), 1% for a compulsory class, 0.5% optional;
 	// P.U.(A)13/2026 exempts scheduled education MSIC employers for the 2026 contribution months.
 	const eduExempt = s.company.msic.startsWith('85') && y === 2026;
-	if (s.company.hrd !== 'NOT_LIABLE' && cz === 'CITIZEN') {
+	// First Schedule (P.U.(A)84/2021): a listed-industry employer with ≥ 10 Malaysian employees is liable; 5-9 may
+	// register (optional, 0.5%). s.15(4): an optional employer whose count exceeds its limit pays 1%; s.15(5) keeps 1%
+	// to the end of that year after a decrease; s.15(6) restores 0.5% the next year; s.15(7) an increase: 1% at once.
+	const hc = s.company.hrdHeadcount;
+	const hrdClass = hc === undefined || s.company.hrd !== 'COMPULSORY' ? s.company.hrd : hc >= 10 ? 'COMPULSORY' : 'NOT_LIABLE';
+	const optionalHigh = hc !== undefined && (hc >= 10 || s.company.hrdHighRateYear === y);
+	if (hrdClass !== 'NOT_LIABLE' && cz === 'CITIZEN') {
 		if (e.employmentType === 'PART_TIME')
 			unresolved('HRDF', 'part-time exclusion rests on HRD Corp Circular 19/2010 only; no s.19 exemption order found (MY-HRD12 SOURCE-BLOCKED)');
 		else if (eduExempt) out.branches.push('HRDF:education-exempt-2026');
 		else {
-			const rate = s.company.hrd === 'COMPULSORY' ? 0.01 : 0.005;
+			const rate = hrdClass === 'COMPULSORY' || optionalHigh ? 0.01 : 0.005;
 			const levy = hrdBase * rate;
 			if (Math.abs(levy * 100 - Math.round(levy * 100)) > 1e-6)
 				unresolved('HRDF', `levy ${levy} has sub-sen digits; Act 612 states no rounding`);
@@ -496,7 +550,7 @@ export function computePayslip(s: Scenario): Expected {
 			employerShares.push(r2(levy));
 			out.branches.push(`HRDF:${rate * 100}%`);
 		}
-	} else out.branches.push(`HRDF:none(${cz === 'CITIZEN' ? s.company.hrd : cz})`);
+	} else out.branches.push(`HRDF:none(${cz === 'CITIZEN' ? hrdClass : cz})`);
 
 	// ---- totals
 	const gross = Object.entries(out.lines)

@@ -8,7 +8,9 @@
  * resident-tax notice, and the HEALTH / EMPLOYMENT_INSURANCE registrations with the decided grade (config paths in
  * docs/inventory/japan.csv); `time` becomes leave rows and time entries on the officeWeek roster
  * (Mon–Fri scheduled, Saturday OFF, Sunday REST = 法定休日); `bonus` an ad hoc BONUS line; `exit` the exit facts.
- * The expected lines are `probeLines(computePayslip(s))`, minus anything in the payslip's `unsupported`.
+ * The expected lines are `probeLines(computePayslip(s))` (it drops net/total_deductions when a line is `unsupported`,
+ * and everything for a '*'); a bonus scenario also records the INCOME_TAX_BONUS election prior_month_net_pay as
+ * `priorMonthNetPay(s)` from the oracle.
  *
  * Seeded (mulberry32), no Math.random: the same list every run.
  */
@@ -178,9 +180,9 @@ export function generateProfiles(): Scenario[] {
 		['秋田県', 'JP-RF05', '2026-03', '2026-03-31'],
 		['群馬県', 'JP-RF11', '2026-03', '2026-03-01'],
 		['東京都', 'JP-RF08-R8', '2026-10', '2026-10-01'],
-		['青森県', 'JP-RF02-R8', '2026-10', '2026-10-29'],
-		['京都府', 'JP-RF24-R8', '2026-11', '2026-11-16'],
-		['沖縄県', 'JP-RF47-R8', '2026-12', '2026-12-02']
+		['北海道', 'JP-RF01-R8', '2026-10', '2026-10-01'],
+		['奈良県', 'JP-RF29-R8', '2026-10', '2026-10-04'],
+		['京都府', 'JP-RF24-R8', '2026-11', '2026-11-16']
 	];
 	for (const [pref, rf, period, from] of straddles) {
 		const floors = PREFS.find(([p]) => p === pref)![3];
@@ -189,6 +191,13 @@ export function generateProfiles(): Scenario[] {
 			[`salary at the old floor; new floor from ${from} governs the later work days`],
 			{ period, company: { prefecture: pref }, employee: { monthlySalary: old, health: { registered: true, grade: grade(floorOn(floors, from) * (HOURS / 12)) } } }));
 	}
+	// a 令和8年度 floor still AWAITING-LAW: binding → nothing pinnable; salary above it → an ordinary payslip
+	push(
+		mk('mw-awaiting-binding', ['JP-RF02-R8', 'JP-MW-01', 'JP-SCOPE-01'], ['青森 2026-10-29 floor not enacted and binding: unsupported'],
+			{ period: '2026-11', company: { prefecture: '青森県' }, employee: { monthlySalary: 1029 * (HOURS / 12) } }),
+		mk('mw-awaiting-clear', ['JP-RF02-R8', 'JP-MW-01', 'JP-KK02'], ['salary above the unenacted floor: unaffected'],
+			{ period: '2026-11', company: { prefecture: '青森県' }, employee: { monthlySalary: 250_000 } })
+	);
 
 	// ---- B. standard monthly remuneration grade seams (HIA art.40, EPIA art.20) ----
 	for (const pay of [82_999, 83_000, 92_999, 93_000])
@@ -257,9 +266,11 @@ export function generateProfiles(): Scenario[] {
 	ot('night-2159', ['JP-OT-04'], 'ends 21:59: no night minute', [day('2026-06-10', '09:00', '21:59')]);
 	ot('past-midnight', ['JP-OT-04'], 'work to 02:00 next day', [day('2026-06-10', '09:00', '26:00')]);
 	ot('saturday', ['JP-LS05'], 'Saturday after a full 40h week: all 125%', [day('2026-06-06', '09:00', '17:00')]);
-	ot('saturday-short-week', ['JP-LS05'], 'Saturday in a week with an unpaid day: 100% within 40h', [day('2026-06-06', '09:00', '17:00')], { time: { unpaidLeaveDays: ['2026-06-03'], work: [day('2026-06-06', '09:00', '17:00')] } });
+	ot('saturday-short-week', ['JP-LS05', 'JP-LAB-02'], 'Saturday in a week with an unpaid day: within 40h, 125% (所定休日 default), not in the 60h count', [day('2026-06-06', '09:00', '17:00')], { time: { unpaidLeaveDays: ['2026-06-03'], work: [day('2026-06-06', '09:00', '17:00')] } });
 	ot('sunday', ['JP-OT-03'], 'statutory rest day at 135%', [day('2026-06-07', '09:00', '18:00')]);
 	ot('sunday-night', ['JP-OT-03', 'JP-OT-04'], 'statutory rest day into the night: 160%', [day('2026-06-14', '09:00', '24:00')]);
+	ot('saturday-short-week-60h', ['JP-OT-05'], 'Saturday within 40h does not push the month past 60h',
+		[...june.filter((d) => d !== '2026-06-05').slice(0, 20).map((d) => day(d, '09:00', '21:00')), day('2026-06-06', '09:00', '13:00', 0)], { time: { unpaidLeaveDays: ['2026-06-05'] } });
 	ot('60h-exact', ['JP-OT-05'], 'exactly 60h overtime: no 150% tier', june.slice(0, 20).map((d) => day(d, '09:00', '21:00')));
 	ot('60h-plus-1min', ['JP-OT-05'], '60h + 1 minute: one minute at 150%', [...june.slice(0, 20).map((d) => day(d, '09:00', '21:00')), day(june[20]!, '09:00', '18:01')]);
 	ot('77h', ['JP-OT-05'], '77h overtime: 17h at 150%', june.map((d) => day(d, '09:00', '21:30')));
@@ -297,7 +308,7 @@ export function generateProfiles(): Scenario[] {
 	push(mk('wc-merit', ['JP-WC-01'], ['recorded メリット制 rate 2.2/1,000'], { company: { wcBusinessType: '94', wcMeritRate: 2.2 } }));
 
 	// ---- I. bonuses ----
-	const B = ['JP-SI-04', 'JP-SI-15', 'JP-SI-05', 'JP-TAX-21', 'JP-EI02', 'JP-SI-18'];
+	const B = ['JP-SI-04', 'JP-SI-15', 'JP-SI-05', 'JP-TAX-21', 'JP-TAX-01', 'JP-EI02', 'JP-EI-03', 'JP-SI-18', 'JP-WC-01'];
 	const bonus = (amount: number, priorFiscalStandardBonus = 0, exempt = false) => ({ amount, priorFiscalStandardBonus, exempt });
 	push(
 		mk('bonus-floor-1000', [...B, 'JP-SI-14'], ['standard bonus floored to 1,000'], { bonus: bonus(500_500) }),
@@ -340,7 +351,11 @@ export function generateProfiles(): Scenario[] {
 		push(mk(`tax-seam-${col}-${pay}`, [...T, 'JP-TAX-19', 'JP-SI-01'], [`${col} at A = ${pay}`],
 			{ employee: { monthlySalary: pay, dailyHours: hours, annualScheduledHours: hours === 3 ? 756 : HOURS, withholding: { column: col, dependants: 0, method: 'TABLE' }, ...bare } }));
 	push(
-		mk('tax-dec-2025', ['JP-TAX-01', 'JP-KK13'], ['pay due 2025-12-31: 令和7年分 table (unsupported)'], { period: '2025-12' }),
+		mk('tax-dec-2025', ['JP-TAX-01', 'JP-TAX-29', 'JP-KK13'], ['pay due 2025-12-31: 令和7年分 table (unsupported)'], { period: '2025-12' }),
+		mk('tax-dec-2026-kou', ['JP-TAX-03', 'JP-TAX-15'], ['December 甲欄: year-end adjustment (unsupported)'], { period: '2026-12' }),
+		mk('tax-dec-2026-otsu', ['JP-TAX-03', 'JP-TAX-19'], ['December 乙欄: no year-end adjustment, table as usual'], { period: '2026-12', employee: { withholding: { column: 'OTSU', dependants: 0, method: 'TABLE' } } }),
+		mk('tax-dec-2026-nonresident', ['JP-TAX-03', 'JP-TAX-11'], ['December nonresident: 20.42%'], { period: '2026-12', employee: { taxResident: false } }),
+		mk('tax-2027-01', ['JP-TAX-22'], ['pay due January 2027: 令和9年分 (unsupported)'], { period: '2027-01' }),
 		mk('tax-nonresident-jp', ['JP-TAX-11'], ['Japanese national nonresident: 20.42%'], { employee: { taxResident: false } }),
 		mk('tax-nonresident-foreign', ['JP-TAX-11', 'JP-HR-07'], ['foreign nonresident: 20.42%'], { employee: { taxResident: false, nationality: 'FOREIGN' } }),
 		mk('tax-foreign-resident', ['JP-TAX-18', 'JP-HR-07'], ['foreign resident: taxed as a resident'], { employee: { nationality: 'FOREIGN', withholding: { column: 'KOU', dependants: 1, method: 'TABLE' } } })
@@ -352,6 +367,13 @@ export function generateProfiles(): Scenario[] {
 	);
 	for (const [km, period] of [[1.9, '2026-06'], [2, '2026-06'], [9.9, '2026-06'], [10, '2026-06'], [64.9, '2026-06'], [65, '2026-06'], [65, '2026-03'], [95, '2026-06']] as const)
 		push(mk(`comm-vehicle-${km}-${period}`, C, [`vehicle ${km} km, paid ${period}`], { period, employee: { commuting: { mode: 'VEHICLE', amount: 50_000, km } } }));
+	push(
+		mk('comm-parking', C, ['vehicle 20 km + parking 6,000 (from April 2026): band + 5,000'], { employee: { commuting: { mode: 'VEHICLE', amount: 25_000, km: 20, parking: 6_000 } } }),
+		mk('comm-parking-1km', C, ['vehicle 1.9 km: no band, no parking'], { employee: { commuting: { mode: 'VEHICLE', amount: 8_000, km: 1.9, parking: 3_000 } } }),
+		mk('comm-parking-march', C, ['pay due March 2026: parking not yet exempt'], { period: '2026-03', employee: { commuting: { mode: 'VEHICLE', amount: 25_000, km: 20, parking: 5_000 } } }),
+		mk('comm-mixed', C, ['transit 30,000 + vehicle 12 km'], { employee: { commuting: { mode: 'MIXED', amount: 45_000, km: 12, transitFare: 30_000 } } }),
+		mk('comm-mixed-cap', C, ['transit 140,000 + vehicle 30 km: capped at 150,000'], { employee: { commuting: { mode: 'MIXED', amount: 170_000, km: 30, transitFare: 140_000 } } })
+	);
 	push(mk('comm-with-ot', [...C, 'JP-OT-02'], ['commuting excluded from the overtime base'],
 		{ employee: { monthlySalary: 336_000, commuting: { mode: 'TRANSIT', amount: 15_000, km: 0 } }, time: { work: [day('2026-06-10', '09:00', '20:00')] } }));
 
@@ -366,6 +388,8 @@ export function generateProfiles(): Scenario[] {
 			{ period: '2026-04', employee: { residentTax: { june: 60_000, monthly: 60_000 } }, time: { unpaidLeaveDays: weekdays('2026-04').slice(0, 20) }, exit: { date: '2026-04-30' } }),
 		mk('rt-exit-aug', [...R, 'JP-LT03'], ['August exit, no request: ordinary installment'], { period: '2026-08', employee: { residentTax: rt }, exit: { date: '2026-08-31' } }),
 		mk('rt-exit-aug-lump', [...R, 'JP-LT03'], ['August exit, lump requested: August–May'], { period: '2026-08', employee: { residentTax: rt }, exit: { date: '2026-08-31', residentTaxLumpRequested: true } }),
+		mk('rt-exit-aug-lump-allowance', [...R, 'JP-LT03', 'JP-RES-04', 'JP-RES-02', 'JP-LT04'], ['August lump from pay plus a retirement allowance'],
+			{ period: '2026-08', employee: { residentTax: { june: 90_000, monthly: 90_000 } }, time: { unpaidLeaveDays: weekdays('2026-08').slice(0, 18) }, exit: { date: '2026-08-31', residentTaxLumpRequested: true, retirementAllowance: 1_000_000 } }),
 		mk('rt-exit-may', [...R, 'JP-LT03'], ['May exit: the last installment only'], { period: '2026-05', employee: { residentTax: rt }, exit: { date: '2026-05-31' } })
 	);
 
@@ -385,7 +409,10 @@ export function generateProfiles(): Scenario[] {
 	ret('1y-min', '2025-07-01', 700_000, 'one year: minimum deduction 800,000, nothing taxable');
 	ret('1y-over', '2025-07-01', 900_000, 'one year: 100,000 over the minimum');
 	ret('no-declaration', '2016-04-01', 3_000_000, 'no 申告書: 20.42% of the whole', { retirementDeclaration: false });
-	ret('nonresident', '2016-04-01', 3_000_000, 'nonresident: 20.42%', {}, { taxResident: false, nationality: 'FOREIGN' });
+	ret('nonresident', '2016-04-01', 3_000_000, 'nonresident: 20.42%, no retirement resident tax', {}, { taxResident: false, nationality: 'FOREIGN' });
+	ret('20y-seam', '2006-07-01', 8_000_000, '20 years, allowance equal to the deduction: nothing taxable');
+	ret('10y-100', '2016-07-01', 4_002_300, 'excess 2,300 → half 1,150 → 1,000: resident tax 60 + 40 truncated to 0');
+	ret('10y-resident-100', '2016-07-01', 4_040_000, 'taxable 20,000: 市 1,200 + 県 800');
 	ret('retirement-age', '1990-04-01', 20_000_000, 'retirement at 60 after 37 years', { cause: 'RETIREMENT_AGE' }, { birthDate: '1966-06-15' });
 	push(
 		mk('exit-contract-end', X, ['fixed term ended: no notice pay'], { employee: { hireDate: '2025-07-01' }, exit: { date: '2026-06-30', cause: 'CONTRACT_END', noticeDays: 0 } }),

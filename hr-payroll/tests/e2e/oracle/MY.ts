@@ -31,8 +31,20 @@
  *          https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf
  *  [TLB]   Employment (Termination and Lay-Off Benefits) Regulations 1980, regs.3, 4, 6 —
  *          https://jtksm.mohr.gov.my/sites/default/files/2023-03/8.%20EMPLOYMENT%20%28TERMINATION%20%26%20LAY%20OFF%20BENEFITS%29%20REGULATIONS%201980_0.pdf
- *  [MWO]   Minimum Wages Order 2024 P.U.(A)376 paras 2, 5 (RM1,700 monthly, RM8.72 hourly from 1 August 2025) —
- *          https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf
+ *  [MWO]   Minimum Wages Order 2024 P.U.(A)376 paras 2, 5 (RM1,700 monthly; RM65.38 / 78.46 / 98.08 daily for 6 / 5 / 4
+ *          working days a week; RM8.72 hourly, from 1 August 2025) — https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf
+ *  [PTR]   Employment (Part-Time Employees) Regulations 2010 reg.5 (extra hours: 1x to the comparable full-time normal
+ *          hours, 1.5x beyond) — https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf
+ *  [ITA]   Income Tax Act 1967 s.7(1)(a)–(c) (residence by days present), Schedule 6 paras 21–22 (60 employment days),
+ *          Schedule 1 para 1A (30%) — AGC text as at 1 January 2026 (URL under [PCB]); LHDN TP3 2026 notes
+ *          (previous-employer Y, K, X, Z) — https://www.hasil.gov.my/wp-content/uploads/bi-explanatory-notes-for-form-tp3-2026.pdf
+ *  [LEAVE] EA ss.37(2)(c), 60F(1), 60FA: maternity, sick and paternity leave of a monthly-rated employee are paid, so the
+ *          month's wages are not abated (reprint URL under [EA]).
+ *
+ * Law-silent defaults follow the tracker's recorded defaults (owner rule): EPF Part F and over-RM20,000 split — employee
+ * share truncated to the sen, employer the rounded total less it (MY-EPF-01 R01); HRD part-time levied because Act 612
+ * s.2/s.14(1) name no exclusion (MY-HRD12, SOURCE-BLOCKED circular); SKBBK release takes effect from the dated fact
+ * (MY-SKBBK-04).
  *
  * Where the text leaves a choice open the oracle takes one consistent reading, says so beside the code, and lists the
  * affected line keys in `uncertain` so a mismatch there is read as a question for the law, not as an engine defect.
@@ -46,7 +58,9 @@ export type ExitCause =
 	| 'MISCONDUCT_DISMISSAL'
 	| 'CONTRACTUAL_RETIREMENT'
 	| 'DEATH';
-export type HrdClass = 'COMPULSORY' | 'OPTIONAL' | 'NOT_REGISTERED' | 'EDUCATION_EXEMPT';
+/** COMPULSORY 1% (s.14(1)); OPTIONAL registrant 0.5% (s.14(2)); BY_HEADCOUNT: a First Schedule Part I industry whose class
+ *  follows `citizenHeadcount` (>= 10 compulsory whether registered or not, 5–9 optional only if registered, < 5 outside). */
+export type HrdClass = 'COMPULSORY' | 'OPTIONAL' | 'NOT_REGISTERED' | 'EDUCATION_EXEMPT' | 'BY_HEADCOUNT';
 
 export type Scenario = {
 	id: string;
@@ -56,7 +70,14 @@ export type Scenario = {
 	description: string;
 	/** run period, YYYY-MM */
 	period: string;
-	employer: { hrd: HrdClass };
+	employer: {
+		hrd: HrdClass;
+		citizenHeadcount?: number;
+		registered?: boolean;
+		/** Act 612 s.15(5)–(7) for an OPTIONAL registrant: exceeded its class maximum this year (1% to year end) or only in
+		 *  an earlier year with the count back within it (0.5% again) */
+		s15?: 'EXCEEDED_THIS_YEAR' | 'EXCEEDED_LAST_YEAR';
+	};
 	employee: {
 		birthDate: string;
 		citizenship: Citizenship;
@@ -69,6 +90,20 @@ export type Scenario = {
 		socsoFirstLiableAge?: number;
 		/** false = no EIS contribution was ever payable before 57 (Act 800 First Schedule para 9) */
 		eisPaidBefore57: boolean;
+		/** an accepted SKBBK liability release in force for the whole period (MY-SKBBK-04) */
+		skbbkReleased?: boolean;
+		/** ITA s.7 / Sch.6 para 21 day ledger, counted through the period's last day */
+		presence?: {
+			daysThisYear: number;
+			/** consecutive days of the same stay in the previous year (s.7(1)(b)) */
+			linkedPrevYear?: number;
+			/** of the four preceding years, those with 90+ days (s.7(1)(c)(ii)) */
+			precedingYears90?: number;
+			/** days employment was exercised in Malaysia this year, with a para 21 claim */
+			para21EmploymentDays?: number;
+		};
+		/** TP3: earlier-employer figures in the same year (spec D.1 Y, K, X, Z) */
+		tp3?: { Y: number; K: number; X: number; Z: number };
 	};
 	employment: {
 		hireDate: string;
@@ -79,9 +114,15 @@ export type Scenario = {
 		noticeServed?: boolean;
 		/** foreign worker's fixed contract length in days (LHDN D(a) note); omitted = open-ended */
 		contractDays?: number;
-		basis: 'MONTHLY' | 'HOURLY';
+		basis: 'MONTHLY' | 'HOURLY' | 'DAILY';
 		monthlyBasic?: number;
 		hourlyRate?: number;
+		/** DAILY basis: rate per day, days worked, working days per week (MWO para 5 daily floors) */
+		dailyRate?: number;
+		daysWorked?: number;
+		workDaysPerWeek?: 4 | 5 | 6;
+		/** a new monthly rate from `on` (inclusive) within the period */
+		rateChange?: { on: string; monthlyBasic: number };
 		/** contractual daily normal hours (EA s.60A(3)(c)) */
 		normalHours: number;
 		/** fixed monthly cash allowance (EA/EPF/Act 4/Act 612 wages) */
@@ -108,6 +149,13 @@ export type Scenario = {
 		annualLeaveTakenThisYear?: number;
 		/** zakat deducted through payroll this month */
 		zakat?: number;
+		/** paid statutory leave days in the period (no abatement for a monthly-rated employee) */
+		paidLeave?: { kind: 'MEDICAL' | 'HOSPITALISATION' | 'MATERNITY' | 'PATERNITY'; days: number };
+		/** hours on the earlier of two weekly rest days — s.59(1): not the rest day, so s.60A(3)(a) overtime */
+		earlierRestDayHours?: number;
+		earlierRestDayDate?: string;
+		/** part-timer's one working day: its scheduled hours and the hours worked (reg.5) */
+		partTimeDay?: { scheduled: number; worked: number; date: string };
 	};
 };
 
@@ -194,12 +242,12 @@ function epfBandUpper(w: number) {
 function epf(part: EpfPart, wages: number, nonBonus: number): { ee: number; er: number; uncertain: boolean } {
 	if (part === null || wages <= 0) return { ee: 0, er: 0, uncertain: false };
 	if (part === 'F') {
-		const ee = sen(0.02 * wages);
+		const ee = trunc2(0.02 * wages); // tracker MY-EPF-01 R01 default: employee truncated to the sen
 		return { ee, er: sen(nextRinggit(0.04 * wages) - ee), uncertain: true };
 	}
 	const r = EPF_RATES[part];
 	if (wages > 20000) {
-		const ee = sen(r.ee * wages);
+		const ee = trunc2(r.ee * wages); // same split default as Part F
 		return { ee, er: sen(nextRinggit(r.ee * wages + r.erHigh * wages) - ee), uncertain: true };
 	}
 	const U = epfBandUpper(wages);
@@ -266,24 +314,30 @@ type PcbIn = {
 	Yt: number;
 	Ktraw: number;
 	zakat: number;
+	/** TP3 / earlier months: accumulated remuneration Y, EPF K, MTD paid X, zakat paid Z */
+	Y?: number;
+	K?: number;
+	X?: number;
+	Z?: number;
 };
-/** Resident MTD, D.1 normal and D.2 additional-remuneration formulas, with no earlier month in the year (Y = K = X = Z = 0:
- *  the scenario's employer has no earlier run this year and no TP3). Y2 = Y1 ("estimated remuneration as Y1"). */
+/** Resident MTD, D.1 normal and D.2 additional-remuneration formulas. The scenario's employer has no earlier run this year;
+ *  Y, K, X, Z come only from a TP3 (spec D.1; TP3 notes). Y2 = Y1 ("estimated remuneration as Y1"). */
 function residentMtd(p: PcbIn) {
 	const n = 12 - p.month;
+	const [Y, K, X, Z] = [p.Y ?? 0, p.K ?? 0, p.X ?? 0, p.Z ?? 0];
 	const reliefs = D_INDIVIDUAL + (p.category === 2 ? S_SPOUSE : 0) + (p.category === 1 ? 0 : Q_CHILD * p.children);
-	const K1 = Math.min(p.K1raw, EPF_RELIEF);
-	const k2 = (Kt: number) => (n === 0 ? 0 : Math.max(0, Math.min(trunc2((EPF_RELIEF - (K1 + Kt)) / n), K1)));
+	const K1 = Math.max(0, Math.min(p.K1raw, EPF_RELIEF - K)); // K + K1 limited to RM4,000
+	const k2 = (Kt: number) => (n === 0 ? 0 : Math.max(0, Math.min(trunc2((EPF_RELIEF - (K + K1 + Kt)) / n), K1)));
 	// Step 1 — normal remuneration only
-	const P1 = trunc2(p.Y1 - K1 + (p.Y1 - k2(0)) * n - reliefs);
-	const C = up5(trunc2(taxOn(P1, p.category) / (n + 1))); // E(1)–(2); X = Z = 0
+	const P1 = trunc2(Y - K + (p.Y1 - K1) + (p.Y1 - k2(0)) * n - reliefs);
+	const C = up5(trunc2(Math.max(0, taxOn(P1, p.category) - (Z + X)) / (n + 1))); // E(1)–(2)
 	const normal = C < 10 ? 0 : C; // E(3)
 	const netNormal = Math.max(0, sen(normal - p.zakat)); // D.1 net MTD; zakat above MTD carries forward (E(5))
 	if (p.Yt <= 0) return netNormal;
 	// Steps 2–5 — additional remuneration
-	const yearNormal = C * (n + 1); // Step 1[E], X = 0
-	const Kt = Math.max(0, Math.min(p.Ktraw, EPF_RELIEF - K1));
-	const P2 = trunc2(p.Y1 - K1 + (p.Y1 - k2(Kt)) * n + (p.Yt - Kt) - reliefs);
+	const yearNormal = X + C * (n + 1) + Z; // Step 4: total MTD of the year on normal remuneration + zakat paid
+	const Kt = Math.max(0, Math.min(p.Ktraw, EPF_RELIEF - K - K1));
+	const P2 = trunc2(Y - K + (p.Y1 - K1) + (p.Y1 - k2(Kt)) * n + (p.Yt - Kt) - reliefs);
 	const extra = up5(Math.max(0, trunc2(trunc2(taxOn(P2, p.category)) - yearNormal)));
 	return sen(netNormal + (extra < 10 ? 0 : extra)); // E(4)c
 }
@@ -312,7 +366,8 @@ export function computePayslip(s: Scenario): Payslip {
 	// cash allowance. Hourly-rated: s.60I(1C) preceding period's wages ÷ days; scenarios keep hourly workers off rest-day,
 	// holiday and exit awards, so only the hourly rate itself is used.
 	const monthlyRate = (e.monthlyBasic ?? 0) + allowance;
-	const orp = monthlyRate / 26;
+	// s.60I(1)(a): a daily-rated employee's ordinary rate is the day's rate
+	const orp = e.basis === 'DAILY' ? e.dailyRate! : monthlyRate / 26;
 	const hourly = e.basis === 'HOURLY' ? e.hourlyRate! : orp / e.normalHours;
 
 	// ---- basic pay, EA s.18A (calendar days of the wage period, tracker MY-EA11 default) ----
@@ -321,10 +376,19 @@ export function computePayslip(s: Scenario): Payslip {
 	if (e.basis === 'MONTHLY') {
 		const eligible = daysBetween(start, end) + 1 - (x.unpaidLeaveDays ?? 0);
 		const factor = eligible / dim;
-		basic = sen(e.monthlyBasic! * factor);
+		// s.18A has no formula for a mid-month rate change; tracker MY-EA11 default: each rate over its own calendar days,
+		// summed, rounded once. Paid leave (s.37(2)(c), s.60F, s.60FA) does not reduce eligible days.
+		basic = e.rateChange
+			? sen((e.monthlyBasic! * daysBetween(first, e.rateChange.on) + e.rateChange.monthlyBasic * (daysBetween(e.rateChange.on, last) + 1)) / dim)
+			: sen(e.monthlyBasic! * factor);
 		if (allowance) earn('FIXED_ALLOWANCE', allowance * factor);
 		// MWO 2024 para 5(1): RM1,700 monthly basic (full-month scenarios only)
 		if (factor === 1 && e.monthlyBasic! < 1700) topUp = sen(1700 - e.monthlyBasic!);
+	} else if (e.basis === 'DAILY') {
+		basic = sen(e.dailyRate! * e.daysWorked!);
+		// MWO 2024 para 5(1): RM65.38 / 78.46 / 98.08 a day for 6 / 5 / 4 working days a week
+		const floor = { 6: 65.38, 5: 78.46, 4: 98.08 }[e.workDaysPerWeek ?? 6];
+		if (e.dailyRate! < floor) topUp = sen((floor - e.dailyRate!) * e.daysWorked!);
 	} else {
 		basic = sen(e.hourlyRate! * x.hoursWorked!);
 		// MWO 2024 para 5(1): RM8.72 an hour
@@ -335,8 +399,14 @@ export function computePayslip(s: Scenario): Payslip {
 
 	// ---- work bands (EA ss.60, 60A(3), 60D(3)); each line to the sen (law silent on rounding) ----
 	const normal = e.normalHours;
-	const ot = sen((x.overtimeHours ?? 0) * 1.5 * hourly); // s.60A(3)(a)
+	// s.60A(3)(a); s.59(1): the earlier of two rest days is not the rest day, so every hour there is overtime at 1.5x.
+	// Part-timer (reg.5): hours beyond the scheduled hours up to the full-time comparator (the normal 8) at 1x, beyond at 1.5x.
+	const pt = x.partTimeDay;
+	const ptPlain = pt ? sen(Math.max(0, Math.min(pt.worked, 8) - pt.scheduled) * hourly) : 0;
+	const ptOtHours = pt ? Math.max(0, pt.worked - Math.max(8, pt.scheduled)) : 0;
+	const ot = sen(((x.overtimeHours ?? 0) + (x.earlierRestDayHours ?? 0) + ptOtHours) * 1.5 * hourly);
 	earn('OVERTIME', ot);
+	earn('PART_TIME_EXTRA_HOURS', ptPlain);
 	let restDay = 0;
 	let restOt = 0;
 	if (x.restDayHours) {
@@ -421,14 +491,15 @@ export function computePayslip(s: Scenario): Payslip {
 	// travelling allowance. Rest-day/holiday day awards are not "overtime" (hours beyond the normal hours, EA s.60A(3)(b)) —
 	// reading, tracker MY-WAGEBASE-01. Notice indemnity read as a termination benefit (s.2(e)) — reading.
 	const epfNormal = basic + topUp + sen(earnings.find((l) => l.code === 'FIXED_ALLOWANCE')?.amount ?? 0);
-	const epfWages = sen(epfNormal + restDay + holiday + (x.annualBonus ?? 0) + encashment);
+	// part-time extra hours at 1x within the full-time comparator: read as ordinary wages, not "overtime" (flagged)
+	const epfWages = sen(epfNormal + restDay + holiday + ptPlain + (x.annualBonus ?? 0) + encashment);
 	const epfNonBonus = sen(epfWages - (x.annualBonus ?? 0));
 	const part = deathMonth ? null : epfPart(who.citizenship, age); // s.43(7): nothing due for the death month
 	const epfCode = who.citizenship === 'CITIZEN' ? 'EPF' : who.citizenship === 'PERMANENT_RESIDENT' ? 'EPF_PR' : 'EPF_NON_CITIZEN';
 	const epfAll = epf(part, epfWages, epfNonBonus);
 	if (epfAll.uncertain) uncertain.push(`${epfCode}.employee`, `${epfCode}.employer`);
 	if (indemnity) uncertain.push(`${epfCode}.employee`, `${epfCode}.employer`);
-	if (restDay || holiday) uncertain.push(`${epfCode}.employee`, `${epfCode}.employer`);
+	if (restDay || holiday || ptPlain || deathMonth) uncertain.push(`${epfCode}.employee`, `${epfCode}.employer`);
 	lines.push({ code: epfCode, employee: epfAll.ee, employer: epfAll.er, base: part === null ? 0 : epfWages });
 
 	// ---- SOCSO / EIS / SKBBK wages (Act 4 s.2(24), Act 800 s.2): include overtime, leave and holiday pay; exclude travelling
@@ -451,7 +522,9 @@ export function computePayslip(s: Scenario): Payslip {
 	const eisExcluded = age < 18 || age >= 60 || (age >= 57 && !who.eisPaidBefore57) || who.citizenship === 'FOREIGNER';
 	if (row >= 0 && !eisExcluded) lines.push({ code: 'EIS', employee: eisCell(row), employer: eisCell(row), base: ssWages });
 	// A1788 Third Schedule First Phase from the June 2026 contribution month; employee only; no age limit
-	if (row >= 0 && s.period >= '2026-06')
+	// MY-SKBBK-04: a local worker's accepted release (from 8 July 2026) ends the charge; a foreign worker's has no effect
+	const released = who.skbbkReleased === true && who.citizenship !== 'FOREIGNER' && s.period >= '2026-07';
+	if (row >= 0 && s.period >= '2026-06' && !released)
 		lines.push({ code: 'SKBBK', employee: NON_EMPLOYMENT[row]!, employer: 0, base: ssWages });
 
 	// ---- HRD levy (Act 612): citizens only; wages = basic salary, fixed cash allowances, leave pay, arrears; not bonus,
@@ -459,13 +532,20 @@ export function computePayslip(s: Scenario): Payslip {
 	// P.U.(A)13/2026: education MSIC employers exempt for 2026. Part-time citizens are employees under s.2 and no s.19 order
 	// excluding them was located (tracker MY-HRD12 SOURCE-BLOCKED) — levied, flagged. Rounded to the sen (law silent).
 	const hrdWages = sen(basic + topUp + (earnings.find((l) => l.code === 'FIXED_ALLOWANCE')?.amount ?? 0) + encashment);
-	const hrdRate =
-		who.citizenship !== 'CITIZEN' || s.employer.hrd === 'NOT_REGISTERED' || (s.employer.hrd === 'EDUCATION_EXEMPT' && y === 2026)
+	const er = s.employer;
+	const hc = er.citizenHeadcount ?? 0;
+	// s.15(5): exceeding the class maximum → 1% through the year; s.15(6): back within it the next year → 0.5%
+	const optionalRate = er.s15 === 'EXCEEDED_THIS_YEAR' ? 0.01 : 0.005;
+	const classRate =
+		er.hrd === 'NOT_REGISTERED' || (er.hrd === 'EDUCATION_EXEMPT' && y === 2026) // P.U.(A)13/2026
 			? 0
-			: s.employer.hrd === 'OPTIONAL'
-				? 0.005
-				: 0.01;
-	if (e.partTime && hrdRate) uncertain.push('HRDF.employer');
+			: er.hrd === 'OPTIONAL'
+				? optionalRate
+				: er.hrd === 'BY_HEADCOUNT' // First Schedule Part I; unregistered liability stands (MY-REG-01)
+					? hc >= 10 ? 0.01 : hc >= 5 && er.registered ? 0.005 : 0
+					: 0.01;
+	const hrdRate = who.citizenship !== 'CITIZEN' ? 0 : classRate;
+	if ((e.partTime || ptPlain) && hrdRate) uncertain.push('HRDF.employer');
 	if (hrdRate) lines.push({ code: 'HRDF', employee: 0, employer: sen(hrdRate * hrdWages), base: hrdWages });
 
 	// ---- PCB ----
@@ -475,15 +555,27 @@ export function computePayslip(s: Scenario): Payslip {
 	// addition to the fixed monthly pay, "non-fixed payment" — flagged).
 	const travelTaxable = Math.max(0, (x.travelOfficial ?? 0) - 6000);
 	const Y1 = sen(epfNormal + travelTaxable);
+	// part-time 1x extra hours and all overtime are additional remuneration (non-fixed), flagged below
 	const tbTaxable = Math.max(0, tb - 10000 * completedServiceYears);
-	const Yt = sen(ot + restDay + restOt + holiday + holidayOt + (x.annualBonus ?? 0) + encashment + indemnity + tbTaxable);
-	if (ot || restDay || holiday) uncertain.push('PCB.employee');
+	const Yt = sen(ot + ptPlain + restDay + restOt + holiday + holidayOt + (x.annualBonus ?? 0) + encashment + indemnity + tbTaxable);
+	if (ot || ptPlain || restDay || holiday) uncertain.push('PCB.employee');
 	if (indemnity) uncertain.push('PCB.employee');
+	// ITA s.7(1)(a) 182 days, (b) a stay linked across the year end reaching 182, (c)(ii) 90 days + 3 of 4 preceding years
+	const pr = who.presence;
+	const presenceResident =
+		pr !== undefined &&
+		(pr.daysThisYear >= 182 ||
+			pr.daysThisYear + (pr.linkedPrevYear ?? 0) >= 182 ||
+			(pr.daysThisYear >= 90 && (pr.precedingYears90 ?? 0) >= 3));
 	const nonResident =
 		who.taxResidency !== 'RESIDENT' &&
+		!presenceResident &&
 		!(who.citizenship === 'FOREIGNER' && (e.contractDays ?? 0) >= 182); // D(a) and its August 2017 note
+	const para21 = nonResident && pr?.para21EmploymentDays !== undefined && pr.para21EmploymentDays >= 1 && pr.para21EmploymentDays <= 60;
 	let pcb: number;
-	if (nonResident) {
+	if (para21) {
+		pcb = 0; // Sch.6 para 21(a): employment exercised in Malaysia for 60 days or fewer in the year is exempt
+	} else if (nonResident) {
 		pcb = up5(trunc2(0.3 * (Y1 + Yt))); // D(a): 30% of remuneration
 	} else {
 		const K1raw = epf(part, epfNormal, epfNormal).ee; // E(13)(i)
@@ -495,7 +587,8 @@ export function computePayslip(s: Scenario): Payslip {
 			K1raw,
 			Yt,
 			Ktraw: sen(epfAll.ee - K1raw), // E(13)(ii)–(iii)
-			zakat: x.zakat ?? 0
+			zakat: x.zakat ?? 0,
+			...who.tp3
 		});
 	}
 	lines.push({ code: 'PCB', employee: pcb, employer: 0, base: sen(Y1 + Yt) });

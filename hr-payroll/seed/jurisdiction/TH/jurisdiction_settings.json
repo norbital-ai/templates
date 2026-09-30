@@ -429,7 +429,23 @@
 					"basis": "NEXT_PAYDAY",
 					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
 				}
-			]
+			],
+			"deduction_ceiling": {
+				"share": 0.2,
+				"basis": "GROSS",
+				"assessment_period": "PAY_PERIOD",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"final_pay_exempt": false,
+				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
+				"group_limits": [
+					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+				],
+				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
+			}
 		},
 		"sources": {
 			"urls": [
@@ -1068,7 +1084,23 @@
 					"basis": "NEXT_PAYDAY",
 					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
 				}
-			]
+			],
+			"deduction_ceiling": {
+				"share": 0.2,
+				"basis": "GROSS",
+				"assessment_period": "PAY_PERIOD",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"final_pay_exempt": false,
+				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
+				"group_limits": [
+					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+				],
+				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
+			}
 		},
 		"sources": {
 			"urls": [
@@ -1707,7 +1739,23 @@
 					"basis": "NEXT_PAYDAY",
 					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
 				}
-			]
+			],
+			"deduction_ceiling": {
+				"share": 0.2,
+				"basis": "GROSS",
+				"assessment_period": "PAY_PERIOD",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"final_pay_exempt": false,
+				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
+				"group_limits": [
+					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+				],
+				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
+			}
 		},
 		"sources": {
 			"urls": [
@@ -2346,7 +2394,23 @@
 					"basis": "NEXT_PAYDAY",
 					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
 				}
-			]
+			],
+			"deduction_ceiling": {
+				"share": 0.2,
+				"basis": "GROSS",
+				"assessment_period": "PAY_PERIOD",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"final_pay_exempt": false,
+				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
+				"group_limits": [
+					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+				],
+				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
+			}
 		},
 		"sources": {
 			"urls": [
@@ -2977,7 +3041,23 @@
 					"basis": "NEXT_PAYDAY",
 					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
 				}
-			]
+			],
+			"deduction_ceiling": {
+				"share": 0.2,
+				"basis": "GROSS",
+				"assessment_period": "PAY_PERIOD",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"final_pay_exempt": false,
+				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
+				"group_limits": [
+					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+				],
+				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
+			}
 		},
 		"sources": {
 			"urls": [
@@ -3622,7 +3702,23 @@
 					"basis": "NEXT_PAYDAY",
 					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
 				}
-			]
+			],
+			"deduction_ceiling": {
+				"share": 0.2,
+				"basis": "GROSS",
+				"assessment_period": "PAY_PERIOD",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"final_pay_exempt": false,
+				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
+				"group_limits": [
+					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+				],
+				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
+			}
 		},
 		"sources": {
 			"urls": [
@@ -4267,7 +4363,23 @@
 					"basis": "NEXT_PAYDAY",
 					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
 				}
-			]
+			],
+			"deduction_ceiling": {
+				"share": 0.2,
+				"basis": "GROSS",
+				"assessment_period": "PAY_PERIOD",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"final_pay_exempt": false,
+				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
+				"group_limits": [
+					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+				],
+				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
+			}
 		},
 		"sources": {
 			"urls": [
@@ -4912,7 +5024,23 @@
 					"basis": "NEXT_PAYDAY",
 					"authority": "Labour Protection Act s.70 para.1: otherwise wages are paid on the agreed pay day, at least once a month."
 				}
-			]
+			],
+			"deduction_ceiling": {
+				"share": 0.2,
+				"basis": "GROSS",
+				"assessment_period": "PAY_PERIOD",
+				"counts_statutory": false,
+				"counts_loans": true,
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"final_pay_exempt": false,
+				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
+				"group_limits": [
+					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
+					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+				],
+				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
+			}
 		},
 		"sources": {
 			"urls": [

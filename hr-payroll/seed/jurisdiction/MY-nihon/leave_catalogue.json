@@ -242,6 +242,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "28994a2b-213b-51eb-afe8-2a93395cfbb5",
+		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "96892bca-d430-534d-8e2e-f04e150f4e28",
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -472,6 +489,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ca624270-11d2-5c77-a5c9-3bbe033b973a",
+		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -726,6 +760,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "6ead3c4e-aab0-565b-9602-cb9bed7394d6",
+		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "8d844795-5692-5b7a-8e23-34c6a3a1beed",
 		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -956,6 +1007,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "cb7ca550-bcb3-52a2-a0bd-29eb77345c42",
+		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1210,6 +1278,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "fb0f3fa0-b5dd-5ca8-861c-d05c0a422961",
+		"settings_id": "035fe649-7807-5a9a-ac0c-af52650a2feb",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "b166f9de-ae8f-56a9-a8d4-6b569378c3e9",
 		"settings_id": "afb1af6a-dc87-5261-841f-c07946dce50e",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -1440,6 +1525,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "111853ad-e958-59c4-a452-8002ac20c105",
+		"settings_id": "afb1af6a-dc87-5261-841f-c07946dce50e",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -1694,6 +1796,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "1c4db0cb-ef59-5f52-9855-ff00d3f1ccf3",
+		"settings_id": "a0131890-6831-5877-ba7a-226d53641b4f",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "c63b5823-bfbe-55b2-a856-99b6d779d8f5",
 		"settings_id": "76ad3dca-70cf-5225-a866-e6e9c77ca7c7",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -1924,6 +2043,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "f159b8bf-da36-5f78-91ae-7c6b168a21b4",
+		"settings_id": "76ad3dca-70cf-5225-a866-e6e9c77ca7c7",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -2178,6 +2314,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "f56c4bfc-4917-5d7a-a952-338e04dc6a2e",
+		"settings_id": "3c1456f9-6462-5c19-a65e-2347b518b3f5",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "b6216eb4-37a2-5666-877e-8c7162229a88",
 		"settings_id": "7986fbc4-f724-5269-94d3-49c7fd4ebaf2",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -2408,6 +2561,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "8b772139-4f8f-55a4-904f-b3fe9bb42de0",
+		"settings_id": "7986fbc4-f724-5269-94d3-49c7fd4ebaf2",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -2662,6 +2832,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "1bb91db2-0437-59f5-94fd-18838abf8bac",
+		"settings_id": "2c514e79-7396-5a28-a6ac-dc793ad66497",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "6e0bbf26-87dc-59f8-a3b8-53aab1e6d389",
 		"settings_id": "047d7a5b-852c-559d-b2d0-f721cb820514",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -2892,6 +3079,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "59f47e46-5bd0-58ee-b9e3-0ab4198b9db0",
+		"settings_id": "047d7a5b-852c-559d-b2d0-f721cb820514",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -3146,6 +3350,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "bfe76c07-d37d-584a-9598-0658c54538e5",
+		"settings_id": "ca3f7f9d-a7c2-50d9-8566-2a19206b3f66",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "426b7237-93dd-5f92-a664-d4ee32824a72",
 		"settings_id": "3b087820-2cb6-5a9c-b4ca-31ddb5957a02",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -3376,6 +3597,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "da154218-c734-52b7-9086-fc99c10b940b",
+		"settings_id": "3b087820-2cb6-5a9c-b4ca-31ddb5957a02",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -3630,6 +3868,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "37ab6058-9e9b-507c-b021-a84faa9730f6",
+		"settings_id": "c3d0d51d-e1c8-53da-8144-c0a09a3771e5",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "a8a55f2a-fc56-58a5-bb8d-af4297f81ad0",
 		"settings_id": "488ff2a4-81ec-55e3-8e93-be89eaa5af69",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -3860,6 +4115,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "8c6d66c2-8ceb-52c3-b52e-20d7dbbf812e",
+		"settings_id": "488ff2a4-81ec-55e3-8e93-be89eaa5af69",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -4114,6 +4386,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "e2147624-aafe-5ad3-af28-15eceefd707b",
+		"settings_id": "a2d9696e-f903-5333-a3dc-1357d8cbcf68",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "fdb0d385-da2d-56c4-8419-cf58742fb83c",
 		"settings_id": "e9b35eb8-53fb-5e9f-98e9-50671005938c",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -4344,6 +4633,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ad9e41e9-9075-5554-9222-cbb613f82a13",
+		"settings_id": "e9b35eb8-53fb-5e9f-98e9-50671005938c",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -4598,6 +4904,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "2052e876-9427-5097-a49e-5e41ac85e337",
+		"settings_id": "6215213b-d017-5916-8cdf-bd2d64412a3f",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "b31e87b4-4a7e-5ca2-8afd-ebe7493d94f5",
 		"settings_id": "c7e8b8e8-cb91-5a2b-b442-a33c089b841e",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -4828,6 +5151,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "985598d3-657b-5b38-b967-fed25f8be7ea",
+		"settings_id": "c7e8b8e8-cb91-5a2b-b442-a33c089b841e",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -5082,6 +5422,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "37177bf9-04f8-5886-b20e-1efc93b3b458",
+		"settings_id": "dcbfe46a-d948-5aa7-b3c2-7500b9ec7283",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "095db8f3-3032-522f-8fc6-0fa221bc01dc",
 		"settings_id": "10e35465-e226-5f28-82f8-149385947cac",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -5312,6 +5669,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "0c653154-eddd-5560-b58d-10af785ce797",
+		"settings_id": "10e35465-e226-5f28-82f8-149385947cac",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -5566,6 +5940,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "078da397-1b2c-5bc4-8f74-fc1e58ba61ce",
+		"settings_id": "df51b92b-1c02-56a4-b4ca-984ac130d184",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "fbd60c00-958f-5398-bede-9a3c0cc11e12",
 		"settings_id": "db473023-ba7d-549f-9a23-51dc366e111a",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -5796,6 +6187,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "1b35ec18-e55a-564f-91f5-7f605f3269c9",
+		"settings_id": "db473023-ba7d-549f-9a23-51dc366e111a",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -6050,6 +6458,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "f38e4551-c4e3-5339-b44c-eacbf7905107",
+		"settings_id": "c945be82-d3c4-5c82-ac9d-5b8e52378cae",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "9d8ea346-8c71-5e07-b4ff-bb7d52e2b6af",
 		"settings_id": "1b4c5584-fe04-57da-807a-b7a37c6446c0",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -6280,6 +6705,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "cf652e95-58ad-5774-a0f9-1606968fa338",
+		"settings_id": "1b4c5584-fe04-57da-807a-b7a37c6446c0",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -6534,6 +6976,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "87c93c8a-2a55-5528-abd5-ab6fdc26b20c",
+		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "b0a0e89e-1bc9-41ed-9e1b-da4c1d62fd48",
 		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -6764,6 +7223,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "4ea77e6c-62fb-54a5-8319-7fb103523d11",
+		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -7018,6 +7494,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "a4e5ec46-3002-5f85-94af-c762a9cec378",
+		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "43280ef9-0992-4b43-ad9e-c410841a5349",
 		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -7248,6 +7741,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "ae9755b5-0b0f-590a-9a51-e7646bb69e8c",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",
@@ -7502,6 +8012,23 @@
 		"encash_on_exit": false
 	},
 	{
+		"id": "d47ffb7e-a60b-53fc-8cd8-387d766cf8a5",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
 		"id": "8743844b-d5a5-49ac-bef6-e5cdd4e3defb",
 		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
 		"code": "PUBLIC_HOLIDAY_IN_LIEU",
@@ -7732,6 +8259,23 @@
 		"code": "UNPAID_LEAVE",
 		"name": "Unpaid leave",
 		"authority": "",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"is_npl": true,
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "a963ac3e-0634-5be5-8271-be17b671a30f",
+		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"code": "NATIONAL_SERVICE_LEAVE",
+		"name": "National service leave",
+		"authority": "Employment Act 1955 (Act 265) s.18A(d), AGC reprint as at 1 August 2023 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf, read 2026-09-30): a monthly-rated employee who took leave of absence by reason of having been called up for national service under the National Service Act 1952, to present himself for national service training under the National Service Training Act 2003 or to comply with any other written law relating to national service is paid for that month monthly wages x days eligible / days of the wage period — the same s.18A formula as unpaid leave, so the leave is unpaid (is_npl) and the days are its own class, not UNPAID_LEAVE. Added 2026-09-30 (transcription: s.18A(d) was missing from every version). The Act is silent on whether the absence breaks service for s.60E; recorded default (owner rule): it does not — it is not listed in service_months_net, lawful because s.60E(1) counts continuous service and the absence is required by written law.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UNLIMITED",

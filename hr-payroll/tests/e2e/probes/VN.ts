@@ -63,6 +63,10 @@ type Hire = {
 	foreigner?: boolean;
 	nonResident?: boolean;
 	pensioner?: boolean;
+	/** A person with a disability (`employee.disabled`). */
+	disabled?: boolean;
+	/** Further UI elections (the Decree 374/2025 art.5 disabled-hire reduction). */
+	uiElections?: Row;
 	/** Qualified for a monthly pension though not receiving one (Law 74/2025 art.31(2)); defaults to `pensioner`. */
 	pensionQualified?: boolean;
 	/** One salary, or dated salary segments (a raise inside the month). */
@@ -114,7 +118,8 @@ function hire(p: Hire): ProbeInput[] {
 				date_of_birth: p.born,
 				gender: p.gender ?? 'MALE',
 				nationality: p.nationality ?? (p.foreigner ? 'Japanese' : 'Vietnamese'),
-				receiving_pension: p.pensioner ?? false
+				receiving_pension: p.pensioner ?? false,
+				...(p.disabled ? { disabled: true } : {})
 			}
 		},
 		{
@@ -157,7 +162,10 @@ function hire(p: Hire): ProbeInput[] {
 					fact('UI', p.uiFrom ?? p.from, {
 						// the UI registration day: the uninsured span severance counts is the service before it
 						...(p.uiFrom == null ? {} : { since: p.uiFrom }),
-						elections: { pension_qualified: p.pensionQualified ?? p.pensioner ?? false }
+						elections: {
+							pension_qualified: p.pensionQualified ?? p.pensioner ?? false,
+							...p.uiElections
+						}
 					})
 				]),
 		fact('UNION_DUES', p.from, { elections: { union_member: p.member ?? false } }),
@@ -2871,5 +2879,299 @@ register(
 		],
 		period: '2026-03',
 		expected: [{ employment: 'ngan_job', lines: { gross: 1_177_273, net: 1_177_273, employer_cost: 0 } }]
+	}
+);
+
+// ─── Closure round 2026-09-30 (batch 10): disabled-hire UI relief, settlement deadline, month OT limit, sickness,
+// wage deductions ──────────────────────────────────────────────────────────────────────────────────────────────────
+
+const D374_ART5_CITE =
+	'Decree 374/2025/ND-CP art.5 (Official Gazette 48 of 23 January 2026, DOCX text read 2026-09-30, https://congbao.chinhphu.vn/van-ban/nghi-dinh-so-374-2025-nd-cp-468724.htm): (1) an employer that newly hires and employs a worker with a disability pays 0% instead of 1% of its own UI share for that worker while the worker works, for at most the first 12 months from the hire; (2) it registers the worker with the social-insurance agency with a copy of the disability certificate';
+const LC_GAZETTE =
+	'Labour Code 45/2019/QH14, Official Gazette 993+994 of 26 December 2019 (https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf, text layer read 2026-09-30)';
+
+/** A dated SI or HI declaration for March 2026 (the other VN cases leave both to the run's ASSESS default). */
+const registered = (ref: string, number: string, code: 'SI' | 'HI', elections: Row = {}): ProbeInput => ({
+	collection: 'employment_statutory_facts',
+	values: {
+		employee_id: `@${ref}`,
+		employment_id: `@${ref}_job`,
+		statutory_contribution_id: `@law:statutory_contributions:${code}`,
+		effective_range: { from: '2026-03-01', to: '2026-03-31' },
+		status: { kind: 'REGISTERED', reference_number: `PROBE-${code}-${number}`, elections }
+	}
+});
+
+/** One ad hoc request of the named class in March 2026. */
+const adhoc = (ref: string, code: string, amount: number, values: Row = {}): ProbeInput => ({
+	collection: 'adhoc_requests',
+	values: {
+		employment_id: `@${ref}_job`,
+		catalogue_id: `@law:adhoc_catalogue:${code}`,
+		amount,
+		event_date: '2026-03-10',
+		pay_period: '2026-03',
+		reason: code,
+		...values
+	}
+});
+
+const damage = (ref: string, amount: number): ProbeInput => ({
+	...adhoc(ref, 'PROPERTY_DAMAGE_COMPENSATION', amount, {
+		reason: 'Instalment of compensation decided for a damaged tool (Labour Code arts.129–130)'
+	}),
+	files: { evidence_file: 'compensation-decision.pdf' }
+});
+
+register(
+	{
+		id: 'VN-UI-05-1',
+		profile: 'VN',
+		description:
+			'Three citizens with a disability on 20,000,000, Region I, March 2026: one hired Monday 5 January 2026 and registered for the Decree 374/2025 art.5 reduction with the certificate (employer UI 0%, the worker still 1%); one hired the same day without that registration (1% + 1%); one hired 2 June 2025 and registered (1% + 1%: hired before the decree took effect).',
+		citation: [
+			D374_ART5_CITE,
+			'Owner rule 2026-09-28 defaults recorded in VN-UI-05 (the decree is silent): the 12 months are the hire month and the eleven after it — March 2026 is the third for a 5 January hire; a hire before 1 January 2026, the decree’s commencement, is not “tuyển mới” under it',
+			`${SI_CITE}: 1,600,000 / 3,500,000; ${HI_CITE}: 300,000 / 600,000; ${UI_CITE}: 200,000 worker; employer 200,000, or 0 under art.5`,
+			`${PIT_CITE}: 20,000,000 − 2,100,000 − 15,500,000 = 2,400,000 × 5% = 120,000; net 17,780,000`,
+			'Employer cost 3,500,000 + 600,000 + 0 = 4,100,000 with the reduction, 4,300,000 without'
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...hire({
+				ref: 'khuyet',
+				name: 'Khuyết Văn Một',
+				number: 'P-VN-381',
+				born: '1995-01-15',
+				disabled: true,
+				salary: 20_000_000,
+				from: '2026-01-05',
+				uiElections: {
+					disabled_new_hire_relief: true,
+					disability_certificate_reference: 'GXNKT-2025-0381'
+				}
+			}),
+			...hire({
+				ref: 'khuyet2',
+				name: 'Khuyết Thị Hai',
+				number: 'P-VN-382',
+				born: '1996-02-15',
+				gender: 'FEMALE',
+				disabled: true,
+				salary: 20_000_000,
+				from: '2026-01-05'
+			}),
+			...hire({
+				ref: 'khuyet3',
+				name: 'Khuyết Văn Ba',
+				number: 'P-VN-383',
+				born: '1990-03-15',
+				disabled: true,
+				salary: 20_000_000,
+				from: '2025-06-02',
+				uiElections: {
+					disabled_new_hire_relief: true,
+					disability_certificate_reference: 'GXNKT-2025-0383'
+				}
+			})
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'khuyet_job',
+				lines: slip(20_000_000, 17_780_000, 4_100_000, [1_600_000, 3_500_000], [300_000, 600_000], [200_000, 0], 120_000)
+			},
+			...['khuyet2_job', 'khuyet3_job'].map((employment) => ({
+				employment,
+				lines: slip(20_000_000, 17_780_000, 4_300_000, [1_600_000, 3_500_000], [300_000, 600_000], [200_000, 200_000], 120_000)
+			}))
+		]
+	},
+	{
+		id: 'VN-LC48-01-1',
+		profile: 'VN',
+		description:
+			'Two leavers on Friday 6 March 2026, each hired 1 January 2022 on 22,000,000: a resignation (the final settlement due on the 14th working day, Thursday 26 March, so the 31 March run warns) and a redundancy with UI from 1 January 2024 (the art.48(1)(b) 30-day extension to 5 April: no warning). Five of March’s 22 working days are paid; the 17 after the exit take the month outside SI, HI and UI.',
+		citation: [
+			`${LC_GAZETTE} art.48(1) (p.24): the parties settle every amount within 14 working days of the termination, extendable to at most 30 days where the employer restructures or changes technology or for economic reasons (b); Civil Code 91/2015/QH13 art.147(3): the day of termination is not counted — 9–13, 16–20, 23–26 March → 26 March; 6 March + 30 days = 5 April`,
+			`Final salary: owner rule VN-PRORATE-01 and ${LC_CITE} art.54(1)(a3): 22,000,000 × 5 ÷ 22 = 5,000,000`,
+			`Annual leave: Labour Code art.113(1) 12 days, art.114(1) no seniority day before five years (4 years); ${LC_CITE} art.66(1)–(2): 12 ÷ 12 × 2 months (March’s 5 of 22 working days is under 50%, so it does not count) = 2 days; art.67(3): February’s contract salary 22,000,000 ÷ its 20 normal working days = 1,100,000 → 2,200,000`,
+			`Job-loss: Labour Code art.47(1) one month’s wage per year, at least two; ${LC_CITE} art.8(2)–(3): service 1 January 2022 – 6 March 2026 less UI-insured time from 1 January 2024 = 24 months = 2 years → 2 × 22,000,000 = 44,000,000 (redundancy, art.34(11)). The resigner is UI-insured throughout, so no uncovered year owes severance (art.46)`,
+			`${SI_CITE}; arts.33(5), 34(3): 17 working days of March after the exit are unworked and unpaid → no SI, and so no HI (${HI_CITE}) and no UI (Law 74/2025 art.33(4))`,
+			'PIT: the March salary is paid on 31 March after the contract ended: owner rule 2026-09-28 (VN-PIT-06) 10% of the payment → 500,000; untaken-leave pay exempt (Law 109/2025 art.4(8)); job-loss allowance outside salary income (Decree 253/2026 art.8(3)(h))',
+			'Resigner: gross 5,000,000 + 2,200,000 = 7,200,000, net 6,700,000. Redundant: gross 51,200,000, net 50,700,000'
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...(
+				[
+					{ ref: 'roi', name: 'Rời Văn Đi', number: 'P-VN-371', uiFrom: '2022-01-01', redundant: false },
+					{ ref: 'cat', name: 'Cắt Thị Giảm', number: 'P-VN-372', uiFrom: '2024-01-01', redundant: true }
+				] as const
+			).flatMap(({ ref, name, number, uiFrom, redundant }) => [
+				...hire({
+					ref,
+					name,
+					number,
+					born: '1985-05-05',
+					gender: redundant ? 'FEMALE' : 'MALE',
+					salary: 22_000_000,
+					from: '2022-01-01',
+					to: '2026-03-06',
+					uiFrom,
+					exitReason: redundant ? 'REDUNDANCY' : 'RESIGNATION',
+					exitFacts: redundant ? {} : { pension_eligible: false },
+					pit: {
+						unit_assessments: [
+							{ period: '2026-03', gross: 5_000_000, units: 1, reference: 'FINAL-WAGE', paid_on: '2026-03-31' }
+						]
+					}
+				}),
+				registered(ref, number, 'SI', { continue_si_unpaid: false }),
+				registered(ref, number, 'HI'),
+				leave(`${ref}_job`, 'ANNUAL_LEAVE', {
+					reference: `EXIT-AL-${ref}`,
+					from_date: '2026-01-01',
+					to_date: '2026-12-31',
+					days: 2,
+					encash_days: 2,
+					effective_on: '2026-03-06',
+					due_on: '2026-03-06',
+					reason: 'Unused annual leave on departure 2026-03-06'
+				}),
+				adhoc(ref, redundant ? 'JOB_LOSS_ALLOWANCE' : 'SEVERANCE_ALLOWANCE', 0, {
+					event_date: '2026-03-06',
+					reason: 'Separation payment on departure 2026-03-06'
+				})
+			])
+		],
+		period: '2026-03',
+		warnings: ['FINAL_PAY_LATE: P-VN-371 left on 2026-03-06.*by 2026-03-26.*pays on 2026-03-31'],
+		expected: [
+			{ employment: 'roi_job', lines: { gross: 7_200_000, net: 6_700_000, employer_cost: 0, 'PIT.employee': 500_000 } },
+			{
+				employment: 'cat_job',
+				lines: {
+					gross: 51_200_000,
+					net: 50_700_000,
+					employer_cost: 0,
+					JOB_LOSS_ALLOWANCE: 44_000_000,
+					'PIT.employee': 500_000
+				}
+			}
+		]
+	},
+	{
+		id: 'VN-LC107-01-1',
+		profile: 'VN',
+		description:
+			'The 40-hour month, March 2026 (22 working days, no holiday), 17,600,000 (100,000 an hour): 3 approved overtime hours beyond the normal day on 14 weekdays (2–19 March) = 42. The first 40 are overtime at 150%, exempt from PIT; the 41st and 42nd (19 March) are paid at the same rate as taxable incentive pay.',
+		citation: [
+			`${LC_GAZETTE} art.107(2)(b) (p.47): overtime at most 50% of the normal daily hours and at most 40 hours a month; art.98(1)(a): at least 150% on a normal day; ${LC_CITE} art.55(1)(a): 17,600,000 ÷ 22 ÷ 8 = 100,000 → 150,000 an overtime hour`,
+			'OVERTIME 40 × 150,000 = 6,000,000; the 2 hours past the monthly ceiling INCENTIVE 2 × 150,000 = 300,000 (work done is paid, but it is not overtime within art.107)',
+			'PIT: Law 109/2025/QH15 art.4(8) (Official Gazette 37 DOCX, https://congbao.chinhphu.vn/van-ban/luat-so-109-2025-qh15-468671.htm, read 2026-09-30) exempts “tiền lương làm việc ban đêm, làm thêm giờ … theo quy định của pháp luật” — overtime within the labour law, applied to resident salary from tax year 2026 (art.29(2)); the 2 hours past art.107(2)(b) are taxable (the seeded reading, golden “VN — overtime past the 40-hour month … funnelled to the taxable line”)',
+			`${SI_CITE}, ${HI_CITE}, ${UI_CITE}: on 17,600,000 — 1,408,000 / 3,080,000; 264,000 / 528,000; 176,000 / 176,000`,
+			`${PIT_CITE}: 17,600,000 + 300,000 − 1,848,000 − 15,500,000 = 552,000 × 5% = 27,600`,
+			'Labour Code art.107(2)(b): 11 hours worked a day (8 + 3) is within 12. Gross 17,600,000 + 6,300,000 = 23,900,000; net 23,900,000 − 1,848,000 − 27,600 = 22,024,400'
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...hire({ ref: 'gio40', name: 'Giờ Văn Trần', number: 'P-VN-391', born: '1991-01-01', salary: 17_600_000, from: '2025-06-02' }),
+			...[2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 16, 17, 18, 19].map((day) =>
+				worked('gio40_job', `2026-03-${String(day).padStart(2, '0')}`, [['09:00', '13:00'], ['14:00', '21:00']], 3)
+			)
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'gio40_job',
+				lines: {
+					...slip(23_900_000, 22_024_400, 3_784_000, [1_408_000, 3_080_000], [264_000, 528_000], [176_000, 176_000], 27_600),
+					BASIC: 17_600_000,
+					OVERTIME: 6_000_000,
+					INCENTIVE: 300_000
+				}
+			}
+		]
+	},
+	{
+		id: 'VN-SI-07-1',
+		profile: 'VN',
+		description:
+			'Two certified sick days (Tuesday–Wednesday 10–11 March 2026) for a citizen on 22,000,000 with sickness benefit declared: the days are paid by the SI fund, not the payroll, so the salary is 20 of 22 working days; SI, HI and UI stay on the contract salary.',
+		citation: [
+			'Law 41/2024/QH15 art.43(1)(a) (https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm): 30 working days a year under 15 years’ contribution; art.45: the fund pays 75% of the preceding month’s insured salary for the days — a benefit, not a wage; art.47: the certificate of leave',
+			'Owner rule VN-PRORATE-01: 22,000,000 × 20 ÷ 22 = 20,000,000',
+			`${SI_CITE}; arts.33(5), 34(3): only 14 or more days off in the month end its contribution — 2 here: 1,760,000 / 3,850,000; ${HI_CITE}: 330,000 / 660,000; ${UI_CITE}: 220,000 / 220,000`,
+			`${PIT_CITE}: 20,000,000 − 2,310,000 − 15,500,000 = 2,190,000 × 5% = 109,500; net 17,580,500`
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...hire({ ref: 'om', name: 'Ốm Thị Đau', number: 'P-VN-392', born: '1992-02-02', gender: 'FEMALE', salary: 22_000_000, from: '2025-06-02' }),
+			registered('om', 'P-VN-392', 'SI', { sickness_benefit_eligible: true, long_term_sickness: false, first_return_month: false }),
+			{
+				...leave('om_job', 'SICK_LEAVE', {
+					reference: 'SICK-2',
+					from_date: '2026-03-10',
+					to_date: '2026-03-11',
+					reason: 'Certified sickness (Law 41/2024 art.42)'
+				}),
+				files: { certificate_file: 'sick-leave-certificate.pdf' }
+			}
+		],
+		period: '2026-03',
+		expected: [
+			{ employment: 'om_job', lines: slip(20_000_000, 17_580_500, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000], 109_500) }
+		]
+	},
+	{
+		id: 'VN-LC102-01-1',
+		profile: 'VN',
+		description:
+			'A decided compensation instalment for a damaged tool, March 2026, a citizen on 20,000,000: exactly 30% of the wage after SI, HI, UI and PIT (5,334,000) is deducted.',
+		citation: [
+			`${LC_GAZETTE} art.102(1)–(3) (p.45): wages may be deducted only to compensate damage to tools, equipment or property under art.129; the worker is told the reason; at most 30% of the monthly wage actually paid after compulsory SI, HI, UI and PIT; art.129(1) (p.55): negligent damage is compensated by monthly deduction under art.102(3)`,
+			`${SI_CITE}: 1,600,000; ${HI_CITE}: 300,000; ${UI_CITE}: 200,000; ${PIT_CITE}: 120,000 (the deduction does not reduce taxable salary, owner rule VN-LC102-01)`,
+			'Ceiling (20,000,000 − 2,220,000) × 30% = 5,334,000; net 20,000,000 − 2,220,000 − 5,334,000 = 12,446,000'
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...hire({ ref: 'hong', name: 'Hỏng Văn Máy', number: 'P-VN-393', born: '1989-09-09', salary: 20_000_000, from: '2025-06-02' }),
+			damage('hong', 5_334_000)
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'hong_job',
+				lines: {
+					...slip(20_000_000, 12_446_000, 4_300_000, [1_600_000, 3_500_000], [300_000, 600_000], [200_000, 200_000], 120_000),
+					total_deductions: 7_554_000,
+					PROPERTY_DAMAGE_COMPENSATION: 5_334_000
+				}
+			}
+		]
+	},
+	{
+		id: 'VN-LC102-01-2',
+		profile: 'VN',
+		description:
+			'The same instalment one đồng over the art.102(3) ceiling (5,334,001): the run is refused, not shortened.',
+		citation: [
+			`${LC_GAZETTE} art.102(3) (p.45): the monthly deduction may not exceed 30% of the wage after SI, HI, UI and PIT — (20,000,000 − 2,220,000) × 30% = 5,334,000 < 5,334,001`
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...hire({ ref: 'hong2', name: 'Hỏng Thị Thêm', number: 'P-VN-394', born: '1990-10-10', gender: 'FEMALE', salary: 20_000_000, from: '2025-06-02' }),
+			damage('hong2', 5_334_001)
+		],
+		period: '2026-03',
+		refused: 'DEDUCTION_CEILING_EXCEEDED.*P-VN-394',
+		expected: []
 	}
 );

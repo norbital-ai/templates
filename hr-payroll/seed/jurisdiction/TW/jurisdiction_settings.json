@@ -295,6 +295,13 @@
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
+			},
+			{
 				"key": "pension_reserve_rate",
 				"type": "number",
 				"label": "Pension reserve rate",
@@ -986,6 +993,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -1688,6 +1702,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -2393,6 +2414,13 @@
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
+			},
+			{
 				"key": "pension_reserve_rate",
 				"type": "number",
 				"label": "Pension reserve rate",
@@ -3085,6 +3113,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -3788,6 +3823,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -4495,6 +4537,13 @@
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
+			},
+			{
 				"key": "pension_reserve_rate",
 				"type": "number",
 				"label": "Pension reserve rate",
@@ -5189,6 +5238,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -5896,6 +5952,13 @@
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
+			},
+			{
 				"key": "pension_reserve_rate",
 				"type": "number",
 				"label": "Pension reserve rate",
@@ -6600,6 +6663,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -7317,6 +7387,13 @@
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
 			},
 			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
+			},
+			{
 				"key": "pension_reserve_rate",
 				"type": "number",
 				"label": "Pension reserve rate",
@@ -8030,6 +8107,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -8760,6 +8844,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",
@@ -9508,6 +9599,13 @@
 				"label": "Approved responsibility system",
 				"default_value": false,
 				"description": "勞動基準法 §84-1: an approved responsibility system (責任制) for a category the central authority has announced, with a written agreement filed with the local authority, sets hours outside §30, §32, §36, §37 and §49. It is an exception that must be approved; unrecorded is none: false."
+			},
+			{
+				"key": "welfare_committee_established",
+				"type": "boolean",
+				"label": "Employee welfare committee established",
+				"default_value": false,
+				"description": "職工福利金條例 §1: 凡公營、私營之工廠、礦場或其他企業組織，均應提撥職工福利金，辦理職工福利事業; §2(1)(3): 每月於每個職員工人薪津內各扣百分之○‧五 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0040001, last amended 2015-07-01). True where this entity has established its 職工福利委員會 and the fund the deduction is paid into: the WELFARE_FUND scheme then withholds 0.5% of every worker's 薪津 each month (temporary workers included: 勞委會 93-02-17 勞福一字第0930006802號函). Unrecorded is no committee: false, and nothing is withheld."
 			},
 			{
 				"key": "pension_reserve_rate",

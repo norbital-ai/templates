@@ -50,6 +50,13 @@
  *          months or more a whole year.
  *   MEAL   營利事業所得稅查核準則 §88(2)(1): a fixed monthly 伙食代金 is outside salary income to NT$3,000 (TW-TAX-06);
  *          it is still 工資 for the insured bases.
+ *   GEEA   性別平等工作法 https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014 arts. 14 (生理假 half pay, three days
+ *          a year apart from 病假), 15 (paternity / prenatal days paid); LSA art. 50(2) (產假 halved under six months)
+ *   SEV    LSA art. 17 (old-system 資遣費: a month a year, remainder pro rata, part month as a month); LPA arts. 11–12;
+ *          財政部 83-08-09 台財稅第831604301號 https://law-out.mof.gov.tw/LawContent.aspx?id=GL006450 (notice pay is 退職所得)
+ *   AL-TAX 高雄國稅局 2019-12-30 release (MOF portal, TW-LEAVE-01): unused 特休 pay is 不休假加班費, outside 薪資所得
+ *   PTNHI  NHI Act art. 31(1)(2) 兼職薪資所得: 2.11% on a single payment reaching the minimum wage; NHIA part-time Q&A
+ *          https://www.nhi.gov.tw/ch/cp-2981-5ed58-3150-1.html (every workday, or 12 hours a week, is enrolled)
  *   GARN   強制執行法 §115-1: the garnishee pays the ordered amount out of each wage payment (TW-WAGE-06).
  *   SUB    身心障礙者參加社會保險保險費補助辦法 §4–5: 輕度 ¼, 中度 ½, 重度/極重度 all of the insured's own LI/EI/NHI share.
  *
@@ -87,6 +94,12 @@ export type Scenario = {
 		pay: Pay;
 		/** contracted weekly hours of a part-timer; null = full-time */
 		partTimeWeeklyHours: number | null;
+		/** a part-timer at work every workday, whatever the hours (NHIA part-time Q&A cp-2981: enrolled) */
+		worksEveryWorkday: boolean;
+		/** a genuinely terminated short-term hire: the 29,500 minimum on both insurance paths (BLI 0101373) */
+		shortTermHire: boolean;
+		/** retained old-system service months before the new system (LPA art. 11(2), LSA art. 17) */
+		oldSystemServiceMonths: number;
 		/** fixed monthly 伙食代金 */
 		mealAllowance: number;
 		/** the insurer-accepted declared wage when it differs from the month's wage (a raise not yet notified) */
@@ -95,8 +108,12 @@ export type Scenario = {
 		/** spouse + dependants declared for the withholding table */
 		taxDependants: number;
 		taxMethod: 'TABLE' | 'FLAT5';
-		pension: { system: 'NEW'; voluntaryRate: number } | { system: 'OLD_RETAINED'; reserveRate: number };
+		pension:
+			| { system: 'NEW'; voluntaryRate: number; rateChange?: { from: string; voluntaryRate: number } }
+			| { system: 'OLD_RETAINED'; reserveRate: number };
 		disability: null | 'MILD' | 'MODERATE' | 'SEVERE';
+		/** the disability level of each registered NHI dependant (null = none), in dependant order */
+		dependantDisability: (null | 'MILD' | 'MODERATE' | 'SEVERE')[];
 		/** an LI enrolment that continues after 65 */
 		liAfter65: boolean;
 	};
@@ -110,7 +127,24 @@ export type Scenario = {
 		/** §40 例假 days worked in an emergency */
 		restDayEmergencyDays: number;
 	};
-	leave: { personalDays: number; sickDays: number; sickPriorDays: number; parentalWholeMonth: boolean };
+	leave: {
+		personalDays: number;
+		/** 普通傷病假 days this month, hospitalised or not (art. 4: one 30-day half-pay allowance a year) */
+		sickDays: number;
+		sickPriorDays: number;
+		/** 生理假 days this month and earlier this year (GEEA art. 14) */
+		menstrualDays: number;
+		menstrualPriorDays: number;
+		/** 產假 days this month (GEEA art. 15; LSA art. 50) */
+		maternityDays: number;
+		/** 陪產檢及陪產假 / 產檢假 days (GEEA art. 15: full pay) */
+		paternityDays: number;
+		/** 公傷病假 days (LSA art. 59(2): 原領工資 kept whole) */
+		occInjuryDays: number;
+		parentalWholeMonth: boolean;
+	};
+	/** LSA art. 59(1): necessary medical costs reimbursed through payroll, with receipts */
+	occInjuryMedical: number;
 	bonus: { amount: number; priorThisYear: number };
 	garnishment: number;
 	exit: null | {
@@ -342,6 +376,22 @@ export function computePayslip(sc: Scenario): Payslip {
 		const half = Math.min(sc.leave.sickDays, Math.max(0, 30 - sc.leave.sickPriorDays));
 		earn('SICK_LEAVE', -(day / 2) * half - day * (sc.leave.sickDays - half));
 	}
+	// GEEA art. 14: 生理假 half pay; the first three days of the year stand apart, the rest count to 病假 (half
+	// pay while the year's thirty last, then unpaid). DEFAULT: this month's 病假 entries use the allowance first.
+	if (sc.leave.menstrualDays > 0) {
+		const apart = Math.min(sc.leave.menstrualDays, Math.max(0, 3 - sc.leave.menstrualPriorDays));
+		const counted = sc.leave.menstrualDays - apart;
+		const left = Math.max(0, 30 - sc.leave.sickPriorDays - sc.leave.sickDays);
+		const halfCounted = Math.min(counted, left);
+		earn('MENSTRUAL_LEAVE', -(day / 2) * (apart + halfCounted) - day * (counted - halfCounted));
+	}
+	// LSA art. 50(2): 產假 wage paid in full after six months' service, halved below (DEFAULT: service judged on the
+	// period's first day). Paternity/prenatal days (GEEA art. 15) and 公傷病假 (LSA art. 59(2)) are paid whole.
+	if (sc.leave.maternityDays > 0 && addMonths(e.hireDate, 6) > first)
+		// DEFAULT: half the day wage a day, never more than half the month's pay (a whole month is half the wage)
+		earn('MATERNITY_LEAVE', -Math.min((day / 2) * sc.leave.maternityDays, (lines.BASIC?.amount ?? 0) / 2));
+	// LSA art. 59(1): medical costs with receipts, outside every wage, insured and tax base (TW-EXIT-05-2)
+	earn('OCC_INJURY_MEDICAL', sc.occInjuryMedical);
 	// LSA art. 24(1): weekday overtime, first two hours +⅓, the next two +⅔
 	const tiers = (h: number) => Math.min(h, 2) * (4 / 3) + Math.max(0, h - 2) * (5 / 3);
 	const ot = sc.time.weekdayOvertime.reduce((s, h) => s + tiers(h), 0) * hour;
@@ -367,24 +417,36 @@ export function computePayslip(sc: Scenario): Payslip {
 		const ent =
 			svc.totalMonths < 6 ? 0 : y < 1 ? 3 : y < 2 ? 7 : y < 3 ? 10 : y < 5 ? 14 : y < 10 ? 15 : Math.min(30, 15 + (y - 9));
 		earn('ANNUAL_LEAVE_PAYOUT', Math.max(0, ent - x.annualLeaveTaken) * day);
-		// LSA arts. 16, 11: notice 10 / 20 / 30 days by service; pay in lieu of the days not given (not for 12/14/15)
+		// LSA arts. 16, 11: notice 10 / 20 / 30 days by service; pay in lieu of the days not given (not for 12/14/15).
+		// DEFAULT (TW-EXIT-01-1): the higher of the normal day wage and the average wage ÷ 30.
+		let notice = 0;
 		if (x.cause === 'LAYOFF_S11') {
 			const required = svc.totalMonths < 3 ? 0 : y < 1 ? 10 : y < 3 ? 20 : 30;
-			earn('NOTICE_PAY', Math.max(0, required - x.noticeDaysGiven) * day);
+			notice = Math.max(0, required - x.noticeDaysGiven) * Math.max(day, x.averageMonthlyWage / 30);
 		}
-		// LPA art. 12: new-system severance, half a month's average wage a year, a part year pro rata, six months at
-		// most (LSA art. 14(4) applies it to a worker's art. 14 termination). DEFAULT: part year = months/12 + days/365.
-		if ((x.cause === 'LAYOFF_S11' || x.cause === 'WORKER_S14') && e.pension.system === 'NEW') {
-			const years = svc.years + svc.months / 12 + svc.days / 365;
-			severance = r2(Math.min(6, years / 2) * x.averageMonthlyWage);
-			earn('SEVERANCE_PAY', severance);
+		// 資遣費 (LSA art. 14(4) applies it to a worker's art. 14 termination):
+		//  - new system, LPA art. 12: half a month's average wage a year, a part year pro rata, six months at most
+		//    (DEFAULT: part year = months/12 + days/365); retained old-system months before it are paid under
+		//    LSA art. 17 (LPA art. 11(2)): one month a year, remaining months pro rata.
+		//  - old system retained, LSA art. 17: one month a year, remaining months pro rata, a part month as a month.
+		let pay = 0;
+		if (x.cause === 'LAYOFF_S11' || x.cause === 'WORKER_S14') {
+			if (e.pension.system === 'NEW') {
+				const nsvc = service(addMonths(e.hireDate, e.oldSystemServiceMonths), x.date);
+				const years = nsvc.years + nsvc.months / 12 + nsvc.days / 365;
+				pay = (e.oldSystemServiceMonths / 12 + Math.min(6, years / 2)) * x.averageMonthlyWage;
+			} else pay = ((svc.totalMonths + (svc.days > 0 ? 1 : 0)) / 12) * x.averageMonthlyWage;
 		}
+		// 財政部 台財稅第831604301號: notice pay 兼具資遣費性質 (退職所得), one SEVERANCE_PAY line with the 資遣費;
+		// DEFAULT (TW-EXIT-01): the one 退職所得 amount rounded to the 元 once
+		severance = r0(notice + pay);
+		earn('SEVERANCE_PAY', severance);
 		// LSA art. 55: old-system retirement pay: two bases a year to 15 years, one after, 45 at most; a part year
 		// under six months is half, six months or more whole; +20% for a duty-caused disability retirement
 		if (x.cause === 'RETIREMENT' && e.pension.system === 'OLD_RETAINED') {
 			retireYears = svc.years + (svc.months === 0 && svc.days === 0 ? 0 : svc.months < 6 ? 0.5 : 1);
 			const bases = Math.min(45, 2 * Math.min(retireYears, 15) + Math.max(0, retireYears - 15));
-			retirement = r2(bases * x.averageMonthlyWage * (x.dutyDisability ? 1.2 : 1));
+			retirement = r0(bases * x.averageMonthlyWage * (x.dutyDisability ? 1.2 : 1)); // DEFAULT: to the 元 once
 			earn('RETIREMENT_PAY', retirement);
 		}
 	}
@@ -406,7 +468,7 @@ export function computePayslip(sc: Scenario): Payslip {
 	const eiTo = turns65 <= end ? addDays(turns65, -1) : end; // EI65: out from the 65th birthday
 	// LPA art. 7: nationals, foreign spouses, PR holders; Foreign Professionals Act art. 24 (2026): professionals
 	const pensionOn = covered && e.pension.system === 'NEW' && !migrant;
-	const liGrade = grade(e.partTimeWeeklyHours !== null || e.pay.basis === 'HOURLY' ? [...law.partTimeGrades, ...law.liGrades] : law.liGrades, e.declaredWage ?? insuredWage);
+	const liGrade = grade(!e.shortTermHire && (e.partTimeWeeklyHours !== null || e.pay.basis === 'HOURLY') ? [...law.partTimeGrades, ...law.liGrades] : law.liGrades, e.declaredWage ?? insuredWage);
 	const occGrade = grade(law.occGrades, e.declaredWage ?? insuredWage);
 	const penGrade = grade(law.pensionGrades, e.declaredWage ?? insuredWage);
 	const nhiGrade = grade(law.nhiGrades, e.declaredWage ?? insuredWage);
@@ -433,20 +495,30 @@ export function computePayslip(sc: Scenario): Payslip {
 	if (covered) charge('OCC_INJURY', 0, r0((occGrade * sc.company.occRate * liDays) / 30), occGrade);
 	if (pensionOn) {
 		const u = (penGrade * penDays) / 30;
-		const voluntary = e.pension.system === 'NEW' ? r0(u * e.pension.voluntaryRate) : 0;
+		// PEN-12 (BLI 0017612): a filed rate change takes effect on the first of the next month
+		const p = e.pension.system === 'NEW' ? e.pension : null;
+		const rate = p === null ? 0 : p.rateChange && p.rateChange.from <= first ? p.rateChange.voluntaryRate : p.voluntaryRate;
+		const voluntary = r0(u * rate);
 		charge('LABOR_PENSION', voluntary, r0(u * EMPLOYER_PENSION), penGrade);
 	}
 	// LSA art. 56(1): the old-system reserve, 2–15% of the month's wages (TW-EXIT-03, TW-TAX-06-2 with the allowance)
 	if (covered && e.pension.system === 'OLD_RETAINED') {
-		const wages = ['BASIC', 'MEAL_ALLOWANCE', 'PERSONAL_LEAVE', 'SICK_LEAVE'].reduce((s, c) => s + (lines[c]?.amount ?? 0), 0);
+		const wages = ['BASIC', 'MEAL_ALLOWANCE', 'PERSONAL_LEAVE', 'SICK_LEAVE', 'MENSTRUAL_LEAVE', 'MATERNITY_LEAVE'].reduce((s, c) => s + (lines[c]?.amount ?? 0), 0);
 		charge('LABOR_PENSION_RESERVE', 0, r0(wages * e.pension.reserveRate), wages);
 	}
 	// NHI: the unit covering the worker at month end pays the month (a withdrawal month pays none)
-	const nhiEnrolled = e.partTimeWeeklyHours === null || e.partTimeWeeklyHours >= 12; // NHIA part-time principle
+	// NHIA part-time Q&A cp-2981: every workday (any hours) or at least 12 hours a week is enrolled by the employer
+	const nhiEnrolled = e.partTimeWeeklyHours === null || e.partTimeWeeklyHours >= 12 || e.worksEveryWorkday;
 	if (covered && nhiEnrolled && end === last) {
 		const own = r0(nhiGrade * NHI_RATE * 0.3);
 		const ownPaid = own - r0(own * sub);
-		charge('NHI', ownPaid + own * Math.min(3, e.nhiDependants), r0(nhiGrade * NHI_RATE * 0.6 * (1 + NHI_AVG_DEPENDANTS)), nhiGrade);
+		// SUB §5 / NHI Enforcement Rules §52: each disabled dependant subsidised on their own premium (dependants ≤ 3)
+		let deps = 0;
+		for (let i = 0; i < Math.min(3, e.nhiDependants); i++) {
+			const d = e.dependantDisability[i] ?? null;
+			deps += own - (d === null ? 0 : r0(own * SUBSIDY[d]));
+		}
+		charge('NHI', ownPaid + deps, r0(nhiGrade * NHI_RATE * 0.6 * (1 + NHI_AVG_DEPENDANTS)), nhiGrade);
 	}
 	// SUPP art. 31: the bonus above four insured amounts, cumulative in the year
 	if (sc.bonus.amount > 0 && nhiEnrolled) {
@@ -456,7 +528,9 @@ export function computePayslip(sc: Scenario): Payslip {
 	}
 
 	// --- tax ---
-	const salaryItems = ['BASIC', 'MEAL_ALLOWANCE', 'PERSONAL_LEAVE', 'SICK_LEAVE', 'ANNUAL_LEAVE_PAYOUT', 'NOTICE_PAY'];
+	// ANNUAL_LEAVE_PAYOUT is 不休假加班費, outside 薪資所得 within the §38 days (MOF-portal 高雄國稅局 2019-12-30 release,
+	// 台財稅第16713號; TW-LEAVE-01); notice pay is 退職所得 on SEVERANCE_PAY (TW-EXIT-01)
+	const salaryItems = ['BASIC', 'MEAL_ALLOWANCE', 'PERSONAL_LEAVE', 'SICK_LEAVE', 'MENSTRUAL_LEAVE', 'MATERNITY_LEAVE'];
 	const amt = (c: string) => lines[c]?.amount ?? 0;
 	const mealExempt = Math.min(amt('MEAL_ALLOWANCE'), 3000); // MEAL
 	const voluntary = lines.LABOR_PENSION?.employee ?? 0; // LPA art. 14(3)
@@ -492,6 +566,14 @@ export function computePayslip(sc: Scenario): Payslip {
 		}
 	}
 
+	// NHI Act art. 31(1)(2): salary from a unit that is not the worker's insured unit (a part-timer it does not enrol)
+	// is 兼職薪資所得: 2.11% of a single payment reaching the monthly minimum wage (扣取及繳納補充保險費辦法 起扣點).
+	// DEFAULT: the payslip is one payment; the base is its 薪資所得 (meal ≤ 3,000 and voluntary pension outside).
+	if (covered && !nhiEnrolled) {
+		const pt = regular + sc.bonus.amount;
+		if (pt >= law.mwMonthly) charge('NHI_PART_TIME', r0(pt * SUPP_RATE), 0, r2(pt));
+	}
+
 	if (sc.garnishment > 0) lines.COURT_GARNISHMENT = { amount: sc.garnishment }; // GARN: net deduction
 
 	const gross = r2(
@@ -513,7 +595,7 @@ export function computePayslip(sc: Scenario): Payslip {
 	// where the worker is LI-insured and every paid item is plain salary (DEFAULT: the art. 34 payroll is the month's
 	// salary income).
 	let companyLines: Payslip['companyLines'] = null;
-	const plain = ot === 0 && amt('OT_REST_DAY') === 0 && amt('HOLIDAY_WORK') === 0 && amt('REST_DAY_EMERGENCY') === 0;
+	const plain = ot === 0 && amt('ANNUAL_LEAVE_PAYOUT') === 0 && amt('OCC_INJURY_MEDICAL') === 0 && amt('OT_REST_DAY') === 0 && amt('HOLIDAY_WORK') === 0 && amt('REST_DAY_EMERGENCY') === 0;
 	if (liOn && plain && exitLump === 0 && e.mealAllowance === 0) {
 		const payroll = regular + voluntary + sc.bonus.amount;
 		const insured = covered && nhiEnrolled && end === last ? nhiGrade : 0;

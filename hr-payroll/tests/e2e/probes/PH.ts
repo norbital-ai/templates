@@ -2799,3 +2799,597 @@ register(
 		expected: []
 	}
 );
+
+const RR29 =
+	'RR 2-98 s.2.78.1(A)(3) as amended by RR 29-2025 (issued 22 Dec 2025, in force 6 Jan 2026) (digest, https://bir-cdn.bir.gov.ph/BIR/pdf/RR%20No.%2029-2025%20digest%20FINAL.pdf, read 30 Sep 2026): uniform and clothing allowance to ₱8,000 a year (e); actual medical assistance to ₱12,000 a year (f); achievement awards to ₱12,000 a year under a written plan (h); Christmas and major anniversary gifts to ₱6,000 a year (i); RR 11-2018 s.2.78.1(A)(3) closing paragraph: de minimis paid above its ceiling is an ‘other benefit’ inside the ₱90,000 exclusion of NIRC s.32(B)(7)(e)';
+const AT_40000 = {
+	sss: [1000, 2000],
+	mpf: [750, 1500],
+	ec: 30,
+	phic: [1000, 1000],
+	hdmf: [200, 200]
+} satisfies Omit<Charges, 'wtax'>;
+const adhoc = (code: string, amount: number, day: string, reason: string): ProbeInput => ({
+	collection: 'adhoc_requests',
+	values: {
+		employment_id: '@w_job',
+		catalogue_id: `@law:adhoc_catalogue:${code}@${day}`,
+		amount,
+		event_date: day,
+		reason
+	}
+});
+const monthsBefore = (year: number, last: number): ProbeInput[] =>
+	Array.from({ length: last }, (_, i) => ({
+		collection: 'payroll_runs',
+		values: { company_id: '@company', period: `${year}-${String(i + 1).padStart(2, '0')}` }
+	}));
+
+register(
+	// ── De minimis ceilings and the ₱90,000 pool (2026-09-30) ─────────────────────────────────
+	{
+		id: 'PH-AM02-1',
+		profile: 'PH',
+		description:
+			'On ₱40,000 in July 2026, a ₱90,000 bonus fills the benefits pool, so each de minimis class paid over its RR 29-2025 ceiling is taxed on its excess: uniform ₱10,000 (₱2,000 over ₱8,000), award ₱14,000 (₱2,000 over ₱12,000), gift ₱7,000 (₱1,000 over ₱6,000), medical ₱13,000 (₱1,000 over ₱12,000).',
+		citation: [
+			RR29,
+			'NIRC s.32(B)(7)(e); RR 11-2018 s.6: 13th-month pay and other benefits excluded up to ₱90,000 a year — the ₱90,000 bonus uses it whole',
+			SSS,
+			PHIC,
+			HDMF,
+			WTAX,
+			'SSS at MSC 35,000 on any base above 34,750: 1,000 / 2,000, MPF 750 / 1,500, EC 30. PhilHealth on the basic 40,000 × 5% = 2,000 → 1,000 / 1,000. Pag-IBIG capped 200 / 200. Taxable regular 40,000 − 2,950 = 37,050 (20% rung); excess 2,000 + 2,000 + 1,000 + 1,000 = 6,000; taxable 43,050 → 1,875 + 20% × (43,050 − 33,333) = 3,818.40. Gross 40,000 + 90,000 + 10,000 + 14,000 + 7,000 + 13,000 = 174,000; net 174,000 − 2,950 − 3,818.40 = 167,231.60; employer cost 4,730'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 40_000
+			}),
+			adhoc('bonus', 90_000, '2026-07-15', 'Mid-year performance bonus'),
+			adhoc('UNIFORM_ALLOWANCE', 10_000, '2026-07-15', 'Uniform allowance'),
+			adhoc('ACHIEVEMENT_AWARD', 14_000, '2026-07-15', 'Ten-year service award (written plan)'),
+			adhoc('CHRISTMAS_GIFT', 7000, '2026-07-15', 'Company anniversary gift'),
+			adhoc('MEDICAL_ASSISTANCE', 13_000, '2026-07-15', 'Executive check-up')
+		],
+		period: '2026-07',
+		expected: [
+			{
+				employment: 'w_job',
+				lines: {
+					gross: 174_000,
+					net: 167_231.6,
+					employer_cost: 4730,
+					bonus: 90_000,
+					UNIFORM_ALLOWANCE: 10_000,
+					ACHIEVEMENT_AWARD: 14_000,
+					CHRISTMAS_GIFT: 7000,
+					MEDICAL_ASSISTANCE: 13_000,
+					...charges({ ...AT_40000, wtax: 3818.4 })
+				}
+			}
+		]
+	},
+	{
+		id: 'PH-AM02-2',
+		profile: 'PH',
+		description:
+			'On ₱40,000 in July 2026 with nothing else paid in the year, a ₱10,000 uniform allowance is ₱8,000 de minimis and a ₱2,000 excess that the unused ₱90,000 pool absorbs: the withholding is the salary’s alone.',
+		citation: [
+			RR29,
+			SSS,
+			PHIC,
+			HDMF,
+			WTAX,
+			'Charges as PH-SS01-5. Taxable 40,000 − 2,950 = 37,050 → 1,875 + 20% × 3,717 = 2,618.40. Gross 50,000; net 50,000 − 2,950 − 2,618.40 = 44,431.60; employer cost 4,730'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 40_000
+			}),
+			adhoc('UNIFORM_ALLOWANCE', 10_000, '2026-07-15', 'Uniform allowance')
+		],
+		period: '2026-07',
+		expected: [
+			{
+				employment: 'w_job',
+				lines: {
+					gross: 50_000,
+					net: 44_431.6,
+					employer_cost: 4730,
+					UNIFORM_ALLOWANCE: 10_000,
+					...charges({ ...AT_40000, wtax: 2618.4 })
+				}
+			}
+		]
+	},
+	{
+		id: 'PH-AM02-3',
+		profile: 'PH',
+		description:
+			'The uniform ceiling is a year’s: ₱5,000 in June 2026 (with a ₱90,000 bonus that fills the pool) and ₱5,000 in July on ₱40,000 — July’s payment takes the year to ₱10,000, so ₱2,000 of it is taxed.',
+		citation: [
+			RR29,
+			'NIRC s.32(B)(7)(e): the ₱90,000 is a year’s exclusion; June’s ₱90,000 bonus uses it',
+			SSS,
+			PHIC,
+			HDMF,
+			WTAX,
+			'June (run first): 40,000 + 90,000 bonus + 5,000 uniform, all exempt beyond the salary → 2,618.40. July: year uniform 10,000 − 8,000 = 2,000 excess, pool spent → taxable 37,050 + 2,000 = 39,050 → 1,875 + 20% × 5,717 = 3,018.40. Gross 45,000; net 45,000 − 2,950 − 3,018.40 = 39,031.60; employer cost 4,730'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 40_000
+			}),
+			adhoc('bonus', 90_000, '2026-06-15', 'Mid-year performance bonus'),
+			adhoc('UNIFORM_ALLOWANCE', 5000, '2026-06-15', 'Uniform allowance, first half'),
+			{ collection: 'payroll_runs', values: { company_id: '@company', period: '2026-06' } },
+			adhoc('UNIFORM_ALLOWANCE', 5000, '2026-07-15', 'Uniform allowance, second half')
+		],
+		period: '2026-07',
+		expected: [
+			{
+				employment: 'w_job',
+				lines: {
+					gross: 45_000,
+					net: 39_031.6,
+					employer_cost: 4730,
+					UNIFORM_ALLOWANCE: 5000,
+					...charges({ ...AT_40000, wtax: 3018.4 })
+				}
+			}
+		]
+	},
+
+	// ── Year-end: the 13th month and the annual adjustment ────────────────────────────────────
+	{
+		id: 'PH-HR14-1',
+		profile: 'PH',
+		description:
+			'A rank-and-file employee on ₱40,000 all of 2026 (January to November already paid): December pays the 13th month of a twelfth of the year’s basic, exempt inside the ₱90,000, and the year-end adjustment withholds the annual tax less what the eleven months withheld.',
+		citation: [
+			'PD 851 and Revised Guidelines ¶¶1–4 (DOLE Handbook 2024 ch.13 §§A–E, https://nwpc.dole.gov.ph/wp-content/uploads/2024/11/Workers-Statutory-Monetary-Benefits-Handbook-2024-Edition.pdf): one twelfth of the basic salary earned in the calendar year, not later than 24 December: 12 × 40,000 ÷ 12 = 40,000',
+			'NIRC s.32(B)(7)(e): 13th-month pay excluded up to ₱90,000',
+			'RR 11-2018 s.2.79(B)(5)(b) (RR 2-98 as amended): the employer computes the year’s tax on the year’s taxable compensation before the last payroll of the year and withholds the difference; annual table NIRC s.24(A)(2)(a) as amended by RA 10963 from 1 Jan 2023: 400,000–800,000 → 22,500 + 20% over 400,000 (https://bir-cdn.bir.gov.ph/local/pdf/Annex%20E%20RR%2011-2018.pdf)',
+			SSS,
+			PHIC,
+			HDMF,
+			'Each month: charges 2,950 employee, withheld 2,618.40 (case PH-SS01-5). Year taxable 12 × 40,000 − 12 × 2,950 = 444,600 → 22,500 + 20% × 44,600 = 31,420; December WTAX 31,420 − 11 × 2,618.40 = 2,617.60. Net 40,000 − 2,950 − 2,617.60 + 40,000 (13th month, a net addition) = 74,432.40; employer cost 4,730'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 40_000
+			}),
+			...monthsBefore(2026, 11),
+			adhoc('THIRTEENTH_MONTH_PAY', 0, '2026-12-15', '13th month pay (PD 851)')
+		],
+		period: '2026-12',
+		expected: [
+			{
+				employment: 'w_job',
+				lines: {
+					gross: 40_000,
+					net: 74_432.4,
+					employer_cost: 4730,
+					THIRTEENTH_MONTH_PAY: 40_000,
+					...charges({ ...AT_40000, wtax: 2617.6 })
+				}
+			}
+		]
+	},
+
+	// ── Holidays not worked; overtime on rest days and at night ───────────────────────────────
+	...(
+		[
+			[
+				'PH-HR05-2',
+				true,
+				'On ₱30,450, leave without pay on Friday 28 August 2026, the workday before the regular holiday of Monday 31 August 2026 (not worked): the holiday is not paid, so the month loses two days.',
+				'Gross 30,450 − 2 × 1,400 = 27,650. SSS 27,250–27,749.99 → MSC 27,500: SS 1,000 / 2,000, MPF 375 / 750, EC 30. PhilHealth on 30,450 → 761.25 / 761.25. Pag-IBIG 200 / 200. Taxable 27,650 − 2,336.25 = 25,313.75 → 15% × 4,480.75 = 672.11. Net 27,650 − 2,336.25 − 672.11 = 24,641.64; employer cost 3,741.25'
+			],
+			[
+				'PH-HR05-3',
+				false,
+				'On ₱30,450, present on Friday 28 August 2026 and not working the regular holiday of Monday 31 August 2026: the holiday is paid, so the month is whole.',
+				'As PH-SS01-1: gross 30,450, net 26,894.14, employer cost 4,041.25'
+			]
+		] as const
+	).map(([id, absentBefore, description, arithmetic]): ProbeCase => ({
+		id,
+		profile: 'PH',
+		description,
+		citation: [
+			'Proclamation 1006 (2026): 31 August (National Heroes Day) regular holiday (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/7/97992)',
+			`Labor Code art.94; Omnibus Rules Book III Rule IV s.6(a); ${HANDBOOK} ch.3 §B: an employee on leave of absence without pay on the day immediately preceding a regular holiday is not paid the unworked holiday; where that day is a non-working or rest day, the workday before it decides (Friday 28 August for Monday 31 August)`,
+			DAILY,
+			SSS,
+			PHIC,
+			HDMF,
+			WTAX,
+			arithmetic
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 30_450
+			}),
+			{
+				collection: 'jurisdiction_holidays',
+				values: {
+					company_id: '@company',
+					date: '2026-08-31',
+					name: 'National Heroes Day',
+					kind: 'PUBLIC_HOLIDAY',
+					source: 'Proclamation 1006',
+					published_at: '2026-01-02T00:00:00.000Z'
+				}
+			},
+			...(absentBefore
+				? [
+						{
+							collection: 'leave_entries',
+							values: {
+								employment_id: '@w_job',
+								catalogue_id: '@law:leave_catalogue:UNPAID_LEAVE',
+								reference: 'PROBE-PH-NPL-HOLIDAY',
+								from_date: '2026-08-28',
+								to_date: '2026-08-28',
+								reason: 'Personal matter, unpaid'
+							}
+						} satisfies ProbeInput
+					]
+				: [])
+		],
+		period: '2026-08',
+		expected: [
+			{
+				employment: 'w_job',
+				lines: absentBefore
+					? {
+							gross: 27_650,
+							net: 24_641.64,
+							employer_cost: 3741.25,
+							...charges({
+								sss: [1000, 2000],
+								mpf: [375, 750],
+								ec: 30,
+								phic: [761.25, 761.25],
+								hdmf: [200, 200],
+								wtax: 672.11
+							})
+						}
+					: { gross: 30_450, net: 26_894.14, employer_cost: 4041.25, ...charges(FULL_30450) }
+			}
+		]
+	})),
+	{
+		id: 'PH-HR06-2',
+		profile: 'PH',
+		description:
+			'On ₱30,450, ten hours on the Sunday rest day of 12 July 2026: the first eight at 130% of the hourly rate, the two beyond at a further 30% of the rest-day hourly rate (169%).',
+		citation: [
+			`Labor Code arts.87, 93; ${HANDBOOK} ch.4 §§C–D: rest-day work +30% (130% where the rest day is unpaid); work beyond eight hours on a rest day is the rest-day hourly rate plus 30% of it: 175 × 1.30 × 1.30 = 295.75 an hour`,
+			DAILY,
+			SSS,
+			PHIC,
+			HDMF,
+			WTAX,
+			'09:00–20:00 less the meal hour = 10 hours. 8 × 175 × 1.30 = 1,820; 2 × 175 × 1.69 = 591.50; gross 30,450 + 2,411.50 = 32,861.50. SSS 32,750–33,249.99 → MSC 33,000: SS 1,000 / 2,000, MPF 650 / 1,300, EC 30. PhilHealth on the basic 761.25 / 761.25. Pag-IBIG 200 / 200. Bracket on regular 30,450 − 2,611.25 (15% rung), applied to 32,861.50 − 2,611.25 = 30,250.25: 15% × 9,417.25 = 1,412.5875 → 1,412.59. Net 32,861.50 − 2,611.25 − 1,412.59 = 28,837.66; employer cost 2,000 + 1,300 + 30 + 761.25 + 200 = 4,291.25'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 30_450
+			}),
+			{
+				collection: 'work_days',
+				values: {
+					employment_id: '@w_job',
+					work_date: '2026-07-12',
+					worked_intervals: [at('2026-07-12', '09:00', '20:00')],
+					approved_overtime_hours: 10
+				}
+			}
+		],
+		period: '2026-07',
+		expected: [
+			{
+				employment: 'w_job',
+				lines: {
+					gross: 32_861.5,
+					net: 28_837.66,
+					employer_cost: 4291.25,
+					...charges({
+						sss: [1000, 2000],
+						mpf: [650, 1300],
+						ec: 30,
+						phic: [761.25, 761.25],
+						hdmf: [200, 200],
+						wtax: 1412.59
+					})
+				}
+			}
+		]
+	},
+	{
+		id: 'PH-HR06-3',
+		profile: 'PH',
+		description:
+			'On ₱30,450, five approved overtime hours on Monday 6 July 2026 running to 23:00: all five at +25%, and the one after 22:00 also earns the night differential of 10% of the overtime hourly rate.',
+		citation: [
+			`Labor Code arts.86, 87; ${HANDBOOK} ch.5 §C: night-shift differential is 10% of the regular wage for each hour between 10:00 p.m. and 6:00 a.m.; on overtime it is 10% of the overtime hourly rate: 175 × 1.25 × 1.10 = 240.625 for the night overtime hour`,
+			DAILY,
+			SSS,
+			PHIC,
+			HDMF,
+			WTAX,
+			'09:00–23:00 less the meal hour = 13 hours: 8 normal, 5 overtime (18:00–23:00). Overtime 5 × 175 × 1.25 = 1,093.75; night differential 1 × 175 × 1.25 × 0.10 = 21.875 → 21.88; gross 30,450 + 1,115.63 = 31,565.63. SSS 31,250–31,749.99 → MSC 31,500: SS 1,000 / 2,000, MPF 575 / 1,150, EC 30. PhilHealth 761.25 / 761.25. Pag-IBIG 200 / 200. Taxable 31,565.63 − 2,536.25 = 29,029.38 → 15% × 8,196.38 = 1,229.457 → 1,229.46. Net 31,565.63 − 2,536.25 − 1,229.46 = 27,799.92; employer cost 2,000 + 1,150 + 30 + 761.25 + 200 = 4,141.25'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 30_450
+			}),
+			{
+				collection: 'work_days',
+				values: {
+					employment_id: '@w_job',
+					work_date: '2026-07-06',
+					shift_definition_id: '@office',
+					worked_intervals: [at('2026-07-06', '09:00', '23:00')],
+					approved_overtime_hours: 5
+				}
+			}
+		],
+		period: '2026-07',
+		expected: [
+			{
+				employment: 'w_job',
+				lines: {
+					gross: 31_565.63,
+					net: 27_799.92,
+					employer_cost: 4141.25,
+					...charges({
+						sss: [1000, 2000],
+						mpf: [575, 1150],
+						ec: 30,
+						phic: [761.25, 761.25],
+						hdmf: [200, 200],
+						wtax: 1229.46
+					})
+				}
+			}
+		]
+	},
+
+	// ── Below-floor refusals the harness had not pinned ───────────────────────────────────────
+	{
+		id: 'PH-A3-2',
+		profile: 'PH',
+		description:
+			'An NCR kasambahay on ₱7,000 in July 2026 (NCR-DW-06 floor ₱7,800) is refused even though the establishment records a board exemption: the domestic order admits none.',
+		citation: [
+			'Wage Order NCR-DW-06 s.1 (₱7,000 + ₱800 = ₱7,800 a month from 7 February 2026), s.5 (“No exemption shall be allowed under this Wage Order.”) (https://nwpc.dole.gov.ph/wp-content/uploads/2026/01/Wage-Order-No.-NCR-DW-06.pdf, read 30 Sep 2026)',
+			DOMESTIC
+		],
+		company: company({ minimum_wage_exemption_approved: true }),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'k',
+				name: 'Maria Santos',
+				gender: 'FEMALE',
+				born: '1988-02-11',
+				from: '2024-01-08',
+				salary: 7000,
+				sector: null,
+				type: 'DOMESTIC'
+			})
+		],
+		period: '2026-07',
+		refused: 'MINIMUM_WAGE_BELOW: P-PH-k is contracted at ',
+		expected: []
+	},
+	{
+		id: 'PH-A3-3',
+		profile: 'PH',
+		description:
+			'An NCR part-timer on 20 hours a week paid ₱7,000 in July 2026 with no exemption: below the hour-proportionate NCR-26 floor of ₱7,558.13, so the run is refused.',
+		citation: [
+			NCR26,
+			`Wage Order NCR-28 ss.3–4 and ${HANDBOOK} ch.1 §L: a worker on less than the normal hours is owed a proportion of the daily rate; 695 × 261 ÷ 12 × 20 ÷ 40 = 7,558.13 (tracker default PH-A3); ₱7,000 is below it`
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 7000,
+				type: 'PART_TIME',
+				terms: { ordinary_hours_per_week: 20 }
+			})
+		],
+		period: '2026-07',
+		refused: 'MINIMUM_WAGE_BELOW: P-PH-w is contracted at ',
+		expected: []
+	},
+
+	// ── Court-ordered support, kasambahay forfeiture and deductions ───────────────────────────
+	{
+		id: 'PH-HR52-1',
+		profile: 'PH',
+		description:
+			'A served protection order fixing ₱6,000 of support for July 2026 on ₱30,450: withheld from net pay after every statutory line, leaving SSS, PhilHealth, Pag-IBIG and withholding on the whole compensation.',
+		citation: [
+			'RA 9262 s.8(g): the court orders a percentage of the respondent’s salary withheld regularly by the employer and remitted to the woman, notwithstanding other laws (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/22128, read 30 Sep 2026); the Act states no booking, so the recorded default (tracker PH-HR52) is a net deduction of the peso amount the order fixes',
+			SSS,
+			PHIC,
+			HDMF,
+			WTAX,
+			'Charges and withholding as PH-SS01-1 (net before the order 26,894.14); net 26,894.14 − 6,000 = 20,894.14; employer cost 4,041.25'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Pedro Ramos',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 30_450
+			}),
+			{
+				...adhoc(
+					'PROTECTION_ORDER_SUPPORT',
+					6000,
+					'2026-07-15',
+					'Permanent protection order, July support'
+				),
+				files: { evidence_file: 'protection-order.pdf' }
+			}
+		],
+		period: '2026-07',
+		expected: [
+			{
+				employment: 'w_job',
+				lines: {
+					gross: 30_450,
+					net: 20_894.14,
+					employer_cost: 4041.25,
+					PROTECTION_ORDER_SUPPORT: 6000,
+					...charges(FULL_30450)
+				}
+			}
+		]
+	},
+	{
+		id: 'PH-HR45-2',
+		profile: 'PH',
+		description:
+			'An NCR kasambahay on ₱7,800 who leaves without justifiable reason on Tuesday 27 January 2026 forfeits fifteen days’ unpaid salary; the 13th month is not salary for the cap and is still paid.',
+		citation: [
+			'RA 10361 s.32: a kasambahay who leaves without justifiable reason forfeits unpaid salary of not more than fifteen days (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514); the day on the monthly-paid 261-day factor (tracker default PH-HR45): 15 × 7,800 × 12 ÷ 261 = 5,379.31, below the 6,813.79 unpaid',
+			'RA 10361 s.25 / PD 851: 6,813.79 ÷ 12 = 567.82',
+			'Wage Order NCR-DW-05 (effective 4 January 2025, NCR-DW-06 recital): ₱7,000 a month through 6 February 2026 (tracker PH-WG04); ₱7,800 is above it',
+			DOMESTIC,
+			SSS,
+			PHIC,
+			HDMF,
+			'1–2, 5–9, 12–16, 19–23, 26–27 January = 19 working days: 7,800 × 19 ÷ 21.75 = 6,813.79. SSS 6,750–7,249.99 → MSC 7,000: 350 / 700, EC 10. PhilHealth floor 250 / 250. Pag-IBIG 2% × 6,813.79 = 136.28 / 136.28. WTAX 0 (taxable 6,077.51 under 20,833). The forfeiture is a net deduction (it touches no contribution base; tracker default PH-HR45). Net 6,813.79 − 736.28 − 5,379.31 + 567.82 = 1,266.02; employer cost 700 + 10 + 250 + 136.28 = 1,096.28'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'k',
+				name: 'Maria Santos',
+				gender: 'FEMALE',
+				born: '1988-02-11',
+				from: '2024-01-08',
+				to: '2026-01-27',
+				salary: 7800,
+				sector: null,
+				type: 'DOMESTIC',
+				employment: {
+					exit_reason: 'RESIGNATION',
+					exit_facts: { kasambahay_unjustified_departure: true }
+				}
+			}),
+			...separation('k', '2026-01-27', ['KASAMBAHAY_FORFEITURE', 'THIRTEENTH_MONTH_PAY'])
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'k_job',
+				lines: {
+					gross: 6813.79,
+					net: 1266.02,
+					employer_cost: 1096.28,
+					KASAMBAHAY_FORFEITURE: 5379.31,
+					THIRTEENTH_MONTH_PAY: 567.82,
+					...charges({ sss: [350, 700], ec: 10, phic: [250, 250], hdmf: [136.28, 136.28] })
+				}
+			}
+		]
+	},
+	{
+		id: 'PH-WG05-1',
+		profile: 'PH',
+		description:
+			'A company loan to an NCR kasambahay is refused at input: the domestic wage order allows no deduction other than those mandated by law.',
+		citation: [
+			'Wage Order NCR-DW-06 s.3: the wages of the domestic worker shall be paid in cash at least once a month; no deductions shall be made other than those mandated by law (https://nwpc.dole.gov.ph/wp-content/uploads/2026/01/Wage-Order-No.-NCR-DW-06.pdf, read 30 Sep 2026); the same clause in the Region IX, MIMAROPA, X and XI domestic orders (tracker PH-WG38, PH-WG45, PH-WG52)'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'k',
+				name: 'Maria Santos',
+				gender: 'FEMALE',
+				born: '1988-02-11',
+				from: '2024-01-08',
+				salary: 7800,
+				sector: null,
+				type: 'DOMESTIC'
+			}),
+			{
+				collection: 'loans',
+				values: {
+					employment_id: '@k_job',
+					loan_catalogue_id: '@law:loan_catalogue:LOAN_RECOVERY_COMPANY',
+					principal: 1000,
+					reference: 'PROBE-PH-KASAMBAHAY-LOAN',
+					effective_range: { from: '2026-07-01', to: '2026-07-31' },
+					loan_repayments: {
+						create: [{ due_date: '2026-07-31', amount_due: 1000, sequence: 1 }]
+					}
+				},
+				refused: 'LOAN_RECOVERY_COMPANY is not offered to .*eligibility rule does not hold'
+			}
+		],
+		period: '2026-07',
+		expected: []
+	}
+);

@@ -2177,3 +2177,679 @@ register(
 		]
 	}
 );
+
+// ─────────────────────────── Round 11 (30 Sep 2026): contract, leave and deduction branches without a probe ──
+
+const LCL_TEXT =
+	'Labour Contract Law (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 30 Sep 2026)';
+const LCL_REG =
+	'劳动合同法实施条例 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 30 Sep 2026)';
+/** A resident citizen on CNY10,000 inside the 2025 insurance year (to 30 June 2026), 7% fund from the first month. */
+const SI_10000 = si([800, 1600], [200, 900], [50, 50], 20, 700);
+const SI_10000_TEXT = `${SOURCES.si2025}; ${SOURCES.pension}: 800 / 1,600; ${SOURCES.medical2026}: 200 / 900; ${SOURCES.unemployment2026}: 50 / 50; ${SOURCES.injury}: 20; ${SOURCES.hf2025}: 10,000 × 7% = 700 each side (a transferred account from the first month). Employee shares 1,750; employer 3,270`;
+/** An LCL liability line of the lineage's catalogue class `code`, raised on `date` (the amount is the rule's). */
+const liability = (ref: string, code: string, date: string, refused?: string): ProbeInput => ({
+	...bonus(ref, code, 0, date),
+	...(refused === undefined ? {} : { refused })
+});
+const tenK = (ref: string, name: string, from: string, extra: Partial<Hire> = {}): ProbeInput[] =>
+	hire(ref, {
+		name,
+		from,
+		wages: [[10000, from, extra.to ?? null]],
+		si: 10000,
+		hf: { contribution_base: 10000, first_ever_account: false },
+		...extra
+	});
+
+register(
+	{
+		id: 'CN-N41-3',
+		profile: 'CN-shanghai',
+		description:
+			'April 2026, three resident citizens on CNY10,000: one hired 1 January 2026 signs a written contract only on 16 April (a second wage for 1 February – 15 April); one hired 1 April signs on 20 April, inside the first month (nothing); one in service since 1 January 2016 whose open-ended contract fell due on 1 January 2026 and is concluded on 16 April (a second wage from the due day). January to March run first.',
+		citation: [
+			`${LCL_TEXT} art.82: 用人单位自用工之日起超过一个月不满一年未与劳动者订立书面劳动合同的，应当向劳动者每月支付二倍的工资; ${LCL_REG} arts.6–7: from the day after the first month to the day before the written contract. Hired 1 January, signed 16 April: 1 February – 15 April = 2 months + 15 of April’s 30 days = 2.5 × 10,000 = 25,000 (the extra wage; the ordinary wage is BASIC). Hired 1 April, signed 20 April: inside the first month, nothing (CN-N41, CN-N12, CN-N19)`,
+			`${LCL_TEXT} arts.14 para.2(1), 82 para.2: after ten years’ service an open-ended contract is due, and 自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资; due 1 January 2026 (recorded open_ended_due_on), raised 15 April: 3 months + 15/30 = 3.5 × 10,000 = 35,000 (CN-N41)`,
+			'Both lines are taxed as 工资、薪金所得 with the month’s wages (IIT Law art.2(1); the seeded IIT class of each line)',
+			SI_10000_TEXT,
+			`${SOURCES.iitResident}: January–March 10,000 − 1,750 − 5,000 = 3,250 × 3% = 97.50 a month (292.50 withheld). April: 65,000 − 7,000 − 20,000 = 38,000 × 10% − 2,520 = 1,280 − 292.50 = 987.50; 75,000 − 7,000 − 20,000 = 48,000 × 10% − 2,520 = 2,280 − 292.50 = 1,987.50; the April joiner is month one here: 97.50`,
+			'Net 35,000 − 1,750 − 987.50 = 32,262.50; 45,000 − 1,750 − 1,987.50 = 41,262.50; 10,000 − 1,750 − 97.50 = 8,152.50; employer 3,270 each'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2015-12-28'),
+			...tenK('nwc', 'Kong Wei', '2026-01-01'),
+			...tenK('oe', 'Liang Jun', '2016-01-01', {
+				terms: { facts: { open_ended_due_on: '2026-01-01' } }
+			}),
+			run('2026-01'),
+			run('2026-02'),
+			run('2026-03'),
+			...tenK('early', 'Meng Qi', '2026-04-01'),
+			liability('nwc', 'NO_WRITTEN_CONTRACT_WAGE', '2026-04-16'),
+			liability('early', 'NO_WRITTEN_CONTRACT_WAGE', '2026-04-20'),
+			liability('oe', 'OPEN_ENDED_CONTRACT_WAGE', '2026-04-15')
+		],
+		period: '2026-04',
+		expected: [
+			{
+				employment: 'nwc_job',
+				lines: {
+					gross: 35000,
+					net: 32262.5,
+					employer_cost: 3270,
+					BASIC: 10000,
+					NO_WRITTEN_CONTRACT_WAGE: 25000,
+					...SI_10000,
+					'IIT.employee': 987.5
+				}
+			},
+			{
+				employment: 'oe_job',
+				lines: {
+					gross: 45000,
+					net: 41262.5,
+					employer_cost: 3270,
+					BASIC: 10000,
+					OPEN_ENDED_CONTRACT_WAGE: 35000,
+					...SI_10000,
+					'IIT.employee': 1987.5
+				}
+			},
+			{
+				employment: 'early_job',
+				lines: {
+					gross: 10000,
+					net: 8152.5,
+					employer_cost: 3270,
+					BASIC: 10000,
+					...SI_10000,
+					'IIT.employee': 97.5
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-N41-4',
+		profile: 'CN-shanghai',
+		description:
+			'February 2026, three resident citizens hired 1 January 2026: a nine-month fixed term (to 30 September) with two months’ probation on CNY8,000 and 10,000 after (one month over the limit); an open-ended contract whose probation wage 7,000 is under 80% of the agreed 10,000; a two-month fixed term (to 28 February) with one month’s probation, where none is allowed. January runs first.',
+		citation: [
+			`${LCL_TEXT} art.19: 劳动合同期限三个月以上不满一年的，试用期不得超过一个月 … 劳动合同期限不满三个月的，不得约定试用期; art.83: 以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. Nine-month term: 1 January – 28 February = 2 months − 1 allowed = 1 × 10,000 = 10,000. Two-month term: the whole month performed, at the contract wage (no separate post-probation wage recorded) 1 × 10,000 = 10,000 (CN-N41, CN-N12, CN-N19)`,
+			`${LCL_TEXT} art.20 and ${LCL_REG} art.15: 不得低于劳动合同约定工资的80%: 0.8 × 10,000 = 8,000; 7,000 paid for 1 January – 28 February: (8,000 − 7,000) × 2 = 2,000 (PROBATION_WAGE_SHORTFALL; CN-N19, CN-SH04)`,
+			'Each line is taxed as 工资、薪金所得 with the month’s wages (IIT Law art.2(1); the seeded IIT class of each line); none is 164号 termination income',
+			`${SOURCES.si2025}; ${SOURCES.medical2025}: 8,000 → pension 640 / 1,280, medical 160 / 720, unemployment 40 / 40, injury 16, fund 560 each side (employee 1,400, employer 2,616); 7,000 insures on the 7,460 floor → 596.80 / 1,193.60, 149.20 / 671.40, 37.30 / 37.30, 14.92, fund 7,000 × 7% = 490 (employee 1,273.30, employer 2,407.22); 10,000 → employee 1,750, employer 3,270`,
+			`${SOURCES.iitResident}: January 8,000 − 1,400 − 5,000 = 1,600 × 3% = 48; February 26,000 − 2,800 − 10,000 = 13,200 × 3% = 396 − 48 = 348. January 7,000 − 1,273.30 − 5,000 = 726.70 × 3% = 21.80; February 16,000 − 2,546.60 − 10,000 = 3,453.40 × 3% = 103.60 − 21.80 = 81.80. January 97.50; February 30,000 − 3,500 − 10,000 = 16,500 × 3% = 495 − 97.50 = 397.50`,
+			'Net 18,000 − 1,400 − 348 = 16,252; 9,000 − 1,273.30 − 81.80 = 7,644.90; 20,000 − 1,750 − 397.50 = 17,852.50'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2025-12-29'),
+			...hire('pa', {
+				name: 'Cao Lin',
+				from: '2026-01-01',
+				to: '2026-09-30',
+				wages: [
+					[8000, '2026-01-01', '2026-02-28'],
+					[10000, '2026-03-01', '2026-09-30']
+				],
+				si: 8000,
+				hf: { contribution_base: 8000, first_ever_account: false },
+				terms: {
+					employment_type: 'CONTRACT',
+					facts: { probation_end: '2026-02-28', post_probation_wage: 10000 }
+				}
+			}),
+			...hire('pb', {
+				name: 'Deng Yu',
+				gender: 'FEMALE',
+				from: '2026-01-01',
+				wages: [
+					[7000, '2026-01-01', '2026-02-28'],
+					[10000, '2026-03-01', null]
+				],
+				si: 7000,
+				hf: { contribution_base: 7000, first_ever_account: false },
+				terms: { facts: { probation_end: '2026-02-28', post_probation_wage: 10000 } }
+			}),
+			...tenK('pc', 'Fang Rui', '2026-01-01', {
+				to: '2026-02-28',
+				terms: { employment_type: 'CONTRACT', facts: { probation_end: '2026-01-31' } },
+				employment: {
+					exit_reason: 'END_OF_CONTRACT',
+					exit_facts: { lcl_termination_ground: 'ART_44_1', renewal_offer_refused: true }
+				}
+			}),
+			run('2026-01'),
+			liability('pa', 'PROBATION_EXCESS_DAMAGES', '2026-02-28'),
+			liability('pb', 'PROBATION_WAGE_SHORTFALL', '2026-02-28'),
+			liability('pc', 'PROBATION_EXCESS_DAMAGES', '2026-02-28')
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'pa_job',
+				lines: {
+					gross: 18000,
+					net: 16252,
+					employer_cost: 2616,
+					BASIC: 8000,
+					PROBATION_EXCESS_DAMAGES: 10000,
+					...si([640, 1280], [160, 720], [40, 40], 16, 560),
+					'IIT.employee': 348
+				}
+			},
+			{
+				employment: 'pb_job',
+				lines: {
+					gross: 9000,
+					net: 7644.9,
+					employer_cost: 2407.22,
+					BASIC: 7000,
+					PROBATION_WAGE_SHORTFALL: 2000,
+					...si([596.8, 1193.6], [149.2, 671.4], [37.3, 37.3], 14.92, 490),
+					'IIT.employee': 81.8
+				}
+			},
+			{
+				employment: 'pc_job',
+				lines: {
+					gross: 20000,
+					net: 17852.5,
+					employer_cost: 3270,
+					BASIC: 10000,
+					PROBATION_EXCESS_DAMAGES: 10000,
+					...SI_10000,
+					'IIT.employee': 397.5
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-N41-5',
+		profile: 'CN-shanghai',
+		description:
+			'June 2026, three resident citizens on CNY10,000 hired 1 January 2026 leave on Tuesday 30 June: a six-month fixed term expires (compensation due); the same expiry after the worker refused a renewal on equal terms (none: the request is refused); an art.40 dismissal without notice (compensation plus the month in lieu at the previous month’s wage). January to May run first.',
+		citation: [
+			`${LCL_TEXT} arts.44(1), 46(5): expiry compensation is due 除用人单位维持或者提高劳动合同约定条件续订劳动合同，劳动者不同意续订的情形外; art.47: 六个月以上不满一年的，按一年计算 — 1 January – 30 June = 6 months → one month × the 10,000 average (${LCL_REG} art.27), under 3 × the published average (CN-SH50): 10,000 (CN-N41)`,
+			`${LCL_TEXT} art.40: 额外支付劳动者一个月工资 in lieu of thirty days’ written notice; ${LCL_REG} art.20: 按照该劳动者上一个月的工资标准确定 — May 10,000 (CN-SH-A2): 10,000 + 10,000 = 20,000`,
+			'财税〔2018〕164号 item 5(1) (http://szs.mof.gov.cn/zhengcefabu/201812/t20181227_3110164.htm): within three times the local average annual wage, exempt: no IIT_SEVERANCE',
+			SI_10000_TEXT,
+			`${SOURCES.iitResident}: January–May 97.50 a month (487.50); June 60,000 − 10,500 − 30,000 = 19,500 × 3% = 585 − 487.50 = 97.50 each (the compensation is taxed apart)`,
+			'Net 20,000 − 1,847.50 = 18,152.50; 10,000 − 1,847.50 = 8,152.50; 30,000 − 1,847.50 = 28,152.50; employer 3,270 each'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2025-12-29'),
+			...(
+				[
+					['exp', 'Hou Jie', false],
+					['ref', 'Jiang Tao', true]
+				] as const
+			).flatMap(([ref, name, refusedRenewal]) =>
+				tenK(ref, name, '2026-01-01', {
+					to: '2026-06-30',
+					terms: { employment_type: 'CONTRACT' },
+					employment: {
+						exit_reason: 'END_OF_CONTRACT',
+						exit_facts: {
+							lcl_termination_ground: 'ART_44_1',
+							renewal_offer_refused: refusedRenewal
+						}
+					}
+				})
+			),
+			...tenK('dis', 'Kang Ning', '2026-01-01', {
+				to: '2026-06-30',
+				employment: {
+					exit_reason: 'DISMISSAL',
+					exit_facts: { lcl_termination_ground: 'ART_40', notice_days_given: 0 }
+				}
+			}),
+			...['2026-01', '2026-02', '2026-03', '2026-04', '2026-05'].map(run),
+			liability('exp', 'SEVERANCE_PAY', '2026-06-30'),
+			liability('ref', 'SEVERANCE_PAY', '2026-06-30', 'SEVERANCE_PAY is not offered to'),
+			liability('dis', 'SEVERANCE_PAY', '2026-06-30')
+		],
+		period: '2026-06',
+		expected: [
+			{
+				employment: 'exp_job',
+				lines: {
+					gross: 20000,
+					net: 18152.5,
+					employer_cost: 3270,
+					BASIC: 10000,
+					SEVERANCE_PAY: 10000,
+					...SI_10000,
+					'IIT.employee': 97.5
+				}
+			},
+			{
+				employment: 'ref_job',
+				lines: {
+					gross: 10000,
+					net: 8152.5,
+					employer_cost: 3270,
+					BASIC: 10000,
+					...SI_10000,
+					'IIT.employee': 97.5
+				}
+			},
+			{
+				employment: 'dis_job',
+				lines: {
+					gross: 30000,
+					net: 28152.5,
+					employer_cost: 3270,
+					BASIC: 10000,
+					SEVERANCE_PAY: 20000,
+					...SI_10000,
+					'IIT.employee': 97.5
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-N05-1',
+		profile: 'CN-shanghai',
+		description:
+			'January 2026, two resident citizens on CNY20,000: one in service since June 2025 with 24 months’ earlier work takes five days of annual leave (Monday 5 – Friday 9 January), paid in full, and a sixth day (Monday 12 January) is refused; one hired 1 October 2025 with no earlier work asks for Monday 5 January and is refused (under twelve months).',
+		citation: [
+			'职工带薪年休假条例 (https://xzfg.moj.gov.cn/front/law/detail?LawID=208, re-read 30 Sep 2026) art.2: 职工连续工作1年以上的，享受带薪年休假 … 职工在年休假期间享受与正常工作期间相同的工资收入; art.3: 职工累计工作已满1年不满10年的，年休假5天 … 法定假日、休息日不计入年休假的假期 (CN-N05, CN-N06): 24 + 7 = 31 months → 5 working days; a sixth is refused. Three months’ work → no entitlement yet',
+			...JAN_20000
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2025-06-02'),
+			...hire('al', {
+				name: 'Ren Hao',
+				from: '2025-06-02',
+				wages: [[20000, '2025-06-02', null]],
+				si: 20000,
+				hf: { contribution_base: 20000 },
+				employment: { prior_service_months: 24 }
+			}),
+			...hire('nw', {
+				name: 'Shi Lan',
+				gender: 'FEMALE',
+				from: '2025-10-01',
+				wages: [[20000, '2025-10-01', null]],
+				si: 20000,
+				hf: { contribution_base: 20000 }
+			}),
+			{
+				collection: 'leave_entries',
+				values: {
+					employment_id: '@al_job',
+					catalogue_id: '@law:leave_catalogue:ANNUAL_LEAVE',
+					reference: 'AL-2026-01',
+					from_date: '2026-01-05',
+					to_date: '2026-01-09',
+					reason: 'Annual leave'
+				}
+			},
+			{
+				collection: 'leave_entries',
+				values: {
+					employment_id: '@al_job',
+					catalogue_id: '@law:leave_catalogue:ANNUAL_LEAVE',
+					reference: 'AL-2026-01-B',
+					from_date: '2026-01-12',
+					to_date: '2026-01-12',
+					reason: 'A sixth day'
+				},
+				refused: 'Insufficient leave in .*: 1 more days are needed'
+			},
+			{
+				collection: 'leave_entries',
+				values: {
+					employment_id: '@nw_job',
+					catalogue_id: '@law:leave_catalogue:ANNUAL_LEAVE',
+					reference: 'AL-NW-2026-01',
+					from_date: '2026-01-05',
+					to_date: '2026-01-05',
+					reason: 'Annual leave before twelve months'
+				},
+				refused: 'Leave on 2026-01-05 cannot be approved: INELIGIBLE\\.'
+			}
+		],
+		period: '2026-01',
+		expected: [
+			{ employment: 'al_job', lines: JAN_20000_LINES },
+			{ employment: 'nw_job', lines: JAN_20000_LINES }
+		]
+	},
+	{
+		id: 'CN-N05-2',
+		profile: 'CN-shanghai',
+		description:
+			'A resident citizen hired 1 December 2025 on CNY43,500 with twenty years’ earlier work resigns on Friday 13 March 2026: final wages for ten days and two unused annual-leave days at the further 200%, no compensation; December to February run first.',
+		citation: [
+			`${SOURCES.proration}: 2–13 March has 10 working days → 43,500 ÷ 21.75 × 10 = 20,000 (CN-SH02: paid at the exit)`,
+			'职工带薪年休假条例 art.3 (https://xzfg.moj.gov.cn/front/law/detail?LawID=208, re-read 30 Sep 2026): 已满20年的，年休假15天 — 240 + 3 months; a leaver’s days are (72 ÷ 365) × 15 = 2.96, the part day unpaid (企业职工带薪年休假实施办法 art.12): 2 days, each at the further 200% of the day wage (arts.10–11): 2 × 43,500 ÷ 21.75 × 2 = 8,000 (CN-N05; against the ten-year band’s 1 day in CN-SH50-1)',
+			`${LCL_TEXT} arts.37, 46: a resignation owes no compensation`,
+			`${SOURCES.si2025}: 43,500 clamps to 37,302; ${SOURCES.pension}: 2,984.16 / 5,968.32; ${SOURCES.medical2026}: 746.04 / 3,357.18; ${SOURCES.unemployment2026}: 186.51 / 186.51; ${SOURCES.injury}: 74.60; housing fund 2,611 each side`,
+			`${SOURCES.iitResident}: January 959.17 and February 2,915.29 (CN-SH50-1); March 115,000 − 19,583.13 − 15,000 = 80,416.87 × 10% − 2,520 = 5,521.69 − 3,874.46 = 1,647.23`,
+			'Net 28,000 − 6,527.71 − 1,647.23 = 19,825.06; employer 12,197.61'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2025-12-01'),
+			...hire('yao', {
+				name: 'Yao Bin',
+				from: '2025-12-01',
+				to: '2026-03-13',
+				wages: [[43500, '2025-12-01', '2026-03-13']],
+				si: 43500,
+				hf: { contribution_base: 43500, first_ever_account: false },
+				employment: {
+					prior_service_months: 240,
+					exit_reason: 'RESIGNATION',
+					exit_facts: { lcl_termination_ground: 'ART_37' }
+				}
+			}),
+			run('2025-12'),
+			run('2026-01'),
+			run('2026-02'),
+			{
+				collection: 'leave_entries',
+				values: {
+					employment_id: '@yao_job',
+					catalogue_id: '@law:leave_catalogue:ANNUAL_LEAVE',
+					reference: 'EXIT-AL-2026',
+					from_date: '2026-01-01',
+					to_date: '2026-12-31',
+					encash_days: 2,
+					effective_on: '2026-03-13',
+					due_on: '2026-03-13',
+					reason: 'Unused statutory annual leave at exit'
+				}
+			}
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'yao_job',
+				lines: {
+					gross: 28000,
+					net: 19825.06,
+					employer_cost: 12197.61,
+					BASIC: 20000,
+					ANNUAL_LEAVE_ENCASHMENT: 8000,
+					...si([2984.16, 5968.32], [746.04, 3357.18], [186.51, 186.51], 74.6, 2611),
+					'IIT.employee': 1647.23
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-N40-2',
+		profile: 'CN-shanghai',
+		description:
+			'January 2026, a resident citizen on CNY21,750 works three hours on New Year’s Day and the employer records time off in lieu: the 300% holiday rate is still paid.',
+		citation: [
+			'Labour Law art.44 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html, re-read 30 Sep 2026): (二) 休息日安排劳动者工作又不能安排补休的 200%; (三) 法定休假日安排劳动者工作的，支付不低于工资的百分之三百 — only the rest-day branch yields to compensatory rest (CN-N40). 3 × 125 × 3 = 1,125 on the 21.75 ÷ 8 hour (CN-N02)',
+			`${SOURCES.si2025}; ${SOURCES.pension}: 1,740 / 3,480; ${SOURCES.medical2025}: 435 / 1,957.50; ${SOURCES.unemployment2026}: 108.75 / 108.75; ${SOURCES.injury}: 43.50; housing fund 1,523 each side`,
+			`${SOURCES.iitResident}: 22,875 − 3,806.75 − 5,000 = 14,068.25 × 3% = 422.05`,
+			'Net 22,875 − 3,806.75 − 422.05 = 18,646.20; employer 7,112.75'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2025-06-02'),
+			{
+				collection: 'jurisdiction_holidays',
+				values: {
+					company_id: '@company',
+					date: '2026-01-01',
+					name: 'New Year’s Day (元旦)',
+					kind: 'PUBLIC_HOLIDAY',
+					source: 'State Council Order 795 art.2',
+					published_at: '2025-12-15T00:00:00.000Z'
+				}
+			},
+			...hire('tang', {
+				name: 'Tang Ming',
+				from: '2025-06-02',
+				wages: [[21750, '2025-06-02', null]],
+				si: 21750,
+				hf: { contribution_base: 21750 }
+			}),
+			{
+				collection: 'work_days',
+				values: {
+					employment_id: '@tang_job',
+					work_date: '2026-01-01',
+					shift_definition_id: '@office',
+					worked_intervals: [{ start: '2026-01-01T01:00:00.000Z', end: '2026-01-01T04:00:00.000Z' }],
+					approved_overtime_hours: 3,
+					time_off_in_lieu: true
+				}
+			}
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'tang_job',
+				lines: {
+					gross: 22875,
+					net: 18646.2,
+					employer_cost: 7112.75,
+					BASIC: 21750,
+					...si([1740, 3480], [435, 1957.5], [108.75, 108.75], 43.5, 1523),
+					'IIT.employee': 422.05
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-SH09-4',
+		profile: 'CN-shanghai',
+		description:
+			'January 2026, a unit that elected the 5% floor of the ordinary fund band: a resident citizen on CNY20,000 contributes 1,000 each side.',
+		citation: [
+			`${SOURCES.hf2025}; the unit elects an equal rate inside 5–7% (沪公积金管委会〔2023〕3号 art.33; CN-SH09, CN-N08): 20,000 × 5% = 1,000 each side`,
+			`${SOURCES.si2025}; ${SOURCES.pension}: 1,600 / 3,200; ${SOURCES.medical2025}: 400 / 1,800; ${SOURCES.unemployment2026}: 100 / 100; ${SOURCES.injury}: 40`,
+			`${SOURCES.iitResident}: 20,000 − 3,100 − 5,000 = 11,900 × 3% = 357`,
+			'Net 20,000 − 3,100 − 357 = 16,543; employer 3,200 + 1,800 + 100 + 40 + 1,000 = 6,140'
+		],
+		company: { facts: { ...FACTS, housing_fund_rate: 5 } },
+		inputs: [
+			...cnWeek('2025-06-02'),
+			...hire('yin', {
+				name: 'Yin Hua',
+				from: '2025-06-02',
+				wages: [[20000, '2025-06-02', null]],
+				si: 20000,
+				hf: { contribution_base: 20000 }
+			})
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'yin_job',
+				lines: {
+					gross: 20000,
+					net: 16543,
+					employer_cost: 6140,
+					BASIC: 20000,
+					...si([1600, 3200], [400, 1800], [100, 100], 40, 1000),
+					'IIT.employee': 357
+				}
+			}
+		]
+	},
+	{
+		...claimant(
+			'CN-N16-3',
+			'January 2026, a resident declares CNY1,000 of first-home housing-loan interest: deducted in full.',
+			[
+				'个人所得税专项附加扣除暂行办法 (国发〔2018〕41号, https://fgk.chinatax.gov.cn/zcfgk/c102440/c5209858/content.html, re-read 30 Sep 2026) art.14: 首套住房贷款利息支出 … 按照每月1000元的标准定额扣除 (CN-N16); the agent deducts as declared',
+				`${SOURCES.iitResident}: 20,000 − 3,500 − 5,000 − 1,000 = 10,500 × 3% = 315`,
+				`${SOURCES.si2025}: pension 1,600 / 3,200, medical 400 / 1,800, unemployment 100 / 100, injury 40; housing fund 1,400 each side`,
+				'Net 20,000 − 3,500 − 315 = 16,185; employer 6,540'
+			],
+			[{ category: 'HOUSING_LOAN_INTEREST', amount: 1000 }]
+		),
+		expected: [
+			{
+				employment: 'c_job',
+				lines: {
+					gross: 20000,
+					net: 16185,
+					employer_cost: 6540,
+					...si([1600, 3200], [400, 1800], [100, 100], 40, 1400),
+					'IIT.employee': 315
+				}
+			}
+		]
+	},
+	{
+		...claimant(
+			'CN-N16-4',
+			'January 2026, a parent sharing child education with the other parent declares the 50% share, CNY1,000: the agent deducts the declared share.',
+			[
+				'个人所得税专项附加扣除暂行办法 (国发〔2018〕41号, https://fgk.chinatax.gov.cn/zcfgk/c102440/c5209858/content.html, re-read 30 Sep 2026) art.6: 可以选择由双方分别按扣除标准的50%扣除; the standard 2,000 a child from 2023 (国发〔2023〕13号, https://fgk.chinatax.gov.cn/zcfgk/c100012/c5213592/content.html): 50% = 1,000 (CN-N16 sharing election; the agent may not alter it, STA 2022 No.7 arts.25–26)',
+				`${SOURCES.iitResident}: 20,000 − 3,500 − 5,000 − 1,000 = 10,500 × 3% = 315`,
+				`${SOURCES.si2025}: pension 1,600 / 3,200, medical 400 / 1,800, unemployment 100 / 100, injury 40; housing fund 1,400 each side`,
+				'Net 16,185; employer 6,540'
+			],
+			[{ category: 'CHILD_EDUCATION', amount: 1000 }]
+		),
+		expected: [
+			{
+				employment: 'c_job',
+				lines: {
+					gross: 20000,
+					net: 16185,
+					employer_cost: 6540,
+					...si([1600, 3200], [400, 1800], [100, 100], 40, 1400),
+					'IIT.employee': 315
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-N25-1',
+		profile: 'CN-shanghai',
+		description:
+			'January 2026, a foreign non-resident contracted at CNY3,000 with no fund agreement: less his own insurance shares he nets 2,216.70, under the 2,740 floor that binds foreign workers too — the run is refused.',
+		citation: [
+			'外国人在中国就业管理规定 art.22 (https://www.gov.cn/zhengce/2022-08/31/content_5711314.htm): 用人单位支付所聘用外国人的工资不得低于当地最低工资标准 (CN-N25)',
+			MIN_WAGE,
+			`${SOURCES.si2025}: 3,000 insures on the 7,460 floor, foreign employees like citizens (Social Insurance Law art.97): pension 596.80, medical 149.20, unemployment 37.30 = 783.30; no fund without agreement (CN-SH41). 3,000 − 783.30 = 2,216.70 < 2,740`
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2025-06-02'),
+			...hire('rossi', {
+				name: 'Marco Rossi',
+				nationality: 'Italian',
+				from: '2025-06-02',
+				wages: [[3000, '2025-06-02', null]],
+				residency: 'FOREIGNER',
+				tax: 'NON_RESIDENT',
+				si: 3000,
+				hf: { contribution_base: 3000, voluntary_agreement: false }
+			})
+		],
+		period: '2026-01',
+		refused: 'MINIMUM_WAGE_BELOW: SH-rossi is contracted at 2216.7 a month net of 783.3 employee',
+		expected: []
+	}
+);
+
+/** January 2026, a family-planning procedure: `days` accepted and paid in full, one day more for a second procedure refused. */
+const procedureJan = (
+	id: string,
+	description: string,
+	citation: string,
+	kind: string,
+	who: Partial<Hire>,
+	accepted: readonly [string, string],
+	over: readonly [string, string]
+): ProbeCase => {
+	const entry = (reference: string, [from, to]: readonly [string, string]): ProbeInput => ({
+		collection: 'leave_entries',
+		values: {
+			employment_id: '@p_job',
+			catalogue_id: '@law:leave_catalogue:FAMILY_PLANNING_PROCEDURE_LEAVE',
+			reference,
+			reason: reference,
+			from_date: from,
+			to_date: to,
+			event_kind: kind,
+			event_date: from
+		},
+		files: { certificate_file: `${reference}.pdf` }
+	});
+	const base = paidLeaveJan(id, description, citation, who, {});
+	return {
+		...base,
+		inputs: [
+			...base.inputs.slice(0, -1),
+			entry(id, accepted),
+			{ ...entry(`${id}-over`, over), refused: 'Insufficient leave in .*: 1 more days are needed' }
+		]
+	};
+};
+const SH51 =
+	'沪府规〔2022〕18号 art.19 (https://www.shanghai.gov.cn/rkjsqy2/20230417/e10b476cd14d4af6b079f644c0028d60.html, re-read 30 Sep 2026; 1 November 2022 – 31 October 2027): 假期期间的工资按照本人正常出勤应得的工资发给';
+
+register(
+	procedureJan(
+		'CN-SH51-2',
+		'January 2026, an IUD removed on Tuesday 13 January: two paid days, 13–14 January; three days for a second removal from Monday 19 January are refused.',
+		`${SH51}; 取宫内节育器的，休息2天 (CN-SH51)`,
+		'IUD_REMOVAL',
+		{ name: 'Zou Ping', gender: 'FEMALE' },
+		['2026-01-13', '2026-01-14'],
+		['2026-01-19', '2026-01-21']
+	),
+	procedureJan(
+		'CN-SH51-3',
+		'January 2026, an IUD follow-up visit on Tuesday 13 January: one paid day; two days for a later visit from Monday 19 January are refused.',
+		`${SH51}; 放置宫内节育器 … 随访 … 每次休息一天 (CN-SH51)`,
+		'IUD_FOLLOWUP',
+		{ name: 'Qiao Yan', gender: 'FEMALE' },
+		['2026-01-13', '2026-01-13'],
+		['2026-01-19', '2026-01-20']
+	),
+	procedureJan(
+		'CN-SH51-4',
+		'January 2026, a subdermal implant inserted on Monday 5 January: five paid days, 5–9 January; six days (Monday 12 – Monday 19 January) for a second insertion are refused.',
+		`${SH51}; 放置皮下埋植剂的，休息5天 (CN-SH51)`,
+		'IMPLANT_INSERTION',
+		{ name: 'Wei Hong', gender: 'FEMALE' },
+		['2026-01-05', '2026-01-09'],
+		['2026-01-12', '2026-01-19']
+	),
+	procedureJan(
+		'CN-SH51-5',
+		'January 2026, a subdermal implant removed on Monday 5 January: three paid days, 5–7 January; four days from Monday 12 January are refused.',
+		`${SH51}; 取出皮下埋植剂的，休息3天 (CN-SH51)`,
+		'IMPLANT_REMOVAL',
+		{ name: 'Xiong Li', gender: 'FEMALE' },
+		['2026-01-05', '2026-01-07'],
+		['2026-01-12', '2026-01-15']
+	),
+	procedureJan(
+		'CN-SH51-6',
+		'January 2026, a diagnostic curettage for menstrual disorder after an implant on Monday 5 January: five paid days, 5–9 January; six days from Monday 12 January are refused.',
+		`${SH51}; 放置宫内节育器或皮下埋植剂后因月经失调需诊断性刮宫的，休息5天 (CN-SH51)`,
+		'DIAGNOSTIC_CURETTAGE',
+		{ name: 'Ning Jing', gender: 'FEMALE' },
+		['2026-01-05', '2026-01-09'],
+		['2026-01-12', '2026-01-19']
+	),
+	procedureJan(
+		'CN-SH51-7',
+		'January 2026, a vasectomy on Monday 5 January: five paid days taken, 5–9 January (within the seven); eight working days, Monday 12 – Wednesday 21 January, for a second procedure are refused on either a working- or calendar-day count.',
+		`${SH51}; 输精管绝育的，休息7天 (CN-SH51)`,
+		'VASECTOMY',
+		{ name: 'Lai Gang' },
+		['2026-01-05', '2026-01-09'],
+		['2026-01-12', '2026-01-21']
+	)
+);

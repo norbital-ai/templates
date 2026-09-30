@@ -23,6 +23,10 @@
  *   THR    Permenaker 6/2016 arts 2–3. https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf
  *   UMP/UMK  decrees transcribed in docs/inventory/indonesia.csv (ID-54, ID-79, ID-83, ID-94, ID-96, ID-99, ID-102).
  *   DTP    PMK 105/2025 arts 2–4 (2026 PPh 21 borne by government, regular gross ≤ Rp10,000,000).
+ *   STRICT ID-173 (with ID-53, ID-89, ID-97): where an issued sector order's annex selectors are unsealed, an unmatched
+ *          KBLI cannot assert the ordinary UMP/UMK — DKI (the attested ordinary KBLI 62019 excepted), every Jawa Barat
+ *          workplace (2026 Kabupaten Bekasi at 62019 excepted, ID-96-1) and, in December 2025, Jawa Timur.
+ *   UMSP   DKI Kep.33/2026 annex lines as transcribed in ID-54 (conditional lines on recorded company facts).
  *
  * DEFAULT marks an owner-rule default where the law is silent (recorded in docs/inventory/indonesia.csv):
  *   ID-106 calendar-day proration; ID-161 part-month BPJS bases and the whole-month Kesehatan floor lift;
@@ -32,7 +36,16 @@
  */
 
 export type Workplace =
-	'DKI' | 'KOTA_BEKASI' | 'KOTA_BANJAR' | 'SURABAYA' | 'SEMARANG' | 'DENPASAR' | 'BADUNG';
+	| 'DKI'
+	| 'KOTA_BEKASI'
+	| 'KAB_BEKASI'
+	| 'KOTA_BANJAR'
+	| 'SURABAYA'
+	| 'SEMARANG'
+	| 'DENPASAR'
+	| 'BADUNG';
+/** Kep.33/2026 conditional annex lines (ID-54): declared company facts, false until recorded. */
+export type UmspCondition = 'EXPORT' | 'ASSETS_OVER_1T' | 'ASTRA_GROUP' | 'HOTEL_4_5_STAR';
 export type Ptkp = 'TK/0' | 'TK/1' | 'TK/2' | 'TK/3' | 'K/0' | 'K/1' | 'K/2' | 'K/3';
 export type RiskGroup = 'I' | 'II' | 'III' | 'IV' | 'V';
 /** PP 35/2021 arts 41–57, by the detailed cause. */
@@ -79,7 +92,10 @@ export type Scenario = {
 		workplace: Workplace;
 		/** worksite KBLI (five digits) */
 		kbli: string;
-		jkkRiskGroup: RiskGroup;
+		/** null: no registered JKK risk group (ID-16: the run stops) */
+		jkkRiskGroup: RiskGroup | null;
+		/** DKI Kep.33/2026 conditions recorded true (ID-54) */
+		umspConditions: UmspCondition[];
 		/** PP 7/2025 labour-intensive JKK relief applies */
 		padatKarya: boolean;
 		workWeek: 5 | 6;
@@ -100,6 +116,9 @@ export type Scenario = {
 		/** PP 45/2015 art 15(4) deferral elected */
 		jpDeferral: boolean;
 		kesehatanExtraMembers: number;
+		/** the subjective tax obligation began after January or ends before December this year (arrived in / leaves
+		 * Indonesia for good): PMK168 art 15(3) annualises */
+		subjectivePartYear: boolean;
 		/** zakat paid through the employer this month (PMK168 art 10(1)(c)) */
 		zakat: number;
 	};
@@ -114,6 +133,8 @@ export type Scenario = {
 		exitDate: string | null;
 		exitCause: ExitCause | null;
 		basic: number;
+		/** a mid-month basic change: the new basic from `from` (ID-161 DEFAULT) */
+		raise: { from: string; basic: number } | null;
 		fixedAllowance: number;
 		nonFixedAllowance: number;
 		/** HOURLY / DAILY rate */
@@ -123,6 +144,8 @@ export type Scenario = {
 	};
 	inputs: {
 		unpaidDates: string[];
+		/** paid statutory leave inside its entitlement (UU13 arts 79, 81, 93(2)(4); UU4 art 6): full wage, no line */
+		paidLeave: { kind: string; dates: string[] }[];
 		overtime: { date: string; kind: OvertimeKind; hours: number }[];
 		/** the worker's religious holiday paid in this period (THR) */
 		thrHolidayDate: string | null;
@@ -138,8 +161,10 @@ export type Scenario = {
 
 export type Line = { employee: number; employer: number; base: number };
 export type Payslip = {
-	/** why the run (or the input) must be refused; then there are no lines */
+	/** why the run must be refused; then there are no lines */
 	refused: string | null;
+	/** inputs the law does not allow (the request is refused; the payslip is priced without it) */
+	inputsRefused: string[];
 	components: Record<string, number>;
 	statutory: Record<string, Line>;
 	gross: number;
@@ -208,6 +233,9 @@ const FLOORS: Record<Workplace, [string, string, number][]> = {
 		['2025-01-01', '2025-12-31', 5_690_752.95],
 		['2026-01-01', '9999-12-31', 5_999_443]
 	],
+	// ID-96 Kep.862/2025, value as recorded in docs/inventory/indonesia.csv ID-19 (Kabupaten Bekasi 2026 UMK); the
+	// December 2025 Jawa Barat version is a strict sector place with no attested ordinary KBLI (ID-173), so no 2025 row
+	KAB_BEKASI: [['2026-01-01', '9999-12-31', 5_938_885]],
 	KOTA_BANJAR: [
 		['2025-01-01', '2025-12-31', 2_204_754.48],
 		['2026-01-01', '9999-12-31', 2_361_241]
@@ -226,8 +254,48 @@ const FLOORS: Record<Workplace, [string, string, number][]> = {
 		['2026-01-01', '9999-12-31', 3_791_002.57]
 	]
 };
-/** ID-54: DKI 2026 UMSP (Kep.33/2026) for service under one year, two annex lines. */
-const DKI_UMSP_2026: Record<string, number> = { '10437': 5_741_201, '10734': 5_743_449 };
+/** ID-54: DKI 2026 UMSP (Kep.33/2026 annex, dictum KEDUA/KETIGA) for service under one year: the unconditional
+ * lines. Lines 58–59 and 61 (49214/49219 bus jobs, 86103 class-A hospital jobs) need a job selector the terms do not
+ * carry: refused (ID-173). */
+const line = (amount: number, ...codes: string[]) => codes.map((c) => [c, amount] as const);
+export const DKI_UMSP_2026: Record<string, number> = Object.fromEntries([
+	...line(5_741_201, '10437', '10213', '10520', '10616', '10740', '24201', '25992', '42205'),
+	...line(5_743_449, '10734', '10801', '10802', '11040', '22220', '24103', '28130', '33121', '43211', '65111', '66420', '49432', '52291', '52109'),
+	...line(5_844_336, '20118', '20119', '20114', '20231', '20291', '20221', '22230', '23129', '23111', '23112', '23953'),
+	...line(5_744_066, '24101', '24310', '25991', '25940'),
+	...line(5_759_723, '27201'),
+	...line(5_759_015, '32202'),
+	...line(5_812_808, '27111', '27320', '27510'),
+	...line(5_741_336, '33151'),
+	...line(5_754_720, '58200', '61921', '61922')
+]);
+/** Kep.33/2026 conditional lines: [KBLI, condition, floor]. */
+export const DKI_UMSP_2026_CONDITIONAL: [string, UmspCondition, number][] = [
+	['21012', 'ASSETS_OVER_1T', 5_741_201],
+	['14111', 'EXPORT', 5_831_497],
+	['15201', 'EXPORT', 5_872_985],
+	['64121', 'ASSETS_OVER_1T', 5_872_985],
+	['64122', 'ASSETS_OVER_1T', 5_872_985],
+	['29200', 'ASTRA_GROUP', 5_904_114],
+	['29300', 'ASTRA_GROUP', 5_904_114],
+	['30912', 'ASTRA_GROUP', 5_904_114],
+	['30911', 'ASTRA_GROUP', 5_943_938],
+	['28160', 'ASTRA_GROUP', 5_943_938],
+	['29101', 'ASTRA_GROUP', 5_943_938],
+	['55110', 'HOTEL_4_5_STAR', 5_803_839]
+];
+/** The official-annex-verified ordinary KBLI that may use the UMP/UMK at a strict sector place (ID-53, ID-96-1). */
+const ATTESTED_ORDINARY = '62019';
+/** ID-173 / ID-53 / ID-89 / ID-97: strict sector places, where an issued sector order's selectors are unsealed, so an
+ * unmatched KBLI cannot assert the ordinary floor: [workplace, from, to, attested-ordinary KBLI allowed]. */
+const STRICT: [Workplace, string, string, boolean][] = [
+	['DKI', '2025-01-01', '9999-12-31', true],
+	['KOTA_BEKASI', '2025-01-01', '9999-12-31', false],
+	['KOTA_BANJAR', '2025-01-01', '9999-12-31', false],
+	['KAB_BEKASI', '2025-01-01', '2025-12-31', false],
+	['KAB_BEKASI', '2026-01-01', '9999-12-31', true],
+	['SURABAYA', '2025-01-01', '2025-12-31', false]
+];
 
 export const floorOn = (w: Workplace, day: string) => {
 	const row = FLOORS[w].find(([a, b]) => between(day, a, b));
@@ -493,6 +561,8 @@ const OT_BANDS: Record<OvertimeKind, Record<5 | 6, number[]>> = {
 
 const refuse = (why: string): Payslip => ({
 	refused: why,
+	inputsRefused: [],
+	taxDue: 0,
 	components: {},
 	statutory: {},
 	gross: 0,
@@ -508,6 +578,7 @@ export function computePayslip(s: Scenario): Payslip {
 	const last = monthEnd(s.period);
 	const cal = daysIn(s.period);
 	const notes: string[] = [];
+	const inputsRefused: string[] = [];
 	const components: Record<string, number> = {};
 	const statutory: Record<string, Line> = {};
 	const add = (code: string, v: number) => {
@@ -541,15 +612,24 @@ export function computePayslip(s: Scenario): Payslip {
 	if (em.basic * 4 < monthly * 3)
 		return refuse('ID-02: basic wage under 75% of basic plus fixed allowances');
 	// UU13 art 88E(2), PP36 arts 23–24: compared in sen (ID-127); DKI UMSP for service under one year (ID-54).
+	const sector2026 =
+		co.workplace === 'DKI' && first >= '2026-01-01'
+			? (DKI_UMSP_2026[co.kbli] ??
+				DKI_UMSP_2026_CONDITIONAL.find(([k, c]) => k === co.kbli && co.umspConditions.includes(c))?.[2])
+			: undefined;
+	const strict = STRICT.find(([w, a, b]) => w === co.workplace && between(first, a, b));
+	if (strict !== undefined && sector2026 === undefined && !(strict[3] && co.kbli === ATTESTED_ORDINARY))
+		return refuse(`ID-173: KBLI ${co.kbli} unmatched at the strict sector place ${co.workplace}`);
 	let floor = floorOn(co.workplace, first);
-	const umsp = DKI_UMSP_2026[co.kbli];
-	if (co.workplace === 'DKI' && first >= '2026-01-01' && umsp !== undefined && serviceMonths < 12)
-		floor = Math.max(floor, umsp);
+	if (sector2026 !== undefined && serviceMonths < 12) floor = Math.max(floor, sector2026); // KETIGA
 	if (Math.round(monthly * 100) < Math.round(floor * 100))
 		return refuse(`MINIMUM_WAGE_BELOW: ${monthly} under the ${floor} floor`);
 	// ID-114: micro/small severance is by agreement; the generic multiplier does not bind.
 	if (co.microSmall && em.exitCause !== null && em.exitCause in CAUSE && em.type === 'PKWTT')
 		return refuse('ID-114: micro/small enterprise severance needs the recorded agreement');
+
+	if (co.jkkRiskGroup === null) return refuse('ID-16: no registered JKK risk group');
+	const riskGroup = co.jkkRiskGroup;
 
 	// ----- wages (ID-106 DEFAULT: calendar days) -----
 	const from = em.hireDate > first ? em.hireDate : first;
@@ -559,7 +639,16 @@ export function computePayslip(s: Scenario): Payslip {
 	const reducedLoss =
 		inp.reducedPay === null ? 0 : inp.reducedPay.days * (1 - inp.reducedPay.fraction);
 	const paidDays = employedDays - unpaid - reducedLoss;
-	const basicPaid = r2((em.basic * paidDays) / cal);
+	// ID-161 DEFAULT: a mid-month raise prices each part at its own rate by calendar days (no unpaid days are used
+	// with a raise); JHT/JKK/JKM use the rate in force on the month's last employed day.
+	const basicPaid =
+		em.raise === null
+			? r2((em.basic * paidDays) / cal)
+			: r2(
+					(em.basic * Math.round((D(em.raise.from) - D(from)) / DAY)) / cal +
+						(em.raise.basic * (Math.round((D(to) - D(em.raise.from)) / DAY) + 1)) / cal
+				);
+	const rateBasic = em.raise === null ? em.basic : em.raise.basic;
 	const fixedPaid = r2((em.fixedAllowance * paidDays) / cal);
 	const nonFixedPaid = r2((em.nonFixedAllowance * paidDays) / cal);
 	add('BASIC', basicPaid);
@@ -583,6 +672,7 @@ export function computePayslip(s: Scenario): Payslip {
 	if (inp.thrHolidayDate !== null) {
 		const m = completedMonths(em.hireDate, inp.thrHolidayDate);
 		if (m >= 1) add('THR', m >= 12 ? monthly : r2((m / 12) * monthly));
+		else inputsRefused.push('ID-13: THR needs at least one month of continuous service');
 	}
 	add('BONUS', inp.bonus);
 
@@ -600,6 +690,8 @@ export function computePayslip(s: Scenario): Payslip {
 		if (pisah) add('UANG_PISAH', inp.uangPisah);
 		severance = pes + upmk + (pisah ? inp.uangPisah : 0);
 	}
+	if (exiting && em.type === 'PKWT' && !ee.citizen)
+		inputsRefused.push('ID-109: no PKWT compensation for a foreign worker (PP35 art 15(5))');
 	if (exiting && em.type === 'PKWT' && ee.citizen) {
 		// PP35 arts 15–17: service months ÷ 12 × one month's wage; ≥ 1 continuous month; not a foreigner (15(5)).
 		const months = completedMonths(em.hireDate, addDays(em.exitDate!, 1));
@@ -631,10 +723,11 @@ export function computePayslip(s: Scenario): Payslip {
 	};
 	if (bpjsTk) {
 		// JHT PP46 art 16–17 / JKK, JKM PP44 art 19: on Upah sebulan, the contract's monthly rate (ID-161)
-		charge('JHT', monthly, 2, 3.7);
+		const upahSebulan = rateBasic + em.fixedAllowance;
+		charge('JHT', upahSebulan, 2, 3.7);
 		const relief = co.padatKarya && first >= '2025-02-01' && first <= '2026-01-31';
-		charge('JKK', monthly, 0, (relief ? JKK_PADAT_KARYA : JKK)[co.jkkRiskGroup]);
-		charge('JKM', monthly, 0, 0.3);
+		charge('JKK', upahSebulan, 0, (relief ? JKK_PADAT_KARYA : JKK)[riskGroup]);
+		charge('JKM', upahSebulan, 0, 0.3);
 	}
 	// JP PP45 arts 2–4, 15, 29: the month's wage paid, capped; a foreigner only on a registration.
 	const jpAge = ee.jpDeferral ? pensionAge(first) + 3 : pensionAge(first);
@@ -682,7 +775,7 @@ export function computePayslip(s: Scenario): Payslip {
 				computePayslip({
 					...s,
 					period: p,
-					employment: { ...em, exitDate: null, exitCause: null },
+					employment: { ...em, exitDate: null, exitCause: null, raise: null },
 					inputs: { ...inp, unpaidDates: [], overtime: [], thrHolidayDate: null, bonus: 0, wageDeduction: 0, uangPisah: 0, reducedPay: null }
 				})
 			);
@@ -701,10 +794,17 @@ export function computePayslip(s: Scenario): Payslip {
 				(statutory.JHT?.employee ?? 0) -
 				(statutory.JP?.employee ?? 0) -
 				ee.zakat;
-			const pkp = Math.max(0, Math.floor((neto - ptkpAmount(ee.ptkp)) / 1000) * 1000); // art 8(4)
+			// PMK168 art 15(3) (signed text read 2026-09-30): "Dalam hal kewajiban pajak subjektif Pegawai Tetap ...
+			// baru dimulai setelah bulan Januari atau berakhir sebelum bulan Desember, penghitungan ... dilakukan
+			// berdasarkan penghasilan neto yang disetahunkan dan pajaknya dihitung secara proporsional terhadap jumlah
+			// bulan dalam bagian Tahun Pajak". A job change alone keeps the actual (unannualised) neto.
+			const part = ee.subjectivePartYear && months < 12;
+			const yearNeto = part ? (neto * 12) / months : neto;
+			const pkp = Math.max(0, Math.floor((yearNeto - ptkpAmount(ee.ptkp)) / 1000) * 1000); // art 8(4)
 			const withheld = prior.reduce((a, p) => a + p.taxDue, 0);
+			const yearTax = art17(pkp) * (part ? months / 12 : 1);
 			// ponytail: a year that over-withheld yields a negative figure here; the refund is ID-21's open branch.
-			tax = r0(art17(pkp) * (ee.hasTaxId ? 1 : 1.2)) - withheld;
+			tax = r0(yearTax * (ee.hasTaxId ? 1 : 1.2)) - withheld;
 			notes.push(`last period: ${months} month(s), neto ${r2(neto)}, PKP ${pkp}, TER withheld ${withheld}`);
 		} else {
 			tax = r0(((taxGross * terRateBp(ee.ptkp, taxGross)) / 10_000) * (ee.hasTaxId ? 1 : 1.2));
@@ -731,7 +831,7 @@ export function computePayslip(s: Scenario): Payslip {
 		return refuse('ID-06: deductions above half of the wage payment');
 	if (inp.wageDeduction > 0) components.WAGE_DEDUCTION = -inp.wageDeduction;
 
-	return { ...finish(components, statutory, notes), taxDue };
+	return { ...finish(components, statutory, notes), inputsRefused, taxDue };
 }
 
 function finish(
@@ -752,6 +852,7 @@ function finish(
 	const total_deductions = r2(eeSum + other);
 	return {
 		refused: null,
+		inputsRefused: [],
 		components: Object.fromEntries(Object.entries(components).filter(([, v]) => v > 0)),
 		statutory,
 		gross,

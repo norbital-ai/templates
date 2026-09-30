@@ -5,9 +5,9 @@
  *   LPA   Labour Protection Act B.E.2541, Council of State consolidation through Act No.9 B.E.2568
  *         https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09
  *   No.9  Act No.9 B.E.2568, https://ratchakitcha.soc.go.th/documents/89818.pdf (maternity 120/60, ss.41, 41/1, 59–59/2)
- *   N14   Minimum Wage Notice No.14, https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/ (Bangkok 400,
- *         Hat Yai 380, hotel types 2–4 and service establishments 400 nationwide, cl.2; as transcribed in
- *         docs/inventory/thailand.csv TH-WAGE-01..03, 07)
+ *   N14   Minimum Wage Notice No.14 and its explanation, https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/
+ *         (the TH-WAGE-01 PDF; explanation cl.7(1)–(3): Bangkok 400, hotel types 2–4 and service establishments
+ *         400 nationwide; p.6 table of 17 rate groups, 337–400)
  *   SSA   Social Security Act B.E.2533 consolidation https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09
  *         ss.5, 33, 46; 2026 base regulation https://ratchakitcha.soc.go.th/documents/98728.pdf (1,650 floor, 17,500
  *         ceiling 2026–2028; 15,000 before); flood notice https://ratchakitcha.soc.go.th/documents/100888.pdf (3%)
@@ -17,6 +17,10 @@
  *   RATES https://www.rd.go.th/59670.html (0–150,000 exempt by Royal Decree 470; 5/10/15/20/25/30/35%)
  *   P96   Order P.96/2543 https://www.rd.go.th/3558.html cl.1(1)–(5), cl.2
  *   N45   DG Notification No.45 https://www.rd.go.th/3213.html cls.1–3 (as amended by No.252)
+ *   MR2552 Guard regulation 19 Jun 2009 https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/181.pdf cl.2 (s.61/s.63
+ *         OT at 1× the hourly rate); MR2568 https://ratchakitcha.soc.go.th/documents/68372.pdf (Gazette 24 Apr 2025, in force
+ *         365 days later) cl.3 OT ≥1.25×, holiday OT ≥2.5×; cl.4 agreed normal day > 8 h within 48 h a week, non-monthly
+ *         guard ≥1.25× per hour beyond eight
  *   MR126 Ministerial Regulation No.126 cl.2(51) as amended by No.394 https://www.rd.go.th/2502.html
  *         (severance exempt up to the last 400 days' wage and THB600,000; not on retirement or contract end)
  *
@@ -24,7 +28,33 @@
  * Pure TypeScript; nothing is imported from src.
  */
 
-export type Worksite = 'BANGKOK' | 'SONGKHLA_HAT_YAI';
+/** N14 p.6 table (read 30 Sep 2026 from the MoL PDF in the in-app browser): one worksite per base-rate group,
+ *  plus every district override and the province remainder beside it (TH-WAGE-01, TH-WAGE-02). THB a day. */
+export const WORKSITE_DAILY = {
+	BANGKOK: 400, // group 1: Bangkok, Chachoengsao, Chonburi, Phuket, Rayong, Ko Samui district
+	CHONBURI: 400,
+	PHUKET: 400,
+	SURAT_THANI_KO_SAMUI: 400,
+	CHIANG_MAI_MUEANG: 380, // group 2: Mueang Chiang Mai and Hat Yai districts
+	SONGKHLA_HAT_YAI: 380,
+	NONTHABURI: 372, // group 3: Nakhon Pathom, Nonthaburi, Pathum Thani, Samut Prakan, Samut Sakhon
+	NAKHON_RATCHASIMA: 359, // group 4
+	SAMUT_SONGKHRAM: 358, // group 5
+	CHIANG_MAI: 357, // group 6: Khon Kaen, Chiang Mai except Mueang, Prachin Buri, Ayutthaya, Saraburi
+	LOPBURI: 356, // group 7
+	NONG_KHAI: 355, // group 8: Nakhon Nayok, Suphan Buri, Nong Khai
+	KRABI: 354, // group 9: Krabi, Trat
+	SONGKHLA: 352, // group 10 (15 provinces) incl. Songkhla except Hat Yai, Surat Thani except Ko Samui
+	SURAT_THANI: 352,
+	CHUMPHON: 351, // group 11
+	LAMPHUN: 350, // group 12
+	ROI_ET: 349, // group 13
+	ANG_THONG: 348, // group 14
+	UDON_THANI: 347, // group 15 (16 provinces)
+	NAN: 345, // group 16
+	YALA: 337 // group 17: Narathiwat, Pattani, Yala
+} as const;
+export type Worksite = keyof typeof WORKSITE_DAILY;
 export type Sector =
 	| 'GENERAL'
 	| 'HOTEL_TYPE_1'
@@ -32,8 +62,9 @@ export type Sector =
 	| 'HOTEL_TYPE_3'
 	| 'HOTEL_TYPE_4'
 	| 'SERVICE_ESTABLISHMENT';
-/** LPA s.65: (1) authority to hire/reward/dismiss; (2) commission sales; (3)–(9) the hourly-rate classes. */
-export type WorkClass = 'ORDINARY' | 'S65_1_AUTHORITY' | 'S65_2_COMMISSION_SALES' | 'S65_3_9_HOURLY';
+/** LPA s.65: (1) authority to hire/reward/dismiss; (2) commission sales; (3)–(9) the hourly-rate classes;
+ *  GUARD: s.65(9) guarding of premises or property as normal duty (MR 2552, then MR 2568 from 24 Apr 2026). */
+export type WorkClass = 'ORDINARY' | 'S65_1_AUTHORITY' | 'S65_2_COMMISSION_SALES' | 'S65_3_9_HOURLY' | 'GUARD';
 export type ExitCause =
 	| 'RESIGNATION'
 	| 'EMPLOYER_TERMINATION'
@@ -146,7 +177,7 @@ const service = (hire: string, last: string) => {
 /** N14 cl.2 and table: daily floor by worksite; sector override THB400 nationwide for hotel types 2–4 and
  *  Service Establishment Act venues (TH-WAGE-03, -07); a type 1 hotel keeps the geographic rate. */
 const minimumDaily = (w: Worksite, s: Sector) => {
-	const geo = w === 'BANGKOK' ? 400 : 380; // N14 table: Bangkok 400; Songkhla/Hat Yai district 380
+	const geo = WORKSITE_DAILY[w];
 	return s === 'HOTEL_TYPE_2' || s === 'HOTEL_TYPE_3' || s === 'HOTEL_TYPE_4' || s === 'SERVICE_ESTABLISHMENT'
 		? Math.max(geo, 400)
 		: geo;
@@ -208,6 +239,12 @@ export function computePayslip(sc: Scenario): Payslip {
 	if (minor && (anyOt || anyHoliday)) return refuse('under-18 overtime/holiday work (LPA s.48)');
 	if (e.pregnant && (anyOt || anyHoliday)) return refuse('pregnant overtime/holiday work (LPA s.39/1)');
 	if (e.hazardous && (anyOt || anyHoliday)) return refuse('hazardous overtime/holiday work (LPA s.31)');
+	// LPA s.23: normal day ≤ 8 hours, hazardous ≤ 7; MR 2568 cl.4 lets a guard agree a longer normal day from
+	// 24 Apr 2026 (the 48-hour week it also requires is not modelled here)
+	const guardNew = e.workClass === 'GUARD' && period >= '2026-05';
+	if (e.workClass === 'GUARD' && period === '2026-04') throw new Error('guard April 2026 straddles the MR 2568 cutover');
+	if (e.hazardous && e.normalDailyHours > 7) return refuse('hazardous normal day over 7 hours (LPA s.23)');
+	if (e.normalDailyHours > 8 && !guardNew) return refuse('normal day over 8 hours (LPA s.23)');
 	// No.9 ss.41 para.4, 41/1: child-care and spouse-birth leave "not more than fifteen days"
 	if (sc.leave.childCareDays > 15 || sc.leave.spouseBirthDays > 15) return refuse('leave beyond 15 days');
 
@@ -249,6 +286,14 @@ export function computePayslip(sc: Scenario): Payslip {
 		if (e.pay.paidTraditionalHolidays > 0)
 			lines.HOLIDAY_PAY = { amount: r2(e.pay.daily * e.pay.paidTraditionalHolidays), base: e.pay.paidTraditionalHolidays };
 		regular = (lines.DAILY_WAGES.amount ?? 0) + (lines.HOLIDAY_PAY?.amount ?? 0);
+		// MR 2568 cl.4: a guard not paid monthly on an agreed normal day over eight hours gets ≥ 1.25× the hourly
+		// rate for each normal hour beyond eight. READING: on top of the day wage (the day wage pays the agreed
+		// normal day at 1×); hourly = day ÷ agreed normal hours (s.68); DEFAULT: in the s.5 wage (normal hours).
+		if (guardNew && e.normalDailyHours > 8) {
+			const h = (e.normalDailyHours - 8) * e.pay.workedDays;
+			lines.GUARD_NORMAL_SUPPLEMENT = { amount: r2((e.pay.daily / e.normalDailyHours) * 1.25 * h), base: h };
+			regular += lines.GUARD_NORMAL_SUPPLEMENT.amount!;
+		}
 	}
 
 	// ---- overtime and holiday work (LPA ss.61–66, 68) ----
@@ -257,8 +302,9 @@ export function computePayslip(sc: Scenario): Payslip {
 	const cls = e.workClass;
 	let special = 0;
 	if (sc.time.overtimeHours > 0) {
-		// s.61 ≥1.5×; s.65(1),(2) none; s.65(3)–(9) the hourly rate per hour
-		const m = cls === 'ORDINARY' ? 1.5 : cls === 'S65_3_9_HOURLY' ? 1 : 0;
+		// s.61 ≥1.5×; s.65(1),(2) none; s.65(3)–(9) the hourly rate per hour; guard: MR 2552 cl.2 1× before
+		// 24 Apr 2026, MR 2568 cl.3 ≥1.25× from then
+		const m = cls === 'ORDINARY' ? 1.5 : cls === 'S65_3_9_HOURLY' ? 1 : cls === 'GUARD' ? (guardNew ? 1.25 : 1) : 0;
 		if (m > 0) lines.OVERTIME = { amount: r2(hourly * m * sc.time.overtimeHours), base: sc.time.overtimeHours };
 	}
 	const hw = sc.time.holidayWork;
@@ -268,8 +314,8 @@ export function computePayslip(sc: Scenario): Payslip {
 		const paidForHoliday = e.pay.basis === 'MONTHLY' || hw.kind === 'TRADITIONAL';
 		if (cls !== 'S65_1_AUTHORITY' && hw.hours > 0)
 			lines.HOLIDAY_WORK = { amount: r2(hourly * (paidForHoliday ? 1 : 2) * hw.hours), base: hw.hours };
-		// s.63 ≥3×; s.65 classes as for s.61
-		const m = cls === 'ORDINARY' ? 3 : cls === 'S65_3_9_HOURLY' ? 1 : 0;
+		// s.63 ≥3×; s.65 classes as for s.61; guard: MR 2552 cl.2 1×, MR 2568 cl.3 ≥2.5×
+		const m = cls === 'ORDINARY' ? 3 : cls === 'S65_3_9_HOURLY' ? 1 : cls === 'GUARD' ? (guardNew ? 2.5 : 1) : 0;
 		if (m > 0 && hw.overtimeHours > 0)
 			lines.HOLIDAY_OVERTIME = { amount: r2(hourly * m * hw.overtimeHours), base: hw.overtimeHours };
 	}

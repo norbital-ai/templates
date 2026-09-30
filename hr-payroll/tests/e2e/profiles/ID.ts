@@ -12,6 +12,8 @@
  */
 import {
 	computePayslip,
+	DKI_UMSP_2026,
+	DKI_UMSP_2026_CONDITIONAL,
 	floorOn,
 	periodsToRun,
 	TER,
@@ -64,6 +66,7 @@ export function generateProfiles(): Scenario[] {
 			workplace: 'DKI',
 			kbli: '62019',
 			jkkRiskGroup: 'I',
+			umspConditions: [],
 			padatKarya: false,
 			workWeek: 5,
 			dtpKlu: false,
@@ -80,6 +83,7 @@ export function generateProfiles(): Scenario[] {
 			jpRegistered: false,
 			jpDeferral: false,
 			kesehatanExtraMembers: 0,
+			subjectivePartYear: false,
 			zakat: 0,
 			...p.employee
 		},
@@ -93,6 +97,7 @@ export function generateProfiles(): Scenario[] {
 			exitDate: null,
 			exitCause: null,
 			basic: 8_000_000,
+			raise: null,
 			fixedAllowance: 0,
 			nonFixedAllowance: 0,
 			rate: 0,
@@ -101,6 +106,7 @@ export function generateProfiles(): Scenario[] {
 		},
 		inputs: {
 			unpaidDates: [],
+			paidLeave: [],
 			overtime: [],
 			thrHolidayDate: null,
 			bonus: 0,
@@ -160,8 +166,8 @@ export function generateProfiles(): Scenario[] {
 				);
 		});
 	seam('A', 'TK/0', 1);
-	seam('B', 'K/1', 2);
-	seam('C', 'K/3', 2);
+	seam('B', 'K/1', 3);
+	seam('C', 'K/3', 3);
 
 	// ---- 2. PTKP statuses: a February TER month and a December (last period) joiner.
 	const statuses: Ptkp[] = ['TK/0', 'TK/1', 'TK/2', 'TK/3', 'K/0', 'K/1', 'K/2', 'K/3'];
@@ -274,7 +280,7 @@ export function generateProfiles(): Scenario[] {
 		'PMK 105/2025 annex B example 1 shape (8,000,000 TK/0)',
 		{
 			period: '2026-12',
-			company: { dtpKlu: true, kbli: '13111' },
+			company: { dtpKlu: true, workplace: 'DENPASAR', kbli: '13111' },
 			employment: { basic: 8_000_000, hireDate: '2023-01-02' }
 		}
 	);
@@ -385,18 +391,22 @@ export function generateProfiles(): Scenario[] {
 			'PP 7/2025 relief',
 			{
 				period: '2026-01',
-				company: { jkkRiskGroup: g, padatKarya: true },
+				company: { jkkRiskGroup: g, padatKarya: true, workplace: 'DENPASAR', kbli: '14111' },
 				employment: { basic: 25_000_000 }
 			}
 		);
 	}
+	make('JKK-none', ['ID-16'], ['no registered risk group: run stops'], 'Missing JKK group', {
+		company: { jkkRiskGroup: null },
+		employment: { basic: 25_000_000 }
+	});
 	make(
 		'JKK-padat-ended',
 		['ID-52'],
 		['relief ended February 2026'],
 		'Labour-intensive employer after January 2026',
 		{
-			company: { padatKarya: true },
+			company: { padatKarya: true, workplace: 'DENPASAR', kbli: '14111' },
 			employment: { basic: 25_000_000 }
 		}
 	);
@@ -407,7 +417,7 @@ export function generateProfiles(): Scenario[] {
 		'Labour-intensive employer December 2025',
 		{
 			period: '2025-12',
-			company: { padatKarya: true, jkkRiskGroup: 'II' },
+			company: { padatKarya: true, jkkRiskGroup: 'II', workplace: 'DENPASAR', kbli: '14111' },
 			employment: { basic: 25_000_000, hireDate: '2025-06-02' }
 		}
 	);
@@ -415,15 +425,12 @@ export function generateProfiles(): Scenario[] {
 	// ---- 6. Minimum wage floors: at the floor and a sen under (UU13 art 88E(2); ID-127 compares in sen).
 	const localities: [Workplace, string, string][] = [
 		['DKI', 'ID-94', '2026-02'],
-		['KOTA_BEKASI', 'ID-96', '2026-02'],
-		['KOTA_BANJAR', 'ID-96', '2026-02'],
+		['KAB_BEKASI', 'ID-96', '2026-02'],
 		['SURABAYA', 'ID-79', '2026-02'],
 		['SEMARANG', 'ID-83', '2026-02'],
 		['DENPASAR', 'ID-102', '2026-02'],
 		['BADUNG', 'ID-102', '2026-02'],
 		['DKI', 'ID-94', '2025-12'],
-		['KOTA_BEKASI', 'ID-96', '2025-12'],
-		['KOTA_BANJAR', 'ID-96', '2025-12'],
 		['DENPASAR', 'ID-99', '2025-12'],
 		['BADUNG', 'ID-99', '2025-12']
 	];
@@ -445,10 +452,31 @@ export function generateProfiles(): Scenario[] {
 				}
 			);
 	}
-	for (const [kbli, floor] of [
-		['10437', 5_741_201],
-		['10734', 5_743_449]
-	] as const) {
+	// ID-173 strict sector places: an unmatched KBLI (or any KBLI where no ordinary KBLI is attested) is refused.
+	for (const [workplace, period, kbli, row] of [
+		['KOTA_BEKASI', '2026-02', '62019', 'ID-96'],
+		['KOTA_BEKASI', '2025-12', '62019', 'ID-96'],
+		['KOTA_BANJAR', '2026-02', '62019', 'ID-96'],
+		['KOTA_BANJAR', '2025-12', '62019', 'ID-96'],
+		['KAB_BEKASI', '2025-12', '62019', 'ID-96'],
+		['KAB_BEKASI', '2026-02', '46599', 'ID-97'],
+		['SURABAYA', '2025-12', '62019', 'ID-89'],
+		['DKI', '2026-02', '47111', 'ID-54'],
+		['DKI', '2025-12', '10437', 'ID-53'],
+		['DKI', '2026-02', '86103', 'ID-54'],
+		['DKI', '2026-02', '14111', 'ID-54']
+	] as const)
+		make(
+			`STRICT-${workplace}-${period}-${kbli}`,
+			['ID-173', row, 'ID-03'],
+			[`strict sector place ${workplace} ${period}: KBLI ${kbli} refused`],
+			'Sector floor unresolved: the ordinary floor cannot be asserted',
+			{ period, company: { workplace, kbli }, employment: { basic: 7_000_000 } }
+		);
+	// one KBLI per distinct unconditional Kep.33/2026 amount, at and a sen under
+	const seen = new Set<number>();
+	const umspLines = Object.entries(DKI_UMSP_2026).filter(([, v]) => !seen.has(v) && seen.add(v) !== undefined);
+	for (const [kbli, floor] of umspLines) {
 		make(
 			`UMSP-${kbli}-at`,
 			['ID-54', 'ID-03'],
@@ -470,6 +498,32 @@ export function generateProfiles(): Scenario[] {
 			}
 		);
 	}
+	for (const [kbli, condition, floor] of DKI_UMSP_2026_CONDITIONAL)
+		make(
+			`UMSP-${kbli}-${condition}`,
+			['ID-54', 'ID-03'],
+			[`conditional line ${kbli} with ${condition} recorded: floor ${floor}`],
+			'DKI conditional sector floor',
+			{ company: { kbli, umspConditions: [condition] }, employment: { basic: floor } }
+		);
+	make(
+		'UMSP-14111-EXPORT-under',
+		['ID-54', 'ID-127'],
+		['conditional line a sen under'],
+		'DKI conditional sector floor',
+		{ company: { kbli: '14111', umspConditions: ['EXPORT'] }, employment: { basic: 5_831_496.99 } }
+	);
+	for (const [tag, hireDate] of [
+		['12m-exact', '2025-02-01'],
+		['12m-less-a-day', '2025-02-02']
+	] as const)
+		make(
+			`UMSP-10437-${tag}`,
+			['ID-54'],
+			[`one-year service boundary ${tag}`],
+			'UMSP binds only under one year of service',
+			{ company: { kbli: '10437' }, employment: { basic: 5_729_876, hireDate } }
+		);
 	make(
 		'UMSP-10437-senior',
 		['ID-54'],
@@ -561,6 +615,18 @@ export function generateProfiles(): Scenario[] {
 				employment: { basic: 12_000_000 }
 			}
 		);
+	for (const [tag, birthDate] of [
+		['turns-59-on-15th', '1967-02-15'],
+		['turns-59-on-1st', '1967-02-01'],
+		['turns-59-on-2nd', '1967-02-02']
+	] as const)
+		make(
+			`AGE-JP-${tag}`,
+			['ID-15'],
+			[`JP when the worker ${tag} (age read on the period's first day)`],
+			'JP pension age inside the month',
+			{ employee: { birthDate }, employment: { basic: 12_000_000 } }
+		);
 	for (const [tag, y, m] of [
 		['53y11m', 53, 11],
 		['54y1m', 54, 1]
@@ -626,10 +692,10 @@ export function generateProfiles(): Scenario[] {
 		'CITIZEN-nonres',
 		['ID-24'],
 		['citizen tax-resident abroad: PPh 26 on gross incl. premiums'],
-		'Non-resident citizen',
+		'Citizen living abroad, engaged 10 Feb for the month only (UU 36/2008 art 2(3)(a): under 183 days)',
 		{
 			employee: { taxResident: false },
-			employment: { basic: 20_000_000 }
+			employment: { basic: 20_000_000, hireDate: '2026-02-10' }
 		}
 	);
 
@@ -921,7 +987,7 @@ export function generateProfiles(): Scenario[] {
 		'SEV-nonres',
 		['ID-168', 'ID-24'],
 		['non-resident severance: PPh 26 20%'],
-		'Non-resident pesangon',
+		'Citizen posted and living abroad the whole tax year (declared non-resident): pesangon',
 		{
 			period: '2026-01',
 			employee: { taxResident: false },
@@ -999,7 +1065,7 @@ export function generateProfiles(): Scenario[] {
 		'Foreign PKWT end',
 		{
 			period: '2026-01',
-			employee: { citizen: false, foreignWorkMonths: 12 },
+			employee: { citizen: false, foreignWorkMonths: 12, subjectivePartYear: true },
 			employment: {
 				type: 'PKWT',
 				basic: 30_000_000,
@@ -1013,6 +1079,7 @@ export function generateProfiles(): Scenario[] {
 
 	// ---- 15. Statutory reduced pay: illness steps (UU13 art 93(3)) and maternity months 5–6 (UU4 art 5(2)).
 	for (const [tag, fraction, row] of [
+		['illness-m4', 1, 'ID-37'],
 		['illness-m5', 0.75, 'ID-37'],
 		['illness-m9', 0.5, 'ID-37'],
 		['illness-m13', 0.25, 'ID-37'],
@@ -1034,6 +1101,7 @@ export function generateProfiles(): Scenario[] {
 		['9m', 9_000_000, true],
 		['10m', 10_000_000, true],
 		['10m-above', 10_000_000.01, true],
+		['10m-plus-1', 10_000_001, true],
 		['no-klu', 9_000_000, false]
 	] as const)
 		make(`DTP-${tag}`, ['ID-84', 'ID-23'], [`DTP ${tag}`], 'Government-borne PPh 21', {
@@ -1051,6 +1119,56 @@ export function generateProfiles(): Scenario[] {
 		make(`SERVICES-${tag}`, ['ID-74', 'ID-22', 'ID-45'], [`services fee ${tag}`], 'Bukan pegawai', {
 			employee: { hasTaxId: taxId },
 			employment: { type: 'NON_EMPLOYEE', basic: 0, serviceFee: fee }
+		});
+
+	// ---- 17a. PMK168 art 15(3): a part tax year of the subjective obligation annualises the neto.
+	for (const [tag, period, hireDate, exitDate, part] of [
+		['arrive-mar-leave-jun', '2026-06', '2026-03-02', '2026-06-30', true],
+		['arrive-mar-leave-jun-jobchange', '2026-06', '2026-03-02', '2026-06-30', false],
+		['arrive-oct-dec', '2025-12', '2025-10-01', null, true],
+		['leave-jan-15', '2026-01', '2024-06-03', '2026-01-15', true]
+	] as const)
+		make(
+			`PARTYEAR-${tag}`,
+			['ID-21', 'ID-122', 'ID-127', 'ID-175'],
+			[part ? 'subjective part year: neto annualised, tax pro rata' : 'job change only: actual neto'],
+			'Foreign resident arriving in / leaving Indonesia inside the tax year',
+			{
+				period,
+				employee: { citizen: false, foreignWorkMonths: 6, subjectivePartYear: part },
+				employment: {
+					basic: 40_000_000,
+					hireDate,
+					exitDate,
+					exitCause: exitDate === null ? null : 'RESIGNATION'
+				}
+			}
+		);
+
+	// ---- 17b. Mid-month raise (ID-161 DEFAULT: JHT/JKK/JKM on the last day's rate, JP/Kesehatan on the wage paid).
+	for (const [tag, basic, raised, from] of [
+		['16th', 9_300_000, 12_400_000, '2026-04-16'],
+		['2nd', 10_000_000, 11_500_000, '2026-04-02'],
+		['30th', 10_500_000, 11_000_000, '2026-04-30'],
+		['over-jp-cap', 10_000_000, 13_000_000, '2026-04-11']
+	] as const)
+		make(`RAISE-${tag}`, ['ID-161', 'ID-106', 'ID-15', 'ID-19', 'ID-14'], [`raise from ${from}`], 'Mid-month raise', {
+			period: '2026-04',
+			employment: { basic, raise: { from, basic: raised } }
+		});
+
+	// ---- 17c. Paid statutory leave inside its entitlement: no deduction.
+	for (const [tag, kind, dates, row] of [
+		['marriage-3d', 'MARRIAGE', ['2026-04-06', '2026-04-07', '2026-04-08'], 'ID-12'],
+		['bereavement-2d', 'BEREAVEMENT', ['2026-04-13', '2026-04-14'], 'ID-12'],
+		['paternity-2d', 'PATERNITY', ['2026-04-20', '2026-04-21'], 'ID-126'],
+		['menstrual-2d', 'MENSTRUAL', ['2026-04-09', '2026-04-10'], 'ID-11'],
+		['annual-5d', 'ANNUAL', ['2026-04-06', '2026-04-07', '2026-04-08', '2026-04-09', '2026-04-10'], 'ID-121']
+	] as const)
+		make(`PAIDLEAVE-${tag}`, [row, 'ID-11', 'ID-106'], [`paid ${kind} leave`], 'Paid leave: full wage', {
+			period: '2026-04',
+			employment: { basic: 9_300_000, hireDate: '2024-03-01' },
+			inputs: { paidLeave: [{ kind, dates: [...dates] }] }
 		});
 
 	// ---- 18. PP36 art 65 deduction ceiling.

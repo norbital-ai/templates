@@ -6,7 +6,8 @@
  * `employer` → the harness company, `employee`/`employment` → the employee and employment rows, `inputs` → leave,
  * work-day, ad hoc and exit rows, `period` → the run. Periods are chosen so the law's year-to-date inputs are empty:
  *   - 2026-01 (n = 11): long-serving employees, first month of the tax year, before SKBBK;
- *   - 2026-08 (n = 4): employees who joined on or after 1 August 2026 in their first job of the year (no TP3), with SKBBK.
+ *   - 2026-08 (n = 4): employees who joined on or after 1 August 2026 in their first job of the year (no TP3), with SKBBK;
+ *   - other months (M–T groups): joiners on the 1st of the period, so the only year-to-date figures are an explicit TP3.
  * Ages are whole years on the period's first day and no birthday falls inside the period month, so a threshold age is
  * the same on every day of the month (the law's "attained the age" then has one answer).
  * No Math.random: a seeded mulberry32 picks only cosmetic values (birth day of month, names).
@@ -64,6 +65,12 @@ export function generateProfiles(): Scenario[] {
 		fixedAllowance?: number;
 		partTime?: boolean;
 		inputs?: Scenario['inputs'];
+		employer?: Partial<Scenario['employer']>;
+		skbbkReleased?: boolean;
+		presence?: Scenario['employee']['presence'];
+		tp3?: Scenario['employee']['tp3'];
+		daily?: { rate: number; days: number; perWeek: 4 | 5 | 6 };
+		rateChange?: Scenario['employment']['rateChange'];
 	};
 	const add = (id: string, rows: string[], description: string, o: Opts = {}) => {
 		if (ids.has(id)) throw new Error(`duplicate scenario id ${id}`);
@@ -76,7 +83,7 @@ export function generateProfiles(): Scenario[] {
 			rows,
 			description,
 			period,
-			employer: { hrd: o.hrd ?? 'COMPULSORY' },
+			employer: { hrd: o.hrd ?? 'COMPULSORY', ...o.employer },
 			employee: {
 				birthDate: birthFor(o.age ?? 35, period),
 				citizenship,
@@ -84,15 +91,23 @@ export function generateProfiles(): Scenario[] {
 				taxCategory: o.taxCategory ?? 1,
 				children: o.children ?? 0,
 				...(o.socsoFirstLiableAge === undefined ? {} : { socsoFirstLiableAge: o.socsoFirstLiableAge }),
-				eisPaidBefore57: o.eisPaidBefore57 ?? true
+				eisPaidBefore57: o.eisPaidBefore57 ?? true,
+				...(o.skbbkReleased ? { skbbkReleased: true } : {}),
+				...(o.presence ? { presence: o.presence } : {}),
+				...(o.tp3 ? { tp3: o.tp3 } : {})
 			},
 			employment: {
 				hireDate: o.hireDate ?? (period === JAN ? '2020-01-01' : `${period}-01`),
 				...(o.exitDate ? { exitDate: o.exitDate, exitCause: o.exitCause ?? 'RESIGNATION' } : {}),
 				...(o.noticeServed === undefined ? {} : { noticeServed: o.noticeServed }),
 				...(o.contractDays === undefined ? {} : { contractDays: o.contractDays }),
-				basis: o.hourlyRate === undefined ? 'MONTHLY' : 'HOURLY',
-				...(o.hourlyRate === undefined ? { monthlyBasic: o.basic ?? 3000 } : { hourlyRate: o.hourlyRate }),
+				basis: o.daily ? 'DAILY' : o.hourlyRate === undefined ? 'MONTHLY' : 'HOURLY',
+				...(o.daily
+					? { dailyRate: o.daily.rate, daysWorked: o.daily.days, workDaysPerWeek: o.daily.perWeek }
+					: o.hourlyRate === undefined
+						? { monthlyBasic: o.basic ?? 3000 }
+						: { hourlyRate: o.hourlyRate }),
+				...(o.rateChange ? { rateChange: o.rateChange } : {}),
 				normalHours: o.normalHours ?? 8,
 				...(o.fixedAllowance ? { fixedAllowance: o.fixedAllowance } : {}),
 				...(o.partTime ? { partTime: true } : {})
@@ -313,6 +328,66 @@ export function generateProfiles(): Scenario[] {
 			'MY-HRDA06:declared-class'
 		], `${hrd} employer, RM3,000`, { period, hrd, basic: 3000 });
 	add('L-pr-optional', ['MY-HRD-01:pr-outside-levy', 'MY-HRD-02:optional-0_5pct'], 'PR at an optional registrant', { hrd: 'OPTIONAL', citizenship: 'PERMANENT_RESIDENT', basic: 3000 });
+	for (const [hc, reg] of [[4, true], [5, false], [5, true], [9, true], [9, false], [10, false], [10, true], [11, true]] as const)
+		add(`L-headcount-${hc}-${reg ? 'reg' : 'unreg'}`, [
+			hc >= 10 ? 'MY-HRD-01:part-i-compulsory-10' : hc >= 5 ? 'MY-HRD-01:part-i-optional-5-9' : 'MY-HRD-01:below-5',
+			...(hc >= 10 && !reg ? ['MY-REG-01:unregistered-still-liable'] : [])
+		], `Part I employer, ${hc} citizen employees, ${reg ? 'registered' : 'not registered'}, RM3,000`,
+		{ hrd: 'BY_HEADCOUNT', employer: { citizenHeadcount: hc, registered: reg }, basic: 3000 });
+	for (const [s15, period] of [['EXCEEDED_THIS_YEAR', JAN], ['EXCEEDED_THIS_YEAR', AUG], ['EXCEEDED_LAST_YEAR', JAN]] as const)
+		add(`L-s15-${s15}-${period}`, [s15 === 'EXCEEDED_THIS_YEAR' ? 'MY-HRDA06:s15-5-retain-1pct' : 'MY-HRDA06:s15-6-restore-0_5pct', 'MY-HRD-02:optional-0_5pct'],
+			`optional registrant, class maximum ${s15 === 'EXCEEDED_THIS_YEAR' ? 'exceeded this year' : 'exceeded last year, now within'}, RM4,000`,
+			{ period, hrd: 'OPTIONAL', employer: { s15 }, basic: 4000 });
+
+	// ---- M. Daily-rated minimum wage (MWO para 5: 6/5/4-day week floors) ----
+	for (const [perWeek, rate, days] of [[6, 60, 26], [6, 65.37, 26], [6, 65.38, 26], [6, 70, 20], [5, 78.45, 22], [5, 78.46, 22], [5, 90, 22], [4, 98.07, 17], [4, 98.08, 17], [4, 120, 17]] as const)
+		add(`M-daily-${perWeek}-${key(rate)}`, [
+			rate < ({ 6: 65.38, 5: 78.46, 4: 98.08 } as const)[perWeek] ? 'MY-NAT-01:daily-top-up' : 'MY-NAT-01:daily-at-or-above',
+			'MY-EA36:daily-orp', 'MY-EPF-01:partA-band', 'MY-EPF-04:floor-via-top-up', 'MY-HRDA02:basic-inside'
+		], `daily-rated citizen, ${perWeek}-day week, RM${rate} × ${days} days`, { daily: { rate, days, perWeek } });
+
+	// ---- N. s.18A mid-month rate change, paid statutory leave ----
+	for (const [on, to] of [['2026-01-02', 3500], ['2026-01-16', 3500], ['2026-01-31', 3500], ['2026-01-16', 5200]] as const)
+		add(`N-rate-${on.slice(8)}-${to}`, ['MY-EA11:mid-month-rate-change', 'MY-EPF-01:partA-band', to > 5000 ? 'MY-EPF-01:partA-over-5000' : 'MY-EPF-01:partA-table'],
+			`RM3,000 to RM${to} from ${on}`, { basic: 3000, rateChange: { on, monthlyBasic: to } });
+	for (const [kind, days, row] of [['MEDICAL', 2, 'MY-EA34:paid-sick-no-abatement'], ['HOSPITALISATION', 10, 'MY-EA34:hospitalisation-paid'], ['MATERNITY', 31, 'MY-EA24:s37-2c-monthly-continuation'], ['PATERNITY', 7, 'MY-EA35:paternity-paid']] as const)
+		add(`N-leave-${kind}`, [row, 'MY-EA11:paid-leave-not-abated'], `${days} ${kind.toLowerCase()} leave days in January, RM3,100`,
+			{ basic: 3100, inputs: { paidLeave: { kind, days } } });
+
+	// ---- O. SKBBK release (from 8 July 2026) ----
+	for (const [c, period] of [['CITIZEN', '2026-09'], ['PERMANENT_RESIDENT', '2026-09'], ['FOREIGNER', '2026-09'], ['CITIZEN', '2026-12']] as const)
+		add(`O-skbbk-release-${c}-${period}`, [c === 'FOREIGNER' ? 'MY-SKBBK-04:foreign-release-no-effect' : 'MY-SKBBK-04:local-release-ends-charge', 'MY-SKBBK-01:after-8-july'],
+			`${c.toLowerCase()} with an accepted SKBBK release, ${period}, RM3,000`, { period, citizenship: c, skbbkReleased: true, basic: 3000 });
+	add('O-skbbk-no-release-2026-12', ['MY-SKBBK-04:deemed-participant', 'MY-SKBBK-01:after-8-july'], 'citizen without release, December 2026', { period: '2026-12', basic: 3000 });
+
+	// ---- P. s.59(1): the earlier of two rest days is overtime at 1.5x ----
+	for (const [w, h] of [[3000, 4], [3000, 10], [5500, 8]] as const)
+		add(`P-earlier-rest-${w}-${h}`, ['MY-EA30:s59-last-rest-day-only', 'MY-EA31:ordinary-day-1_5x', 'MY-WAGEBASE-01:overtime-ss-not-epf'],
+			`RM${w}, ${h} h on Saturday of a Sat+Sun rest week`, { basic: w, inputs: { earlierRestDayHours: h, earlierRestDayDate: '2026-01-10' } });
+
+	// ---- Q. Part-time extra hours (reg.5) ----
+	for (const [sch, worked] of [[4, 6], [4, 8], [4, 10], [5, 9]] as const)
+		add(`Q-pt-extra-${sch}-${worked}`, ['MY-SR17:part-time-1x-to-full-time', ...(worked > 8 ? ['MY-SR17:part-time-1_5x-beyond'] : []), 'MY-SR16:part-time', 'MY-HRD12:part-time-levied-by-s14'],
+			`part-timer RM10/h × 80 h, one day scheduled ${sch} h, worked ${worked} h`,
+			{ hourlyRate: 10, partTime: true, inputs: { hoursWorked: 80, partTimeDay: { scheduled: sch, worked, date: '2026-01-07' } } });
+
+	// ---- R. TP3 previous-employer history (joiner 1 August 2026) ----
+	for (const [w, Y, K, X, Z] of [[5000, 35000, 3850, 700, 0], [8000, 49000, 3920, 3200, 0], [8000, 49000, 3920, 3200, 300], [3500, 21000, 2310, 0, 0], [12000, 70000, 4000, 9000, 0]] as const)
+		add(`R-tp3-${w}-${Y}-${Z}`, ['MY-PCB-03:tp3-opening', Z ? 'MY-PCB-03:tp3-zakat-z' : 'MY-PCB-03:tp3-no-zakat', K >= 4000 ? 'MY-PCB-01:epf-relief-exhausted' : 'MY-PCB-01:k2-spread'],
+			`August joiner RM${w}, TP3 Y ${Y} K ${K} X ${X} Z ${Z}`, { period: AUG, basic: w, tp3: { Y, K, X, Z } });
+
+	// ---- S. Tax residence by presence (ITA s.7(1)) and Sch.6 para 21 ----
+	const fw = { citizenship: 'FOREIGNER' as const, taxResidency: 'NON_RESIDENT' as const, basic: 5001 };
+	add('S-7-1-a-182', ['MY-PCB-06:s7-1-a-182-days'], 'foreign worker present since 31 January, July payroll (182 days)', { ...fw, period: '2026-07', presence: { daysThisYear: 182 } });
+	add('S-7-1-a-181', ['MY-PCB-06:s7-1-a-181-days-non-resident'], 'foreign worker present since 1 February, July payroll (181 days)', { ...fw, period: '2026-07', presence: { daysThisYear: 181 } });
+	add('S-7-1-b-182', ['MY-PCB-06:s7-1-b-linked-182'], 'January: 31 days + 151 linked 2025 days', { ...fw, presence: { daysThisYear: 31, linkedPrevYear: 151 } });
+	add('S-7-1-b-181', ['MY-PCB-06:s7-1-b-linked-181'], 'January: 31 days + 150 linked 2025 days', { ...fw, presence: { daysThisYear: 31, linkedPrevYear: 150 } });
+	for (const [days, yrs] of [[90, 3], [89, 3], [90, 2], [90, 4]] as const)
+		add(`S-7-1-c-${days}-${yrs}`, [days >= 90 && yrs >= 3 ? 'MY-PCB-06:s7-1-c-ii-resident' : 'MY-PCB-06:s7-1-c-ii-not-met'],
+			`March joiner, ${days} days in 2026, ${yrs} of 4 preceding years at 90+`, { ...fw, period: '2026-03', presence: { daysThisYear: days, precedingYears90: yrs } });
+	for (const days of [20, 31])
+		add(`S-para21-${days}`, ['MY-PCB-07:sch6-para21-exempt'], `non-resident, para 21 claim, ${days} employment days`, { ...fw, presence: { daysThisYear: days, para21EmploymentDays: days } });
+	add('S-no-claim', ['MY-PCB-07:flat-30pct-no-claim'], 'non-resident, 20 days present, no para 21 claim', { ...fw, presence: { daysThisYear: 20 } });
 
 	return out;
 }
