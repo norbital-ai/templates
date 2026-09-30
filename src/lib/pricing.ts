@@ -1,4 +1,5 @@
-import { Decimal } from '@norbital-ai/std/decimal';
+import type { CurrencyCode } from '@norbital-ai/bolt';
+import { Decimal, minorDigits } from '@norbital-ai/std/decimal';
 import * as Predicate from './guards.js';
 
 /**
@@ -25,9 +26,6 @@ export function num(value: unknown): number {
 /** A nullable decimal as a number, for an export or a view. */
 export const numOrNull = (value: unknown) => (value == null ? null : num(value));
 
-/** Minor-unit digits of the CRM currencies (`lib/currency.ts`): JPY has none. */
-const digitsOf = (currency: string) => (currency === 'JPY' ? 0 : 2);
-
 function shift(value: number, places: number): number {
 	if (value === 0) return 0;
 	const [mantissa, exponent] = value.toExponential().split('e');
@@ -46,17 +44,23 @@ export type LineCells = {
 	readonly tax_rate?: unknown;
 };
 /** The document facts that price its lines. */
-export type PricedDocument = { readonly tax_inclusive: boolean; readonly currency: string | null };
+export type PricedDocument = {
+	readonly tax_inclusive: boolean;
+	readonly currency: CurrencyCode | null;
+};
 
 /**
- * A line's `net`, `tax` and `line_total`, or the refusal its cells earn. `price` names the unit-price column in the
+ * A line's `net`, `tax` and `line_total` in its document's `currency` (the line keeps a copy: its money reads in it),
+ * or the refusal its cells earn. `price` names the unit-price column in the
  * sentence (`Unit price` on the sell side, `Unit cost` on the buy side).
  */
 export function priceLine(
 	document: PricedDocument,
 	line: LineCells,
 	price = 'Unit price'
-): { net: Decimal; tax: Decimal; line_total: Decimal } | { refusal: string } {
+):
+	| { net: Decimal; tax: Decimal; line_total: Decimal; currency: CurrencyCode }
+	| { refusal: string } {
 	const quantity = num(line.quantity);
 	if (Number.isNaN(quantity) || quantity <= 0)
 		return { refusal: 'Quantity must be greater than zero.' };
@@ -69,17 +73,28 @@ export function priceLine(
 	const taxRate = line.tax_rate == null ? 0 : num(line.tax_rate);
 	if (!(taxRate >= 0 && taxRate <= 100)) return { refusal: 'Tax rate must be between 0 and 100.' };
 	if (!document.currency) return { refusal: 'Document currency is required.' };
-	const digits = digitsOf(document.currency);
+	const { currency } = document;
+	const digits = minorDigits(currency);
 	const base = quantity * unitPrice * (1 - discount / 100);
 	const rate = taxRate / 100;
 	if (document.tax_inclusive) {
 		const gross = roundHalfUp(base, digits);
 		const net = roundHalfUp(gross / (1 + rate), digits);
-		return { net: dec(net), tax: dec(roundHalfUp(gross - net, digits)), line_total: dec(gross) };
+		return {
+			net: dec(net),
+			tax: dec(roundHalfUp(gross - net, digits)),
+			line_total: dec(gross),
+			currency
+		};
 	}
 	const net = roundHalfUp(base, digits);
 	const tax = roundHalfUp(net * rate, digits);
-	return { net: dec(net), tax: dec(tax), line_total: dec(roundHalfUp(net + tax, digits)) };
+	return {
+		net: dec(net),
+		tax: dec(tax),
+		line_total: dec(roundHalfUp(net + tax, digits)),
+		currency
+	};
 }
 
 /**
@@ -102,6 +117,14 @@ export function ledger(prior: Iterable<readonly [string, number]>) {
 		return null;
 	};
 }
+
+/** A document edit that would change the currency or tax basis its lines were priced in. */
+export const reprices = (
+	input: { readonly currency?: unknown; readonly tax_inclusive?: unknown },
+	stored: PricedDocument
+) =>
+	(input.currency !== undefined && input.currency !== stored.currency) ||
+	(input.tax_inclusive !== undefined && input.tax_inclusive !== stored.tax_inclusive);
 
 /** A reason a status move must carry, from the input or already on the record. */
 export const missingReason = (reason: unknown) =>

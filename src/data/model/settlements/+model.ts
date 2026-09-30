@@ -1,5 +1,4 @@
 import { model } from '@norbital-ai/bolt';
-import { CURRENCIES } from '../../../lib/currency.js';
 
 /**
  * Against exactly one committed document: a quote, a purchase order or a purchase invoice (`regarding`, an exclusive
@@ -11,8 +10,8 @@ export default model({
 	icon: 'lucide:banknote',
 	label: 'reference',
 	fields: {
-		amount: { kind: 'decimal', scale: 2 },
-		currency: { kind: 'enum', values: CURRENCIES, optional: true },
+		amount: { kind: 'money', currency: 'currency' },
+		currency: { kind: 'currency', optional: true },
 		settled_on: { kind: 'date', optional: true },
 		reference: { kind: 'text', optional: true }
 	},

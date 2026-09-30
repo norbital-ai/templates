@@ -19,16 +19,7 @@
 
 <RecordForm
 	{view}
-	subtitle={(r) =>
-		`${r.type ?? 'activity'}${r.due_date ? ` · due ${r.due_date}` : ''}${r.completed_at ? ' · completed' : ''}`}
+	subtitle={['type', 'due_date']}
 	editors={{ regarding }}
-	fields={[
-		'subject',
-		'type',
-		['regarding', 'component.regarding'],
-		['due_date', 'component.due_date'],
-		['completed_at', 'component.completed'],
-		['owner_id', 'component.owner'],
-		'description'
-	]}
+	fields={['subject', 'type', 'regarding', 'due_date', 'completed_at', 'owner_id', 'description']}
 />

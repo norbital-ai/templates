@@ -1,17 +1,35 @@
 <script lang="ts">
 	import RecordForm from '../../../lib/ui/record-form.svelte';
-	import type { RecordView } from '@norbital-ai/ui';
+	import type { FormState, RecordView } from '@norbital-ai/ui';
+	import { Picker } from '@norbital-ai/ui';
+	import type { Id } from '@norbital-ai/bolt';
 
 	let { view }: { view: RecordView<'goods_receipt_lines'> } = $props();
 </script>
 
+<!-- the receivable lines are the receipt's own order's -->
+{#snippet orderLine(form: FormState)}
+	{@const receipt = form.get('goods_receipt_id')}
+	{@const chosen = form.get('purchase_order_line_id')}
+	<Picker
+		of="purchase_order_lines"
+		value={typeof chosen === 'string' ? (chosen as Id<'purchase_order_lines'>) : null}
+		onChange={(id) => form.set('purchase_order_line_id', id)}
+		{...typeof receipt === 'string'
+			? {
+					where: {
+						purchase_order_id: {
+							is: { goods_receipts: { some: { id: { eq: receipt as Id<'goods_receipts'> } } } }
+						}
+					}
+				}
+			: {}}
+	/>
+{/snippet}
+
 <RecordForm
 	{view}
-	subtitle={(r) =>
-		`Receipt ${String(r.goods_receipt_id).slice(0, 8)} · Order line ${String(r.purchase_order_line_id).slice(0, 8)}`}
-	fields={[
-		['goods_receipt_id', 'component.goods_receipt'],
-		['purchase_order_line_id', 'component.order_line'],
-		['quantity_received', 'component.received_quantity']
-	]}
+	subtitle={['goods_receipt_id']}
+	editors={{ purchase_order_line_id: orderLine }}
+	fields={['goods_receipt_id', 'purchase_order_line_id', 'quantity_received']}
 />

@@ -2,7 +2,7 @@ import { pipeline } from '@norbital-ai/bolt';
 import { masterRecords } from '../../../lib/erp-feed.js';
 import { dec } from '../../../lib/pricing.js';
 
-/** The ERP's changed items, mirrored into `products`; the ERP item code is the catalogue code. */
+/** The ERP's changed items, mirrored into `products`; the ERP item code is the catalogue code, an item without a currency is priced in the workspace's. */
 export default pipeline('products', {
 	import: {
 		description:
@@ -16,6 +16,7 @@ export default pipeline('products', {
 						external_code: { kind: 'text' },
 						name: { kind: 'text' },
 						unit: { kind: 'text', optional: true },
+						currency: { kind: 'currency', optional: true },
 						unit_price: { kind: 'number', min: 0, optional: true },
 						active: { kind: 'bool', optional: true }
 					}
@@ -35,6 +36,7 @@ export default pipeline('products', {
 						code: item.external_code,
 						name: item.name,
 						unit: item.unit ?? null,
+						...(item.currency == null ? {} : { currency: item.currency }),
 						unit_price: item.unit_price == null ? null : dec(item.unit_price),
 						active: item.active ?? true
 					},

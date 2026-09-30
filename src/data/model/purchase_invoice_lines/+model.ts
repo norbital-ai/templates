@@ -9,11 +9,12 @@ export default model({
 		product_code: { kind: 'text' },
 		product_name: { kind: 'text' },
 		quantity: { kind: 'decimal', scale: 3 },
-		unit_cost: { kind: 'decimal', scale: 4 },
+		currency: { kind: 'currency' },
+		unit_cost: { kind: 'money', currency: 'currency', scale: 4 },
 		tax_rate: { kind: 'decimal', scale: 2, default: 0 },
-		net: { kind: 'decimal', scale: 2 },
-		tax: { kind: 'decimal', scale: 2 },
-		line_total: { kind: 'decimal', scale: 2 }
+		net: { kind: 'money', currency: 'currency' },
+		tax: { kind: 'money', currency: 'currency' },
+		line_total: { kind: 'money', currency: 'currency' }
 	},
 	search: { text: ['product_name'] }
 });

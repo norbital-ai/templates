@@ -1,5 +1,4 @@
 import { model } from '@norbital-ai/bolt';
-import { CURRENCIES } from '../../../lib/currency.js';
 
 export default model({
 	description:
@@ -12,12 +11,12 @@ export default model({
 		name: { kind: 'text' },
 		contact: { kind: 'text', optional: true },
 		category: { kind: 'text', optional: true },
-		currency: { kind: 'enum', values: CURRENCIES, optional: true },
+		currency: { kind: 'currency', optional: true },
 		payment_terms_days: { kind: 'int', min: 0, max: 365, optional: true },
 		phone: { kind: 'text', format: 'phone', optional: true },
 		email: { kind: 'text', optional: true },
 		address: { kind: 'text', optional: true },
-		active: { kind: 'bool' }
+		active: { kind: 'bool', default: true }
 	},
 	key: ['external_code'],
 	index: ['name', 'active'],
