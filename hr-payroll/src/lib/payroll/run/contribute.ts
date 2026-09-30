@@ -688,12 +688,12 @@ function schemeObject(options: {
 				))
 			: 0;
 	const mentions = schemeMentions(schemeExpressions(contribution));
-	const childClaims: Record<string, number> = Object.fromEntries(
-		mentions.childClaimKeys.map((key) => [key, 0])
+	const childClaims: Record<string, { full: number; half: number }> = Object.fromEntries(
+		mentions.childClaimKeys.map((key) => [key, { full: 0, half: 0 }])
 	);
 	for (const claim of registered?.child_claims ?? []) {
 		if (claim.year !== input.year.start.slice(0, 4)) continue;
-		childClaims[claim.relief_class] = claim.full_count + claim.half_count / 2;
+		childClaims[claim.relief_class] = { full: claim.full_count, half: claim.half_count };
 	}
 	const deductions = deductionTotals(
 		registered?.deduction_claims ?? [],

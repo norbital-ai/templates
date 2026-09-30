@@ -16,7 +16,7 @@ const tables = {
 			code: 'CPF',
 			assessed_on: 'ORDINARY.WAGES',
 			ordinary_on: '',
-			rules: [{ when: 'true', employee: 'scheme.child_claims.QCR', employer: '0' }],
+			rules: [{ when: 'true', employee: 'scheme.child_claims.QCR.full', employer: '0' }],
 			elections: [
 				{ key: 'higher_rate', type: 'boolean' },
 				{ key: 'employer_reference', type: 'string', scope: 'EMPLOYMENT' }

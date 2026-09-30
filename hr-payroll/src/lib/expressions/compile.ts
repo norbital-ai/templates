@@ -230,7 +230,9 @@ function openKeyBlank(
 		);
 	const earned = openKeyMentions(expression, 'year.earned');
 	if (blank.scheme != null) {
-		zeroMap(blank.scheme, 'child_claims', openKeyMentions(expression, 'scheme.child_claims'));
+		blank.scheme.child_claims = Object.fromEntries(
+			openKeyMentions(expression, 'scheme.child_claims').map((key) => [key, { full: 0, half: 0 }])
+		);
 		for (const key of DEDUCTION_TOTAL_KEYS)
 			zeroMap(blank.scheme, key, openKeyMentions(expression, `scheme.${key}`));
 	}

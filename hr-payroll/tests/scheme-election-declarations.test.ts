@@ -239,7 +239,7 @@ test('deduction declarations reject unknown categories, invalid months and dupli
 test('child declarations reject invalid counts, unknown categories and duplicate tax-year rows', async () => {
 	const childScheme = {
 		...scheme,
-		rules: [{ when: 'true', employee: 'scheme.child_claims.UNDER_18 * 2000.0', employer: '0.0' }]
+		rules: [{ when: 'true', employee: 'scheme.child_claims.UNDER_18.full * 2000.0', employer: '0.0' }]
 	};
 	const claim = {
 		year: '2026',

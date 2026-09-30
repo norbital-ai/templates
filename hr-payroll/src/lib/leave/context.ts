@@ -590,7 +590,12 @@ export function personAt(
 	const versionIds = new Set(lineage.map((row) => row.id));
 	const terms = context.terms.filter((row) => row.employment_id === employmentId);
 	const range = employment.effective_range;
-	const yearBefore = addDays(date, -365);
+	// The same day twelve calendar months back (29 February → 28 February), not 365 days.
+	const yearBefore = monthDay(
+		decodeNumber(date.slice(0, 4)) - 1,
+		decodeNumber(date.slice(5, 7)) - 1,
+		decodeNumber(date.slice(8, 10))
+	);
 	const term = terms.find((row) => coversDate(row.effective_range, date)) ?? null;
 	// The contract's week, so a part-timer's grant can be read against their contracted hours
 	// (`entitlement.scale`): the stated hours, else the pattern's.

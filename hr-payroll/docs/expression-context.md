@@ -791,7 +791,8 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `scheme.since_months` | Completed months since registration, 0 when unrecorded |
 | `scheme.elections.<key>` | The employment’s elections under this scheme, keys the scheme row declares |
 | `scheme.election_keys` | Keys explicitly recorded on the effective statutory declaration. Test membership to distinguish a missing input from a declared zero, false or empty value. |
-| `scheme.child_claims.<class>` | Declared eligible children for this tax year and relief class: full count plus half the shared count; zero without a declaration. Independent of family records. |
+| `scheme.child_claims.<class>.full` | Declared children for this tax year and relief class claimed in whole; zero without a declaration. Independent of family records. |
+| `scheme.child_claims.<class>.half` | Declared children for this tax year and relief class whose relief is shared with another claimant; the rule states the share. Zero without a declaration. |
 | `scheme.deductions.<category>` | Declared deduction amounts through this month in the current tax year, before category limits |
 | `scheme.deductions_current.<category>` | This employer’s accepted deduction claims for the current month, before category limits |
 | `scheme.deductions_prior.<category>` | Earlier-month and prior-employer deduction claims in the current tax year, before category limits |
@@ -1053,7 +1054,8 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `scheme.since_months` | Completed months since registration, 0 when unrecorded |
 | `scheme.elections.<key>` | The employment’s elections under this scheme, keys the scheme row declares |
 | `scheme.election_keys` | Keys explicitly recorded on the effective statutory declaration. Test membership to distinguish a missing input from a declared zero, false or empty value. |
-| `scheme.child_claims.<class>` | Declared eligible children for this tax year and relief class: full count plus half the shared count; zero without a declaration. Independent of family records. |
+| `scheme.child_claims.<class>.full` | Declared children for this tax year and relief class claimed in whole; zero without a declaration. Independent of family records. |
+| `scheme.child_claims.<class>.half` | Declared children for this tax year and relief class whose relief is shared with another claimant; the rule states the share. Zero without a declaration. |
 | `scheme.deductions.<category>` | Declared deduction amounts through this month in the current tax year, before category limits |
 | `scheme.deductions_current.<category>` | This employer’s accepted deduction claims for the current month, before category limits |
 | `scheme.deductions_prior.<category>` | Earlier-month and prior-employer deduction claims in the current tax year, before category limits |

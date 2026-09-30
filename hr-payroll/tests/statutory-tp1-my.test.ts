@@ -28,7 +28,13 @@ test('PCB reproduces the LHDN 2026 specification’s worked April additional-rem
 			year_to_date: { base: 16500, employee: 328.2, rebate: 0 },
 			projection: { future_equivalents: 8, payslips_remaining: 9 },
 			elections: { pcb_disabled: false, pcb_spouse_disabled: false, zakat: 0 },
-			child_claims: { UNDER_18: 3, STUDYING: 0, TERTIARY: 0, DISABLED: 0, DISABLED_TERTIARY: 0 }
+			child_claims: {
+				UNDER_18: { full: 3, half: 0 },
+				STUDYING: { full: 0, half: 0 },
+				TERTIARY: { full: 0, half: 0 },
+				DISABLED: { full: 0, half: 0 },
+				DISABLED_TERTIARY: { full: 0, half: 0 }
+			}
 		},
 		produced: {
 			EPF: { employee: 4000, employee_normal: 4000 },
@@ -39,6 +45,18 @@ test('PCB reproduces the LHDN 2026 specification’s worked April additional-rem
 		}
 	};
 	assert.equal(evaluateNumber(expressionEngine, rule.employee, context), 833.7);
+	// ITA 1967 s.48(4): the rule weighs a shared child at fifty per cent, so six shared
+	// children relieve the same RM6,000 as three whole ones.
+	assert.equal(
+		evaluateNumber(expressionEngine, rule.employee, {
+			...context,
+			scheme: {
+				...context.scheme,
+				child_claims: { ...context.scheme.child_claims, UNDER_18: { full: 0, half: 6 } }
+			}
+		}),
+		833.7
+	);
 	assert.equal(
 		evaluateNumber(expressionEngine, rule.employee, {
 			...context,

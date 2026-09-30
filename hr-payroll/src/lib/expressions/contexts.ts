@@ -888,9 +888,14 @@ const SCHEME_FIELDS: readonly ContextField[] = [
 			'Keys explicitly recorded on the effective statutory declaration. Test membership to distinguish a missing input from a declared zero, false or empty value.'
 	},
 	{
-		path: 'child_claims.<class>',
+		path: 'child_claims.<class>.full',
 		description:
-			'Declared eligible children for this tax year and relief class: full count plus half the shared count; zero without a declaration. Independent of family records.'
+			'Declared children for this tax year and relief class claimed in whole; zero without a declaration. Independent of family records.'
+	},
+	{
+		path: 'child_claims.<class>.half',
+		description:
+			'Declared children for this tax year and relief class whose relief is shared with another claimant; the rule states the share. Zero without a declaration.'
 	},
 	{
 		path: 'deductions.<category>',
@@ -1010,17 +1015,6 @@ const HISTORY_FIELDS: readonly ContextField[] = [
 		description: 'Whether a selected prior-employer declaration exists, including an all-zero one'
 	}
 ];
-
-/** Representative evaluated limits for compile-time and previews; the builders supply the real ones. */
-const LIMITS_BLANK = {
-	daily_total: 11,
-	normal_day: 8,
-	spread_day: 10,
-	weekly_total: 45,
-	monthly_ot: 104,
-	quarter_ot: 138,
-	year_ot: 200
-};
 
 /** The functions every site carries but the assessment site's own. */
 const COMMON_FUNCTIONS: readonly ExpressionFunction[] = [
@@ -1397,7 +1391,7 @@ const ENTRY_CONTEXT: ExpressionContext = {
 			captures: { remaining: 0 }
 		},
 		rates: { ordinary_day: 0, ordinary_hour: 0 },
-		limits: structuredClone(LIMITS_BLANK),
+		limits: {},
 		period: structuredClone(PERIOD_BLANK),
 		year: { start: '', end: '', months_employed: 0, earned: { BASIC: 0, ABSENCE: 0 } },
 		leave: {}
@@ -1584,7 +1578,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		ordinary_hour: 25.5,
 		day_wage: 204,
 		hours: 4,
-		limits: structuredClone(LIMITS_BLANK),
+		limits: {},
 		holiday: { kind: '', name: '', prior_day_present: true },
 		day_facts: {},
 		day_fact_keys: [],

@@ -59,6 +59,8 @@ for (const code of ['MY', 'MY-nihon'] as const)
 			{ key: 'NO-CLAIM', claims: [], expected: 110.1 },
 			{ key: 'FULL', category: 'UNDER_18', full: 1, half: 0, expected: 100.1 },
 			{ key: 'HALF', category: 'UNDER_18', full: 0, half: 1, expected: 105.1 },
+			// ITA 1967 s.48(4): each shared claimant gets fifty per cent, so two halves = one whole.
+			{ key: 'TWO-HALVES', category: 'UNDER_18', full: 0, half: 2, expected: 100.1 },
 			{ key: 'MIXED', category: 'UNDER_18', full: 1, half: 1, expected: 95.1 },
 			{ key: 'STUDYING', category: 'STUDYING', full: 1, half: 0, expected: 100.1 },
 			{ key: 'TERTIARY', category: 'TERTIARY', full: 0, half: 1, expected: 90.1 },
