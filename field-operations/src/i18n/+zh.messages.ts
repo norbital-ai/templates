@@ -23,7 +23,6 @@ export default messages({
 	'app.field_ops_controller.select_dispatch_date': '选择派单日期',
 	'app.field_ops_controller.board': '看板',
 	'app.field_ops_controller.map': '地图',
-	'app.field_ops_controller.dispatch_map_for': '派单地图（{date}）',
 	'app.field_ops_controller.map_empty': '计划于 {date} 执行的承包商作业均未关联已标注工地。',
 	'app.field_ops_controller.sites_description': '工地信息、即将进行的任务以及已完成活动的证据。',
 	'component.job': '任务',
