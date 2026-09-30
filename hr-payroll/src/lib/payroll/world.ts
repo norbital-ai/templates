@@ -66,6 +66,9 @@ export type PayrollWorld = { readonly [C in PayrollCollection]: readonly Workspa
 /** The largest page the run reads of one collection; a run that reaches it refuses rather than lie. */
 const PAGE_LIMIT = 20_000;
 
+/** People's traces one page of runs holds: a 2 MB crossing answer over 50 KB a person. */
+const RUN_PAGE_PEOPLE = 2_000_000 / 50_000;
+
 const APPROVED = { approval_id: { isNull: true } } as const;
 
 /**
@@ -352,7 +355,7 @@ async function wave2(
 			db,
 			'payroll_runs',
 			{ company_id: { eq: companyId } },
-			Math.max(1, Math.floor(2_000_000 / (50_000 * Math.max(1, first.employments.length))))
+			Math.max(1, Math.floor(RUN_PAGE_PEOPLE / Math.max(1, first.employments.length)))
 		)
 	]);
 	// A piece leaver's history (`results_pay.piece_history_weeks`; TH s.118 reads up to 400 last

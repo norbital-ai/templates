@@ -2364,7 +2364,15 @@ const guardContract = (
 	changes: [{ from, shift_pattern_id: `@${ref}_week` }]
 });
 const GUARD_MONDAY = ['@guard12', '@work', '@work', '@work', '@work', '@rest', '@rest'] as const;
-const GUARD_WEEKDAYS = ['@guard12', '@guard12', '@guard12', '@guard12', '@guard12', '@rest', '@rest'] as const;
+const GUARD_WEEKDAYS = [
+	'@guard12',
+	'@guard12',
+	'@guard12',
+	'@guard12',
+	'@guard12',
+	'@rest',
+	'@rest'
+] as const;
 const FOUR_HOURS: Variant = {
 	kind: 'WORK',
 	start_time: '09:00',
@@ -3158,7 +3166,7 @@ register(
 				employment: 'flooddec_job',
 				lines: {
 					gross: 30_000,
-					net: 29_363.13,
+					net: 29_364.13,
 					employer_cost: 450,
 					'SSO.employee': 450,
 					'SSO.employer': 450,

@@ -17,6 +17,7 @@ import { getErrorMessage } from '../lib/refuse.js';
 import { decodeNumber, plainRows } from '../lib/wire.js';
 import { thirdPartyWithheld } from '../lib/payroll/loan.js';
 import { caseDutyEvents } from '../lib/benefit-cases/duties.js';
+import { readAll } from '../lib/reads.js';
 
 /**
  * The obligation ledger's daily sweep. Every event a duty type can listen for that the records already hold — a
@@ -39,6 +40,9 @@ const obligation_calendar = automation({
 	concurrency: { max: 1 }
 });
 export default obligation_calendar;
+
+/** Payslips a read page takes under the 4 MiB crossing: a slip with its charges and lines runs to ~35 KB. */
+const PAYSLIP_PAGE = 50;
 
 type Facts = ObligationContext['company']['facts'];
 type Version = {
@@ -102,17 +106,20 @@ obligation_calendar.run(async (_input, ctx) => {
 	);
 	const active = companies.filter((company) => declaring.has(company.settings_code));
 	if (active.length === 0) return { raised: 0, failures: [] };
-	const ids = active.map((company) => company.id);
-	const onCompanies = { employment_id: { is: { company_id: { in: ids as never[] } } } };
+	// The active companies by their lineage, not an id list: a list is capped at 1000 items.
+	const onActive = {
+		is: { settings_code: { in: [...declaring] }, approval_id: { isNull: true } }
+	} as never;
+	const onCompanies = { employment_id: { is: { company_id: onActive } } };
 	const [employments, runs, revisions, recorded, loanRows, repaymentRows, caseRows] =
 		await Promise.all([
 			ctx.read('employments', {
-				where: { company_id: { in: ids as never[] }, approval_id: { isNull: true } },
+				where: { company_id: onActive, approval_id: { isNull: true } },
 				select: { company_id: true, effective_range: true, exit_ground: true, exit_facts: true },
 				all: true
 			}),
 			ctx.read('payroll_runs', {
-				where: { company_id: { in: ids as never[] }, approval_id: { isNull: true } },
+				where: { company_id: onActive, approval_id: { isNull: true } },
 				select: {
 					company_id: true,
 					period: true,
@@ -125,12 +132,12 @@ obligation_calendar.run(async (_input, ctx) => {
 				all: true
 			}),
 			ctx.read('company_facts', {
-				where: { company_id: { in: ids as never[] }, approval_id: { isNull: true } },
+				where: { company_id: onActive, approval_id: { isNull: true } },
 				select: { company_id: true, facts: true, effective_range: true },
 				all: true
 			}),
 			ctx.read('obligation_instances', {
-				where: { company_id: { in: ids as never[] } },
+				where: { company_id: onActive },
 				select: { duty_code: true, subject_kind: true, subject_id: true, trigger_ref: true },
 				all: true
 			}),
@@ -188,35 +195,73 @@ obligation_calendar.run(async (_input, ctx) => {
 		sequence?: number | null;
 		company_remittances?: readonly { scheme_code: string; payable_amount: number }[] | null;
 	}>(runs);
-	const slips =
-		runRows.length === 0
-			? []
-			: plainRows<{
-					payroll_run_id: string;
-					gross: unknown;
-					net: unknown;
-					employer_cost: unknown;
-					adjustments?:
-						| readonly {
-								family: string;
-								source_id: string;
-								component_code: string;
-								amount: number;
-						  }[]
-						| null;
-				}>(
-					await ctx.read('payslips', {
-						where: { payroll_run_id: { in: runRows.map((run) => run.id) as never[] } },
-						select: {
-							payroll_run_id: true,
-							gross: true,
-							net: true,
-							employer_cost: true,
-							adjustments: true
-						},
-						all: true
+	// Only a run with a RUN_FINALISED duty not yet raised needs its slips (the sweep re-reads the
+	// whole history daily). ponytail: a duty whose `when` stays false re-reads its run every day;
+	// record a swept marker on the run if that grows.
+	const lineageOf = new Map(active.map((company) => [company.id, company.settings_code]));
+	const unraised = runRows.filter((run) => {
+		const code = lineageOf.get(run.company_id);
+		if (code == null) return false;
+		const version = settingsInForce(
+			versions.filter((row) => row.code === code),
+			code,
+			dateKey(run.pay_date)
+		);
+		return dutyTypesOf(version).some(
+			(duty) =>
+				duty.trigger.on === 'RUN_FINALISED' &&
+				duty.subject === 'RUN' &&
+				!existing.has(
+					instanceKey({
+						duty_code: duty.code,
+						subject_kind: 'RUN',
+						subject_id: run.id,
+						trigger_ref: run.period
 					})
-				);
+				)
+		);
+	});
+	type Slip = {
+		payroll_run_id: string;
+		gross: unknown;
+		net: unknown;
+		employer_cost: unknown;
+		statutory?:
+			| readonly {
+					scheme_code: string;
+					employee_amount: number;
+					employer_amount: number;
+					remittance_rounding?: string | null;
+			  }[]
+			| null;
+		adjustments?:
+			| readonly {
+					family: string;
+					source_id: string;
+					component_code: string;
+					amount: number;
+			  }[]
+			| null;
+	};
+	// Paged, and an id list is capped at 1000 items.
+	const slips: Slip[] = [];
+	for (let at = 0; at < unraised.length; at += 1000)
+		slips.push(
+			...(await readAll<Slip>(
+				ctx,
+				'payslips',
+				{ payroll_run_id: { in: unraised.slice(at, at + 1000).map((run) => run.id) } },
+				PAYSLIP_PAGE,
+				{
+					payroll_run_id: true,
+					gross: true,
+					net: true,
+					employer_cost: true,
+					statutory: true,
+					adjustments: true
+				}
+			))
+		);
 	const slipsOf = Map.groupBy(slips, (slip) => slip.payroll_run_id);
 
 	const inputs: ObligationInput[] = [];
@@ -313,7 +358,19 @@ obligation_calendar.run(async (_input, ctx) => {
 			const own = slipsOf.get(run.id) ?? [];
 			const sum = (pick: (slip: (typeof own)[number]) => unknown) =>
 				own.reduce((total, slip) => total + (decodeNumber(pick(slip)) || 0), 0);
+			// Payable per scheme: both shares of every non-zero charge, except a rounded scheme's, whose
+			// employer-month payable is the run's `company_remittances` row.
 			const remittances: Record<string, number> = {};
+			for (const slip of own)
+				for (const charge of slip.statutory ?? [])
+					if (
+						charge.remittance_rounding == null &&
+						(charge.employee_amount !== 0 || charge.employer_amount !== 0)
+					)
+						remittances[charge.scheme_code] =
+							(remittances[charge.scheme_code] ?? 0) +
+							charge.employee_amount +
+							charge.employer_amount;
 			for (const line of run.company_remittances ?? [])
 				remittances[line.scheme_code] = (remittances[line.scheme_code] ?? 0) + line.payable_amount;
 			const payDate = dateKey(run.pay_date);

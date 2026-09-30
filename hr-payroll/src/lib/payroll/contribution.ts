@@ -2024,20 +2024,21 @@ function windowWage(
 			}
 			if (segment.configuration.jurisdiction.work_rules.wages?.classified_by_worksite)
 				workplaces.add(`${terms.worksite?.trim() ?? ''}|${terms.worksite_sector?.trim() ?? ''}`);
+			const person = personContext({
+				employee: null,
+				employment: { service_start: '' },
+				terms,
+				company: segment.configuration.company,
+				asOf: day
+			});
+			// A workplace-keyed order's scale is judged on each day's own terms (JP: the hourly
+			// rate × that contract's scheduled hours a month).
 			const wage =
 				Object.keys(monthlyOrder?.by_region ?? {}).length === 0 &&
 				Object.keys(monthlyOrder?.by_employment_type ?? {}).length === 0
 					? null
-					: personMinimumWage(
-							segment.configuration,
-							personContext({
-								employee: null,
-								employment: { service_start: '' },
-								terms,
-								company: segment.configuration.company,
-								asOf: day
-							})
-						);
+					: personMinimumWage(segment.configuration, person) *
+						(monthlyOrder?.workplace_keyed ? minimumWageScale(segment.configuration, person) : 1);
 			if (wage == null) {
 				missing += 1;
 				continue;
@@ -2396,17 +2397,16 @@ function contributionAssessment(options: {
 			bundle.termsHistory,
 			bundle.employment.employee_number
 		);
+	// The dated wage above scales per day; coverage (`applies_when`) reads the whole person, which
+	// that per-day trace does not build. ponytail: build it when a keyed order narrows coverage.
 	if (
 		workplaceKeyed &&
 		segments.some(
 			(segment) =>
-				(segment.configuration.jurisdiction.work_rules.wages?.scale ?? '').trim() !== '' ||
 				(segment.configuration.jurisdiction.work_rules.wages?.applies_when ?? '').trim() !== ''
 		)
 	)
-		refuse(
-			'A workplace-keyed wage floor with variable coverage or scale needs dated person assessment.'
-		);
+		refuse('A workplace-keyed wage floor with variable coverage needs dated person assessment.');
 	const minimumWage = workplaceKeyed
 		? wageWindow == null
 			? 0

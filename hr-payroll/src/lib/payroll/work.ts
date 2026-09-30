@@ -63,7 +63,7 @@ import {
 	statedOrdinaryRate,
 	type RateTerms
 } from '../../lib/payroll/run/ordinary-rate.js';
-import { prorationSegment } from '../../lib/payroll/run/proration.js';
+import { prorationBasisFor, prorationSegment } from '../../lib/payroll/run/proration.js';
 import {
 	contractAllowanceClass,
 	contractAllowancesOn,
@@ -1210,6 +1210,16 @@ function workContext(
 				throw new Error('Hourly calendar Leave needs positive normal daily hours.');
 			return terms.base_salary.value * (hours == null ? normal : hours.paid_minutes / 60);
 		}
+		// A calendar-day leave (JP 産前産後休業) charges rest days too; a working-day divisor never
+		// paid them, so they take nothing off the wage.
+		if (
+			prorationBasisFor(configuration.work, subject).by === 'WORKING_DAYS' &&
+			bundle.leave.catalogues.some(
+				(row) => row.id === charge.catalogue_id && row.entitlement.calendar_days === true
+			) &&
+			workingDaysIn({ start: charge.date, end: charge.date }) === 0
+		)
+			return 0;
 		return absenceDayRate({
 			terms,
 			work: configuration.work,

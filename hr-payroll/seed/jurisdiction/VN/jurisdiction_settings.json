@@ -16588,7 +16588,7 @@
 				"code": "PROBATION_TOO_LONG_TERMS_CHANGE",
 				"at": "TERMS_CHANGE",
 				"severity": "REFUSE",
-				"when": "employment.type == \"PROBATION\" && !employment.open_ended && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0} && double(employment.contract_days) > {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0}[terms.facts.probation_class]",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
 				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
 			},
@@ -16596,7 +16596,7 @@
 				"code": "PROBATION_TOO_LONG_EXIT",
 				"at": "EXIT",
 				"severity": "REFUSE",
-				"when": "employment.type == \"PROBATION\" && !employment.open_ended && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0} && double(employment.contract_days) > {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0}[terms.facts.probation_class]",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
 				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
 			},
@@ -17645,7 +17645,7 @@
 				"code": "PROBATION_TOO_LONG_TERMS_CHANGE",
 				"at": "TERMS_CHANGE",
 				"severity": "REFUSE",
-				"when": "employment.type == \"PROBATION\" && !employment.open_ended && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0} && double(employment.contract_days) > {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0}[terms.facts.probation_class]",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
 				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
 			},
@@ -17653,7 +17653,7 @@
 				"code": "PROBATION_TOO_LONG_EXIT",
 				"at": "EXIT",
 				"severity": "REFUSE",
-				"when": "employment.type == \"PROBATION\" && !employment.open_ended && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0} && double(employment.contract_days) > {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0}[terms.facts.probation_class]",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
 				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
 			},
@@ -18719,7 +18719,7 @@
 				"code": "PROBATION_TOO_LONG_TERMS_CHANGE",
 				"at": "TERMS_CHANGE",
 				"severity": "REFUSE",
-				"when": "employment.type == \"PROBATION\" && !employment.open_ended && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0} && double(employment.contract_days) > {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0}[terms.facts.probation_class]",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
 				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
 			},
@@ -18727,7 +18727,7 @@
 				"code": "PROBATION_TOO_LONG_EXIT",
 				"at": "EXIT",
 				"severity": "REFUSE",
-				"when": "employment.type == \"PROBATION\" && !employment.open_ended && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0} && double(employment.contract_days) > {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0}[terms.facts.probation_class]",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
 				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
 			},
@@ -19781,7 +19781,7 @@
 				"code": "PROBATION_TOO_LONG_TERMS_CHANGE",
 				"at": "TERMS_CHANGE",
 				"severity": "REFUSE",
-				"when": "employment.type == \"PROBATION\" && !employment.open_ended && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0} && double(employment.contract_days) > {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0}[terms.facts.probation_class]",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
 				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
 			},
@@ -19789,7 +19789,7 @@
 				"code": "PROBATION_TOO_LONG_EXIT",
 				"at": "EXIT",
 				"severity": "REFUSE",
-				"when": "employment.type == \"PROBATION\" && !employment.open_ended && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0} && double(employment.contract_days) > {\"ENTERPRISE_MANAGER\": 180.0, \"COLLEGE_OR_ABOVE\": 60.0, \"INTERMEDIATE_OR_TECHNICAL\": 30.0}[terms.facts.probation_class]",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
 				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
 				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
 			},

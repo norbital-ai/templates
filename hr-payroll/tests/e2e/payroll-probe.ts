@@ -82,6 +82,12 @@ import { join } from 'node:path';
 import { start, type RunningServer } from '@norbital-ai/bolt-server';
 import { fileDifferences, fileRefs, savedDifferences } from './probe-oracle.ts';
 
+/** A run id bolt-server accepts: a uuidv7 (RFC 9562) on the host clock — a v4 with its time and version swapped in. */
+const uuidv7 = () => {
+	const time = Date.now().toString(16).padStart(12, '0');
+	return `${time.slice(0, 8)}-${time.slice(8)}-7${randomUUID().slice(15)}`;
+};
+
 type Json = null | boolean | number | string | readonly Json[] | { readonly [k: string]: Json };
 export type Row = { readonly [field: string]: Json };
 export type ProbeInput = {
@@ -325,7 +331,7 @@ export async function boot(root = process.cwd()) {
 	};
 	/** An automation started through `/act` (`start`) and awaited: its finished run view. */
 	const run = async (automation: string, input: Row) => {
-		const id = randomUUID();
+		const id = uuidv7();
 		await act('start', { automation, input, id });
 		// ponytail: polls the shell's run view; a live subscription if probes ever wait long
 		for (const deadline = Date.now() + 90_000; Date.now() < deadline;) {
@@ -617,7 +623,10 @@ export async function runCase(host: Host, probe: ProbeCase) {
 		results.push(...judgeSlips(slips, probe.expected));
 	}
 
-	if (probe.sweep ?? (probe.saved ?? []).some((want) => want.collection === 'obligation_instances')) {
+	if (
+		probe.sweep ??
+		(probe.saved ?? []).some((want) => want.collection === 'obligation_instances')
+	) {
 		// ponytail: sweeps every company on the host, serialised (`concurrency: { max: 1 }`); fine at probe scale
 		const swept = await host.run('obligation_calendar', {});
 		const company = ids.get('company')!;

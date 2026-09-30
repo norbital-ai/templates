@@ -50,7 +50,9 @@ test('earlier runs of a small company are one crossing, and every reference row 
 		approval_id: null
 	})) as never;
 	const { db, reads } = counting(world);
-	const worlds = await readPayrollWorlds(db as never, [{ company_id: COMPANY_ID, period: '2026-12' }]);
+	const worlds = await readPayrollWorlds(db as never, [
+		{ company_id: COMPANY_ID, period: '2026-12' }
+	]);
 	const loaded = worlds.get(`${COMPANY_ID}:2026-12`)!;
 	assert.equal(loaded.payroll_runs.length, 11);
 	assert.equal(reads.filter((collection) => collection === 'payroll_runs').length, 1);

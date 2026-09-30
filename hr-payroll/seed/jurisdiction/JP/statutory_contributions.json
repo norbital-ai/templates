@@ -747,7 +747,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -800,7 +800,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -811,7 +811,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -2606,7 +2606,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -2659,7 +2659,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -2670,7 +2670,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -4465,7 +4465,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -4518,7 +4518,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -4529,7 +4529,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -6162,7 +6162,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -6215,7 +6215,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -6226,7 +6226,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -7859,7 +7859,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -7912,7 +7912,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -7923,7 +7923,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -9623,7 +9623,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -9676,7 +9676,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -9687,7 +9687,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -11387,7 +11387,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -11440,7 +11440,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -11451,7 +11451,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -13151,7 +13151,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -13204,7 +13204,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -13215,7 +13215,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -14915,7 +14915,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -14968,7 +14968,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -14979,7 +14979,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -16679,7 +16679,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -16732,7 +16732,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -16743,7 +16743,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -18443,7 +18443,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -18496,7 +18496,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -18507,7 +18507,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -20207,7 +20207,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -20260,7 +20260,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -20271,7 +20271,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -21971,7 +21971,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -22024,7 +22024,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -22035,7 +22035,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -23735,7 +23735,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -23788,7 +23788,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -23799,7 +23799,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -25499,7 +25499,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -25552,7 +25552,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -25563,7 +25563,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -27263,7 +27263,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -27316,7 +27316,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -27327,7 +27327,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -29027,7 +29027,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -29080,7 +29080,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -29091,7 +29091,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -30791,7 +30791,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -30844,7 +30844,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -30855,7 +30855,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -32555,7 +32555,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -32608,7 +32608,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -32619,7 +32619,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -34319,7 +34319,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -34372,7 +34372,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -34383,7 +34383,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -36083,7 +36083,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -36136,7 +36136,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -36147,7 +36147,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -37847,7 +37847,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -37900,7 +37900,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -37911,7 +37911,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -39611,7 +39611,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -39664,7 +39664,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -39675,7 +39675,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -41375,7 +41375,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -41428,7 +41428,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -41439,7 +41439,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -43139,7 +43139,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -43192,7 +43192,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -43203,7 +43203,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -44903,7 +44903,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -44956,7 +44956,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -44967,7 +44967,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -46667,7 +46667,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -46720,7 +46720,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -46731,7 +46731,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -48437,7 +48437,7 @@
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the 雇用保険料率 for the 令和9年度 (from 1 April 2027) is not yet published; seal a settings version with that year’s rates before calculating a wage period that closes on or after 1 April 2027."
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -48490,7 +48490,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -48501,7 +48501,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -50207,7 +50207,7 @@
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the 雇用保険料率 for the 令和9年度 (from 1 April 2027) is not yet published; seal a settings version with that year’s rates before calculating a wage period that closes on or after 1 April 2027."
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -50260,7 +50260,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -50271,7 +50271,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -51977,7 +51977,7 @@
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the 雇用保険料率 for the 令和9年度 (from 1 April 2027) is not yet published; seal a settings version with that year’s rates before calculating a wage period that closes on or after 1 April 2027."
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -52030,7 +52030,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -52041,7 +52041,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -53747,7 +53747,7 @@
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the 雇用保険料率 for the 令和9年度 (from 1 April 2027) is not yet published; seal a settings version with that year’s rates before calculating a wage period that closes on or after 1 April 2027."
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -53800,7 +53800,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -53811,7 +53811,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -55517,7 +55517,7 @@
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the 雇用保険料率 for the 令和9年度 (from 1 April 2027) is not yet published; seal a settings version with that year’s rates before calculating a wage period that closes on or after 1 April 2027."
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -55570,7 +55570,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -55581,7 +55581,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -57287,7 +57287,7 @@
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the 雇用保険料率 for the 令和9年度 (from 1 April 2027) is not yet published; seal a settings version with that year’s rates before calculating a wage period that closes on or after 1 April 2027."
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -57340,7 +57340,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -57351,7 +57351,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},
@@ -59057,7 +59057,7 @@
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the 雇用保険料率 for the 令和9年度 (from 1 April 2027) is not yet published; seal a settings version with that year’s rates before calculating a wage period that closes on or after 1 April 2027."
 			},
 			{
-				"when": "!has(person.company.facts.employment_insurance_class)",
+				"when": "person.company.facts.employment_insurance_class == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働保険の保険料の徴収等に関する法律 §12(4): the employment-insurance rate turns on the business class. Record the company’s employment_insurance_class (GENERAL, AGRICULTURE_SAKE or CONSTRUCTION)."
@@ -59110,7 +59110,7 @@
 		"elections": [],
 		"rules": [
 			{
-				"when": "!has(person.company.facts.workers_comp_business_type)",
+				"when": "person.company.facts.workers_comp_business_type == \"\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "労働者災害補償保険法 §3; 労働保険の保険料の徴収等に関する法律 §12(2): record the company’s workers_comp_business_type, the 労災保険率表 事業の種類の番号 of its labour-insurance relationship."
@@ -59121,7 +59121,7 @@
 				"employer": "0.0"
 			},
 			{
-				"when": "has(person.company.facts.workers_comp_merit_rate)",
+				"when": "double(person.company.facts.workers_comp_merit_rate) > 0.0",
 				"employee": "0.0",
 				"employer": "round(base * person.company.facts.workers_comp_merit_rate / 1000.0, 1, 'DOWN')"
 			},

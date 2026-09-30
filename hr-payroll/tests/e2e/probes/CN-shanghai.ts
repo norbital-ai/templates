@@ -2812,7 +2812,11 @@ const procedureJan = (
 		inputs: [
 			...base.inputs.slice(0, -1),
 			entry(id, accepted),
-			{ ...entry(`${id}-over`, over), refused: 'FAMILY_PLANNING_PROCEDURE_LEAVE grants \\d+ days for this event; 0 are already taken and this would add \\d+\\.' }
+			{
+				...entry(`${id}-over`, over),
+				refused:
+					'FAMILY_PLANNING_PROCEDURE_LEAVE grants \\d+ days for this event; 0 are already taken and this would add \\d+\\.'
+			}
 		]
 	};
 };

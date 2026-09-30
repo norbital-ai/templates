@@ -437,7 +437,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -1515,7 +1515,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -2593,7 +2593,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -3671,7 +3671,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -4749,7 +4749,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -5827,7 +5827,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -6905,7 +6905,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -7983,7 +7983,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -9061,7 +9061,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -10139,7 +10139,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -11217,7 +11217,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -12295,7 +12295,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -13373,7 +13373,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -14451,7 +14451,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -15529,7 +15529,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -16607,7 +16607,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -17685,7 +17685,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -18763,7 +18763,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -19841,7 +19841,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -20919,7 +20919,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -21997,7 +21997,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -23075,7 +23075,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -24153,7 +24153,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -25231,7 +25231,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -26309,7 +26309,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -27387,7 +27387,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -28465,7 +28465,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -29543,7 +29543,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -30621,7 +30621,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -31699,7 +31699,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -32777,7 +32777,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -33855,7 +33855,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -34933,7 +34933,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{
@@ -36011,7 +36011,7 @@
 				"label": "扶養親族等の数",
 				"minimum": 0,
 				"integer": true,
-				"required_when": "terms.facts.withholding_column == \"KOU\"",
+				"required_when": "has(terms.facts.withholding_column) && terms.facts.withholding_column == \"KOU\"",
 				"description": "The number of 源泉控除対象配偶者 and 控除対象扶養親族 the 扶養控除等申告書 declares, plus one for each disability, widow/single-parent or working-student status the table's notes add (NTA 月額表 備考). Required with KOU."
 			},
 			{

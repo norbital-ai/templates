@@ -76,6 +76,7 @@ const MONTH_LOOP_BOUND = new Set([28, 29, 30]);
 const NAMED_LIMITS: Record<string, string> = {
 	PAGE_LIMIT: 'rows a read page takes under the 4 MiB crossing answer',
 	WIDE_ROWS: 'rows a whole-row read page takes under the 4 MiB crossing answer',
+	RUN_PAGE_PEOPLE: "people's run traces one read page holds under the crossing answer",
 	PRODUCED_OF_CACHE_CAP: 'memo entries kept in memory',
 	ASSESSED_ON_CACHE_CAP: 'memo entries kept in memory',
 	MENTION_CACHE_CAP: 'memo entries kept in memory',
@@ -97,9 +98,6 @@ const NAMED_LIMITS: Record<string, string> = {
  */
 const SEMI_MONTHLY = "a semi-monthly month's two instalments; a weekly month has four or five";
 const SITES: Record<string, Record<string, string>> = {
-	'src/lib/payroll/run/export-data.ts': {
-		'2': 'decimal places a currency figure is displayed with'
-	},
 	'src/lib/payroll/world.ts': {
 		'2_000_000': 'the byte budget of one read crossing (the host caps a crossing at 4 MiB)',
 		'50_000': 'the measured bytes a payroll run carries per employment'
@@ -115,6 +113,7 @@ const SITES: Record<string, Record<string, string>> = {
 	'src/lib/payroll/work.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/history.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/run/engine.ts': { '2': SEMI_MONTHLY },
+	'src/lib/payroll/run/export-data.ts': { '2': 'display precision of a printed figure' },
 	'src/lib/payroll/run/contribute.ts': {
 		'2': SEMI_MONTHLY,
 		'4': SEMI_MONTHLY,
