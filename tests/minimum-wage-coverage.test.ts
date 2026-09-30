@@ -192,7 +192,7 @@ test('a mid-month worksite change refuses without an approved monthly floor basi
 	);
 });
 
-test('an Indonesian KBLI edition change inside a pay month refuses even at one worksite', () => {
+test('a sector class change across editions inside a pay month refuses even at one worksite', () => {
 	const configuration = {
 		company: { region: 'Provinsi DKI Jakarta' },
 		jurisdiction: {
@@ -203,7 +203,12 @@ test('an Indonesian KBLI edition change inside a pay month refuses even at one w
 				wages: {
 					by_region: { 'Provinsi DKI Jakarta': 5_700_000 },
 					workplace_keyed: true,
-					standalone_workplaces: ['Provinsi DKI Jakarta']
+					standalone_workplaces: ['Provinsi DKI Jakarta'],
+					sector_code_pattern: '^[0-9]{5}$',
+					sector_editions: ['2020', '2025'],
+					sector_edition: '2020',
+					sector_edition_from: '2025-12-18',
+					sector_edition_map: { '10120': '10130' }
 				}
 			}
 		},
@@ -213,13 +218,13 @@ test('an Indonesian KBLI edition change inside a pay month refuses even at one w
 		{
 			worksite: 'Provinsi DKI Jakarta',
 			worksite_sector: '62019',
-			worksite_sector_edition: '2020',
+			facts: { worksite_sector_edition: '2020' },
 			effective_range: { start: '2026-01-01', end: '2026-01-16' }
 		},
 		{
 			worksite: 'Provinsi DKI Jakarta',
-			worksite_sector: '62199',
-			worksite_sector_edition: '2025',
+			worksite_sector: '10120',
+			facts: { worksite_sector_edition: '2025' },
 			effective_range: { start: '2026-01-16', end: null }
 		}
 	];
@@ -338,7 +343,7 @@ test('Malaysian piece remuneration cannot pass a monthly floor from contract bas
 	};
 	assert.throws(
 		() => minimumWageIssues({ configuration, bundles: [bundle], asOf: '2026-01-31' }),
-		/cannot be verified against the Malaysian monthly minimum wage/
+		/cannot be verified against the monthly minimum wage of /
 	);
 });
 
@@ -372,9 +377,8 @@ test('Indonesia compares basic plus fixed allowances with the monthly floor', ()
 		employment: {
 			id: 'id-1',
 			employee_number: 'ID-1',
-			// Hired inside the window: a year of service is what brings the PP 36/2021 wage-scale
-			// facts (grade notice, its dated structure, the grade's basic minimum) into the pricing,
-			// and this case is about the allowance, not the grade.
+			// Hired inside the window: the seeded ID contract rules read the PP 36/2021 wage scale
+			// from a year of service; this case declares none and is about the allowance.
 			effective_range: { start: '2026-01-01', end: null }
 		},
 		employee: { nationality: 'IDN', date_of_birth: '1990-01-01', children: [] },
@@ -551,11 +555,17 @@ test('a wages order’s rule on the contract’s composition warns like the floo
 	);
 	assert.match(issues[0]!.message, /basic 2000000, fixed allowances 1500000/);
 	// The ID versions state the rule.
-	for (const version of settingsVersions('ID'))
+	for (const version of settingsVersions('ID')) {
 		assert.equal(
 			version.work_rules.wages.terms_when,
 			'terms.monthly_basic >= 0.75 * (terms.monthly_basic + terms.fixed_allowances)'
 		);
+		assert.deepEqual(
+			version.work_rules.wages.contract_rules.map((rule: { key: string }) => rule.key),
+			['wage_scale_recorded', 'wage_scale_minimum', 'output_wage_valued']
+		);
+		assert.equal(version.work_rules.wages.hourly_floor.from_monthly_divisor, 126);
+	}
 });
 
 test('an Indonesian sector condition requires an explicit company classification', () => {
@@ -569,11 +579,13 @@ test('an Indonesian sector condition requires an explicit company classification
 				wages: {
 					by_region: { 'Provinsi Bali/Kabupaten Badung': 3_500_000 },
 					workplace_keyed: true,
-					kbli_edition: '2020',
+					sector_code_pattern: '^[0-9]{5}$',
+					sector_editions: ['2020', '2025'],
+					sector_edition: '2020',
 					monthly_by_sector: [
 						{
 							place: 'Provinsi Bali/Kabupaten Badung',
-							kbli: ['55110'],
+							sector_codes: ['55110'],
 							when: 'company.facts.umsp_hotel_star >= 4',
 							amount: 3_800_000
 						}
@@ -608,7 +620,7 @@ test('an Indonesian sector condition requires an explicit company classification
 				currency: 'IDR',
 				worksite: 'Provinsi Bali/Kabupaten Badung',
 				worksite_sector: '55110',
-				worksite_sector_edition: '2020',
+				facts: { worksite_sector_edition: '2020' },
 				effective_range: { start: '2025-01-01', end: null }
 			}
 		]

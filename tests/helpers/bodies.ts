@@ -3,7 +3,8 @@
  * Runs a 0.0.1 collection body (transform, query, action) the way the engine calls it, over in-memory tables.
  *
  * `tables` maps a collection to its rows; a read filters them with the scalar operators the bodies use (`eq ne in nin
- * isNull gt gte lt lte`, `and or not`) and `some`/`none` over a relation the fixture row carries as an array. A refusal
+ * isNull gt gte lt lte`, `and or not`), `some`/`none` over a relation the fixture row carries as an array, and a
+ * polymorphic relation over its `{ collection, id }` arc. A refusal
  * throws an `Error` whose `kind` is `'refused'`, as the guest reports it. `act` records every call and answers committed.
  */
 
@@ -29,6 +30,9 @@ export function matches(row, where = {}) {
 			if (op === 'some') return (value ?? []).some((child) => matches(child, operand));
 			if (op === 'none') return !(value ?? []).some((child) => matches(child, operand));
 			if (op === 'is') return value != null && matches(value, operand);
+			// A polymorphic relation (`subject: { benefit_cases: { in } }`) reads the stored `{ collection, id }` arc.
+			if (!(op in OPS) && value != null && typeof value === 'object' && 'collection' in value)
+				return value.collection === op && matches({ id: value.id }, { id: operand });
 			if (!(op in OPS)) throw new Error(`bodies helper: unsupported operator ${op}`);
 			return OPS[op](value, operand);
 		});

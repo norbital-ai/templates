@@ -41,9 +41,9 @@ const READ_ME_LINES = [
 	'none, and an hour the clock shows past the shift with none planned is not paid.',
 	'',
 	'The "Settings" sheet states the legal entity, the month (YYYY-MM) and the IANA timezone once.',
-	'For Thailand, "Overtime" is one person-day per row. State overtime_hours and the ISO instant',
-	'of that occasion’s worker consent. A nine-hour normal day also needs the ISO instant of its',
-	'prior redistribution agreement, even if overtime_hours is zero.',
+	'Where the rules ask each occasion for the worker’s consent, or declare work-day inputs the',
+	'workbook carries, "Overtime" is one person-day per row: overtime_hours, the ISO instant of',
+	'that occasion’s consent, and a column per declared input, even if overtime_hours is zero.',
 	'Do not rename the sheets or the columns: the importer refuses the whole file by name.',
 	"Every row is checked against the entity's records — employee numbers, shift codes, holidays —",
 	'and one bad row refuses the whole file so it can be corrected and re-imported as one.'
@@ -53,7 +53,10 @@ export function schedulingTemplateWorkbook(options: {
 	readonly legalEntity: string;
 	readonly month: string;
 	readonly timezone: string;
-	readonly jurisdictionCode?: string | undefined;
+	/** The version asks each overtime occasion for consent (`work_rules.overtime_consent`). */
+	readonly overtimeConsent?: boolean | undefined;
+	/** The declared work-day inputs the workbook carries (`work_day_facts[].import`). */
+	readonly factColumns?: readonly string[] | undefined;
 }): ln.Workbook {
 	const workbook = new ExcelJSBrowser.Workbook();
 	const readMe = workbook.addWorksheet(READ_ME_SHEET_NAME);
@@ -85,13 +88,13 @@ export function schedulingTemplateWorkbook(options: {
 
 	const overtime = workbook.addWorksheet(OVERTIME_SHEET_NAME);
 	overtime.addRow(
-		options.jurisdictionCode === 'TH'
+		options.overtimeConsent === true || (options.factColumns ?? []).length > 0
 			? [
 					'employee_number',
 					'work_date',
 					'overtime_hours',
-					'overtime_consented_at',
-					'normal_hours_redistribution_agreed_at'
+					...(options.overtimeConsent === true ? ['overtime_consented_at'] : []),
+					...(options.factColumns ?? [])
 				]
 			: [
 					'employee_number',

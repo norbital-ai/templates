@@ -9,7 +9,7 @@ import {
 import { termsSummary } from '../../../lib/derived-titles.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { settingsInForce, stableJson } from '../../../lib/jurisdiction_settings.js';
-import { sealedLineages } from '../../../lib/entity-facts.js';
+import { entityFactsFault, sealedLineages } from '../../../lib/entity-facts.js';
 
 /** Contracts. A referenced contract is frozen and undeletable (the delete guard reads its references). */
 const employments = collection('employments', {
@@ -35,12 +35,8 @@ const employments = collection('employments', {
 							'residency_since',
 							'currency',
 							'base_salary',
-							'minimum_wage_2025_region',
-							'minimum_wage_2026_area_reclassified',
 							'worksite',
-							'worksite_state',
 							'worksite_sector',
-							'worksite_sector_edition',
 							'allowances',
 							'pay_frequency',
 							'work_classification',
@@ -57,6 +53,7 @@ const employments = collection('employments', {
 							'notice_days',
 							'ordinary_hours_per_week',
 							'shift_pattern_id',
+							'facts',
 							'effective_range'
 						]
 					}
@@ -143,8 +140,20 @@ employments.transform(async (inputs, { existing, db, refuse }) => {
 	const people = [
 		...new Set(candidates.flatMap((row) => (row.employee_id == null ? [] : [row.employee_id])))
 	];
+	// A new contract's first terms arrive nested: their declared inputs are judged here.
+	const nestedTermsFacts = (index: number) => {
+		const input = inputs[index]!;
+		return existing[index] != null || '$delete' in input
+			? []
+			: (input.employment_terms?.create ?? []).flatMap((terms) =>
+					Object.keys(terms.facts ?? {}).length === 0 ? [] : [terms.facts!]
+				);
+	};
+	const nested = candidates.filter((_, index) => nestedTermsFacts(index).length > 0);
 	const entityIds = [
-		...new Set(declared.flatMap((row) => (row.company_id == null ? [] : [row.company_id])))
+		...new Set(
+			[...declared, ...nested].flatMap((row) => (row.company_id == null ? [] : [row.company_id]))
+		)
 	];
 	// One wave: the entities whose law judges departures, paid finals, the person's other contracts, and what
 	// references the contracts being changed; then the lineages of those entities.
@@ -223,8 +232,21 @@ employments.transform(async (inputs, { existing, db, refuse }) => {
 	return inputs.map((input, index) => {
 		const stored = existing[index];
 		// A contract's first terms arrive nested; their own transform does not run (rule 27), so their derived
-		// fields are filled here.
-		if (stored == null)
+		// fields are filled, and their declared inputs judged, here.
+		if (stored == null) {
+			const code =
+				companies.find((company) => company.id === candidates[index]!.company_id)?.settings_code ??
+				'';
+			for (const facts of nestedTermsFacts(index)) {
+				const fault = entityFactsFault(
+					code,
+					facts,
+					versions
+						.filter((version) => version.code === code)
+						.flatMap((version) => version.terms_facts ?? [])
+				);
+				if (fault != null) refuse(fault);
+			}
 			return '$delete' in input || input.employment_terms?.create == null
 				? input
 				: {
@@ -237,6 +259,7 @@ employments.transform(async (inputs, { existing, db, refuse }) => {
 							}))
 						}
 					};
+		}
 		if (
 			!('$delete' in input) &&
 			lastDayOf(stored.effective_range) != null &&

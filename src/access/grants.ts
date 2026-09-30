@@ -44,9 +44,9 @@ export const WORK_DAY_FULL_FIELDS = [
 	'shift_definition_id',
 	'approved_overtime_hours',
 	'overtime_consented_at',
-	'normal_hours_redistribution_agreed_at',
 	'incentive_hours',
-	'worked_intervals'
+	'worked_intervals',
+	'facts'
 ] as const;
 
 const REVIEWERS = ['HR Manager', 'Senior Management'] as const;

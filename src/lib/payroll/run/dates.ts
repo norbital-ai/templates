@@ -141,6 +141,17 @@ export function completedMonths(start: IsoDate, end: IsoDate): number {
 	return Math.max(0, months);
 }
 
+/** Completed months from `start` to the morning of `end`, plus the part month's elapsed share of its days. */
+export function exactMonths(start: IsoDate, end: IsoDate): number {
+	const months = completedMonths(start, end);
+	const year = Number.parseInt(start.slice(0, 4), 10);
+	const month = Number.parseInt(start.slice(5, 7), 10) - 1;
+	const day = Number.parseInt(start.slice(8, 10), 10);
+	const from = monthDay(year, month + months, day);
+	const to = monthDay(year, month + months + 1, day);
+	return months + (inclusiveDays(from, end) - 1) / (inclusiveDays(from, to) - 1);
+}
+
 /**
  * The last day of a period of `months` calendar months opening on `start`: the day before the same
  * day of the closing month, or that month's last day where it has no such day (15 March + 6 is

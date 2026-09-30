@@ -13,8 +13,10 @@ export default model({
 		description: { kind: 'text', optional: true },
 		/** The receipt; required when the catalogue row's `evidence` says so. */
 		evidence_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
-		/** Facts and legal due date for a treatment reimbursement; optional for other claims. */
-		medical_reimbursement: { kind: 'custom', of: 'medical_reimbursement', optional: true },
+		/** The day the claim becomes payable where the class dates it later than the expense; null is `incurred_on`. */
+		due_on: { kind: 'date', optional: true },
+		/** Inputs the catalogue row declares in `request_facts`; `entry.facts.<key>`. */
+		facts: { kind: 'custom', of: 'entity_facts', default: {} },
 		/** Settle against the catalogue's direction (a claw-back). */
 		as_adjustment_entry: { kind: 'bool', default: false },
 		/** The period this settles in, overriding the cutoff; null is normal. */

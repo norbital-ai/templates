@@ -1,7 +1,36 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { allocatePhMaternityPay, calculatePhMaternityPay } from '../src/lib/ph/maternity-pay.ts';
+import { allocateBenefitPay, calculateBenefitPay } from '../src/lib/benefit-cases/pay.ts';
+import { MATERNITY } from './fixtures/benefit-cases.ts';
+
+/** The PH maternity case type in PHP; `leave_days` names the event whose compensable days are priced. */
+const EVENT = {
+	105: { event_kind: 'BIRTH', event_on: '2026-10-05', facts: { solo_parent_claimed: false } },
+	60: { event_kind: 'MISCARRIAGE', event_on: '2026-10-05', facts: {} }
+};
+const premiums = ({ sss, philhealth, pagibig }) => ({ SSS: sss, PHIC: philhealth, HDMF: pagibig });
+const calculatePhMaternityPay = ({ leave_days, employee_premiums, actual_sss_award, ...rest }) =>
+	calculateBenefitPay({
+		case_type: MATERNITY,
+		currency: 'PHP',
+		benefit_case: EVENT[leave_days],
+		employee_premiums: premiums(employee_premiums),
+		actual_award: actual_sss_award,
+		...rest
+	});
+const allocatePhMaternityPay = ({ actual_sss_award, cutoffs, ...rest }) =>
+	allocateBenefitPay({
+		case_type: MATERNITY,
+		currency: 'PHP',
+		benefit_case: EVENT[105],
+		actual_award: actual_sss_award,
+		cutoffs: cutoffs.map((cutoff) => ({
+			...cutoff,
+			employee_premiums: premiums(cutoff.employee_premiums)
+		})),
+		...rest
+	});
 
 test('signed DOLE DA 01-2019 positive example keeps SSS cash, premium shares and differential distinct', () => {
 	assert.deepEqual(
@@ -12,12 +41,13 @@ test('signed DOLE DA 01-2019 positive example keeps SSS cash, premium shares and
 			actual_sss_award: '70000.00'
 		}),
 		{
+			compensable_days: 105,
 			full_pay: 109550,
 			employee_premium_shares: 4656.31,
-			sss_award: 70000,
+			award: 70000,
 			signed_differential: 34893.69,
 			employer_differential: 34893.69,
-			rank_and_file_13th_basic: 34893.69,
+			basic_salary_share: 34893.69,
 			employee_cash_entitlement: 104893.69
 		}
 	);
@@ -33,7 +63,7 @@ test('signed DOLE negative example does not claw back an SSS benefit or create n
 	assert.equal(result.full_pay, 49023.63);
 	assert.equal(result.signed_differential, -2960.45);
 	assert.equal(result.employer_differential, 0);
-	assert.equal(result.rank_and_file_13th_basic, 0);
+	assert.equal(result.basic_salary_share, 0);
 	assert.equal(result.employee_cash_entitlement, 49000);
 });
 
@@ -50,10 +80,30 @@ test('PH maternity formula refuses guessed or fractional source amounts', () => 
 			{ employee_premiums: { ...valid.employee_premiums, sss: '-1.00' } },
 			/Employee SSS share needs/
 		],
-		[{ actual_sss_award: '0.00' }, /actual positive SSS award/],
-		[{ leave_days: 104 }, /statutory 60, 105 or 120/]
+		[{ actual_sss_award: '0.00' }, /actual positive award/]
 	] as const)
 		assert.throws(() => calculatePhMaternityPay({ ...valid, ...change }), refusal);
+	// The days are the case's: a 104-day span is not the birth's 105 compensable days.
+	assert.throws(
+		() =>
+			allocatePhMaternityPay({
+				leave_from: '2026-10-05',
+				leave_through: '2027-01-16',
+				monthly_salary: '31300.00',
+				actual_sss_award: '70000.00',
+				cutoffs: [
+					{
+						period: '2026-10',
+						from: '2026-10-05',
+						through: '2027-01-16',
+						pay_on: '2027-01-31',
+						employee_premiums: valid.employee_premiums
+					}
+				],
+				employee_cash: []
+			}),
+		/case's 105 compensable days/
+	);
 });
 
 test('PH cutoff ledger applies prior SSS and differential cash once and isolates annual 13th basic', () => {
@@ -103,16 +153,16 @@ test('PH cutoff ledger applies prior SSS and differential cash once and isolates
 	assert.equal(result.full_pay, 109550);
 	assert.equal(result.employer_differential, 34893.69);
 	assert.equal(sum('full_pay'), 109550);
-	assert.equal(sum('sss_award_share'), 70000);
+	assert.equal(sum('award_share'), 70000);
 	assert.equal(sum('employer_differential'), 34893.69);
 	assert.equal(sum('prior_cash_applied'), 104893.69);
 	assert.equal(sum('payroll_cash_transfer'), 0);
 	assert.equal(
-		result.cutoffs[0].rank_and_file_13th_basic_by_year['2026'],
+		result.cutoffs[0].basic_salary_share_by_year['2026'],
 		result.cutoffs[0].employer_differential
 	);
 	assert.equal(
-		result.cutoffs[3].rank_and_file_13th_basic_by_year['2027'],
+		result.cutoffs[3].basic_salary_share_by_year['2027'],
 		result.cutoffs[3].employer_differential
 	);
 	const advanceOnly = allocatePhMaternityPay({ ...input, employee_cash: [input.employee_cash[0]] });
@@ -128,10 +178,7 @@ test('PH cutoff ledger applies prior SSS and differential cash once and isolates
 		) / 100,
 		70000
 	);
-	assert.equal(
-		advanceOnly.cutoffs[0].prior_sss_cash_applied,
-		advanceOnly.cutoffs[0].sss_award_share
-	);
+	assert.equal(advanceOnly.cutoffs[0].prior_award_cash_applied, advanceOnly.cutoffs[0].award_share);
 	assert.equal(advanceOnly.cutoffs[0].prior_differential_cash_applied, 0);
 	assert.equal(
 		advanceOnly.cutoffs[0].payroll_cash_transfer,
@@ -164,12 +211,11 @@ test('PH cutoff ledger divides a year-crossing differential by covered days', ()
 		employee_cash: []
 	});
 	const crossing = result.cutoffs[1];
-	assert.ok(crossing.rank_and_file_13th_basic_by_year['2026'] > 0);
-	assert.ok(crossing.rank_and_file_13th_basic_by_year['2027'] > 0);
+	assert.ok(crossing.basic_salary_share_by_year['2026'] > 0);
+	assert.ok(crossing.basic_salary_share_by_year['2027'] > 0);
 	assert.equal(
 		Math.round(
-			(crossing.rank_and_file_13th_basic_by_year['2026'] +
-				crossing.rank_and_file_13th_basic_by_year['2027']) *
+			(crossing.basic_salary_share_by_year['2026'] + crossing.basic_salary_share_by_year['2027']) *
 				100
 		) / 100,
 		crossing.employer_differential

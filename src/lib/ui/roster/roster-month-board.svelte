@@ -334,7 +334,7 @@
 									? '🔒'
 									: holiday == null
 										? WEEKDAY_LETTERS[new Date(`${date}T00:00:00.000Z`).getUTCDay()]!
-										: HOLIDAY_PRESENTATION.mark}
+										: t(HOLIDAY_PRESENTATION.markKey)}
 							</span>
 							<span class="block tabular-nums">{decodeNumber(date.slice(8, 10))}</span>
 						</Stack>

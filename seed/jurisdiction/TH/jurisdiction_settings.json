@@ -19,7 +19,9 @@
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
-			"normal_hours": "terms.hazardous_work ? 7.0 : 8.0",
+			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
+			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
+			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -38,6 +40,13 @@
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category == \"GUARD_DUTY\" && date >= \"2026-04-24\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "GUARD_NORMAL_SUPPLEMENT",
+					"when": "day_type == 'ORDINARY' && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY']) && normal_hours > 8.0",
+					"take_hours": "(worked_hours < normal_hours ? worked_hours : normal_hours) - 8.0",
+					"price_amount": "hours * ordinary_hour * 1.25",
+					"component": "guard_normal_supplement"
 				},
 				{
 					"label": "HOL-1.0X",
@@ -77,6 +86,7 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 48,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: ordinary work is limited to 48 normal hours per week, including where an agreed redistribution extends a normal day to nine hours."
 				},
 				{
@@ -85,7 +95,8 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 42,
 					"unit": "WORKED_HOURS",
-					"when": "terms.hazardous_work",
+					"when": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
 				},
 				{
@@ -94,6 +105,7 @@
 					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 36,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.26 and Ministerial Regulation No.3 B.E.2541: overtime, holiday work and holiday overtime together may not exceed 36 hours in a week."
 				},
 				{
@@ -101,12 +113,163 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
 				}
 			],
 			"breaks": [],
 			"holiday_rest_precedence": "SUBSTITUTE",
+			"incentive_hours_allowed": false,
+			"overtime_consent": {
+				"required_when": "overtime_work || holiday_work",
+				"exception_fact": "consent_exception",
+				"authority": "Labour Protection Act B.E.2541 ss.24–25: each occasion of overtime or holiday work needs the employee’s prior consent, save continuous work whose stopping causes damage, an emergency, or the s.25 businesses’ holiday work."
+			},
+			"night_window": {
+				"start": "22:00",
+				"end": "06:00"
+			},
+			"day_rules": [
+				{
+					"key": "hazardous_normal_day",
+					"when": "'hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work && shift_hours > 7.0",
+					"message": "has a hazardous normal shift above the 7-hour limit",
+					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
+				},
+				{
+					"key": "redistribution_agreement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !('normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && day_facts.normal_hours_redistribution_agreed_at < shift_start_at)",
+					"message": "needs a prior worker agreement for the redistributed normal day",
+					"authority": "Labour Protection Act B.E.2541 s.23: a normal day above eight hours needs the worker’s prior agreement, within the 48-hour week."
+				},
+				{
+					"key": "redistribution_supplement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !(person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24') && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs a separately priced 1.5× supplement for normal hours above eight",
+					"authority": "Labour Protection Act B.E.2541 s.23: the normal hours above eight on a redistributed day; from 24 April 2026 a guard's are priced by the GUARD_NORMAL_SUPPLEMENT band (guard regulation, https://ratchakitcha.soc.go.th/documents/68372.pdf)."
+				},
+				{
+					"key": "guard_holiday_normal_hours",
+					"when": "holiday_work && normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs Thai guard holiday normal-hour compensation",
+					"authority": "Guard-work regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): the GUARD_NORMAL_SUPPLEMENT band prices a non-monthly guard's normal hours above eight on an ordinary day only; a holiday's is not configured."
+				},
+				{
+					"key": "birth_date",
+					"when": "person.employee.birth_date == ''",
+					"message": "needs a birth date to check Thai young-worker hours",
+					"authority": "Labour Protection Act B.E.2541 ss.44–48: the young-worker protections turn on the worker being under 18."
+				},
+				{
+					"key": "pregnancy_status",
+					"when": "(night_worked || holiday_work || overtime_work) && !('pregnancy_status' in person.terms.fact_keys)",
+					"message": "needs a dated Thai pregnancy status before night, overtime or holiday work",
+					"authority": "Labour Protection Act B.E.2541 s.39/1: a pregnant employee may not work 22:00–06:00, overtime or on a holiday."
+				},
+				{
+					"key": "pregnant_night_holiday",
+					"when": "(night_worked || holiday_work) && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "cannot perform Thai night or holiday work while pregnant",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.1."
+				},
+				{
+					"key": "pregnant_overtime",
+					"when": "overtime_work && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "needs supported Thai s.39/1 role and health evidence before pregnant working-day overtime",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.2: working-day overtime only in executive, academic, clerical or financial work that does not affect her health."
+				},
+				{
+					"key": "adult_rest_over_two_hours",
+					"when": "age_years >= 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4: rest beyond two hours a day counts as normal working time."
+				},
+				{
+					"key": "adult_five_hours",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_run_hours > 5.0",
+					"message": "worked over five consecutive hours without a timed Thai s.27 break",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: a rest of at least one hour after no more than five consecutive working hours."
+				},
+				{
+					"key": "adult_hour_rest",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && rest_minutes_total < 60.0",
+					"message": "needs a timed hour of Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1."
+				},
+				{
+					"key": "adult_split_break",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_rest_minutes < 60.0 && !(day_facts.split_break_agreed_at != '' && day_facts.split_break_agreed_at < first_work_at)",
+					"message": "needs a prior split-break agreement for Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: the hour may be split into shorter breaks only by prior agreement, totalling at least one hour a day."
+				},
+				{
+					"key": "adult_rest_before_overtime",
+					"when": "age_years >= 18.0 && day_type == 'ORDINARY' && worked_hours - normal_hours >= 2.0 && rest_before_overtime_minutes < 20.0",
+					"message": "needs a timed 20-minute rest before Thai overtime of at least two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.3: a rest of at least 20 minutes before overtime of two hours or more."
+				},
+				{
+					"key": "minor_timed_records",
+					"when": "age_years < 18.0 && !attendance_recorded",
+					"message": "needs timed work and rest records for the Thai under-18 shift",
+					"authority": "Labour Protection Act B.E.2541 ss.46–48: the young-worker rest, night and overtime rules are judged on the timed day."
+				},
+				{
+					"key": "minor_holiday",
+					"when": "age_years < 18.0 && holiday_work",
+					"message": "cannot work on a Thai holiday while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48: no employee under 18 may work overtime or on a holiday."
+				},
+				{
+					"key": "minor_night_permission",
+					"when": "age_years < 18.0 && night_worked && !(day_facts.minor_night_permission_granted_at != '' && day_facts.minor_night_permission_granted_at < first_night_at)",
+					"message": "needs prior written Thai Director-General permission for under-18 night work",
+					"authority": "Labour Protection Act B.E.2541 s.47: no employee under 18 may work 22:00–06:00 without the Director-General’s prior written permission."
+				},
+				{
+					"key": "minor_four_hours",
+					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
+					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
+				},
+				{
+					"key": "minor_rest_over_two_hours",
+					"when": "age_years < 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4."
+				},
+				{
+					"key": "minor_hour_rest",
+					"when": "age_years < 18.0 && worked_hours > 0.0 && longest_rest_minutes < 60.0",
+					"message": "needs a continuous 60-minute rest on the Thai under-18 workday",
+					"authority": "Labour Protection Act B.E.2541 s.46."
+				},
+				{
+					"key": "minor_overtime",
+					"when": "age_years < 18.0 && overtime_work",
+					"message": "cannot work overtime in Thailand while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48."
+				},
+				{
+					"key": "consent_exception_evidence",
+					"when": "day_facts.consent_exception != '' && day_facts.consent_exception_reference.trim() == ''",
+					"message": "needs evidence for the Thai consent exception",
+					"authority": "Labour Protection Act B.E.2541 ss.24–25: an occasion without consent needs its recorded necessity, emergency or s.25 business."
+				},
+				{
+					"key": "holiday_consent_exception",
+					"when": "day_facts.consent_exception.startsWith('HOLIDAY_') && (overtime_work || holiday_work) && !(day_type in ['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'])",
+					"message": "cannot use a Thai holiday-work exception on an ordinary day",
+					"authority": "Labour Protection Act B.E.2541 s.25 para.2: the listed businesses may require holiday work, not working-day overtime."
+				}
+			],
 			"wages": {
+				"results_pay": {
+					"measure_piece_from_units": true,
+					"piece_calendar_leave_refused": true,
+					"piece_history_weeks": 400,
+					"piece_history_catalogues": ["SEVERANCE_PAY"]
+				},
 				"by_region": {},
 				"applies_when": "",
 				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
@@ -212,6 +375,12 @@
 			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "THB",
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
@@ -251,7 +420,16 @@
 				"https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/181.pdf",
 				"https://ratchakitcha.soc.go.th/documents/68372.pdf"
 			],
-			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office."
+			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office.",
+			"research_domains": [
+				"https://ratchakitcha.soc.go.th",
+				"https://www.ocs.go.th",
+				"https://searchlaw.ocs.go.th",
+				"https://www.mol.go.th",
+				"https://www.sso.go.th",
+				"https://www.rd.go.th",
+				"https://infocenter.oic.go.th"
+			]
 		},
 		"facts": [
 			{
@@ -306,6 +484,71 @@
 				"type": "string",
 				"label": "Termination notice date (YYYY-MM-DD, s.17)",
 				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "consent_exception",
+				"type": "string",
+				"label": "Consent exception",
+				"description": "Labour Protection Act B.E.2541 ss.24–25: the recorded reason that dispenses with the worker’s consent for this overtime or holiday-work occasion.",
+				"options": [
+					"CONTINUOUS_DAMAGE_IF_STOPPED",
+					"EMERGENCY",
+					"HOLIDAY_HOTEL",
+					"HOLIDAY_ENTERTAINMENT",
+					"HOLIDAY_TRANSPORT",
+					"HOLIDAY_FOOD_SHOP",
+					"HOLIDAY_DRINK_SHOP",
+					"HOLIDAY_CLUB",
+					"HOLIDAY_ASSOCIATION",
+					"HOLIDAY_MEDICAL_FACILITY"
+				]
+			},
+			{
+				"key": "consent_exception_reference",
+				"type": "string",
+				"label": "Consent exception evidence",
+				"description": "The document proving the continuous-work necessity, the emergency or the s.25 business classification."
+			},
+			{
+				"key": "split_break_agreed_at",
+				"type": "instant",
+				"label": "Split-break agreement",
+				"description": "Labour Protection Act B.E.2541 s.27: the prior agreement to split the day’s hour of rest into shorter breaks."
+			},
+			{
+				"key": "minor_night_permission_granted_at",
+				"type": "instant",
+				"label": "Under-18 night-work permission",
+				"description": "Labour Protection Act B.E.2541 s.47: when the Director-General’s written permission for under-18 night work was granted; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "normal_hours_redistribution_agreed_at",
+				"type": "instant",
+				"label": "Normal-day redistribution agreement",
+				"description": "Labour Protection Act B.E.2541 s.23: the worker’s prior agreement to a normal day above eight hours within the 48-hour week.",
+				"import": true
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "hazardous_work",
+				"type": "boolean",
+				"label": "Hazardous work",
+				"required": false,
+				"default_value": false,
+				"description": "Labour Protection Act B.E.2541 s.23: work the Ministerial Regulation declares hazardous to health or safety, limited to 7 normal hours a day and 42 a week. Default false: work is hazardous only as declared."
+			},
+			{
+				"key": "pregnancy_status",
+				"type": "string",
+				"label": "Pregnancy status",
+				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
+				"options": ["PREGNANT", "NOT_PREGNANT"]
 			}
 		],
 		"obligations": [
@@ -385,7 +628,9 @@
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
-			"normal_hours": "terms.hazardous_work ? 7.0 : 8.0",
+			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
+			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
+			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -404,6 +649,13 @@
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category == \"GUARD_DUTY\" && date >= \"2026-04-24\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "GUARD_NORMAL_SUPPLEMENT",
+					"when": "day_type == 'ORDINARY' && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY']) && normal_hours > 8.0",
+					"take_hours": "(worked_hours < normal_hours ? worked_hours : normal_hours) - 8.0",
+					"price_amount": "hours * ordinary_hour * 1.25",
+					"component": "guard_normal_supplement"
 				},
 				{
 					"label": "HOL-1.0X",
@@ -443,6 +695,7 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 48,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: ordinary work is limited to 48 normal hours per week, including where an agreed redistribution extends a normal day to nine hours."
 				},
 				{
@@ -451,7 +704,8 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 42,
 					"unit": "WORKED_HOURS",
-					"when": "terms.hazardous_work",
+					"when": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
 				},
 				{
@@ -460,6 +714,7 @@
 					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 36,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.26 and Ministerial Regulation No.3 B.E.2541: overtime, holiday work and holiday overtime together may not exceed 36 hours in a week."
 				},
 				{
@@ -467,12 +722,163 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
 				}
 			],
 			"breaks": [],
 			"holiday_rest_precedence": "SUBSTITUTE",
+			"incentive_hours_allowed": false,
+			"overtime_consent": {
+				"required_when": "overtime_work || holiday_work",
+				"exception_fact": "consent_exception",
+				"authority": "Labour Protection Act B.E.2541 ss.24–25: each occasion of overtime or holiday work needs the employee’s prior consent, save continuous work whose stopping causes damage, an emergency, or the s.25 businesses’ holiday work."
+			},
+			"night_window": {
+				"start": "22:00",
+				"end": "06:00"
+			},
+			"day_rules": [
+				{
+					"key": "hazardous_normal_day",
+					"when": "'hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work && shift_hours > 7.0",
+					"message": "has a hazardous normal shift above the 7-hour limit",
+					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
+				},
+				{
+					"key": "redistribution_agreement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !('normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && day_facts.normal_hours_redistribution_agreed_at < shift_start_at)",
+					"message": "needs a prior worker agreement for the redistributed normal day",
+					"authority": "Labour Protection Act B.E.2541 s.23: a normal day above eight hours needs the worker’s prior agreement, within the 48-hour week."
+				},
+				{
+					"key": "redistribution_supplement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !(person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24') && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs a separately priced 1.5× supplement for normal hours above eight",
+					"authority": "Labour Protection Act B.E.2541 s.23: the normal hours above eight on a redistributed day; from 24 April 2026 a guard's are priced by the GUARD_NORMAL_SUPPLEMENT band (guard regulation, https://ratchakitcha.soc.go.th/documents/68372.pdf)."
+				},
+				{
+					"key": "guard_holiday_normal_hours",
+					"when": "holiday_work && normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs Thai guard holiday normal-hour compensation",
+					"authority": "Guard-work regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): the GUARD_NORMAL_SUPPLEMENT band prices a non-monthly guard's normal hours above eight on an ordinary day only; a holiday's is not configured."
+				},
+				{
+					"key": "birth_date",
+					"when": "person.employee.birth_date == ''",
+					"message": "needs a birth date to check Thai young-worker hours",
+					"authority": "Labour Protection Act B.E.2541 ss.44–48: the young-worker protections turn on the worker being under 18."
+				},
+				{
+					"key": "pregnancy_status",
+					"when": "(night_worked || holiday_work || overtime_work) && !('pregnancy_status' in person.terms.fact_keys)",
+					"message": "needs a dated Thai pregnancy status before night, overtime or holiday work",
+					"authority": "Labour Protection Act B.E.2541 s.39/1: a pregnant employee may not work 22:00–06:00, overtime or on a holiday."
+				},
+				{
+					"key": "pregnant_night_holiday",
+					"when": "(night_worked || holiday_work) && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "cannot perform Thai night or holiday work while pregnant",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.1."
+				},
+				{
+					"key": "pregnant_overtime",
+					"when": "overtime_work && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "needs supported Thai s.39/1 role and health evidence before pregnant working-day overtime",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.2: working-day overtime only in executive, academic, clerical or financial work that does not affect her health."
+				},
+				{
+					"key": "adult_rest_over_two_hours",
+					"when": "age_years >= 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4: rest beyond two hours a day counts as normal working time."
+				},
+				{
+					"key": "adult_five_hours",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_run_hours > 5.0",
+					"message": "worked over five consecutive hours without a timed Thai s.27 break",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: a rest of at least one hour after no more than five consecutive working hours."
+				},
+				{
+					"key": "adult_hour_rest",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && rest_minutes_total < 60.0",
+					"message": "needs a timed hour of Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1."
+				},
+				{
+					"key": "adult_split_break",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_rest_minutes < 60.0 && !(day_facts.split_break_agreed_at != '' && day_facts.split_break_agreed_at < first_work_at)",
+					"message": "needs a prior split-break agreement for Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: the hour may be split into shorter breaks only by prior agreement, totalling at least one hour a day."
+				},
+				{
+					"key": "adult_rest_before_overtime",
+					"when": "age_years >= 18.0 && day_type == 'ORDINARY' && worked_hours - normal_hours >= 2.0 && rest_before_overtime_minutes < 20.0",
+					"message": "needs a timed 20-minute rest before Thai overtime of at least two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.3: a rest of at least 20 minutes before overtime of two hours or more."
+				},
+				{
+					"key": "minor_timed_records",
+					"when": "age_years < 18.0 && !attendance_recorded",
+					"message": "needs timed work and rest records for the Thai under-18 shift",
+					"authority": "Labour Protection Act B.E.2541 ss.46–48: the young-worker rest, night and overtime rules are judged on the timed day."
+				},
+				{
+					"key": "minor_holiday",
+					"when": "age_years < 18.0 && holiday_work",
+					"message": "cannot work on a Thai holiday while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48: no employee under 18 may work overtime or on a holiday."
+				},
+				{
+					"key": "minor_night_permission",
+					"when": "age_years < 18.0 && night_worked && !(day_facts.minor_night_permission_granted_at != '' && day_facts.minor_night_permission_granted_at < first_night_at)",
+					"message": "needs prior written Thai Director-General permission for under-18 night work",
+					"authority": "Labour Protection Act B.E.2541 s.47: no employee under 18 may work 22:00–06:00 without the Director-General’s prior written permission."
+				},
+				{
+					"key": "minor_four_hours",
+					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
+					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
+				},
+				{
+					"key": "minor_rest_over_two_hours",
+					"when": "age_years < 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4."
+				},
+				{
+					"key": "minor_hour_rest",
+					"when": "age_years < 18.0 && worked_hours > 0.0 && longest_rest_minutes < 60.0",
+					"message": "needs a continuous 60-minute rest on the Thai under-18 workday",
+					"authority": "Labour Protection Act B.E.2541 s.46."
+				},
+				{
+					"key": "minor_overtime",
+					"when": "age_years < 18.0 && overtime_work",
+					"message": "cannot work overtime in Thailand while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48."
+				},
+				{
+					"key": "consent_exception_evidence",
+					"when": "day_facts.consent_exception != '' && day_facts.consent_exception_reference.trim() == ''",
+					"message": "needs evidence for the Thai consent exception",
+					"authority": "Labour Protection Act B.E.2541 ss.24–25: an occasion without consent needs its recorded necessity, emergency or s.25 business."
+				},
+				{
+					"key": "holiday_consent_exception",
+					"when": "day_facts.consent_exception.startsWith('HOLIDAY_') && (overtime_work || holiday_work) && !(day_type in ['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'])",
+					"message": "cannot use a Thai holiday-work exception on an ordinary day",
+					"authority": "Labour Protection Act B.E.2541 s.25 para.2: the listed businesses may require holiday work, not working-day overtime."
+				}
+			],
 			"wages": {
+				"results_pay": {
+					"measure_piece_from_units": true,
+					"piece_calendar_leave_refused": true,
+					"piece_history_weeks": 400,
+					"piece_history_catalogues": ["SEVERANCE_PAY"]
+				},
 				"by_region": {},
 				"applies_when": "",
 				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
@@ -578,6 +984,12 @@
 			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "THB",
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
@@ -617,7 +1029,16 @@
 				"https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/181.pdf",
 				"https://ratchakitcha.soc.go.th/documents/68372.pdf"
 			],
-			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office."
+			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office.",
+			"research_domains": [
+				"https://ratchakitcha.soc.go.th",
+				"https://www.ocs.go.th",
+				"https://searchlaw.ocs.go.th",
+				"https://www.mol.go.th",
+				"https://www.sso.go.th",
+				"https://www.rd.go.th",
+				"https://infocenter.oic.go.th"
+			]
 		},
 		"facts": [
 			{
@@ -672,6 +1093,71 @@
 				"type": "string",
 				"label": "Termination notice date (YYYY-MM-DD, s.17)",
 				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "consent_exception",
+				"type": "string",
+				"label": "Consent exception",
+				"description": "Labour Protection Act B.E.2541 ss.24–25: the recorded reason that dispenses with the worker’s consent for this overtime or holiday-work occasion.",
+				"options": [
+					"CONTINUOUS_DAMAGE_IF_STOPPED",
+					"EMERGENCY",
+					"HOLIDAY_HOTEL",
+					"HOLIDAY_ENTERTAINMENT",
+					"HOLIDAY_TRANSPORT",
+					"HOLIDAY_FOOD_SHOP",
+					"HOLIDAY_DRINK_SHOP",
+					"HOLIDAY_CLUB",
+					"HOLIDAY_ASSOCIATION",
+					"HOLIDAY_MEDICAL_FACILITY"
+				]
+			},
+			{
+				"key": "consent_exception_reference",
+				"type": "string",
+				"label": "Consent exception evidence",
+				"description": "The document proving the continuous-work necessity, the emergency or the s.25 business classification."
+			},
+			{
+				"key": "split_break_agreed_at",
+				"type": "instant",
+				"label": "Split-break agreement",
+				"description": "Labour Protection Act B.E.2541 s.27: the prior agreement to split the day’s hour of rest into shorter breaks."
+			},
+			{
+				"key": "minor_night_permission_granted_at",
+				"type": "instant",
+				"label": "Under-18 night-work permission",
+				"description": "Labour Protection Act B.E.2541 s.47: when the Director-General’s written permission for under-18 night work was granted; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "normal_hours_redistribution_agreed_at",
+				"type": "instant",
+				"label": "Normal-day redistribution agreement",
+				"description": "Labour Protection Act B.E.2541 s.23: the worker’s prior agreement to a normal day above eight hours within the 48-hour week.",
+				"import": true
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "hazardous_work",
+				"type": "boolean",
+				"label": "Hazardous work",
+				"required": false,
+				"default_value": false,
+				"description": "Labour Protection Act B.E.2541 s.23: work the Ministerial Regulation declares hazardous to health or safety, limited to 7 normal hours a day and 42 a week. Default false: work is hazardous only as declared."
+			},
+			{
+				"key": "pregnancy_status",
+				"type": "string",
+				"label": "Pregnancy status",
+				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
+				"options": ["PREGNANT", "NOT_PREGNANT"]
 			}
 		],
 		"obligations": [
@@ -751,7 +1237,9 @@
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
-			"normal_hours": "terms.hazardous_work ? 7.0 : 8.0",
+			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
+			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
+			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -770,6 +1258,13 @@
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category == \"GUARD_DUTY\" && date >= \"2026-04-24\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "GUARD_NORMAL_SUPPLEMENT",
+					"when": "day_type == 'ORDINARY' && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY']) && normal_hours > 8.0",
+					"take_hours": "(worked_hours < normal_hours ? worked_hours : normal_hours) - 8.0",
+					"price_amount": "hours * ordinary_hour * 1.25",
+					"component": "guard_normal_supplement"
 				},
 				{
 					"label": "HOL-1.0X",
@@ -809,6 +1304,7 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 48,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: ordinary work is limited to 48 normal hours per week, including where an agreed redistribution extends a normal day to nine hours."
 				},
 				{
@@ -817,7 +1313,8 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 42,
 					"unit": "WORKED_HOURS",
-					"when": "terms.hazardous_work",
+					"when": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
 				},
 				{
@@ -826,6 +1323,7 @@
 					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 36,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.26 and Ministerial Regulation No.3 B.E.2541: overtime, holiday work and holiday overtime together may not exceed 36 hours in a week."
 				},
 				{
@@ -833,12 +1331,163 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
 				}
 			],
 			"breaks": [],
 			"holiday_rest_precedence": "SUBSTITUTE",
+			"incentive_hours_allowed": false,
+			"overtime_consent": {
+				"required_when": "overtime_work || holiday_work",
+				"exception_fact": "consent_exception",
+				"authority": "Labour Protection Act B.E.2541 ss.24–25: each occasion of overtime or holiday work needs the employee’s prior consent, save continuous work whose stopping causes damage, an emergency, or the s.25 businesses’ holiday work."
+			},
+			"night_window": {
+				"start": "22:00",
+				"end": "06:00"
+			},
+			"day_rules": [
+				{
+					"key": "hazardous_normal_day",
+					"when": "'hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work && shift_hours > 7.0",
+					"message": "has a hazardous normal shift above the 7-hour limit",
+					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
+				},
+				{
+					"key": "redistribution_agreement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !('normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && day_facts.normal_hours_redistribution_agreed_at < shift_start_at)",
+					"message": "needs a prior worker agreement for the redistributed normal day",
+					"authority": "Labour Protection Act B.E.2541 s.23: a normal day above eight hours needs the worker’s prior agreement, within the 48-hour week."
+				},
+				{
+					"key": "redistribution_supplement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !(person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24') && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs a separately priced 1.5× supplement for normal hours above eight",
+					"authority": "Labour Protection Act B.E.2541 s.23: the normal hours above eight on a redistributed day; from 24 April 2026 a guard's are priced by the GUARD_NORMAL_SUPPLEMENT band (guard regulation, https://ratchakitcha.soc.go.th/documents/68372.pdf)."
+				},
+				{
+					"key": "guard_holiday_normal_hours",
+					"when": "holiday_work && normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs Thai guard holiday normal-hour compensation",
+					"authority": "Guard-work regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): the GUARD_NORMAL_SUPPLEMENT band prices a non-monthly guard's normal hours above eight on an ordinary day only; a holiday's is not configured."
+				},
+				{
+					"key": "birth_date",
+					"when": "person.employee.birth_date == ''",
+					"message": "needs a birth date to check Thai young-worker hours",
+					"authority": "Labour Protection Act B.E.2541 ss.44–48: the young-worker protections turn on the worker being under 18."
+				},
+				{
+					"key": "pregnancy_status",
+					"when": "(night_worked || holiday_work || overtime_work) && !('pregnancy_status' in person.terms.fact_keys)",
+					"message": "needs a dated Thai pregnancy status before night, overtime or holiday work",
+					"authority": "Labour Protection Act B.E.2541 s.39/1: a pregnant employee may not work 22:00–06:00, overtime or on a holiday."
+				},
+				{
+					"key": "pregnant_night_holiday",
+					"when": "(night_worked || holiday_work) && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "cannot perform Thai night or holiday work while pregnant",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.1."
+				},
+				{
+					"key": "pregnant_overtime",
+					"when": "overtime_work && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "needs supported Thai s.39/1 role and health evidence before pregnant working-day overtime",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.2: working-day overtime only in executive, academic, clerical or financial work that does not affect her health."
+				},
+				{
+					"key": "adult_rest_over_two_hours",
+					"when": "age_years >= 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4: rest beyond two hours a day counts as normal working time."
+				},
+				{
+					"key": "adult_five_hours",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_run_hours > 5.0",
+					"message": "worked over five consecutive hours without a timed Thai s.27 break",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: a rest of at least one hour after no more than five consecutive working hours."
+				},
+				{
+					"key": "adult_hour_rest",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && rest_minutes_total < 60.0",
+					"message": "needs a timed hour of Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1."
+				},
+				{
+					"key": "adult_split_break",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_rest_minutes < 60.0 && !(day_facts.split_break_agreed_at != '' && day_facts.split_break_agreed_at < first_work_at)",
+					"message": "needs a prior split-break agreement for Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: the hour may be split into shorter breaks only by prior agreement, totalling at least one hour a day."
+				},
+				{
+					"key": "adult_rest_before_overtime",
+					"when": "age_years >= 18.0 && day_type == 'ORDINARY' && worked_hours - normal_hours >= 2.0 && rest_before_overtime_minutes < 20.0",
+					"message": "needs a timed 20-minute rest before Thai overtime of at least two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.3: a rest of at least 20 minutes before overtime of two hours or more."
+				},
+				{
+					"key": "minor_timed_records",
+					"when": "age_years < 18.0 && !attendance_recorded",
+					"message": "needs timed work and rest records for the Thai under-18 shift",
+					"authority": "Labour Protection Act B.E.2541 ss.46–48: the young-worker rest, night and overtime rules are judged on the timed day."
+				},
+				{
+					"key": "minor_holiday",
+					"when": "age_years < 18.0 && holiday_work",
+					"message": "cannot work on a Thai holiday while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48: no employee under 18 may work overtime or on a holiday."
+				},
+				{
+					"key": "minor_night_permission",
+					"when": "age_years < 18.0 && night_worked && !(day_facts.minor_night_permission_granted_at != '' && day_facts.minor_night_permission_granted_at < first_night_at)",
+					"message": "needs prior written Thai Director-General permission for under-18 night work",
+					"authority": "Labour Protection Act B.E.2541 s.47: no employee under 18 may work 22:00–06:00 without the Director-General’s prior written permission."
+				},
+				{
+					"key": "minor_four_hours",
+					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
+					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
+				},
+				{
+					"key": "minor_rest_over_two_hours",
+					"when": "age_years < 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4."
+				},
+				{
+					"key": "minor_hour_rest",
+					"when": "age_years < 18.0 && worked_hours > 0.0 && longest_rest_minutes < 60.0",
+					"message": "needs a continuous 60-minute rest on the Thai under-18 workday",
+					"authority": "Labour Protection Act B.E.2541 s.46."
+				},
+				{
+					"key": "minor_overtime",
+					"when": "age_years < 18.0 && overtime_work",
+					"message": "cannot work overtime in Thailand while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48."
+				},
+				{
+					"key": "consent_exception_evidence",
+					"when": "day_facts.consent_exception != '' && day_facts.consent_exception_reference.trim() == ''",
+					"message": "needs evidence for the Thai consent exception",
+					"authority": "Labour Protection Act B.E.2541 ss.24–25: an occasion without consent needs its recorded necessity, emergency or s.25 business."
+				},
+				{
+					"key": "holiday_consent_exception",
+					"when": "day_facts.consent_exception.startsWith('HOLIDAY_') && (overtime_work || holiday_work) && !(day_type in ['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'])",
+					"message": "cannot use a Thai holiday-work exception on an ordinary day",
+					"authority": "Labour Protection Act B.E.2541 s.25 para.2: the listed businesses may require holiday work, not working-day overtime."
+				}
+			],
 			"wages": {
+				"results_pay": {
+					"measure_piece_from_units": true,
+					"piece_calendar_leave_refused": true,
+					"piece_history_weeks": 400,
+					"piece_history_catalogues": ["SEVERANCE_PAY"]
+				},
 				"by_region": {},
 				"applies_when": "",
 				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
@@ -944,6 +1593,12 @@
 			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "THB",
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
@@ -983,7 +1638,16 @@
 				"https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/181.pdf",
 				"https://ratchakitcha.soc.go.th/documents/68372.pdf"
 			],
-			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office."
+			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office.",
+			"research_domains": [
+				"https://ratchakitcha.soc.go.th",
+				"https://www.ocs.go.th",
+				"https://searchlaw.ocs.go.th",
+				"https://www.mol.go.th",
+				"https://www.sso.go.th",
+				"https://www.rd.go.th",
+				"https://infocenter.oic.go.th"
+			]
 		},
 		"facts": [
 			{
@@ -1038,6 +1702,71 @@
 				"type": "string",
 				"label": "Termination notice date (YYYY-MM-DD, s.17)",
 				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "consent_exception",
+				"type": "string",
+				"label": "Consent exception",
+				"description": "Labour Protection Act B.E.2541 ss.24–25: the recorded reason that dispenses with the worker’s consent for this overtime or holiday-work occasion.",
+				"options": [
+					"CONTINUOUS_DAMAGE_IF_STOPPED",
+					"EMERGENCY",
+					"HOLIDAY_HOTEL",
+					"HOLIDAY_ENTERTAINMENT",
+					"HOLIDAY_TRANSPORT",
+					"HOLIDAY_FOOD_SHOP",
+					"HOLIDAY_DRINK_SHOP",
+					"HOLIDAY_CLUB",
+					"HOLIDAY_ASSOCIATION",
+					"HOLIDAY_MEDICAL_FACILITY"
+				]
+			},
+			{
+				"key": "consent_exception_reference",
+				"type": "string",
+				"label": "Consent exception evidence",
+				"description": "The document proving the continuous-work necessity, the emergency or the s.25 business classification."
+			},
+			{
+				"key": "split_break_agreed_at",
+				"type": "instant",
+				"label": "Split-break agreement",
+				"description": "Labour Protection Act B.E.2541 s.27: the prior agreement to split the day’s hour of rest into shorter breaks."
+			},
+			{
+				"key": "minor_night_permission_granted_at",
+				"type": "instant",
+				"label": "Under-18 night-work permission",
+				"description": "Labour Protection Act B.E.2541 s.47: when the Director-General’s written permission for under-18 night work was granted; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "normal_hours_redistribution_agreed_at",
+				"type": "instant",
+				"label": "Normal-day redistribution agreement",
+				"description": "Labour Protection Act B.E.2541 s.23: the worker’s prior agreement to a normal day above eight hours within the 48-hour week.",
+				"import": true
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "hazardous_work",
+				"type": "boolean",
+				"label": "Hazardous work",
+				"required": false,
+				"default_value": false,
+				"description": "Labour Protection Act B.E.2541 s.23: work the Ministerial Regulation declares hazardous to health or safety, limited to 7 normal hours a day and 42 a week. Default false: work is hazardous only as declared."
+			},
+			{
+				"key": "pregnancy_status",
+				"type": "string",
+				"label": "Pregnancy status",
+				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
+				"options": ["PREGNANT", "NOT_PREGNANT"]
 			}
 		],
 		"obligations": [
@@ -1117,7 +1846,9 @@
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
-			"normal_hours": "terms.hazardous_work ? 7.0 : 8.0",
+			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
+			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
+			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -1136,6 +1867,13 @@
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category == \"GUARD_DUTY\" && date >= \"2026-04-24\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "GUARD_NORMAL_SUPPLEMENT",
+					"when": "day_type == 'ORDINARY' && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY']) && normal_hours > 8.0",
+					"take_hours": "(worked_hours < normal_hours ? worked_hours : normal_hours) - 8.0",
+					"price_amount": "hours * ordinary_hour * 1.25",
+					"component": "guard_normal_supplement"
 				},
 				{
 					"label": "HOL-1.0X",
@@ -1175,6 +1913,7 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 48,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: ordinary work is limited to 48 normal hours per week, including where an agreed redistribution extends a normal day to nine hours."
 				},
 				{
@@ -1183,7 +1922,8 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 42,
 					"unit": "WORKED_HOURS",
-					"when": "terms.hazardous_work",
+					"when": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
 				},
 				{
@@ -1192,6 +1932,7 @@
 					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 36,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.26 and Ministerial Regulation No.3 B.E.2541: overtime, holiday work and holiday overtime together may not exceed 36 hours in a week."
 				},
 				{
@@ -1199,12 +1940,163 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
 				}
 			],
 			"breaks": [],
 			"holiday_rest_precedence": "SUBSTITUTE",
+			"incentive_hours_allowed": false,
+			"overtime_consent": {
+				"required_when": "overtime_work || holiday_work",
+				"exception_fact": "consent_exception",
+				"authority": "Labour Protection Act B.E.2541 ss.24–25: each occasion of overtime or holiday work needs the employee’s prior consent, save continuous work whose stopping causes damage, an emergency, or the s.25 businesses’ holiday work."
+			},
+			"night_window": {
+				"start": "22:00",
+				"end": "06:00"
+			},
+			"day_rules": [
+				{
+					"key": "hazardous_normal_day",
+					"when": "'hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work && shift_hours > 7.0",
+					"message": "has a hazardous normal shift above the 7-hour limit",
+					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
+				},
+				{
+					"key": "redistribution_agreement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !('normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && day_facts.normal_hours_redistribution_agreed_at < shift_start_at)",
+					"message": "needs a prior worker agreement for the redistributed normal day",
+					"authority": "Labour Protection Act B.E.2541 s.23: a normal day above eight hours needs the worker’s prior agreement, within the 48-hour week."
+				},
+				{
+					"key": "redistribution_supplement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !(person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24') && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs a separately priced 1.5× supplement for normal hours above eight",
+					"authority": "Labour Protection Act B.E.2541 s.23: the normal hours above eight on a redistributed day; from 24 April 2026 a guard's are priced by the GUARD_NORMAL_SUPPLEMENT band (guard regulation, https://ratchakitcha.soc.go.th/documents/68372.pdf)."
+				},
+				{
+					"key": "guard_holiday_normal_hours",
+					"when": "holiday_work && normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs Thai guard holiday normal-hour compensation",
+					"authority": "Guard-work regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): the GUARD_NORMAL_SUPPLEMENT band prices a non-monthly guard's normal hours above eight on an ordinary day only; a holiday's is not configured."
+				},
+				{
+					"key": "birth_date",
+					"when": "person.employee.birth_date == ''",
+					"message": "needs a birth date to check Thai young-worker hours",
+					"authority": "Labour Protection Act B.E.2541 ss.44–48: the young-worker protections turn on the worker being under 18."
+				},
+				{
+					"key": "pregnancy_status",
+					"when": "(night_worked || holiday_work || overtime_work) && !('pregnancy_status' in person.terms.fact_keys)",
+					"message": "needs a dated Thai pregnancy status before night, overtime or holiday work",
+					"authority": "Labour Protection Act B.E.2541 s.39/1: a pregnant employee may not work 22:00–06:00, overtime or on a holiday."
+				},
+				{
+					"key": "pregnant_night_holiday",
+					"when": "(night_worked || holiday_work) && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "cannot perform Thai night or holiday work while pregnant",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.1."
+				},
+				{
+					"key": "pregnant_overtime",
+					"when": "overtime_work && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "needs supported Thai s.39/1 role and health evidence before pregnant working-day overtime",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.2: working-day overtime only in executive, academic, clerical or financial work that does not affect her health."
+				},
+				{
+					"key": "adult_rest_over_two_hours",
+					"when": "age_years >= 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4: rest beyond two hours a day counts as normal working time."
+				},
+				{
+					"key": "adult_five_hours",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_run_hours > 5.0",
+					"message": "worked over five consecutive hours without a timed Thai s.27 break",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: a rest of at least one hour after no more than five consecutive working hours."
+				},
+				{
+					"key": "adult_hour_rest",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && rest_minutes_total < 60.0",
+					"message": "needs a timed hour of Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1."
+				},
+				{
+					"key": "adult_split_break",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_rest_minutes < 60.0 && !(day_facts.split_break_agreed_at != '' && day_facts.split_break_agreed_at < first_work_at)",
+					"message": "needs a prior split-break agreement for Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: the hour may be split into shorter breaks only by prior agreement, totalling at least one hour a day."
+				},
+				{
+					"key": "adult_rest_before_overtime",
+					"when": "age_years >= 18.0 && day_type == 'ORDINARY' && worked_hours - normal_hours >= 2.0 && rest_before_overtime_minutes < 20.0",
+					"message": "needs a timed 20-minute rest before Thai overtime of at least two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.3: a rest of at least 20 minutes before overtime of two hours or more."
+				},
+				{
+					"key": "minor_timed_records",
+					"when": "age_years < 18.0 && !attendance_recorded",
+					"message": "needs timed work and rest records for the Thai under-18 shift",
+					"authority": "Labour Protection Act B.E.2541 ss.46–48: the young-worker rest, night and overtime rules are judged on the timed day."
+				},
+				{
+					"key": "minor_holiday",
+					"when": "age_years < 18.0 && holiday_work",
+					"message": "cannot work on a Thai holiday while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48: no employee under 18 may work overtime or on a holiday."
+				},
+				{
+					"key": "minor_night_permission",
+					"when": "age_years < 18.0 && night_worked && !(day_facts.minor_night_permission_granted_at != '' && day_facts.minor_night_permission_granted_at < first_night_at)",
+					"message": "needs prior written Thai Director-General permission for under-18 night work",
+					"authority": "Labour Protection Act B.E.2541 s.47: no employee under 18 may work 22:00–06:00 without the Director-General’s prior written permission."
+				},
+				{
+					"key": "minor_four_hours",
+					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
+					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
+				},
+				{
+					"key": "minor_rest_over_two_hours",
+					"when": "age_years < 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4."
+				},
+				{
+					"key": "minor_hour_rest",
+					"when": "age_years < 18.0 && worked_hours > 0.0 && longest_rest_minutes < 60.0",
+					"message": "needs a continuous 60-minute rest on the Thai under-18 workday",
+					"authority": "Labour Protection Act B.E.2541 s.46."
+				},
+				{
+					"key": "minor_overtime",
+					"when": "age_years < 18.0 && overtime_work",
+					"message": "cannot work overtime in Thailand while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48."
+				},
+				{
+					"key": "consent_exception_evidence",
+					"when": "day_facts.consent_exception != '' && day_facts.consent_exception_reference.trim() == ''",
+					"message": "needs evidence for the Thai consent exception",
+					"authority": "Labour Protection Act B.E.2541 ss.24–25: an occasion without consent needs its recorded necessity, emergency or s.25 business."
+				},
+				{
+					"key": "holiday_consent_exception",
+					"when": "day_facts.consent_exception.startsWith('HOLIDAY_') && (overtime_work || holiday_work) && !(day_type in ['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'])",
+					"message": "cannot use a Thai holiday-work exception on an ordinary day",
+					"authority": "Labour Protection Act B.E.2541 s.25 para.2: the listed businesses may require holiday work, not working-day overtime."
+				}
+			],
 			"wages": {
+				"results_pay": {
+					"measure_piece_from_units": true,
+					"piece_calendar_leave_refused": true,
+					"piece_history_weeks": 400,
+					"piece_history_catalogues": ["SEVERANCE_PAY"]
+				},
 				"by_region": {},
 				"applies_when": "",
 				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
@@ -1310,6 +2202,12 @@
 			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "THB",
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
@@ -1349,7 +2247,16 @@
 				"https://www.mol.go.th/wp-content/uploads/sites/2/2018/07/181.pdf",
 				"https://ratchakitcha.soc.go.th/documents/68372.pdf"
 			],
-			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office."
+			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office.",
+			"research_domains": [
+				"https://ratchakitcha.soc.go.th",
+				"https://www.ocs.go.th",
+				"https://searchlaw.ocs.go.th",
+				"https://www.mol.go.th",
+				"https://www.sso.go.th",
+				"https://www.rd.go.th",
+				"https://infocenter.oic.go.th"
+			]
 		},
 		"facts": [],
 		"exit_facts": [
@@ -1396,6 +2303,71 @@
 				"type": "string",
 				"label": "Termination notice date (YYYY-MM-DD, s.17)",
 				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "consent_exception",
+				"type": "string",
+				"label": "Consent exception",
+				"description": "Labour Protection Act B.E.2541 ss.24–25: the recorded reason that dispenses with the worker’s consent for this overtime or holiday-work occasion.",
+				"options": [
+					"CONTINUOUS_DAMAGE_IF_STOPPED",
+					"EMERGENCY",
+					"HOLIDAY_HOTEL",
+					"HOLIDAY_ENTERTAINMENT",
+					"HOLIDAY_TRANSPORT",
+					"HOLIDAY_FOOD_SHOP",
+					"HOLIDAY_DRINK_SHOP",
+					"HOLIDAY_CLUB",
+					"HOLIDAY_ASSOCIATION",
+					"HOLIDAY_MEDICAL_FACILITY"
+				]
+			},
+			{
+				"key": "consent_exception_reference",
+				"type": "string",
+				"label": "Consent exception evidence",
+				"description": "The document proving the continuous-work necessity, the emergency or the s.25 business classification."
+			},
+			{
+				"key": "split_break_agreed_at",
+				"type": "instant",
+				"label": "Split-break agreement",
+				"description": "Labour Protection Act B.E.2541 s.27: the prior agreement to split the day’s hour of rest into shorter breaks."
+			},
+			{
+				"key": "minor_night_permission_granted_at",
+				"type": "instant",
+				"label": "Under-18 night-work permission",
+				"description": "Labour Protection Act B.E.2541 s.47: when the Director-General’s written permission for under-18 night work was granted; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "normal_hours_redistribution_agreed_at",
+				"type": "instant",
+				"label": "Normal-day redistribution agreement",
+				"description": "Labour Protection Act B.E.2541 s.23: the worker’s prior agreement to a normal day above eight hours within the 48-hour week.",
+				"import": true
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "hazardous_work",
+				"type": "boolean",
+				"label": "Hazardous work",
+				"required": false,
+				"default_value": false,
+				"description": "Labour Protection Act B.E.2541 s.23: work the Ministerial Regulation declares hazardous to health or safety, limited to 7 normal hours a day and 42 a week. Default false: work is hazardous only as declared."
+			},
+			{
+				"key": "pregnancy_status",
+				"type": "string",
+				"label": "Pregnancy status",
+				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
+				"options": ["PREGNANT", "NOT_PREGNANT"]
 			}
 		],
 		"obligations": [
@@ -1475,7 +2447,9 @@
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
-			"normal_hours": "terms.hazardous_work ? 7.0 : 8.0",
+			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
+			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
+			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -1494,6 +2468,13 @@
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category == \"GUARD_DUTY\" && date >= \"2026-04-24\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "GUARD_NORMAL_SUPPLEMENT",
+					"when": "day_type == 'ORDINARY' && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY']) && normal_hours > 8.0",
+					"take_hours": "(worked_hours < normal_hours ? worked_hours : normal_hours) - 8.0",
+					"price_amount": "hours * ordinary_hour * 1.25",
+					"component": "guard_normal_supplement"
 				},
 				{
 					"label": "HOL-1.0X",
@@ -1533,6 +2514,7 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 48,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: ordinary work is limited to 48 normal hours per week, including where an agreed redistribution extends a normal day to nine hours."
 				},
 				{
@@ -1541,7 +2523,8 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 42,
 					"unit": "WORKED_HOURS",
-					"when": "terms.hazardous_work",
+					"when": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
 				},
 				{
@@ -1550,6 +2533,7 @@
 					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 36,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.26 and Ministerial Regulation No.3 B.E.2541: overtime, holiday work and holiday overtime together may not exceed 36 hours in a week."
 				},
 				{
@@ -1557,12 +2541,163 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
 				}
 			],
 			"breaks": [],
 			"holiday_rest_precedence": "SUBSTITUTE",
+			"incentive_hours_allowed": false,
+			"overtime_consent": {
+				"required_when": "overtime_work || holiday_work",
+				"exception_fact": "consent_exception",
+				"authority": "Labour Protection Act B.E.2541 ss.24–25: each occasion of overtime or holiday work needs the employee’s prior consent, save continuous work whose stopping causes damage, an emergency, or the s.25 businesses’ holiday work."
+			},
+			"night_window": {
+				"start": "22:00",
+				"end": "06:00"
+			},
+			"day_rules": [
+				{
+					"key": "hazardous_normal_day",
+					"when": "'hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work && shift_hours > 7.0",
+					"message": "has a hazardous normal shift above the 7-hour limit",
+					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
+				},
+				{
+					"key": "redistribution_agreement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !('normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && day_facts.normal_hours_redistribution_agreed_at < shift_start_at)",
+					"message": "needs a prior worker agreement for the redistributed normal day",
+					"authority": "Labour Protection Act B.E.2541 s.23: a normal day above eight hours needs the worker’s prior agreement, within the 48-hour week."
+				},
+				{
+					"key": "redistribution_supplement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !(person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24') && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs a separately priced 1.5× supplement for normal hours above eight",
+					"authority": "Labour Protection Act B.E.2541 s.23: the normal hours above eight on a redistributed day; from 24 April 2026 a guard's are priced by the GUARD_NORMAL_SUPPLEMENT band (guard regulation, https://ratchakitcha.soc.go.th/documents/68372.pdf)."
+				},
+				{
+					"key": "guard_holiday_normal_hours",
+					"when": "holiday_work && normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs Thai guard holiday normal-hour compensation",
+					"authority": "Guard-work regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): the GUARD_NORMAL_SUPPLEMENT band prices a non-monthly guard's normal hours above eight on an ordinary day only; a holiday's is not configured."
+				},
+				{
+					"key": "birth_date",
+					"when": "person.employee.birth_date == ''",
+					"message": "needs a birth date to check Thai young-worker hours",
+					"authority": "Labour Protection Act B.E.2541 ss.44–48: the young-worker protections turn on the worker being under 18."
+				},
+				{
+					"key": "pregnancy_status",
+					"when": "(night_worked || holiday_work || overtime_work) && !('pregnancy_status' in person.terms.fact_keys)",
+					"message": "needs a dated Thai pregnancy status before night, overtime or holiday work",
+					"authority": "Labour Protection Act B.E.2541 s.39/1: a pregnant employee may not work 22:00–06:00, overtime or on a holiday."
+				},
+				{
+					"key": "pregnant_night_holiday",
+					"when": "(night_worked || holiday_work) && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "cannot perform Thai night or holiday work while pregnant",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.1."
+				},
+				{
+					"key": "pregnant_overtime",
+					"when": "overtime_work && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "needs supported Thai s.39/1 role and health evidence before pregnant working-day overtime",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.2: working-day overtime only in executive, academic, clerical or financial work that does not affect her health."
+				},
+				{
+					"key": "adult_rest_over_two_hours",
+					"when": "age_years >= 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4: rest beyond two hours a day counts as normal working time."
+				},
+				{
+					"key": "adult_five_hours",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_run_hours > 5.0",
+					"message": "worked over five consecutive hours without a timed Thai s.27 break",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: a rest of at least one hour after no more than five consecutive working hours."
+				},
+				{
+					"key": "adult_hour_rest",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && rest_minutes_total < 60.0",
+					"message": "needs a timed hour of Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1."
+				},
+				{
+					"key": "adult_split_break",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_rest_minutes < 60.0 && !(day_facts.split_break_agreed_at != '' && day_facts.split_break_agreed_at < first_work_at)",
+					"message": "needs a prior split-break agreement for Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: the hour may be split into shorter breaks only by prior agreement, totalling at least one hour a day."
+				},
+				{
+					"key": "adult_rest_before_overtime",
+					"when": "age_years >= 18.0 && day_type == 'ORDINARY' && worked_hours - normal_hours >= 2.0 && rest_before_overtime_minutes < 20.0",
+					"message": "needs a timed 20-minute rest before Thai overtime of at least two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.3: a rest of at least 20 minutes before overtime of two hours or more."
+				},
+				{
+					"key": "minor_timed_records",
+					"when": "age_years < 18.0 && !attendance_recorded",
+					"message": "needs timed work and rest records for the Thai under-18 shift",
+					"authority": "Labour Protection Act B.E.2541 ss.46–48: the young-worker rest, night and overtime rules are judged on the timed day."
+				},
+				{
+					"key": "minor_holiday",
+					"when": "age_years < 18.0 && holiday_work",
+					"message": "cannot work on a Thai holiday while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48: no employee under 18 may work overtime or on a holiday."
+				},
+				{
+					"key": "minor_night_permission",
+					"when": "age_years < 18.0 && night_worked && !(day_facts.minor_night_permission_granted_at != '' && day_facts.minor_night_permission_granted_at < first_night_at)",
+					"message": "needs prior written Thai Director-General permission for under-18 night work",
+					"authority": "Labour Protection Act B.E.2541 s.47: no employee under 18 may work 22:00–06:00 without the Director-General’s prior written permission."
+				},
+				{
+					"key": "minor_four_hours",
+					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
+					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
+				},
+				{
+					"key": "minor_rest_over_two_hours",
+					"when": "age_years < 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4."
+				},
+				{
+					"key": "minor_hour_rest",
+					"when": "age_years < 18.0 && worked_hours > 0.0 && longest_rest_minutes < 60.0",
+					"message": "needs a continuous 60-minute rest on the Thai under-18 workday",
+					"authority": "Labour Protection Act B.E.2541 s.46."
+				},
+				{
+					"key": "minor_overtime",
+					"when": "age_years < 18.0 && overtime_work",
+					"message": "cannot work overtime in Thailand while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48."
+				},
+				{
+					"key": "consent_exception_evidence",
+					"when": "day_facts.consent_exception != '' && day_facts.consent_exception_reference.trim() == ''",
+					"message": "needs evidence for the Thai consent exception",
+					"authority": "Labour Protection Act B.E.2541 ss.24–25: an occasion without consent needs its recorded necessity, emergency or s.25 business."
+				},
+				{
+					"key": "holiday_consent_exception",
+					"when": "day_facts.consent_exception.startsWith('HOLIDAY_') && (overtime_work || holiday_work) && !(day_type in ['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'])",
+					"message": "cannot use a Thai holiday-work exception on an ordinary day",
+					"authority": "Labour Protection Act B.E.2541 s.25 para.2: the listed businesses may require holiday work, not working-day overtime."
+				}
+			],
 			"wages": {
+				"results_pay": {
+					"measure_piece_from_units": true,
+					"piece_calendar_leave_refused": true,
+					"piece_history_weeks": 400,
+					"piece_history_catalogues": ["SEVERANCE_PAY"]
+				},
 				"by_region": {},
 				"applies_when": "",
 				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
@@ -1668,6 +2803,12 @@
 			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "THB",
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
@@ -1712,7 +2853,16 @@
 				"https://ratchakitcha.soc.go.th/documents/68372.pdf",
 				"https://www.ocs.go.th/searchlaw/power_link/download/eyJ1dWlkIjoiNDNjMTc4OTgtODFiMS00MmVhLWIwNmYtMjQ4YzM1NzlmMzFhIiwiZmlsZW5hbWUiOiLguIQwMDc3IOC4geC4juC4geC4o-C4sOC4l-C4o-C4p-C4hyAyNTY4LTYw4LiBLTMucGRmIn0.CH4M5nGGlUmG48thQPthO-j_qpRZ-5GpRKA0pnN9pw8"
 			],
-			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office."
+			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office.",
+			"research_domains": [
+				"https://ratchakitcha.soc.go.th",
+				"https://www.ocs.go.th",
+				"https://searchlaw.ocs.go.th",
+				"https://www.mol.go.th",
+				"https://www.sso.go.th",
+				"https://www.rd.go.th",
+				"https://infocenter.oic.go.th"
+			]
 		},
 		"facts": [],
 		"exit_facts": [
@@ -1759,6 +2909,71 @@
 				"type": "string",
 				"label": "Termination notice date (YYYY-MM-DD, s.17)",
 				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "consent_exception",
+				"type": "string",
+				"label": "Consent exception",
+				"description": "Labour Protection Act B.E.2541 ss.24–25: the recorded reason that dispenses with the worker’s consent for this overtime or holiday-work occasion.",
+				"options": [
+					"CONTINUOUS_DAMAGE_IF_STOPPED",
+					"EMERGENCY",
+					"HOLIDAY_HOTEL",
+					"HOLIDAY_ENTERTAINMENT",
+					"HOLIDAY_TRANSPORT",
+					"HOLIDAY_FOOD_SHOP",
+					"HOLIDAY_DRINK_SHOP",
+					"HOLIDAY_CLUB",
+					"HOLIDAY_ASSOCIATION",
+					"HOLIDAY_MEDICAL_FACILITY"
+				]
+			},
+			{
+				"key": "consent_exception_reference",
+				"type": "string",
+				"label": "Consent exception evidence",
+				"description": "The document proving the continuous-work necessity, the emergency or the s.25 business classification."
+			},
+			{
+				"key": "split_break_agreed_at",
+				"type": "instant",
+				"label": "Split-break agreement",
+				"description": "Labour Protection Act B.E.2541 s.27: the prior agreement to split the day’s hour of rest into shorter breaks."
+			},
+			{
+				"key": "minor_night_permission_granted_at",
+				"type": "instant",
+				"label": "Under-18 night-work permission",
+				"description": "Labour Protection Act B.E.2541 s.47: when the Director-General’s written permission for under-18 night work was granted; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "normal_hours_redistribution_agreed_at",
+				"type": "instant",
+				"label": "Normal-day redistribution agreement",
+				"description": "Labour Protection Act B.E.2541 s.23: the worker’s prior agreement to a normal day above eight hours within the 48-hour week.",
+				"import": true
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "hazardous_work",
+				"type": "boolean",
+				"label": "Hazardous work",
+				"required": false,
+				"default_value": false,
+				"description": "Labour Protection Act B.E.2541 s.23: work the Ministerial Regulation declares hazardous to health or safety, limited to 7 normal hours a day and 42 a week. Default false: work is hazardous only as declared."
+			},
+			{
+				"key": "pregnancy_status",
+				"type": "string",
+				"label": "Pregnancy status",
+				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
+				"options": ["PREGNANT", "NOT_PREGNANT"]
 			}
 		],
 		"obligations": [
@@ -1847,7 +3062,9 @@
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
-			"normal_hours": "terms.hazardous_work ? 7.0 : 8.0",
+			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
+			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
+			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -1866,6 +3083,13 @@
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category == \"GUARD_DUTY\" && date >= \"2026-04-24\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "GUARD_NORMAL_SUPPLEMENT",
+					"when": "day_type == 'ORDINARY' && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY']) && normal_hours > 8.0",
+					"take_hours": "(worked_hours < normal_hours ? worked_hours : normal_hours) - 8.0",
+					"price_amount": "hours * ordinary_hour * 1.25",
+					"component": "guard_normal_supplement"
 				},
 				{
 					"label": "HOL-1.0X",
@@ -1905,6 +3129,7 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 48,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: ordinary work is limited to 48 normal hours per week, including where an agreed redistribution extends a normal day to nine hours."
 				},
 				{
@@ -1913,7 +3138,8 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 42,
 					"unit": "WORKED_HOURS",
-					"when": "terms.hazardous_work",
+					"when": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
 				},
 				{
@@ -1922,6 +3148,7 @@
 					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 36,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.26 and Ministerial Regulation No.3 B.E.2541: overtime, holiday work and holiday overtime together may not exceed 36 hours in a week."
 				},
 				{
@@ -1929,12 +3156,163 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
 				}
 			],
 			"breaks": [],
 			"holiday_rest_precedence": "SUBSTITUTE",
+			"incentive_hours_allowed": false,
+			"overtime_consent": {
+				"required_when": "overtime_work || holiday_work",
+				"exception_fact": "consent_exception",
+				"authority": "Labour Protection Act B.E.2541 ss.24–25: each occasion of overtime or holiday work needs the employee’s prior consent, save continuous work whose stopping causes damage, an emergency, or the s.25 businesses’ holiday work."
+			},
+			"night_window": {
+				"start": "22:00",
+				"end": "06:00"
+			},
+			"day_rules": [
+				{
+					"key": "hazardous_normal_day",
+					"when": "'hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work && shift_hours > 7.0",
+					"message": "has a hazardous normal shift above the 7-hour limit",
+					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
+				},
+				{
+					"key": "redistribution_agreement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !('normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && day_facts.normal_hours_redistribution_agreed_at < shift_start_at)",
+					"message": "needs a prior worker agreement for the redistributed normal day",
+					"authority": "Labour Protection Act B.E.2541 s.23: a normal day above eight hours needs the worker’s prior agreement, within the 48-hour week."
+				},
+				{
+					"key": "redistribution_supplement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !(person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24') && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs a separately priced 1.5× supplement for normal hours above eight",
+					"authority": "Labour Protection Act B.E.2541 s.23: the normal hours above eight on a redistributed day; from 24 April 2026 a guard's are priced by the GUARD_NORMAL_SUPPLEMENT band (guard regulation, https://ratchakitcha.soc.go.th/documents/68372.pdf)."
+				},
+				{
+					"key": "guard_holiday_normal_hours",
+					"when": "holiday_work && normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs Thai guard holiday normal-hour compensation",
+					"authority": "Guard-work regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): the GUARD_NORMAL_SUPPLEMENT band prices a non-monthly guard's normal hours above eight on an ordinary day only; a holiday's is not configured."
+				},
+				{
+					"key": "birth_date",
+					"when": "person.employee.birth_date == ''",
+					"message": "needs a birth date to check Thai young-worker hours",
+					"authority": "Labour Protection Act B.E.2541 ss.44–48: the young-worker protections turn on the worker being under 18."
+				},
+				{
+					"key": "pregnancy_status",
+					"when": "(night_worked || holiday_work || overtime_work) && !('pregnancy_status' in person.terms.fact_keys)",
+					"message": "needs a dated Thai pregnancy status before night, overtime or holiday work",
+					"authority": "Labour Protection Act B.E.2541 s.39/1: a pregnant employee may not work 22:00–06:00, overtime or on a holiday."
+				},
+				{
+					"key": "pregnant_night_holiday",
+					"when": "(night_worked || holiday_work) && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "cannot perform Thai night or holiday work while pregnant",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.1."
+				},
+				{
+					"key": "pregnant_overtime",
+					"when": "overtime_work && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "needs supported Thai s.39/1 role and health evidence before pregnant working-day overtime",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.2: working-day overtime only in executive, academic, clerical or financial work that does not affect her health."
+				},
+				{
+					"key": "adult_rest_over_two_hours",
+					"when": "age_years >= 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4: rest beyond two hours a day counts as normal working time."
+				},
+				{
+					"key": "adult_five_hours",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_run_hours > 5.0",
+					"message": "worked over five consecutive hours without a timed Thai s.27 break",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: a rest of at least one hour after no more than five consecutive working hours."
+				},
+				{
+					"key": "adult_hour_rest",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && rest_minutes_total < 60.0",
+					"message": "needs a timed hour of Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1."
+				},
+				{
+					"key": "adult_split_break",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_rest_minutes < 60.0 && !(day_facts.split_break_agreed_at != '' && day_facts.split_break_agreed_at < first_work_at)",
+					"message": "needs a prior split-break agreement for Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: the hour may be split into shorter breaks only by prior agreement, totalling at least one hour a day."
+				},
+				{
+					"key": "adult_rest_before_overtime",
+					"when": "age_years >= 18.0 && day_type == 'ORDINARY' && worked_hours - normal_hours >= 2.0 && rest_before_overtime_minutes < 20.0",
+					"message": "needs a timed 20-minute rest before Thai overtime of at least two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.3: a rest of at least 20 minutes before overtime of two hours or more."
+				},
+				{
+					"key": "minor_timed_records",
+					"when": "age_years < 18.0 && !attendance_recorded",
+					"message": "needs timed work and rest records for the Thai under-18 shift",
+					"authority": "Labour Protection Act B.E.2541 ss.46–48: the young-worker rest, night and overtime rules are judged on the timed day."
+				},
+				{
+					"key": "minor_holiday",
+					"when": "age_years < 18.0 && holiday_work",
+					"message": "cannot work on a Thai holiday while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48: no employee under 18 may work overtime or on a holiday."
+				},
+				{
+					"key": "minor_night_permission",
+					"when": "age_years < 18.0 && night_worked && !(day_facts.minor_night_permission_granted_at != '' && day_facts.minor_night_permission_granted_at < first_night_at)",
+					"message": "needs prior written Thai Director-General permission for under-18 night work",
+					"authority": "Labour Protection Act B.E.2541 s.47: no employee under 18 may work 22:00–06:00 without the Director-General’s prior written permission."
+				},
+				{
+					"key": "minor_four_hours",
+					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
+					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
+				},
+				{
+					"key": "minor_rest_over_two_hours",
+					"when": "age_years < 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4."
+				},
+				{
+					"key": "minor_hour_rest",
+					"when": "age_years < 18.0 && worked_hours > 0.0 && longest_rest_minutes < 60.0",
+					"message": "needs a continuous 60-minute rest on the Thai under-18 workday",
+					"authority": "Labour Protection Act B.E.2541 s.46."
+				},
+				{
+					"key": "minor_overtime",
+					"when": "age_years < 18.0 && overtime_work",
+					"message": "cannot work overtime in Thailand while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48."
+				},
+				{
+					"key": "consent_exception_evidence",
+					"when": "day_facts.consent_exception != '' && day_facts.consent_exception_reference.trim() == ''",
+					"message": "needs evidence for the Thai consent exception",
+					"authority": "Labour Protection Act B.E.2541 ss.24–25: an occasion without consent needs its recorded necessity, emergency or s.25 business."
+				},
+				{
+					"key": "holiday_consent_exception",
+					"when": "day_facts.consent_exception.startsWith('HOLIDAY_') && (overtime_work || holiday_work) && !(day_type in ['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'])",
+					"message": "cannot use a Thai holiday-work exception on an ordinary day",
+					"authority": "Labour Protection Act B.E.2541 s.25 para.2: the listed businesses may require holiday work, not working-day overtime."
+				}
+			],
 			"wages": {
+				"results_pay": {
+					"measure_piece_from_units": true,
+					"piece_calendar_leave_refused": true,
+					"piece_history_weeks": 400,
+					"piece_history_catalogues": ["SEVERANCE_PAY"]
+				},
 				"by_region": {},
 				"applies_when": "",
 				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
@@ -2040,6 +3418,12 @@
 			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "THB",
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
@@ -2084,7 +3468,16 @@
 				"https://ratchakitcha.soc.go.th/documents/68372.pdf",
 				"https://www.ocs.go.th/searchlaw/power_link/download/eyJ1dWlkIjoiNDNjMTc4OTgtODFiMS00MmVhLWIwNmYtMjQ4YzM1NzlmMzFhIiwiZmlsZW5hbWUiOiLguIQwMDc3IOC4geC4juC4geC4o-C4sOC4l-C4o-C4p-C4hyAyNTY4LTYw4LiBLTMucGRmIn0.CH4M5nGGlUmG48thQPthO-j_qpRZ-5GpRKA0pnN9pw8"
 			],
-			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office."
+			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office.",
+			"research_domains": [
+				"https://ratchakitcha.soc.go.th",
+				"https://www.ocs.go.th",
+				"https://searchlaw.ocs.go.th",
+				"https://www.mol.go.th",
+				"https://www.sso.go.th",
+				"https://www.rd.go.th",
+				"https://infocenter.oic.go.th"
+			]
 		},
 		"facts": [],
 		"exit_facts": [
@@ -2131,6 +3524,71 @@
 				"type": "string",
 				"label": "Termination notice date (YYYY-MM-DD, s.17)",
 				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "consent_exception",
+				"type": "string",
+				"label": "Consent exception",
+				"description": "Labour Protection Act B.E.2541 ss.24–25: the recorded reason that dispenses with the worker’s consent for this overtime or holiday-work occasion.",
+				"options": [
+					"CONTINUOUS_DAMAGE_IF_STOPPED",
+					"EMERGENCY",
+					"HOLIDAY_HOTEL",
+					"HOLIDAY_ENTERTAINMENT",
+					"HOLIDAY_TRANSPORT",
+					"HOLIDAY_FOOD_SHOP",
+					"HOLIDAY_DRINK_SHOP",
+					"HOLIDAY_CLUB",
+					"HOLIDAY_ASSOCIATION",
+					"HOLIDAY_MEDICAL_FACILITY"
+				]
+			},
+			{
+				"key": "consent_exception_reference",
+				"type": "string",
+				"label": "Consent exception evidence",
+				"description": "The document proving the continuous-work necessity, the emergency or the s.25 business classification."
+			},
+			{
+				"key": "split_break_agreed_at",
+				"type": "instant",
+				"label": "Split-break agreement",
+				"description": "Labour Protection Act B.E.2541 s.27: the prior agreement to split the day’s hour of rest into shorter breaks."
+			},
+			{
+				"key": "minor_night_permission_granted_at",
+				"type": "instant",
+				"label": "Under-18 night-work permission",
+				"description": "Labour Protection Act B.E.2541 s.47: when the Director-General’s written permission for under-18 night work was granted; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "normal_hours_redistribution_agreed_at",
+				"type": "instant",
+				"label": "Normal-day redistribution agreement",
+				"description": "Labour Protection Act B.E.2541 s.23: the worker’s prior agreement to a normal day above eight hours within the 48-hour week.",
+				"import": true
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "hazardous_work",
+				"type": "boolean",
+				"label": "Hazardous work",
+				"required": false,
+				"default_value": false,
+				"description": "Labour Protection Act B.E.2541 s.23: work the Ministerial Regulation declares hazardous to health or safety, limited to 7 normal hours a day and 42 a week. Default false: work is hazardous only as declared."
+			},
+			{
+				"key": "pregnancy_status",
+				"type": "string",
+				"label": "Pregnancy status",
+				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
+				"options": ["PREGNANT", "NOT_PREGNANT"]
 			}
 		],
 		"obligations": [
@@ -2219,7 +3677,9 @@
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
-			"normal_hours": "terms.hazardous_work ? 7.0 : 8.0",
+			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
+			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
+			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -2238,6 +3698,13 @@
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category == \"GUARD_DUTY\" && date >= \"2026-04-24\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "GUARD_NORMAL_SUPPLEMENT",
+					"when": "day_type == 'ORDINARY' && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY']) && normal_hours > 8.0",
+					"take_hours": "(worked_hours < normal_hours ? worked_hours : normal_hours) - 8.0",
+					"price_amount": "hours * ordinary_hour * 1.25",
+					"component": "guard_normal_supplement"
 				},
 				{
 					"label": "HOL-1.0X",
@@ -2277,6 +3744,7 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 48,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: ordinary work is limited to 48 normal hours per week, including where an agreed redistribution extends a normal day to nine hours."
 				},
 				{
@@ -2285,7 +3753,8 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 42,
 					"unit": "WORKED_HOURS",
-					"when": "terms.hazardous_work",
+					"when": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
 				},
 				{
@@ -2294,6 +3763,7 @@
 					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 36,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.26 and Ministerial Regulation No.3 B.E.2541: overtime, holiday work and holiday overtime together may not exceed 36 hours in a week."
 				},
 				{
@@ -2301,12 +3771,163 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
 				}
 			],
 			"breaks": [],
 			"holiday_rest_precedence": "SUBSTITUTE",
+			"incentive_hours_allowed": false,
+			"overtime_consent": {
+				"required_when": "overtime_work || holiday_work",
+				"exception_fact": "consent_exception",
+				"authority": "Labour Protection Act B.E.2541 ss.24–25: each occasion of overtime or holiday work needs the employee’s prior consent, save continuous work whose stopping causes damage, an emergency, or the s.25 businesses’ holiday work."
+			},
+			"night_window": {
+				"start": "22:00",
+				"end": "06:00"
+			},
+			"day_rules": [
+				{
+					"key": "hazardous_normal_day",
+					"when": "'hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work && shift_hours > 7.0",
+					"message": "has a hazardous normal shift above the 7-hour limit",
+					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
+				},
+				{
+					"key": "redistribution_agreement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !('normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && day_facts.normal_hours_redistribution_agreed_at < shift_start_at)",
+					"message": "needs a prior worker agreement for the redistributed normal day",
+					"authority": "Labour Protection Act B.E.2541 s.23: a normal day above eight hours needs the worker’s prior agreement, within the 48-hour week."
+				},
+				{
+					"key": "redistribution_supplement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !(person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24') && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs a separately priced 1.5× supplement for normal hours above eight",
+					"authority": "Labour Protection Act B.E.2541 s.23: the normal hours above eight on a redistributed day; from 24 April 2026 a guard's are priced by the GUARD_NORMAL_SUPPLEMENT band (guard regulation, https://ratchakitcha.soc.go.th/documents/68372.pdf)."
+				},
+				{
+					"key": "guard_holiday_normal_hours",
+					"when": "holiday_work && normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs Thai guard holiday normal-hour compensation",
+					"authority": "Guard-work regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): the GUARD_NORMAL_SUPPLEMENT band prices a non-monthly guard's normal hours above eight on an ordinary day only; a holiday's is not configured."
+				},
+				{
+					"key": "birth_date",
+					"when": "person.employee.birth_date == ''",
+					"message": "needs a birth date to check Thai young-worker hours",
+					"authority": "Labour Protection Act B.E.2541 ss.44–48: the young-worker protections turn on the worker being under 18."
+				},
+				{
+					"key": "pregnancy_status",
+					"when": "(night_worked || holiday_work || overtime_work) && !('pregnancy_status' in person.terms.fact_keys)",
+					"message": "needs a dated Thai pregnancy status before night, overtime or holiday work",
+					"authority": "Labour Protection Act B.E.2541 s.39/1: a pregnant employee may not work 22:00–06:00, overtime or on a holiday."
+				},
+				{
+					"key": "pregnant_night_holiday",
+					"when": "(night_worked || holiday_work) && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "cannot perform Thai night or holiday work while pregnant",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.1."
+				},
+				{
+					"key": "pregnant_overtime",
+					"when": "overtime_work && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "needs supported Thai s.39/1 role and health evidence before pregnant working-day overtime",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.2: working-day overtime only in executive, academic, clerical or financial work that does not affect her health."
+				},
+				{
+					"key": "adult_rest_over_two_hours",
+					"when": "age_years >= 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4: rest beyond two hours a day counts as normal working time."
+				},
+				{
+					"key": "adult_five_hours",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_run_hours > 5.0",
+					"message": "worked over five consecutive hours without a timed Thai s.27 break",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: a rest of at least one hour after no more than five consecutive working hours."
+				},
+				{
+					"key": "adult_hour_rest",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && rest_minutes_total < 60.0",
+					"message": "needs a timed hour of Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1."
+				},
+				{
+					"key": "adult_split_break",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_rest_minutes < 60.0 && !(day_facts.split_break_agreed_at != '' && day_facts.split_break_agreed_at < first_work_at)",
+					"message": "needs a prior split-break agreement for Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: the hour may be split into shorter breaks only by prior agreement, totalling at least one hour a day."
+				},
+				{
+					"key": "adult_rest_before_overtime",
+					"when": "age_years >= 18.0 && day_type == 'ORDINARY' && worked_hours - normal_hours >= 2.0 && rest_before_overtime_minutes < 20.0",
+					"message": "needs a timed 20-minute rest before Thai overtime of at least two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.3: a rest of at least 20 minutes before overtime of two hours or more."
+				},
+				{
+					"key": "minor_timed_records",
+					"when": "age_years < 18.0 && !attendance_recorded",
+					"message": "needs timed work and rest records for the Thai under-18 shift",
+					"authority": "Labour Protection Act B.E.2541 ss.46–48: the young-worker rest, night and overtime rules are judged on the timed day."
+				},
+				{
+					"key": "minor_holiday",
+					"when": "age_years < 18.0 && holiday_work",
+					"message": "cannot work on a Thai holiday while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48: no employee under 18 may work overtime or on a holiday."
+				},
+				{
+					"key": "minor_night_permission",
+					"when": "age_years < 18.0 && night_worked && !(day_facts.minor_night_permission_granted_at != '' && day_facts.minor_night_permission_granted_at < first_night_at)",
+					"message": "needs prior written Thai Director-General permission for under-18 night work",
+					"authority": "Labour Protection Act B.E.2541 s.47: no employee under 18 may work 22:00–06:00 without the Director-General’s prior written permission."
+				},
+				{
+					"key": "minor_four_hours",
+					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
+					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
+				},
+				{
+					"key": "minor_rest_over_two_hours",
+					"when": "age_years < 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4."
+				},
+				{
+					"key": "minor_hour_rest",
+					"when": "age_years < 18.0 && worked_hours > 0.0 && longest_rest_minutes < 60.0",
+					"message": "needs a continuous 60-minute rest on the Thai under-18 workday",
+					"authority": "Labour Protection Act B.E.2541 s.46."
+				},
+				{
+					"key": "minor_overtime",
+					"when": "age_years < 18.0 && overtime_work",
+					"message": "cannot work overtime in Thailand while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48."
+				},
+				{
+					"key": "consent_exception_evidence",
+					"when": "day_facts.consent_exception != '' && day_facts.consent_exception_reference.trim() == ''",
+					"message": "needs evidence for the Thai consent exception",
+					"authority": "Labour Protection Act B.E.2541 ss.24–25: an occasion without consent needs its recorded necessity, emergency or s.25 business."
+				},
+				{
+					"key": "holiday_consent_exception",
+					"when": "day_facts.consent_exception.startsWith('HOLIDAY_') && (overtime_work || holiday_work) && !(day_type in ['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'])",
+					"message": "cannot use a Thai holiday-work exception on an ordinary day",
+					"authority": "Labour Protection Act B.E.2541 s.25 para.2: the listed businesses may require holiday work, not working-day overtime."
+				}
+			],
 			"wages": {
+				"results_pay": {
+					"measure_piece_from_units": true,
+					"piece_calendar_leave_refused": true,
+					"piece_history_weeks": 400,
+					"piece_history_catalogues": ["SEVERANCE_PAY"]
+				},
 				"by_region": {},
 				"applies_when": "",
 				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
@@ -2412,6 +4033,12 @@
 			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "THB",
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
@@ -2456,7 +4083,16 @@
 				"https://ratchakitcha.soc.go.th/documents/68372.pdf",
 				"https://www.ocs.go.th/searchlaw/power_link/download/eyJ1dWlkIjoiNDNjMTc4OTgtODFiMS00MmVhLWIwNmYtMjQ4YzM1NzlmMzFhIiwiZmlsZW5hbWUiOiLguIQwMDc3IOC4geC4juC4geC4o-C4sOC4l-C4o-C4p-C4hyAyNTY4LTYw4LiBLTMucGRmIn0.CH4M5nGGlUmG48thQPthO-j_qpRZ-5GpRKA0pnN9pw8"
 			],
-			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office."
+			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office.",
+			"research_domains": [
+				"https://ratchakitcha.soc.go.th",
+				"https://www.ocs.go.th",
+				"https://searchlaw.ocs.go.th",
+				"https://www.mol.go.th",
+				"https://www.sso.go.th",
+				"https://www.rd.go.th",
+				"https://infocenter.oic.go.th"
+			]
 		},
 		"facts": [],
 		"exit_facts": [
@@ -2503,6 +4139,71 @@
 				"type": "string",
 				"label": "Termination notice date (YYYY-MM-DD, s.17)",
 				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "consent_exception",
+				"type": "string",
+				"label": "Consent exception",
+				"description": "Labour Protection Act B.E.2541 ss.24–25: the recorded reason that dispenses with the worker’s consent for this overtime or holiday-work occasion.",
+				"options": [
+					"CONTINUOUS_DAMAGE_IF_STOPPED",
+					"EMERGENCY",
+					"HOLIDAY_HOTEL",
+					"HOLIDAY_ENTERTAINMENT",
+					"HOLIDAY_TRANSPORT",
+					"HOLIDAY_FOOD_SHOP",
+					"HOLIDAY_DRINK_SHOP",
+					"HOLIDAY_CLUB",
+					"HOLIDAY_ASSOCIATION",
+					"HOLIDAY_MEDICAL_FACILITY"
+				]
+			},
+			{
+				"key": "consent_exception_reference",
+				"type": "string",
+				"label": "Consent exception evidence",
+				"description": "The document proving the continuous-work necessity, the emergency or the s.25 business classification."
+			},
+			{
+				"key": "split_break_agreed_at",
+				"type": "instant",
+				"label": "Split-break agreement",
+				"description": "Labour Protection Act B.E.2541 s.27: the prior agreement to split the day’s hour of rest into shorter breaks."
+			},
+			{
+				"key": "minor_night_permission_granted_at",
+				"type": "instant",
+				"label": "Under-18 night-work permission",
+				"description": "Labour Protection Act B.E.2541 s.47: when the Director-General’s written permission for under-18 night work was granted; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "normal_hours_redistribution_agreed_at",
+				"type": "instant",
+				"label": "Normal-day redistribution agreement",
+				"description": "Labour Protection Act B.E.2541 s.23: the worker’s prior agreement to a normal day above eight hours within the 48-hour week.",
+				"import": true
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "hazardous_work",
+				"type": "boolean",
+				"label": "Hazardous work",
+				"required": false,
+				"default_value": false,
+				"description": "Labour Protection Act B.E.2541 s.23: work the Ministerial Regulation declares hazardous to health or safety, limited to 7 normal hours a day and 42 a week. Default false: work is hazardous only as declared."
+			},
+			{
+				"key": "pregnancy_status",
+				"type": "string",
+				"label": "Pregnancy status",
+				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
+				"options": ["PREGNANT", "NOT_PREGNANT"]
 			}
 		],
 		"obligations": [
@@ -2591,7 +4292,9 @@
 			},
 			"ordinary_divisor_days": "30.0",
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
-			"normal_hours": "terms.hazardous_work ? 7.0 : 8.0",
+			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
+			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
+			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
 				{
 					"label": "OT-1.5X",
@@ -2610,6 +4313,13 @@
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category == \"GUARD_DUTY\" && date >= \"2026-04-24\"",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.25"
+				},
+				{
+					"label": "GUARD_NORMAL_SUPPLEMENT",
+					"when": "day_type == 'ORDINARY' && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY']) && normal_hours > 8.0",
+					"take_hours": "(worked_hours < normal_hours ? worked_hours : normal_hours) - 8.0",
+					"price_amount": "hours * ordinary_hour * 1.25",
+					"component": "guard_normal_supplement"
 				},
 				{
 					"label": "HOL-1.0X",
@@ -2649,6 +4359,7 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 48,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: ordinary work is limited to 48 normal hours per week, including where an agreed redistribution extends a normal day to nine hours."
 				},
 				{
@@ -2657,7 +4368,8 @@
 					"measure": "NORMAL_HOURS",
 					"max_hours": 42,
 					"unit": "WORKED_HOURS",
-					"when": "terms.hazardous_work",
+					"when": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
 				},
 				{
@@ -2666,6 +4378,7 @@
 					"measure": "ALL_OVERTIME_HOURS",
 					"max_hours": 36,
 					"unit": "WORKED_HOURS",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.26 and Ministerial Regulation No.3 B.E.2541: overtime, holiday work and holiday overtime together may not exceed 36 hours in a week."
 				},
 				{
@@ -2673,12 +4386,163 @@
 					"measure": "CONSECUTIVE_WORK_DAYS",
 					"max_days": 6,
 					"discharged_by": "REST",
+					"enforced_at_payroll": true,
 					"authority": "Labour Protection Act s.28: at least one weekly holiday, the interval between holidays not exceeding six days."
 				}
 			],
 			"breaks": [],
 			"holiday_rest_precedence": "SUBSTITUTE",
+			"incentive_hours_allowed": false,
+			"overtime_consent": {
+				"required_when": "overtime_work || holiday_work",
+				"exception_fact": "consent_exception",
+				"authority": "Labour Protection Act B.E.2541 ss.24–25: each occasion of overtime or holiday work needs the employee’s prior consent, save continuous work whose stopping causes damage, an emergency, or the s.25 businesses’ holiday work."
+			},
+			"night_window": {
+				"start": "22:00",
+				"end": "06:00"
+			},
+			"day_rules": [
+				{
+					"key": "hazardous_normal_day",
+					"when": "'hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work && shift_hours > 7.0",
+					"message": "has a hazardous normal shift above the 7-hour limit",
+					"authority": "Labour Protection Act s.23: hazardous work is limited to 7 normal hours per day and 42 per week."
+				},
+				{
+					"key": "redistribution_agreement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !('normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && day_facts.normal_hours_redistribution_agreed_at < shift_start_at)",
+					"message": "needs a prior worker agreement for the redistributed normal day",
+					"authority": "Labour Protection Act B.E.2541 s.23: a normal day above eight hours needs the worker’s prior agreement, within the 48-hour week."
+				},
+				{
+					"key": "redistribution_supplement",
+					"when": "day_type == 'ORDINARY' && normal_hours > 8.0 && !(person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24') && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs a separately priced 1.5× supplement for normal hours above eight",
+					"authority": "Labour Protection Act B.E.2541 s.23: the normal hours above eight on a redistributed day; from 24 April 2026 a guard's are priced by the GUARD_NORMAL_SUPPLEMENT band (guard regulation, https://ratchakitcha.soc.go.th/documents/68372.pdf)."
+				},
+				{
+					"key": "guard_holiday_normal_hours",
+					"when": "holiday_work && normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' && !(person.terms.pay_frequency in ['MONTHLY', 'SEMI_MONTHLY'])",
+					"message": "needs Thai guard holiday normal-hour compensation",
+					"authority": "Guard-work regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): the GUARD_NORMAL_SUPPLEMENT band prices a non-monthly guard's normal hours above eight on an ordinary day only; a holiday's is not configured."
+				},
+				{
+					"key": "birth_date",
+					"when": "person.employee.birth_date == ''",
+					"message": "needs a birth date to check Thai young-worker hours",
+					"authority": "Labour Protection Act B.E.2541 ss.44–48: the young-worker protections turn on the worker being under 18."
+				},
+				{
+					"key": "pregnancy_status",
+					"when": "(night_worked || holiday_work || overtime_work) && !('pregnancy_status' in person.terms.fact_keys)",
+					"message": "needs a dated Thai pregnancy status before night, overtime or holiday work",
+					"authority": "Labour Protection Act B.E.2541 s.39/1: a pregnant employee may not work 22:00–06:00, overtime or on a holiday."
+				},
+				{
+					"key": "pregnant_night_holiday",
+					"when": "(night_worked || holiday_work) && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "cannot perform Thai night or holiday work while pregnant",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.1."
+				},
+				{
+					"key": "pregnant_overtime",
+					"when": "overtime_work && person.terms.facts.pregnancy_status == 'PREGNANT'",
+					"message": "needs supported Thai s.39/1 role and health evidence before pregnant working-day overtime",
+					"authority": "Labour Protection Act B.E.2541 s.39/1 para.2: working-day overtime only in executive, academic, clerical or financial work that does not affect her health."
+				},
+				{
+					"key": "adult_rest_over_two_hours",
+					"when": "age_years >= 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4: rest beyond two hours a day counts as normal working time."
+				},
+				{
+					"key": "adult_five_hours",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_run_hours > 5.0",
+					"message": "worked over five consecutive hours without a timed Thai s.27 break",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: a rest of at least one hour after no more than five consecutive working hours."
+				},
+				{
+					"key": "adult_hour_rest",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && rest_minutes_total < 60.0",
+					"message": "needs a timed hour of Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1."
+				},
+				{
+					"key": "adult_split_break",
+					"when": "age_years >= 18.0 && worked_hours > 5.0 && longest_rest_minutes < 60.0 && !(day_facts.split_break_agreed_at != '' && day_facts.split_break_agreed_at < first_work_at)",
+					"message": "needs a prior split-break agreement for Thai s.27 rest",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.1: the hour may be split into shorter breaks only by prior agreement, totalling at least one hour a day."
+				},
+				{
+					"key": "adult_rest_before_overtime",
+					"when": "age_years >= 18.0 && day_type == 'ORDINARY' && worked_hours - normal_hours >= 2.0 && rest_before_overtime_minutes < 20.0",
+					"message": "needs a timed 20-minute rest before Thai overtime of at least two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.3: a rest of at least 20 minutes before overtime of two hours or more."
+				},
+				{
+					"key": "minor_timed_records",
+					"when": "age_years < 18.0 && !attendance_recorded",
+					"message": "needs timed work and rest records for the Thai under-18 shift",
+					"authority": "Labour Protection Act B.E.2541 ss.46–48: the young-worker rest, night and overtime rules are judged on the timed day."
+				},
+				{
+					"key": "minor_holiday",
+					"when": "age_years < 18.0 && holiday_work",
+					"message": "cannot work on a Thai holiday while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48: no employee under 18 may work overtime or on a holiday."
+				},
+				{
+					"key": "minor_night_permission",
+					"when": "age_years < 18.0 && night_worked && !(day_facts.minor_night_permission_granted_at != '' && day_facts.minor_night_permission_granted_at < first_night_at)",
+					"message": "needs prior written Thai Director-General permission for under-18 night work",
+					"authority": "Labour Protection Act B.E.2541 s.47: no employee under 18 may work 22:00–06:00 without the Director-General’s prior written permission."
+				},
+				{
+					"key": "minor_four_hours",
+					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
+					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
+				},
+				{
+					"key": "minor_rest_over_two_hours",
+					"when": "age_years < 18.0 && rest_minutes_total > 120.0",
+					"message": "needs Thai s.27 wage treatment for rest over two hours",
+					"authority": "Labour Protection Act B.E.2541 s.27 para.4."
+				},
+				{
+					"key": "minor_hour_rest",
+					"when": "age_years < 18.0 && worked_hours > 0.0 && longest_rest_minutes < 60.0",
+					"message": "needs a continuous 60-minute rest on the Thai under-18 workday",
+					"authority": "Labour Protection Act B.E.2541 s.46."
+				},
+				{
+					"key": "minor_overtime",
+					"when": "age_years < 18.0 && overtime_work",
+					"message": "cannot work overtime in Thailand while under 18",
+					"authority": "Labour Protection Act B.E.2541 s.48."
+				},
+				{
+					"key": "consent_exception_evidence",
+					"when": "day_facts.consent_exception != '' && day_facts.consent_exception_reference.trim() == ''",
+					"message": "needs evidence for the Thai consent exception",
+					"authority": "Labour Protection Act B.E.2541 ss.24–25: an occasion without consent needs its recorded necessity, emergency or s.25 business."
+				},
+				{
+					"key": "holiday_consent_exception",
+					"when": "day_facts.consent_exception.startsWith('HOLIDAY_') && (overtime_work || holiday_work) && !(day_type in ['REST_DAY', 'PUBLIC_HOLIDAY', 'SPECIAL_HOLIDAY'])",
+					"message": "cannot use a Thai holiday-work exception on an ordinary day",
+					"authority": "Labour Protection Act B.E.2541 s.25 para.2: the listed businesses may require holiday work, not working-day overtime."
+				}
+			],
 			"wages": {
+				"results_pay": {
+					"measure_piece_from_units": true,
+					"piece_calendar_leave_refused": true,
+					"piece_history_weeks": 400,
+					"piece_history_catalogues": ["SEVERANCE_PAY"]
+				},
 				"by_region": {},
 				"applies_when": "",
 				"authority": "Wage Committee Notice on Minimum Wage Rate No.14 (17 June 2025, Royal Gazette vol.142 special 236D, in force 1 July 2025; https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf and the Ministry's printed table): cls.2(3)–18 a daily rate for each of the 77 provinces, cl.2(3) Ko Samui and cl.3 Mueang Chiang Mai and Hat Yai overriding their province; cl.2(1)–(2) THB400 nationwide for hotels of type 2–4 (Ministerial Regulation on hotel categories No.2 B.E.2566) and Service Establishment Act businesses; the higher applicable rate binds. cl.19: the day is the normal working day (at most 7 hours hazardous, 8 otherwise), however much shorter the employer makes it; cl.20: no employer may pay less, so a shortfall blocks the run. The table is compared on each normal working day of every contract at the worksite and sector its terms record that day; no Act or Ministry text read converts the daily rate to a monthly comparator, so by_region stays empty. Owner rule 2026-09-28 (register TH-WAGE-01): the law being silent, a monthly wage is held to the daily rate × 30 — each normal working day at monthly ÷ ordinary_divisor_days (30, LPA s.68's conversion) against that day's worksite rate; lawful because it is the Act's only stated month-to-day conversion and cl.20 is met on every day compared. A semi-monthly base_salary is its month; a weekly wage is taken to its month (× 52 ÷ 12) before the divisor.",
@@ -2784,6 +4648,12 @@
 			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "THB",
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
@@ -2828,7 +4698,16 @@
 				"https://ratchakitcha.soc.go.th/documents/68372.pdf",
 				"https://www.ocs.go.th/searchlaw/power_link/download/eyJ1dWlkIjoiNDNjMTc4OTgtODFiMS00MmVhLWIwNmYtMjQ4YzM1NzlmMzFhIiwiZmlsZW5hbWUiOiLguIQwMDc3IOC4geC4juC4geC4o-C4sOC4l-C4o-C4p-C4hyAyNTY4LTYw4LiBLTMucGRmIn0.CH4M5nGGlUmG48thQPthO-j_qpRZ-5GpRKA0pnN9pw8"
 			],
-			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office."
+			"instructions": "Register: docs/inventory/thailand.md. On 28 September 2026 the ratchakitcha.soc.go.th Gazette PDFs returned HTTP 403 to scripted and in-app browser fetches; on 29 September 2026 curl with a browser user agent received them. The s.33 base regulation was read from the rendered pages of the SSO’s copy of the Gazette (download_by_pool_file/47755, vol.142 part 81 Kor pp.5–6, 12 December 2025; its text layer is unreadable); the Employee Welfare Fund commencement decree (84794, vol.142 part 59 Kor, 14 September 2025) and rate regulation (86102, vol.142 part 60 Kor, 15 September 2025) from Internet Archive captures of the Gazette’s own PDFs; the flood-relief notice was read from the Gazette’s own PDF (100888, 47,741 bytes, SHA-256 1dcc3d4c…6c209f41ad, rendered page read 29 September 2026): Ministry of Labour notice under Social Security Act s.46/1 para.1, vol.143 special part 6 Ngor p.7, published 8 January 2026, signed 7 January 2026; cl.1 3% each side for a registered employer and its registered s.33 insured in the nine listed provinces, wage months December 2025–May 2026; cl.2 THB283 a month for a registered s.39 insured; cl.3 an overpayment is refunded on request at an SSO office.",
+			"research_domains": [
+				"https://ratchakitcha.soc.go.th",
+				"https://www.ocs.go.th",
+				"https://searchlaw.ocs.go.th",
+				"https://www.mol.go.th",
+				"https://www.sso.go.th",
+				"https://www.rd.go.th",
+				"https://infocenter.oic.go.th"
+			]
 		},
 		"facts": [],
 		"exit_facts": [
@@ -2875,6 +4754,71 @@
 				"type": "string",
 				"label": "Termination notice date (YYYY-MM-DD, s.17)",
 				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+			}
+		],
+		"work_day_facts": [
+			{
+				"key": "consent_exception",
+				"type": "string",
+				"label": "Consent exception",
+				"description": "Labour Protection Act B.E.2541 ss.24–25: the recorded reason that dispenses with the worker’s consent for this overtime or holiday-work occasion.",
+				"options": [
+					"CONTINUOUS_DAMAGE_IF_STOPPED",
+					"EMERGENCY",
+					"HOLIDAY_HOTEL",
+					"HOLIDAY_ENTERTAINMENT",
+					"HOLIDAY_TRANSPORT",
+					"HOLIDAY_FOOD_SHOP",
+					"HOLIDAY_DRINK_SHOP",
+					"HOLIDAY_CLUB",
+					"HOLIDAY_ASSOCIATION",
+					"HOLIDAY_MEDICAL_FACILITY"
+				]
+			},
+			{
+				"key": "consent_exception_reference",
+				"type": "string",
+				"label": "Consent exception evidence",
+				"description": "The document proving the continuous-work necessity, the emergency or the s.25 business classification."
+			},
+			{
+				"key": "split_break_agreed_at",
+				"type": "instant",
+				"label": "Split-break agreement",
+				"description": "Labour Protection Act B.E.2541 s.27: the prior agreement to split the day’s hour of rest into shorter breaks."
+			},
+			{
+				"key": "minor_night_permission_granted_at",
+				"type": "instant",
+				"label": "Under-18 night-work permission",
+				"description": "Labour Protection Act B.E.2541 s.47: when the Director-General’s written permission for under-18 night work was granted; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "normal_hours_redistribution_agreed_at",
+				"type": "instant",
+				"label": "Normal-day redistribution agreement",
+				"description": "Labour Protection Act B.E.2541 s.23: the worker’s prior agreement to a normal day above eight hours within the 48-hour week.",
+				"import": true
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "hazardous_work",
+				"type": "boolean",
+				"label": "Hazardous work",
+				"required": false,
+				"default_value": false,
+				"description": "Labour Protection Act B.E.2541 s.23: work the Ministerial Regulation declares hazardous to health or safety, limited to 7 normal hours a day and 42 a week. Default false: work is hazardous only as declared."
+			},
+			{
+				"key": "pregnancy_status",
+				"type": "string",
+				"label": "Pregnancy status",
+				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
+				"options": ["PREGNANT", "NOT_PREGNANT"]
 			}
 		],
 		"obligations": [

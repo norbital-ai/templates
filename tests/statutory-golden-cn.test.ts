@@ -2802,11 +2802,13 @@ function contractLine(
 		(world) => {
 			const employment = world.employments.find((item) => item.employee_number === row.key)!;
 			const terms = world.employment_terms.find((item) => item.employment_id === employment.id)!;
-			Object.assign(terms, {
-				probation_end: row.probationEnd ?? null,
-				post_probation_wage: row.after ?? null,
-				open_ended_due_on: row.due ?? null
-			});
+			// The contract determinations are the version's declared terms inputs (`terms_facts`).
+			terms.facts = {
+				...terms.facts,
+				...(row.probationEnd == null ? {} : { probation_end: row.probationEnd }),
+				...(row.after == null ? {} : { post_probation_wage: row.after }),
+				...(row.due == null ? {} : { open_ended_due_on: row.due })
+			};
 			adhoc(world, row.key, line, 0, row.raised, row.code);
 			world.adhoc_requests!.at(-1)!.pay_period = row.period;
 		}

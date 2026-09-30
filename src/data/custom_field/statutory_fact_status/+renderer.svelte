@@ -43,7 +43,11 @@
 	const disabled = $derived(view.mode === 'edit' ? view.disabled : true);
 	const scheme = live(() =>
 		view.mode === 'edit' && props.schemeId != null
-			? bolt.get('statutory_contributions', props.schemeId, { elections: true })
+			? bolt.get('statutory_contributions', props.schemeId, {
+					elections: true,
+					deduction_categories: true,
+					child_claims_hint: true
+				})
 			: null
 	);
 	// Preserve incomplete edits; the collection schema validates on submission.
@@ -224,8 +228,7 @@
 					<span class="text-sm font-medium">Child relief claims</span>
 					<p class="text-xs text-muted-foreground">
 						Record eligible claims from the employee’s declaration for each tax year. Family records
-						do not grant tax relief. For Malaysia, a 50% claim requires entitlement under section
-						48(4); spouses living together allocate children between their claims.
+						do not grant tax relief. {scheme.current?.child_claims_hint ?? ''}
 					</p>
 					<RowList
 						rows={current.child_claims ?? []}
@@ -505,6 +508,7 @@
 					>
 					<DeductionClaims
 						value={current.deduction_claims ?? []}
+						declared={scheme.current?.deduction_categories ?? []}
 						elections={current.elections ?? {}}
 						{disabled}
 						onChange={(deduction_claims) => emit({ ...current, deduction_claims })}

@@ -73,6 +73,10 @@ export type WorkBandDay = {
 	readonly emergency?: boolean | undefined;
 	/** `work_days.time_off_in_lieu`: the worker elected time off instead of overtime pay. */
 	readonly timeOffInLieu?: boolean | undefined;
+	/** `work_days.facts`, the version's `work_day_facts` with declared defaults filled; `day_facts`. */
+	readonly facts?: Readonly<Record<string, string | number | boolean>> | undefined;
+	/** The keys the day actually records, before defaults; `day_fact_keys`. */
+	readonly factKeys?: readonly string[] | undefined;
 };
 
 export type WorkBandRates = {
@@ -131,7 +135,9 @@ function contextOf(options: {
 			kind: day.holidayKind,
 			name: day.holidayName,
 			prior_day_present: day.holidayPriorPresent ?? true
-		}
+		},
+		day_facts: day.facts ?? {},
+		day_fact_keys: day.factKeys ?? Object.keys(day.facts ?? {})
 	};
 }
 
@@ -189,6 +195,8 @@ export function nightAddsFor(options: {
 
 /**
  * Price one day's bands. Rows are ordered by band; an incentive row follows the row it came from.
+ * The overtime bands price by default; `normalDay` prices the normal-day bands instead (those
+ * naming a `component`), whose rows carry that component as their line.
  */
 export function priceWorkDay(options: {
 	readonly work: WorkRules;
@@ -196,8 +204,12 @@ export function priceWorkDay(options: {
 	readonly day: WorkBandDay;
 	readonly rates: WorkBandRates;
 	readonly engine?: ExpressionEngine | undefined;
+	readonly normalDay?: boolean | undefined;
 }): WorkBandRow[] {
 	const { work, day } = options;
+	const bands = work.bands.filter(
+		(band) => (band.component != null) === (options.normalDay === true)
+	);
 	const limits = evaluatedLimits(work.limits, day.breakMinutes);
 	const engine = options.engine ?? expressionEngine;
 	const context = contextOf({ person: options.person, day, rates: options.rates, limits });
@@ -232,7 +244,7 @@ export function priceWorkDay(options: {
 	// holiday's day wage (PH art.94), a holiday on a non-working day (SG s.88). A band that takes
 	// hours prices attendance and is not read here.
 	if (payable <= 0) {
-		const band = work.bands.find(
+		const band = bands.find(
 			(candidate) =>
 				evaluateBoolean(engine, candidate.when, context) &&
 				evaluateNumber(engine, candidate.take_hours, context) <= 0
@@ -243,18 +255,18 @@ export function priceWorkDay(options: {
 			? [
 					{
 						workDayId: day.workDayId,
-						line: OVERTIME_LINE,
+						line: band.component ?? OVERTIME_LINE,
 						label: band.label,
 						hours: 0,
 						amount,
 						rate: 0,
-						ruleKey: `${OVERTIME_LINE}:${band.label}`
+						ruleKey: `${band.component ?? OVERTIME_LINE}:${band.label}`
 					}
 				]
 			: [];
 	}
 	let cursor = 0;
-	for (const band of work.bands) {
+	for (const band of bands) {
 		if (cursor >= payable) break;
 		if (!evaluateBoolean(engine, band.when, context)) continue;
 		const take = Math.max(0, evaluateNumber(engine, band.take_hours, context));
@@ -277,12 +289,12 @@ export function priceWorkDay(options: {
 		if (mainAmount > 0)
 			rows.push({
 				workDayId: day.workDayId,
-				line: OVERTIME_LINE,
+				line: slice.band.component ?? OVERTIME_LINE,
 				label: slice.band.label,
 				hours: slice.hours - funnelHours,
 				amount: mainAmount,
 				rate: slice.hours > 0 ? amount / slice.hours : 0,
-				ruleKey: `${OVERTIME_LINE}:${slice.band.label}`
+				ruleKey: `${slice.band.component ?? OVERTIME_LINE}:${slice.band.label}`
 			});
 		if (funnelHours > 0)
 			rows.push({

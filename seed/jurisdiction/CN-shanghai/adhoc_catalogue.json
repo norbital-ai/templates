@@ -364,7 +364,7 @@
 		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
 		"code": "PROBATION_EXCESS_DAMAGES",
 		"name": "Damages for probation served beyond the legal limit (违法约定试用期赔偿金)",
-		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: terms.probation_months (hire through that day, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
+		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.facts.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: months_through(employment.service_start, that day) (hire through it, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.facts.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -372,19 +372,29 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.terms.post_probation_wage > 0.0 ? person.terms.post_probation_wage : person.terms.monthly_wage) * (person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"amount": "round_cent((person.terms.facts.post_probation_wage > 0.0 ? person.terms.facts.post_probation_wage : person.terms.monthly_wage) * (months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.probation_end != \"\"",
+					"message": "PROBATION_EXCESS_DAMAGES: record probation_end on dated employment terms."
+				}
+			]
+		}
 	},
 	{
 		"id": "c220cf2f-f919-55e8-aa2e-c0b905957500",
 		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
 		"code": "PROBATION_WAGE_SHORTFALL",
 		"name": "Probation wage below 80% of the agreed wage (试用期工资差额)",
-		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × terms.probation_months, raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
+		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.facts.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × the probation months served (months_through from hire), raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -392,19 +402,33 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((0.8 * person.terms.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.post_probation_wage - person.terms.monthly_wage) * person.terms.probation_months)",
+				"amount": "round_cent((0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage) * months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT", "WAGES"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.probation_end != \"\"",
+					"message": "PROBATION_WAGE_SHORTFALL: record probation_end on dated employment terms."
+				},
+				{
+					"when": "terms.facts.post_probation_wage > 0.0",
+					"message": "PROBATION_WAGE_SHORTFALL: record post_probation_wage on dated employment terms."
+				}
+			]
+		}
 	},
 	{
 		"id": "2550b329-c3ad-5db2-b47e-e77c4a46557a",
 		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
 		"code": "OPEN_ENDED_CONTRACT_WAGE",
 		"name": "Second wage for months without the open-ended contract due (未订立无固定期限劳动合同二倍工资)",
-		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; terms.open_ended_overdue_months measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
+		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.facts.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; months_through(terms.facts.open_ended_due_on, employment.rule_date) measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -412,12 +436,22 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * person.terms.open_ended_overdue_months)",
+				"amount": "round_cent(person.terms.monthly_wage * months_through(person.terms.facts.open_ended_due_on, person.employment.rule_date))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.open_ended_due_on != \"\" && terms.facts.open_ended_due_on >= employment.service_start && terms.facts.open_ended_due_on <= employment.rule_date",
+					"message": "OPEN_ENDED_CONTRACT_WAGE: record an open_ended_due_on from service start through the liability event date."
+				}
+			]
+		}
 	},
 	{
 		"id": "5c7471b6-b6dd-5a3c-887a-7b06d1391f35",
@@ -504,7 +538,7 @@
 		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
 		"code": "PROBATION_EXCESS_DAMAGES",
 		"name": "Damages for probation served beyond the legal limit (违法约定试用期赔偿金)",
-		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: terms.probation_months (hire through that day, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
+		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.facts.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: months_through(employment.service_start, that day) (hire through it, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.facts.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -512,19 +546,29 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.terms.post_probation_wage > 0.0 ? person.terms.post_probation_wage : person.terms.monthly_wage) * (person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"amount": "round_cent((person.terms.facts.post_probation_wage > 0.0 ? person.terms.facts.post_probation_wage : person.terms.monthly_wage) * (months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.probation_end != \"\"",
+					"message": "PROBATION_EXCESS_DAMAGES: record probation_end on dated employment terms."
+				}
+			]
+		}
 	},
 	{
 		"id": "f30e3fb0-4b87-5c73-b7fd-ed492df8ba8f",
 		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
 		"code": "PROBATION_WAGE_SHORTFALL",
 		"name": "Probation wage below 80% of the agreed wage (试用期工资差额)",
-		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × terms.probation_months, raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
+		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.facts.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × the probation months served (months_through from hire), raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -532,19 +576,33 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((0.8 * person.terms.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.post_probation_wage - person.terms.monthly_wage) * person.terms.probation_months)",
+				"amount": "round_cent((0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage) * months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT", "WAGES"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.probation_end != \"\"",
+					"message": "PROBATION_WAGE_SHORTFALL: record probation_end on dated employment terms."
+				},
+				{
+					"when": "terms.facts.post_probation_wage > 0.0",
+					"message": "PROBATION_WAGE_SHORTFALL: record post_probation_wage on dated employment terms."
+				}
+			]
+		}
 	},
 	{
 		"id": "f592507d-882d-5c3a-b6e1-2bb7b5e02bd7",
 		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
 		"code": "OPEN_ENDED_CONTRACT_WAGE",
 		"name": "Second wage for months without the open-ended contract due (未订立无固定期限劳动合同二倍工资)",
-		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; terms.open_ended_overdue_months measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
+		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.facts.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; months_through(terms.facts.open_ended_due_on, employment.rule_date) measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -552,12 +610,22 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * person.terms.open_ended_overdue_months)",
+				"amount": "round_cent(person.terms.monthly_wage * months_through(person.terms.facts.open_ended_due_on, person.employment.rule_date))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.open_ended_due_on != \"\" && terms.facts.open_ended_due_on >= employment.service_start && terms.facts.open_ended_due_on <= employment.rule_date",
+					"message": "OPEN_ENDED_CONTRACT_WAGE: record an open_ended_due_on from service start through the liability event date."
+				}
+			]
+		}
 	},
 	{
 		"id": "0104a345-3a06-52f5-89a7-e9fc55da32ba",
@@ -644,7 +712,7 @@
 		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
 		"code": "PROBATION_EXCESS_DAMAGES",
 		"name": "Damages for probation served beyond the legal limit (违法约定试用期赔偿金)",
-		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: terms.probation_months (hire through that day, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
+		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.facts.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: months_through(employment.service_start, that day) (hire through it, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.facts.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -652,19 +720,29 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.terms.post_probation_wage > 0.0 ? person.terms.post_probation_wage : person.terms.monthly_wage) * (person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"amount": "round_cent((person.terms.facts.post_probation_wage > 0.0 ? person.terms.facts.post_probation_wage : person.terms.monthly_wage) * (months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.probation_end != \"\"",
+					"message": "PROBATION_EXCESS_DAMAGES: record probation_end on dated employment terms."
+				}
+			]
+		}
 	},
 	{
 		"id": "b65ad72c-a331-55ae-8bde-23641f1ef70a",
 		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
 		"code": "PROBATION_WAGE_SHORTFALL",
 		"name": "Probation wage below 80% of the agreed wage (试用期工资差额)",
-		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × terms.probation_months, raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
+		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.facts.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × the probation months served (months_through from hire), raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -672,19 +750,33 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((0.8 * person.terms.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.post_probation_wage - person.terms.monthly_wage) * person.terms.probation_months)",
+				"amount": "round_cent((0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage) * months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT", "WAGES"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.probation_end != \"\"",
+					"message": "PROBATION_WAGE_SHORTFALL: record probation_end on dated employment terms."
+				},
+				{
+					"when": "terms.facts.post_probation_wage > 0.0",
+					"message": "PROBATION_WAGE_SHORTFALL: record post_probation_wage on dated employment terms."
+				}
+			]
+		}
 	},
 	{
 		"id": "b907ede0-8926-5608-a9fa-82a8aeb41b16",
 		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
 		"code": "OPEN_ENDED_CONTRACT_WAGE",
 		"name": "Second wage for months without the open-ended contract due (未订立无固定期限劳动合同二倍工资)",
-		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; terms.open_ended_overdue_months measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
+		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.facts.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; months_through(terms.facts.open_ended_due_on, employment.rule_date) measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -692,12 +784,22 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * person.terms.open_ended_overdue_months)",
+				"amount": "round_cent(person.terms.monthly_wage * months_through(person.terms.facts.open_ended_due_on, person.employment.rule_date))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.open_ended_due_on != \"\" && terms.facts.open_ended_due_on >= employment.service_start && terms.facts.open_ended_due_on <= employment.rule_date",
+					"message": "OPEN_ENDED_CONTRACT_WAGE: record an open_ended_due_on from service start through the liability event date."
+				}
+			]
+		}
 	},
 	{
 		"id": "dda7cdab-e2ed-54de-9f39-bc50ebc7fe9e",
@@ -784,7 +886,7 @@
 		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
 		"code": "PROBATION_EXCESS_DAMAGES",
 		"name": "Damages for probation served beyond the legal limit (违法约定试用期赔偿金)",
-		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: terms.probation_months (hire through that day, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
+		"authority": "LCL art.83 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 违法约定的试用期已经履行的，由用人单位以劳动者试用期满月工资为标准，按已经履行的超过法定试用期的期间向劳动者支付赔偿金. The legal limit is art.19: a term of 3 months to under 1 year at most 1 month, 1 to under 3 years at most 2 months, 3 years or more or open-ended at most 6 months; under 3 months (and a contract for a defined task) none; art.70: part-time work none. The line is raised on the probation’s last day (terms.facts.probation_end) with the terms of the probation in force and before any renewal moves the contract’s end: months_through(employment.service_start, that day) (hire through it, a part month by its days) less the limit, floored at 0, times the wage after probation (terms.facts.post_probation_wage). Owner rule 2026-09-28: law silent where the contract states no separate wage after probation; default the contract monthly wage in force (terms.monthly_wage), lawful because the agreed wage is then that wage. A task-based contract has no field: record it as a term under 3 months or do not raise the line. IIT and bases as NO_WRITTEN_CONTRACT_WAGE (owner rule 2026-09-28: wage income under 个人所得税法实施条例 art.6(1); a sanction for the employer’s breach, outside WAGES and every base).",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -792,19 +894,29 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((person.terms.post_probation_wage > 0.0 ? person.terms.post_probation_wage : person.terms.monthly_wage) * (person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : person.terms.probation_months - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
+				"amount": "round_cent((person.terms.facts.post_probation_wage > 0.0 ? person.terms.facts.post_probation_wage : person.terms.monthly_wage) * (months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0)))) <= 0.0 ? 0.0 : months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date) - (person.employment.type == \"PART_TIME\" ? 0.0 : (person.employment.open_ended || person.employment.contract_months >= 36 ? 6.0 : (person.employment.contract_months >= 12 ? 2.0 : (person.employment.contract_months >= 3 ? 1.0 : 0.0))))))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.probation_end != \"\"",
+					"message": "PROBATION_EXCESS_DAMAGES: record probation_end on dated employment terms."
+				}
+			]
+		}
 	},
 	{
 		"id": "bf3e988d-a6de-545a-a1fe-b3771e249555",
 		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
 		"code": "PROBATION_WAGE_SHORTFALL",
 		"name": "Probation wage below 80% of the agreed wage (试用期工资差额)",
-		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × terms.probation_months, raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
+		"authority": "LCL art.20 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026) and Implementing Regulation art.15 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284, re-read 29 Sep 2026): 劳动者在试用期的工资不得低于本单位相同岗位最低档工资的80%或者不得低于劳动合同约定工资的80%，并不得低于用人单位所在地的最低工资标准. The line is the arrears for the probation served: max(0, 80% of the wage after probation (terms.facts.post_probation_wage) − the probation monthly wage (terms.monthly_wage)) × the probation months served (months_through from hire), raised on the probation’s last day with the probation terms in force. Owner rule 2026-09-28: law silent on which comparator where the unit records no lowest grade for the post; default 80% of the agreed wage, lawful because paying it meets either comparator the Regulation names; the minimum-wage floor is priced by the version’s wage floor, not here. A monthly contract paid its whole month; a probation month with unpaid days is not reduced. Wages owed for work: IIT wage income of the month paid and WAGES (Regulation art.27), as BONUS.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -812,19 +924,33 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent((0.8 * person.terms.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.post_probation_wage - person.terms.monthly_wage) * person.terms.probation_months)",
+				"amount": "round_cent((0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage <= 0.0 ? 0.0 : 0.8 * person.terms.facts.post_probation_wage - person.terms.monthly_wage) * months_through(person.employment.service_start, person.terms.facts.probation_end < person.employment.rule_date ? person.terms.facts.probation_end : person.employment.rule_date))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT", "WAGES"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.probation_end != \"\"",
+					"message": "PROBATION_WAGE_SHORTFALL: record probation_end on dated employment terms."
+				},
+				{
+					"when": "terms.facts.post_probation_wage > 0.0",
+					"message": "PROBATION_WAGE_SHORTFALL: record post_probation_wage on dated employment terms."
+				}
+			]
+		}
 	},
 	{
 		"id": "d65a2b21-2f86-5465-9d8d-c21c7b72df48",
 		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
 		"code": "OPEN_ENDED_CONTRACT_WAGE",
 		"name": "Second wage for months without the open-ended contract due (未订立无固定期限劳动合同二倍工资)",
-		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; terms.open_ended_overdue_months measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
+		"authority": "LCL art.82 para.2 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 29 Sep 2026): 用人单位违反本法规定不与劳动者订立无固定期限劳动合同的，自应当订立无固定期限劳动合同之日起向劳动者每月支付二倍的工资. The day it fell due under art.14 para.2 (ten years’ continuous service, or renewal after two consecutive fixed terms without an art.39 or art.40(1)–(2) ground, on the worker’s proposal or agreement) is a determination recorded on the contract (terms.facts.open_ended_due_on); the count of renewals alone cannot decide it. The line is the second wage from that day: raise it on the last day before the open-ended contract is concluded, with the overdue terms in force; months_through(terms.facts.open_ended_due_on, employment.rule_date) measures that day to the raise day inclusive, a part month by its days. The law states no cap. Owner rule 2026-09-28: law silent on which wage and when it is settled; default the contract monthly wage in force on that day (terms.monthly_wage), settled in one line, as NO_WRITTEN_CONTRACT_WAGE; IIT wage income; outside WAGES and every base.",
 		"eligibility": "",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -832,12 +958,22 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "round_cent(person.terms.monthly_wage * person.terms.open_ended_overdue_months)",
+				"amount": "round_cent(person.terms.monthly_wage * months_through(person.terms.facts.open_ended_due_on, person.employment.rule_date))",
 				"limit": null
 			}
 		],
 		"counts_toward": ["IIT"],
-		"raised_by": "MANUAL"
+		"raised_by": "MANUAL",
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true,
+			"required_when": [
+				{
+					"when": "terms.facts.open_ended_due_on != \"\" && terms.facts.open_ended_due_on >= employment.service_start && terms.facts.open_ended_due_on <= employment.rule_date",
+					"message": "OPEN_ENDED_CONTRACT_WAGE: record an open_ended_due_on from service start through the liability event date."
+				}
+			]
+		}
 	},
 	{
 		"id": "35077e00-89dc-57f6-b739-a62b4e9b3398",

@@ -1,9 +1,13 @@
 import { Schema } from 'effect';
 import * as Predicate from 'effect/Predicate';
+import { isCalendarDate, isUtcIsoInstant } from '../iso-day.js';
+
+const condition = Schema.String.check(Schema.isPattern(/\S/));
 
 const factKeyShape = Schema.Struct({
 	key: Schema.String.check(Schema.isPattern(/^[A-Za-z_][A-Za-z0-9_]*$/)),
-	type: Schema.Literals(['boolean', 'number', 'string']),
+	/** `date` is an ISO calendar day (`YYYY-MM-DD`), `instant` a UTC ISO instant. */
+	type: Schema.Literals(['boolean', 'number', 'string', 'date', 'instant']),
 	label: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	description: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/** A supplied employee election applies only to a named employment. */
@@ -11,7 +15,7 @@ const factKeyShape = Schema.Struct({
 	/** Required before calculation; incomplete records may still be saved. */
 	required: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	/** Boolean expression evaluated against the entity or assessed statutory scheme. */
-	required_when: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isPattern(/\S/)))),
+	required_when: Schema.optionalKey(Schema.NullOr(condition)),
 	/**
 	 * When a changed declared value takes effect, where the law defers it (TW salary-withholding
 	 * regulations art. 5: dependant reductions apply the following January, increases the event
@@ -26,7 +30,7 @@ const factKeyShape = Schema.Struct({
 		)
 	),
 	/** When present, a supplied value must satisfy this Boolean expression. */
-	valid_when: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isPattern(/\S/)))),
+	valid_when: Schema.optionalKey(Schema.NullOr(condition)),
 	/** Operator-facing refusal used when `valid_when` is false. */
 	validation_message: Schema.optionalKey(
 		Schema.NullOr(Schema.String.check(Schema.isPattern(/\S/)))
@@ -41,7 +45,22 @@ const factKeyShape = Schema.Struct({
 	minimum: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
 	maximum: Schema.optionalKey(Schema.NullOr(Schema.Finite)),
 	integer: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
-	min_length: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0))))
+	min_length: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))),
+	/** A work-day input the scheduling workbook carries as its own Overtime-sheet column. */
+	import: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
+	 * A supplied value counts only once its evidence is recorded (one `fact_evidence` row naming the
+	 * subject and key): a reference, a file, or both. `when`, a Boolean expression over the subject's
+	 * site, narrows the demand; absent is always. Calculation refuses an unevidenced value.
+	 */
+	evidence: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				kind: Schema.Literals(['REFERENCE', 'FILE', 'REFERENCE_AND_FILE']),
+				when: Schema.optionalKey(Schema.NullOr(condition))
+			})
+		)
+	)
 });
 
 /**
@@ -72,10 +91,12 @@ export function factScopeFault(
 	return field == null ? null : `${field.label?.trim() || field.key} requires a named employment.`;
 }
 
-const FACT_TYPE = {
+const FACT_TYPE: Readonly<Record<FactKey['type'], (value: unknown) => boolean>> = {
 	boolean: Predicate.isBoolean,
 	number: Predicate.isNumber,
-	string: Predicate.isString
+	string: Predicate.isString,
+	date: (value) => Predicate.isString(value) && isCalendarDate(value),
+	instant: (value) => Predicate.isString(value) && isUtcIsoInstant(value)
 };
 /** Whether `value` is of a fact key's declared `type`. */
 export const holdsFactType = (type: FactKey['type'], value: unknown): boolean =>
@@ -85,7 +106,9 @@ export const holdsFactType = (type: FactKey['type'], value: unknown): boolean =>
 export function factValueFault(field: FactKey, value: unknown): string | null {
 	const label = field.label?.trim() || field.key;
 	if (!holdsFactType(field.type, value))
-		return `${label} must be a ${field.type}; this value is a ${typeof value}.`;
+		return field.type === 'date' || field.type === 'instant'
+			? `${label} must be an ISO ${field.type === 'date' ? 'calendar day (YYYY-MM-DD)' : 'UTC instant'}.`
+			: `${label} must be a ${field.type}; this value is a ${typeof value}.`;
 	if (Predicate.isNumber(value)) {
 		if (!Number.isFinite(value)) return `${label} must be finite.`;
 		if (field.integer && !Number.isInteger(value)) return `${label} must be a whole number.`;

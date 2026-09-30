@@ -22,17 +22,17 @@ export default model({
 		/** Set when the authority releases the hold; open holds block the payslip's settlement. */
 		released_on: { kind: 'date', optional: true },
 		released_amount: { kind: 'decimal', scale: 2, optional: true },
-		/** For tax clearance: IRAS release notice, tax-payment directive, or statutory expiry. */
+		/** For tax clearance: the authority's release notice, tax-payment directive, or statutory expiry of the notice. */
 		release_basis: {
 			kind: 'enum',
-			values: ['RELEASE_NOTICE', 'PAY_TAX_DIRECTIVE', 'THIRTY_DAY_EXPIRY'],
+			values: ['RELEASE_NOTICE', 'PAY_TAX_DIRECTIVE', 'NOTICE_EXPIRY'],
 			optional: true
 		},
-		/** The day IRAS received the Form IR21 notification, not the employer's awareness day. */
-		iras_notice_received_on: { kind: 'date', optional: true },
+		/** The day the tax authority received the clearance notice, not the employer's awareness day. */
+		authority_notice_received_on: { kind: 'date', optional: true },
 		release_directive_on: { kind: 'date', optional: true },
-		amended_ir21_filed_on: { kind: 'date', optional: true },
-		/** Tax due to IRAS under the clearance directive; determines the employee's balance. */
+		amended_notice_filed_on: { kind: 'date', optional: true },
+		/** Tax due to the authority under the clearance directive; determines the employee's balance. */
 		directive_tax_amount: { kind: 'decimal', scale: 2, optional: true },
 		/** Computed from the directive date and the sealed tax-clearance payment window. */
 		tax_remittance_due_on: { kind: 'date', optional: true },
@@ -40,7 +40,7 @@ export default model({
 		tax_remitted_on: { kind: 'date', optional: true },
 		tax_remittance_reference: { kind: 'text', optional: true },
 		tax_remittance_evidence_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true },
-		/** The IRAS directive or filing acknowledgement used to close the hold. */
+		/** The authority's directive or filing acknowledgement used to close the hold. */
 		reconciliation_reference: { kind: 'text', optional: true },
 		evidence_file: { kind: 'file', accept: ['*/*'], max: '20MiB', optional: true }
 	},

@@ -19,6 +19,7 @@
 	import { openCreated } from './open-created.js';
 	import EligibleTypes from './eligible-types.svelte';
 	import FormSection from './form-section.svelte';
+	import RequestFactsField from './request-facts-field.svelte';
 	import * as Predicate from 'effect/Predicate';
 
 	const FAMILY = {
@@ -134,6 +135,30 @@
 						</EligibleTypes>
 						<Field name="amount" label={t('component.entry_amount')} />
 						<Field name={spec.date} label={t(spec.keys.date)} />
+						{#if family === 'claim'}
+							<Field name="due_on" label={t('component.claim_due_on')} />
+						{/if}
+						<Column span="all">
+							<Field
+								name="facts"
+								label={t('component.request_facts')}
+								help={t('component.request_facts_hint')}
+							>
+								{#snippet editor(field)}
+									<RequestFactsField
+										view={{
+											mode: 'edit',
+											name: field.name,
+											value: field.value as never,
+											disabled: field.disabled,
+											onChange: field.onChange as never
+										}}
+										catalogue={spec.catalogue}
+										catalogueId={text(form.get('catalogue_id'))}
+									/>
+								{/snippet}
+							</Field>
+						</Column>
 					</Grid>
 				</FormSection>
 

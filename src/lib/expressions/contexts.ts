@@ -4,13 +4,24 @@
  * panel renders them. The person site is the person object (`employee.*`, `employment.*`); elsewhere
  * it sits under `person.`. Open prefixes (`limits.*`, `year.earned.*`, `produced.*`,
  * `scheme.elections.*`, `person.company.facts.*`) take the version's own keys; any other undeclared
- * member is refused at write.
+ * member is refused at write. `terms.facts.*`, `day_facts.*`, `payment.facts.*` and
+ * `settlement.facts.*` are the declared inputs of `jurisdiction_settings.terms_facts`,
+ * `work_day_facts`, `payment_facts` and `settlement_facts`, and `entry.facts.*` those of a catalogue
+ * row's `request_facts`: their names are data.
  */
 
 import { DEDUCTION_TOTAL_KEYS } from '../statutory-deductions.js';
 
 export type ExpressionSite =
-	'entity' | 'person' | 'entry' | 'work_day' | 'assessment' | 'scheme' | 'leave_day' | 'rest_break';
+	| 'entity'
+	| 'person'
+	| 'entry'
+	| 'work_day'
+	| 'assessment'
+	| 'scheme'
+	| 'leave_day'
+	| 'rest_break'
+	| 'payment';
 /** What an expression returns: a boolean, or a number in the unit its field is named for. */
 export type ExpressionType = 'boolean' | 'money' | 'hours' | 'minutes' | 'days' | 'number';
 
@@ -82,7 +93,7 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'employee.disabled', description: 'Disability flag' },
 	{
 		path: 'employee.race',
-		description: 'Recorded race, upper-cased (SG SHG funds read CHINESE, INDIAN, EURASIAN)'
+		description: 'Recorded race, upper-cased, as a self-help fund row reads it'
 	},
 	{
 		path: 'employee.religion',
@@ -166,6 +177,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		path: 'employment.service_start',
 		description:
 			'First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire'
+	},
+	{
+		path: 'employment.rule_date',
+		description:
+			'The rule date as `YYYY-MM-DD`; a `wages.contract_rules` rule reads the first day of its floor segment'
 	},
 	{ path: 'employment.exit_date', description: 'Last day of work, or empty while open' },
 	{
@@ -291,11 +307,10 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		description:
 			'Wages a statutory ceiling reads: basic plus every other cash payment for work in the run'
 	},
-	{ path: 'terms.workman', description: 'Statutory work category starts with MANUAL_LABOUR' },
-	{ path: 'terms.statutory_work_category', description: 'Statutory work category of the terms' },
 	{
-		path: 'terms.hazardous_work',
-		description: 'Ministerial Regulation hazardous work (TH LPA s.23)'
+		path: 'terms.statutory_work_category',
+		description:
+			'Statutory work category of the terms: a code the governing version declares in payroll.vocabularies'
 	},
 	{
 		path: 'terms.weather_dependent_piece',
@@ -308,10 +323,6 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'terms.worksite_sector',
 		description: 'The worksite sector the terms record (ID: the five-digit KBLI), or empty'
-	},
-	{
-		path: 'terms.worksite_sector_edition',
-		description: 'The KBLI edition of an ID worksite sector (2020 or 2025), or empty'
 	},
 	{
 		path: 'terms.department',
@@ -334,33 +345,18 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
 		path: 'terms.pass_type',
 		description:
-			'EMPLOYMENT_PASS | S_PASS | WORK_PERMIT | INTRA_COMPANY_TRANSFER | OTHER, or empty (a transferee within the enterprise is outside VN social insurance, Law 41/2024 art.2(2)(a))'
+			'The work pass: a code the governing version declares in payroll.vocabularies, or empty'
 	},
 	{
 		path: 'terms.tax_residency',
 		description:
-			'RESIDENT | NON_RESIDENT | NON_RESIDENT_NETB declared on the contract, or empty when unrecorded; each scheme supplies its statutory default (NETB: a non-resident alien not engaged in trade or business, PH NIRC s.25(B))'
+			'Tax residence declared on the contract, a code the governing version declares in payroll.vocabularies, or empty when unrecorded; each scheme supplies its statutory default'
 	},
 	{
 		path: 'terms.residency_since',
 		description: 'Date residency began as `YYYY-MM-DD`, or empty when unrecorded'
 	},
 	{ path: 'terms.notice_days', description: 'Notice days the contract states, 0 when none' },
-	{
-		path: 'terms.probation_months',
-		description:
-			'Months of the agreed probation served, hire through its last day (`employment_terms.probation_end`) or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83)'
-	},
-	{
-		path: 'terms.post_probation_wage',
-		description:
-			'The wage the contract agrees for after the probation, 0 when unrecorded (CN LCL art.20: the probation wage is at least 80% of it; art.83: damages are priced on it)'
-	},
-	{
-		path: 'terms.open_ended_overdue_months',
-		description:
-			'Months from the day an open-ended contract should have been concluded (`employment_terms.open_ended_due_on`) through the rule date inclusive, a part month by its days; 0 when unrecorded or not yet due (CN LCL art.82 para.2)'
-	},
 	{ path: 'terms.ordinary_hours_per_week', description: 'Roster-measured working week, hours' },
 	{
 		path: 'terms.comparable_full_time_daily_hours',
@@ -372,6 +368,15 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'PRESENT if a similar full-time employee exists, ABSENT for the statutory fallback, or empty if unknown'
 	},
 	{ path: 'terms.working_days_per_week', description: 'Roster-measured working week, days' },
+	{
+		path: 'terms.facts.<key>',
+		description:
+			'Jurisdiction inputs the version declares in `terms_facts`, recorded on the terms in force; a declared default where unrecorded'
+	},
+	{
+		path: 'terms.fact_keys',
+		description: 'Terms input keys explicitly recorded on the terms in force, before defaults'
+	},
 	{
 		path: 'children.count',
 		description:
@@ -506,6 +511,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	},
 	{ path: 'event.date', description: 'The day of the event, or empty' },
 	{
+		path: 'event.case.facts.<key>',
+		description:
+			'The recorded facts and qualifications of the benefit case this event opened (`payroll.benefit_cases`); absent without a case, so read `has(event.case.facts.<key>) && event.case.facts.<key>`'
+	},
+	{
 		path: 'event.child_citizenship',
 		description: 'The named child’s recorded citizenship, or empty'
 	},
@@ -600,6 +610,7 @@ const PERSON_BLANK = {
 		prior_service_months: 0,
 		service_years: 0,
 		service_start: '',
+		rule_date: '',
 		exit_date: '',
 		days_to_exit: 0,
 		open_ended: true,
@@ -619,14 +630,11 @@ const PERSON_BLANK = {
 		monthly_wage: 0,
 		gross_monthly: 0,
 		monthly_wage_6m_average: 0,
-		workman: false,
 		statutory_work_category: '',
-		hazardous_work: false,
 		weather_dependent_piece: false,
 		statutory_wages: 0,
 		worksite: '',
 		worksite_sector: '',
-		worksite_sector_edition: '',
 		department: '',
 		payroll_group: '',
 		paid_rest_days: false,
@@ -636,13 +644,12 @@ const PERSON_BLANK = {
 		tax_residency: '',
 		residency_since: '',
 		notice_days: 0,
-		probation_months: 0,
-		post_probation_wage: 0,
-		open_ended_overdue_months: 0,
 		ordinary_hours_per_week: 0,
 		comparable_full_time_daily_hours: 0,
 		comparable_full_time_presence: '',
-		working_days_per_week: 0
+		working_days_per_week: 0,
+		facts: {},
+		fact_keys: []
 	},
 	children: {
 		records: null,
@@ -692,7 +699,8 @@ const PERSON_BLANK = {
 		child_shared_weeks: -1,
 		prior_employment_days: 0,
 		estimated_delivery_date: '',
-		adoption_eligibility_date: ''
+		adoption_eligibility_date: '',
+		case: { facts: {} }
 	}
 };
 
@@ -986,7 +994,8 @@ const HISTORY_FIELDS: readonly ContextField[] = [
 	},
 	{
 		path: 'history.<code>.triggered',
-		description: 'Whether an earlier assessment used its cumulative method'
+		description:
+			"Whether an earlier assessment met the scheme's `history_trigger`; false when it declares none"
 	},
 	{
 		path: 'history.<code>.has_opening',
@@ -1015,7 +1024,20 @@ const COMMON_FUNCTIONS: readonly ExpressionFunction[] = [
 	{ path: 'up_to_unit(value)', description: 'Round up to the whole unit' },
 	{ path: 'bracket(base, up_to, step)', description: 'Round a figure up to the next bracket' },
 	{ path: 'ladder(base, grades)', description: 'Step a figure up to the next grade in a table' },
-	{ path: 'progressive(value, table)', description: 'Apply a progressive [from, base, rate] table' }
+	{
+		path: 'progressive(value, table)',
+		description: 'Apply a progressive [from, base, rate] table'
+	},
+	{
+		path: 'add_months(date, months)',
+		description:
+			'The calendar day `months` months after a `YYYY-MM-DD` day, clamped to the month’s last day; empty for an empty day'
+	},
+	{
+		path: 'months_through(from, through)',
+		description:
+			'Months from one `YYYY-MM-DD` day through another inclusive: completed months plus the part month by its days; 0 when either is empty or `through` is before `from`'
+	}
 ];
 
 const EARNED_AVERAGE: ExpressionFunction = {
@@ -1165,7 +1187,9 @@ const PERSON_CONTEXT: ExpressionContext = {
 		'period.leave_full_days',
 		'period.leave_days',
 		'period.leave_pay',
-		'employment.exit_facts'
+		'employment.exit_facts',
+		'terms.facts',
+		'event.case.facts'
 	],
 	functions: functionsFor('person'),
 	blank: personBlank()
@@ -1205,7 +1229,8 @@ const REST_BREAK_CONTEXT: ExpressionContext = {
 		'period.leave_full_days',
 		'period.leave_days',
 		'period.leave_pay',
-		'employment.exit_facts'
+		'employment.exit_facts',
+		'terms.facts'
 	],
 	functions: functionsFor('person'),
 	blank: {
@@ -1248,7 +1273,8 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 		'period.leave_full_days',
 		'period.leave_days',
 		'period.leave_pay',
-		'employment.exit_facts'
+		'employment.exit_facts',
+		'terms.facts'
 	],
 	functions: functionsFor('person'),
 	blank: {
@@ -1280,35 +1306,19 @@ const ENTRY_CONTEXT: ExpressionContext = {
 			description:
 				'Published holidays of the entity in the entry’s calendar year that name the employee’s recorded religion (`jurisdiction_holidays.religion`); 0 without a religion or a tagged day. ID Permenaker 6/2016 art.5(2): the same holiday twice in a year is two THRs'
 		},
-		{ path: 'entry.medical.due_on', description: 'Date treatment reimbursement becomes payable' },
-		{ path: 'entry.medical.incurred_on', description: 'Date reimbursed expense was incurred' },
-		{ path: 'entry.medical.amount_incurred', description: 'Actual treatment expense' },
-		{ path: 'entry.medical.patient', description: 'Treatment patient relationship' },
 		{
-			path: 'entry.medical.relationship_from',
-			description: 'First day of the patient relationship'
+			path: 'entry.incurred_on',
+			description: 'The day a claimed expense was incurred; empty off a claim'
 		},
 		{
-			path: 'entry.medical.relationship_through',
-			description: 'Last day of the patient relationship, or empty'
+			path: 'entry.due_on',
+			description:
+				'The day a claim becomes payable where later than the expense (`claim_requests.due_on`), else empty'
 		},
 		{
-			path: 'entry.medical.relationship_recognised',
-			description: 'Whether the patient relationship is legally recognised'
-		},
-		{
-			path: 'entry.medical.treatment',
-			description: 'Medical, dental, dental hygiene or TCM treatment'
-		},
-		{
-			path: 'entry.medical.treatment_received',
-			description: 'Whether treatment has already been received'
-		},
-		{ path: 'entry.medical.treatment_necessary', description: 'Practitioner-certified necessity' },
-		{ path: 'entry.medical.solely_aesthetic', description: 'Treatment is solely aesthetic' },
-		{
-			path: 'entry.medical.practitioner_qualified',
-			description: 'Local registration or legal foreign qualification'
+			path: 'entry.facts.<key>',
+			description:
+				'Request inputs the catalogue row declares in `request_facts`, recorded on the request; a declared default where unrecorded'
 		},
 		{ path: 'entry.late_wage.due_on', description: 'Day the late wage was due' },
 		{ path: 'entry.late_wage.paid_on', description: 'Day the late wage was paid' },
@@ -1349,7 +1359,9 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		'person.period.leave_full_days',
 		'person.period.leave_days',
 		'person.period.leave_pay',
-		'person.employment.exit_facts'
+		'person.employment.exit_facts',
+		'person.terms.facts',
+		'entry.facts'
 	],
 	functions: functionsFor('entry'),
 	blank: {
@@ -1363,20 +1375,9 @@ const ENTRY_CONTEXT: ExpressionContext = {
 			event_date: '',
 			period: '',
 			religious_holidays: 0,
-			medical: {
-				incurred_on: '',
-				due_on: '',
-				amount_incurred: 0,
-				patient: '',
-				relationship_from: '',
-				relationship_through: '',
-				relationship_recognised: false,
-				treatment: '',
-				treatment_received: false,
-				treatment_necessary: false,
-				solely_aesthetic: false,
-				practitioner_qualified: false
-			},
+			incurred_on: '',
+			due_on: '',
+			facts: {},
 			late_wage: { due_on: '', paid_on: '', days: 0, deposit_rate: 0, force_majeure: false },
 			window: { start: '', end: '' },
 			captures: { remaining: 0 }
@@ -1452,9 +1453,73 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 			path: 'holiday.prior_day_present',
 			description:
 				'Present, or on leave with pay, on the workday immediately preceding the holiday — a rest or non-work day, or an unworked holiday, looks further back (PH Handbook ch.2 §D–E); true on a day with no holiday'
+		},
+		{
+			path: 'day_facts.<key>',
+			description:
+				'Jurisdiction inputs the version declares in `work_day_facts`, recorded on this person-day (`work_days.facts`); a declared default where unrecorded'
+		},
+		{
+			path: 'day_fact_keys',
+			description: 'Work-day input keys explicitly recorded on this person-day, before defaults'
+		},
+		...[
+			['age_years', 'Completed years on the day; 0 without a birth date'],
+			[
+				'attendance_recorded',
+				'The day carries attendance (`worked_intervals` is set); otherwise its shift is presumed worked'
+			],
+			[
+				'first_work_at',
+				'The first worked instant, a UTC ISO instant (`YYYY-MM-DDTHH:mm:ss.sssZ`), or empty'
+			],
+			['night_worked', 'Some work fell inside `work_rules.night_window`'],
+			['first_night_at', 'The first worked instant inside the night window, or empty'],
+			['holiday_work', 'Work on a day that is not ORDINARY'],
+			['overtime_work', 'Work on an ORDINARY day beyond its normal hours'],
+			[
+				'rest_minutes_total',
+				'Minutes of rest between the day’s work spans (a presumed shift’s break)'
+			],
+			['longest_rest_minutes', 'The longest single timed rest between work spans'],
+			['longest_run_hours', 'The longest unbroken work span'],
+			[
+				'run_hours_before_first_hour_rest',
+				'Hours worked before the first rest of 60 minutes or more; the whole day where none'
+			],
+			[
+				'rest_before_overtime_minutes',
+				'Minutes between the end of the normal hours and the first overtime hour, 0 without overtime'
+			],
+			['shift_hours', 'The rostered shift’s paid hours, 0 without a shift'],
+			['shift_start_at', 'The rostered shift’s start, a UTC ISO instant, or empty without a shift']
+		].map(([path, description]) => ({
+			path: path!,
+			description: `${description} — read by \`day_rules\` and \`overtime_consent\`, not by bands`
+		})),
+		{
+			path: 'stated_day_hours',
+			description:
+				'The statute’s normal day bounded by the contract’s stated day — read by `shift_day_hours` only, beside `person`, `date` and `day_facts`'
 		}
 	],
 	bare: [
+		'age_years',
+		'attendance_recorded',
+		'first_work_at',
+		'night_worked',
+		'first_night_at',
+		'holiday_work',
+		'overtime_work',
+		'rest_minutes_total',
+		'longest_rest_minutes',
+		'longest_run_hours',
+		'run_hours_before_first_hour_rest',
+		'rest_before_overtime_minutes',
+		'shift_hours',
+		'shift_start_at',
+		'stated_day_hours',
+		'day_fact_keys',
 		'date',
 		'day_type',
 		'worked_hours',
@@ -1478,12 +1543,14 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 	],
 	open: [
 		'limits',
+		'day_facts',
 		'person.company.facts',
 		'person.facts',
 		'person.period.leave_full_days',
 		'person.period.leave_days',
 		'person.period.leave_pay',
-		'person.employment.exit_facts'
+		'person.employment.exit_facts',
+		'person.terms.facts'
 	],
 	functions: functionsFor('work_day'),
 	blank: {
@@ -1509,7 +1576,62 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		day_wage: 204,
 		hours: 4,
 		limits: structuredClone(LIMITS_BLANK),
-		holiday: { kind: '', name: '', prior_day_present: true }
+		holiday: { kind: '', name: '', prior_day_present: true },
+		day_facts: {},
+		day_fact_keys: [],
+		age_years: 40,
+		attendance_recorded: true,
+		first_work_at: '',
+		night_worked: false,
+		first_night_at: '',
+		holiday_work: false,
+		overtime_work: false,
+		rest_minutes_total: 60,
+		longest_rest_minutes: 60,
+		longest_run_hours: 4,
+		run_hours_before_first_hour_rest: 4,
+		rest_before_overtime_minutes: 0,
+		shift_hours: 9,
+		shift_start_at: '',
+		stated_day_hours: 8
+	}
+};
+
+/**
+ * One actual payment and the obligation it settles: the site of `payment_facts` and
+ * `settlement_facts` conditions. A settlement's facts are empty until its obligation records them.
+ */
+const PAYMENT_CONTEXT: ExpressionContext = {
+	site: 'payment',
+	description: 'One actual payment and the obligation it settles: their declared inputs.',
+	fields: [
+		{ path: 'payment.kind', description: 'CASH | NON_CASH_SETTLEMENT' },
+		{ path: 'payment.paid_on', description: 'The day the payment was made, `YYYY-MM-DD`' },
+		{ path: 'payment.currency', description: 'The payment currency' },
+		{
+			path: 'payment.facts.<key>',
+			description:
+				'Jurisdiction inputs the version declares in `payment_facts`, recorded with the payment'
+		},
+		{ path: 'payment.fact_keys', description: 'Payment input keys explicitly recorded' },
+		{
+			path: 'settlement.tax_residency',
+			description:
+				'RESIDENT | NON_RESIDENT: the evidenced tax residence of the settled non-contract obligation; empty for a payslip'
+		},
+		{
+			path: 'settlement.facts.<key>',
+			description:
+				'Jurisdiction inputs the version declares in `settlement_facts`, recorded on the settled obligation'
+		},
+		{ path: 'settlement.fact_keys', description: 'Settlement input keys explicitly recorded' }
+	],
+	bare: [],
+	open: ['payment.facts', 'settlement.facts'],
+	functions: functionsFor('payment'),
+	blank: {
+		payment: { kind: 'CASH', paid_on: '', currency: '', facts: {}, fact_keys: [] },
+		settlement: { tax_residency: '', facts: {}, fact_keys: [] }
 	}
 };
 
@@ -1570,7 +1692,8 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		'person.period.leave_full_days',
 		'person.period.leave_days',
 		'person.period.leave_pay',
-		'person.employment.exit_facts'
+		'person.employment.exit_facts',
+		'person.terms.facts'
 	],
 	functions: functionsFor('assessment'),
 	blank: {
@@ -1675,7 +1798,8 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		'person.period.leave_full_days',
 		'person.period.leave_days',
 		'person.period.leave_pay',
-		'person.employment.exit_facts'
+		'person.employment.exit_facts',
+		'person.terms.facts'
 	],
 	functions: functionsFor('scheme'),
 	blank: {
@@ -1738,7 +1862,8 @@ export const EXPRESSION_CONTEXTS: Readonly<Record<ExpressionSite, ExpressionCont
 	assessment: ASSESSMENT_CONTEXT,
 	scheme: SCHEME_CONTEXT,
 	leave_day: LEAVE_DAY_CONTEXT,
-	rest_break: REST_BREAK_CONTEXT
+	rest_break: REST_BREAK_CONTEXT,
+	payment: PAYMENT_CONTEXT
 };
 
 const MENTION_CACHE_CAP = 50_000;

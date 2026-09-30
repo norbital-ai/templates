@@ -495,7 +495,10 @@
 			legalEntity: company.name,
 			month: calendarMonth,
 			timezone: timeZone,
-			jurisdictionCode: versionInForce?.jurisdiction_code
+			overtimeConsent: versionInForce?.work_rules?.overtime_consent != null,
+			factColumns: (versionInForce?.work_day_facts ?? [])
+				.filter((field) => field.import === true)
+				.map((field) => field.key)
 		});
 		saveBlob(
 			new Blob([await workbook.xlsx.writeBuffer()], { type: XLSX_MEDIA_TYPE }),

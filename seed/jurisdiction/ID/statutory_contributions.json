@@ -46,6 +46,11 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
+				"when": "person.facts.PPH21.elections.recipient_class in [\"NON_EMPLOYEE\", \"IRREGULAR_COMMISSIONER\", \"ACTIVITY_PARTICIPANT\", \"FORMER_EMPLOYEE\", \"ACTIVE_PENSION_WITHDRAWAL\"]",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
 				"when": "!(person.employee.citizenship in [\"CITIZEN\", \"FOREIGNER\"])",
 				"employee": "0.0",
 				"employer": "0.0",
@@ -216,6 +221,18 @@
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 6 && !(person.terms.facts.foreign_prior_work == \"NONE\" && person.terms.facts.foreign_prior_work_reviewed_on != \"\" && person.terms.facts.foreign_prior_work_reviewed_on >= person.employment.service_start && person.terms.facts.foreign_prior_work_reviewed_on <= person.employment.rule_date)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Verify dated prior work in Indonesia before excluding a foreign worker on a short contract from BPJS Kesehatan; a current contract under six months alone does not establish the six-month work condition (Perpres 82/2018 art.1 angka 2). Record terms.facts.foreign_prior_work as NONE with its review date inside the service and the review's reference as its evidence."
+			},
+			{
+				"when": "person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && (person.employee.citizenship == \"CITIZEN\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 6)))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "BPJS Kesehatan monthly contribution wage for daily or hourly terms is not sealed; the raw contract rate cannot be used as a monthly wage against the UMK/UMP floor (Perpres 82/2018 art.32(2)–(3))."
+			},
 			{
 				"when": "person.facts.PPH21.elections.recipient_class in [\"NON_EMPLOYEE\", \"IRREGULAR_COMMISSIONER\", \"ACTIVITY_PARTICIPANT\", \"FORMER_EMPLOYEE\", \"ACTIVE_PENSION_WITHDRAWAL\"]",
 				"employee": "0.0",
@@ -1121,6 +1138,11 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
+				"when": "person.facts.PPH21.elections.recipient_class in [\"NON_EMPLOYEE\", \"IRREGULAR_COMMISSIONER\", \"ACTIVITY_PARTICIPANT\", \"FORMER_EMPLOYEE\", \"ACTIVE_PENSION_WITHDRAWAL\"]",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
 				"when": "!(person.employee.citizenship in [\"CITIZEN\", \"FOREIGNER\"])",
 				"employee": "0.0",
 				"employer": "0.0",
@@ -1291,6 +1313,18 @@
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 6 && !(person.terms.facts.foreign_prior_work == \"NONE\" && person.terms.facts.foreign_prior_work_reviewed_on != \"\" && person.terms.facts.foreign_prior_work_reviewed_on >= person.employment.service_start && person.terms.facts.foreign_prior_work_reviewed_on <= person.employment.rule_date)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Verify dated prior work in Indonesia before excluding a foreign worker on a short contract from BPJS Kesehatan; a current contract under six months alone does not establish the six-month work condition (Perpres 82/2018 art.1 angka 2). Record terms.facts.foreign_prior_work as NONE with its review date inside the service and the review's reference as its evidence."
+			},
+			{
+				"when": "person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && (person.employee.citizenship == \"CITIZEN\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 6)))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "BPJS Kesehatan monthly contribution wage for daily or hourly terms is not sealed; the raw contract rate cannot be used as a monthly wage against the UMK/UMP floor (Perpres 82/2018 art.32(2)–(3))."
+			},
 			{
 				"when": "person.facts.PPH21.elections.recipient_class in [\"NON_EMPLOYEE\", \"IRREGULAR_COMMISSIONER\", \"ACTIVITY_PARTICIPANT\", \"FORMER_EMPLOYEE\", \"ACTIVE_PENSION_WITHDRAWAL\"]",
 				"employee": "0.0",
@@ -2196,6 +2230,11 @@
 		"project_relief_annually": false,
 		"rules": [
 			{
+				"when": "person.facts.PPH21.elections.recipient_class in [\"NON_EMPLOYEE\", \"IRREGULAR_COMMISSIONER\", \"ACTIVITY_PARTICIPANT\", \"FORMER_EMPLOYEE\", \"ACTIVE_PENSION_WITHDRAWAL\"]",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
 				"when": "!(person.employee.citizenship in [\"CITIZEN\", \"FOREIGNER\"])",
 				"employee": "0.0",
 				"employer": "0.0",
@@ -2341,6 +2380,18 @@
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
+			{
+				"when": "person.employee.citizenship == \"FOREIGNER\" && !person.employment.open_ended && person.employment.contract_months < 6 && !(person.terms.facts.foreign_prior_work == \"NONE\" && person.terms.facts.foreign_prior_work_reviewed_on != \"\" && person.terms.facts.foreign_prior_work_reviewed_on >= person.employment.service_start && person.terms.facts.foreign_prior_work_reviewed_on <= person.employment.rule_date)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Verify dated prior work in Indonesia before excluding a foreign worker on a short contract from BPJS Kesehatan; a current contract under six months alone does not establish the six-month work condition (Perpres 82/2018 art.1 angka 2). Record terms.facts.foreign_prior_work as NONE with its review date inside the service and the review's reference as its evidence."
+			},
+			{
+				"when": "person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] && (person.employee.citizenship == \"CITIZEN\" || (person.employee.citizenship == \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 6)))",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "BPJS Kesehatan monthly contribution wage for daily or hourly terms is not sealed; the raw contract rate cannot be used as a monthly wage against the UMK/UMP floor (Perpres 82/2018 art.32(2)–(3))."
+			},
 			{
 				"when": "person.facts.PPH21.elections.recipient_class in [\"NON_EMPLOYEE\", \"IRREGULAR_COMMISSIONER\", \"ACTIVITY_PARTICIPANT\", \"FORMER_EMPLOYEE\", \"ACTIVE_PENSION_WITHDRAWAL\"]",
 				"employee": "0.0",

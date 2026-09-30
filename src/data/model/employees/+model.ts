@@ -13,7 +13,7 @@ export default model({
 		marital_status: { kind: 'enum', values: ['SINGLE', 'MARRIED', 'DIVORCED'], optional: true },
 		/** A solo parent under a statute that names one (PH RA 8972). */
 		solo_parent: { kind: 'bool', default: false },
-		/** A person with a disability under a statute that grants one more (VN art.113(1)(b), MY PCB relief). */
+		/** A person with a disability; `employee.disabled`, read by the lineage's expressions. */
 		disabled: { kind: 'bool', default: false },
 		/** Drawing a statutory pension while employed (VN Law 41/2024 art.2(7)(a)). */
 		receiving_pension: { kind: 'bool', default: false },

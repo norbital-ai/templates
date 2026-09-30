@@ -46,6 +46,12 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 * period includes holidays and weekly rest days). Absent is days.
 	 */
 	calendar_months: Schema.optionalKey(Schema.Boolean),
+	/**
+	 * Of a PER_EVENT row, a commencement date the law gives no transition rule for: one event whose
+	 * charges fall on both sides of it is refused for transition review (TH Act No.9 B.E.2568, in
+	 * force 7 December 2025, states no rule for maternity leave already in progress). Absent is none.
+	 */
+	transition_review_on: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/** The most PER_EVENT entries of this leave an employee may take in a lifetime; absent is no cap. */
 	lifetime_events: Schema.optionalKey(Schema.NullOr(Schema.Int.check(Schema.isGreaterThan(0)))),
 	/**
@@ -143,6 +149,29 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	outpatient_sick_excludes_shift_allowance: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	/** A dated event grant whose payment needs the wife's prior living biological child count. */
 	requires_wife_prior_living_biological_children: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
+	 * Service counted for this leave leaves out approved whole days of no-pay leave the employee
+	 * asked for (`no_pay_origin: EMPLOYEE_REQUESTED`): every other no-pay origin, a part day, or a
+	 * later window the exclusion would shift is refused for assessment. Absent is gross service.
+	 */
+	service_excludes_no_pay: Schema.optionalKey(
+		Schema.NullOr(Schema.Literal('EMPLOYEE_REQUESTED_FULL_DAYS'))
+	),
+	/** A full-day requested no-pay approval re-plans this leave's balances against the shorter service. */
+	replans_on_no_pay: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
+	 * Attendance decides this grant: a work-day plan, attendance or absence decision cannot change
+	 * once leave in its leave year or carry year was approved or paid.
+	 */
+	locks_attendance_after_use: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
+	 * The year's grant, and its carry, is forfeited once unexcused whole-day absences (a day's
+	 * `absence_permission` and `absence_reasonable_excuse` both `NO`) exceed this share of the
+	 * year's working days. Absent is no forfeiture.
+	 */
+	forfeit_above_absence_share: Schema.optionalKey(
+		Schema.NullOr(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })))
+	),
 	bands: Schema.Array(
 		Schema.Struct({
 			/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */

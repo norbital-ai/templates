@@ -23,6 +23,7 @@ import {
 import {
 	isEligible,
 	personContext,
+	scalarFacts,
 	type PersonContext
 } from '../../lib/payroll/run/eligibility.js';
 import {
@@ -33,7 +34,13 @@ import {
 import { prorationSegment } from '../../lib/payroll/run/proration.js';
 import { factStatusesOn, personFacts } from './facts.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
-import { exitFactsMissing, resolveCompanyFacts, resolveExitFacts } from '../declared-facts.js';
+import {
+	exitFactsMissing,
+	resolveCompanyFacts,
+	resolveExitFacts,
+	resolveFactValues
+} from '../declared-facts.js';
+import type { FactKey } from '../datatypes/fact_keys.js';
 import { cents } from '../../lib/payroll/run/rounding.js';
 import {
 	intersectDays,
@@ -96,7 +103,10 @@ export type PayRequest = {
 	readonly event_date: IsoDate;
 	readonly evidence_file?: ClaimRequest['evidence_file'] | null | undefined;
 	readonly incurred_on?: string | null | undefined;
-	readonly medical_reimbursement?: ClaimRequest['medical_reimbursement'] | null | undefined;
+	/** The day a claim becomes payable where later than the expense. */
+	readonly due_on?: string | null | undefined;
+	/** The inputs the catalogue row declares in `request_facts`, as recorded. */
+	readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
 	readonly late_wage?: AdhocRequest['late_wage'] | null | undefined;
 	/**
 	 * `+1` to settle the way its catalogue declares, `−1` to settle the opposite way.
@@ -121,10 +131,10 @@ export type PreparedPayRequest = PayRequest & {
 	readonly captures: readonly PayRequestCapture[];
 };
 
-/** A claim belongs to its expense day unless a dated reimbursement becomes payable later. */
+/** A claim belongs to its expense day unless it becomes payable later (`due_on`). */
 export const claimRequest = (row: ClaimRequest): PayRequest => {
-	if (row.medical_reimbursement != null && row.pay_period != null && row.pay_period !== '')
-		refuse('A treatment reimbursement settles from its due date; do not override its pay period.');
+	if (row.due_on != null && row.pay_period != null && row.pay_period !== '')
+		refuse('A claim payable later settles from its due date; do not override its pay period.');
 	return {
 		id: row.id,
 		family: 'CLAIM',
@@ -135,10 +145,11 @@ export const claimRequest = (row: ClaimRequest): PayRequest => {
 		approval_id: row.approval_id ?? null,
 		pay_period: row.pay_period ?? null,
 		event_date: requiredDateKey(
-			row.medical_reimbursement?.due_on ?? row.incurred_on,
-			row.medical_reimbursement == null ? 'claim incurred date' : 'reimbursement due date'
+			row.due_on ?? row.incurred_on,
+			row.due_on == null ? 'claim incurred date' : 'claim due date'
 		),
-		medical_reimbursement: row.medical_reimbursement,
+		due_on: row.due_on,
+		facts: row.facts,
 		evidence_file: row.evidence_file,
 		incurred_on: row.incurred_on,
 		// The catalogue says which way this settles; the tick says settle it the other way.
@@ -160,6 +171,7 @@ const adhocRequest = (row: AdhocRequest): PayRequest => ({
 	event_date: requiredDateKey(row.event_date, 'ad hoc event date'),
 	evidence_file: row.evidence_file,
 	late_wage: row.late_wage,
+	facts: row.facts,
 	sign: row.as_adjustment_entry === true ? -1 : 1,
 	captured: row.payslip_id != null
 });
@@ -204,8 +216,10 @@ export function entryContext(options: {
 	/** What the context reads of the entry: its magnitude and its day. */
 	readonly entry: Pick<
 		PayRequest,
-		'amount' | 'event_date' | 'incurred_on' | 'medical_reimbursement' | 'late_wage'
+		'amount' | 'event_date' | 'incurred_on' | 'due_on' | 'facts' | 'late_wage'
 	>;
+	/** The catalogue row's `request_facts`: `entry.facts` is the recorded values, declared defaults filled. */
+	readonly requestFacts?: readonly FactKey[] | null | undefined;
 	readonly subject: PersonContext;
 	readonly period: string;
 	readonly periodStart: string;
@@ -225,7 +239,6 @@ export function entryContext(options: {
 }): Record<string, unknown> {
 	const { entry } = options;
 	const year = options.year?.();
-	const medical = entry.medical_reimbursement;
 	const late = entry.late_wage;
 	const religion = options.subject.employee.religion;
 	const religiousHolidays =
@@ -247,20 +260,14 @@ export function entryContext(options: {
 			event_date: entry.event_date,
 			period: options.period,
 			religious_holidays: religiousHolidays,
-			medical: {
-				incurred_on: entry.incurred_on ?? '',
-				due_on: medical?.due_on ?? '',
-				amount_incurred: medical?.amount_incurred ?? 0,
-				patient: medical?.patient ?? '',
-				relationship_from: medical?.relationship_from ?? '',
-				relationship_through: medical?.relationship_through ?? '',
-				relationship_recognised: medical?.relationship_recognised ?? false,
-				treatment: medical?.treatment ?? '',
-				treatment_received: medical?.treatment_received ?? false,
-				treatment_necessary: medical?.treatment_necessary ?? false,
-				solely_aesthetic: medical?.solely_aesthetic ?? false,
-				practitioner_qualified: medical?.practitioner_qualified ?? false
-			},
+			incurred_on: entry.incurred_on ?? '',
+			due_on: entry.due_on ?? '',
+			facts: resolveFactValues(
+				options.requestFacts ?? [],
+				scalarFacts(entry.facts),
+				'Request inputs',
+				false
+			),
 			late_wage: {
 				due_on: late?.due_on ?? '',
 				paid_on: late?.paid_on ?? '',
@@ -359,12 +366,12 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 	});
 	const measureEntry = (entry: PreparedPayRequest): Measurement | null => {
 		// Evidence is held where a request is written (pay_request_rules, the one write surface). The run
-		// asks again only where the law prices it: a medical reimbursement's statutory treatment rests on
+		// asks again only where the class declares request inputs: their statutory treatment rests on
 		// the receipt. A plain company claim's paperwork never refuses a whole entity's run.
 		if (
 			options.component.evidence === 'REQUIRED' &&
 			entry.evidence_file == null &&
-			entry.medical_reimbursement != null
+			(options.component.request_facts ?? []).length > 0
 		)
 			refuse(`${options.component.code} requires a receipt or other evidence.`);
 		// Only a class whose own rules read departure inputs owes them: ID's THR is classed for
@@ -435,44 +442,34 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 					}
 				: options.configuration.company;
 			const terms = payRequestTerms(options.bundle.termsHistory, options.bundle.employment, asOf);
-			const cnContractClaim =
-				options.configuration.jurisdiction.jurisdiction_code === 'CN' &&
-				options.component.family === 'ADHOC' &&
-				[
-					'PROBATION_EXCESS_DAMAGES',
-					'PROBATION_WAGE_SHORTFALL',
-					'OPEN_ENDED_CONTRACT_WAGE'
-				].includes(options.component.code);
-			if (cnContractClaim && employment.exit_date != null && asOf > employment.exit_date)
+			// The class's own requirements (`request_requirements`), judged on the rules' day before pricing.
+			const requirements = options.component.request_requirements;
+			if (
+				requirements?.event_within_employment === true &&
+				employment.exit_date != null &&
+				asOf > employment.exit_date
+			)
 				refuse(
 					`${options.component.code}: record the liability event date no later than the employment exit.`
 				);
 			if (terms == null) {
-				if (cnContractClaim)
+				if (requirements?.requires_terms === true)
 					refuse(
 						`${options.component.code}: no dated employment terms govern the liability event on ${asOf}.`
 					);
 				if (!separation && !readsOrdinaryTerms) return options.subject;
 				refuse(`No employment terms govern the pay request on ${asOf}.`);
 			}
-			if (
-				cnContractClaim &&
-				options.component.code !== 'OPEN_ENDED_CONTRACT_WAGE' &&
-				dateKey(terms.probation_end) === ''
-			)
-				refuse(`${options.component.code}: record probation_end on dated employment terms.`);
-			if (
-				cnContractClaim &&
-				options.component.code === 'PROBATION_WAGE_SHORTFALL' &&
-				!(decodeNumber(terms.post_probation_wage ?? 0) > 0)
-			)
-				refuse('PROBATION_WAGE_SHORTFALL: record post_probation_wage on dated employment terms.');
-			if (cnContractClaim && options.component.code === 'OPEN_ENDED_CONTRACT_WAGE') {
-				const due = dateKey(terms.open_ended_due_on);
-				if (due === '' || due < dateKey(employment.service_start) || due > asOf)
-					refuse(
-						'OPEN_ENDED_CONTRACT_WAGE: record an open_ended_due_on from service start through the liability event date.'
-					);
+			const required = requirements?.required_when ?? [];
+			if (required.length > 0) {
+				const onDay = personContext({
+					employee: options.bundle.employee,
+					employment: stint(options.bundle.employment, version.exit_facts ?? []),
+					terms,
+					company,
+					asOf
+				});
+				for (const rule of required) if (!isEligible(rule.when, onDay)) refuse(rule.message);
 			}
 			const pattern = termPattern(terms, options.configuration.patternById);
 			if (pattern == null) refuse(`No work pattern governs the pay request on ${asOf}.`);
@@ -498,8 +495,9 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 				});
 			if (
 				separation &&
-				version.jurisdiction_code === 'TH' &&
-				options.component.code === 'SEVERANCE_PAY' &&
+				(version.work_rules.wages?.results_pay?.piece_history_catalogues ?? []).includes(
+					options.component.code
+				) &&
 				terms.statutory_work_category === 'PIECE_RATE' &&
 				pieceWages.length > 0
 			) {
@@ -626,6 +624,7 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 			const paidToDate = source.captures.reduce((sum, capture) => sum + capture.amount, 0);
 			return entryContext({
 				entry: source,
+				requestFacts: source.catalogueComponent.request_facts,
 				subject,
 				year: options.year,
 				period: options.period,

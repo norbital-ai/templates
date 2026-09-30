@@ -439,7 +439,7 @@
 												</span>
 												<Inline as="span" gap="xs" class="text-micro">
 													{#if holiday != null}
-														<span class="font-semibold">{HOLIDAY_PRESENTATION.mark}</span>
+														<span class="font-semibold">{t(HOLIDAY_PRESENTATION.markKey)}</span>
 													{/if}
 													{#if rail.lockKind === 'system'}
 														<IconWrapper

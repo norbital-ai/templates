@@ -8,7 +8,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
-import { countryOf, coversDay, settingsInForce } from '../src/lib/jurisdiction_settings.ts';
+import { coversDay, settingsInForce } from '../src/lib/jurisdiction_settings.ts';
 import { createPublicPayrollWorld, COMPANY_ID } from './fixtures/public-payroll-world.ts';
 import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 
@@ -124,10 +124,4 @@ test('two sealed versions covering one day cannot be told apart, so the pick ref
 		'b',
 		'a voided version drops out of the pick'
 	);
-});
-
-test('the country of a lineage is the first segment of its code', () => {
-	assert.equal(countryOf('PH'), 'PH');
-	assert.equal(countryOf('PH-opsph'), 'PH');
-	assert.equal(countryOf('SG-fixture'), 'SG');
 });

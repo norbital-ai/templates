@@ -1,4 +1,11 @@
-import { resolveCompanyFacts, type CompanyFactRevision } from '../../../lib/declared-facts.js';
+import {
+	requireFactValues,
+	resolveCompanyFacts,
+	resolveFactValues,
+	type CompanyFactRevision
+} from '../../../lib/declared-facts.js';
+import type { FactKey } from '../../../lib/datatypes/fact_keys.js';
+import { isEligible, personContext, scalarFacts, type PersonContext } from './eligibility.js';
 import type { HolidaySnapshot } from '../../../lib/datatypes/holiday_snapshots.js';
 /**
  * Resolve the governing settings and family definitions once for the run. Holidays publish
@@ -21,7 +28,7 @@ import {
 	type HolidayRow,
 	type PreparedHolidayInput
 } from '../../../lib/holiday-calendar.js';
-import { coversDate, effectiveOn, live, overlapsRange } from './effective.js';
+import { coversDate, effectiveOn, live, overlapsRange, readRange } from './effective.js';
 import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import type { PayrollWindow } from './period.js';
 import { dateKey } from '../../../lib/iso-day.js';
@@ -212,11 +219,15 @@ export function pickConfiguration(options: {
 		company.id,
 		daysBetween(windowStart, windowEnd)
 	);
+	// The revisions' evidence: the keys a rule relying on an evidenced entity fact reads.
+	const evidenced = Map.groupBy(
+		live(world.fact_evidence ?? []).filter((row) => row.subject.collection === 'company_facts'),
+		(row) => String(row.subject.id)
+	);
 	const revisions = companyFactRevisions.map((row) => ({
 		facts: row.facts ?? {},
 		effective_range: row.effective_range,
-		ph_wage_class_source_reference: row.ph_wage_class_source_reference,
-		ph_wage_class_source_file: row.ph_wage_class_source_file
+		evidence_keys: (evidenced.get(row.id) ?? []).map((evidence) => evidence.fact_key)
 	}));
 
 	return {
@@ -250,35 +261,110 @@ export function pickConfiguration(options: {
 	};
 }
 
-/** A CN run has one sealed city profile. Every employed salary day must name a site it covers. */
-export function assertProfileWorksites(
+/**
+ * The run's world with the entity's recorded terms and work-day inputs judged and resolved, each
+ * against the version governing its date: a terms row on the first day it prices in the salary
+ * window (else its own first day), a person-day on its date. Inside the run's windows a required
+ * value must be present and a value whose declaration demands evidence must have its
+ * `fact_evidence` row; every row gets its declared defaults, and its recorded keys as `fact_keys`
+ * (`terms.fact_keys`, `day_fact_keys`). A lineage that declares neither schema leaves the world as read.
+ */
+export function withDeclaredFacts(
 	configuration: Configuration,
 	world: PayrollWorld,
 	window: PayrollWindow
-): void {
-	if (configuration.jurisdiction.jurisdiction_code !== 'CN') return;
-	const covered = configuration.jurisdiction.work_rules.wages?.by_region ?? {};
-	const termsByEmployment = Map.groupBy(live(world.employment_terms), (row) => row.employment_id);
-	const days = daysBetween(window.salary.start, window.salary.end);
-	for (const employment of live(world.employments)) {
-		if (
-			employment.company_id !== configuration.company.id ||
-			!overlapsRange(employment.effective_range, window.salary.start, window.salary.end)
+): PayrollWorld {
+	const code = configuration.jurisdiction.code;
+	const versions = configuration.lineageVersions;
+	const declared = (day: string, schema: 'terms_facts' | 'work_day_facts') =>
+		((settingsInForce(versions, code, day) ?? configuration.jurisdiction)[schema] ??
+			[]) as readonly FactKey[];
+	if (
+		!versions.some(
+			(version) =>
+				(version.terms_facts ?? []).length > 0 || (version.work_day_facts ?? []).length > 0
 		)
-			continue;
-		const terms = termsByEmployment.get(employment.id) ?? [];
-		for (const day of days) {
-			if (!coversDate(employment.effective_range, day)) continue;
-			const site = terms.find((row) => coversDate(row.effective_range, day))?.worksite?.trim();
-			if (site != null && Object.hasOwn(covered, site)) continue;
-			refuse(
-				`${employment.employee_number}: ${configuration.jurisdiction.code} cannot price ${day} ` +
-					`at ${site ? `worksite "${site}"` : 'an unrecorded worksite'}. Record the contract ` +
-					'performance place on dated employment terms; this run has one city profile and ' +
-					'cannot substitute the company region or another city’s wage rules.'
+	)
+		return world;
+	const evidence = new Set(
+		live(world.fact_evidence ?? []).map(
+			(row) => `${row.subject.collection}:${row.subject.id}:${row.fact_key}`
+		)
+	);
+	const employments = new Map(
+		live(world.employments)
+			.filter((row) => row.company_id === configuration.company.id)
+			.map((row) => [row.id, row])
+	);
+	const employees = new Map(live(world.employees).map((row) => [row.id, row]));
+	const termsByEmployment = Map.groupBy(live(world.employment_terms), (row) => row.employment_id);
+	const judge = <R extends { readonly id: string; readonly facts?: unknown }>(
+		collection: 'employment_terms' | 'work_days',
+		row: R,
+		employmentId: WorkspaceRow<'employments'>['id'],
+		day: string,
+		inWindow: boolean
+	): R => {
+		const employment = employments.get(employmentId)!;
+		const fields = declared(
+			day,
+			collection === 'employment_terms' ? 'terms_facts' : 'work_day_facts'
+		);
+		const raw = scalarFacts(row.facts as Readonly<Record<string, unknown>> | null | undefined);
+		const scope = `${employment.employee_number}: ${collection === 'employment_terms' ? 'terms' : 'work day'} on ${day}`;
+		if (inWindow) {
+			let person: PersonContext | undefined;
+			const range = readRange(employment.effective_range);
+			const when = (expression: string) =>
+				isEligible(
+					expression,
+					(person ??= personContext({
+						employee: employees.get(employment.employee_id) ?? null,
+						employment: {
+							service_start: dateKey(range?.start),
+							exit_date: range?.end == null ? null : dateKey(range.end),
+							exit_reason: employment.exit_reason
+						},
+						terms:
+							(termsByEmployment.get(employmentId) ?? []).find((terms) =>
+								coversDate(terms.effective_range, day)
+							) ?? null,
+						company: configuration.company,
+						asOf: day
+					}))
+				);
+			requireFactValues(fields, raw, scope, when, (key) =>
+				evidence.has(`${collection}:${row.id}:${key}`)
 			);
 		}
-	}
+		return {
+			...row,
+			facts: resolveFactValues(fields, raw, scope, false),
+			fact_keys: Object.keys(raw)
+		};
+	};
+	const { salary, attendance } = window;
+	return {
+		...world,
+		employment_terms: world.employment_terms.map((row) => {
+			if (!employments.has(row.employment_id)) return row;
+			const start = dateKey(readRange(row.effective_range)?.start);
+			const inWindow = overlapsRange(row.effective_range, salary.start, salary.end);
+			const day = inWindow && start < salary.start ? salary.start : start;
+			return judge('employment_terms', row, row.employment_id, day, inWindow);
+		}),
+		work_days: world.work_days.map((row) => {
+			if (!employments.has(row.employment_id)) return row;
+			const day = dateKey(row.work_date);
+			return judge(
+				'work_days',
+				row,
+				row.employment_id,
+				day,
+				day >= attendance.start && day <= attendance.end
+			);
+		})
+	};
 }
 
 /**

@@ -91,6 +91,79 @@ const REST_ID = 'c0000000-0000-4000-8000-0000000000d3';
 const PATTERN_ID = 'c0000000-0000-4000-8000-0000000000d2';
 
 const RANGE = { start: '2000-01-01', end: null };
+const PH_REVISION_ID = 'c0000000-0000-4000-8000-0000000000f1';
+
+/**
+ * The lineage-declared terms inputs (`terms_facts`) of one synthetic person: what the seeded
+ * lineage reads, defaulted the way the fixture always has, a person's override explicit and an
+ * explicit null recording nothing.
+ */
+function termsFacts(
+	code: string,
+	person: Person,
+	region: string | null | undefined
+): Record<string, string | number | boolean> {
+	const facts: Record<string, string | number | boolean | null | undefined> =
+		code === 'VN'
+			? {
+					prior_floor_region:
+						person.prior_floor_region === undefined ? (region ?? null) : person.prior_floor_region,
+					prior_floor_reclassified:
+						person.prior_floor_reclassified === undefined ? false : person.prior_floor_reclassified
+				}
+			: code === 'MY' || code === 'MY-nihon'
+				? {
+						worksite_state:
+							person.worksite_state === undefined ? 'KUALA_LUMPUR' : person.worksite_state
+					}
+				: code === 'TH'
+					? {
+							pregnancy_status: person.th_pregnancy_status ?? 'NOT_PREGNANT',
+							hazardous_work: person.hazardous_work
+						}
+					: code === 'PH'
+						? { wage_worksite_source: 'FIXTURE-WORKSITE', wage_sector_source: 'FIXTURE-SECTOR' }
+						: code === 'ID'
+							? {
+									// Synthetic company scale and individual notice; tests alter these to probe refusal.
+									wage_scale_grade: 'FIXTURE',
+									wage_scale_basic_minimum: Math.max(1, person.wage),
+									wage_scale_effective_on: person.hire_date ?? '2015-01-01',
+									wage_scale_notice_on: person.hire_date ?? '2015-01-01',
+									wage_scale_reference: 'FIXTURE-SCALE',
+									worksite_sector_edition:
+										person.worksite_sector_edition === undefined
+											? '2020'
+											: person.worksite_sector_edition,
+									foreign_prior_work: person.id_foreign_prior_indonesia_work,
+									foreign_prior_work_reviewed_on: person.id_foreign_prior_work_reviewed_on
+								}
+							: {};
+	return Object.fromEntries(Object.entries(facts).filter(([, value]) => value != null)) as Record<
+		string,
+		string | number | boolean
+	>;
+}
+
+/** The evidence rows (key, reference, file) the person's evidenced terms inputs carry. */
+function termsEvidenceOf(
+	code: string,
+	person: Person
+): readonly (readonly [string, string | null, string | null])[] {
+	if (code === 'PH')
+		return [
+			['wage_worksite_source', 'FIXTURE-WORKSITE', 'fixture-worksite.pdf'],
+			['wage_sector_source', 'FIXTURE-SECTOR', 'fixture-sector.pdf']
+		];
+	if (code !== 'ID') return [];
+	return [
+		['wage_scale_reference', null, 'fixture-scale-and-grade-notice.pdf'],
+		...(person.id_foreign_prior_work_reviewed_on != null &&
+		person.id_foreign_prior_work_reference != null
+			? [['foreign_prior_work_reviewed_on', person.id_foreign_prior_work_reference, null] as const]
+			: [])
+	];
+}
 
 /** One person to price: the wage, and the facts a band or a scheme predicate reads about them. */
 export type Person = {
@@ -117,22 +190,29 @@ export type Person = {
 	readonly children?: number;
 	readonly grade?: string;
 	readonly statutory_work_category?: string;
+	/** TH `terms.facts.hazardous_work`; unrecorded (the declared default, false) unless stated. */
 	readonly hazardous_work?: boolean;
 	readonly weather_dependent_piece?: boolean;
 	/** `employment.classification`; `EA_COVERED` unless stated. */
 	readonly work_classification?: string;
 	readonly hire_date?: string;
-	/** The worksite's region under the 31 December 2025 VN minimum-wage order. */
-	readonly minimum_wage_2025_region?: string | null;
-	readonly minimum_wage_2026_area_reclassified?: boolean | null;
+	/** VN `terms.facts.prior_floor_region`: the worksite's region under the 31 December 2025 order. */
+	readonly prior_floor_region?: string | null;
+	/** VN `terms.facts.prior_floor_reclassified`. */
+	readonly prior_floor_reclassified?: boolean | null;
 	/** The worksite and its sector a daily minimum-wage table names (TH Notice 14). */
 	readonly worksite?: string | null;
+	/** MY `terms.facts.worksite_state`. */
 	readonly worksite_state?: string | null;
 	readonly worksite_sector?: string | null;
+	/** ID `terms.facts.worksite_sector_edition`. */
 	readonly worksite_sector_edition?: string | null;
+	/** ID `terms.facts.foreign_prior_work` and `foreign_prior_work_reviewed_on`; the reference is its evidence. */
 	readonly id_foreign_prior_indonesia_work?: 'NONE' | 'ANY' | null;
 	readonly id_foreign_prior_work_reviewed_on?: string | null;
 	readonly id_foreign_prior_work_reference?: string | null;
+	/** TH `terms.facts.pregnancy_status`; NOT_PREGNANT unless stated. */
+	readonly th_pregnancy_status?: 'PREGNANT' | 'NOT_PREGNANT' | null;
 	/** The last employed day; the fixture closes the employment and its terms on it. */
 	readonly exit_date?: string;
 	/** `employments.exit_reason`, the separation bands' gate. */
@@ -407,18 +487,6 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		base_salary: person.wage,
 		currency: versions[0]!.payroll.currency,
 		pay_frequency: person.pay_frequency ?? 'MONTHLY',
-		minimum_wage_2025_region:
-			code === 'VN'
-				? person.minimum_wage_2025_region === undefined
-					? (options.region ?? null)
-					: person.minimum_wage_2025_region
-				: null,
-		minimum_wage_2026_area_reclassified:
-			code === 'VN'
-				? person.minimum_wage_2026_area_reclassified === undefined
-					? false
-					: person.minimum_wage_2026_area_reclassified
-				: null,
 		// PH synthetic worlds name an exact seeded site; a person's override remains explicit.
 		worksite:
 			person.worksite === undefined
@@ -434,14 +502,6 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 								? 'SHANGHAI'
 								: null
 				: person.worksite,
-		ph_worksite_source_reference: code === 'PH' ? 'FIXTURE-WORKSITE' : null,
-		ph_worksite_source_file: code === 'PH' ? 'fixture-worksite.pdf' : null,
-		worksite_state:
-			person.worksite_state === undefined
-				? code === 'MY' || code === 'MY-nihon'
-					? 'KUALA_LUMPUR'
-					: null
-				: person.worksite_state,
 		// OSS KBLI 2020 62019 is other computer programming; no seeded ID sector order lists it.
 		worksite_sector:
 			person.worksite_sector === undefined
@@ -451,17 +511,6 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 						? phSector
 						: null
 				: person.worksite_sector,
-		ph_sector_source_reference: code === 'PH' ? 'FIXTURE-SECTOR' : null,
-		ph_sector_source_file: code === 'PH' ? 'fixture-sector.pdf' : null,
-		worksite_sector_edition:
-			person.worksite_sector_edition === undefined
-				? code === 'ID'
-					? '2020'
-					: null
-				: person.worksite_sector_edition,
-		id_foreign_prior_indonesia_work: person.id_foreign_prior_indonesia_work ?? null,
-		id_foreign_prior_work_reviewed_on: person.id_foreign_prior_work_reviewed_on ?? null,
-		id_foreign_prior_work_reference: person.id_foreign_prior_work_reference ?? null,
 		ordinary_hours_per_week:
 			person.ordinary_hours_per_week ??
 			(code === 'TW' && person.employment_type === 'PART_TIME' ? 20 : null),
@@ -479,8 +528,6 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				: person.comparable_full_time_presence,
 		work_classification: person.work_classification ?? 'EA_COVERED',
 		statutory_work_category: person.statutory_work_category ?? 'NON_MANUAL',
-		hazardous_work: person.hazardous_work ?? false,
-		...(code === 'TH' ? { th_pregnancy_status: person.th_pregnancy_status ?? 'NOT_PREGNANT' } : {}),
 		weather_dependent_piece: person.weather_dependent_piece ?? false,
 		employment_type: person.employment_type ?? 'PERMANENT',
 		// VN, ID, TW, SG and CN refuse an unrecorded citizenship; synthetic cases there are citizens unless stated.
@@ -523,17 +570,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		department: null,
 		job_title: 'Fixture',
 		grade: person.grade ?? null,
-		// Synthetic ID company scale and individual notice; tests remove or alter these to probe refusal.
-		...(code === 'ID'
-			? {
-					id_wage_scale_grade: 'FIXTURE',
-					id_wage_scale_basic_minimum: Math.max(1, person.wage),
-					id_wage_scale_effective_on: person.hire_date ?? '2015-01-01',
-					id_wage_scale_notice_on: person.hire_date ?? '2015-01-01',
-					id_wage_scale_reference: 'FIXTURE-SCALE',
-					id_wage_scale_evidence_file: 'fixture-scale-and-grade-notice.pdf'
-				}
-			: {}),
+		facts: termsFacts(code, person, options.region),
 		payroll_group: null,
 		paid_rest_days: false,
 		shift_pattern_id: PATTERN_ID,
@@ -697,6 +734,17 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 			});
 		}
 
+	// Each declared terms input a lineage demands evidence for carries its row, as the product records it.
+	const termsEvidence = terms.flatMap((row, index) =>
+		termsEvidenceOf(code, people[index]!).map(([fact_key, reference, file], n) => ({
+			id: `f0000000-0000-4000-8000-${String(index * 10 + n).padStart(12, '0')}`,
+			subject: { collection: 'employment_terms', id: row.id },
+			fact_key,
+			reference,
+			file,
+			approval_id: null
+		}))
+	);
 	const phCompanyFacts = {
 		small_establishment: false,
 		retirement_exempt_establishment: false,
@@ -757,11 +805,10 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 			code === 'PH'
 				? [
 						{
+							id: PH_REVISION_ID,
 							company_id: COMPANY_ID,
 							facts: phCompanyFacts,
 							effective_range: RANGE,
-							ph_wage_class_source_reference: 'FIXTURE-ESTABLISHMENT-COUNT',
-							ph_wage_class_source_file: 'fixture-establishment-count.pdf',
 							approval_id: null
 						}
 					]
@@ -837,6 +884,21 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		loans: [],
 		loan_repayments: [],
 		work_days: [],
+		fact_evidence: [
+			...termsEvidence,
+			...(code === 'PH'
+				? [
+						{
+							id: 'f0000000-0000-4000-8000-0000000000c1',
+							subject: { collection: 'company_facts', id: PH_REVISION_ID },
+							fact_key: 'ph_wage_worker_count',
+							reference: 'FIXTURE-ESTABLISHMENT-COUNT',
+							file: 'fixture-establishment-count.pdf',
+							approval_id: null
+						}
+					]
+				: [])
+		],
 		payroll_runs: [],
 		payslips: []
 	};

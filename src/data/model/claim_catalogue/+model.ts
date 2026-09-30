@@ -18,6 +18,13 @@ export default model({
 		/** A claim-level predicate; a mismatch refuses instead of consuming the claim. */
 		qualifies_when: { kind: 'text', default: '' },
 		evidence: { kind: 'enum', values: ['NONE', 'OPTIONAL', 'REQUIRED'], default: 'NONE' },
+		/**
+		 * What a request of this class needs before it is priced (`request_requirements`): its event
+		 * inside the employment, dated terms, and person conditions with the refusal naming what to record.
+		 */
+		request_requirements: { kind: 'custom', of: 'request_requirements', optional: true },
+		/** The inputs each request of this class records (`facts` on the request; `entry.facts.<key>`). */
+		request_facts: { kind: 'custom', of: 'fact_keys', default: [] },
 		/** The schemes whose base a paid claim of this class enters (`CLAIMS`). */
 		counts_toward: { kind: 'custom', of: 'code_list' }
 	},

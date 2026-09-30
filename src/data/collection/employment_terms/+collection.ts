@@ -1,9 +1,11 @@
-import { collection, type Id } from '@norbital-ai/bolt';
+import { collection, type Id, type TransformCtx } from '@norbital-ai/bolt';
 import { readRange } from '../../../lib/payroll/run/effective.js';
 import { consumedTermsThrough, contractBindingFault } from '../../../lib/employment-contract.js';
 import { termsSummary } from '../../../lib/derived-titles.js';
 import { dateKey } from '../../../lib/iso-day.js';
-import { stableJson } from '../../../lib/jurisdiction_settings.js';
+import { governed, periodsOverlap, stableJson } from '../../../lib/jurisdiction_settings.js';
+import { entityFactsFault, sealedLineages } from '../../../lib/entity-facts.js';
+import { VOCABULARY_FIELDS } from '../../../lib/datatypes/payroll_settings.js';
 
 /** Terms that supplied consumed contract history are retained (the delete guard). */
 const terms = collection('employment_terms', {
@@ -16,22 +18,12 @@ const terms = collection('employment_terms', {
 				'residency_since',
 				'currency',
 				'base_salary',
-				'minimum_wage_2025_region',
-				'minimum_wage_2026_area_reclassified',
 				'worksite',
-				'ph_worksite_source_reference',
-				'ph_worksite_source_file',
-				'worksite_state',
 				'worksite_sector',
-				'ph_sector_source_reference',
-				'ph_sector_source_file',
-				'worksite_sector_edition',
 				'allowances',
 				'pay_frequency',
 				'work_classification',
 				'statutory_work_category',
-				'hazardous_work',
-				'th_pregnancy_status',
 				'weather_dependent_piece',
 				'employment_type',
 				'department',
@@ -40,26 +32,15 @@ const terms = collection('employment_terms', {
 				'paid_rest_days',
 				'proration',
 				'grade',
-				'id_wage_scale_grade',
-				'id_wage_scale_basic_minimum',
-				'id_wage_scale_effective_on',
-				'id_wage_scale_notice_on',
-				'id_wage_scale_reference',
-				'id_wage_scale_evidence_file',
-				'id_foreign_prior_indonesia_work',
-				'id_foreign_prior_work_reviewed_on',
-				'id_foreign_prior_work_reference',
 				'pass_type',
 				'tax_residency',
 				'notice_days',
-				'probation_end',
-				'post_probation_wage',
-				'open_ended_due_on',
 				'ordinary_hours_per_week',
 				'comparable_full_time_daily_hours',
 				'comparable_full_time_weekly_hours',
 				'comparable_full_time_presence',
 				'shift_pattern_id',
+				'facts',
 				'effective_range'
 			]
 		}
@@ -71,22 +52,12 @@ const terms = collection('employment_terms', {
 				'residency_since',
 				'currency',
 				'base_salary',
-				'minimum_wage_2025_region',
-				'minimum_wage_2026_area_reclassified',
 				'worksite',
-				'ph_worksite_source_reference',
-				'ph_worksite_source_file',
-				'worksite_state',
 				'worksite_sector',
-				'ph_sector_source_reference',
-				'ph_sector_source_file',
-				'worksite_sector_edition',
 				'allowances',
 				'pay_frequency',
 				'work_classification',
 				'statutory_work_category',
-				'hazardous_work',
-				'th_pregnancy_status',
 				'weather_dependent_piece',
 				'employment_type',
 				'department',
@@ -95,26 +66,15 @@ const terms = collection('employment_terms', {
 				'paid_rest_days',
 				'proration',
 				'grade',
-				'id_wage_scale_grade',
-				'id_wage_scale_basic_minimum',
-				'id_wage_scale_effective_on',
-				'id_wage_scale_notice_on',
-				'id_wage_scale_reference',
-				'id_wage_scale_evidence_file',
-				'id_foreign_prior_indonesia_work',
-				'id_foreign_prior_work_reviewed_on',
-				'id_foreign_prior_work_reference',
 				'pass_type',
 				'tax_residency',
 				'notice_days',
-				'probation_end',
-				'post_probation_wage',
-				'open_ended_due_on',
 				'ordinary_hours_per_week',
 				'comparable_full_time_daily_hours',
 				'comparable_full_time_weekly_hours',
 				'comparable_full_time_presence',
 				'shift_pattern_id',
+				'facts',
 				'effective_range'
 			]
 		}
@@ -123,10 +83,37 @@ const terms = collection('employment_terms', {
 });
 export default terms;
 
+/** Each employment's settings lineage code, through its company. */
+async function lineageOf(
+	db: TransformCtx<'employment_terms'>['db'],
+	employmentIds: readonly Id<'employments'>[]
+): Promise<Map<string, string>> {
+	const employments = (
+		await db.read('employments', {
+			where: { id: { in: [...employmentIds] } },
+			select: { id: true, company_id: true },
+			all: true
+		})
+	).rows;
+	const companies = (
+		await db.read('companies', {
+			where: { id: { in: [...new Set(employments.map((row) => row.company_id))] } },
+			select: { id: true, settings_code: true },
+			all: true
+		})
+	).rows;
+	const code = new Map(companies.map((row) => [String(row.id), row.settings_code]));
+	return new Map(
+		employments.map((row) => [String(row.id), code.get(String(row.company_id)) ?? ''])
+	);
+}
+
 /**
  * Preserve consumed term history; amend an unconsumed future portion by closing its period and creating a successor
  * within the same contract (the `noOverlap` holds non-overlap on every write). Terms that supplied consumed history are
- * not deleted either. Every allowance the row lists names an allowance class, once per code. The title is derived.
+ * not deleted either. Every allowance the row lists names an allowance class, once per code. Each classification code
+ * is one every sealed version of the lineage the terms' period reaches declares in `payroll.vocabularies` (a period
+ * before the lineage's first version is judged by all of them). The title is derived.
  */
 terms.transform(async (inputs, { existing, db, refuse }) => {
 	const employmentIds = inputs.flatMap((input, index) => {
@@ -141,7 +128,20 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 			)
 		)
 	];
-	const [consumed, classes] = await Promise.all([
+	// Recorded inputs and classification codes are judged against the sealed versions of the entity's lineage.
+	const coded = (input: (typeof inputs)[number]) =>
+		'$delete' in input ? [] : VOCABULARY_FIELDS.filter((field) => (input[field] ?? '') !== '');
+	const factEmployments = [
+		...new Set(
+			inputs.flatMap((input, index) => {
+				if ('$delete' in input) return [];
+				const id = input.employment_id ?? existing[index]?.employment_id;
+				const judged = Object.keys(input.facts ?? {}).length > 0 || coded(input).length > 0;
+				return id == null || !judged ? [] : [id];
+			})
+		)
+	];
+	const [consumed, classes, codeByEmployment] = await Promise.all([
 		consumedTermsThrough(db, employmentIds),
 		classIds.length === 0
 			? []
@@ -150,8 +150,19 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 						where: { id: { in: classIds as Id<'allowance_catalogue'>[] } },
 						all: true
 					})
-					.then((page) => page.rows)
+					.then((page) => page.rows),
+		factEmployments.length === 0 ? new Map<string, string>() : lineageOf(db, factEmployments)
 	]);
+	const factCodes = [...new Set(codeByEmployment.values())];
+	const versions =
+		factCodes.length === 0
+			? []
+			: (
+					await db.read('jurisdiction_settings', {
+						...sealedLineages(factCodes),
+						select: { code: true, effective_range: true, terms_facts: true, payroll: true }
+					})
+				).rows;
 	const classCodeById = new Map(classes.map((row) => [String(row.id), row.code]));
 	return inputs.map((input, index) => {
 		const stored = existing[index];
@@ -179,12 +190,45 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 			listed.add(code!);
 		}
 		const row = { ...stored, ...input };
+		if (input.facts != null && Object.keys(input.facts).length > 0) {
+			const code = codeByEmployment.get(employmentId) ?? '';
+			const fault = entityFactsFault(
+				code,
+				input.facts,
+				versions
+					.filter((version) => version.code === code)
+					.flatMap((version) => version.terms_facts)
+			);
+			if (fault != null) refuse(fault, { field: 'facts' });
+		}
 		const derived = { ...input, summary: termsSummary(row) };
 		const range = readRange(row.effective_range);
 		if (!range || (range.end != null && dateKey(range.end) < dateKey(range.start)))
 			refuse('Employment terms need an ordered inclusive effective range.', {
 				field: 'effective_range'
 			});
+		const fields = coded(input);
+		if (fields.length > 0) {
+			const code = codeByEmployment.get(employmentId) ?? '';
+			const period = governed(row.effective_range)!;
+			const lineage = versions.filter((version) => version.code === code);
+			const reached = lineage.filter((version) => {
+				const days = governed(version.effective_range);
+				return days != null && periodsOverlap(days, period);
+			});
+			const governing = reached.length > 0 ? reached : lineage;
+			if (governing.length === 0)
+				refuse(`${code || 'This contract'} has no sealed settings version declaring its codes.`, {
+					field: fields[0]!
+				});
+			for (const field of fields) {
+				const value = String(input[field]);
+				const undeclared = governing.some(
+					(version) => !(version.payroll.vocabularies?.[field] ?? []).includes(value)
+				);
+				if (undeclared) refuse(`${code} does not declare ${value} as a ${field}.`, { field });
+			}
+		}
 		const through = consumed.get(employmentId);
 		if (through == null) return derived;
 		const prior = stored == null ? null : readRange(stored.effective_range);

@@ -330,31 +330,37 @@ export function withLeaveDeductionEligibility(
 		}))
 	);
 	const timeOff = activeTimeOff(gathered.entries);
-	if (configuration.company.settings_code === 'TH') {
-		const maternity = timeOff.filter(
-			(row) => row.leave_code === 'MATERNITY_LEAVE' && row.event_date != null
-		);
-		for (const entry of maternity) {
-			const dates = maternity
-				.filter(
-					(row) =>
-						row.employment_id === entry.employment_id &&
-						dateKey(row.event_date) === dateKey(entry.event_date)
-				)
-				.flatMap((row) => row.charges.map((charge) => charge.date));
-			if (dates.some((date) => date < '2025-12-07') && dates.some((date) => date >= '2025-12-07'))
-				refuse('MATERNITY_LEAVE across 2025-12-07 requires transition review.');
+	for (const entry of timeOff) {
+		if (entry.event_date == null) continue;
+		const dates = timeOff
+			.filter(
+				(row) =>
+					row.employment_id === entry.employment_id &&
+					row.leave_code === entry.leave_code &&
+					dateKey(row.event_date) === dateKey(entry.event_date)
+			)
+			.flatMap((row) => row.charges.map((charge) => charge.date));
+		for (const charge of entry.charges) {
+			const rule = gathered.catalogues.find((row) => row.id === charge.catalogue_id)?.entitlement;
+			const on = rule?.transition_review_on;
+			if (
+				rule?.availability === 'PER_EVENT' &&
+				on != null &&
+				dates.some((date) => date < on) &&
+				dates.some((date) => date >= on)
+			)
+				refuse(`${entry.leave_code} across ${on} requires transition review.`);
 		}
 	}
 	for (const entry of timeOff) {
 		if (
-			configuration.company.settings_code === 'SG' &&
-			gathered.catalogues.find((row) => row.id === entry.catalogue_id)?.is_npl === true
+			gathered.catalogues.find((row) => row.id === entry.catalogue_id)?.requires_no_pay_origin ===
+			true
 		) {
 			if (entry.no_pay_origin == null)
-				refuse('SG no-pay leave needs its employee-request origin before payroll settlement.');
+				refuse(`${entry.leave_code} needs its employee-request origin before payroll settlement.`);
 			if (entry.no_pay_origin === 'OTHER')
-				refuse('SG no-pay leave without an employee request needs its pay basis assessed.');
+				refuse(`${entry.leave_code} without an employee request needs its pay basis assessed.`);
 		}
 		if (
 			entry.event_date == null &&
@@ -706,6 +712,8 @@ export function calculateLeavePayroll(options: {
 	readonly dueThrough: string;
 	readonly currency: string;
 	readonly absenceRate: (charge: LeaveCharge) => number;
+	/** The most a term's month of unpaid charges may deduct (its monthly salary); absent is no ceiling. */
+	readonly absenceCeiling?: ((charge: LeaveCharge) => number) | undefined;
 	readonly absenceHourlyRate?: ((charge: LeaveCharge) => number) | undefined;
 	readonly outpatientSickExcludedRate?: ((charge: LeaveCharge) => number) | undefined;
 	/**
@@ -769,7 +777,10 @@ export function calculateLeavePayroll(options: {
 				refuse('Work must supply a nonnegative Leave absence rate.');
 			const basis = `${charge.employment_term_id}/${charge.date.slice(0, 7)}`;
 			const previous = deductionTotals.get(basis) ?? 0;
-			const total = previous + rate * (charge.hours ?? charge.days) * shareOf(prepared, key);
+			const total = Math.min(
+				options.absenceCeiling?.(charge) ?? Number.POSITIVE_INFINITY,
+				previous + rate * (charge.hours ?? charge.days) * shareOf(prepared, key)
+			);
 			const amount = cents(cents(total, currency) - cents(previous, currency), currency);
 			deductionTotals.set(basis, total);
 			if (amount === 0) continue;

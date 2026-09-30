@@ -28,6 +28,7 @@ import codeList from '../src/data/custom_field/code_list/+definition.ts';
 import factKeys from '../src/data/custom_field/fact_keys/+definition.ts';
 import leaveEntitlement from '../src/data/custom_field/leave_entitlement/+definition.ts';
 import obligations from '../src/data/custom_field/obligations/+definition.ts';
+import requestRequirements from '../src/data/custom_field/request_requirements/+definition.ts';
 import payrollSettings from '../src/data/custom_field/payroll_settings/+definition.ts';
 import sources from '../src/data/custom_field/sources/+definition.ts';
 import workRules from '../src/data/custom_field/work_rules/+definition.ts';
@@ -65,6 +66,10 @@ const CUSTOM_COLUMNS = {
 		['work_rules', workRules],
 		['facts', factKeys],
 		['exit_facts', factKeys],
+		['terms_facts', factKeys],
+		['work_day_facts', factKeys],
+		['payment_facts', factKeys],
+		['settlement_facts', factKeys],
 		['obligations', obligations]
 	],
 	statutory_contributions: [
@@ -75,11 +80,15 @@ const CUSTOM_COLUMNS = {
 	leave_catalogue: [['entitlement', leaveEntitlement]],
 	claim_catalogue: [
 		['bands', catalogueBand],
-		['counts_toward', codeList]
+		['counts_toward', codeList],
+		['request_facts', factKeys],
+		['request_requirements', requestRequirements]
 	],
 	adhoc_catalogue: [
 		['bands', catalogueBand],
-		['counts_toward', codeList]
+		['counts_toward', codeList],
+		['request_facts', factKeys],
+		['request_requirements', requestRequirements]
 	],
 	allowance_catalogue: [
 		['bands', catalogueBand],

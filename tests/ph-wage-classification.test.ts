@@ -101,21 +101,28 @@ test('PH reduced classes refuse unsupported municipality, sector and size claims
 	assert.throws(
 		() =>
 			buildStatutory(reducedNcr, (world) => {
-				world.employment_terms[0]!.ph_worksite_source_file = null;
+				// The municipality source counts only with its reference and file (`terms_facts` evidence).
+				world.fact_evidence!.splice(
+					world.fact_evidence!.findIndex((row) => row.fact_key === 'wage_worksite_source'),
+					1
+				);
 			}),
-		/municipality and sector source documents/
+		/municipality source counts only once its evidence \(reference and file\) is recorded/
 	);
 	assert.throws(
 		() =>
 			buildStatutory(reducedNcr, (world) => {
-				world.employment_terms[0]!.ph_sector_source_reference = null;
+				delete (world.employment_terms[0]!.facts as Record<string, unknown>).wage_sector_source;
 			}),
-		/municipality and sector source documents/
+		/NCR-AGRI-SMALL wage-order class needs its dated source documents: wage_sector_source\./
 	);
 	assert.throws(
 		() =>
 			buildStatutory(reducedNcr, (world) => {
-				world.company_facts![0]!.ph_wage_class_source_file = null;
+				world.fact_evidence!.splice(
+					world.fact_evidence!.findIndex((row) => row.fact_key === 'ph_wage_worker_count'),
+					1
+				);
 			}),
 		/dated establishment and worker-count source document/
 	);
@@ -139,10 +146,10 @@ test('PH reduced classes refuse unsupported municipality, sector and size claims
 					]
 				},
 				(world) => {
-					world.employment_terms[0]!.ph_worksite_source_reference = null;
+					delete (world.employment_terms[0]!.facts as Record<string, unknown>).wage_worksite_source;
 				}
 			),
-		/municipality and sector source documents/
+		/wage-order class needs its dated source documents: wage_worksite_source\./
 	);
 });
 
@@ -161,24 +168,35 @@ test('PH wage order: a dated establishment count change inside the pay window re
 				},
 				(world) => {
 					const recorded = world.companies[0]!.facts as Record<string, unknown>;
+					const count = (id: string, n: number) => ({
+						id: `${id}-evidence`,
+						subject: { collection: 'company_facts', id },
+						fact_key: 'ph_wage_worker_count',
+						reference: `FIXTURE-COUNT-${n}`,
+						file: `fixture-count-${n}.pdf`,
+						approval_id: null
+					});
 					Object.assign(world, {
 						company_facts: [
 							{
+								id: 'count-15',
 								company_id: world.companies[0]!.id,
 								facts: { ...recorded, ...facts(15) },
 								effective_range: { start: '2026-09-01', end: '2026-10-04' },
-								ph_wage_class_source_reference: 'FIXTURE-COUNT-15',
-								ph_wage_class_source_file: 'fixture-count-15.pdf',
 								approval_id: null
 							},
 							{
+								id: 'count-16',
 								company_id: world.companies[0]!.id,
 								facts: { ...recorded, ...facts(16) },
 								effective_range: { start: '2026-10-05', end: null },
-								ph_wage_class_source_reference: 'FIXTURE-COUNT-16',
-								ph_wage_class_source_file: 'fixture-count-16.pdf',
 								approval_id: null
 							}
+						],
+						fact_evidence: [
+							...world.fact_evidence!.filter((row) => row.fact_key !== 'ph_wage_worker_count'),
+							count('count-15', 15),
+							count('count-16', 16)
 						]
 					});
 				}
@@ -222,11 +240,34 @@ test('PH wage order: every active version has sourced IV-A agriculture rates and
 		assert.equal(wages.by_region['IV-A-AGRI-COMPONENT-1ST'], 13_693.75);
 		assert.equal(wages.by_region['IV-A-AGRI-RECLASSIFIED-1ST'], afterApril ? 13_693.75 : 12_650.42);
 		assert.equal(wages.by_region['IV-A-AGRI-2ND-5TH'], afterApril ? 13_250.33 : 12_650.42);
-		assert.equal(wages.classified_by_worksite?.rows.length, 542);
+		// 542 classes, plus the Cotabato City domestic class where the version seals the BARMM domestic floor.
+		assert.equal(
+			wages.classified_by_worksite?.rows.length,
+			wages.by_employment_type?.['DOMESTIC']?.['BARMM'] == null ? 542 : 543
+		);
+		// A reduced (non-NCR, non-IV-A) non-domestic class needs its municipality and sector sources.
+		for (const row of wages.classified_by_worksite?.rows ?? [])
+			assert.deepEqual(
+				row.requires_evidence,
+				row.employment_type === 'DOMESTIC' || row.rate_key === 'NCR' || row.rate_key === 'IV-A'
+					? undefined
+					: ['wage_worksite_source', 'wage_sector_source']
+			);
 		assert.equal(
 			version.facts.find((fact) => fact.key === 'ph_wage_one_establishment')?.default_value,
 			undefined
 		);
 		assert.equal(version.facts.find((fact) => fact.key === 'ph_wage_worker_count')?.integer, true);
+		assert.equal(
+			version.facts.find((fact) => fact.key === 'ph_wage_worker_count')?.evidence?.kind,
+			'REFERENCE_AND_FILE'
+		);
+		assert.deepEqual(
+			version.terms_facts.map((fact) => [fact.key, fact.evidence?.kind]),
+			[
+				['wage_worksite_source', 'REFERENCE_AND_FILE'],
+				['wage_sector_source', 'REFERENCE_AND_FILE']
+			]
+		);
 	}
 });

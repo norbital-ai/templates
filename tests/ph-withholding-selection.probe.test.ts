@@ -6,7 +6,7 @@ import { governed, isInForceCandidate, settingsInForce } from '../src/lib/jurisd
 import { contribute, selectRule } from '../src/lib/payroll/run/contribute.ts';
 import { accumulatePayslip } from '../src/lib/payroll/run/accumulate.ts';
 import { personContext } from '../src/lib/payroll/run/eligibility.ts';
-import { philippinesCumulativeHistory } from '../src/lib/payroll/statutory-history.ts';
+import { cumulativeHistory } from '../src/lib/payroll/statutory-history.ts';
 import { evaluateNumber, runtimeExpressionEngine } from '../src/lib/expressions/evaluate.ts';
 
 type ContributionInput = Parameters<typeof contribute>[0];
@@ -131,7 +131,7 @@ for (const scenario of monthlyCases)
 			};
 			return { row, rules: row.rules };
 		});
-		const prior: Parameters<typeof philippinesCumulativeHistory>[0]['periods'] = Array.from(
+		const prior: Parameters<typeof cumulativeHistory>[0]['periods'] = Array.from(
 			{ length: scenario.month - 1 },
 			(_, index) => ({
 				period: `2026-${String(index + 1).padStart(2, '0')}`,
@@ -160,11 +160,14 @@ for (const scenario of monthlyCases)
 				}
 			})
 		);
-		const history = philippinesCumulativeHistory({
+		const trigger = contributions.find((entry) => entry.row.code === 'WTAX')!.row.history_trigger;
+		assert(trigger);
+		const history = cumulativeHistory({
 			periods: prior,
 			openings: new Map(),
 			frequency: 'MONTHLY',
-			requirePeriodsFor: new Set(['WTAX', 'SSS', 'SSS_MPF', 'PHIC', 'HDMF'])
+			requirePeriodsFor: new Set(['WTAX', 'SSS', 'SSS_MPF', 'PHIC', 'HDMF']),
+			triggers: new Map([['WTAX', trigger]])
 		});
 		const person = personContext({
 			employee: { date_of_birth: '1990-01-01' },

@@ -13,12 +13,29 @@
 	import { companyScope, employmentNames } from '../../../../lib/ui/company-scope.svelte.js';
 	import { formatLeaveSummary } from '../../../../lib/ui/display-formatters.js';
 	import MonthPeriodPicker from '../../../../lib/ui/month-period-picker.svelte';
-	import PhMaternityAdvanceStatus from '../../../../lib/ui/leave/ph-maternity-advance-status.svelte';
+	import BenefitCaseAdvanceStatus from '../../../../lib/ui/leave/benefit-case-advance-status.svelte';
+	import { bolt } from '$bolt';
+	import { liveRows } from '../../../../lib/ui/live.svelte.js';
 	import { createPayPeriodScope } from '../../../../lib/ui/pay-period-scope.svelte.js';
 
 	const scope = companyScope();
 	const pay = createPayPeriodScope(() => scope.company);
 	const person = employmentNames(() => scope.id);
+	/** The case tabs render where the entity's lineage declares a statutory benefit case. */
+	const lineage = liveRows<{
+		readonly payroll: { readonly benefit_cases?: readonly unknown[] | null } | null;
+	}>(() =>
+		scope.company == null
+			? null
+			: bolt.read('jurisdiction_settings', {
+					where: { code: { eq: scope.company.settings_code }, approval_id: { isNull: true } },
+					select: { payroll: true },
+					all: true
+				})
+	);
+	const declaresCases = $derived(
+		(lineage.current ?? []).some((row) => (row.payroll?.benefit_cases ?? []).length > 0)
+	);
 </script>
 
 {#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
@@ -26,8 +43,8 @@
 {#snippet advanceCell({
 	row
 }: {
-	row: { readonly id: Id<'ph_maternity_pay_plans'> };
-})}<PhMaternityAdvanceStatus planId={row.id} />{/snippet}
+	row: { readonly id: Id<'benefit_case_plans'> };
+})}<BenefitCaseAdvanceStatus planId={row.id} />{/snippet}
 
 <AppShell
 	icon="lucide:calendar-check-2"
@@ -72,32 +89,34 @@
 			{/snippet}
 			{#snippet cases()}
 				<Table
-					of="ph_maternity_cases"
-					key={`ph-cases-${id}`}
-					toolbar={{ title: 'Maternity cases', new: true }}
+					of="benefit_cases"
+					key={`benefit-cases-${id}`}
+					toolbar={{ title: 'Benefit cases', new: true }}
 					where={{ employment_id: { is: { company_id: { eq: id } } } }}
 					orderBy={{ application_on: 'desc' }}
 					columns={[
 						'case_reference',
+						'case_type',
 						{ field: 'employment_id', label: 'Person', cell: personCell },
 						'application_on',
-						'expected_delivery_on',
+						'expected_event_on',
 						'event_on',
-						'sss_award_amount'
+						'award_amount'
 					]}
 				/>
 			{/snippet}
-			{#snippet sssHistory()}
+			{#snippet contributionHistory()}
 				<Table
-					of="sss_contribution_months"
-					key={`ph-sss-history-${id}`}
-					toolbar={{ title: 'SSS paid contribution history', new: true }}
+					of="contribution_statement_months"
+					key={`contribution-history-${id}`}
+					toolbar={{ title: 'Paid contribution history', new: true }}
 					where={{ employee_id: { is: { employments: { some: { company_id: { eq: id } } } } } }}
 					orderBy={{ coverage_month: 'desc' }}
 					columns={[
 						'employee_id',
+						'scheme_code',
 						'coverage_month',
-						'regular_msc',
+						'credited_amount',
 						'paid_on',
 						'source_reference',
 						'evidence_file'
@@ -107,23 +126,23 @@
 			{#snippet advancePlans()}
 				<Stack gap="md">
 					<p class="text-sm text-muted-foreground">
-						A candidate is calculated from documented SSS history. The status compares recorded
-						employee cash with the thirty-day advance deadline; it does not certify payment or
-						settle payroll.
+						A candidate is calculated from documented contribution history. The status compares
+						recorded employee cash with the case type's advance deadline; it does not certify
+						payment or settle payroll.
 					</p>
 					<Table
-						of="ph_maternity_pay_plans"
-						key={`ph-plans-${id}`}
-						toolbar={{ title: 'SSS advance plans', new: true }}
+						of="benefit_case_plans"
+						key={`benefit-plans-${id}`}
+						toolbar={{ title: 'Advance plans', new: true }}
 						where={{
-							ph_maternity_case_id: { is: { employment_id: { is: { company_id: { eq: id } } } } }
+							benefit_case_id: { is: { employment_id: { is: { company_id: { eq: id } } } } }
 						}}
 						orderBy={{ advance_due_on: 'desc' }}
 						columns={[
-							'ph_maternity_case_id',
+							'benefit_case_id',
 							'revision',
 							'basis_reference',
-							'candidate_sss_amount',
+							'candidate_amount',
 							'advance_due_on',
 							{ field: 'id', label: 'Recorded advance status', cell: advanceCell }
 						]}
@@ -132,19 +151,19 @@
 			{/snippet}
 			{#snippet cutoffs()}
 				<Table
-					of="ph_maternity_pay_cutoffs"
-					key={`ph-cutoffs-${id}`}
-					toolbar={{ title: 'Maternity cutoff evidence', new: true }}
+					of="benefit_case_cutoffs"
+					key={`benefit-cutoffs-${id}`}
+					toolbar={{ title: 'Benefit cutoff evidence', new: true }}
 					where={{
-						ph_maternity_pay_plan_id: {
+						benefit_case_plan_id: {
 							is: {
-								ph_maternity_case_id: { is: { employment_id: { is: { company_id: { eq: id } } } } }
+								benefit_case_id: { is: { employment_id: { is: { company_id: { eq: id } } } } }
 							}
 						}
 					}}
 					orderBy={{ pay_on: 'asc' }}
 					columns={[
-						'ph_maternity_pay_plan_id',
+						'benefit_case_plan_id',
 						'cutoff_reference',
 						'payroll_period',
 						'leave_slice',
@@ -157,20 +176,21 @@
 			{#snippet cash()}
 				<Stack gap="md">
 					<p class="text-sm text-muted-foreground">
-						SSS advances and salary differential are employee cash. SSS reimbursement is money
+						Award advances and salary differential are employee cash. The scheme's refund is money
 						received by the employer and is excluded from employee pay.
 					</p>
 					<Table
-						of="ph_maternity_movements"
-						key={`ph-cash-${id}`}
-						toolbar={{ title: 'Maternity cash evidence', new: true }}
+						of="benefit_case_movements"
+						key={`benefit-cash-${id}`}
+						toolbar={{ title: 'Benefit cash evidence', new: true }}
 						where={{
-							ph_maternity_case_id: { is: { employment_id: { is: { company_id: { eq: id } } } } }
+							benefit_case_id: { is: { employment_id: { is: { company_id: { eq: id } } } } }
 						}}
 						orderBy={{ paid_on: 'desc' }}
 						columns={[
-							'ph_maternity_case_id',
+							'benefit_case_id',
 							'kind',
+							'direction',
 							'paid_on',
 							'amount',
 							'payment_reference',
@@ -179,7 +199,7 @@
 					/>
 				</Stack>
 			{/snippet}
-			{#if scope.company?.settings_code === 'PH'}
+			{#if declaresCases}
 				<Tabs
 					tabs={[
 						{
@@ -188,12 +208,17 @@
 							icon: 'lucide:calendar-check-2',
 							body: leaveRows
 						},
-						{ name: 'maternity-cases', title: 'Maternity cases', icon: 'lucide:baby', body: cases },
 						{
-							name: 'sss-history',
-							title: 'SSS history',
+							name: 'benefit-cases',
+							title: 'Benefit cases',
+							icon: 'lucide:file-heart',
+							body: cases
+						},
+						{
+							name: 'contribution-history',
+							title: 'Contribution history',
 							icon: 'lucide:badge-check',
-							body: sssHistory
+							body: contributionHistory
 						},
 						{
 							name: 'advance-plans',

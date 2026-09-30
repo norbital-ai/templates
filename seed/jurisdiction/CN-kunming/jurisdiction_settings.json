@@ -12,6 +12,27 @@
 			"end": "2026-01-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "CN",
+		"terms_facts": [
+			{
+				"key": "probation_end",
+				"type": "date",
+				"label": "Probation ends",
+				"description": "LCL arts.19, 83: the last day of the probation the contract agrees, where one is. Unrecorded is no probation."
+			},
+			{
+				"key": "post_probation_wage",
+				"type": "number",
+				"label": "Wage after probation",
+				"minimum": 0,
+				"description": "LCL art.20 and Implementing Regulation art.15: the wage the contract agrees for after the probation (the probation wage is at least 80% of it); art.83 prices damages on it. Unrecorded is 0."
+			},
+			{
+				"key": "open_ended_due_on",
+				"type": "date",
+				"label": "Open-ended contract due",
+				"description": "LCL arts.14 para.2, 82 para.2: the day an open-ended contract should have been concluded, a determination recorded on the contract."
+			}
+		],
 		"change_summary": "First sealed Kunming version: base 4,357–21,789, pension 16/8, medical 7/2 + maternity 0.9, unemployment 0.7/0.3 to 31 December 2025, housing fund cap 32,470, minimum wage 2,170 / 2,020. Mo Han category III minimum wage is 1,870 / 19.",
 		"work_rules": {
 			"proration": {
@@ -134,10 +155,23 @@
 			}
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "CNY",
 			"timezone": "Asia/Shanghai",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"worksite_coverage": {
+				"source": "worksite",
+				"covered_by_wage_regions": true,
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
+				"authority": "劳动合同法实施条例 art.14 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284): minimum wage and labour-protection standards follow the contract performance place. One city profile prices only the worksites its work_rules.wages.by_region names (register CN-X-WORKSITE)."
+			},
+			"registration_scope": "LINEAGE",
 			"final_pay_deadlines": [
 				{
 					"when": "",
@@ -173,7 +207,30 @@
 				"https://mz.yn.gov.cn/html/2026/jichulao_0702/4064382.html",
 				"https://ynmz.yn.gov.cn/bmfw/xzqh/xzqhsz/"
 			],
-			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
+			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default.",
+			"research_domains": [
+				"https://flk.npc.gov.cn",
+				"https://www.npc.gov.cn",
+				"https://www.gov.cn",
+				"https://xzfg.moj.gov.cn",
+				"https://www.mohrss.gov.cn",
+				"https://www.chinatax.gov.cn",
+				"https://fgk.chinatax.gov.cn",
+				"https://www.nhsa.gov.cn",
+				"https://rsj.sh.gov.cn",
+				"https://ybj.sh.gov.cn",
+				"https://www.shzfgjj.cn",
+				"https://shanghai.chinatax.gov.cn",
+				"https://www.shanghai.gov.cn",
+				"https://service.shanghai.gov.cn",
+				"https://czj.sh.gov.cn",
+				"https://hrss.yn.gov.cn",
+				"https://www.yn.gov.cn",
+				"https://ylbz.yn.gov.cn",
+				"https://www.kmrd.gov.cn",
+				"https://ybj.km.gov.cn",
+				"https://zfgjj.km.gov.cn"
+			]
 		},
 		"facts": [
 			{
@@ -336,6 +393,27 @@
 			"end": "2026-09-01T00:00:00.000Z"
 		},
 		"jurisdiction_code": "CN",
+		"terms_facts": [
+			{
+				"key": "probation_end",
+				"type": "date",
+				"label": "Probation ends",
+				"description": "LCL arts.19, 83: the last day of the probation the contract agrees, where one is. Unrecorded is no probation."
+			},
+			{
+				"key": "post_probation_wage",
+				"type": "number",
+				"label": "Wage after probation",
+				"minimum": 0,
+				"description": "LCL art.20 and Implementing Regulation art.15: the wage the contract agrees for after the probation (the probation wage is at least 80% of it); art.83 prices damages on it. Unrecorded is 0."
+			},
+			{
+				"key": "open_ended_due_on",
+				"type": "date",
+				"label": "Open-ended contract due",
+				"description": "LCL arts.14 para.2, 82 para.2: the day an open-ended contract should have been concluded, a determination recorded on the contract."
+			}
+		],
 		"change_summary": "Unemployment reduction expired; pension/unemployment/injury on the 2026 bounds 4,403–22,017 from 1 January (owner rule 2026-09-28: 2026年度 is the calendar year; medical keeps 2025’s to 31 August); housing-fund ceiling 32,543 from 1 January 2026. Mo Han category III minimum wage is 1,870 / 19.",
 		"work_rules": {
 			"proration": {
@@ -458,10 +536,23 @@
 			}
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "CNY",
 			"timezone": "Asia/Shanghai",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"worksite_coverage": {
+				"source": "worksite",
+				"covered_by_wage_regions": true,
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
+				"authority": "劳动合同法实施条例 art.14 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284): minimum wage and labour-protection standards follow the contract performance place. One city profile prices only the worksites its work_rules.wages.by_region names (register CN-X-WORKSITE)."
+			},
+			"registration_scope": "LINEAGE",
 			"final_pay_deadlines": [
 				{
 					"when": "",
@@ -497,7 +588,30 @@
 				"https://mz.yn.gov.cn/html/2026/jichulao_0702/4064382.html",
 				"https://ynmz.yn.gov.cn/bmfw/xzqh/xzqhsz/"
 			],
-			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
+			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default.",
+			"research_domains": [
+				"https://flk.npc.gov.cn",
+				"https://www.npc.gov.cn",
+				"https://www.gov.cn",
+				"https://xzfg.moj.gov.cn",
+				"https://www.mohrss.gov.cn",
+				"https://www.chinatax.gov.cn",
+				"https://fgk.chinatax.gov.cn",
+				"https://www.nhsa.gov.cn",
+				"https://rsj.sh.gov.cn",
+				"https://ybj.sh.gov.cn",
+				"https://www.shzfgjj.cn",
+				"https://shanghai.chinatax.gov.cn",
+				"https://www.shanghai.gov.cn",
+				"https://service.shanghai.gov.cn",
+				"https://czj.sh.gov.cn",
+				"https://hrss.yn.gov.cn",
+				"https://www.yn.gov.cn",
+				"https://ylbz.yn.gov.cn",
+				"https://www.kmrd.gov.cn",
+				"https://ybj.km.gov.cn",
+				"https://zfgjj.km.gov.cn"
+			]
 		},
 		"facts": [
 			{
@@ -678,6 +792,27 @@
 			"end": "9999-12-31T00:00:00.000Z"
 		},
 		"jurisdiction_code": "CN",
+		"terms_facts": [
+			{
+				"key": "probation_end",
+				"type": "date",
+				"label": "Probation ends",
+				"description": "LCL arts.19, 83: the last day of the probation the contract agrees, where one is. Unrecorded is no probation."
+			},
+			{
+				"key": "post_probation_wage",
+				"type": "number",
+				"label": "Wage after probation",
+				"minimum": 0,
+				"description": "LCL art.20 and Implementing Regulation art.15: the wage the contract agrees for after the probation (the probation wage is at least 80% of it); art.83 prices damages on it. Unrecorded is 0."
+			},
+			{
+				"key": "open_ended_due_on",
+				"type": "date",
+				"label": "Open-ended contract due",
+				"description": "LCL arts.14 para.2, 82 para.2: the day an open-ended contract should have been concluded, a determination recorded on the contract."
+			}
+		],
 		"change_summary": "Minimum wage 2,270 / 2,120; base 4,403–22,017 for every fund (medical expressly from 1 September; the others confirmed in use by the 7 September county notice); new-account housing-fund floor 2,270 / 2,120. Mo Han category III minimum wage is 1,970 / 20 from September 2026.",
 		"work_rules": {
 			"proration": {
@@ -800,10 +935,23 @@
 			}
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "CNY",
 			"timezone": "Asia/Shanghai",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"worksite_coverage": {
+				"source": "worksite",
+				"covered_by_wage_regions": true,
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
+				"authority": "劳动合同法实施条例 art.14 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284): minimum wage and labour-protection standards follow the contract performance place. One city profile prices only the worksites its work_rules.wages.by_region names (register CN-X-WORKSITE)."
+			},
+			"registration_scope": "LINEAGE",
 			"final_pay_deadlines": [
 				{
 					"when": "",
@@ -839,7 +987,30 @@
 				"https://mz.yn.gov.cn/html/2026/jichulao_0702/4064382.html",
 				"https://ynmz.yn.gov.cn/bmfw/xzqh/xzqhsz/"
 			],
-			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default."
+			"instructions": "Register: docs/inventory/china.md. Rates and bases are from the instruments named in each scheme’s authority; open items there refuse rather than default.",
+			"research_domains": [
+				"https://flk.npc.gov.cn",
+				"https://www.npc.gov.cn",
+				"https://www.gov.cn",
+				"https://xzfg.moj.gov.cn",
+				"https://www.mohrss.gov.cn",
+				"https://www.chinatax.gov.cn",
+				"https://fgk.chinatax.gov.cn",
+				"https://www.nhsa.gov.cn",
+				"https://rsj.sh.gov.cn",
+				"https://ybj.sh.gov.cn",
+				"https://www.shzfgjj.cn",
+				"https://shanghai.chinatax.gov.cn",
+				"https://www.shanghai.gov.cn",
+				"https://service.shanghai.gov.cn",
+				"https://czj.sh.gov.cn",
+				"https://hrss.yn.gov.cn",
+				"https://www.yn.gov.cn",
+				"https://ylbz.yn.gov.cn",
+				"https://www.kmrd.gov.cn",
+				"https://ybj.km.gov.cn",
+				"https://zfgjj.km.gov.cn"
+			]
 		},
 		"facts": [
 			{

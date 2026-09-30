@@ -1057,7 +1057,7 @@ test('Thailand — piece-paid maternity refuses until the s.60 prior-period wage
 					} as never);
 				}
 			),
-		/preceding wage-period average required by Thai LPA s\.60/
+		/calendar-day leave while paid by piece/
 	);
 });
 
@@ -1174,7 +1174,7 @@ test('Thailand — s.27 needs timed rest, prior agreement for split breaks and 2
 						{ start: `${date}T11:30:00+07:00`, end: `${date}T13:30:00+07:00` },
 						{ start: `${date}T14:00:00+07:00`, end: `${date}T18:00:00+07:00` }
 					];
-					day.th_split_break_agreed_at = agreement ?? null;
+					if (agreement != null) day.facts = { split_break_agreed_at: agreement };
 				}
 				if (change === 'OVER_TWO')
 					day.worked_intervals = [
@@ -1196,8 +1196,8 @@ test('Thailand — s.27 needs timed rest, prior agreement for split breaks and 2
 	assert.throws(() => run('LATE'), /over five consecutive hours without a timed Thai s\.27 break/i);
 	assert.throws(() => run('OVER_TWO'), /Thai s\.27 wage treatment for rest over two hours/i);
 	assert.throws(() => run('SPLIT'), /prior split-break agreement/i);
-	assert.throws(() => run('SPLIT', '2026-01-05T10:00:00+07:00'), /prior split-break agreement/i);
-	assert.equal(run('SPLIT', '2026-01-04T12:00:00+07:00').slips.get('ADULT-REST')!.gross, 24_000);
+	assert.throws(() => run('SPLIT', '2026-01-05T03:00:00.000Z'), /prior split-break agreement/i);
+	assert.equal(run('SPLIT', '2026-01-04T05:00:00.000Z').slips.get('ADULT-REST')!.gross, 24_000);
 	assert.throws(() => run('SHORT_PRE_OT'), /timed 20-minute rest before Thai overtime/i);
 	assert.deepEqual(workLines(run('VALID_PRE_OT').slips.get('ADULT-REST')!), [
 		['2026-01-05', 'OT-1.5X', 3, 450]
@@ -1239,16 +1239,27 @@ test('Thailand — under-18 night work requires prior written Director-General p
 					{ start: `${date}T21:00:00+07:00`, end: `2026-01-06T01:00:00+07:00` },
 					{ start: `2026-01-06T02:00:00+07:00`, end: `2026-01-06T06:00:00+07:00` }
 				];
-				day.th_minor_night_permission_granted_at = grantedAt;
-				day.th_minor_night_permission_reference = reference;
+				// LPA s.47: the permission's instant is a declared work-day input, its written
+				// reference the evidence the declaration demands.
+				if (grantedAt != null) day.facts = { minor_night_permission_granted_at: grantedAt };
+				if (reference != null)
+					world.fact_evidence!.push({
+						id: 'f0000000-0000-4000-8000-000000000d47',
+						subject: { collection: 'work_days', id: day.id },
+						fact_key: 'minor_night_permission_granted_at',
+						reference,
+						file: null,
+						approval_id: null
+					} as never);
 			}
 		);
 	assert.throws(() => run(null, null), /prior written Thai Director-General permission/i);
 	assert.throws(
-		() => run('2026-01-05T22:30:00+07:00', 'DG-123'),
+		() => run('2026-01-05T15:30:00.000Z', 'DG-123'),
 		/prior written Thai Director-General permission/i
 	);
-	assert.equal(run('2026-01-04T12:00:00+07:00', 'DG-123').slips.get('MINOR-NIGHT')!.gross, 12_000);
+	assert.throws(() => run('2026-01-04T05:00:00.000Z', null), /evidence/i);
+	assert.equal(run('2026-01-04T05:00:00.000Z', 'DG-123').slips.get('MINOR-NIGHT')!.gross, 12_000);
 });
 
 test('Thailand — pregnancy status gates night, holiday and overtime work (LPA s.39/1)', () => {
@@ -1261,7 +1272,7 @@ test('Thailand — pregnancy status gates night, holiday and overtime work (LPA 
 				people: [citizen('PREGNANT-WORK', 24_000, { gender: 'FEMALE' })]
 			},
 			(world) => {
-				world.employment_terms[0]!.th_pregnancy_status = status;
+				world.employment_terms[0]!.facts = status == null ? {} : { pregnancy_status: status };
 				if (holiday) punch(world, 'PREGNANT-WORK', '2026-01-10', '09:00', '18:00', 8);
 				else punch(world, 'PREGNANT-WORK', '2026-01-05', '09:00', '21:00', 3);
 			}
@@ -2262,15 +2273,15 @@ test('Thailand — a nine-hour normal day needs prior agreement and a shorter da
 					{ start: '2026-01-05T09:00:00+07:00', end: '2026-01-05T13:00:00+07:00' },
 					{ start: '2026-01-05T14:00:00+07:00', end: '2026-01-05T19:00:00+07:00' }
 				];
-				if (agreement != null) day.normal_hours_redistribution_agreed_at = agreement;
+				if (agreement != null) day.facts = { normal_hours_redistribution_agreed_at: agreement };
 			}
 		);
-	assert.deepEqual(workLines(run('2026-01-04T12:00:00+07:00', 7).slips.get('REDISTRIBUTED')!), []);
+	assert.deepEqual(workLines(run('2026-01-04T05:00:00.000Z', 7).slips.get('REDISTRIBUTED')!), []);
 	assert.deepEqual(workLines(run(null, 7).slips.get('REDISTRIBUTED')!), [
 		['2026-01-05', 'OT-1.5X', 1, 150]
 	]);
-	assert.throws(() => run('2026-01-05T10:00:00+07:00', 7), /prior worker agreement/);
-	assert.throws(() => run('2026-01-04T12:00:00+07:00', 8), /shorter-day hours to offset/);
+	assert.throws(() => run('2026-01-05T03:00:00.000Z', 7), /prior worker agreement/);
+	assert.throws(() => run('2026-01-04T05:00:00.000Z', 8), /shorter-day hours to offset/);
 });
 
 test('Thailand — a guard may agree a normal day above eight hours from 24 April 2026 only within the 48-hour week', () => {
@@ -2305,8 +2316,10 @@ test('Thailand — a guard may agree a normal day above eight hours from 24 Apri
 				// half hours by the prior agreement the split needs.
 				const day = world.work_days.at(-1)!;
 				day.shift_definition_id = long.id;
-				day.normal_hours_redistribution_agreed_at = agreement;
-				day.th_split_break_agreed_at = '2026-04-26T12:00:00+07:00';
+				day.facts = {
+					normal_hours_redistribution_agreed_at: agreement,
+					split_break_agreed_at: '2026-04-26T05:00:00.000Z'
+				};
 				day.worked_intervals = [
 					{ start: '2026-04-27T09:00:00+07:00', end: '2026-04-27T13:00:00+07:00' },
 					{ start: '2026-04-27T13:30:00+07:00', end: '2026-04-27T17:30:00+07:00' },
@@ -2315,13 +2328,38 @@ test('Thailand — a guard may agree a normal day above eight hours from 24 Apri
 			}
 		);
 	assert.deepEqual(
-		workLines(run('MONTHLY', '2026-04-26T12:00:00+07:00').slips.get('GUARD-DAY')!),
+		workLines(run('MONTHLY', '2026-04-26T05:00:00.000Z').slips.get('GUARD-DAY')!),
 		[]
 	);
-	assert.throws(() => run('MONTHLY', '2026-04-27T10:00:00+07:00'), /prior worker agreement/);
-	assert.deepEqual(workLines(run('HOURLY', '2026-04-26T12:00:00+07:00').slips.get('GUARD-DAY')!), [
+	assert.throws(() => run('MONTHLY', '2026-04-27T03:00:00.000Z'), /prior worker agreement/);
+	assert.deepEqual(workLines(run('HOURLY', '2026-04-26T05:00:00.000Z').slips.get('GUARD-DAY')!), [
 		['2026-04-27', 'GUARD_NORMAL_SUPPLEMENT', 4, 500]
 	]);
+});
+
+test('Thailand — every version states the normal-day rules as configuration (LPA s.23; guard regulation)', () => {
+	for (const version of settingsVersions(TH)) {
+		const work = version.work_rules;
+		assert.equal(
+			work.bands.find((band) => band.label === 'GUARD_NORMAL_SUPPLEMENT')?.component,
+			'guard_normal_supplement'
+		);
+		assert.match(work.shift_day_hours ?? '', /48\.0 : 9\.0/);
+		assert.match(work.normal_hours ?? '', /hazardous_work \? 7\.0 : 8\.0/);
+		for (const key of [
+			'hazardous_normal_day',
+			'redistribution_agreement',
+			'redistribution_supplement'
+		])
+			assert.ok(
+				work.day_rules?.some((rule) => rule.key === key),
+				key
+			);
+		assert.equal(
+			version.terms_facts?.find((fact) => fact.key === 'hazardous_work')?.default_value,
+			false
+		);
+	}
 });
 
 test('Thailand — a non-monthly guard’s additional normal-day compensation enters SSO and EWF wage bases', () => {
@@ -2358,8 +2396,10 @@ test('Thailand — a non-monthly guard’s additional normal-day compensation en
 			// half hours by the prior agreement the split needs.
 			const day = world.work_days.at(-1)!;
 			day.shift_definition_id = long.id;
-			day.normal_hours_redistribution_agreed_at = '2026-10-25T12:00:00+07:00';
-			day.th_split_break_agreed_at = '2026-10-25T12:00:00+07:00';
+			day.facts = {
+				normal_hours_redistribution_agreed_at: '2026-10-25T05:00:00.000Z',
+				split_break_agreed_at: '2026-10-25T05:00:00.000Z'
+			};
 			day.worked_intervals = [
 				{ start: '2026-10-26T09:00:00+07:00', end: '2026-10-26T13:00:00+07:00' },
 				{ start: '2026-10-26T13:30:00+07:00', end: '2026-10-26T17:30:00+07:00' },
@@ -2403,8 +2443,10 @@ test('Thailand — s.24–25 consent exceptions require a saved reason and apply
 				const row = world.work_days.at(-1)!;
 				row.approved_overtime_hours = date === '2026-01-10' ? 8 : 3;
 				row.overtime_consented_at = null;
-				row.th_consent_exception = exception as never;
-				row.th_consent_exception_reference = reference;
+				row.facts = {
+					...(exception == null ? {} : { consent_exception: exception }),
+					...(reference == null ? {} : { consent_exception_reference: reference })
+				};
 				row.emergency_cause = emergency;
 			}
 		);

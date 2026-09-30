@@ -9,6 +9,8 @@
 
 import { Environment, type ParseResult } from '@marcbachmann/cel-js';
 import { roundMoney, type RoundingMethod } from '../../lib/payroll/run/rounding.js';
+import { addDays, exactMonths, monthDay } from '../../lib/payroll/run/dates.js';
+import { isCalendarDate } from '../iso-day.js';
 import {
 	noticeDaysRemaining,
 	noticeMonthlyWages,
@@ -75,6 +77,25 @@ let bound: ExpressionEngine = { minimumWage: () => 0 };
 
 const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['minimum_wage(string): double', (region) => bound.minimumWage(String(region))],
+	[
+		'add_months(string, int): string',
+		(day, months) => {
+			const date = String(day);
+			if (!isCalendarDate(date)) return '';
+			const [year, month, dayOfMonth] = date.split('-').map(Number) as [number, number, number];
+			return monthDay(year, month - 1 + Number(months), dayOfMonth);
+		}
+	],
+	[
+		'months_through(string, string): double',
+		(from, through) => {
+			const start = String(from);
+			const end = String(through);
+			return !isCalendarDate(start) || !isCalendarDate(end) || end < start
+				? 0
+				: exactMonths(start, addDays(end, 1));
+		}
+	],
 	[
 		'bracket(dyn, dyn, dyn): double',
 		(base, upTo, step) => {

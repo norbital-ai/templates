@@ -15,8 +15,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -35,8 +129,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -55,8 +243,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -75,8 +357,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -95,8 +471,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -115,8 +585,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -135,8 +699,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -155,8 +813,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -175,8 +927,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -195,8 +1041,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -215,8 +1155,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -235,8 +1269,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -255,8 +1383,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -275,8 +1497,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	},
 	{
@@ -295,8 +1611,102 @@
 			}
 		],
 		"eligibility": "",
-		"qualifies_when": "entry.medical.due_on >= \"2023-06-15\" && entry.medical.incurred_on != \"\" && entry.medical.incurred_on <= entry.medical.due_on && entry.medical.amount_incurred >= entry.amount && entry.medical.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.medical.patient == \"EMPLOYEE\" || (entry.medical.relationship_recognised && entry.medical.relationship_from != \"\" && entry.medical.relationship_from <= entry.medical.due_on && (entry.medical.relationship_through == \"\" || entry.medical.due_on <= entry.medical.relationship_through))) && entry.medical.practitioner_qualified && ((entry.medical.treatment == \"DENTAL_HYGIENE\" && !entry.medical.solely_aesthetic) || (entry.medical.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.medical.treatment_necessary && !entry.medical.solely_aesthetic))",
+		"qualifies_when": "entry.due_on >= \"2023-06-15\" && entry.incurred_on != \"\" && entry.incurred_on <= entry.due_on && entry.facts.amount_incurred >= entry.amount && entry.facts.patient in [\"EMPLOYEE\", \"SPOUSE\", \"NATURAL_CHILD\", \"STEPCHILD\", \"ADOPTED_CHILD\", \"GUARDIANSHIP_CHILD\", \"FOSTER_CHILD\"] && (entry.facts.patient == \"EMPLOYEE\" || (entry.facts.relationship_recognised && entry.facts.relationship_from != \"\" && entry.facts.relationship_from <= entry.due_on && (entry.facts.relationship_through == \"\" || entry.due_on <= entry.facts.relationship_through))) && entry.facts.practitioner_qualified && ((entry.facts.treatment == \"DENTAL_HYGIENE\" && !entry.facts.solely_aesthetic) || (entry.facts.treatment in [\"MEDICAL\", \"DENTAL\", \"TCM\"] && entry.facts.treatment_necessary && !entry.facts.solely_aesthetic))",
 		"evidence": "REQUIRED",
+		"request_facts": [
+			{
+				"key": "amount_incurred",
+				"type": "number",
+				"label": "Amount actually incurred",
+				"required": true,
+				"valid_when": "entry.facts.amount_incurred > 0.0",
+				"validation_message": "Enter the positive amount actually incurred."
+			},
+			{
+				"key": "patient",
+				"type": "string",
+				"label": "Patient",
+				"required": true,
+				"options": [
+					"EMPLOYEE",
+					"SPOUSE",
+					"NATURAL_CHILD",
+					"STEPCHILD",
+					"ADOPTED_CHILD",
+					"GUARDIANSHIP_CHILD",
+					"FOSTER_CHILD",
+					"OTHER"
+				]
+			},
+			{
+				"key": "relationship_from",
+				"type": "date",
+				"label": "When the patient relationship began",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "relationship_through",
+				"type": "date",
+				"label": "When the patient relationship ended",
+				"valid_when": "entry.facts.relationship_through >= entry.facts.relationship_from",
+				"validation_message": "Enter a valid patient relationship period."
+			},
+			{
+				"key": "relationship_recognised",
+				"type": "boolean",
+				"label": "Relationship legally recognised",
+				"required": true
+			},
+			{
+				"key": "relationship_reference",
+				"type": "string",
+				"label": "Patient relationship evidence",
+				"required_when": "entry.facts.patient != \"EMPLOYEE\""
+			},
+			{
+				"key": "treatment",
+				"type": "string",
+				"label": "Treatment",
+				"required": true,
+				"options": ["MEDICAL", "DENTAL", "DENTAL_HYGIENE", "TCM"]
+			},
+			{
+				"key": "treatment_received",
+				"type": "boolean",
+				"label": "Treatment received",
+				"required": true
+			},
+			{
+				"key": "treatment_necessary",
+				"type": "boolean",
+				"label": "Treatment certified necessary",
+				"required": true
+			},
+			{
+				"key": "solely_aesthetic",
+				"type": "boolean",
+				"label": "Solely aesthetic",
+				"required": true
+			},
+			{
+				"key": "treatment_country",
+				"type": "string",
+				"label": "Treatment country",
+				"required": true
+			},
+			{
+				"key": "practitioner_qualified",
+				"type": "boolean",
+				"label": "Practitioner qualified",
+				"required": true
+			},
+			{
+				"key": "practitioner_reference",
+				"type": "string",
+				"label": "Practitioner qualification evidence",
+				"required": true
+			}
+		],
 		"counts_toward": []
 	}
 ]

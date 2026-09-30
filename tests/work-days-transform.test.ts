@@ -6,6 +6,7 @@
  * attendance-freezes-roster, lock and workday-import-limits.
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import workDays from '../src/data/collection/work_days/+collection.ts';
 import rosters from '../src/data/collection/rosters/+collection.ts';
@@ -93,9 +94,45 @@ test('planned hours are half-hour steps, within the 24 a day has', async () => {
 	await assert.rejects(plan(-1), /zero or a positive/);
 });
 
+/**
+ * A lineage's person-day protections as its seed states them: the TH version in force on the day
+ * written, its protection keys only (no bands or limits, so no headroom is asked).
+ */
+const TH_SEED = JSON.parse(
+	readFileSync(
+		new URL('../seed/jurisdiction/TH/jurisdiction_settings.json', import.meta.url),
+		'utf8'
+	)
+);
+const thaiTables = () => {
+	const version = TH_SEED.find(
+		(row) => row.effective_range.start <= '2026-07-01' && row.effective_range.end > '2026-07-01'
+	);
+	const { incentive_hours_allowed, overtime_consent, day_rules } = version.work_rules;
+	const tables = workDayTables({
+		versions: [
+			{
+				...VERSION,
+				code: 'TH',
+				jurisdiction_code: 'TH',
+				work_rules: {
+					limits: [],
+					bands: [],
+					breaks: [],
+					incentive_hours_allowed,
+					overtime_consent,
+					day_rules
+				},
+				work_day_facts: version.work_day_facts
+			}
+		]
+	});
+	tables.companies[0].settings_code = 'TH';
+	return tables;
+};
+
 test('Thailand work-day writes require a consent fact and cannot turn excess into incentive', async () => {
-	const thai = workDayTables({ versions: [{ ...VERSION, code: 'TH', jurisdiction_code: 'TH' }] });
-	thai.companies[0].settings_code = 'TH';
+	const thai = thaiTables();
 	const write = (extra) =>
 		writeDay(
 			workDays,
@@ -112,58 +149,50 @@ test('Thailand work-day writes require a consent fact and cannot turn excess int
 });
 
 test('Thailand work-day writes retain a referenced s.24–25 consent exception', async () => {
-	const thai = workDayTables({ versions: [{ ...VERSION, code: 'TH', jurisdiction_code: 'TH' }] });
-	thai.companies[0].settings_code = 'TH';
-	const write = (extra) =>
+	const thai = thaiTables();
+	const write = (facts, extra = {}) =>
 		writeDay(
 			workDays,
-			{ employment_id: 'emp-1', work_date: '2026-07-01', approved_overtime_hours: 1, ...extra },
+			{
+				employment_id: 'emp-1',
+				work_date: '2026-07-01',
+				approved_overtime_hours: 1,
+				facts,
+				...extra
+			},
 			undefined,
 			thai
 		);
 	await assert.rejects(
-		write({ th_consent_exception: 'CONTINUOUS_DAMAGE_IF_STOPPED' }),
+		write({ consent_exception: 'CONTINUOUS_DAMAGE_IF_STOPPED' }),
 		/evidence for the Thai consent exception/
 	);
-	await assert.rejects(write({ emergency_cause: true }), /worker’s consent/);
+	await assert.rejects(write({}, { emergency_cause: true }), /worker’s consent/);
 	const saved = await write({
-		th_consent_exception: 'CONTINUOUS_DAMAGE_IF_STOPPED',
-		th_consent_exception_reference: 'incident-log-42'
+		consent_exception: 'CONTINUOUS_DAMAGE_IF_STOPPED',
+		consent_exception_reference: 'incident-log-42'
 	});
-	assert.equal(saved.th_consent_exception, 'CONTINUOUS_DAMAGE_IF_STOPPED');
-	assert.equal(saved.th_consent_exception_reference, 'incident-log-42');
+	assert.equal(saved.facts.consent_exception, 'CONTINUOUS_DAMAGE_IF_STOPPED');
+	assert.equal(saved.facts.consent_exception_reference, 'incident-log-42');
 	const emergency = await write({
-		th_consent_exception: 'EMERGENCY',
-		th_consent_exception_reference: 'emergency-report-7'
+		consent_exception: 'EMERGENCY',
+		consent_exception_reference: 'emergency-report-7'
 	});
-	assert.equal(emergency.th_consent_exception, 'EMERGENCY');
+	assert.equal(emergency.facts.consent_exception, 'EMERGENCY');
 });
 
-test('Thailand work-day writes retain split-rest agreement and paired minor-night permit evidence', async () => {
-	const thai = workDayTables({ versions: [{ ...VERSION, code: 'TH', jurisdiction_code: 'TH' }] });
-	thai.companies[0].settings_code = 'TH';
-	const write = (extra) =>
-		writeDay(
-			workDays,
-			{ employment_id: 'emp-1', work_date: '2026-07-01', ...extra },
-			undefined,
-			thai
-		);
-	await assert.rejects(
-		write({ th_minor_night_permission_granted_at: at('00:00') }),
-		/both the Thai under-18 night-work permission date and written reference/
-	);
-	await assert.rejects(
-		write({ th_minor_night_permission_reference: 'DG-123' }),
-		/both the Thai under-18 night-work permission date and written reference/
-	);
+test('Thailand work-day writes retain the split-rest agreement and the minor-night permission as declared inputs', async () => {
+	const thai = thaiTables();
+	const write = (facts) =>
+		writeDay(workDays, { employment_id: 'emp-1', work_date: '2026-07-01', facts }, undefined, thai);
+	await assert.rejects(write({ split_break_agreed_at: 'yesterday' }), /UTC instant/);
+	await assert.rejects(write({ consent_exception: 'HOLIDAY_CASINO' }), /one of/);
 	const saved = await write({
-		th_split_break_agreed_at: at('00:00'),
-		th_minor_night_permission_granted_at: at('00:00'),
-		th_minor_night_permission_reference: 'DG-123'
+		split_break_agreed_at: at('00:00'),
+		minor_night_permission_granted_at: at('00:00')
 	});
-	assert.equal(saved.th_split_break_agreed_at, at('00:00'));
-	assert.equal(saved.th_minor_night_permission_reference, 'DG-123');
+	assert.equal(saved.facts.split_break_agreed_at, at('00:00'));
+	assert.equal(saved.facts.minor_night_permission_granted_at, at('00:00'));
 });
 
 test('a punched day freezes its plan unless the write restates the attendance', async () => {

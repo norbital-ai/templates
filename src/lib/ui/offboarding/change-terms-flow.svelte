@@ -27,6 +27,7 @@
 		type ChangeTermsFacts
 	} from './change-terms-submit.js';
 	import { getErrorMessage } from '../../refuse.js';
+	import { vocabularyOptions } from '../contract/vocabulary-options.svelte.js';
 
 	let {
 		employment,
@@ -104,8 +105,11 @@
 	const PAY_FREQUENCIES = optionsOf(terms.fields.pay_frequency.values);
 	const EMPLOYMENT_TYPES = optionsOf(terms.fields.employment_type.values);
 	const RESIDENCY_STATUSES = optionsOf(terms.fields.residency_status.values);
-	const WORK_CLASSIFICATIONS = optionsOf(terms.fields.work_classification.values);
-	const STATUTORY_WORK_CATEGORIES = optionsOf(terms.fields.statutory_work_category.values);
+	// The classification codes are the version in force on the new start's.
+	const codesOf = vocabularyOptions(
+		() => company.current?.settings_code,
+		() => draft.newStart
+	);
 	const COMPARABLE_FULL_TIME_PRESENCE = optionsOf(
 		terms.fields.comparable_full_time_presence.values
 	);
@@ -170,17 +174,13 @@
 			residency_since: draft.residencySince == null ? null : PlainDate(draft.residencySince),
 			currency: row.currency,
 			base_salary: salary,
-			minimum_wage_2025_region: row.minimum_wage_2025_region,
-			minimum_wage_2026_area_reclassified: row.minimum_wage_2026_area_reclassified,
 			worksite: row.worksite,
-			worksite_state: row.worksite_state,
 			worksite_sector: row.worksite_sector,
-			worksite_sector_edition: row.worksite_sector_edition,
+			facts: row.facts,
 			allowances: draft.allowances,
 			pay_frequency: payFrequency,
 			work_classification: workClassification,
 			statutory_work_category: statutoryWorkCategory,
-			hazardous_work: row.hazardous_work,
 			weather_dependent_piece: row.weather_dependent_piece,
 			employment_type: employmentType,
 			department: text(draft.department),
@@ -196,9 +196,6 @@
 			pass_type: row.pass_type,
 			tax_residency: row.tax_residency,
 			notice_days: row.notice_days,
-			probation_end: row.probation_end,
-			post_probation_wage: row.post_probation_wage,
-			open_ended_due_on: row.open_ended_due_on,
 			paid_rest_days: row.paid_rest_days,
 			proration: row.proration
 		};
@@ -336,14 +333,14 @@
 				</Labelled>
 				<Labelled label={t('component.classification')} class="text-sm font-medium">
 					<Combobox
-						options={WORK_CLASSIFICATIONS}
+						options={codesOf('work_classification')}
 						value={draft.workClassification}
 						onChange={(workClassification) => edit({ workClassification })}
 					/>
 				</Labelled>
 				<Labelled label={t('component.statutory_work_category')} class="text-sm font-medium">
 					<Combobox
-						options={STATUTORY_WORK_CATEGORIES}
+						options={codesOf('statutory_work_category')}
 						value={draft.statutoryWorkCategory}
 						onChange={(statutoryWorkCategory) => edit({ statutoryWorkCategory })}
 					/>

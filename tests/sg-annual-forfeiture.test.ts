@@ -15,6 +15,12 @@ import { VERSION, workDayTables, writeDay } from './helpers/work-day-db.ts';
 const annual = JSON.parse(
 	readFileSync(new URL('../seed/jurisdiction/SG/leave_catalogue.json', import.meta.url), 'utf8')
 ).find((row) => row.code === 'ANNUAL_LEAVE');
+const sgSettings = JSON.parse(
+	readFileSync(
+		new URL('../seed/jurisdiction/SG/jurisdiction_settings.json', import.meta.url),
+		'utf8'
+	)
+);
 
 // 2026, the first calendar year the sealed SG lineage covers end to end (its first sealed version
 // begins 1 December 2025, so a 2025 service year has eleven months with no catalogue at all).
@@ -44,13 +50,14 @@ function forfeitureWorld(absentDays: number) {
 				index < absentDays
 					? []
 					: [{ start: `${date}T09:00:00.000Z`, end: `${date}T17:00:00.000Z` }],
-			...(index < absentDays
-				? {
-						sg_absence_permission: 'NO',
-						sg_absence_reasonable_excuse: 'NO',
-						sg_absence_decision_reference: `Attendance review ${date}`
-					}
-				: {}),
+			facts:
+				index < absentDays
+					? {
+							absence_permission: 'NO',
+							absence_reasonable_excuse: 'NO',
+							absence_decision: `Attendance review ${date}`
+						}
+					: {},
 			approval_id: null
 		});
 	return world;
@@ -88,7 +95,24 @@ test('SG annual forfeiture uses all 261 rostered working days and a strict >20% 
 });
 
 test('SG work-day write saves both absence decisions with a dated evidence reference', async () => {
-	const tables = workDayTables({ versions: [{ ...VERSION, code: 'SG', jurisdiction_code: 'SG' }] });
+	// The SG version declares the absence inputs and the day rules that pair them.
+	const sg = sgSettings.find(
+		(row) =>
+			row.voided_at == null &&
+			row.effective_range.start <= '2026-07-01T00:00:00.000Z' &&
+			row.effective_range.end > '2026-07-01T00:00:00.000Z'
+	);
+	const tables = workDayTables({
+		versions: [
+			{
+				...VERSION,
+				code: 'SG',
+				jurisdiction_code: 'SG',
+				work_day_facts: sg.work_day_facts,
+				work_rules: { limits: [], breaks: [], day_rules: sg.work_rules.day_rules }
+			}
+		]
+	});
 	tables.companies[0]!.settings_code = 'SG';
 	// The work-day transform assesses every absence decision against the sealed annual-leave
 	// catalogue in force on the day, so the fixture states one.
@@ -107,19 +131,22 @@ test('SG work-day write saves both absence decisions with a dated evidence refer
 			undefined,
 			tables
 		);
-	await assert.rejects(write({ sg_absence_permission: 'NO' }), /both Singapore absence/);
+	await assert.rejects(write({ facts: { absence_permission: 'NO' } }), /both Singapore absence/);
 	await assert.rejects(
-		write({ sg_absence_permission: 'NO', sg_absence_reasonable_excuse: 'NO' }),
+		write({ facts: { absence_permission: 'NO', absence_reasonable_excuse: 'NO' } }),
 		/reference for its Singapore absence decision/
 	);
-	const saved = await write({
-		sg_absence_permission: 'NO',
-		sg_absence_reasonable_excuse: 'NO',
-		sg_absence_decision_reference: 'Attendance review 2026-07-01'
-	});
-	assert.equal(saved.sg_absence_permission, 'NO');
-	assert.equal(saved.sg_absence_reasonable_excuse, 'NO');
-	assert.equal(saved.sg_absence_decision_reference, 'Attendance review 2026-07-01');
+	const decided = {
+		absence_permission: 'NO',
+		absence_reasonable_excuse: 'NO',
+		absence_decision: 'Attendance review 2026-07-01'
+	};
+	await assert.rejects(
+		write({ worked_intervals: null, facts: decided }),
+		/recorded attendance for its Singapore absence decision/
+	);
+	const saved = await write({ facts: decided });
+	assert.deepEqual(saved.facts, decided);
 });
 
 test('SG annual forfeiture requires dated absence evidence and refuses an unsettled part-year', async () => {
@@ -127,7 +154,7 @@ test('SG annual forfeiture requires dated absence evidence and refuses an unsett
 	const { rules } = await savedAnnual(world);
 	const year = { start: `${YEAR}-01-01`, end: `${YEAR}-12-31` };
 	assert.throws(() => rules.entitlementAt(year, `${YEAR}-06-30`), /partial-year accrual period/);
-	delete world.work_days[0]!.sg_absence_decision_reference;
+	delete world.work_days[0]!.facts.absence_decision;
 	await assert.rejects(
 		async () => (await savedAnnual(world)).rules.entitlementAt(year, year.end),
 		/permission, excuse and reference evidence/
@@ -175,19 +202,19 @@ test('SG work-day deletion cannot alter an approved annual service year or its c
 	world.leave_entries.push(entry);
 	await assert.rejects(
 		runDelete(workDays, [stored], { tables: world }),
-		/annual leave in its service year or carry year/
+		/ANNUAL_LEAVE in its leave year or carry year/
 	);
 	for (const change of [
 		{ worked_intervals: [] },
 		{ shift_definition_id: world.shift_definitions[1]!.id },
-		{ sg_absence_permission: 'NO' },
-		{ sg_absence_reasonable_excuse: 'NO' },
-		{ sg_absence_decision_reference: 'Changed review' },
-		{ sg_partial_absence: true }
+		{ facts: { absence_permission: 'NO' } },
+		{ facts: { absence_reasonable_excuse: 'NO' } },
+		{ facts: { absence_decision: 'Changed review' } },
+		{ facts: { partial_absence: true } }
 	])
 		await assert.rejects(
 			writeDay(workDays, change, stored, world),
-			/annual leave in its service year or carry year/
+			/ANNUAL_LEAVE in its leave year or carry year/
 		);
 	await writeDay(
 		workDays,
@@ -206,13 +233,13 @@ test('SG work-day deletion cannot alter an approved annual service year or its c
 			undefined,
 			world
 		),
-		/annual leave in its service year or carry year/
+		/ANNUAL_LEAVE in its leave year or carry year/
 	);
 	entry.from_date = `${YEAR + 1}-07-01`;
 	entry.to_date = `${YEAR + 1}-07-01`;
 	await assert.rejects(
 		runDelete(workDays, [stored], { tables: world }),
-		/annual leave in its service year or carry year/
+		/ANNUAL_LEAVE in its leave year or carry year/
 	);
 	entry.from_date = `${YEAR + 2}-07-01`;
 	entry.to_date = `${YEAR + 2}-07-01`;
@@ -221,7 +248,7 @@ test('SG work-day deletion cannot alter an approved annual service year or its c
 
 test('SG annual forfeiture refuses partial-day absence instead of counting a whole working day', async () => {
 	const world = forfeitureWorld(1);
-	world.work_days[0]!.sg_partial_absence = true;
+	world.work_days[0]!.facts.partial_absence = true;
 	const { rules } = await savedAnnual(world);
 	assert.throws(
 		() => rules.entitlementAt({ start: `${YEAR}-01-01`, end: `${YEAR}-12-31` }, `${YEAR}-12-31`),
@@ -343,7 +370,11 @@ test('SG no-pay approval refuses a non-employee-requested origin before saving',
 	const context = leaveContext();
 	Object.assign(context.companies[0]!, { settings_code: 'SG' });
 	Object.assign(context.versions[0]!, { code: 'SG', jurisdiction_code: 'SG' });
-	Object.assign(context.catalogues[0]!, { is_npl: true, code: 'UNPAID_LEAVE' });
+	Object.assign(context.catalogues[0]!, {
+		is_npl: true,
+		requires_no_pay_origin: true,
+		code: 'UNPAID_LEAVE'
+	});
 	assert.throws(
 		() =>
 			planLeaveActivity(

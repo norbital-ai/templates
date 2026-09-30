@@ -543,7 +543,7 @@ test('SG no-pay approval refuses to leave previously used annual credit underfun
 				},
 				id(96)
 			),
-		/reduces an annual-leave balance below existing usage/
+		/reduces the ANNUAL_LEAVE balance below existing usage/
 	);
 });
 

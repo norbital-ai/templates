@@ -264,6 +264,33 @@ test('a calendar maternity event split across entries cannot settle with missing
 	);
 });
 
+test('a PER_EVENT row with transition_review_on refuses one event charged on both sides of it', () => {
+	const context = leaveContext();
+	catalogue(context, {
+		id: id(20),
+		code: 'EVENT_LEAVE',
+		entitlement: {
+			availability: 'PER_EVENT',
+			proration: 'NONE',
+			year_start_month: 1,
+			transition_review_on: '2026-03-04',
+			bands: [{ eligibility: '', days: 10 }]
+		}
+	});
+	const event = (from: string, to: string, reference: string) => ({
+		...submission(
+			{ ...timeOff(from, to), event_kind: 'BIRTH', event_date: '2026-03-02' },
+			reference
+		),
+		catalogue_id: id(20)
+	});
+	assert.match(
+		refusalOf(() => planLeaveActivity(context, event('2026-03-02', '2026-03-05', 'T1'), id(30))),
+		/EVENT_LEAVE across 2026-03-04 requires transition review/
+	);
+	assert.equal(planLeaveActivity(context, event('2026-03-04', '2026-03-05', 'T2'), id(31)).days, 2);
+});
+
 test('a PER_EVENT row grants its band per event, reads the event, and stops at the lifetime cap', () => {
 	const context = leaveContext();
 	catalogue(context, {

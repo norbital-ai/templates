@@ -23,6 +23,7 @@ import {
 } from '../scheduling/work-pattern.js';
 import { hourlyLeaveBasis } from './hourly-requirement.js';
 import { decodeNumber } from '../wire.js';
+import * as Predicate from 'effect/Predicate';
 import { resolveCompanyFacts } from '../declared-facts.js';
 import { personFactsForVersion } from '../payroll/facts.js';
 import {
@@ -32,6 +33,11 @@ import {
 	type PersonInput
 } from '../../lib/payroll/run/eligibility.js';
 import type { WorkspaceRow } from '../rows.js';
+import {
+	declaresBenefitCases,
+	readCaseEvidence,
+	type CaseEvidence
+} from '../benefit-cases/benefit.js';
 import type { HolidayRow } from '../holiday-calendar.js';
 import type { FactKey } from '../datatypes/fact_keys.js';
 import type { LeaveEntitlement } from '../datatypes/leave_entitlement.js';
@@ -117,8 +123,12 @@ export type LeaveContext = {
 		status: StatutoryFactStatus;
 	}[];
 	entries: LeaveActivity[];
-	/** PH maternity event evidence is read with the leave history before approving the 106th day. */
-	maternityCases?: WorkspaceRow<'ph_maternity_cases'>[] | undefined;
+	/**
+	 * The benefit cases of these employments, where the lineage declares a case type: a per-event
+	 * grant reads its event's case facts (`event.case.facts`), with the cases' fact evidence.
+	 */
+	benefitCases?: WorkspaceRow<'benefit_cases'>[] | undefined;
+	benefitEvidence?: (CaseEvidence & { readonly subject: unknown })[] | undefined;
 	/**
 	 * The time off of the same people under their other employments here (a rehire's earlier
 	 * contract), for the lifetime counts and caps; absent is none. Keyed to the person through
@@ -157,6 +167,7 @@ export type LeaveContext = {
 		readonly entitlement: LeaveEntitlement;
 		readonly evidence_after_days: number | null;
 		readonly is_npl: boolean;
+		readonly requires_no_pay_origin?: boolean;
 		readonly can_encash: boolean;
 		readonly encash_on_exit: boolean;
 		readonly pay_fraction: string;
@@ -178,11 +189,14 @@ export type LeaveContext = {
 		readonly shift_definition_id: string | null;
 		readonly worked_intervals:
 			readonly { readonly start: string; readonly end: string | null }[] | null;
-		readonly sg_absence_permission?: 'YES' | 'NO' | null;
-		readonly sg_absence_reasonable_excuse?: 'YES' | 'NO' | null;
-		readonly sg_absence_decision_reference?: string | null;
-		readonly sg_partial_absence?: boolean | null;
+		/** `work_day_facts`: the absence decision inputs (`ABSENCE_DECISION_FACTS`) among them. */
+		readonly facts?: Readonly<Record<string, unknown>> | null;
 	}[];
+	/**
+	 * A projection of a window that has not closed (a no-pay leave replanning the year's annual
+	 * balance): absence forfeiture stays provisional, since the year's attendance is not all in.
+	 */
+	projected?: boolean;
 	/**
 	 * Rostered days read and found empty — absent without leave — by employment and day, over
 	 * the twelve months before the window; what `employment.absent_days_12m` counts. Absent is
@@ -374,7 +388,7 @@ export async function readLeaveContext(
 	const inScope = new Set(ids);
 	const others = siblings.filter((row) => !inScope.has(row.id));
 	const employeeOf = new Map(others.map((row) => [row.id, row.employee_id]));
-	const [catalogues, schemes, priorRows, maternityCases] = await Promise.all([
+	const [catalogues, schemes, priorRows, benefitCases] = await Promise.all([
 		readAll<LeaveContext['catalogues'][number]>(reads, 'leave_catalogue', {
 			settings_id: { in: lineageIds },
 			...settled
@@ -394,13 +408,17 @@ export async function readLeaveContext(
 					employment_id: { in: others.map((row) => row.id) },
 					...settled
 				}),
-		settingsCodes.has('PH')
-			? readAll<WorkspaceRow<'ph_maternity_cases'>>(reads, 'ph_maternity_cases', {
+		declaresBenefitCases(lineage)
+			? readAll<WorkspaceRow<'benefit_cases'>>(reads, 'benefit_cases', {
 					employment_id: { in: ids },
 					...settled
 				})
 			: []
 	]);
+	const benefitEvidence = await readCaseEvidence(
+		reads,
+		benefitCases.map((row) => row.id)
+	);
 	const workCodeIds = new Set(
 		shifts.filter((row) => rosterCodeKind(row.variant) === 'WORK').map((row) => row.id)
 	);
@@ -440,7 +458,8 @@ export async function readLeaveContext(
 		absences,
 		annualAttendance: emptyDays,
 		entries,
-		maternityCases,
+		benefitCases,
+		benefitEvidence,
 		versions: lineage,
 		catalogues,
 		holidays,
@@ -669,12 +688,14 @@ export function leaveRules(
 	const range = employment.effective_range;
 	const hire = range == null ? '' : dateKey(range.start);
 	const exit = range?.end == null ? null : dateKey(range.end);
-	const sgAnnual = company.settings_code === 'SG' && selected.code === 'ANNUAL_LEAVE';
+	// Service counted net of requested whole no-pay days (`entitlement.service_excludes_no_pay`).
+	const netService =
+		selected.entitlement.service_excludes_no_pay === 'EMPLOYEE_REQUESTED_FULL_DAYS';
 	const noPayDays = new Map<string, number>();
 	let unknownNoPay: string | undefined;
 	let unsupportedNoPay: string | undefined;
 	let partialNoPay: string | undefined;
-	if (sgAnnual)
+	if (netService)
 		for (const row of activeTimeOff(
 			context.entries.filter(
 				(entry) => entry.employment_id === employmentId && entry.approval_id == null
@@ -713,7 +734,7 @@ export function leaveRules(
 								? 0.5
 								: 1;
 				if (!Number.isFinite(portion) || portion <= 0 || portion > 1 + 1e-9)
-					refuse('SG no-pay leave needs a valid day fraction in its recorded period.');
+					refuse('No-pay leave needs a valid day fraction in its recorded period.');
 				noPayDays.set(day, (noPayDays.get(day) ?? 0) + portion);
 			}
 		}
@@ -773,7 +794,7 @@ export function leaveRules(
 	};
 	const servicePersonOn = (date: string, inclusive: boolean): PersonContext => {
 		const person = personOn(date);
-		if (!sgAnnual || date < hire) return person;
+		if (!netService || date < hire) return person;
 		const last = inclusive ? date : addDays(date, -1);
 		const serviceDays =
 			last < hire ? 0 : Math.max(0, inclusiveDays(hire, last) - noPayThrough(last));
@@ -823,7 +844,7 @@ export function leaveRules(
 			if (event != null) eligible = isEligible(catalogue.eligibility, servicePersonOn(date, false));
 			else {
 				const person = servicePersonOn(date, false);
-				const verdictKey = `${catalogue.eligibility}\u0000${sgAnnual ? JSON.stringify(person) : people.get(date)!.key}`;
+				const verdictKey = `${catalogue.eligibility}\u0000${netService ? JSON.stringify(person) : people.get(date)!.key}`;
 				const verdict = verdicts.get(verdictKey);
 				if (verdict !== undefined) eligible = verdict;
 				else {
@@ -865,7 +886,7 @@ export function leaveRules(
 		return first === undefined ? eligibleOnDay(date) : first != null && first <= date;
 	};
 	const grantedOn = (date: string): boolean => {
-		if (sgAnnual && servedOn(date))
+		if (netService && servedOn(date))
 			return isEligible(catalogueOn(date).eligibility, servicePersonOn(date, true));
 		const first = qualifiedFrom(date, true);
 		return first === undefined ? eligibleOnDay(date) : first != null && first <= date;
@@ -894,8 +915,18 @@ export function leaveRules(
 			rosterCodes
 		);
 	};
-	const annualForfeited = (window: LeaveWindow, asOf: string): boolean => {
-		if (!sgAnnual) return false;
+	/**
+	 * Whether the window's grant is forfeited: unexcused whole-day absences above `share` of its
+	 * working days (`entitlement.forfeit_above_absence_share`), each day's decision read from its
+	 * recorded absence inputs.
+	 */
+	const forfeited = (
+		window: LeaveWindow,
+		asOf: string,
+		share: number | null | undefined
+	): boolean => {
+		if (share == null) return false;
+		const what = `${selected.code} forfeiture`;
 		const recorded = new Map(
 			(context.annualAttendance ?? [])
 				.filter((row) => row.employment_id === employmentId)
@@ -923,10 +954,10 @@ export function leaveRules(
 		for (const day of daysBetween(window.start, asOf < window.end ? asOf : window.end)) {
 			if (day < hire || (exit != null && day > exit)) continue;
 			const term = terms.find((row) => coversDate(row.effective_range, day));
-			if (term == null) refuse(`SG annual forfeiture needs employment terms on ${day}.`);
+			if (term == null) refuse(`${what} needs employment terms on ${day}.`);
 			const pattern = termPatternRow(term, patterns);
 			if (pattern == null || !coversDate(pattern.effective_range, day))
-				refuse(`SG annual forfeiture needs a dated work pattern on ${day}.`);
+				refuse(`${what} needs a dated work pattern on ${day}.`);
 			const row = recorded.get(day);
 			const codeId =
 				row?.shift_definition_id ??
@@ -936,31 +967,32 @@ export function leaveRules(
 				(candidate) => candidate.id === codeId && candidate.company_id === company.id
 			);
 			if (shift == null || !coversDate(shift.effective_range, day))
-				refuse(`SG annual forfeiture needs a dated roster code on ${day}.`);
+				refuse(`${what} needs a dated roster code on ${day}.`);
 			if (rosterCodeKind(shift.variant) !== 'WORK') continue;
 			withHolidays += 1;
 			const holiday = holidays.has(day);
 			if (!holiday) withoutHolidays += 1;
-			if (row?.sg_partial_absence === true)
-				refuse('SG annual forfeiture needs a statutory partial-day absence convention.');
+			const facts: Readonly<Record<string, unknown>> = row?.facts ?? {};
+			if (facts.partial_absence === true)
+				refuse(`${what} needs a statutory partial-day absence convention.`);
 			const covered = approved
 				.flatMap((entry) => entry.charges)
 				.filter((charge) => charge.date === day)
 				.reduce((sum, charge) => sum + charge.days, 0);
 			if (covered >= 1 - 1e-9) continue;
 			if (covered > 0 && row?.worked_intervals?.length === 0)
-				refuse('SG annual forfeiture needs a statutory partial-day absence convention.');
+				refuse(`${what} needs a statutory partial-day absence convention.`);
 			if (
 				row?.worked_intervals == null &&
-				(row?.sg_absence_permission != null || row?.sg_absence_reasonable_excuse != null)
+				(facts.absence_permission != null || facts.absence_reasonable_excuse != null)
 			)
-				refuse('SG annual absence decision needs dated attendance evidence.');
+				refuse(`${selected.code} absence decision needs dated attendance evidence.`);
 			if (holiday) continue;
 			if (row?.worked_intervals == null) {
 				// Before the accrual year closes this is provisional. A final balance cannot
 				// turn an unrecorded day into an implicit finding that the person worked.
-				if (asOf >= window.end || (exit != null && asOf >= exit))
-					refuse(`SG annual forfeiture needs dated attendance or leave evidence on ${day}.`);
+				if (context.projected !== true && (asOf >= window.end || (exit != null && asOf >= exit)))
+					refuse(`${what} needs dated attendance or leave evidence on ${day}.`);
 				continue;
 			}
 			if (row.worked_intervals.length > 0) {
@@ -978,17 +1010,19 @@ export function leaveRules(
 					paidMinutes == null ||
 					observedMinutes < paidMinutes * (1 - covered)
 				)
-					refuse(`SG annual forfeiture needs a partial-day attendance decision on ${day}.`);
+					refuse(`${what} needs a partial-day attendance decision on ${day}.`);
 			}
 			if (row.worked_intervals.length !== 0) continue;
 			if (
-				row.sg_absence_permission == null ||
-				row.sg_absence_reasonable_excuse == null ||
-				row.sg_absence_decision_reference?.trim() === '' ||
-				row.sg_absence_decision_reference == null
+				facts.absence_permission == null ||
+				facts.absence_reasonable_excuse == null ||
+				!Predicate.isString(facts.absence_decision) ||
+				facts.absence_decision.trim() === ''
 			)
-				refuse(`SG annual absence on ${day} needs permission, excuse and reference evidence.`);
-			if (row.sg_absence_permission === 'NO' && row.sg_absence_reasonable_excuse === 'NO')
+				refuse(
+					`${selected.code} absence on ${day} needs permission, excuse and reference evidence.`
+				);
+			if (facts.absence_permission === 'NO' && facts.absence_reasonable_excuse === 'NO')
 				unexcused += 1;
 		}
 		if (unexcused === 0) return false;
@@ -998,24 +1032,25 @@ export function leaveRules(
 			asOf < window.end ||
 			[...noPayDays.keys()].some((day) => day >= window.start && day <= window.end)
 		)
-			refuse('SG annual forfeiture needs its partial-year accrual period assessed.');
+			refuse(`${what} needs its partial-year accrual period assessed.`);
 		if (withoutHolidays === 0 || withHolidays === 0)
-			refuse('SG annual forfeiture needs a working-day denominator.');
-		const withoutResult = unexcused * 5 > withoutHolidays;
-		const withResult = unexcused * 5 > withHolidays;
+			refuse(`${what} needs a working-day denominator.`);
+		// A share is exact when its fraction is: 52 of 260 is 0.2, not above it.
+		const withoutResult = unexcused / withoutHolidays > share;
+		const withResult = unexcused / withHolidays > share;
 		if (withoutResult !== withResult)
-			refuse('SG annual forfeiture needs its public-holiday denominator assessed.');
+			refuse(`${what} needs its public-holiday denominator assessed.`);
 		return withoutResult;
 	};
 	const entitlementAt = (window: LeaveWindow, date: string) => {
 		if (unknownNoPay != null && unknownNoPay <= window.end)
-			refuse('SG annual leave needs the no-pay leave request origin recorded.');
+			refuse(`${selected.code} needs the no-pay leave request origin recorded.`);
 		if (unsupportedNoPay != null && unsupportedNoPay <= window.end)
-			refuse('SG annual leave needs the other-origin no-pay leave service basis assessed.');
+			refuse(`${selected.code} needs the other-origin no-pay leave service basis assessed.`);
 		if (partialNoPay != null && partialNoPay <= window.end)
-			refuse('SG annual leave with partial no-pay leave needs its service fraction assessed.');
+			refuse(`${selected.code} with partial no-pay leave needs its service fraction assessed.`);
 		if (firstNoPay != null && firstNoPay < window.start)
-			refuse('SG annual leave after no-pay leave needs a shifted service year assessed.');
+			refuse(`${selected.code} after no-pay leave needs a shifted service year assessed.`);
 		if ([...noPayDays].some(([day, days]) => day <= window.end && days > 1 + 1e-9))
 			refuse('Overlapping no-pay leave periods need reconciliation before annual leave is priced.');
 		const key = `${window.start}/${window.end}/${date}`;
@@ -1024,8 +1059,9 @@ export function leaveRules(
 		// An ended employee can settle old days later using the source period's final rule.
 		const asOf = [date, window.end, ...(exit == null ? [] : [exit])].toSorted()[0]!;
 		const ruleDate = asOf < window.start ? window.start : asOf;
+		const rule = catalogueOn(ruleDate).entitlement;
 		const entitlement = computedEntitlement({
-			rule: catalogueOn(ruleDate).entitlement,
+			rule,
 			window,
 			asOf,
 			hireDate: hire,
@@ -1033,10 +1069,10 @@ export function leaveRules(
 			servedOn,
 			eligibleOn: grantedOn,
 			personOn: (day) => servicePersonOn(day, false),
-			serviceExcludedOn: sgAnnual ? (day) => noPayDays.get(day) ?? 0 : undefined,
+			serviceExcludedOn: netService ? (day) => noPayDays.get(day) ?? 0 : undefined,
 			hourlyBasisOn
 		});
-		const forfeited = annualForfeited(window, asOf);
+		const lost = forfeited(window, asOf, rule.forfeit_above_absence_share);
 		const previousEnd = addDays(window.start, -1);
 		const previousRule = previousEnd < hire ? null : catalogueAt(previousEnd)?.entitlement;
 		const previousWindow =
@@ -1047,9 +1083,9 @@ export function leaveRules(
 			refuse('A changed leave-year anchor needs prior credit reconciled before carry.');
 		const result = {
 			...entitlement,
-			entitlement: forfeited ? 0 : entitlement.entitlement,
-			earned: forfeited ? 0 : entitlement.earned,
-			available: forfeited ? 0 : entitlement.available,
+			entitlement: lost ? 0 : entitlement.entitlement,
+			earned: lost ? 0 : entitlement.earned,
+			available: lost ? 0 : entitlement.available,
 			automaticCarryFrom: previousWindow
 		};
 		amounts.set(key, result);

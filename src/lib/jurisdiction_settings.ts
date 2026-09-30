@@ -95,15 +95,6 @@ export function settingsInForce<V extends SettingsVersionLike>(
 	return covering[0] ?? null;
 }
 
-/**
- * The jurisdiction a lineage transcribes: the first segment of its code. `SG-norbital` is
- * Singapore law with Norbital's own catalogue; the engine's few country-specific rules (the
- * Philippine 313-day divisor, night-work hours) read this and never the whole code.
- */
-export function countryOf(code: string): string {
-	return code.split('-')[0] ?? code;
-}
-
 /** One line naming a version for a refusal: its name, code and the day it was sealed. */
 export function describeVersion(version: {
 	readonly name?: string | null | undefined;

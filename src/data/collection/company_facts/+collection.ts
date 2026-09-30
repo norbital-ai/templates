@@ -5,23 +5,12 @@ const companyFacts = collection('company_facts', {
 	read: { fields: 'all' },
 	create: {
 		input: {
-			columns: [
-				'company_id',
-				'facts',
-				'effective_range',
-				'ph_wage_class_source_reference',
-				'ph_wage_class_source_file'
-			]
+			columns: ['company_id', 'facts', 'effective_range']
 		}
 	},
 	update: {
 		input: {
-			columns: [
-				'facts',
-				'effective_range',
-				'ph_wage_class_source_reference',
-				'ph_wage_class_source_file'
-			]
+			columns: ['facts', 'effective_range']
 		}
 	},
 	delete: {}

@@ -1,3 +1,4 @@
+import * as Predicate from 'effect/Predicate';
 import { calculateFamilyAssessments } from '../../../lib/payroll/families.js';
 /**
  * The payroll run: the same eight steps for every country, split at what reads and what decides.
@@ -19,11 +20,14 @@ import { calculateFamilyAssessments } from '../../../lib/payroll/families.js';
  */
 
 import { refuse } from '../../../lib/refuse.js';
+import { recordedFact } from '../../../lib/declared-facts.js';
 import type { PayrollWorld } from '../world.js';
 import { live } from './effective.js';
 import { daysBetween, periodHalf } from './dates.js';
 import { coversDate } from './effective.js';
-import { assertProfileWorksites, pickConfiguration, type Configuration } from './configuration.js';
+import { employmentDates } from './settlement.js';
+import { isEligible, personContext } from './eligibility.js';
+import { pickConfiguration, withDeclaredFacts, type Configuration } from './configuration.js';
 import { gatherRun, type GatheredRun } from './gather.js';
 import {
 	periodGrammarFault,
@@ -119,13 +123,111 @@ export function gatherPayrollRun(options: {
 	if (fault != null) refuse(fault);
 	const window = resolveWindow(period, company, payDueDate);
 	const configuration = pickConfiguration({ world, companyId, window });
-	assertProfileWorksites(configuration, world, window);
 	return {
 		period,
 		window,
 		configuration,
-		gathered: gatherRun({ world, configuration, window, payDueDate })
+		gathered: gatherRun({
+			world: withDeclaredFacts(configuration, world, window),
+			configuration,
+			window,
+			payDueDate
+		})
 	};
+}
+
+type CoverageSpan = 'SALARY' | 'ATTENDANCE' | 'ARREARS' | 'SERVICE_AFTER_EXIT';
+
+/**
+ * The version's territorial reach (`payroll.worksite_coverage`). Each day of the declared spans
+ * must place the person, by the terms row in force that day, at a value the version covers; a
+ * listed `refused` value names the profile that governs it instead. `refuse_when` is judged over
+ * every salary-window terms row. A lineage that declares none has no territorial guard.
+ */
+function assertWorksiteCoverage(
+	configuration: Configuration,
+	gathered: GatheredRun,
+	asOf: string
+): void {
+	const coverage = configuration.jurisdiction.payroll.worksite_coverage;
+	if (coverage == null) return;
+	const covered = new Set(
+		coverage.covered_by_wage_regions === true
+			? Object.keys(configuration.jurisdiction.work_rules.wages?.by_region ?? {})
+			: (coverage.covered ?? [])
+	);
+	const factKey = coverage.source.startsWith('facts.') ? coverage.source.slice(6) : null;
+	const valueOn = (terms: GatheredRun['bundles'][number]['termsHistory'], day: string) => {
+		const row = terms.find((term) => coversDate(term.effective_range, day));
+		const value = factKey == null ? row?.worksite : recordedFact(row, factKey);
+		return Predicate.isString(value) ? value.trim() : '';
+	};
+	const fill = (message: string, value: string, day: string) =>
+		message.replaceAll('{value}', value).replaceAll('{day}', day);
+	const spans = new Set<CoverageSpan>(coverage.spans);
+	for (const bundle of gathered.bundles) {
+		const who = bundle.employment.employee_number;
+		const { hire, exit } = employmentDates(bundle.employment);
+		const employed = (span: { readonly start: string; readonly end: string } | null | undefined) =>
+			span == null
+				? []
+				: daysBetween(span.start, span.end).filter(
+						(day) => day >= hire && (exit == null || day <= exit)
+					);
+		const checked: [CoverageSpan, readonly string[]][] = [
+			['SALARY', employed(bundle.employedDays)],
+			['ATTENDANCE', employed(bundle.attendance)],
+			['ARREARS', employed(bundle.arrearsFor?.days)],
+			[
+				'SERVICE_AFTER_EXIT',
+				exit != null && exit < bundle.window.salary.start ? daysBetween(hire, exit) : []
+			]
+		];
+		for (const [span, days] of checked) {
+			if (!spans.has(span)) continue;
+			for (const day of days) {
+				const value = valueOn(bundle.termsHistory, day);
+				const elsewhere = coverage.refused?.find((row) => row.values.includes(value));
+				if (elsewhere != null) refuse(`${who}: ${fill(elsewhere.message, value, day)}`);
+				if (covered.has(value)) continue;
+				const where = value === '' ? 'an unrecorded worksite' : `worksite "${value}"`;
+				refuse(
+					`${who}: ` +
+						(coverage.uncovered_message != null
+							? fill(coverage.uncovered_message, value, day)
+							: span === 'SERVICE_AFTER_EXIT'
+								? `${configuration.jurisdiction.code} cannot price a post-exit payment with ${where} on ${day}; ` +
+									'record the dated contract performance place on employment terms under the version that covers it.'
+								: `${configuration.jurisdiction.code} cannot price ${day} at ${where}. Record the dated ` +
+									'contract performance place on employment terms under the version that covers it.')
+				);
+			}
+		}
+		if (
+			(coverage.refuse_when ?? '') === '' ||
+			bundle.employedDays == null ||
+			bundle.deferral != null
+		)
+			continue;
+		for (const terms of bundle.terms.length === 0 ? [null] : bundle.terms)
+			if (
+				isEligible(
+					coverage.refuse_when,
+					personContext({
+						employee: null,
+						employment: { service_start: hire, exit_date: exit },
+						terms,
+						company: {
+							...configuration.company,
+							headcount: gathered.headcount,
+							headcount_citizens: gathered.headcountCitizens
+						},
+						asOf
+					})
+				)
+			)
+				refuse(`${who}: ${coverage.refuse_message ?? coverage.authority}`);
+	}
 }
 
 /**
@@ -139,40 +241,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	// 2 — VALIDATE
 	const issues: RunIssue[] = validateConfiguration(configuration);
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
-	if (configuration.jurisdiction.jurisdiction_code === 'MY') {
-		const coveredStates = new Set([
-			'JOHOR',
-			'KEDAH',
-			'KELANTAN',
-			'MELAKA',
-			'NEGERI_SEMBILAN',
-			'PAHANG',
-			'PERAK',
-			'PERLIS',
-			'PULAU_PINANG',
-			'SELANGOR',
-			'TERENGGANU',
-			'KUALA_LUMPUR',
-			'PUTRAJAYA',
-			'LABUAN'
-		]);
-		for (const bundle of prepared.gathered.bundles) {
-			if (bundle.employedDays == null) continue;
-			for (const day of daysBetween(bundle.employedDays.start, bundle.employedDays.end)) {
-				const state = bundle.terms.find((term) =>
-					coversDate(term.effective_range, day)
-				)?.worksite_state;
-				if (state === 'SABAH' || state === 'SARAWAK')
-					refuse(
-						`${bundle.employment.employee_number}: ${state} worksite on ${day} needs its Labour Ordinance payroll profile.`
-					);
-				if (!coveredStates.has(state ?? ''))
-					refuse(
-						`${bundle.employment.employee_number}: record a supported Peninsular Malaysia or Labuan worksite state on employment terms for ${day} before payroll.`
-					);
-			}
-		}
-	}
+	assertWorksiteCoverage(configuration, prepared.gathered, window.salary.end);
 	// A floor that substitutes itself for the agreed wage (TW 最低工資法 §5) re-rates the terms
 	// before anything is measured, so pay, proration and every rate derived from it read the floor.
 	const raised = raiseToMinimumWage(configuration, prepared.gathered.bundles);

@@ -9,16 +9,18 @@ export default model({
 	fields: {
 		source_category: {
 			kind: 'enum',
-			values: ['REGULAR_WAGE', 'BONUS', 'RETRO_WAGE', 'MATERNITY_PAY', 'NONCONTRACT_REMUNERATION']
+			values: [
+				'REGULAR_WAGE',
+				'BONUS',
+				'RETRO_WAGE',
+				'BENEFIT_CASE_PAY',
+				'NONCONTRACT_REMUNERATION'
+			]
 		},
 		source_kind: { kind: 'text' },
 		source_id: { kind: 'text' },
-		/** Philippine maternity cash is separated into the SSS award and employer differential. */
-		source_component: {
-			kind: 'enum',
-			values: ['SSS_AWARD', 'EMPLOYER_DIFFERENTIAL'],
-			optional: true
-		},
+		/** Benefit-case cash is separated into its case type's award and differential components. */
+		source_component: { kind: 'text', optional: true },
 		reference: { kind: 'text' },
 		due_on: { kind: 'date' },
 		currency: { kind: 'currency' },

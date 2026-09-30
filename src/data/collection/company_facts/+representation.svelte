@@ -5,7 +5,7 @@
 	import { Field, Form } from '@norbital-ai/ui';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import { RecordShell, type RecordView } from '@norbital-ai/ui';
-	import EntityFactsRenderer from '../../custom_field/entity_facts/+renderer.svelte';
+	import DeclaredFactsField from '../../../lib/ui/declared-facts-field.svelte';
 	import { createValues, hrCreateScope } from '../../../lib/ui/create-scope.js';
 	import FormSection from '../../../lib/ui/form-section.svelte';
 	import { liveRows } from '../../../lib/ui/live.svelte.js';
@@ -52,7 +52,7 @@
 							help={t('component.entity_facts_hint')}
 						>
 							{#snippet editor(field)}
-								<EntityFactsRenderer
+								<DeclaredFactsField
 									view={{
 										mode: 'edit',
 										name: field.name,
@@ -61,20 +61,11 @@
 										onChange: field.onChange as never
 									}}
 									settingsCode={settingsCodeOf(form.get('company_id') ?? record?.company_id)}
+									schema="facts"
 								/>
 							{/snippet}
 						</Field>
 					</Column>
-					{#if settingsCodeOf(form.get('company_id') ?? record?.company_id) === 'PH'}
-						<Field
-							name="ph_wage_class_source_reference"
-							label="Establishment and worker-count source reference"
-						/>
-						<Field
-							name="ph_wage_class_source_file"
-							label="Establishment and worker-count source file"
-						/>
-					{/if}
 				</Grid>
 			</FormSection>
 		{/snippet}

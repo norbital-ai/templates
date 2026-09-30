@@ -529,7 +529,8 @@ const timeOff = (world: PayrollWorld, code: string, from: string, to: string) =>
 	const charges = [];
 	for (let day = from; day <= to;) {
 		const weekday = new Date(`${day}T00:00:00Z`).getUTCDay();
-		if (weekday !== 0 && weekday !== 6)
+		// A calendar-day leave (留職停薪) charges every day it spans, as the planner writes it.
+		if (row.entitlement.calendar_days === true || (weekday !== 0 && weekday !== 6))
 			charges.push({
 				date: day,
 				days: 1,

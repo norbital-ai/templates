@@ -18,7 +18,9 @@ const fields = (...paths) =>
 				...[...source.matchAll(/<Field\s[^>]*?name="([a-z0-9_]+)"|<(EmploymentField)\b/gs)].map(
 					(m) => (m[2] ? 'employment_id' : m[1])
 				),
-				...[...source.matchAll(/<Field\b[^>]*\baddress="([a-z0-9_]+)"/gs)].map((m) => m[1])
+				...[...source.matchAll(/<Field\b[^>]*\baddress="([a-z0-9_]+)"/gs)].map((m) => m[1]),
+				// A field rendered through a snippet that forwards its name to `<Field {name}>`.
+				...[...source.matchAll(/\{@render coded\('([a-z0-9_]+)'/g)].map((m) => m[1])
 			];
 		})
 	);

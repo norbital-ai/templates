@@ -11,12 +11,14 @@
 
 	let {
 		value,
+		declared,
 		elections,
 		disabled,
 		onChange,
 		onElectionsChange
 	}: {
 		value: readonly StatutoryDeductionClaim[];
+		declared: readonly { readonly code: string; readonly label: string }[];
 		elections: Readonly<Record<string, string | number | boolean>>;
 		disabled: boolean;
 		onChange: (value: readonly StatutoryDeductionClaim[]) => void;
@@ -25,41 +27,7 @@
 	let month = $state(new Date().toISOString().slice(0, 7));
 	const totals = $derived(deductionTotals(value, `${month.slice(0, 4)}-01-01`, month));
 	const categories = $derived(
-		[
-			['PARENTS_CARE', t('renderer.statutory_deductions.category.parents_care')],
-			['PARENTS_CHECKUP', t('renderer.statutory_deductions.category.parents_checkup')],
-			['DISABILITY_EQUIPMENT', t('renderer.statutory_deductions.category.disability_equipment')],
-			['SELF_EDUCATION', t('renderer.statutory_deductions.category.self_education')],
-			['UPSKILLING', t('renderer.statutory_deductions.category.upskilling')],
-			['SERIOUS_MEDICAL', t('renderer.statutory_deductions.category.serious_medical')],
-			['VACCINATION', t('renderer.statutory_deductions.category.vaccination')],
-			['DENTAL', t('renderer.statutory_deductions.category.dental')],
-			['MEDICAL_SCREENING', t('renderer.statutory_deductions.category.medical_screening')],
-			['LEARNING_DISABILITY', t('renderer.statutory_deductions.category.learning_disability')],
-			['LIFESTYLE', t('renderer.statutory_deductions.category.lifestyle')],
-			['SPORTS', t('renderer.statutory_deductions.category.sports')],
-			['BREASTFEEDING', t('renderer.statutory_deductions.category.breastfeeding')],
-			['CHILDCARE', t('renderer.statutory_deductions.category.childcare')],
-			['SSPN', t('renderer.statutory_deductions.category.sspn')],
-			['ALIMONY', t('renderer.statutory_deductions.category.alimony')],
-			['VOLUNTARY_EPF', t('renderer.statutory_deductions.category.voluntary_epf')],
-			['LIFE_INSURANCE_EPF', t('renderer.statutory_deductions.category.life_insurance_epf')],
-			['PRIVATE_RETIREMENT', t('renderer.statutory_deductions.category.private_retirement')],
-			[
-				'EDUCATION_MEDICAL_INSURANCE',
-				t('renderer.statutory_deductions.category.education_medical_insurance')
-			],
-			['SOCSO_EIS', t('renderer.statutory_deductions.category.socso_eis')],
-			['EV_CHARGING', t('renderer.statutory_deductions.category.ev_charging')],
-			['COMPOST', t('renderer.statutory_deductions.category.compost')],
-			['FOOD_GRINDER_CCTV', t('renderer.statutory_deductions.category.food_grinder_cctv')],
-			['HOME_INTEREST', t('renderer.statutory_deductions.category.home_interest')],
-			['TOURISM', t('renderer.statutory_deductions.category.tourism')],
-			['ZAKAT_EXTERNAL', t('renderer.statutory_deductions.category.zakat_external')],
-			['ZAKAT', t('renderer.statutory_deductions.category.zakat')],
-			['DEPARTURE_LEVY', t('renderer.statutory_deductions.category.departure_levy')],
-			['SERVICE_COSTS', t('renderer.statutory_deductions.category.service_costs')]
-		].map(([value, label]) => ({ value: value!, label: label! }))
+		declared.map((category) => ({ value: category.code, label: category.label }))
 	);
 	const sources = $derived([
 		{ value: 'EMPLOYEE', label: t('renderer.statutory_deductions.employee_source') },
@@ -101,7 +69,13 @@
 		add={() =>
 			onChange([
 				...value,
-				{ period: month, category: 'LIFESTYLE', amount: 0, source: 'EMPLOYEE', reference: '' }
+				{
+					period: month,
+					category: declared[0]?.code ?? '',
+					amount: 0,
+					source: 'EMPLOYEE',
+					reference: ''
+				}
 			])}
 		removeLabel={t('renderer.statutory_deductions.remove')}
 		remove={(index) => edit(index, null)}

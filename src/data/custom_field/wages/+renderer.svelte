@@ -40,7 +40,7 @@
 			key: 'region',
 			label: t('component.region'),
 			field: { name: 'region', kind: 'text', nullable: false } satisfies CollectionField,
-			placeholder: 'MY',
+			placeholder: t('renderer.minimum_wage.region_placeholder'),
 			width: 220
 		},
 		{
@@ -56,7 +56,8 @@
 	function commit(next: WageRow[], applies = appliesWhen): void {
 		rows = next;
 		if (view.mode !== 'edit') return;
-		// The keys this editor does not show (hourly table, scale, terms rule, authority) survive the edit.
+		// The keys this editor does not show (hourly table and floor, scale, terms and contract rules,
+		// authority) survive the edit.
 		view.onChange({
 			...wages,
 			by_region: Object.fromEntries(

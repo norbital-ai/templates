@@ -75,16 +75,19 @@ export function workPayItems(
 			absence: true,
 			definition: { source: 'ABSENCE', unit: 'MONEY' }
 		}),
-		...(work.bands.some((band) => band.label === 'GUARD-OT-1.25X')
-			? [
-					item({
-						settingsId: work.settings_id,
-						code: 'GUARD_NORMAL_SUPPLEMENT',
-						output: 'guard_normal_supplement',
-						definition: { source: 'DERIVED_NORMAL', unit: 'MONEY' }
-					})
-				]
-			: []),
+		// A normal-day band (`bands[].component`) posts additional normal-time wages to its own item.
+		...work.bands.flatMap((band) =>
+			band.component == null
+				? []
+				: [
+						item({
+							settingsId: work.settings_id,
+							code: band.label,
+							output: band.component,
+							definition: { source: 'DERIVED_NORMAL', unit: 'MONEY' }
+						})
+					]
+		),
 		item({
 			settingsId: work.settings_id,
 			code: WORK_LINE_CODES.night,
@@ -121,6 +124,7 @@ export function workPayItems(
 	};
 	const incentive = paysIncentive(work);
 	for (const band of work.bands) {
+		if (band.component != null) continue;
 		add(OVERTIME_LINE, band.label);
 		if (incentive) add(INCENTIVE_LINE, band.label);
 	}

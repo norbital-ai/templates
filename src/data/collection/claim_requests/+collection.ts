@@ -19,11 +19,7 @@ const GUARD: PayRequestGuard = {
 	requests: 'claim_requests',
 	noun: 'claim',
 	sign: 1,
-	eventDate: (candidate) =>
-		dateKey(
-			((candidate.medical_reimbursement as { due_on?: string } | null)?.due_on ??
-				candidate.incurred_on) as string | null
-		)
+	eventDate: (candidate) => dateKey((candidate.due_on ?? candidate.incurred_on) as string | null)
 };
 
 const c = collection('claim_requests', {
@@ -37,7 +33,8 @@ const c = collection('claim_requests', {
 				'incurred_on',
 				'description',
 				'evidence_file',
-				'medical_reimbursement',
+				'due_on',
+				'facts',
 				'as_adjustment_entry',
 				'pay_period'
 			]
@@ -52,7 +49,8 @@ const c = collection('claim_requests', {
 				'incurred_on',
 				'description',
 				'evidence_file',
-				'medical_reimbursement',
+				'due_on',
+				'facts',
 				'as_adjustment_entry',
 				'pay_period'
 			]

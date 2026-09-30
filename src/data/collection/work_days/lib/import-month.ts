@@ -18,6 +18,8 @@ import { personContext } from '../../../../lib/payroll/run/eligibility.js';
 import { leaveCoverage } from '../../../../lib/scheduling/leave-coverage.js';
 import { clockMinutes, rosterCodeKind } from '../../../../lib/scheduling/roster-code.js';
 import { settingsInForce } from '../../../../lib/jurisdiction_settings.js';
+import { ABSENCE_DECISION_FACTS } from '../../../../lib/leave/entitlement.js';
+import type { FactKey } from '../../../../lib/datatypes/fact_keys.js';
 import {
 	patternAnchor,
 	patternRosterCodeId,
@@ -41,6 +43,7 @@ import type { WorkPattern } from '../../../../lib/datatypes/work_pattern.js';
 import { offsetMinutesAt } from '../../../../lib/timezone.js';
 import * as Predicate from 'effect/Predicate';
 import { decodeNumber } from '../../../../lib/wire.js';
+import messages from '../../../../i18n/+messages.js';
 
 type Ctx = Pick<ActionCtx<'work_days'>, 'read' | 'act' | 'refuse'>;
 type Keyed = { readonly employee_number: string; readonly work_date: string };
@@ -52,7 +55,8 @@ type AttendanceRow = Keyed & {
 type OvertimeRow = Keyed & {
 	readonly overtime_hours: number;
 	readonly overtime_consented_at?: string | null | undefined;
-	readonly normal_hours_redistribution_agreed_at?: string | null | undefined;
+	/** The declared work-day inputs the sheet carries (`work_day_facts[].import`), by key. */
+	readonly facts?: Readonly<Record<string, string | number | boolean>> | null | undefined;
 };
 export type MonthImport = {
 	readonly legal_entity: string;
@@ -63,7 +67,9 @@ export type MonthImport = {
 	readonly overtime?: readonly OvertimeRow[] | null | undefined;
 };
 
-const PH_TOKENS = new Set(['PH', 'PUBLIC_HOLIDAY']);
+/** The sheet's public-holiday tokens: the board's own holiday mark, and the spelled-out word. */
+const HOLIDAY_MARK = messages['roster.public_holiday_mark'];
+const HOLIDAY_TOKENS = new Set([HOLIDAY_MARK.toUpperCase(), 'PUBLIC_HOLIDAY']);
 const all = { all: true } as const;
 const on = (date: string) => date as `${number}-${number}-${number}`;
 const day = (value: unknown): string => (value == null ? '' : dateKey(String(value)));
@@ -78,7 +84,7 @@ type Halves = {
 	approved_overtime_hours?: number;
 	incentive_hours?: number;
 	overtime_consented_at?: string | null;
-	normal_hours_redistribution_agreed_at?: string | null;
+	facts?: Readonly<Record<string, unknown>>;
 };
 
 /** Every text cell trimmed; an empty one is the sheet's fault, named by row. */
@@ -244,10 +250,12 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 	if (roster !== undefined) assertRowsOfMonth(roster, month, 'Roster', refuse);
 	if (attendance !== undefined) assertRowsOfMonth(attendance, month, 'Time entries', refuse);
 	if (overtime !== undefined) assertRowsOfMonth(overtime, month, 'Overtime', refuse);
-	const phRows = (roster ?? []).filter((row) => PH_TOKENS.has(row.shift_code.toUpperCase()));
-	if (phRows.length > 0)
+	const holidayMarked = (roster ?? []).filter((row) =>
+		HOLIDAY_TOKENS.has(row.shift_code.toUpperCase())
+	);
+	if (holidayMarked.length > 0)
 		refuse(
-			`PH is not a roster code. A holiday is overlaid from ${company.name}'s calendar; the cell names the shift the person would have worked, or REST or OFF:\n${formatNamedList(phRows.map(who))}`
+			`${HOLIDAY_MARK} is not a roster code. A holiday is overlaid from ${company.name}'s calendar; the cell names the shift the person would have worked, or REST or OFF:\n${formatNamedList(holidayMarked.map(who))}`
 		);
 	const invalidClocks = (attendance ?? []).flatMap((row) =>
 		(
@@ -264,12 +272,9 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 			`These clock fields are not valid local times (HH:mm):\n${formatNamedList(invalidClocks)}`
 		);
 	const invalidEvidence = (overtime ?? []).flatMap((row) =>
-		(['overtime_consented_at', 'normal_hours_redistribution_agreed_at'] as const).flatMap(
-			(field) => {
-				const value = row[field];
-				return value == null || isUtcIsoInstant(value) ? [] : [`${who(row)}: ${field} "${value}"`];
-			}
-		)
+		row.overtime_consented_at == null || isUtcIsoInstant(row.overtime_consented_at)
+			? []
+			: [`${who(row)}: overtime_consented_at "${row.overtime_consented_at}"`]
 	);
 	if (invalidEvidence.length > 0)
 		refuse(`These agreement facts must be UTC ISO instants:\n${formatNamedList(invalidEvidence)}`);
@@ -302,7 +307,8 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 				voided_at: true,
 				approval_id: true,
 				effective_range: true,
-				work_rules: true
+				work_rules: true,
+				work_day_facts: true
 			},
 			...all
 		})
@@ -339,14 +345,10 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 				work_date: true,
 				shift_definition_id: true,
 				worked_intervals: true,
-				sg_absence_permission: true,
-				sg_absence_reasonable_excuse: true,
-				sg_absence_decision_reference: true,
-				sg_partial_absence: true,
 				approved_overtime_hours: true,
 				incentive_hours: true,
 				overtime_consented_at: true,
-				normal_hours_redistribution_agreed_at: true,
+				facts: true,
 				emergency_cause: true,
 				payslip_id: true
 			},
@@ -491,7 +493,7 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 		clock?: readonly Interval[] | null;
 		approved?: OvertimeSplit;
 		consent?: string | null;
-		redistributionAgreement?: string | null;
+		facts?: Readonly<Record<string, string | number | boolean>>;
 	};
 	const fileDays = new Map<string, FileDay>();
 	const dayOf = (row: Keyed) => {
@@ -508,8 +510,26 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 		const found = dayOf(row);
 		totalByKey.set(personDayKey(found.employmentId, found.workDate), row.overtime_hours);
 		found.consent = row.overtime_consented_at ?? null;
-		found.redistributionAgreement = row.normal_hours_redistribution_agreed_at ?? null;
+		found.facts = row.facts ?? {};
 	}
+	// The work-day inputs the version lets the workbook carry; any other column is refused by name.
+	const importKeys = (
+		(settingsInForce(versions, company.settings_code, bounds.start)?.work_day_facts ??
+			[]) as readonly FactKey[]
+	)
+		.filter((field) => field.import === true)
+		.map((field) => field.key);
+	const unknownColumns = [
+		...new Set((overtime ?? []).flatMap((row) => Object.keys(row.facts ?? {})))
+	].filter((key) => !importKeys.includes(key));
+	if (unknownColumns.length > 0)
+		refuse(
+			`The Overtime sheet carries columns these rules do not import:\n${formatNamedList(unknownColumns)}`
+		);
+	const sameFacts = (
+		left: Readonly<Record<string, unknown>> | undefined,
+		right: Readonly<Record<string, unknown>>
+	) => importKeys.every((key) => (left?.[key] ?? null) === (right[key] ?? null));
 	const carriesPlan = roster !== undefined;
 	const carriesClock = attendance !== undefined;
 	const carriesOvertime = overtime !== undefined;
@@ -522,19 +542,16 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 		work_date: day(row.work_date),
 		shift_definition_id: row.shift_definition_id == null ? null : String(row.shift_definition_id),
 		worked_intervals: row.worked_intervals as readonly Interval[] | null,
-		sg_absence_decision_recorded:
-			row.sg_absence_permission != null ||
-			row.sg_absence_reasonable_excuse != null ||
-			row.sg_absence_decision_reference != null ||
-			row.sg_partial_absence === true,
+		absence_decision_recorded: ABSENCE_DECISION_FACTS.some((key) =>
+			key === 'partial_absence'
+				? (row.facts as Readonly<Record<string, unknown>> | null)?.[key] === true
+				: (row.facts as Readonly<Record<string, unknown>> | null)?.[key] != null
+		),
 		approved_overtime_hours: hours(row.approved_overtime_hours),
 		incentive_hours: hours(row.incentive_hours),
 		overtime_consented_at:
 			row.overtime_consented_at == null ? null : String(row.overtime_consented_at),
-		normal_hours_redistribution_agreed_at:
-			row.normal_hours_redistribution_agreed_at == null
-				? null
-				: String(row.normal_hours_redistribution_agreed_at),
+		facts: row.facts ?? {},
 		emergency_cause: row.emergency_cause === true,
 		payslip_id: row.payslip_id
 	}));
@@ -548,7 +565,7 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 	const conflicts: string[] = [];
 	const untouched = new Set<string>();
 	for (const [at, row] of existingByKey) {
-		if (!row.sg_absence_decision_recorded) continue;
+		if (!row.absence_decision_recorded) continue;
 		const file = fileDays.get(at);
 		if (
 			(file == null && (carriesPlan || carriesClock)) ||
@@ -557,12 +574,12 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 					(carriesClock && !sameIntervals(file.clock ?? null, row.worked_intervals))))
 		)
 			conflicts.push(
-				`${numberByEmployment.get(row.employment_id) ?? row.employment_id} on ${row.work_date} (the file changes a recorded Singapore absence decision)`
+				`${numberByEmployment.get(row.employment_id) ?? row.employment_id} on ${row.work_date} (the file changes a recorded absence decision)`
 			);
 	}
 	if (conflicts.length > 0)
 		refuse(
-			`Reassess the saved Singapore absence decision before importing changed attendance or roster:\n${formatNamedList(conflicts)}`
+			`Reassess the saved absence decision before importing changed attendance or roster:\n${formatNamedList(conflicts)}`
 		);
 	for (const [at, row] of existingByKey) {
 		if (row.payslip_id == null) continue;
@@ -578,8 +595,7 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 			(!carriesOvertime ||
 				((totalByKey.get(at) ?? 0) === row.approved_overtime_hours + row.incentive_hours &&
 					(file.consent === undefined || file.consent === row.overtime_consented_at) &&
-					(file.redistributionAgreement === undefined ||
-						file.redistributionAgreement === row.normal_hours_redistribution_agreed_at)));
+					(file.facts === undefined || sameFacts(file.facts, row.facts))));
 		if (same) untouched.add(at);
 		else conflicts.push(`${label} (the file changes it)`);
 	}
@@ -747,7 +763,10 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 	}
 
 	// ── the set, as one act ──
-	const halvesOf = (file: FileDay | undefined): Halves => ({
+	const halvesOf = (
+		file: FileDay | undefined,
+		storedFacts: Readonly<Record<string, unknown>> = {}
+	): Halves => ({
 		...(carriesPlan ? { shift_definition_id: file?.plan ?? null } : {}),
 		...(carriesClock ? { worked_intervals: file?.clock ?? null } : {}),
 		...(carriesOvertime
@@ -755,7 +774,16 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 					approved_overtime_hours: file?.approved?.approved_overtime_hours ?? 0,
 					incentive_hours: file?.approved?.incentive_hours ?? 0,
 					overtime_consented_at: file?.consent ?? null,
-					normal_hours_redistribution_agreed_at: file?.redistributionAgreement ?? null
+					...(importKeys.length === 0
+						? {}
+						: {
+								facts: {
+									...Object.fromEntries(
+										Object.entries(storedFacts).filter(([key]) => !importKeys.includes(key))
+									),
+									...file?.facts
+								}
+							})
 				}
 			: {})
 	});
@@ -779,14 +807,14 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 		);
 	const updates = [...existingByKey]
 		.filter(([at]) => !untouched.has(at))
-		.map(([at, row]) => ({ target: row.id, set: halvesOf(fileDays.get(at)) }));
+		.map(([at, row]) => ({ target: row.id, set: halvesOf(fileDays.get(at), row.facts) }));
 	if (updates.length > 0) await ctx.act('work_days.update', updates as never);
 	// A stored day the file does not name keeps only the halves the file does not carry; one left with nothing is removed.
 	const emptied = [...existingByKey]
 		.filter(([at]) => !fileDays.has(at))
 		.filter(
 			([, row]) =>
-				!row.sg_absence_decision_recorded &&
+				!row.absence_decision_recorded &&
 				(carriesPlan || row.shift_definition_id == null) &&
 				(carriesClock || row.worked_intervals == null) &&
 				(carriesOvertime || row.approved_overtime_hours + row.incentive_hours === 0)

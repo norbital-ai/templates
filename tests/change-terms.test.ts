@@ -18,9 +18,33 @@ const previous = {
 	allowances: [],
 	effective_range: { from: '2025-01-01', to: null }
 };
-/** A work day on `day` consumed the contract's terms through it; `null` consumes nothing. */
+/**
+ * A work day on `day` consumed the contract's terms through it; `null` consumes nothing. The entity's
+ * lineage declares the classification codes the successor carries.
+ */
 const consumed = (day) => ({
-	employments: [{ id: id(1), effective_range: { from: '2025-01-01', to: null } }],
+	employments: [
+		{ id: id(1), company_id: id(2), effective_range: { from: '2025-01-01', to: null } }
+	],
+	companies: [{ id: id(2), settings_code: 'TEST' }],
+	jurisdiction_settings: [
+		{
+			id: id(3),
+			code: 'TEST',
+			sealed_at: '2024-12-31T00:00:00.000Z',
+			voided_at: null,
+			approval_id: null,
+			effective_range: { from: '2025-01-01', to: null },
+			payroll: {
+				vocabularies: {
+					statutory_work_category: ['NON_MANUAL'],
+					work_classification: ['EA_COVERED'],
+					pass_type: [],
+					tax_residency: []
+				}
+			}
+		}
+	],
 	work_days: day == null ? [] : [{ employment_id: id(1), work_date: day }]
 });
 

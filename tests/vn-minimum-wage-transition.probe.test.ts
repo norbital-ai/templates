@@ -16,33 +16,33 @@ for (const period of ['2026-01', '2026-06', '2026-07']) {
 					key: 'INCUMBENT',
 					hire_date: '2025-12-31',
 					wage: 3_800_000,
-					minimum_wage_2025_region: 'III',
-					minimum_wage_2026_area_reclassified: true
+					prior_floor_region: 'III',
+					prior_floor_reclassified: true
 				}
 			]
 		};
 		assert.throws(
 			() => buildStatutory(options),
-			/MINIMUM_WAGE_BELOW: INCUMBENT.*3860000 \(protected 2025 Region III\)/
+			/MINIMUM_WAGE_BELOW: INCUMBENT.*3860000 \(protected Region III of 2025-12-31\)/
 		);
 		const result = buildStatutory({
 			code: 'VN',
 			period,
 			region: 'IV',
 			people: [
-				{ key: 'NEW', hire_date: '2026-01-01', wage: 3_800_000, minimum_wage_2025_region: 'III' },
+				{ key: 'NEW', hire_date: '2026-01-01', wage: 3_800_000, prior_floor_region: 'III' },
 				{
 					key: 'UNCHANGED',
 					hire_date: '2025-01-01',
 					wage: 3_800_000,
-					minimum_wage_2025_region: 'IV'
+					prior_floor_region: 'IV'
 				},
 				{
 					key: 'MOVED',
 					hire_date: '2025-01-01',
 					wage: 3_800_000,
-					minimum_wage_2025_region: 'III',
-					minimum_wage_2026_area_reclassified: false
+					prior_floor_region: 'III',
+					prior_floor_reclassified: false
 				}
 			]
 		});
@@ -62,12 +62,12 @@ test('VN qualifying incumbent needs a declared 2025 region before pricing', () =
 						key: 'UNKNOWN',
 						hire_date: '2025-01-01',
 						wage: 3_800_000,
-						minimum_wage_2025_region: null,
-						minimum_wage_2026_area_reclassified: true
+						prior_floor_region: null,
+						prior_floor_reclassified: true
 					}
 				]
 			}),
-		/2025 minimum-wage region/
+		/minimum-wage region on 2025-12-31/
 	);
 });
 
@@ -85,12 +85,12 @@ test('VN incumbent retains a higher 2025 hourly floor, while a January hire uses
 						hire_date: '2025-01-01',
 						wage: 18_000,
 						pay_frequency: 'HOURLY',
-						minimum_wage_2025_region: 'III',
-						minimum_wage_2026_area_reclassified: true
+						prior_floor_region: 'III',
+						prior_floor_reclassified: true
 					}
 				]
 			}),
-		/MINIMUM_WAGE_BELOW: INCUMBENT.*18600 \(protected 2025 Region III\)/
+		/MINIMUM_WAGE_BELOW: INCUMBENT.*18600 \(protected Region III of 2025-12-31\)/
 	);
 	const result = buildStatutory({
 		code: 'VN',
@@ -103,7 +103,7 @@ test('VN incumbent retains a higher 2025 hourly floor, while a January hire uses
 				hire_date: '2026-01-01',
 				wage: 18_000,
 				pay_frequency: 'HOURLY',
-				minimum_wage_2025_region: 'III'
+				prior_floor_region: 'III'
 			}
 		]
 	});
@@ -122,12 +122,12 @@ test('VN rejects a 2025 region absent from the governing decree', () => {
 						key: 'INVALID',
 						hire_date: '2025-01-01',
 						wage: 3_800_000,
-						minimum_wage_2025_region: 'V',
-						minimum_wage_2026_area_reclassified: true
+						prior_floor_region: 'V',
+						prior_floor_reclassified: true
 					}
 				]
 			}),
-		/2025 minimum-wage region is unknown/
+		/minimum-wage region on 2025-12-31 is unknown/
 	);
 });
 
@@ -143,11 +143,11 @@ test('VN refuses an unknown 2026 area-change cause where the old floor could be 
 						key: 'UNKNOWN',
 						hire_date: '2025-01-01',
 						wage: 3_800_000,
-						minimum_wage_2025_region: 'III',
-						minimum_wage_2026_area_reclassified: null
+						prior_floor_region: 'III',
+						prior_floor_reclassified: null
 					}
 				]
 			}),
-		/declare whether this worksite's 2026 minimum-wage area was reclassified/
+		/declare whether this worksite's minimum-wage area was reclassified after 2025-12-31/
 	);
 });

@@ -6,6 +6,7 @@ import { memoryDb } from './helpers/ctx.ts';
 import { readLeaveContext } from '../src/lib/leave/context.ts';
 import { planLeaveActivity } from '../src/lib/leave/activity.ts';
 import { gatherPayrollRun, buildPayrollRun } from '../src/lib/payroll/run/engine.ts';
+import { SOLO_PARENT_ID, soloParentFile } from './fixtures/benefit-cases.ts';
 
 test('PH maternity leave approval and payroll do not depend on SSS registration age', async () => {
 	for (const sssKind of ['REGISTERED', 'NOT_REGISTERED'] as const) {
@@ -200,30 +201,23 @@ test('PH day 106 needs a birth-matched solo-parent case document, not the curren
 		() => planLeaveActivity(context, extension, 'a2000000-0000-4000-8000-000000009121'),
 		/grants 105 days/
 	);
-	context.maternityCases = [
+	context.benefitCases = [
 		{
 			id: 'case',
 			employment_id: employmentId,
+			case_type: 'MATERNITY_LEAVE',
 			application_on: '2026-09-01',
 			event_kind: 'BIRTH',
 			event_on: '2026-10-05',
-			solo_parent_claimed: true,
-			solo_parent_document_kind: 'SOLO_PARENT_ID',
-			solo_parent_document_issued_on: '2026-08-01',
-			solo_parent_document_valid_from: '2026-08-01',
-			solo_parent_document_valid_through: '2027-07-31',
-			solo_parent_document_reference: 'LGU-SP-001',
-			solo_parent_document_issuer_lgu: 'City LGU',
-			solo_parent_document_file: { path: 'solo-parent-id.pdf' },
-			solo_parent_social_worker_signature_seen: true,
-			solo_parent_mayor_signature_seen: true
+			facts: SOLO_PARENT_ID
 		} as never
 	];
+	context.benefitEvidence = [soloParentFile('case')];
 	assert.equal(
 		planLeaveActivity(context, extension, 'a2000000-0000-4000-8000-000000009121').days,
 		15
 	);
-	context.maternityCases = [{ ...context.maternityCases[0]!, event_on: '2026-10-06' }];
+	context.benefitCases = [{ ...context.benefitCases[0]!, event_on: '2026-10-06' }];
 	assert.throws(
 		() => planLeaveActivity(context, extension, 'a2000000-0000-4000-8000-000000009121'),
 		/grants 105 days/

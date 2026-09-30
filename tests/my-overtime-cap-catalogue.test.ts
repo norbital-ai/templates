@@ -16,6 +16,8 @@ type Settings = {
 			counts_day_when?: string;
 			counts_beyond_normal_when?: string;
 		}[];
+		last_rest_day_only?: boolean | null;
+		earlier_rest_day_work?: 'RESOLVE_AS_OFF' | 'REFUSE' | null;
 	};
 };
 
@@ -35,5 +37,19 @@ for (const lineage of ['MY', 'MY-nihon']) {
 			assert.equal(limit.max_hours, 104);
 			assert.equal((limit.counts_day_when ?? '').trim(), '');
 			assert.equal((limit.counts_beyond_normal_when ?? '').trim(), '');
+		});
+	// EA 1955 s.59(1): of two weekly rest days only the last is the Part XII rest day. MY resolves
+	// the earlier as an OFF day; MY-nihon, whose contract pays 2.0× on both, refuses paid work on
+	// the earlier until the 104-hour count and the contract rate are priced together.
+	for (const version of versions)
+		test(`${lineage} ${version.id}: earlier rest-day work`, () => {
+			const rules = version.work_rules;
+			if (lineage === 'MY') {
+				assert.equal(rules.last_rest_day_only, true);
+				assert.equal(rules.earlier_rest_day_work ?? null, null);
+			} else {
+				assert.equal(rules.earlier_rest_day_work, 'REFUSE');
+				assert.equal(rules.last_rest_day_only ?? null, null);
+			}
 		});
 }

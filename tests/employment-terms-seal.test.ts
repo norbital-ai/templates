@@ -26,7 +26,7 @@ const term = () => ({
 });
 /**
  * The consumers a term read sees: the latest stored Work date, a held Work proposal, stored and held Leave, the latest
- * payslip. There is no seal log; these rows are the evidence.
+ * payslip. There is no seal log; these rows are the evidence. The entity's lineage declares the terms' codes.
  */
 const tables = (
 	workThrough: string | null = null,
@@ -34,7 +34,28 @@ const tables = (
 	leave: readonly { charges: unknown }[] = [],
 	payslipThrough: string | null = null
 ) => ({
-	employments: [{ id: id(1), effective_range: { from: '2025-01-01', to: null } }],
+	employments: [
+		{ id: id(1), company_id: id(3), effective_range: { from: '2025-01-01', to: null } }
+	],
+	companies: [{ id: id(3), settings_code: 'TEST' }],
+	jurisdiction_settings: [
+		{
+			id: id(90),
+			code: 'TEST',
+			sealed_at: '2024-12-31T00:00:00.000Z',
+			voided_at: null,
+			approval_id: null,
+			effective_range: { from: '2025-01-01', to: null },
+			payroll: {
+				vocabularies: {
+					statutory_work_category: ['NON_MANUAL'],
+					work_classification: ['EA_COVERED'],
+					pass_type: [],
+					tax_residency: []
+				}
+			}
+		}
+	],
 	work_days: [
 		...(workThrough == null ? [] : [{ work_date: workThrough }]),
 		// A held proposal is a committed row stamped `approval_id`; its date protects too.

@@ -106,7 +106,7 @@ test('an overtime month grid reads half-hour cells and omits blanks', () => {
 	]);
 });
 
-test('a Thai long-form overtime row carries prior consent and a zero-hour redistribution agreement', () => {
+test('a long-form overtime row carries prior consent, and a declared input column even at zero hours', () => {
 	const grids = new Map([
 		[
 			'Settings',
@@ -142,7 +142,7 @@ test('a Thai long-form overtime row carries prior consent and a zero-hour redist
 			employee_number: 'E1',
 			work_date: '2026-01-06',
 			overtime_hours: 0,
-			normal_hours_redistribution_agreed_at: '2026-01-05T05:00:00.000Z'
+			facts: { normal_hours_redistribution_agreed_at: '2026-01-05T05:00:00.000Z' }
 		}
 	]);
 });

@@ -44,8 +44,13 @@ type PayrollCollection =
 	| 'payroll_runs'
 	| 'payslips';
 
-/** Everything one run reads, whole, as the engine filters it. */
-export type PayrollWorld = { readonly [C in PayrollCollection]: readonly WorkspaceRow<C>[] };
+/**
+ * Everything one run reads, whole, as the engine filters it. `fact_evidence` is read only where the
+ * lineage declares evidence on an entity, terms or work-day input; absent is none recorded.
+ */
+export type PayrollWorld = { readonly [C in PayrollCollection]: readonly WorkspaceRow<C>[] } & {
+	readonly fact_evidence?: readonly WorkspaceRow<'fact_evidence'>[];
+};
 
 /** The largest page the run reads of one collection; a run that reaches it refuses rather than lie. */
 const PAGE_LIMIT = 20_000;
@@ -300,10 +305,12 @@ async function wave2(
 		}),
 		readAll<WorkspaceRow<'payslips'>>(db, 'payslips', { employment_id: { in: employmentIds } })
 	]);
-	// TH s.118 can read up to 400 last piece-workdays. One workday a week needs 400 weeks;
-	// sparse work beyond that horizon refuses at the severance expression instead of guessing.
+	// A piece leaver's history (`results_pay.piece_history_weeks`; TH s.118 reads up to 400 last
+	// piece-workdays, so 400 weeks at one workday a week). Sparse work beyond that horizon refuses
+	// at the severance expression instead of guessing.
+	const pieceHistoryWeeks = governing?.work_rules.wages?.results_pay?.piece_history_weeks ?? 0;
 	const pieceIds =
-		governing?.jurisdiction_code === 'TH'
+		pieceHistoryWeeks > 0
 			? first.employments
 					.filter((employment) => {
 						// A date period reads as its plain ends: `to` is the open end.
@@ -321,8 +328,17 @@ async function wave2(
 					})
 					.map((employment) => employment.id)
 			: [];
-	const pieceHistoryFrom = addDays(spanFrom, -400 * 7);
-	const [earlierPieceDays, earlierPieceRosters] = await Promise.all([
+	const pieceHistoryFrom = addDays(spanFrom, -pieceHistoryWeeks * 7);
+	const evidenced = first.jurisdiction_settings.some(
+		(version) =>
+			version.code === settingsCode &&
+			[
+				...(version.facts ?? []),
+				...(version.terms_facts ?? []),
+				...(version.work_day_facts ?? [])
+			].some((field) => field.evidence != null)
+	);
+	const [earlierPieceDays, earlierPieceRosters, fact_evidence] = await Promise.all([
 		readAll<WorkspaceRow<'work_days'>>(
 			db,
 			'work_days',
@@ -337,7 +353,17 @@ async function wave2(
 			employment_id: { in: pieceIds },
 			period: { gte: monthKey(pieceHistoryFrom), lt: monthKey(spanFrom) },
 			...APPROVED
-		})
+		}),
+		evidenced
+			? readAll<WorkspaceRow<'fact_evidence'>>(db, 'fact_evidence', {
+					or: [
+						{ subject: { employment_terms: { in: employment_terms.map((row) => row.id) } } },
+						{ subject: { work_days: { in: work_days.map((row) => row.id) } } },
+						{ subject: { company_facts: { in: company_facts.map((row) => row.id) } } }
+					],
+					...APPROVED
+				})
+			: []
 	]);
 	return {
 		...first,
@@ -359,7 +385,8 @@ async function wave2(
 		leave_entries: complete(leave_entries, 'leave entries'),
 		loans: complete(loans, 'loans'),
 		loan_repayments: complete(loan_repayments, 'loan repayments'),
-		payslips: complete(payslips, 'payslips')
+		payslips: complete(payslips, 'payslips'),
+		fact_evidence: complete(fact_evidence, 'fact evidence')
 	};
 }
 

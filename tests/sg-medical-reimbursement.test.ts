@@ -2,12 +2,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import claimRequests from '../src/data/collection/claim_requests/+collection.ts';
-import medicalReimbursement from '../src/data/custom_field/medical_reimbursement/+definition.ts';
 import { runTransform } from './helpers/ctx.ts';
 import { buildStatutory, createStatutoryWorld, settingsIdOn } from './fixtures/statutory-world.ts';
 
 // CPF N12 paras.2–3 and SDL S375/2023 paras.2–3: actual necessary treatment for the employee or
 // a defined dependant at payment due is outside both wage bases. IRAS reporting is a separate rule.
+// The treatment facts are the class's declared request inputs (`claim_catalogue.request_facts`),
+// recorded on the claim's `facts`; the day reimbursement becomes payable is the claim's `due_on`.
 const person = {
 	key: 'SG-MED',
 	wage: 3000,
@@ -15,14 +16,10 @@ const person = {
 	citizenship: 'CITIZEN',
 	hire_date: '2025-01-01'
 };
-const medical = (due_on, facts = {}) => ({
-	due_on,
+const medical = (facts = {}) => ({
 	amount_incurred: 100,
 	patient: 'EMPLOYEE',
-	relationship_from: null,
-	relationship_through: null,
 	relationship_recognised: false,
-	relationship_reference: '',
 	treatment: 'MEDICAL',
 	treatment_received: true,
 	treatment_necessary: true,
@@ -48,7 +45,8 @@ function claimIn(world, due_on, facts = {}, incurred_on = `${due_on.slice(0, 7)}
 		incurred_on,
 		description: 'Treatment reimbursement',
 		evidence_file: 'receipt.pdf',
-		medical_reimbursement: medical(due_on, facts),
+		due_on,
+		facts: medical(facts),
 		as_adjustment_entry: false,
 		pay_period: null,
 		payslip_id: null,
@@ -119,7 +117,7 @@ test('a mismatched treatment or dependant is refused at collection admission and
 			relationship_reference: 'Guardianship order'
 		}
 	]) {
-		const row = { ...valid, medical_reimbursement: medical('2026-05-10', facts) };
+		const row = { ...valid, facts: medical(facts) };
 		await assert.rejects(
 			runTransform(claimRequests, [row], { tables: world }),
 			/does not satisfy its claim qualification rule/
@@ -150,27 +148,35 @@ test('a mismatched treatment or dependant is refused at collection admission and
 		relationship_reference: 'Guardianship order'
 	};
 	assert.equal(
-		(
-			await runTransform(
-				claimRequests,
-				[{ ...valid, medical_reimbursement: medical('2026-05-10', child) }],
-				{ tables: world }
-			)
-		).length,
+		(await runTransform(claimRequests, [{ ...valid, facts: medical(child) }], { tables: world }))
+			.length,
 		1
 	);
 	assert.equal(price('2026-05', '2026-05-10', child).adjustments.length, 1);
 });
 
-test('medical claim facts require a real due date, incurred amount and relationship evidence', () => {
-	assert.equal(medicalReimbursement.check(medical('2026-05-10')), undefined);
-	assert.match(medicalReimbursement.check(medical('2026-02-30')), /valid reimbursement due date/);
-	assert.match(
-		medicalReimbursement.check(medical('2026-05-10', { amount_incurred: 0 })),
-		/positive amount actually incurred/
+test('medical claim inputs require a positive incurred amount and relationship evidence', async () => {
+	const world = createStatutoryWorld({ code: 'SG', period: '2026-05', people: [person] });
+	const valid = claimIn(world, '2026-05-10');
+	const admit = (row) => runTransform(claimRequests, [row], { tables: world });
+	await assert.rejects(
+		admit({ ...valid, amount: 0, facts: medical({ amount_incurred: 0 }) }),
+		/Enter the positive amount actually incurred/
 	);
-	assert.match(
-		medicalReimbursement.check(medical('2026-05-10', { patient: 'FOSTER_CHILD' })),
-		/relationship began/
+	// A dependant with no relationship start never qualifies (the start is what para.3 dates).
+	await assert.rejects(
+		admit({ ...valid, facts: medical({ patient: 'FOSTER_CHILD', relationship_recognised: true }) }),
+		/does not satisfy its claim qualification rule/
+	);
+	await assert.rejects(
+		admit({
+			...valid,
+			facts: medical({
+				patient: 'FOSTER_CHILD',
+				relationship_from: '2020-01-01',
+				relationship_recognised: true
+			})
+		}),
+		/Patient relationship evidence is required/
 	);
 });

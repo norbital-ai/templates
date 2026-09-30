@@ -79,8 +79,7 @@ it('saves Vietnam minimum-wage facts and refuses a daily contract below both con
 						work_classification: 'EA_COVERED',
 						employment_type: 'PERMANENT',
 						ordinary_hours_per_week: 40,
-						minimum_wage_2025_region: 'III',
-						minimum_wage_2026_area_reclassified: true,
+						facts: { prior_floor_region: 'III', prior_floor_reclassified: true },
 						shift_pattern_id: pattern,
 						effective_range: { from: '2025-12-31', to: null }
 					}
@@ -90,8 +89,7 @@ it('saves Vietnam minimum-wage facts and refuses a daily contract below both con
 	);
 	const termsId = created.find((row) => row.collection === 'employment_terms')!.id as string;
 	const terms = await admin.get('employment_terms', termsId);
-	expect(terms?.minimum_wage_2025_region).toBe('III');
-	expect(terms?.minimum_wage_2026_area_reclassified).toBe(true);
+	expect(terms?.facts).toEqual({ prior_floor_region: 'III', prior_floor_reclassified: true });
 	for (const [code, elections] of [
 		['UI', { pension_qualified: false }],
 		['UNION_DUES', { union_member: false }],
@@ -117,7 +115,7 @@ it('saves Vietnam minimum-wage facts and refuses a daily contract below both con
 		await admin.act('payroll_runs.create', { company_id: company, period: '2026-01' })
 	);
 	expect(failure).toContain('MINIMUM_WAGE_BELOW: VN-INCUMBENT');
-	expect(failure).toContain('3860000 (protected 2025 Region III)');
+	expect(failure).toContain('3860000 (protected Region III of 2025-12-31)');
 	committed(
 		await admin.act('employment_terms.update', { target: termsId, set: { base_salary: 3_860_000 } })
 	);

@@ -37,45 +37,52 @@ async function vnObligation(gross = 9_000_000) {
 			email: `vn-payment-${crypto.randomUUID()}@example.com`
 		})
 	)[0]!.id as string;
-	// The settlement and its frozen tranche are one write in the product (`vn_noncontract_settlements.create`
-	// nests them), but that transform's payload is a Bolt build behind; this isolated fixture supplies the
-	// same priced obligation directly, as `pricedSlip` does for its payslip tranches.
+	// The settlement, its evidence and its frozen tranche are one write in the product
+	// (`noncontract_settlements.create` nests them), but that transform's payload is a Bolt build
+	// behind; this isolated fixture supplies the same priced obligation directly, as `pricedSlip`
+	// does for its payslip tranches.
 	const settlement = crypto.randomUUID();
 	const tranche = crypto.randomUUID();
+	const facts = {
+		relationship_reference: 'SIGNED-ENGAGEMENT-1',
+		relationship_reviewed_on: '2026-09-01',
+		income_nature_reference: 'WAGE-CLASSIFICATION-1',
+		tax_residency_reference: 'TAX-RESIDENCE-1'
+	};
 	await t.db.write({
-		text: `INSERT INTO vn_noncontract_settlements (
-		         id, company_id, employee_id, reference, agreed_gross_vnd, agreed_due_on,
-		         agreement_amount_reference, relationship_reference, relationship_reviewed_on,
-		         income_nature_reference, tax_residency, tax_residency_range,
-		         tax_residency_reference, currency)
-		       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::daterange, $13, $14)`,
+		text: `INSERT INTO noncontract_settlements (
+		         id, company_id, employee_id, reference, currency, agreed_gross, agreed_due_on,
+		         tax_residency, tax_residency_range, facts)
+		       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::daterange, $10::jsonb)`,
 		params: [
 			settlement,
 			company,
 			person,
-			'ENGAGEMENT-2026-09',
+			'SIGNED-FEE-1',
+			'VND',
 			gross,
 			'2026-09-30',
-			'SIGNED-FEE-1',
-			'SIGNED-ENGAGEMENT-1',
-			'2026-09-01',
-			'WAGE-CLASSIFICATION-1',
 			'RESIDENT',
 			'[2026-09-01,2027-01-01)',
-			'TAX-RESIDENCE-1',
-			'VND'
+			JSON.stringify(facts)
 		]
 	});
+	for (const [key, reference] of Object.entries(facts))
+		await t.db.write({
+			text: `INSERT INTO fact_evidence (id, subject__noncontract_settlements, fact_key, reference)
+			       VALUES ($1, $2, $3, $4)`,
+			params: [crypto.randomUUID(), settlement, key, reference]
+		});
 	await t.db.write({
 		text: `INSERT INTO payable_tranches (
-		         id, settlement__vn_noncontract_settlements, source_category, source_kind, source_id,
+		         id, settlement__noncontract_settlements, source_category, source_kind, source_id,
 		         reference, due_on, currency, gross_amount, non_event_deduction_amount, tax_treatment)
 		       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
 		params: [
 			tranche,
 			settlement,
 			'NONCONTRACT_REMUNERATION',
-			'VN_NONCONTRACT_SETTLEMENT',
+			'NONCONTRACT_SETTLEMENT',
 			settlement,
 			'SIGNED-FEE-1',
 			'2026-09-30',
@@ -111,7 +118,7 @@ function event(
 				}
 			]
 		},
-		vn_payment_tax_facts: { create: [{ withhold_below_threshold_requested: false }] }
+		facts: { withhold_below_threshold_requested: false }
 	};
 }
 
@@ -249,8 +256,15 @@ async function pricedSlip(
 	const caseId = options.maternity ? crypto.randomUUID() : null;
 	if (caseId != null)
 		await t.db.write({
-			text: 'INSERT INTO ph_maternity_cases (id, employee_id, employment_id, case_reference, application_on) VALUES ($1, $2, $3, $4, $5)',
-			params: [caseId, employment!.employee_id, employment!.id, `SYNTHETIC-${caseId}`, '2026-01-01']
+			text: 'INSERT INTO benefit_cases (id, employee_id, employment_id, case_type, case_reference, application_on) VALUES ($1, $2, $3, $4, $5, $6)',
+			params: [
+				caseId,
+				employment!.employee_id,
+				employment!.id,
+				'MATERNITY_LEAVE',
+				`SYNTHETIC-${caseId}`,
+				'2026-01-01'
+			]
 		});
 	const tranche = crypto.randomUUID();
 	await t.db.write({
@@ -258,8 +272,8 @@ async function pricedSlip(
 		params: [
 			tranche,
 			slip!.id,
-			options.maternity ? 'MATERNITY_PAY' : 'REGULAR_WAGE',
-			options.maternity ? 'PH_MATERNITY_CASE' : 'SYNTHETIC_SAVED_RUN',
+			options.maternity ? 'BENEFIT_CASE_PAY' : 'REGULAR_WAGE',
+			options.maternity ? 'BENEFIT_CASE' : 'SYNTHETIC_SAVED_RUN',
 			caseId ?? run,
 			options.maternity ? 'SSS_AWARD' : null,
 			`SOURCE-${tranche}`,
@@ -380,15 +394,15 @@ it('credits a PH maternity movement only to its matching cash component, once', 
 		[correct, 'SSS_ADVANCE', 'PH-SSS-BANK']
 	] as const)
 		await t.db.write({
-			text: 'INSERT INTO ph_maternity_movements (id, ph_maternity_case_id, kind, paid_on, amount, payment_reference, evidence_file) VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)',
-			params: [id, fixture.caseId, kind, '2026-01-20', 50, reference, '{}']
+			text: 'INSERT INTO benefit_case_movements (id, benefit_case_id, kind, direction, paid_on, amount, payment_reference, evidence_file) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)',
+			params: [id, fixture.caseId, kind, 'EMPLOYEE_PAYMENT', '2026-01-20', 50, reference, '{}']
 		});
 	expect(
 		refused(
 			await admin().act(
 				'payment_events.create',
 				slipEvent(fixture, '2026-01-20', 'PH-DIFF-BANK', 50, 0, {
-					external_source_kind: 'PH_MATERNITY_MOVEMENT',
+					external_source_kind: 'BENEFIT_CASE_MOVEMENT',
 					external_source_id: wrong
 				})
 			)
@@ -398,7 +412,7 @@ it('credits a PH maternity movement only to its matching cash component, once', 
 		await admin().act(
 			'payment_events.create',
 			slipEvent(fixture, '2026-01-20', 'PH-SSS-BANK', 50, 0, {
-				external_source_kind: 'PH_MATERNITY_MOVEMENT',
+				external_source_kind: 'BENEFIT_CASE_MOVEMENT',
 				external_source_id: correct
 			})
 		)
@@ -408,7 +422,7 @@ it('credits a PH maternity movement only to its matching cash component, once', 
 			await admin().act(
 				'payment_events.create',
 				slipEvent(fixture, '2026-01-20', 'PH-SSS-BANK', 50, 0, {
-					external_source_kind: 'PH_MATERNITY_MOVEMENT',
+					external_source_kind: 'BENEFIT_CASE_MOVEMENT',
 					external_source_id: correct
 				})
 			)

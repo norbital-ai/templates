@@ -19,6 +19,8 @@ export default model({
 		evidence: { kind: 'enum', values: ['NONE', 'OPTIONAL', 'REQUIRED'], default: 'NONE' },
 		/** An unpaid day is deducted at the ordinary day wage as `NO_PAY_LEAVE`. */
 		is_npl: { kind: 'bool', default: false },
+		/** A day of this leave records who asked for it (`leave_entries.no_pay_origin`); `OTHER` is refused for assessment. */
+		requires_no_pay_origin: { kind: 'bool', default: false },
 		/** The share of the day wage the employer pays (`0.5`, or an expression); empty is the whole wage. */
 		pay_fraction: { kind: 'text', default: '' },
 		/** EMPLOYER through payroll, or a social-insurance FUND outside it. */

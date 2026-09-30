@@ -15,6 +15,11 @@
 	{#snippet limitFields()}
 		<Field name="evidence" label={bolt.t('component.evidence')} />
 		<Field
+			name="request_facts"
+			label={bolt.t('component.request_facts')}
+			help={bolt.t('component.request_facts_declaration_hint')}
+		/>
+		<Field
 			name="raised_by"
 			label={bolt.t('component.raised_by')}
 			help={bolt.t('component.raised_by_hint')}

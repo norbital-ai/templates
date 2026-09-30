@@ -29,6 +29,14 @@ export default model({
 		facts: { kind: 'custom', of: 'fact_keys' },
 		/** Inputs required to classify and value a departure; `[]` when none (set by the transform). */
 		exit_facts: { kind: 'custom', of: 'fact_keys' },
+		/** Jurisdiction inputs recorded on dated contract terms (`employment_terms.facts`, `terms.facts.<key>`). */
+		terms_facts: { kind: 'custom', of: 'fact_keys', default: [] },
+		/** Jurisdiction inputs recorded on one person-day (`work_days.facts`, `day_facts.<key>`). */
+		work_day_facts: { kind: 'custom', of: 'fact_keys', default: [] },
+		/** Jurisdiction inputs recorded with one actual payment (`payment_events.facts`, `payment.facts.<key>`). */
+		payment_facts: { kind: 'custom', of: 'fact_keys', default: [] },
+		/** Jurisdiction inputs recorded on the obligation a payment settles (`settlement.facts.<key>`). */
+		settlement_facts: { kind: 'custom', of: 'fact_keys', default: [] },
 		/** Employer duties outside the calculation; `[]` when none (set by the transform). */
 		obligations: { kind: 'custom', of: 'obligations' },
 		/** What this version changes against its predecessor, in the operator's words. */

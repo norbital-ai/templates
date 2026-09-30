@@ -9,7 +9,7 @@ import {
 	type LimitSibling
 } from '../lib/payroll/run/entry-cap.js';
 import { assertNotCaptured } from './scheduling/lock.js';
-import { isEligible, compileEligibility } from '../lib/payroll/run/eligibility.js';
+import { isEligible, compileEligibility, scalarFacts } from '../lib/payroll/run/eligibility.js';
 import {
 	captureAmounts,
 	entryContext,
@@ -18,6 +18,8 @@ import {
 	type PayRequestCapture
 } from './payroll/money.js';
 import { expressionEngine, evaluateBoolean, evaluateNumber } from './expressions/evaluate.js';
+import { requireFactValues } from './declared-facts.js';
+import type { FactKey } from './datatypes/fact_keys.js';
 
 export type PayRequestGuard = {
 	readonly family: PayRequestFamily;
@@ -41,6 +43,7 @@ type CatalogueRow = {
 	}[];
 	readonly eligibility: string | null;
 	readonly qualifies_when?: string | null;
+	readonly request_facts?: readonly FactKey[] | null;
 };
 
 type SiblingRow = Readonly<Record<string, unknown>> & {
@@ -163,13 +166,12 @@ export async function admitPayRequests(
 	for (const [index, candidate] of candidates.entries()) {
 		const stored = existing[index];
 		if (
-			candidate.medical_reimbursement != null &&
+			candidate.due_on != null &&
+			candidate.due_on !== '' &&
 			candidate.pay_period != null &&
 			candidate.pay_period !== ''
 		)
-			refuse(
-				'A treatment reimbursement settles from its due date; do not override its pay period.'
-			);
+			refuse('A claim payable later settles from its due date; do not override its pay period.');
 		const amount = decodeNumber(candidate.amount);
 		const componentId = String(candidate.catalogue_id ?? '');
 		const component = componentById.get(componentId);
@@ -229,17 +231,22 @@ export async function admitPayRequests(
 					const ownHolidays = religiousHolidays
 						.filter((row) => row.company_id === person.companyId)
 						.map((row) => ({ date: dateKey(row.date), religion: row.religion }));
-					const contextOf = (row: Readonly<Record<string, unknown>>, date: string) => {
+					const contextOf = (
+						row: Readonly<Record<string, unknown>>,
+						date: string,
+						of: CatalogueRow
+					) => {
 						const keyed = decodeNumber(row.amount);
 						return entryContext({
 							entry: {
 								amount: keyed,
 								event_date: date,
 								incurred_on: row.incurred_on as string | null,
-								medical_reimbursement:
-									row.medical_reimbursement as PayRequest['medical_reimbursement'],
+								due_on: row.due_on as string | null,
+								facts: row.facts as PayRequest['facts'],
 								late_wage: row.late_wage as PayRequest['late_wage']
 							},
+							requestFacts: of.request_facts,
 							// A sibling is priced for this entry's person, as the run prices it (money.ts).
 							subject: person.subject,
 							period: date.slice(0, 7),
@@ -262,19 +269,27 @@ export async function admitPayRequests(
 					const pricedAt = (
 						row: Readonly<Record<string, unknown>>,
 						date: string,
-						bands: CatalogueRow['bands']
+						of: CatalogueRow
 					): number => {
-						const own = contextOf(row, date);
+						const own = contextOf(row, date, of);
+						const bands = of.bands;
 						const priced = bandFor(bands, own);
 						if (priced != null) return evaluateNumber(expressionEngine, String(priced.amount), own);
 						return bands.length > 0 ? 0 : decodeNumber(row.amount);
 					};
-					const context = contextOf(candidate, eventDate);
+					const context = contextOf(candidate, eventDate, component);
 					if (
 						(component.qualifies_when ?? '').trim() !== '' &&
 						!evaluateBoolean(expressionEngine, component.qualifies_when!, context)
 					)
 						refuse(`${component.code} does not satisfy its claim qualification rule.`);
+					// The class's declared request inputs, judged whole at the write: the one write surface.
+					requireFactValues(
+						component.request_facts ?? [],
+						scalarFacts(candidate.facts as Readonly<Record<string, unknown>> | null),
+						component.code,
+						(expression) => evaluateBoolean(expressionEngine, expression, context)
+					);
 					const band = bandFor(component.bands, context);
 					if (band != null && band.limit != null) {
 						const limit = band.limit as {
@@ -295,14 +310,14 @@ export async function admitPayRequests(
 									...common,
 									amount: signOf(row) * capture.amount
 								}));
-							const bands = (revisionById.get(row.catalogue_id) ?? component).bands;
+							const revision = revisionById.get(row.catalogue_id) ?? component;
 							return [
 								{
 									...common,
 									amount:
 										common.event_date == null
 											? 0
-											: signOf(row) * pricedAt(row, common.event_date, bands)
+											: signOf(row) * pricedAt(row, common.event_date, revision)
 								}
 							];
 						});
@@ -322,7 +337,7 @@ export async function admitPayRequests(
 										resolved,
 										componentCode: component.code,
 										subject: person.label,
-										proposed: signOf(candidate) * pricedAt(candidate, eventDate, component.bands),
+										proposed: signOf(candidate) * pricedAt(candidate, eventDate, component),
 										currency: person.currency ?? undefined
 									});
 						if (refusal !== null) refuse(refusal);

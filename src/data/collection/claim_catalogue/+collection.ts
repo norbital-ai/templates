@@ -22,6 +22,8 @@ const c = collection('claim_catalogue', {
 				'eligibility',
 				'qualifies_when',
 				'evidence',
+				'request_requirements',
+				'request_facts',
 				'counts_toward'
 			]
 		}
@@ -38,6 +40,8 @@ const c = collection('claim_catalogue', {
 				'eligibility',
 				'qualifies_when',
 				'evidence',
+				'request_requirements',
+				'request_facts',
 				'counts_toward'
 			]
 		}

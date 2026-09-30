@@ -38,6 +38,10 @@ const settings = collection('jurisdiction_settings', {
 				'work_rules',
 				'facts',
 				'exit_facts',
+				'terms_facts',
+				'work_day_facts',
+				'payment_facts',
+				'settlement_facts',
 				'obligations',
 				'change_summary',
 				'effective_range'
@@ -55,7 +59,9 @@ const settings = collection('jurisdiction_settings', {
 							'eligibility',
 							'qualifies_when',
 							'evidence',
-							'counts_toward'
+							'counts_toward',
+							'request_requirements',
+							'request_facts'
 						]
 					}
 				},
@@ -71,7 +77,9 @@ const settings = collection('jurisdiction_settings', {
 							'eligibility',
 							'evidence',
 							'raised_by',
-							'counts_toward'
+							'counts_toward',
+							'request_requirements',
+							'request_facts'
 						]
 					}
 				},
@@ -123,7 +131,8 @@ const settings = collection('jurisdiction_settings', {
 							'consumes_code',
 							'unit',
 							'evidence_after_days',
-							'entitlement'
+							'entitlement',
+							'requires_no_pay_origin'
 						]
 					}
 				},
@@ -147,10 +156,13 @@ const settings = collection('jurisdiction_settings', {
 							'rules',
 							'assessed_on',
 							'ordinary_on',
+							'deduction_categories',
+							'child_claims_hint',
 							'parts',
 							'short_name',
 							'listing_order',
-							'listing_group'
+							'listing_group',
+							'history_trigger'
 						]
 					}
 				}
@@ -172,6 +184,10 @@ const settings = collection('jurisdiction_settings', {
 				'work_rules',
 				'facts',
 				'exit_facts',
+				'terms_facts',
+				'work_day_facts',
+				'payment_facts',
+				'settlement_facts',
 				'obligations',
 				'change_summary',
 				'effective_range'
@@ -215,6 +231,8 @@ type WorkRules = {
 		readonly funnel_above_hours?: string | null;
 	}[];
 	readonly breaks: readonly { readonly when: string; readonly owed_minutes: string }[];
+	readonly overtime_consent?: { readonly required_when: string } | null;
+	readonly day_rules?: readonly { readonly when: string }[] | null;
 };
 
 /** Every expression a version's work rules carry, for the entity-fact key check. */
@@ -227,7 +245,9 @@ const workRuleExpressions = (work: WorkRules): string[] => [
 		band.price_amount,
 		band.funnel_above_hours ?? ''
 	]),
-	...work.breaks.flatMap((brk) => [brk.when, brk.owed_minutes])
+	...work.breaks.flatMap((brk) => [brk.when, brk.owed_minutes]),
+	work.overtime_consent?.required_when ?? '',
+	...(work.day_rules ?? []).map((rule) => rule.when)
 ];
 
 /**
@@ -347,7 +367,8 @@ settings.transform(async (inputs, { existing, db, refuse }) => {
 		for (const field of facts)
 			for (const [kind, expression] of [
 				['requirement', field.required_when],
-				['validation', field.valid_when]
+				['validation', field.valid_when],
+				['evidence', field.evidence?.when]
 			] as const) {
 				const fault = compileExpression({ expression, site: 'entity', type: 'boolean', facts });
 				if (fault != null) refuse(`${field.key} ${kind}: ${fault}`);
@@ -360,6 +381,41 @@ settings.transform(async (inputs, { existing, db, refuse }) => {
 				const fault = compileExpression({ expression, site: 'person', type: 'boolean', exitFacts });
 				if (fault != null) refuse(`${field.key} departure ${kind}: ${fault}`);
 			}
+		// An entity fact's evidence is recorded on its dated revision; a departure has no subject row.
+		for (const field of exitFacts)
+			if (field.evidence != null)
+				refuse(
+					`${field.key}: evidence is declared on entity, terms, work-day, payment and settlement ` +
+						'inputs, whose subjects record it.'
+				);
+		// A subject's inputs are judged at the person site (terms, work days) or the payment site.
+		const termsFacts = (row.terms_facts ?? []) as readonly DeclaredKey[];
+		const workDayFacts = (row.work_day_facts ?? []) as readonly DeclaredKey[];
+		const paymentFacts = (row.payment_facts ?? []) as readonly DeclaredKey[];
+		const settlementFacts = (row.settlement_facts ?? []) as readonly DeclaredKey[];
+		for (const [noun, fields, site] of [
+			['terms', termsFacts, 'person'],
+			['work-day', workDayFacts, 'person'],
+			['payment', paymentFacts, 'payment'],
+			['settlement', settlementFacts, 'payment']
+		] as const)
+			for (const field of fields)
+				for (const [kind, expression] of [
+					['requirement', field.required_when],
+					['validation', field.valid_when],
+					['evidence', field.evidence?.when]
+				] as const) {
+					const fault = compileExpression({
+						expression,
+						site,
+						type: 'boolean',
+						exitFacts,
+						termsFacts,
+						paymentFacts,
+						settlementFacts
+					});
+					if (fault != null) refuse(`${field.key} ${noun} ${kind}: ${fault}`);
+				}
 		for (const [region, wage] of Object.entries(row.work_rules?.wages?.by_region ?? {}))
 			if (!(wage > 0)) refuse(`The minimum wage of region ${region} must be a positive amount.`);
 		const filled =
@@ -423,8 +479,15 @@ settings.transform(async (inputs, { existing, db, refuse }) => {
 					if (fault != null) refuse(fault);
 				}
 			// A `person.company.facts.<key>` mention is legal only when this version declares the key and its type;
-			// otherwise a typo reads zero at payroll.
+			// otherwise a typo reads zero at payroll. So is a `terms.facts.<key>` or `day_facts.<key>` one.
 			const declaredFacts = new Set(facts.map((fact) => fact.key));
+			const declaredTerms = new Set(termsFacts.map((fact) => fact.key));
+			const declaredDays = new Set(workDayFacts.map((fact) => fact.key));
+			const exceptionFact = row.work_rules?.overtime_consent?.exception_fact;
+			if (exceptionFact != null && !declaredDays.has(exceptionFact))
+				refuse(
+					`This settings version excuses overtime consent by day_facts.${exceptionFact}, which it does not declare.`
+				);
 			const expressions = [
 				...(row.work_rules == null ? [] : workRuleExpressions(row.work_rules)),
 				...own.flatMap((scheme) => [
@@ -450,6 +513,20 @@ settings.transform(async (inputs, { existing, db, refuse }) => {
 							`This settings version reads company.facts.${key}, which it does not declare. ` +
 								'Declare the entity fact (its key and type) on the version first.'
 						);
+			for (const expression of expressions) {
+				for (const key of openKeyMentions(expression, 'terms.facts'))
+					if (!declaredTerms.has(key))
+						refuse(
+							`This settings version reads terms.facts.${key}, which it does not declare. ` +
+								'Declare the terms input (its key and type) on the version first.'
+						);
+				for (const key of openKeyMentions(expression, 'day_facts'))
+					if (!declaredDays.has(key))
+						refuse(
+							`This settings version reads day_facts.${key}, which it does not declare. ` +
+								'Declare the work-day input (its key and type) on the version first.'
+						);
+			}
 		}
 		// Sealing. The sealed-only `noOverlap` holds the overlap too; the sentence is why it happens here, and the batch
 		// is read so a predecessor ended in the same write counts.

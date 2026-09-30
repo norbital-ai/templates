@@ -26,7 +26,8 @@ function contractRun(code, fields = {}, eventDate = '2025-12-20', exitDate = nul
 		]
 	});
 	if (exitDate != null) tables.employments[0].effective_range.end = exitDate;
-	Object.assign(tables.employment_terms[0], fields);
+	// The contract determinations are the version's declared terms inputs (`terms_facts`).
+	tables.employment_terms[0].facts = { ...tables.employment_terms[0].facts, ...fields };
 	const component = tables.adhoc_catalogue.find(
 		(row) => row.code === code && row.settings_id === settingsIdOn(SH, eventDate)
 	);

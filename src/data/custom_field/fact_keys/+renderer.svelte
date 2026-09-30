@@ -26,7 +26,13 @@
 	let { view }: { view: CustomFieldView<Value> } = $props();
 	const disabled = $derived(view.mode === 'edit' ? view.disabled : true);
 	const rows = $derived<Value>(view.value ?? []);
-	const types = ['boolean', 'number', 'string'] as const;
+	const types = ['boolean', 'number', 'string', 'date', 'instant'] as const;
+	const evidenceKinds = $derived([
+		{ value: 'REFERENCE', label: t('fact_keys.evidence_reference') },
+		{ value: 'FILE', label: t('fact_keys.evidence_file') },
+		{ value: 'REFERENCE_AND_FILE', label: t('fact_keys.evidence_reference_and_file') }
+	]);
+	type EvidenceKind = NonNullable<FactKey['evidence']>['kind'];
 	let projected = $state<KeyRow[]>([]);
 	let expandedIndex = $state<number | null>(null);
 	watch(
@@ -76,6 +82,7 @@
 								scope: row.scope,
 								valid_when: row.valid_when,
 								validation_message: row.validation_message,
+								evidence: row.evidence,
 								type: row.type
 							}).filter(([, value]) => value !== undefined)
 						) as Value[number]);
@@ -316,6 +323,44 @@
 											})}
 									/>
 								</Labelled>
+							{/if}
+							<Labelled label={t('fact_keys.evidence')}>
+								<Combobox
+									clearable
+									placeholder={t('fact_keys.evidence_none')}
+									options={evidenceKinds}
+									{disabled}
+									value={row.evidence?.kind ?? null}
+									onChange={(next) =>
+										edit(index, {
+											evidence:
+												next == null
+													? undefined
+													: {
+															...(row.evidence?.when == null ? {} : { when: row.evidence.when }),
+															kind: next as EvidenceKind
+														}
+										})}
+								/>
+							</Labelled>
+							{#if row.evidence != null}
+								<Column span="all">
+									<Labelled label={t('fact_keys.evidence_when')}>
+										<Input
+											{disabled}
+											value={row.evidence.when ?? ''}
+											oninput={(event) =>
+												edit(index, {
+													evidence: {
+														kind: row.evidence!.kind,
+														...(event.currentTarget.value.trim() === ''
+															? {}
+															: { when: event.currentTarget.value })
+													}
+												})}
+										/>
+									</Labelled>
+								</Column>
 							{/if}
 							{#if row.type !== 'boolean'}
 								<Labelled label={t('fact_keys.options')}>

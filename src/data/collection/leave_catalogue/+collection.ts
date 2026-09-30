@@ -1,7 +1,12 @@
 import { collection, type TransformRow } from '@norbital-ai/bolt';
 import { compileEligibility } from '../../../lib/payroll/run/eligibility.js';
 import { compileExpression } from '../../../lib/expressions/compile.js';
-import { refuseUnlessDraftOnBoth, versionsById } from '../../../lib/settings_seal.js';
+import {
+	refuseUnlessDraftOnBoth,
+	versionsById,
+	type SealedVersion
+} from '../../../lib/settings_seal.js';
+import type { PayrollSettings } from '../../../lib/datatypes/payroll_settings.js';
 import type { LeaveEntitlement } from '../../../lib/datatypes/leave_entitlement.js';
 import { plain } from '../../../lib/wire.js';
 import * as Predicate from 'effect/Predicate';
@@ -27,6 +32,7 @@ const c = collection('leave_catalogue', {
 				'eligibility',
 				'evidence',
 				'is_npl',
+				'requires_no_pay_origin',
 				'can_encash',
 				'encash_on_exit',
 				'pay_fraction',
@@ -47,6 +53,7 @@ const c = collection('leave_catalogue', {
 				'eligibility',
 				'evidence',
 				'is_npl',
+				'requires_no_pay_origin',
 				'can_encash',
 				'encash_on_exit',
 				'pay_fraction',
@@ -82,15 +89,34 @@ c.transform(async (inputs, ctx) => {
 			input.settings_id,
 			`Leave ${row.code ?? ''}`
 		);
-		if (row.code === 'ANNUAL_LEAVE' && versions.get(row.settings_id ?? '')?.code === 'SG') {
-			if (row.entitlement?.year_anchor !== 'SERVICE_ANNIVERSARY')
-				ctx.refuse('SG annual leave must use the employment service anniversary.');
-			if (row.entitlement?.auto_carry_one_year !== true)
-				ctx.refuse('SG annual leave must remain available through the next service year.');
-			if (!['COMPLETED_MONTHS', 'NONE'].includes(row.entitlement?.proration ?? ''))
-				ctx.refuse('SG annual leave must count completed service months or grant the full year.');
-			if (row.entitlement?.rounding !== 'WHOLE_DAY')
-				ctx.refuse('SG annual leave must round a partial-year grant to a whole day.');
+		// What the version's law fixes in this row's entitlement (`payroll.leave_constraints`).
+		const version = versions.get(row.settings_id ?? '') as
+			(SealedVersion & { readonly payroll?: PayrollSettings | null }) | undefined;
+		const rule = row.entitlement;
+		for (const constraint of version?.payroll?.leave_constraints ?? []) {
+			if (constraint.code !== row.code) continue;
+			const cite = ` (${constraint.authority})`;
+			if (
+				constraint.year_anchor != null &&
+				(rule?.year_anchor ?? 'CALENDAR') !== constraint.year_anchor
+			)
+				ctx.refuse(`${row.code} must use the ${constraint.year_anchor} leave year${cite}.`);
+			if (
+				constraint.auto_carry_one_year != null &&
+				(rule?.auto_carry_one_year ?? false) !== constraint.auto_carry_one_year
+			)
+				ctx.refuse(
+					`${row.code} must ${constraint.auto_carry_one_year ? '' : 'not '}carry unused leave through the next leave year${cite}.`
+				);
+			if (
+				constraint.proration_in != null &&
+				!constraint.proration_in.includes(rule?.proration ?? '')
+			)
+				ctx.refuse(
+					`${row.code} proration must be one of ${constraint.proration_in.join(', ')}${cite}.`
+				);
+			if (constraint.rounding != null && (rule?.rounding ?? 'HALF_DAY') !== constraint.rounding)
+				ctx.refuse(`${row.code} must round a partial-year grant as ${constraint.rounding}${cite}.`);
 		}
 		const fault = (problem: string | null | undefined, what = '') => {
 			if (problem != null) ctx.refuse(`${what}${problem}`);
