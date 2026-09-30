@@ -157,7 +157,8 @@ export async function boot(root = process.cwd()) {
 	const scratch = mkdtempSync(join(tmpdir(), 'norbital-payroll-probe-'));
 	cpSync(join(root, '.norbital', 'artifact'), join(scratch, 'artifact'), { recursive: true });
 	mkdirSync(join(scratch, 'files'));
-	const mail: { to: readonly string[]; text?: string; html?: string }[] = [];
+	// bolt-server ≥0.0.148 hands the host's mail transport (channel, message, signal) and wants a provider id back.
+	const mail: string[] = [];
 	const server: RunningServer = await start(
 		{
 			artifact: join(scratch, 'artifact'),
@@ -168,10 +169,11 @@ export async function boot(root = process.cwd()) {
 			files: { provider: 'local', root: join(scratch, 'files') },
 			masterKey: randomBytes(32),
 			opsKey: null,
-			mail: null,
-			sms: null,
+			transactional: null,
+			local: true,
 			providers: {},
 			ai: { sys1: null, sys2: {}, embed: {}, modalities: { sys2: null, embed: null } },
+			speech: null,
 			vapid: null,
 			turnstile: null,
 			telemetryRetainHours: 72,
@@ -183,9 +185,9 @@ export async function boot(root = process.cwd()) {
 			dev: false
 		},
 		{
-			mail: async (m) => {
-				mail.push(m as (typeof mail)[number]);
-				return `probe-${mail.length}`;
+			mail: async (_channel, message) => {
+				mail.push(JSON.stringify(message));
+				return { providerId: `probe-${mail.length}` };
 			},
 			log: () => {}
 		}
@@ -200,7 +202,7 @@ export async function boot(root = process.cwd()) {
 		return { response, body: (await response.json()) as Json };
 	};
 	await post('/__bolt/session/code', { address: FOUNDER });
-	const code = /\b(\d{6})\b/.exec(mail.at(-1)?.text ?? mail.at(-1)?.html ?? '')?.[1];
+	const code = /\b(\d{6})\b/.exec(mail.at(-1) ?? '')?.[1];
 	if (code === undefined) throw new Error('no sign-in code was mailed to the founder');
 	const verified = await post('/__bolt/session/verify', { address: FOUNDER, code });
 	cookie = verified.response.headers
