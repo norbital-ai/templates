@@ -248,6 +248,25 @@ type TwCase = Omit<ProbeCase, 'profile' | 'inputs' | 'expected'> & {
 	people: readonly Person[];
 	extra?: (ref: (person: string) => string) => ProbeInput[];
 	expected: Readonly<Record<string, ProbeCase['expected'][number]['lines']>>;
+	/** Per person: first-terms writes attempted (and refused) before the person's own terms. */
+	attempts?: Readonly<Record<string, readonly { terms: Row; refused: string }[]>>;
+};
+
+/** A person's inputs with refused first-terms attempts ahead of the terms that stand. */
+const attempted = (p: Person, attempts: readonly { terms: Row; refused: string }[] = []) => {
+	const inputs = personInputs(p);
+	const at = inputs.findIndex((input) => input.collection === 'employment_terms');
+	const terms = inputs[at]!;
+	inputs.splice(
+		at,
+		0,
+		...attempts.map(({ terms: row, refused }) => ({
+			...terms,
+			values: { ...terms.values, ...row },
+			refused
+		}))
+	);
+	return inputs;
 };
 
 const tw = (c: TwCase): ProbeCase => ({
@@ -259,13 +278,14 @@ const tw = (c: TwCase): ProbeCase => ({
 	period: c.period,
 	inputs: [
 		...twWeek('2003-12-01'),
-		...c.people.flatMap(personInputs),
+		...c.people.flatMap((p) => attempted(p, c.attempts?.[p.ref])),
 		...(c.extra?.((person) => `@${person}_job`) ?? [])
 	],
 	expected: Object.entries(c.expected).map(([ref, lines]) => ({ employment: `${ref}_job`, lines })),
 	...(c.warnings === undefined ? {} : { warnings: c.warnings }),
 	...(c.companyLines === undefined ? {} : { companyLines: c.companyLines }),
-	...(c.refused === undefined ? {} : { refused: c.refused })
+	...(c.refused === undefined ? {} : { refused: c.refused }),
+	...(c.saved === undefined ? {} : { saved: c.saved })
 });
 
 const leave = (
@@ -4387,5 +4407,217 @@ register(
 			leave(job('ho3'), 'OFFICIAL_LEAVE', 'OFFICIAL-TW-HO3', '2026-03-10', '2026-03-11')
 		],
 		expected: { sun3: bonusSlip(37_600, 2800), ho3: bonusSlip(39_000, 3000) }
+	})
+);
+
+// ── Phase 2 (2026-10-01): stored checks at the first terms, a DEDUCTION warning, the obligation ledger ─────────
+/** NT$36,000 for a whole month on the 36,300 grades (the figures of TW-WAGE-06-1 before its garnishment). */
+const PLAIN_36: Readonly<Record<string, number>> = {
+	gross: 36_000,
+	net: 34_529,
+	total_deductions: 1471,
+	employer_cost: 7155,
+	BASIC: 36_000,
+	'LI.employee': 835,
+	'LI.employer': 2922,
+	'EI.employee': 73,
+	'EI.employer': 254,
+	'NHI.employee': 563,
+	'NHI.employer': 1757,
+	'LABOR_PENSION.employer': 2178,
+	'OCC_INJURY.employer': 44
+};
+const PLAIN_36_CITED =
+	'Grades 36,300, the whole of March from the 1st: 勞保 36,300 × 11.5% = 4,174.50 → × 20% = 834.90 → 835, × 70% = 2,922.15 → 2,922; 就保 363 → 72.60 → 73, 254.10 → 254; 健保 563 / 1,757 (表(三)); 勞退 36,300 × 6% = 2,178; 災保 36,300 × 0.12% = 43.56 → 44; the table withholds nothing. Net 36,000 − (835 + 73 + 563) = 34,529; employer 2,922 + 254 + 1,757 + 2,178 + 44 = 7,155.';
+const CONSENT = { guardian_consent_reference: 'PROBE-GUARDIAN-CONSENT-AND-AGE-PROOF' };
+
+register(
+	tw({
+		id: 'TW-HIRE-05-1',
+		description:
+			'Minors hired on 1 March 2026: a 16-year-old’s first terms are refused until the guardian’s consent is on file; a 14-year-old’s until the §45(1) exception is recorded. Both are then paid the whole month; the 14-year-old outside 就保 (under fifteen) but inside 勞保, 災保, 健保 and 勞退.',
+		citation: [
+			...EVERY,
+			`${SRC.lsa} §46: 未滿十八歲之人受僱從事工作者，雇主應置備其法定代理人同意書及其年齡證明文件 — born 2009-06-01, 16 on 2026-03-01: refused without guardian_consent_reference.`,
+			`${SRC.lsa} §45(1): 雇主不得僱用未滿十五歲之人從事工作。但國民中學畢業或經主管機關認定…而許可者，不在此限 — born 2011-06-01, 14 all March: refused without under_15_exception_reference; with it (and the consent) the terms stand.`,
+			'勞工保險條例 §6(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=6): 前項規定，於經主管機關認定其工作性質及環境無礙身心健康之未滿十五歲勞工亦適用之 — 勞保 covers the permitted 14-year-old; 就業保險法 §5(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050021&flno=5): 年滿十五歲以上 — 就保 does not (NOT_REGISTERED, zero).',
+			PLAIN_36_CITED,
+			'The 14-year-old: 36,000 − (835 + 563) = 34,602; employer 2,922 + 1,757 + 2,178 + 44 = 6,901.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('teen16', 'Lai Yu-chen', 36_000, all(36_300), {
+				born: '2009-06-01',
+				hired: '2026-03-01',
+				terms: { facts: CONSENT }
+			}),
+			citizen('teen14', 'Pan Chia-hao', 36_000, all(36_300), {
+				born: '2011-06-01',
+				hired: '2026-03-01',
+				terms: {
+					facts: { ...CONSENT, under_15_exception_reference: 'PROBE-AUTHORITY-PERMIT-115-0001' }
+				},
+				standing: {
+					EI: { kind: 'NOT_REGISTERED', reason: '就業保險法 §5(1): under fifteen' }
+				}
+			})
+		],
+		attempts: {
+			teen16: [{ terms: { facts: {} }, refused: 'under eighteen at hire' }],
+			teen14: [{ terms: { facts: CONSENT }, refused: 'under fifteen at hire' }]
+		},
+		expected: {
+			teen16: PLAIN_36,
+			teen14: {
+				...PLAIN_36,
+				net: 34_602,
+				total_deductions: 1398,
+				employer_cost: 6901,
+				'EI.employee': 0,
+				'EI.employer': 0
+			}
+		}
+	}),
+	tw({
+		id: 'TW-HIRE-01-1',
+		description:
+			'A fixed-term (CONTRACT) hire from 1 March to 30 November 2026: refused with no fixed-term category, refused as TEMPORARY (over six months), accepted as SEASONAL (nine months at most); March is paid whole.',
+		citation: [
+			...EVERY,
+			`${SRC.lsa} §9(1): 臨時性、短期性、季節性及特定性工作得為定期契約；有繼續性工作應為不定期契約 — no category, refused.`,
+			'勞動基準法施行細則 §6 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=6): 臨時性工作…其工作期間在六個月以內者; 季節性工作…其工作期間在九個月以內者 — 1 March + 6 months = 1 September ≤ 30 November: TEMPORARY refused; + 9 months = 1 December > 30 November: SEASONAL stands.',
+			PLAIN_36_CITED
+		],
+		period: '2026-03',
+		people: [
+			citizen('chou', 'Chou Mei-ling', 36_000, all(36_300), {
+				hired: '2026-03-01',
+				left: '2026-11-30',
+				exit_ground: 'END_OF_CONTRACT',
+				terms: { employment_type: 'CONTRACT', facts: { fixed_term_category: 'SEASONAL' } }
+			})
+		],
+		attempts: {
+			chou: [
+				{
+					terms: { employment_type: 'CONTRACT', facts: {} },
+					refused: 'states which fixed-term work it is'
+				},
+				{
+					terms: { employment_type: 'CONTRACT', facts: { fixed_term_category: 'TEMPORARY' } },
+					refused: 'six months at most'
+				}
+			]
+		},
+		expected: { chou: PLAIN_36 }
+	}),
+	tw({
+		id: 'TW-WAGE-06-2',
+		description:
+			'A NT$13,000 garnishment on a NT$36,000 March 2026 wage: deducted as ordered, with the run warning that it passes one third of the period’s wage.',
+		citation: [
+			...EVERY,
+			'強制執行法 §115-1(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): 各期給付數額三分之一 — 36,000 ÷ 3 = 12,000 < 13,000: a warning (owner rule 2026-10-01: never a cap; the court may fix more). TW-WAGE-06-1’s 12,000 is exactly one third and warns nothing.',
+			PLAIN_36_CITED,
+			'Net 34,529 − 13,000 = 21,529.'
+		],
+		period: '2026-03',
+		people: [citizen('yeh2', 'Yeh Shu-fen', 36_000, all(36_300), { gender: 'FEMALE' })],
+		extra: (job) => [
+			{
+				...adhoc(
+					job('yeh2'),
+					'COURT_GARNISHMENT',
+					13_000,
+					'2026-03-10',
+					'強制執行法 §115-1 扣押命令 / 移轉命令'
+				),
+				files: { evidence_file: 'garnishment-order.pdf' }
+			}
+		],
+		warnings: ['exceeds one third of this period’s wage'],
+		expected: { yeh2: { ...PLAIN_36, net: 21_529, total_deductions: 14_471 } }
+	}),
+	tw({
+		id: 'TW-ADMIN-01-1',
+		description:
+			'The obligation ledger for a §11 layoff: hired 2 March, laid off 20 March 2026 with no notice owed (under three months). The hire, the exit, the March run and the 2026 year raise their dated duties.',
+		citation: [
+			'勞工保險條例 §11 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=11) and 勞工職業災害保險及保護法 §12: 到職 / 離職 之當日 — 2 March and 20 March.',
+			'全民健康保險法 §15(7) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=15): 三日內 — 5 March and 23 March (民法 §120(2): 始日不算入).',
+			'勞工退休金條例 §18 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=18): 七日內 — 9 March and 27 March.',
+			'勞工退休金條例 §12(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=12): 資遣費 終止勞動契約後三十日內 — 19 April. 就業服務法 §33(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0090001&flno=33): 離職之十日前 — 10 March. 勞動基準法 §7(2): 勞工名卡 保管至離職後五年 — kept to 20 March 2031.',
+			'The March run: 勞工保險條例 §16(1)(1) and 全民健康保險法 §30: 次月底前 — 30 April; 勞工退休金條例 §19(1): 再次月底前 — 31 May; 所得稅法 §92(1) 每月十日前, 健保 補充保險費 次月底, and 勞動基準法 §23(2)/§30(5) 保存五年, each from the run’s pay date.',
+			'The 2026 year: 所得稅法 §92(1): 每年一月底前 彙報 — 31 January 2027; 二月十日前 填發 — 10 February 2027.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('kao', 'Kao Chih-wei', 36_000, all(36_300), {
+				hired: '2026-03-02',
+				left: '2026-03-20',
+				exit_ground: 'REDUNDANCY',
+				exit_facts: {
+					lsa_termination_ground: 'ARTICLE_11',
+					notice_days_given: 0,
+					average_daily_wage: 1200,
+					old_system_service_months: 0
+				}
+			})
+		],
+		extra: (job) => [
+			adhoc(job('kao'), 'SEVERANCE_PAY', 0, '2026-03-20', 'SEVERANCE_PAY on departure 2026-03-20')
+		],
+		expected: {},
+		saved: [
+			{
+				collection: 'obligation_instances',
+				where: { subject_kind: 'EMPLOYMENT', subject_id: '@kao_job' },
+				rows: [
+					{
+						duty_code: 'LI_EI_OCC_ENROLMENT',
+						trigger_ref: 'HIRE',
+						due_on: '2026-03-02',
+						state: 'OPEN'
+					},
+					{ duty_code: 'NHI_ENROLMENT', trigger_ref: 'HIRE', due_on: '2026-03-05' },
+					{ duty_code: 'PENSION_START_NOTICE', trigger_ref: 'HIRE', due_on: '2026-03-09' },
+					{ duty_code: 'LI_EI_OCC_WITHDRAWAL', trigger_ref: '2026-03-20', due_on: '2026-03-20' },
+					{ duty_code: 'NHI_WITHDRAWAL', trigger_ref: '2026-03-20', due_on: '2026-03-23' },
+					{ duty_code: 'PENSION_STOP_NOTICE', trigger_ref: '2026-03-20', due_on: '2026-03-27' },
+					{ duty_code: 'SEVERANCE_PAYMENT', trigger_ref: '2026-03-20', due_on: '2026-04-19' },
+					{ duty_code: 'LAYOFF_REPORT', trigger_ref: '2026-03-20', due_on: '2026-03-10' },
+					{
+						duty_code: 'PERSONNEL_RECORDS_RETENTION',
+						trigger_ref: '2026-03-20',
+						due_on: '2026-03-20',
+						retain_until: '2031-03-20'
+					}
+				]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { subject_kind: 'RUN', subject_id: '@run' },
+				rows: [
+					{
+						duty_code: 'LI_EI_OCC_PREMIUM_REMITTANCE',
+						trigger_ref: '2026-03',
+						due_on: '2026-04-30'
+					},
+					{ duty_code: 'NHI_PREMIUM_REMITTANCE', trigger_ref: '2026-03', due_on: '2026-04-30' },
+					{ duty_code: 'LABOUR_PENSION_REMITTANCE', trigger_ref: '2026-03', due_on: '2026-05-31' },
+					{ duty_code: 'NHI_SUPPLEMENTARY_PREMIUM_REMITTANCE', trigger_ref: '2026-03' },
+					{ duty_code: 'WITHHOLDING_TAX_REMITTANCE', trigger_ref: '2026-03' },
+					{ duty_code: 'WAGE_AND_ATTENDANCE_RECORDS', trigger_ref: '2026-03' }
+				]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { subject_kind: 'COMPANY', subject_id: '@company', trigger_ref: '2026' },
+				rows: [
+					{ duty_code: 'ANNUAL_WITHHOLDING_RETURN', due_on: '2027-01-31' },
+					{ duty_code: 'WITHHOLDING_CERTIFICATES_TO_PAYEES', due_on: '2027-02-10' }
+				]
+			}
+		]
 	})
 );

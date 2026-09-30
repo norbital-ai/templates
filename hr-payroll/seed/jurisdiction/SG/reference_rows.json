@@ -10078,5 +10078,6294 @@
 		"range_from": null,
 		"range_to": null,
 		"values": {}
+	},
+	{
+		"id": "03ac1cf9-8ce1-5855-be6e-7db046376b6b",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_SUPERVISOR",
+		"label": "Cleaner (office/commercial): supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "427c6e48-3480-5190-acb3-25507f6cf148",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_MULTI_SKILLED",
+		"label": "Cleaner (office/commercial): multi-skilled cleaner / machine operator",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "bc705fcf-db01-56df-82fb-8a60f7b3333a",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_OUTDOOR",
+		"label": "Cleaner (office/commercial): outdoor / healthcare / restroom cleaner",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2325,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "10ef8bde-4392-5969-a988-35f1d839cbd4",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_GENERAL",
+		"label": "Cleaner (office/commercial): general / indoor cleaner",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 1910,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "3fbadd2d-59c0-5d9b-ae4f-d7b3e87bb90c",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_SUPERVISOR",
+		"label": "Cleaner (F&B establishment): supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "f583a6a0-e2fa-5c6b-8146-49be78582ec5",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_MULTI_SKILLED",
+		"label": "Cleaner (F&B establishment): multi-skilled cleaner / machine operator",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "9612f729-0de0-5957-bf7e-4a603d1e29bb",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_DISHWASHER",
+		"label": "Cleaner (F&B establishment): dishwasher / restroom cleaner / refuse collector",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2325,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "4ae64702-605b-5fe7-ba47-1b92f2de9d91",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_TABLE_TOP",
+		"label": "Cleaner (F&B establishment): table-top cleaner",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2010,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "b5b19d0d-b43c-5fa7-b64f-22951a809f16",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_GENERAL",
+		"label": "Cleaner (F&B establishment): general cleaner",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 1910,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "e0d510a0-80e6-543e-9ac1-03b162f836f2",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_TRUCK_DRIVER",
+		"label": "Cleaner (conservancy): truck driver (Class 4/5)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2830,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "611494eb-3f0d-5e44-8f58-be8d0da947c7",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_SUPERVISOR",
+		"label": "Cleaner (conservancy): supervisor / mechanical driver (Class 3)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "5daa3178-8514-59cd-973c-d201f925b64d",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_MULTI_SKILLED",
+		"label": "Cleaner (conservancy): multi-skilled cleaner / refuse collector",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "5b19987e-6e79-597d-9362-6b71b4431305",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_GENERAL",
+		"label": "Cleaner (conservancy): general / restroom cleaner",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2325,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "5d355522-c235-5cc1-a1a8-940ec19f20a3",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SENIOR_SUPERVISOR",
+		"label": "Security (outsourced): senior security supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3770,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "4310176c-6c42-5cbc-aaef-d0b90485eb4f",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SUPERVISOR",
+		"label": "Security (outsourced): security supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3470,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "7ab488ae-3368-53c7-89d3-f3cfd91fcb4f",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SENIOR_OFFICER",
+		"label": "Security (outsourced): senior security officer",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3170,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "3d1fe21a-2b47-516d-8f0d-9f0567828d98",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_OFFICER",
+		"label": "Security (outsourced): security officer",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 2870,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "ddb97e78-d617-5a5a-b2a2-3ea1d416c535",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_SUPERVISOR",
+		"label": "Security (in-house): security supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2745,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "dee68946-1c6f-5d53-9647-238e44aa6027",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_SENIOR_OFFICER",
+		"label": "Security (in-house): senior security officer",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2515,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "904c9a2b-7aa6-535d-a087-770de0dc0c31",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_OFFICER",
+		"label": "Security (in-house): security officer",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2315,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "81bdcf19-c57d-5c84-8b14-903813ab84fe",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_SUPERVISOR",
+		"label": "Landscape supervisor / senior landscape specialist",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2900,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "ad7c82a4-8aa1-52b0-a103-36bfd1e4136e",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_ASSISTANT_SUPERVISOR",
+		"label": "Assistant landscape supervisor / landscape specialist",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2545,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "010e7208-2fac-565b-9c48-4ebee5cfb568",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_TECHNICIAN",
+		"label": "Landscape technician",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2330,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "61a96ddc-c1fe-58a1-8d4e-27eea71dc5ea",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_WORKER",
+		"label": "Landscape worker",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 1950,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "166eb926-b54c-5e74-b4a5-06294f2063d4",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "LIFT_PRINCIPAL_SPECIALIST",
+		"label": "Principal L&E specialist",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3590,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "24a30573-6490-5c92-ab79-b68d095b5e41",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SUPERVISOR",
+		"label": "L&E supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3445,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "ec46c6b6-d272-5c11-9531-0cc0b5e0bdb6",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SENIOR_SPECIALIST",
+		"label": "Senior L&E specialist",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3215,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "356d80c8-b52e-59e2-b752-f5516135fe9f",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SPECIALIST",
+		"label": "L&E specialist",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 2880,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "9d446da1-9f92-5c77-a5a9-2d2028cdfbd1",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "LIFT_ASSISTANT_SPECIALIST",
+		"label": "Assistant L&E specialist",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 2525,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "61d91035-ef28-570e-ae27-0440bad600e7",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT_SUPERVISOR",
+		"label": "Assistant retail supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2790,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "2bd7062f-d6d4-5491-8fee-729836be236a",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_SENIOR_ASSISTANT",
+		"label": "Senior cashier / senior retail assistant",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2535,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "77b94bcd-0cb0-50df-98b1-8a9887279ccf",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT",
+		"label": "Retail assistant / cashier",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2305,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "ffe2bda4-be1e-5af2-b74c-142201244856",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_COOK",
+		"label": "Food services (quick service): cook",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2330,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "245a0a47-53a4-5562-bdea-d773bc0c1c9b",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_KITCHEN_ASSISTANT",
+		"label": "Food services (quick service): kitchen assistant / food service counter attendant",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2155,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "2147c072-5c74-542f-9c63-c6529c7e7f6b",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_STALL_ASSISTANT",
+		"label": "Food services (quick service): food / drink stall assistant",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2080,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "e07699bd-184a-547e-b003-c31ce8fb3c27",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_COOK",
+		"label": "Food services (full service): cook",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2380,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "5d9fe633-aba1-503c-aaa6-b8e014f3dd01",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_KITCHEN_ASSISTANT",
+		"label": "Food services (full service): kitchen assistant",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2180,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "3f3ef8f2-0e97-5678-b28d-d96325e665b1",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER_SUPERVISOR",
+		"label": "Food services (full service): waiter supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2730,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "8f1a6372-5647-5dbb-b531-d180837094ff",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER",
+		"label": "Food services (full service): waiter",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2180,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "9b6d1cdd-dca1-5e0b-8ddf-47417273a088",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_DRIVER",
+		"label": "Waste collection: senior driver",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3330,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "8db2a712-a2d8-5598-83d1-13358efca4fd",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_HOOKLIFT_DRIVER",
+		"label": "Waste collection: hooklift driver",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3130,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "35a052c9-a248-5ac6-bd7f-052baa9f2c02",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_DRIVER",
+		"label": "Waste collection: driver",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3030,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "a8181251-d667-584a-8f82-6f13d5e0c69f",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SUPERVISOR",
+		"label": "Waste collection: supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3280,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "1b1a46c5-d82d-53a8-84a1-2a1f665efc0d",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_TEAM_LEAD",
+		"label": "Waste collection: team lead",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3030,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "aea3d5e5-e83a-5573-866b-6ec54fe51ccb",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_CREW",
+		"label": "Waste collection: senior crew",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2830,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "2bb53d5c-a612-58e8-958b-07f5b42b889a",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_CREW",
+		"label": "Waste collection: crew",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2630,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "0bf8f93f-0dec-5c23-b8d8-81a6610b5ad2",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_PLANT_SUPERVISOR",
+		"label": "Materials recovery: plant supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3130,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "74828d15-f934-5a7b-983a-6d1fe3c58081",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_TEAM_LEAD",
+		"label": "Materials recovery: team lead",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2930,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "d69ae06c-e7e1-53cf-a4bc-d8c59bc79e59",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SENIOR_SORTER",
+		"label": "Materials recovery: senior sorter / machine operator",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2730,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "4c69e34d-0c8d-558a-bd18-fdbbad35b866",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SORTER",
+		"label": "Materials recovery: sorter",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "51afafa5-8949-55f4-ba7c-1b8e6dc44485",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_SUPERVISOR",
+		"label": "Administrative supervisor",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3160,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "08e22d91-f97a-560c-b404-90956f8fce5c",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_EXECUTIVE",
+		"label": "Administrative executive",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2580,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "17cdabd3-dbb1-5bae-8015-8aed9a5403b1",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_ASSISTANT",
+		"label": "Administrative assistant",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 1980,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "af60e771-3bfc-5edd-869c-6dfb8e7aba71",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_SPECIALISED",
+		"label": "Driver (before 1 July 2026): specialised driver",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2320,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "aeda4539-2b41-593f-a78f-7ffbfcd18a79",
+		"settings_id": "a64b9482-8b2c-5860-a454-902f4c31e856",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GENERAL",
+		"label": "Driver (before 1 July 2026): general driver",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2190,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "072de8b3-9391-5990-89e2-5515178492e3",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_SUPERVISOR",
+		"label": "Cleaner (office/commercial): supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "531b8a5c-5afb-5e8b-a5a9-78738cfd06db",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_MULTI_SKILLED",
+		"label": "Cleaner (office/commercial): multi-skilled cleaner / machine operator",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "d84be451-34dd-5667-af85-b20cdf559edd",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_OUTDOOR",
+		"label": "Cleaner (office/commercial): outdoor / healthcare / restroom cleaner",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2325,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "79f7f8de-51fe-58a9-9056-08a441a9138c",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_GENERAL",
+		"label": "Cleaner (office/commercial): general / indoor cleaner",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 1910,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "512b2d4a-fa6d-5331-a8ef-4b2192b09c03",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_SUPERVISOR",
+		"label": "Cleaner (F&B establishment): supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "fe2bcb16-df9b-51a0-801c-9379bcd72720",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_MULTI_SKILLED",
+		"label": "Cleaner (F&B establishment): multi-skilled cleaner / machine operator",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "6688e17e-1419-57c0-94fd-0199cae9363c",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_DISHWASHER",
+		"label": "Cleaner (F&B establishment): dishwasher / restroom cleaner / refuse collector",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2325,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "b2c3103d-1cd4-5cde-94c9-83d6cb93c08b",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_TABLE_TOP",
+		"label": "Cleaner (F&B establishment): table-top cleaner",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2010,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "2044056a-a1d6-586f-87cf-a015a4c3c540",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_GENERAL",
+		"label": "Cleaner (F&B establishment): general cleaner",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 1910,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "7b4e6ff8-ad69-51b6-9654-a1dd95540392",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_TRUCK_DRIVER",
+		"label": "Cleaner (conservancy): truck driver (Class 4/5)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2830,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "d2d6c40a-bfe8-5219-8800-e02768a645da",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_SUPERVISOR",
+		"label": "Cleaner (conservancy): supervisor / mechanical driver (Class 3)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "10043a8a-d004-52c5-99da-1ae1875b0d5d",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_MULTI_SKILLED",
+		"label": "Cleaner (conservancy): multi-skilled cleaner / refuse collector",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "f3246934-5714-5192-9ff8-2a48d4dbb329",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_GENERAL",
+		"label": "Cleaner (conservancy): general / restroom cleaner",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2325,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "7c0018ff-0398-59e3-a028-e532f664a50b",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SENIOR_SUPERVISOR",
+		"label": "Security (outsourced): senior security supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3990,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "b4663918-42b2-5b8e-978b-4ab366fc9211",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SUPERVISOR",
+		"label": "Security (outsourced): security supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3690,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "c15aaefa-230f-5d9a-bff8-407733682e3e",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SENIOR_OFFICER",
+		"label": "Security (outsourced): senior security officer",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3390,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "06e68ac0-dc21-5f71-9c7f-e45b9a565881",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_OFFICER",
+		"label": "Security (outsourced): security officer",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3090,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "d88f22f9-84b7-5450-b2d4-55cfd9f0aa75",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_SUPERVISOR",
+		"label": "Security (in-house): security supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2905,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "2fb47e74-843f-503b-a488-2fd467e50d46",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_SENIOR_OFFICER",
+		"label": "Security (in-house): senior security officer",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2675,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "8e2a4d31-1c72-59f4-82c3-06ac54dc9446",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_OFFICER",
+		"label": "Security (in-house): security officer",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2475,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "e8fc4a4f-4639-571a-a815-166ab5135470",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_SUPERVISOR",
+		"label": "Landscape supervisor / senior landscape specialist",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2900,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "47feac7c-dc20-58a8-8908-740efd2d4b31",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_ASSISTANT_SUPERVISOR",
+		"label": "Assistant landscape supervisor / landscape specialist",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2545,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "4043fd14-eff9-51ca-b8dd-c392d3cd330f",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_TECHNICIAN",
+		"label": "Landscape technician",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2330,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "ef166141-b738-577a-9bb9-0c8fce9c3b8c",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_WORKER",
+		"label": "Landscape worker",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 1950,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "4e8669f6-c369-5aca-910c-6caa13530ec5",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "LIFT_PRINCIPAL_SPECIALIST",
+		"label": "Principal L&E specialist",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3590,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "beac4306-132a-5517-bed9-1d2a7abe6d0e",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SUPERVISOR",
+		"label": "L&E supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3445,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "ab427ee0-a99f-5971-b345-fbe8a5c06c40",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SENIOR_SPECIALIST",
+		"label": "Senior L&E specialist",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3215,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "4ee03f88-6cb2-564c-b396-a3992f41f13d",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SPECIALIST",
+		"label": "L&E specialist",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 2880,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "ddec8872-3574-53a9-b272-5fdabf2ec42e",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "LIFT_ASSISTANT_SPECIALIST",
+		"label": "Assistant L&E specialist",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 2525,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "f2fb1a1d-b361-55c9-90d9-86be6dbc70e9",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT_SUPERVISOR",
+		"label": "Assistant retail supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2790,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "79a48fe1-28b1-5e03-b849-ddf259b4290e",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_SENIOR_ASSISTANT",
+		"label": "Senior cashier / senior retail assistant",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2535,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "a8d1cc12-e0ad-593d-9a81-47b9a754658b",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT",
+		"label": "Retail assistant / cashier",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2305,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "0b124b13-001f-5226-ba70-013b9ea1519d",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_COOK",
+		"label": "Food services (quick service): cook",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2330,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "72cec6c3-13e9-584f-a1f2-1bd9423cb43a",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_KITCHEN_ASSISTANT",
+		"label": "Food services (quick service): kitchen assistant / food service counter attendant",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2155,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "af4e9214-4667-52b9-969c-2d92bcc038f3",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_STALL_ASSISTANT",
+		"label": "Food services (quick service): food / drink stall assistant",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2080,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "ae884ab4-49c3-5073-90cd-507f0456f5bd",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_COOK",
+		"label": "Food services (full service): cook",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2380,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "94d413f2-c431-5119-bdd7-6163bb1edf6e",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_KITCHEN_ASSISTANT",
+		"label": "Food services (full service): kitchen assistant",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2180,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "964fedcb-dce8-5aae-8ac8-1478454b2c8d",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER_SUPERVISOR",
+		"label": "Food services (full service): waiter supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2730,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "6b770605-a4a8-594e-ba19-2f56cf2cb05b",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER",
+		"label": "Food services (full service): waiter",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2180,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "f39529cf-d374-5a52-a38d-e7443fe3439b",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_DRIVER",
+		"label": "Waste collection: senior driver",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3330,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "479c948a-230f-51a2-b9f4-99b1dcf84538",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_HOOKLIFT_DRIVER",
+		"label": "Waste collection: hooklift driver",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3130,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "2783e7ca-2328-5fcd-a0ae-cb5002f16818",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_DRIVER",
+		"label": "Waste collection: driver",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3030,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "31a1a556-1fcb-51b2-b80f-9494a29397a2",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SUPERVISOR",
+		"label": "Waste collection: supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3280,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "2db0e75b-3db1-59c5-8251-b09e6404fa8f",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_TEAM_LEAD",
+		"label": "Waste collection: team lead",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3030,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "7b23244e-6cb1-5677-ba7b-72caa85b7639",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_CREW",
+		"label": "Waste collection: senior crew",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2830,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "d7c0e9a0-130e-56ee-80d6-2b8c7a41cc67",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_CREW",
+		"label": "Waste collection: crew",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2630,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "ecf7fcab-6f26-5862-bc20-37963eca67dc",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_PLANT_SUPERVISOR",
+		"label": "Materials recovery: plant supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3130,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "db8118c8-25f1-5eff-9dd0-24cce85aacf6",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_TEAM_LEAD",
+		"label": "Materials recovery: team lead",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2930,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "f17ef83b-b31d-5f5b-8642-1ef02d9c4083",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SENIOR_SORTER",
+		"label": "Materials recovery: senior sorter / machine operator",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2730,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "b98ca74a-7dde-51ff-8dfe-af5f29122772",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SORTER",
+		"label": "Materials recovery: sorter",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "9ce08734-32b7-56b5-b7ed-6e28fbf5cd93",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_SUPERVISOR",
+		"label": "Administrative supervisor",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3160,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "6c195f14-721d-58bb-bd5c-5e8542383d92",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_EXECUTIVE",
+		"label": "Administrative executive",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2580,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "f0c431bc-aa3c-5725-bb57-d32efbc9121c",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_ASSISTANT",
+		"label": "Administrative assistant",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 1980,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "26a4a2e0-a679-5e3b-82ff-58527e5e0c4b",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_SPECIALISED",
+		"label": "Driver (before 1 July 2026): specialised driver",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2320,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "27bb49ec-4f66-5011-90d8-6204e1ba0bbe",
+		"settings_id": "91aec78c-9674-563c-8a1c-5390d670520b",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GENERAL",
+		"label": "Driver (before 1 July 2026): general driver",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2190,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "03a53e97-fa31-54ed-bc5e-97e03c639fb6",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_SUPERVISOR",
+		"label": "Cleaner (office/commercial): supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "c505703d-ff4c-5487-83dd-f2494d47700f",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_MULTI_SKILLED",
+		"label": "Cleaner (office/commercial): multi-skilled cleaner / machine operator",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "e0cd6bf2-8517-5770-85c2-b9ed9643a10f",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_OUTDOOR",
+		"label": "Cleaner (office/commercial): outdoor / healthcare / restroom cleaner",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2325,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "4f943752-db66-51f7-af70-90f7eca67df6",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_GENERAL",
+		"label": "Cleaner (office/commercial): general / indoor cleaner",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 1910,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "560d2b0a-d910-5a4d-945d-42e3a5086f6f",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_SUPERVISOR",
+		"label": "Cleaner (F&B establishment): supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "7a8eb2b0-a9b8-5580-8403-2b887b7c8839",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_MULTI_SKILLED",
+		"label": "Cleaner (F&B establishment): multi-skilled cleaner / machine operator",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "d9616199-5547-5ed0-a4ad-4775a31902b6",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_DISHWASHER",
+		"label": "Cleaner (F&B establishment): dishwasher / restroom cleaner / refuse collector",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2325,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "cf187723-3be4-5951-b86a-04322bb20b4c",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_TABLE_TOP",
+		"label": "Cleaner (F&B establishment): table-top cleaner",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2010,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "c7c52f5e-b649-54cc-88da-1d5939c7e45e",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_GENERAL",
+		"label": "Cleaner (F&B establishment): general cleaner",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 1910,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "0a346ad8-7ad0-5d80-9fbd-21c1cc04a797",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_TRUCK_DRIVER",
+		"label": "Cleaner (conservancy): truck driver (Class 4/5)",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2830,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "74fb6478-7fe9-5ee9-a103-f5f6aa73dba8",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_SUPERVISOR",
+		"label": "Cleaner (conservancy): supervisor / mechanical driver (Class 3)",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "178c5363-6603-5de0-b7ac-12a9faf80945",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_MULTI_SKILLED",
+		"label": "Cleaner (conservancy): multi-skilled cleaner / refuse collector",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "842f00da-fc76-5537-8b8e-6d866d6b7e72",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_GENERAL",
+		"label": "Cleaner (conservancy): general / restroom cleaner",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2325,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "676df467-2401-585a-8eb1-243f03b01491",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SENIOR_SUPERVISOR",
+		"label": "Security (outsourced): senior security supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3990,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "ebb9316b-25b1-50cb-9142-b83e8b32c171",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SUPERVISOR",
+		"label": "Security (outsourced): security supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3690,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "6229dc5f-82fb-5d24-856c-079674ce8544",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SENIOR_OFFICER",
+		"label": "Security (outsourced): senior security officer",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3390,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "a8a5e0be-7721-530c-aa55-15042ba08970",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_OFFICER",
+		"label": "Security (outsourced): security officer",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3090,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "de4d6234-8de7-59b8-94bc-b6971e25e916",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_SUPERVISOR",
+		"label": "Security (in-house): security supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2905,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "ceeccce2-f332-5755-ba76-74efadaab03f",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_SENIOR_OFFICER",
+		"label": "Security (in-house): senior security officer",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2675,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "1c563f75-fb89-5a02-a2c0-294cece8dec3",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_OFFICER",
+		"label": "Security (in-house): security officer",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2475,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "48df008c-4ab6-53bf-9ea4-90d35acefebb",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_SUPERVISOR",
+		"label": "Landscape supervisor / senior landscape specialist",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2900,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "d9042737-1ef4-5018-a39a-7f78be47276b",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_ASSISTANT_SUPERVISOR",
+		"label": "Assistant landscape supervisor / landscape specialist",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2545,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "76cefb17-8d9b-5eb5-a49f-b9b7a9482a26",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_TECHNICIAN",
+		"label": "Landscape technician",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2330,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "9e0cbd69-1048-532d-9068-092dd509eaef",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_WORKER",
+		"label": "Landscape worker",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 1950,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "d547847a-0e12-5cf9-9437-38b22a1bc618",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "LIFT_PRINCIPAL_SPECIALIST",
+		"label": "Principal L&E specialist",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3590,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "86786741-4b21-5907-a2e4-1b4f4c8286be",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SUPERVISOR",
+		"label": "L&E supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3445,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "d8209d9f-f96e-539a-9342-68059d531ddd",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SENIOR_SPECIALIST",
+		"label": "Senior L&E specialist",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3215,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "aaaa2a6c-191a-5f52-8544-5b7540b43556",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SPECIALIST",
+		"label": "L&E specialist",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 2880,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "e7fd0605-281b-5907-852d-902f84ef7a95",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "LIFT_ASSISTANT_SPECIALIST",
+		"label": "Assistant L&E specialist",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 2525,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "31bcbfb7-898b-5965-a80b-bb93e453e194",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT_SUPERVISOR",
+		"label": "Assistant retail supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2790,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "4226ec1b-2b7b-5478-a104-16a81167ea7e",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_SENIOR_ASSISTANT",
+		"label": "Senior cashier / senior retail assistant",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2535,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "5ad2b647-bbd2-5685-9a1b-77d7863bfe8b",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT",
+		"label": "Retail assistant / cashier",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2305,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "2423ff7b-35fe-532f-b414-67fa33cc7181",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_COOK",
+		"label": "Food services (quick service): cook",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2330,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "4de7a2d1-ce7c-5d9f-827c-527a2d8aacd4",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_KITCHEN_ASSISTANT",
+		"label": "Food services (quick service): kitchen assistant / food service counter attendant",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2155,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "98091925-ed94-5767-8688-eae6920d9442",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_STALL_ASSISTANT",
+		"label": "Food services (quick service): food / drink stall assistant",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2080,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "fef80877-af6a-548c-801a-893076f69d1e",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_COOK",
+		"label": "Food services (full service): cook",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2380,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "35714279-cb34-554d-ba64-d1c8491500d1",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_KITCHEN_ASSISTANT",
+		"label": "Food services (full service): kitchen assistant",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2180,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "51b04f6e-fa60-55e8-851d-c2290018d487",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER_SUPERVISOR",
+		"label": "Food services (full service): waiter supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2730,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "e1eff43e-9674-5b1c-9ef4-81c476717b70",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER",
+		"label": "Food services (full service): waiter",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2180,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "c33007a0-115c-5f14-8689-9811b3052088",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_DRIVER",
+		"label": "Waste collection: senior driver",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3330,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "4b6f180e-e4d4-5d65-a671-78bebd42e6e3",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_HOOKLIFT_DRIVER",
+		"label": "Waste collection: hooklift driver",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3130,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "6f885477-4438-5d77-87ac-dbc3bb3af373",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_DRIVER",
+		"label": "Waste collection: driver",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3030,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "748783c4-af7a-528e-96cf-c7322697af5f",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SUPERVISOR",
+		"label": "Waste collection: supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3280,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "2c12706a-fda3-59a7-8a8d-75b1423b6c32",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_TEAM_LEAD",
+		"label": "Waste collection: team lead",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3030,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "50eb8e60-39cc-5852-969b-eaf87f9abe93",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_CREW",
+		"label": "Waste collection: senior crew",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2830,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "d27b2331-870a-5720-8304-9dccf28cd303",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_CREW",
+		"label": "Waste collection: crew",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2630,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "1e3e5d83-908f-5d78-9173-9f463e2b358a",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_PLANT_SUPERVISOR",
+		"label": "Materials recovery: plant supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3130,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "2f710a76-7042-5c59-964f-b59057b3d7f2",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_TEAM_LEAD",
+		"label": "Materials recovery: team lead",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2930,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "d8aa6a8e-5147-5b7f-a08c-1eabf943270a",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SENIOR_SORTER",
+		"label": "Materials recovery: senior sorter / machine operator",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2730,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "3c31ea26-15bb-5e8e-99e7-f077a813a9f9",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SORTER",
+		"label": "Materials recovery: sorter",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2530,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "59289725-2e59-5b0d-9ccf-ec4212d07127",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_SUPERVISOR",
+		"label": "Administrative supervisor",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3160,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "8adc9eb3-743b-56b1-b6f6-fd0d5da4b9b9",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_EXECUTIVE",
+		"label": "Administrative executive",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2580,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "4e9bf5ef-c5c1-5138-88ba-8b82bae8e0ce",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_ASSISTANT",
+		"label": "Administrative assistant",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 1980,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "cfb6786a-63e0-5a70-b2be-e8691b546bf8",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_SPECIALISED",
+		"label": "Driver (before 1 July 2026): specialised driver",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2320,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "73e75039-4bdf-51fa-94ca-9903db9aa5e0",
+		"settings_id": "fa282307-586a-5182-a671-b086809c73b7",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GENERAL",
+		"label": "Driver (before 1 July 2026): general driver",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2190,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "93c39ba4-84b5-54b7-a4d6-c453fb41efe3",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_SUPERVISOR",
+		"label": "Cleaner (office/commercial): supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2870,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "ed5e09f2-44fc-5f85-9261-b4732530c22f",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_MULTI_SKILLED",
+		"label": "Cleaner (office/commercial): multi-skilled cleaner / machine operator",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "b736ed9c-b315-5dfd-b6a2-82f49ecd1429",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_OUTDOOR",
+		"label": "Cleaner (office/commercial): outdoor / healthcare / restroom cleaner",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2495,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "33c62d3f-6452-561f-95c7-f1383882a874",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_GENERAL",
+		"label": "Cleaner (office/commercial): general / indoor cleaner",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2080,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "95eccc17-c9a7-5490-a4f9-b41ae647ed06",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_SUPERVISOR",
+		"label": "Cleaner (F&B establishment): supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2870,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "a1fde308-72ad-531a-a1a8-9f2e832c3d57",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_MULTI_SKILLED",
+		"label": "Cleaner (F&B establishment): multi-skilled cleaner / machine operator",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "d77a80ed-dcad-5c6b-912d-4f44576a7a20",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_DISHWASHER",
+		"label": "Cleaner (F&B establishment): dishwasher / restroom cleaner / refuse collector",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2495,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "30945405-39f7-5eb4-a0b8-5104915081ef",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_TABLE_TOP",
+		"label": "Cleaner (F&B establishment): table-top cleaner",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2180,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "5abd875a-ca35-5294-987d-8c215e396c4a",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_GENERAL",
+		"label": "Cleaner (F&B establishment): general cleaner",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2080,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "be11b32a-461f-5aa8-b6da-a560dc670f3a",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_TRUCK_DRIVER",
+		"label": "Cleaner (conservancy): truck driver (Class 4/5)",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 3040,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "1018002f-7e55-5847-8516-c0c2896ced43",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_SUPERVISOR",
+		"label": "Cleaner (conservancy): supervisor / mechanical driver (Class 3)",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2870,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "8e66a019-8502-5e54-bf2c-f8cf34a8d638",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_MULTI_SKILLED",
+		"label": "Cleaner (conservancy): multi-skilled cleaner / refuse collector",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "cdf533a1-0f7b-53ea-9657-7d443d2bba3f",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_GENERAL",
+		"label": "Cleaner (conservancy): general / restroom cleaner",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2495,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "92322daf-e12a-5007-ae6e-f5ca4412583b",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SENIOR_SUPERVISOR",
+		"label": "Security (outsourced): senior security supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3990,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "5b023f6a-8e39-5ab4-90f7-95fb8249255d",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SUPERVISOR",
+		"label": "Security (outsourced): security supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3690,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "297b1e30-95aa-57c4-bfb1-c8f699a85389",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_SENIOR_OFFICER",
+		"label": "Security (outsourced): senior security officer",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3390,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "6c3cb590-b92b-5ba3-a48c-2b544460d8d5",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_OUTSOURCED_OFFICER",
+		"label": "Security (outsourced): security officer",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "BASIC",
+			"monthly_floor": 3090,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "9ab6adef-5eae-5a03-af8d-ac4bd590cf6f",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_SUPERVISOR",
+		"label": "Security (in-house): security supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2905,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "3657bb0a-253f-5ef3-a1f4-47f6a92d61d1",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_SENIOR_OFFICER",
+		"label": "Security (in-house): senior security officer",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2675,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "17afdd94-e7c8-5ffb-bf3c-0620772ecd8c",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "SECURITY_INHOUSE_OFFICER",
+		"label": "Security (in-house): security officer",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "SECURITY",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2475,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/security-sector"
+		}
+	},
+	{
+		"id": "83dc9042-7bdb-5199-9dc1-ec14b9dc7f1c",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_SUPERVISOR",
+		"label": "Landscape supervisor / senior landscape specialist",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 3060,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "5d2d865e-1b63-5414-8ad6-8eaec6bfc121",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_ASSISTANT_SUPERVISOR",
+		"label": "Assistant landscape supervisor / landscape specialist",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2685,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "c86e5dad-4f87-592e-b2ae-9cfde7844c2a",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_TECHNICIAN",
+		"label": "Landscape technician",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2490,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "dc2c68f8-a6c2-5ac9-95ac-0592ac56f702",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_WORKER",
+		"label": "Landscape worker",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2095,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "e77252d5-4f13-5a6c-a97e-939ee459e1d4",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "LIFT_PRINCIPAL_SPECIALIST",
+		"label": "Principal L&E specialist",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3720,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "563b7b6d-c8bd-584b-95da-97a8959eaa09",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SUPERVISOR",
+		"label": "L&E supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3660,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "f3a31c42-5a71-503f-aea2-713928accbb2",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SENIOR_SPECIALIST",
+		"label": "Senior L&E specialist",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3420,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "9c6a8445-7581-5468-a7ab-80c567d90477",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SPECIALIST",
+		"label": "L&E specialist",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3090,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "acb7de6f-a83a-5895-afb9-40bb6640d097",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "LIFT_ASSISTANT_SPECIALIST",
+		"label": "Assistant L&E specialist",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 2750,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "958d13cb-fbff-5335-977c-92793efb0e8f",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT_SUPERVISOR",
+		"label": "Assistant retail supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2790,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "e2b9ffbf-2f78-56e4-93ae-4088b83a2169",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT_SUPERVISOR",
+		"label": "Assistant retail supervisor",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2950,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "b065111c-6774-57e8-9912-6dc19aab270e",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_SENIOR_ASSISTANT",
+		"label": "Senior cashier / senior retail assistant",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2535,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "dc2d96c4-e21d-520f-99b8-4011eb7fff09",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_SENIOR_ASSISTANT",
+		"label": "Senior cashier / senior retail assistant",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2680,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "1e41ab81-ee04-5a48-bc06-bb409cbf52ca",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT",
+		"label": "Retail assistant / cashier",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2305,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "0278e9ef-779f-5244-8f17-c3e8602ca9c3",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT",
+		"label": "Retail assistant / cashier",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2435,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "f56d09cb-46fb-54d6-9727-ba63502a2af2",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_COOK",
+		"label": "Food services (quick service): cook",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2470,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "e5b85419-1731-5fa7-a987-637f75aa5117",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_KITCHEN_ASSISTANT",
+		"label": "Food services (quick service): kitchen assistant / food service counter attendant",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2295,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "af42deed-7e41-56e9-8851-2117add33474",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_STALL_ASSISTANT",
+		"label": "Food services (quick service): food / drink stall assistant",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2220,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "d6feb0bb-d017-554e-9616-3ee5fe292960",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_COOK",
+		"label": "Food services (full service): cook",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2520,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "cfeb97db-359e-557c-a418-3606af61d479",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_KITCHEN_ASSISTANT",
+		"label": "Food services (full service): kitchen assistant",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2320,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "9e8faba6-0a66-535e-90fe-1afdb6960d7c",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER_SUPERVISOR",
+		"label": "Food services (full service): waiter supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2875,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "07ede9b2-918b-585d-9e7f-65bae5e5214a",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER",
+		"label": "Food services (full service): waiter",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2320,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "627d3306-b244-5a2d-b29f-d7914a355bb1",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_DRIVER",
+		"label": "Waste collection: senior driver",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3540,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "6b3ade41-32d1-5fe6-9481-dc5d11eabd6e",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_HOOKLIFT_DRIVER",
+		"label": "Waste collection: hooklift driver",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3340,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "4a5d436e-c191-55e9-b4d6-4d7970bdede9",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_DRIVER",
+		"label": "Waste collection: driver",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3240,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "c066a264-8300-5bca-97c6-6911d442ab6a",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SUPERVISOR",
+		"label": "Waste collection: supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3490,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "c5b9dad9-d15c-5abf-8081-b331eea7ca62",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_TEAM_LEAD",
+		"label": "Waste collection: team lead",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3240,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "afc79e69-bc32-566d-b5c1-37e4a7d04390",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_CREW",
+		"label": "Waste collection: senior crew",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3040,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "c57f3556-78fc-5de7-b311-e47129413ca3",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_CREW",
+		"label": "Waste collection: crew",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2840,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "0abb7144-810e-5512-89f6-fa83cda846ff",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_PLANT_SUPERVISOR",
+		"label": "Materials recovery: plant supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3340,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "6e3b4396-18c7-5478-98a0-152cfcdb4297",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_TEAM_LEAD",
+		"label": "Materials recovery: team lead",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3140,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "b38138d3-253e-57a7-8799-ac7563061420",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SENIOR_SORTER",
+		"label": "Materials recovery: senior sorter / machine operator",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2940,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "12d1ce6e-d44c-5c3e-942b-b4bc2ae3d3d5",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SORTER",
+		"label": "Materials recovery: sorter",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2740,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "e475d94a-71d7-537b-a6bc-8874d3bba735",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_SUPERVISOR",
+		"label": "Administrative supervisor",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3340,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "afbdf9ce-c7aa-5a83-ae8b-6b2b4b6ccaab",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_EXECUTIVE",
+		"label": "Administrative executive",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2760,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "ce7cf0a1-cb7c-5354-987a-954d4dabde97",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_ASSISTANT",
+		"label": "Administrative assistant",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2170,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "a1677422-2f2b-52b3-9e36-ecfb815a453a",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_A_LEVEL_2",
+		"label": "Driver Group A (Class 3 or below licence): Level 2",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2485,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "ab033232-2e78-554f-92ce-1be929fc252e",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_A_LEVEL_1",
+		"label": "Driver Group A (Class 3 or below licence): Level 1",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2370,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "5c687a90-3173-5442-8966-52dd754cb89c",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_B_LEVEL_2",
+		"label": "Driver Group B (Class 4 or above licence): Level 2",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2555,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "94ce226c-cc2d-5a53-a099-3807c8258080",
+		"settings_id": "04f345bd-7068-587d-888d-b0c073163300",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_B_LEVEL_1",
+		"label": "Driver Group B (Class 4 or above licence): Level 1",
+		"effective_range": {
+			"from": "2026-07-01",
+			"to": "2026-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2505,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "0ddfc2c3-8831-50a6-8db1-5a37ecb4d752",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_SUPERVISOR",
+		"label": "Cleaner (office/commercial): supervisor",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2870,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "257d1304-7e62-581f-bf74-64a40686b73a",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_MULTI_SKILLED",
+		"label": "Cleaner (office/commercial): multi-skilled cleaner / machine operator",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "51d319e3-94b9-56bd-b870-8557207b137d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_OUTDOOR",
+		"label": "Cleaner (office/commercial): outdoor / healthcare / restroom cleaner",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2495,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "14185a3e-ca0d-5f1c-a71f-3a7480c166d6",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_OFFICE_GENERAL",
+		"label": "Cleaner (office/commercial): general / indoor cleaner",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2080,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "5a1b0a9f-e473-52be-9a26-5b50f4641531",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_SUPERVISOR",
+		"label": "Cleaner (F&B establishment): supervisor",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2870,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "c98a349e-963e-5333-bca6-16bdb4c0a0b0",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_MULTI_SKILLED",
+		"label": "Cleaner (F&B establishment): multi-skilled cleaner / machine operator",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "5fd56ae0-d78a-5055-8372-b3b0f08e6d2d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_DISHWASHER",
+		"label": "Cleaner (F&B establishment): dishwasher / restroom cleaner / refuse collector",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2495,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "ae2edc63-1dfe-5dc6-ab0e-978d41a3e784",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_TABLE_TOP",
+		"label": "Cleaner (F&B establishment): table-top cleaner",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2180,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "1d4beea5-b318-5dae-a149-22a9b5ca025e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_FNB_GENERAL",
+		"label": "Cleaner (F&B establishment): general cleaner",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2080,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "68ecbe34-20e9-5003-a977-cf182765b17e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_TRUCK_DRIVER",
+		"label": "Cleaner (conservancy): truck driver (Class 4/5)",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 3040,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "4eb90659-ed28-5052-855c-39183d08605a",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_SUPERVISOR",
+		"label": "Cleaner (conservancy): supervisor / mechanical driver (Class 3)",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2870,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "86a2bf25-d505-5f03-aec4-670a8a8c7c6d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_MULTI_SKILLED",
+		"label": "Cleaner (conservancy): multi-skilled cleaner / refuse collector",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "2fe671a3-0e76-5565-8851-8c84286f4d29",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "CLEAN_CONSERVANCY_GENERAL",
+		"label": "Cleaner (conservancy): general / restroom cleaner",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "CLEANING",
+			"base": "BASIC",
+			"monthly_floor": 2495,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/cleaning-sector"
+		}
+	},
+	{
+		"id": "633fc6ab-90d1-51bf-90bf-662ca0eb9b27",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_SUPERVISOR",
+		"label": "Landscape supervisor / senior landscape specialist",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 3060,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "f3178257-72f9-5a64-a693-8e65409f7b80",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_ASSISTANT_SUPERVISOR",
+		"label": "Assistant landscape supervisor / landscape specialist",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2685,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "484ef770-4af6-53c2-b8af-c7453e4edab4",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_TECHNICIAN",
+		"label": "Landscape technician",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2490,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "bef3fdad-d545-5020-b320-00ee29ddc018",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LANDSCAPE_WORKER",
+		"label": "Landscape worker",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LANDSCAPE",
+			"base": "BASIC",
+			"monthly_floor": 2095,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/landscape-sector"
+		}
+	},
+	{
+		"id": "8f05ff7f-bc62-5e0f-a355-d23a080c0757",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_PRINCIPAL_SPECIALIST",
+		"label": "Principal L&E specialist",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3720,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "48ab07c7-f101-555c-aa51-c9ca10fe508b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_PRINCIPAL_SPECIALIST",
+		"label": "Principal L&E specialist",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3935,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "0b54b77c-20ac-525a-b092-ddf227643e2d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_PRINCIPAL_SPECIALIST",
+		"label": "Principal L&E specialist",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 4150,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "4a39039f-8239-5f62-a513-4f3f9f117e25",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SUPERVISOR",
+		"label": "L&E supervisor",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3660,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "3fcc5761-8903-5b36-858a-255b64ab7bab",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SUPERVISOR",
+		"label": "L&E supervisor",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3875,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "6c6fbd42-a79e-51aa-9b00-5c6682fb8689",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SUPERVISOR",
+		"label": "L&E supervisor",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 4090,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "f80b3fb0-647f-5ca4-9afd-9d77af98f878",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SENIOR_SPECIALIST",
+		"label": "Senior L&E specialist",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3420,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "173a448b-0ffb-5b67-a85b-48af0abdf32d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SENIOR_SPECIALIST",
+		"label": "Senior L&E specialist",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3620,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "0eb0710d-eeb4-53c2-829b-49d07c42ebff",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SENIOR_SPECIALIST",
+		"label": "Senior L&E specialist",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3820,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "127d590f-58ff-5077-aedb-72408e872233",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SPECIALIST",
+		"label": "L&E specialist",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3090,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "490feb55-67cc-52b2-b9f2-49f2f291521b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SPECIALIST",
+		"label": "L&E specialist",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3280,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "fc8ae715-6be7-5af8-890e-f777428ad655",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_SPECIALIST",
+		"label": "L&E specialist",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3470,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "6a0b00d1-a627-5592-8404-eda84efad9f8",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_ASSISTANT_SPECIALIST",
+		"label": "Assistant L&E specialist",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 2750,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "877c9809-26a6-5427-8cb2-48c90a6b154b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_ASSISTANT_SPECIALIST",
+		"label": "Assistant L&E specialist",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 2915,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "8d620cd4-6885-5555-aee2-37bd97f1cb03",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "LIFT_ASSISTANT_SPECIALIST",
+		"label": "Assistant L&E specialist",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "LIFT_ESCALATOR",
+			"base": "BASIC",
+			"monthly_floor": 3080,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/lift-and-escalator-sector"
+		}
+	},
+	{
+		"id": "5dbbbee0-bb6c-5d7f-b8bb-7b5ed2bdd73b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT_SUPERVISOR",
+		"label": "Assistant retail supervisor",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2950,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "81436457-a360-5713-ba92-18a69e28c36c",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT_SUPERVISOR",
+		"label": "Assistant retail supervisor",
+		"effective_range": {
+			"from": "2027-09-01",
+			"to": "2028-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3100,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "c47acd0b-29c9-53e3-b03d-67f1b0481aa1",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_SENIOR_ASSISTANT",
+		"label": "Senior cashier / senior retail assistant",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2680,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "fa90a667-b58f-5d45-bd3f-10e18c356117",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_SENIOR_ASSISTANT",
+		"label": "Senior cashier / senior retail assistant",
+		"effective_range": {
+			"from": "2027-09-01",
+			"to": "2028-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2820,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "4f06fb45-8222-5c86-b1b7-3fc263344153",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT",
+		"label": "Retail assistant / cashier",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2435,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "24e23ec7-3c2c-5b05-ae34-3cc9b209b06e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "RETAIL_ASSISTANT",
+		"label": "Retail assistant / cashier",
+		"effective_range": {
+			"from": "2027-09-01",
+			"to": "2028-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "RETAIL",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2565,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/retail-sector"
+		}
+	},
+	{
+		"id": "781b9c7b-0e70-5a82-941e-ced436b233ab",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_COOK",
+		"label": "Food services (quick service): cook",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2470,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "314d7d6e-38f8-5c23-aac3-abc4a0b46b6e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_COOK",
+		"label": "Food services (quick service): cook",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2610,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "ea0f1b06-96e1-5784-b828-44f70d238f8f",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_COOK",
+		"label": "Food services (quick service): cook",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2750,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "7b9b6182-0726-5b1f-a408-3798b7416894",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_KITCHEN_ASSISTANT",
+		"label": "Food services (quick service): kitchen assistant / food service counter attendant",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2295,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "980bce28-4c2e-55f5-834b-f1413f4b896b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_KITCHEN_ASSISTANT",
+		"label": "Food services (quick service): kitchen assistant / food service counter attendant",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2435,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "685e2610-5d81-57c9-a94c-629be4e5310b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_KITCHEN_ASSISTANT",
+		"label": "Food services (quick service): kitchen assistant / food service counter attendant",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2575,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "1f10a455-1dcf-557e-8e9c-9b9e62caabea",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_STALL_ASSISTANT",
+		"label": "Food services (quick service): food / drink stall assistant",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2220,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "71de6432-72fd-5e7a-887c-aa61eed37e70",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_STALL_ASSISTANT",
+		"label": "Food services (quick service): food / drink stall assistant",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2360,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "75bf2f74-5b29-54cf-a32e-a0a06e7e541b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_QS_STALL_ASSISTANT",
+		"label": "Food services (quick service): food / drink stall assistant",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2500,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "5f2eb0be-ea05-5a97-b0ca-1a46bd041e72",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_COOK",
+		"label": "Food services (full service): cook",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2520,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "6143ce4b-1554-51b8-945f-861464cc229e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_COOK",
+		"label": "Food services (full service): cook",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2660,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "ef1c45fb-9695-5028-8629-926f85a5f981",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_COOK",
+		"label": "Food services (full service): cook",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2800,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "dd55a12d-2ce5-5380-8bc5-e720626b3d69",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_KITCHEN_ASSISTANT",
+		"label": "Food services (full service): kitchen assistant",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2320,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "e546dfaf-d622-5186-8de6-b3e2617c71d8",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_KITCHEN_ASSISTANT",
+		"label": "Food services (full service): kitchen assistant",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2460,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "d681db08-2716-5424-a911-438a2dc198df",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_KITCHEN_ASSISTANT",
+		"label": "Food services (full service): kitchen assistant",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2600,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "bd55b254-29e6-5741-96aa-ab4158fbef4c",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER_SUPERVISOR",
+		"label": "Food services (full service): waiter supervisor",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2875,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "3a2610f1-4c60-58f1-91eb-520ee91f1432",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER_SUPERVISOR",
+		"label": "Food services (full service): waiter supervisor",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3020,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "5bd73415-a32f-5008-a08b-9daaeb31c1c5",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER_SUPERVISOR",
+		"label": "Food services (full service): waiter supervisor",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3165,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "d02601d5-e994-56d1-8c16-a2def5214d46",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER",
+		"label": "Food services (full service): waiter",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2320,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "5c237d8f-7427-5efc-94c0-f8e2ecfd7a14",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER",
+		"label": "Food services (full service): waiter",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2460,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "24f72d33-f93f-5109-b252-a261fdea52e6",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "FOOD_FS_WAITER",
+		"label": "Food services (full service): waiter",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "FOOD_SERVICES",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2600,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/food-services-sector"
+		}
+	},
+	{
+		"id": "a35990e5-5fa2-51b4-9e79-c3458f44ff1d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_DRIVER",
+		"label": "Waste collection: senior driver",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3540,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "a0e82fba-c6cc-5ee1-ba91-b81729fbf4c6",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_DRIVER",
+		"label": "Waste collection: senior driver",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3750,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "412b40b4-bac2-57cf-8495-618d7bef8639",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_DRIVER",
+		"label": "Waste collection: senior driver",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3960,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "1440b008-1835-542e-a861-5df2977f004e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_HOOKLIFT_DRIVER",
+		"label": "Waste collection: hooklift driver",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3340,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "38d7d8e4-91be-54ca-8bdf-687c5ad471f8",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_HOOKLIFT_DRIVER",
+		"label": "Waste collection: hooklift driver",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3550,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "996c5f5a-fbd9-5730-8e31-8b8b83e385be",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_HOOKLIFT_DRIVER",
+		"label": "Waste collection: hooklift driver",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3760,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "f42187ae-1ed5-5bf2-aa16-3bac53440871",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_DRIVER",
+		"label": "Waste collection: driver",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3240,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "0b60ccae-390b-5f65-8fd3-75b9f0de0bae",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_DRIVER",
+		"label": "Waste collection: driver",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3450,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "469db6da-8251-5665-a9af-13b4ec2bea1f",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_DRIVER",
+		"label": "Waste collection: driver",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3660,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "2ab534c0-96ea-52da-b7db-da922b7ef4df",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SUPERVISOR",
+		"label": "Waste collection: supervisor",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3490,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "9aa54852-cc7b-58ae-8c0b-b541d1c0f5d2",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SUPERVISOR",
+		"label": "Waste collection: supervisor",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3700,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "e8409687-64a8-51f6-80d5-3e29e386e514",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SUPERVISOR",
+		"label": "Waste collection: supervisor",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3910,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "75365f90-8d38-5e32-be81-aa84b538a7e7",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_TEAM_LEAD",
+		"label": "Waste collection: team lead",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3240,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "fad2dff3-e60f-5dc9-8a1d-96a6d9725faa",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_TEAM_LEAD",
+		"label": "Waste collection: team lead",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3450,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "08cdcd07-2d4c-55c7-9a6f-7e11f271b578",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_TEAM_LEAD",
+		"label": "Waste collection: team lead",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3660,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "16992601-c8d0-5abb-9340-ac3d8fadd7a9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_CREW",
+		"label": "Waste collection: senior crew",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3040,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "ca14251c-092e-588f-8d8d-e7b2a5933935",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_CREW",
+		"label": "Waste collection: senior crew",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3250,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "198a4683-0324-555a-8ad8-422b4e20362d",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_SENIOR_CREW",
+		"label": "Waste collection: senior crew",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3460,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "fd7f93f0-a160-5831-96db-e6ea92c9688a",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_CREW",
+		"label": "Waste collection: crew",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2840,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "0dd7c29d-3652-5d2f-a00b-65cc14907f25",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_CREW",
+		"label": "Waste collection: crew",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3050,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "1c43ca0e-f802-50d7-af37-19e5cfac4629",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_COLLECTION_CREW",
+		"label": "Waste collection: crew",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3260,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "3ee550af-cb69-5520-9c7e-034f6e7d560f",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_PLANT_SUPERVISOR",
+		"label": "Materials recovery: plant supervisor",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3340,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "7a19e115-45e2-5495-a190-918cf78ca72c",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_PLANT_SUPERVISOR",
+		"label": "Materials recovery: plant supervisor",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3550,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "7a9c7ecc-8fb0-5ba7-aa5b-cfcf7e3cb62e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_PLANT_SUPERVISOR",
+		"label": "Materials recovery: plant supervisor",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3760,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "f08746a0-91cc-5784-af60-908b75c35434",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_TEAM_LEAD",
+		"label": "Materials recovery: team lead",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3140,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "5f65a330-6cab-5f15-b236-8d0430ca11e0",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_TEAM_LEAD",
+		"label": "Materials recovery: team lead",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3350,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "83060c91-18ec-5dcd-8035-9760e89a9f52",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_TEAM_LEAD",
+		"label": "Materials recovery: team lead",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3560,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "ce7185d6-5c99-5697-9941-02e16d73dd22",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SENIOR_SORTER",
+		"label": "Materials recovery: senior sorter / machine operator",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2940,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "4158e109-8d8f-5ed4-ac7f-d4e52543694c",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SENIOR_SORTER",
+		"label": "Materials recovery: senior sorter / machine operator",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3150,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "cea7b1fa-e268-536a-b203-6158e56b7721",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SENIOR_SORTER",
+		"label": "Materials recovery: senior sorter / machine operator",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3360,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "b6c851ae-d177-5b43-bc19-1cf4afcdac3b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SORTER",
+		"label": "Materials recovery: sorter",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2740,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "8493ba64-7a52-50d1-9f65-28ef9bd85bf1",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SORTER",
+		"label": "Materials recovery: sorter",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2950,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "76966b37-f026-597f-8a3c-4d02f5c6d149",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "WASTE_MRF_SORTER",
+		"label": "Materials recovery: sorter",
+		"effective_range": {
+			"from": "2028-07-01",
+			"to": "2029-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "WASTE_MANAGEMENT",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3160,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/waste-management-sector"
+		}
+	},
+	{
+		"id": "38ddf33f-87c3-5737-ac86-e3bfe16a9974",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_SUPERVISOR",
+		"label": "Administrative supervisor",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3340,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "0ca21a18-5a50-5113-ba08-ed3fac76fb90",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_SUPERVISOR",
+		"label": "Administrative supervisor",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 3520,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "77a8af80-a001-5b01-8a2f-0ec521696bb0",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_EXECUTIVE",
+		"label": "Administrative executive",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2760,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "30cc9a40-8545-5cab-ac12-c2ea41d376c2",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_EXECUTIVE",
+		"label": "Administrative executive",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2940,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "3e5df5db-8a5f-5df8-9feb-b9d945598658",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_ASSISTANT",
+		"label": "Administrative assistant",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2170,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "e168fcc4-51b9-5b9a-ae2e-5e990350e84a",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "ADMIN_ASSISTANT",
+		"label": "Administrative assistant",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "ADMINISTRATOR_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2360,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "8e399d5f-8735-5631-bcd5-2b2f7b674a2b",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_A_LEVEL_2",
+		"label": "Driver Group A (Class 3 or below licence): Level 2",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2485,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "9ff3a0b7-95c1-558c-abd1-648f985c793e",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_A_LEVEL_2",
+		"label": "Driver Group A (Class 3 or below licence): Level 2",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2665,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "db500b1e-b37c-53ce-965e-b54cb1bc92ef",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_A_LEVEL_1",
+		"label": "Driver Group A (Class 3 or below licence): Level 1",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2370,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "2dbe40f9-1497-5417-b66a-e96fc3a4b1c3",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_A_LEVEL_1",
+		"label": "Driver Group A (Class 3 or below licence): Level 1",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2550,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "cb71bd13-6020-5511-8113-2bf0f9787501",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_B_LEVEL_2",
+		"label": "Driver Group B (Class 4 or above licence): Level 2",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2555,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "3730a7fc-5a8e-55c9-983c-6ed2226cc5b6",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_B_LEVEL_2",
+		"label": "Driver Group B (Class 4 or above licence): Level 2",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2790,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "e7444417-b829-5697-8df7-1b4dbdeb60c9",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_B_LEVEL_1",
+		"label": "Driver Group B (Class 4 or above licence): Level 1",
+		"effective_range": {
+			"from": "2027-01-01",
+			"to": "2027-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2505,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
+	},
+	{
+		"id": "bfc9e506-cba0-5f17-bc21-56e7fe521221",
+		"settings_id": "5f033e10-2d1f-5053-b163-085c5c8e5c85",
+		"table": "PWM_ROLE",
+		"code": "DRIVER_GROUP_B_LEVEL_1",
+		"label": "Driver Group B (Class 4 or above licence): Level 1",
+		"effective_range": {
+			"from": "2027-07-01",
+			"to": "2028-06-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {
+			"sector": "DRIVER_OPW",
+			"base": "GROSS_EX_OT",
+			"monthly_floor": 2690,
+			"source": "https://www.mom.gov.sg/employment-practices/progressive-wage-model/occupational-pws-for-administrators-and-drivers"
+		}
 	}
 ]

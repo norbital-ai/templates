@@ -1041,6 +1041,12 @@
 				"label": "Worksite KBLI edition",
 				"description": "The KBLI edition the worksite sector code is stated in.",
 				"options": ["2020", "2025"]
+			},
+			{
+				"key": "probation_end_on",
+				"type": "date",
+				"label": "Probation ends on",
+				"description": "The last day of an agreed PKWTT probation (masa percobaan): UU 13/2003 art.60(1) caps it at three months from the first day of work, and art.60(2) keeps the minimum wage during it. Absent where no probation was agreed; a PKWT (fixed-term contract) may not state one (UU 13/2003 art.58(1); PP 35/2021 art.12)."
 			}
 		],
 		"obligations": [
@@ -1303,6 +1309,223 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"checks": [
+			{
+				"code": "PROBATION_OVER_THREE_MONTHS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type != \"CONTRACT\" && has(terms.facts.probation_end_on) && terms.facts.probation_end_on > add_days(add_months(employment.service_start, 3), -1)",
+				"message": "A PKWTT probation may last at most three months from the first day of work; set probation_end_on no later than the day before the three-month anniversary of the start.",
+				"authority": "UU 13/2003 art.60(1), not amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-110"
+			},
+			{
+				"code": "PKWT_PROBATION_VOID",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && has(terms.facts.probation_end_on)",
+				"message": "A fixed-term contract (PKWT) may not require a probation period: a probation clause is void and its days count as service. Remove probation_end_on from these terms.",
+				"authority": "UU 13/2003 art.58(1)–(2) as amended by UU 6/2023; PP 35/2021 art.12 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); tracker ID-108, ID-110"
+			},
+			{
+				"code": "PKWT_TERM_OVER_FIVE_YEARS",
+				"at": "PAYSLIP",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && employment.exit_date != \"\" && employment.exit_date > add_days(add_months(employment.service_start, 60), -1)",
+				"message": "A PKWT, extensions included, may last at most five years from its start; this contract's recorded end is later. End it within five years or record the employment as PKWTT (open-ended).",
+				"authority": "PP 35/2021 art.8(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023 (not more than five years including any extension); tracker ID-108"
+			},
+			{
+				"code": "YOUNG_WORKER_CONDITIONS",
+				"at": "PAYSLIP",
+				"severity": "WARN",
+				"when": "employee.age < 18",
+				"message": "The worker is a child under UU 13/2003 art.1 angka 26 (under 18): art.68 bars employing a child outside the light-work (art.69), curriculum (art.70) and talent (art.71) exceptions, and art.74 bars the worst forms of child labour. Record the exception relied on and its conditions (written parental consent and agreement, at most three hours a day, daytime, outside school hours, safety, wages per law) before paying.",
+				"authority": "UU 13/2003 arts.1 angka 26, 68–75 as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-47 owner default 2026-10-01: the exceptions are lawful, so the run warns rather than refuses"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
+				"label": "BPJS Ketenagakerjaan contributions of the wage month (JHT, JKK, JKM, JP)",
+				"authority": "PP 44/2015 art.22(1): paid monthly, at the latest on the 15th of the month after the contribution month (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (JP); JHT under PP 46/2015 is billed with them. The holiday roll to the next working day is not applied (the obligation site binds no calendar).",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid on",
+						"required": true
+					},
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Billing code or receipt reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "BPJS_KESEHATAN_REMITTANCE",
+				"label": "BPJS Kesehatan contribution of the wage month",
+				"authority": "Perpres 82/2018 art.39(1): the employer pays each month's contribution at the latest on the 10th of that month (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf); tracker ID-20 reading 2026-10-01: the 10th of the wage month itself. The art.39(4) holiday roll is not applied (no calendar on the obligation site).",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.start, 9)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid on",
+						"required": true
+					},
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Billing code or receipt reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PPH21_PAYMENT",
+				"label": "PPh 21/26 withheld in the tax period: payment",
+				"authority": "PMK 81/2024 art.94(2): payment by the 15th of the month after the tax period (https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); records kept 10 years (UU KUP art.28(11)). The next-working-day roll is not applied.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid on",
+						"required": true
+					},
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Billing code or receipt reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "PPH21_SPT_MASA",
+				"label": "SPT Masa PPh 21/26 with the monthly withholding slips",
+				"authority": "UU KUP art.3(3)(a): the SPT Masa within 20 days after the tax period ends; PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); records kept 10 years (UU KUP art.28(11)). The next-working-day roll is not applied.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 20)",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "PPH21_BPA1_YEAR_END",
+				"label": "Form BPA1 for the tax year (December is the last tax period)",
+				"authority": "PER-11/PJ/2025 art.7(2): BPA1 within one month after the last tax period ends (https://jdih.kemenkeu.go.id/dok/per-11pj2025)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.period.endsWith(\"-12\")"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "PPH21_BPA1_EXIT",
+				"label": "Form BPA1 for a leaver's part year (the exit month is the last tax period)",
+				"authority": "PER-11/PJ/2025 art.7(2): BPA1 within one month after the last tax period ends (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 art.13 (the exit month is the last tax period). Raised for every leaver; waive it for a nonpermanent recipient, who takes a BPMP instead.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "month_end(add_months(employment.exit_date, 1))",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "JKP_PHK_NOTIFICATION",
+				"label": "PHK notice to BPJS Ketenagakerjaan for a JKP participant (SIAPkerja)",
+				"authority": "Permenaker 2/2025 art.9: within seven working days of the termination (https://jdih.kemnaker.go.id/asset/data_puu/2025pmnaker002.pdf); PP 37/2021 as amended by PP 6/2025 art.20: resignation, retirement, total permanent disability, death and the end of a PKWT term are not JKP terminations. Owner default 2026-10-01: working days are Monday to Friday; public holidays and cuti bersama are not skipped (the obligation site binds no calendar), so a window holding a holiday falls due a day early. Waive it for a worker who is not a JKP participant (a foreigner, or 54 or over when registered).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"MUTUAL\"]"
+				},
+				"due": "employment.exit_date == \"\" ? trigger.date : span(add_days(employment.exit_date, 1), add_days(employment.exit_date, 11)).days().filter(d, d.weekday != \"SAT\" && d.weekday != \"SUN\")[6].date",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
 			}
 		]
 	},
@@ -3070,6 +3293,12 @@
 				"label": "Worksite KBLI edition",
 				"description": "The KBLI edition the worksite sector code is stated in.",
 				"options": ["2020", "2025"]
+			},
+			{
+				"key": "probation_end_on",
+				"type": "date",
+				"label": "Probation ends on",
+				"description": "The last day of an agreed PKWTT probation (masa percobaan): UU 13/2003 art.60(1) caps it at three months from the first day of work, and art.60(2) keeps the minimum wage during it. Absent where no probation was agreed; a PKWT (fixed-term contract) may not state one (UU 13/2003 art.58(1); PP 35/2021 art.12)."
 			}
 		],
 		"obligations": [
@@ -3332,6 +3561,223 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"checks": [
+			{
+				"code": "PROBATION_OVER_THREE_MONTHS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type != \"CONTRACT\" && has(terms.facts.probation_end_on) && terms.facts.probation_end_on > add_days(add_months(employment.service_start, 3), -1)",
+				"message": "A PKWTT probation may last at most three months from the first day of work; set probation_end_on no later than the day before the three-month anniversary of the start.",
+				"authority": "UU 13/2003 art.60(1), not amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-110"
+			},
+			{
+				"code": "PKWT_PROBATION_VOID",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && has(terms.facts.probation_end_on)",
+				"message": "A fixed-term contract (PKWT) may not require a probation period: a probation clause is void and its days count as service. Remove probation_end_on from these terms.",
+				"authority": "UU 13/2003 art.58(1)–(2) as amended by UU 6/2023; PP 35/2021 art.12 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); tracker ID-108, ID-110"
+			},
+			{
+				"code": "PKWT_TERM_OVER_FIVE_YEARS",
+				"at": "PAYSLIP",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && employment.exit_date != \"\" && employment.exit_date > add_days(add_months(employment.service_start, 60), -1)",
+				"message": "A PKWT, extensions included, may last at most five years from its start; this contract's recorded end is later. End it within five years or record the employment as PKWTT (open-ended).",
+				"authority": "PP 35/2021 art.8(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023 (not more than five years including any extension); tracker ID-108"
+			},
+			{
+				"code": "YOUNG_WORKER_CONDITIONS",
+				"at": "PAYSLIP",
+				"severity": "WARN",
+				"when": "employee.age < 18",
+				"message": "The worker is a child under UU 13/2003 art.1 angka 26 (under 18): art.68 bars employing a child outside the light-work (art.69), curriculum (art.70) and talent (art.71) exceptions, and art.74 bars the worst forms of child labour. Record the exception relied on and its conditions (written parental consent and agreement, at most three hours a day, daytime, outside school hours, safety, wages per law) before paying.",
+				"authority": "UU 13/2003 arts.1 angka 26, 68–75 as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-47 owner default 2026-10-01: the exceptions are lawful, so the run warns rather than refuses"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
+				"label": "BPJS Ketenagakerjaan contributions of the wage month (JHT, JKK, JKM, JP)",
+				"authority": "PP 44/2015 art.22(1): paid monthly, at the latest on the 15th of the month after the contribution month (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (JP); JHT under PP 46/2015 is billed with them. The holiday roll to the next working day is not applied (the obligation site binds no calendar).",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid on",
+						"required": true
+					},
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Billing code or receipt reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "BPJS_KESEHATAN_REMITTANCE",
+				"label": "BPJS Kesehatan contribution of the wage month",
+				"authority": "Perpres 82/2018 art.39(1): the employer pays each month's contribution at the latest on the 10th of that month (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf); tracker ID-20 reading 2026-10-01: the 10th of the wage month itself. The art.39(4) holiday roll is not applied (no calendar on the obligation site).",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.start, 9)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid on",
+						"required": true
+					},
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Billing code or receipt reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PPH21_PAYMENT",
+				"label": "PPh 21/26 withheld in the tax period: payment",
+				"authority": "PMK 81/2024 art.94(2): payment by the 15th of the month after the tax period (https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); records kept 10 years (UU KUP art.28(11)). The next-working-day roll is not applied.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid on",
+						"required": true
+					},
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Billing code or receipt reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "PPH21_SPT_MASA",
+				"label": "SPT Masa PPh 21/26 with the monthly withholding slips",
+				"authority": "UU KUP art.3(3)(a): the SPT Masa within 20 days after the tax period ends; PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); records kept 10 years (UU KUP art.28(11)). The next-working-day roll is not applied.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 20)",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "PPH21_BPA1_YEAR_END",
+				"label": "Form BPA1 for the tax year (December is the last tax period)",
+				"authority": "PER-11/PJ/2025 art.7(2): BPA1 within one month after the last tax period ends (https://jdih.kemenkeu.go.id/dok/per-11pj2025)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.period.endsWith(\"-12\")"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "PPH21_BPA1_EXIT",
+				"label": "Form BPA1 for a leaver's part year (the exit month is the last tax period)",
+				"authority": "PER-11/PJ/2025 art.7(2): BPA1 within one month after the last tax period ends (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 art.13 (the exit month is the last tax period). Raised for every leaver; waive it for a nonpermanent recipient, who takes a BPMP instead.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "month_end(add_months(employment.exit_date, 1))",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "JKP_PHK_NOTIFICATION",
+				"label": "PHK notice to BPJS Ketenagakerjaan for a JKP participant (SIAPkerja)",
+				"authority": "Permenaker 2/2025 art.9: within seven working days of the termination (https://jdih.kemnaker.go.id/asset/data_puu/2025pmnaker002.pdf); PP 37/2021 as amended by PP 6/2025 art.20: resignation, retirement, total permanent disability, death and the end of a PKWT term are not JKP terminations. Owner default 2026-10-01: working days are Monday to Friday; public holidays and cuti bersama are not skipped (the obligation site binds no calendar), so a window holding a holiday falls due a day early. Waive it for a worker who is not a JKP participant (a foreigner, or 54 or over when registered).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"MUTUAL\"]"
+				},
+				"due": "employment.exit_date == \"\" ? trigger.date : span(add_days(employment.exit_date, 1), add_days(employment.exit_date, 11)).days().filter(d, d.weekday != \"SAT\" && d.weekday != \"SUN\")[6].date",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
 			}
 		]
 	},
@@ -5092,6 +5538,12 @@
 				"label": "Worksite KBLI edition",
 				"description": "The KBLI edition the worksite sector code is stated in.",
 				"options": ["2020", "2025"]
+			},
+			{
+				"key": "probation_end_on",
+				"type": "date",
+				"label": "Probation ends on",
+				"description": "The last day of an agreed PKWTT probation (masa percobaan): UU 13/2003 art.60(1) caps it at three months from the first day of work, and art.60(2) keeps the minimum wage during it. Absent where no probation was agreed; a PKWT (fixed-term contract) may not state one (UU 13/2003 art.58(1); PP 35/2021 art.12)."
 			}
 		],
 		"obligations": [
@@ -5354,6 +5806,223 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"checks": [
+			{
+				"code": "PROBATION_OVER_THREE_MONTHS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type != \"CONTRACT\" && has(terms.facts.probation_end_on) && terms.facts.probation_end_on > add_days(add_months(employment.service_start, 3), -1)",
+				"message": "A PKWTT probation may last at most three months from the first day of work; set probation_end_on no later than the day before the three-month anniversary of the start.",
+				"authority": "UU 13/2003 art.60(1), not amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-110"
+			},
+			{
+				"code": "PKWT_PROBATION_VOID",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && has(terms.facts.probation_end_on)",
+				"message": "A fixed-term contract (PKWT) may not require a probation period: a probation clause is void and its days count as service. Remove probation_end_on from these terms.",
+				"authority": "UU 13/2003 art.58(1)–(2) as amended by UU 6/2023; PP 35/2021 art.12 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); tracker ID-108, ID-110"
+			},
+			{
+				"code": "PKWT_TERM_OVER_FIVE_YEARS",
+				"at": "PAYSLIP",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && employment.exit_date != \"\" && employment.exit_date > add_days(add_months(employment.service_start, 60), -1)",
+				"message": "A PKWT, extensions included, may last at most five years from its start; this contract's recorded end is later. End it within five years or record the employment as PKWTT (open-ended).",
+				"authority": "PP 35/2021 art.8(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023 (not more than five years including any extension); tracker ID-108"
+			},
+			{
+				"code": "YOUNG_WORKER_CONDITIONS",
+				"at": "PAYSLIP",
+				"severity": "WARN",
+				"when": "employee.age < 18",
+				"message": "The worker is a child under UU 13/2003 art.1 angka 26 (under 18): art.68 bars employing a child outside the light-work (art.69), curriculum (art.70) and talent (art.71) exceptions, and art.74 bars the worst forms of child labour. Record the exception relied on and its conditions (written parental consent and agreement, at most three hours a day, daytime, outside school hours, safety, wages per law) before paying.",
+				"authority": "UU 13/2003 arts.1 angka 26, 68–75 as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-47 owner default 2026-10-01: the exceptions are lawful, so the run warns rather than refuses"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
+				"label": "BPJS Ketenagakerjaan contributions of the wage month (JHT, JKK, JKM, JP)",
+				"authority": "PP 44/2015 art.22(1): paid monthly, at the latest on the 15th of the month after the contribution month (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (JP); JHT under PP 46/2015 is billed with them. The holiday roll to the next working day is not applied (the obligation site binds no calendar).",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid on",
+						"required": true
+					},
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Billing code or receipt reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "BPJS_KESEHATAN_REMITTANCE",
+				"label": "BPJS Kesehatan contribution of the wage month",
+				"authority": "Perpres 82/2018 art.39(1): the employer pays each month's contribution at the latest on the 10th of that month (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf); tracker ID-20 reading 2026-10-01: the 10th of the wage month itself. The art.39(4) holiday roll is not applied (no calendar on the obligation site).",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.start, 9)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid on",
+						"required": true
+					},
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Billing code or receipt reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PPH21_PAYMENT",
+				"label": "PPh 21/26 withheld in the tax period: payment",
+				"authority": "PMK 81/2024 art.94(2): payment by the 15th of the month after the tax period (https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); records kept 10 years (UU KUP art.28(11)). The next-working-day roll is not applied.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid on",
+						"required": true
+					},
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Billing code or receipt reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "PPH21_SPT_MASA",
+				"label": "SPT Masa PPh 21/26 with the monthly withholding slips",
+				"authority": "UU KUP art.3(3)(a): the SPT Masa within 20 days after the tax period ends; PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); records kept 10 years (UU KUP art.28(11)). The next-working-day roll is not applied.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 20)",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "PPH21_BPA1_YEAR_END",
+				"label": "Form BPA1 for the tax year (December is the last tax period)",
+				"authority": "PER-11/PJ/2025 art.7(2): BPA1 within one month after the last tax period ends (https://jdih.kemenkeu.go.id/dok/per-11pj2025)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.period.endsWith(\"-12\")"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "PPH21_BPA1_EXIT",
+				"label": "Form BPA1 for a leaver's part year (the exit month is the last tax period)",
+				"authority": "PER-11/PJ/2025 art.7(2): BPA1 within one month after the last tax period ends (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 art.13 (the exit month is the last tax period). Raised for every leaver; waive it for a nonpermanent recipient, who takes a BPMP instead.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "month_end(add_months(employment.exit_date, 1))",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				],
+				"retain_years": "10"
+			},
+			{
+				"code": "JKP_PHK_NOTIFICATION",
+				"label": "PHK notice to BPJS Ketenagakerjaan for a JKP participant (SIAPkerja)",
+				"authority": "Permenaker 2/2025 art.9: within seven working days of the termination (https://jdih.kemnaker.go.id/asset/data_puu/2025pmnaker002.pdf); PP 37/2021 as amended by PP 6/2025 art.20: resignation, retirement, total permanent disability, death and the end of a PKWT term are not JKP terminations. Owner default 2026-10-01: working days are Monday to Friday; public holidays and cuti bersama are not skipped (the obligation site binds no calendar), so a window holding a holiday falls due a day early. Waive it for a worker who is not a JKP participant (a foreigner, or 54 or over when registered).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"MUTUAL\"]"
+				},
+				"due": "employment.exit_date == \"\" ? trigger.date : span(add_days(employment.exit_date, 1), add_days(employment.exit_date, 11)).days().filter(d, d.weekday != \"SAT\" && d.weekday != \"SUN\")[6].date",
+				"evidence": [
+					{
+						"key": "filed_on",
+						"type": "date",
+						"label": "Filed on",
+						"required": true
+					},
+					{
+						"key": "receipt_reference",
+						"type": "string",
+						"label": "Receipt (BPE) or acknowledgement reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
 			}
 		]
 	}

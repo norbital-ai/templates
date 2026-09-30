@@ -24504,18 +24504,25 @@
 				{
 					"label": "PT-1.0X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal < 8.0 - normal_hours ? hours_beyond_normal : (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.0"
+					"take_hours": "hours_beyond_normal < (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours ? hours_beyond_normal : ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.0"
 				},
 				{
 					"label": "PT-1.5X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal - (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.5"
+					"take_hours": "hours_beyond_normal - ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5"
+				},
+				{
+					"label": "EARLIER-REST-2.0X",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -24598,8 +24605,8 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
-			"earlier_rest_day_work": "REFUSE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
+			"earlier_rest_day_work": "RESOLVE_AS_OFF",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026. Applied 2026-10-01 (Phase 2, statutory floor and s.59(1)): (a) the part-time bands PT-1.0X and PT-1.5X pay hours × the greater of the customer hour and the Employment (Part-Time Employees) Regulations 2010 reg.5(1) hourly rate of pay — the Act's s.60I ordinary rate of pay (a monthly wage ÷ 26, weekly ÷ 6, daily or hourly the stated rate) over the normal hours of work agreed in the contract (reg.2) — so RM1,040 on four hours a day is 10.00 an hour whatever the company divisor; the reg.5 band edge is the normal daily hours of a similar full-time employee where the terms record one (`comparable_full_time_presence` PRESENT), else the eight-hour day reg.4(1) deems where the full-timer's normal hours cannot be ascertained or no full-timer is employed in a similar capacity. Every other band already takes the greater of its column and the s.60I rate (monthly ÷ 26, weekly ÷ 6 under s.60I(1B), daily or hourly under s.60I(1C)). (b) `earlier_rest_day_work` is RESOLVE_AS_OFF, no longer REFUSE: under s.59(1) the last of two weekly rest days is the Part XII rest day, so the earlier one resolves as an off day whose hours are s.60A(3) overtime counted toward the 104-hour month (OVERTIME_HOURS counts ORDINARY and OFF_DAY hours). EARLIER-REST-2.0X prices that day for the 5D payroll group (Monday–Friday work, Saturday and Sunday coded REST) at the customer rest-day column, hours × customer hour × 2.0, floored at the Act's 1.5 × the s.60I hour. Recorded limit: the band context cannot tell an s.59(1)-resolved rest day from a rostered OFF code, so the rest-day column is keyed on payroll group 5D, whose patterns code both weekend days REST; any other group's off day keeps the 1.5 column.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"block_unmeasured_results_pay": true,
@@ -25406,6 +25413,271 @@
 				"when": "company.region.trim().lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\") || terms.worksite.lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\")",
 				"message": "Sabah and Sarawak worksite payroll needs its Labour Ordinance profile; this Malaysian profile applies Employment Act 1955 rules for Peninsular Malaysia and Labuan.",
 				"authority": "Employment Act 1955 s.1(2): the Act applies to Peninsular Malaysia (Commissioner of Law Revision reprint as at 1 August 2023, https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Federal Territory of Labuan (Extension and Modification of Employment Act) Order 2000, P.U.(A) 400/2000 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/9.%20FEDERAL%20TERRITORY%20OF%20LABUAN%20%28EXTENSION%20AND%20MODIFICATION%20OF%20EMPLOYMENT%20ACT%29%20ORDER%202000_0.pdf). Sabah and Sarawak are governed by their Labour Ordinances (Cap. 67, Cap. 76), which this profile does not encode (register MY-TERR-PEN, MY-TERR-LAB, MY-TERR-SBH, MY-TERR-SWK)."
+			}
+		],
+		"duty_types": [
+			{
+				"code": "EPF_MONTHLY_CONTRIBUTION",
+				"label": "EPF contributions for the wage month",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) ss.43, 45, 47, 49 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Third Schedule as amended by Act A1760 s.10 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, EPF Act 1991 Third Schedule (https://www.kwsp.gov.my/en/epf-act-1991-third-schedule); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0)"
+			},
+			{
+				"code": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
+				"label": "SOCSO, SKBBK and EIS contributions for the wage month",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0)",
+				"late_charge": "obligation.amount_due * 0.06 * obligation.days_late / 365.0"
+			},
+			{
+				"code": "HRD_LEVY_MONTHLY",
+				"label": "HRD levy for the wage month",
+				"authority": "Pembangunan Sumber Manusia Berhad Act 2001 ss.13(1), 14; HRD Corp Employers FAQ (https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0)"
+			},
+			{
+				"code": "PCB_REMITTANCE",
+				"label": "MTD remittance for the wage month",
+				"authority": "Income Tax Act 1967 (Act 53) s.107(1)-(4) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); Income Tax (Deduction from Remuneration) Rules 1994; LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0)",
+				"retain_years": "7"
+			},
+			{
+				"code": "WAGE_PAYMENT_DEADLINE",
+				"label": "Wages of the wage period paid",
+				"authority": "Employment Act 1955 (Act 265) ss.18(1), 19(1)-(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "run.net"
+			},
+			{
+				"code": "EPF_EMPLOYEE_REGISTRATION",
+				"label": "EPF member registration of a new employee",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) s.43 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Part VIIA s.70A as substituted by Act A1760 s.3 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(month_end(employment.service_start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
+				"label": "PERKESO registration of a new employee",
+				"authority": "Employment Insurance System Act 2017 (Act 800) s.16(1)(b) and First Schedule (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22_NEW_EMPLOYEE",
+				"label": "e-CP22 notification of a new employee",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of New Employees (https://www.hasil.gov.my/en/majikan/pemberitahuan-pekerja-baharu/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22A_CESSATION_AND_WITHHOLDING",
+				"label": "e-CP22A notice of a retirement or death",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(3), (5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground == \"RETIREMENT\""
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP21_LEAVING_MALAYSIA",
+				"label": "e-CP21 notice of departure from Malaysia",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(4)-(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.leaving_malaysia) && employment.exit_facts.leaving_malaysia == true"
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "EA_FORM",
+				"label": "Form EA to every employee paid in the year",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 13))",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
+			},
+			{
+				"code": "FORM_E_CP8D",
+				"label": "Form E with C.P.8D",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 14))",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
 			}
 		]
 	},
@@ -25469,18 +25741,25 @@
 				{
 					"label": "PT-1.0X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal < 8.0 - normal_hours ? hours_beyond_normal : (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.0"
+					"take_hours": "hours_beyond_normal < (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours ? hours_beyond_normal : ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.0"
 				},
 				{
 					"label": "PT-1.5X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal - (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.5"
+					"take_hours": "hours_beyond_normal - ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5"
+				},
+				{
+					"label": "EARLIER-REST-2.0X",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -25563,8 +25842,8 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
-			"earlier_rest_day_work": "REFUSE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
+			"earlier_rest_day_work": "RESOLVE_AS_OFF",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026. Applied 2026-10-01 (Phase 2, statutory floor and s.59(1)): (a) the part-time bands PT-1.0X and PT-1.5X pay hours × the greater of the customer hour and the Employment (Part-Time Employees) Regulations 2010 reg.5(1) hourly rate of pay — the Act's s.60I ordinary rate of pay (a monthly wage ÷ 26, weekly ÷ 6, daily or hourly the stated rate) over the normal hours of work agreed in the contract (reg.2) — so RM1,040 on four hours a day is 10.00 an hour whatever the company divisor; the reg.5 band edge is the normal daily hours of a similar full-time employee where the terms record one (`comparable_full_time_presence` PRESENT), else the eight-hour day reg.4(1) deems where the full-timer's normal hours cannot be ascertained or no full-timer is employed in a similar capacity. Every other band already takes the greater of its column and the s.60I rate (monthly ÷ 26, weekly ÷ 6 under s.60I(1B), daily or hourly under s.60I(1C)). (b) `earlier_rest_day_work` is RESOLVE_AS_OFF, no longer REFUSE: under s.59(1) the last of two weekly rest days is the Part XII rest day, so the earlier one resolves as an off day whose hours are s.60A(3) overtime counted toward the 104-hour month (OVERTIME_HOURS counts ORDINARY and OFF_DAY hours). EARLIER-REST-2.0X prices that day for the 5D payroll group (Monday–Friday work, Saturday and Sunday coded REST) at the customer rest-day column, hours × customer hour × 2.0, floored at the Act's 1.5 × the s.60I hour. Recorded limit: the band context cannot tell an s.59(1)-resolved rest day from a rostered OFF code, so the rest-day column is keyed on payroll group 5D, whose patterns code both weekend days REST; any other group's off day keeps the 1.5 column.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"block_unmeasured_results_pay": true,
@@ -26371,6 +26650,271 @@
 				"when": "company.region.trim().lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\") || terms.worksite.lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\")",
 				"message": "Sabah and Sarawak worksite payroll needs its Labour Ordinance profile; this Malaysian profile applies Employment Act 1955 rules for Peninsular Malaysia and Labuan.",
 				"authority": "Employment Act 1955 s.1(2): the Act applies to Peninsular Malaysia (Commissioner of Law Revision reprint as at 1 August 2023, https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Federal Territory of Labuan (Extension and Modification of Employment Act) Order 2000, P.U.(A) 400/2000 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/9.%20FEDERAL%20TERRITORY%20OF%20LABUAN%20%28EXTENSION%20AND%20MODIFICATION%20OF%20EMPLOYMENT%20ACT%29%20ORDER%202000_0.pdf). Sabah and Sarawak are governed by their Labour Ordinances (Cap. 67, Cap. 76), which this profile does not encode (register MY-TERR-PEN, MY-TERR-LAB, MY-TERR-SBH, MY-TERR-SWK)."
+			}
+		],
+		"duty_types": [
+			{
+				"code": "EPF_MONTHLY_CONTRIBUTION",
+				"label": "EPF contributions for the wage month",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) ss.43, 45, 47, 49 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Third Schedule as amended by Act A1760 s.10 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, EPF Act 1991 Third Schedule (https://www.kwsp.gov.my/en/epf-act-1991-third-schedule); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0)"
+			},
+			{
+				"code": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
+				"label": "SOCSO, SKBBK and EIS contributions for the wage month",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0)",
+				"late_charge": "obligation.amount_due * 0.06 * obligation.days_late / 365.0"
+			},
+			{
+				"code": "HRD_LEVY_MONTHLY",
+				"label": "HRD levy for the wage month",
+				"authority": "Pembangunan Sumber Manusia Berhad Act 2001 ss.13(1), 14; HRD Corp Employers FAQ (https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0)"
+			},
+			{
+				"code": "PCB_REMITTANCE",
+				"label": "MTD remittance for the wage month",
+				"authority": "Income Tax Act 1967 (Act 53) s.107(1)-(4) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); Income Tax (Deduction from Remuneration) Rules 1994; LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0)",
+				"retain_years": "7"
+			},
+			{
+				"code": "WAGE_PAYMENT_DEADLINE",
+				"label": "Wages of the wage period paid",
+				"authority": "Employment Act 1955 (Act 265) ss.18(1), 19(1)-(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "run.net"
+			},
+			{
+				"code": "EPF_EMPLOYEE_REGISTRATION",
+				"label": "EPF member registration of a new employee",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) s.43 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Part VIIA s.70A as substituted by Act A1760 s.3 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(month_end(employment.service_start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
+				"label": "PERKESO registration of a new employee",
+				"authority": "Employment Insurance System Act 2017 (Act 800) s.16(1)(b) and First Schedule (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22_NEW_EMPLOYEE",
+				"label": "e-CP22 notification of a new employee",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of New Employees (https://www.hasil.gov.my/en/majikan/pemberitahuan-pekerja-baharu/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22A_CESSATION_AND_WITHHOLDING",
+				"label": "e-CP22A notice of a retirement or death",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(3), (5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground == \"RETIREMENT\""
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP21_LEAVING_MALAYSIA",
+				"label": "e-CP21 notice of departure from Malaysia",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(4)-(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.leaving_malaysia) && employment.exit_facts.leaving_malaysia == true"
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "EA_FORM",
+				"label": "Form EA to every employee paid in the year",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 13))",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
+			},
+			{
+				"code": "FORM_E_CP8D",
+				"label": "Form E with C.P.8D",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 14))",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
 			}
 		]
 	},
@@ -26434,18 +26978,25 @@
 				{
 					"label": "PT-1.0X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal < 8.0 - normal_hours ? hours_beyond_normal : (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.0"
+					"take_hours": "hours_beyond_normal < (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours ? hours_beyond_normal : ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.0"
 				},
 				{
 					"label": "PT-1.5X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal - (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.5"
+					"take_hours": "hours_beyond_normal - ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5"
+				},
+				{
+					"label": "EARLIER-REST-2.0X",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -26528,8 +27079,8 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
-			"earlier_rest_day_work": "REFUSE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
+			"earlier_rest_day_work": "RESOLVE_AS_OFF",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026. Applied 2026-10-01 (Phase 2, statutory floor and s.59(1)): (a) the part-time bands PT-1.0X and PT-1.5X pay hours × the greater of the customer hour and the Employment (Part-Time Employees) Regulations 2010 reg.5(1) hourly rate of pay — the Act's s.60I ordinary rate of pay (a monthly wage ÷ 26, weekly ÷ 6, daily or hourly the stated rate) over the normal hours of work agreed in the contract (reg.2) — so RM1,040 on four hours a day is 10.00 an hour whatever the company divisor; the reg.5 band edge is the normal daily hours of a similar full-time employee where the terms record one (`comparable_full_time_presence` PRESENT), else the eight-hour day reg.4(1) deems where the full-timer's normal hours cannot be ascertained or no full-timer is employed in a similar capacity. Every other band already takes the greater of its column and the s.60I rate (monthly ÷ 26, weekly ÷ 6 under s.60I(1B), daily or hourly under s.60I(1C)). (b) `earlier_rest_day_work` is RESOLVE_AS_OFF, no longer REFUSE: under s.59(1) the last of two weekly rest days is the Part XII rest day, so the earlier one resolves as an off day whose hours are s.60A(3) overtime counted toward the 104-hour month (OVERTIME_HOURS counts ORDINARY and OFF_DAY hours). EARLIER-REST-2.0X prices that day for the 5D payroll group (Monday–Friday work, Saturday and Sunday coded REST) at the customer rest-day column, hours × customer hour × 2.0, floored at the Act's 1.5 × the s.60I hour. Recorded limit: the band context cannot tell an s.59(1)-resolved rest day from a rostered OFF code, so the rest-day column is keyed on payroll group 5D, whose patterns code both weekend days REST; any other group's off day keeps the 1.5 column.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"block_unmeasured_results_pay": true,
@@ -27347,6 +27898,271 @@
 				"when": "company.region.trim().lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\") || terms.worksite.lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\")",
 				"message": "Sabah and Sarawak worksite payroll needs its Labour Ordinance profile; this Malaysian profile applies Employment Act 1955 rules for Peninsular Malaysia and Labuan.",
 				"authority": "Employment Act 1955 s.1(2): the Act applies to Peninsular Malaysia (Commissioner of Law Revision reprint as at 1 August 2023, https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Federal Territory of Labuan (Extension and Modification of Employment Act) Order 2000, P.U.(A) 400/2000 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/9.%20FEDERAL%20TERRITORY%20OF%20LABUAN%20%28EXTENSION%20AND%20MODIFICATION%20OF%20EMPLOYMENT%20ACT%29%20ORDER%202000_0.pdf). Sabah and Sarawak are governed by their Labour Ordinances (Cap. 67, Cap. 76), which this profile does not encode (register MY-TERR-PEN, MY-TERR-LAB, MY-TERR-SBH, MY-TERR-SWK)."
+			}
+		],
+		"duty_types": [
+			{
+				"code": "EPF_MONTHLY_CONTRIBUTION",
+				"label": "EPF contributions for the wage month",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) ss.43, 45, 47, 49 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Third Schedule as amended by Act A1760 s.10 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, EPF Act 1991 Third Schedule (https://www.kwsp.gov.my/en/epf-act-1991-third-schedule); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0)"
+			},
+			{
+				"code": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
+				"label": "SOCSO, SKBBK and EIS contributions for the wage month",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0)",
+				"late_charge": "obligation.amount_due * 0.06 * obligation.days_late / 365.0"
+			},
+			{
+				"code": "HRD_LEVY_MONTHLY",
+				"label": "HRD levy for the wage month",
+				"authority": "Pembangunan Sumber Manusia Berhad Act 2001 ss.13(1), 14; HRD Corp Employers FAQ (https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0)"
+			},
+			{
+				"code": "PCB_REMITTANCE",
+				"label": "MTD remittance for the wage month",
+				"authority": "Income Tax Act 1967 (Act 53) s.107(1)-(4) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); Income Tax (Deduction from Remuneration) Rules 1994; LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0)",
+				"retain_years": "7"
+			},
+			{
+				"code": "WAGE_PAYMENT_DEADLINE",
+				"label": "Wages of the wage period paid",
+				"authority": "Employment Act 1955 (Act 265) ss.18(1), 19(1)-(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "run.net"
+			},
+			{
+				"code": "EPF_EMPLOYEE_REGISTRATION",
+				"label": "EPF member registration of a new employee",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) s.43 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Part VIIA s.70A as substituted by Act A1760 s.3 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(month_end(employment.service_start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
+				"label": "PERKESO registration of a new employee",
+				"authority": "Employment Insurance System Act 2017 (Act 800) s.16(1)(b) and First Schedule (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22_NEW_EMPLOYEE",
+				"label": "e-CP22 notification of a new employee",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of New Employees (https://www.hasil.gov.my/en/majikan/pemberitahuan-pekerja-baharu/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22A_CESSATION_AND_WITHHOLDING",
+				"label": "e-CP22A notice of a retirement or death",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(3), (5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground == \"RETIREMENT\""
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP21_LEAVING_MALAYSIA",
+				"label": "e-CP21 notice of departure from Malaysia",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(4)-(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.leaving_malaysia) && employment.exit_facts.leaving_malaysia == true"
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "EA_FORM",
+				"label": "Form EA to every employee paid in the year",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 13))",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
+			},
+			{
+				"code": "FORM_E_CP8D",
+				"label": "Form E with C.P.8D",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 14))",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
 			}
 		]
 	},
@@ -27410,18 +28226,25 @@
 				{
 					"label": "PT-1.0X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal < 8.0 - normal_hours ? hours_beyond_normal : (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.0"
+					"take_hours": "hours_beyond_normal < (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours ? hours_beyond_normal : ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.0"
 				},
 				{
 					"label": "PT-1.5X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal - (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.5"
+					"take_hours": "hours_beyond_normal - ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5"
+				},
+				{
+					"label": "EARLIER-REST-2.0X",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -27504,8 +28327,8 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
-			"earlier_rest_day_work": "REFUSE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
+			"earlier_rest_day_work": "RESOLVE_AS_OFF",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026. Applied 2026-10-01 (Phase 2, statutory floor and s.59(1)): (a) the part-time bands PT-1.0X and PT-1.5X pay hours × the greater of the customer hour and the Employment (Part-Time Employees) Regulations 2010 reg.5(1) hourly rate of pay — the Act's s.60I ordinary rate of pay (a monthly wage ÷ 26, weekly ÷ 6, daily or hourly the stated rate) over the normal hours of work agreed in the contract (reg.2) — so RM1,040 on four hours a day is 10.00 an hour whatever the company divisor; the reg.5 band edge is the normal daily hours of a similar full-time employee where the terms record one (`comparable_full_time_presence` PRESENT), else the eight-hour day reg.4(1) deems where the full-timer's normal hours cannot be ascertained or no full-timer is employed in a similar capacity. Every other band already takes the greater of its column and the s.60I rate (monthly ÷ 26, weekly ÷ 6 under s.60I(1B), daily or hourly under s.60I(1C)). (b) `earlier_rest_day_work` is RESOLVE_AS_OFF, no longer REFUSE: under s.59(1) the last of two weekly rest days is the Part XII rest day, so the earlier one resolves as an off day whose hours are s.60A(3) overtime counted toward the 104-hour month (OVERTIME_HOURS counts ORDINARY and OFF_DAY hours). EARLIER-REST-2.0X prices that day for the 5D payroll group (Monday–Friday work, Saturday and Sunday coded REST) at the customer rest-day column, hours × customer hour × 2.0, floored at the Act's 1.5 × the s.60I hour. Recorded limit: the band context cannot tell an s.59(1)-resolved rest day from a rostered OFF code, so the rest-day column is keyed on payroll group 5D, whose patterns code both weekend days REST; any other group's off day keeps the 1.5 column.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"block_unmeasured_results_pay": true,
@@ -28335,6 +29158,271 @@
 				"message": "Sabah and Sarawak worksite payroll needs its Labour Ordinance profile; this Malaysian profile applies Employment Act 1955 rules for Peninsular Malaysia and Labuan.",
 				"authority": "Employment Act 1955 s.1(2): the Act applies to Peninsular Malaysia (Commissioner of Law Revision reprint as at 1 August 2023, https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Federal Territory of Labuan (Extension and Modification of Employment Act) Order 2000, P.U.(A) 400/2000 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/9.%20FEDERAL%20TERRITORY%20OF%20LABUAN%20%28EXTENSION%20AND%20MODIFICATION%20OF%20EMPLOYMENT%20ACT%29%20ORDER%202000_0.pdf). Sabah and Sarawak are governed by their Labour Ordinances (Cap. 67, Cap. 76), which this profile does not encode (register MY-TERR-PEN, MY-TERR-LAB, MY-TERR-SBH, MY-TERR-SWK)."
 			}
+		],
+		"duty_types": [
+			{
+				"code": "EPF_MONTHLY_CONTRIBUTION",
+				"label": "EPF contributions for the wage month",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) ss.43, 45, 47, 49 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Third Schedule as amended by Act A1760 s.10 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, EPF Act 1991 Third Schedule (https://www.kwsp.gov.my/en/epf-act-1991-third-schedule); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0)"
+			},
+			{
+				"code": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
+				"label": "SOCSO, SKBBK and EIS contributions for the wage month",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0)",
+				"late_charge": "obligation.amount_due * 0.06 * obligation.days_late / 365.0"
+			},
+			{
+				"code": "HRD_LEVY_MONTHLY",
+				"label": "HRD levy for the wage month",
+				"authority": "Pembangunan Sumber Manusia Berhad Act 2001 ss.13(1), 14; HRD Corp Employers FAQ (https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0)"
+			},
+			{
+				"code": "PCB_REMITTANCE",
+				"label": "MTD remittance for the wage month",
+				"authority": "Income Tax Act 1967 (Act 53) s.107(1)-(4) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); Income Tax (Deduction from Remuneration) Rules 1994; LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0)",
+				"retain_years": "7"
+			},
+			{
+				"code": "WAGE_PAYMENT_DEADLINE",
+				"label": "Wages of the wage period paid",
+				"authority": "Employment Act 1955 (Act 265) ss.18(1), 19(1)-(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "run.net"
+			},
+			{
+				"code": "EPF_EMPLOYEE_REGISTRATION",
+				"label": "EPF member registration of a new employee",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) s.43 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Part VIIA s.70A as substituted by Act A1760 s.3 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(month_end(employment.service_start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
+				"label": "PERKESO registration of a new employee",
+				"authority": "Employment Insurance System Act 2017 (Act 800) s.16(1)(b) and First Schedule (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22_NEW_EMPLOYEE",
+				"label": "e-CP22 notification of a new employee",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of New Employees (https://www.hasil.gov.my/en/majikan/pemberitahuan-pekerja-baharu/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22A_CESSATION_AND_WITHHOLDING",
+				"label": "e-CP22A notice of a retirement or death",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(3), (5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground == \"RETIREMENT\""
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP21_LEAVING_MALAYSIA",
+				"label": "e-CP21 notice of departure from Malaysia",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(4)-(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.leaving_malaysia) && employment.exit_facts.leaving_malaysia == true"
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "EA_FORM",
+				"label": "Form EA to every employee paid in the year",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 13))",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
+			},
+			{
+				"code": "FORM_E_CP8D",
+				"label": "Form E with C.P.8D",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 14))",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
+			}
 		]
 	},
 	{
@@ -28397,18 +29485,25 @@
 				{
 					"label": "PT-1.0X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal < 8.0 - normal_hours ? hours_beyond_normal : (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.0"
+					"take_hours": "hours_beyond_normal < (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours ? hours_beyond_normal : ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.0"
 				},
 				{
 					"label": "PT-1.5X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal - (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.5"
+					"take_hours": "hours_beyond_normal - ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5"
+				},
+				{
+					"label": "EARLIER-REST-2.0X",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -28491,8 +29586,8 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
-			"earlier_rest_day_work": "REFUSE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
+			"earlier_rest_day_work": "RESOLVE_AS_OFF",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026. Applied 2026-10-01 (Phase 2, statutory floor and s.59(1)): (a) the part-time bands PT-1.0X and PT-1.5X pay hours × the greater of the customer hour and the Employment (Part-Time Employees) Regulations 2010 reg.5(1) hourly rate of pay — the Act's s.60I ordinary rate of pay (a monthly wage ÷ 26, weekly ÷ 6, daily or hourly the stated rate) over the normal hours of work agreed in the contract (reg.2) — so RM1,040 on four hours a day is 10.00 an hour whatever the company divisor; the reg.5 band edge is the normal daily hours of a similar full-time employee where the terms record one (`comparable_full_time_presence` PRESENT), else the eight-hour day reg.4(1) deems where the full-timer's normal hours cannot be ascertained or no full-timer is employed in a similar capacity. Every other band already takes the greater of its column and the s.60I rate (monthly ÷ 26, weekly ÷ 6 under s.60I(1B), daily or hourly under s.60I(1C)). (b) `earlier_rest_day_work` is RESOLVE_AS_OFF, no longer REFUSE: under s.59(1) the last of two weekly rest days is the Part XII rest day, so the earlier one resolves as an off day whose hours are s.60A(3) overtime counted toward the 104-hour month (OVERTIME_HOURS counts ORDINARY and OFF_DAY hours). EARLIER-REST-2.0X prices that day for the 5D payroll group (Monday–Friday work, Saturday and Sunday coded REST) at the customer rest-day column, hours × customer hour × 2.0, floored at the Act's 1.5 × the s.60I hour. Recorded limit: the band context cannot tell an s.59(1)-resolved rest day from a rostered OFF code, so the rest-day column is keyed on payroll group 5D, whose patterns code both weekend days REST; any other group's off day keeps the 1.5 column.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"block_unmeasured_results_pay": true,
@@ -29321,6 +30416,271 @@
 				"when": "company.region.trim().lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\") || terms.worksite.lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\")",
 				"message": "Sabah and Sarawak worksite payroll needs its Labour Ordinance profile; this Malaysian profile applies Employment Act 1955 rules for Peninsular Malaysia and Labuan.",
 				"authority": "Employment Act 1955 s.1(2): the Act applies to Peninsular Malaysia (Commissioner of Law Revision reprint as at 1 August 2023, https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Federal Territory of Labuan (Extension and Modification of Employment Act) Order 2000, P.U.(A) 400/2000 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/9.%20FEDERAL%20TERRITORY%20OF%20LABUAN%20%28EXTENSION%20AND%20MODIFICATION%20OF%20EMPLOYMENT%20ACT%29%20ORDER%202000_0.pdf). Sabah and Sarawak are governed by their Labour Ordinances (Cap. 67, Cap. 76), which this profile does not encode (register MY-TERR-PEN, MY-TERR-LAB, MY-TERR-SBH, MY-TERR-SWK)."
+			}
+		],
+		"duty_types": [
+			{
+				"code": "EPF_MONTHLY_CONTRIBUTION",
+				"label": "EPF contributions for the wage month",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) ss.43, 45, 47, 49 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Third Schedule as amended by Act A1760 s.10 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, EPF Act 1991 Third Schedule (https://www.kwsp.gov.my/en/epf-act-1991-third-schedule); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0)"
+			},
+			{
+				"code": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
+				"label": "SOCSO, SKBBK and EIS contributions for the wage month",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0)",
+				"late_charge": "obligation.amount_due * 0.06 * obligation.days_late / 365.0"
+			},
+			{
+				"code": "HRD_LEVY_MONTHLY",
+				"label": "HRD levy for the wage month",
+				"authority": "Pembangunan Sumber Manusia Berhad Act 2001 ss.13(1), 14; HRD Corp Employers FAQ (https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0)"
+			},
+			{
+				"code": "PCB_REMITTANCE",
+				"label": "MTD remittance for the wage month",
+				"authority": "Income Tax Act 1967 (Act 53) s.107(1)-(4) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); Income Tax (Deduction from Remuneration) Rules 1994; LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0)",
+				"retain_years": "7"
+			},
+			{
+				"code": "WAGE_PAYMENT_DEADLINE",
+				"label": "Wages of the wage period paid",
+				"authority": "Employment Act 1955 (Act 265) ss.18(1), 19(1)-(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "run.net"
+			},
+			{
+				"code": "EPF_EMPLOYEE_REGISTRATION",
+				"label": "EPF member registration of a new employee",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) s.43 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Part VIIA s.70A as substituted by Act A1760 s.3 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(month_end(employment.service_start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
+				"label": "PERKESO registration of a new employee",
+				"authority": "Employment Insurance System Act 2017 (Act 800) s.16(1)(b) and First Schedule (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22_NEW_EMPLOYEE",
+				"label": "e-CP22 notification of a new employee",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of New Employees (https://www.hasil.gov.my/en/majikan/pemberitahuan-pekerja-baharu/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22A_CESSATION_AND_WITHHOLDING",
+				"label": "e-CP22A notice of a retirement or death",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(3), (5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground == \"RETIREMENT\""
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP21_LEAVING_MALAYSIA",
+				"label": "e-CP21 notice of departure from Malaysia",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(4)-(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.leaving_malaysia) && employment.exit_facts.leaving_malaysia == true"
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "EA_FORM",
+				"label": "Form EA to every employee paid in the year",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 13))",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
+			},
+			{
+				"code": "FORM_E_CP8D",
+				"label": "Form E with C.P.8D",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 14))",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
 			}
 		]
 	},
@@ -29384,18 +30744,25 @@
 				{
 					"label": "PT-1.0X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal < 8.0 - normal_hours ? hours_beyond_normal : (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.0"
+					"take_hours": "hours_beyond_normal < (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours ? hours_beyond_normal : ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.0"
 				},
 				{
 					"label": "PT-1.5X",
 					"when": "person.employment.type == \"PART_TIME\" && day_type == \"ORDINARY\"",
-					"take_hours": "hours_beyond_normal - (8.0 - normal_hours > 0.0 ? 8.0 - normal_hours : 0.0)",
-					"price_amount": "hours * ordinary_hour * 1.5"
+					"take_hours": "hours_beyond_normal - ((person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours > 0.0 ? (person.terms.comparable_full_time_presence == \"PRESENT\" && comparable_full_time_daily_hours > normal_hours ? comparable_full_time_daily_hours : 8.0) - normal_hours : 0.0)",
+					"price_amount": "hours * max(round(ordinary_hour, 0.01, 'HALF_UP'), (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5"
+				},
+				{
+					"label": "EARLIER-REST-2.0X",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
+					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -29478,8 +30845,8 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
-			"earlier_rest_day_work": "REFUSE",
-			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026.",
+			"earlier_rest_day_work": "RESOLVE_AS_OFF",
+			"authority": "Employment Act 1955 First Schedule paras 1A, 2 and 3, as substituted by the Employment (Amendment of First Schedule) Order 2022 [P.U. (A) 262], in operation 1 January 2023 — the ladder in ss.60(3), 60A(3), 60D(3) and 60D(4) does not apply to a person whose wages exceed RM4,000 a month, save for the para 2 categories, which are covered irrespective of wages; para 2(4) vessel work is outside Part XII altogether; \"wages\" is the s.2 definition less commissions, subsistence allowance and overtime payment. The rest break is s.60A(1)(a): an employee shall not be required to work more than five consecutive hours without a period of leisure of not less than thirty minutes; proviso (i) a break of less than thirty minutes does not break the continuity of the five hours, proviso (ii) work that must be carried on continuously may run eight consecutive hours inclusive of not less than forty-five minutes in the aggregate for a meal. The weekly rest day is s.59(1): every employee shall be allowed in each week a rest day of one whole day as determined from time to time by the employer, and where more than one is allowed the LAST is the rest day for the purposes of Part XII; s.59(1A) treats any continuous period of not less than thirty hours as a rest day for shift work. holiday_rest_precedence is SUBSTITUTE on the s.60D(1) proviso: where a gazetted public holiday falls on a rest day, or on another public holiday, the working day next following is a paid holiday in substitution. APPLIED: (a) the s.60A(1)(b)-(d) statement of normal hours — not more than eight hours in one day (\"normal_day\"), a spread-over of not more than ten hours (\"spread_day\") and not more than forty-five hours in one week (\"weekly_total\") — enforced as schedule limits, while every BEYOND_NORMAL band below prices the overtime it derives; Applied 2026-09-18: s.60A(1)(b) the normal day is 8 hours, or up to 9 under the proviso where the contracted week is within 45 (`normal_hours`); s.60A(1)(d) 45 hours a week is a ceiling on normal hours, the hours beyond it overtime (`weekly_normal`, read by payroll), not a wall on the roster; s.60(3)(a) rest-day work of a daily- or hourly-rated employee pays one day’s wages up to half the normal hours and two days’ beyond (`person.terms.pay_frequency`); s.59(1A) the rest day does not run during maternity, sick or hospitalisation leave (`weekly_rest_rule.suspended_by_leave`); First Schedule para 2(5): a domestic employee is outside ss.60–60F and the overtime ladder (`employment.type != \"DOMESTIC\"`). Applied 2026-09-23 (round 2): the s.60A(7) daily limit `daily_total` is twelve WORKED hours (s.60A(9) defines hours of work as time at the employer’s disposal), not twelve clock hours less the break. Applied 2026-09-23 (customer method, owner-accepted company terms, not the statute): Nihon prices overtime as its own payroll does. The hourly rate is basic × 12 ÷ (52 × the contract week) rounded to the sen — 45 hours (÷ 195) for payroll group 6D, 42.5 hours (÷ 184.17) for the 5D office group — carried by `ordinary_divisor_days`, which states the divisor over the roster-measured week the engine divides by, so the hour is on the contract week whatever the month’s roster measured; basic only, no allowances. Every band pays hours × round(ordinary_hour, 0.01, 'HALF_UP') × the column multiple of the customer’s attendance sheet: 1.5 on a working or off day, 2.0 on a rest day for every hour, 2.0 on a public holiday up to the normal hours and 3.0 beyond. Applied 2026-09-28: the columns are company terms and stand only where they pay no less than the Act — s.60I(2) “the adoption of any other method or formula shall not result in a rate which is less than any of the rates provided”, and s.7 voids a less favourable term — so each rest-day and holiday band pays the greater of its column price and the statutory award on the s.60I ordinary rate of pay (a monthly wage ÷ 26 under s.60I(1A), weekly ÷ 6 under s.60I(1B), daily or hourly the s.60I(1C) preceding-period rate): on a rest day, s.60(3)(b) half a day’s wages up to half the normal hours and one day’s wages up to them (s.60(3)(a), daily or hourly: one and two days’), the hours beyond at not less than twice ORP ÷ normal hours (s.60(3)(c)); on a holiday, s.60D(3)(a)(i) two days’ wages “regardless that the period of work done on that day is less than the normal hours of work”, the hours beyond at not less than three times (s.60D(3)(aa)). A short rest day or holiday is lifted to the award; a long one keeps the column price where it is higher. The eleven-hour incentive boundary is withdrawn: incentive is only overtime beyond the statutory limits (`limits`): the monthly 104 and, named on WORKDAY-OT-1.5X, the s.60A(7) twelve-hour day (`daily_total`) — planned overtime past twelve worked hours on an ordinary day is stored as incentive hours, not refused. `holiday_rest_precedence` is PUBLIC_HOLIDAY: the company publishes its own replacement days (24 March 2026 for 22 March) and pays no carried substitute — a holiday on a rostered rest day is not carried to 27 December 2025 or 25 March 2026. Applied 2026-10-01 (Phase 2, statutory floor and s.59(1)): (a) the part-time bands PT-1.0X and PT-1.5X pay hours × the greater of the customer hour and the Employment (Part-Time Employees) Regulations 2010 reg.5(1) hourly rate of pay — the Act's s.60I ordinary rate of pay (a monthly wage ÷ 26, weekly ÷ 6, daily or hourly the stated rate) over the normal hours of work agreed in the contract (reg.2) — so RM1,040 on four hours a day is 10.00 an hour whatever the company divisor; the reg.5 band edge is the normal daily hours of a similar full-time employee where the terms record one (`comparable_full_time_presence` PRESENT), else the eight-hour day reg.4(1) deems where the full-timer's normal hours cannot be ascertained or no full-timer is employed in a similar capacity. Every other band already takes the greater of its column and the s.60I rate (monthly ÷ 26, weekly ÷ 6 under s.60I(1B), daily or hourly under s.60I(1C)). (b) `earlier_rest_day_work` is RESOLVE_AS_OFF, no longer REFUSE: under s.59(1) the last of two weekly rest days is the Part XII rest day, so the earlier one resolves as an off day whose hours are s.60A(3) overtime counted toward the 104-hour month (OVERTIME_HOURS counts ORDINARY and OFF_DAY hours). EARLIER-REST-2.0X prices that day for the 5D payroll group (Monday–Friday work, Saturday and Sunday coded REST) at the customer rest-day column, hours × customer hour × 2.0, floored at the Act's 1.5 × the s.60I hour. Recorded limit: the band context cannot tell an s.59(1)-resolved rest day from a rostered OFF code, so the rest-day column is keyed on payroll group 5D, whose patterns code both weekend days REST; any other group's off day keeps the 1.5 column.",
 			"normal_hours": "terms.ordinary_hours_per_week <= 45.0 ? 9.0 : 8.0",
 			"wages": {
 				"block_unmeasured_results_pay": true,
@@ -30308,6 +31675,271 @@
 				"when": "company.region.trim().lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\") || terms.worksite.lowerAscii().matches(\"^(?:malaysia[/-])?(?:sabah|sarawak)(?:$|[\\\\s/,-])\")",
 				"message": "Sabah and Sarawak worksite payroll needs its Labour Ordinance profile; this Malaysian profile applies Employment Act 1955 rules for Peninsular Malaysia and Labuan.",
 				"authority": "Employment Act 1955 s.1(2): the Act applies to Peninsular Malaysia (Commissioner of Law Revision reprint as at 1 August 2023, https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf); Federal Territory of Labuan (Extension and Modification of Employment Act) Order 2000, P.U.(A) 400/2000 (https://jtksm.mohr.gov.my/sites/default/files/2023-03/9.%20FEDERAL%20TERRITORY%20OF%20LABUAN%20%28EXTENSION%20AND%20MODIFICATION%20OF%20EMPLOYMENT%20ACT%29%20ORDER%202000_0.pdf). Sabah and Sarawak are governed by their Labour Ordinances (Cap. 67, Cap. 76), which this profile does not encode (register MY-TERR-PEN, MY-TERR-LAB, MY-TERR-SBH, MY-TERR-SWK)."
+			}
+		],
+		"duty_types": [
+			{
+				"code": "EPF_MONTHLY_CONTRIBUTION",
+				"label": "EPF contributions for the wage month",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) ss.43, 45, 47, 49 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Third Schedule as amended by Act A1760 s.10 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, EPF Act 1991 Third Schedule (https://www.kwsp.gov.my/en/epf-act-1991-third-schedule); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"EPF\" in run.remittances ? run.remittances[\"EPF\"] : 0.0) + (\"EPF_PR\" in run.remittances ? run.remittances[\"EPF_PR\"] : 0.0) + (\"EPF_NON_CITIZEN\" in run.remittances ? run.remittances[\"EPF_NON_CITIZEN\"] : 0.0)"
+			},
+			{
+				"code": "SOCSO_EIS_MONTHLY_CONTRIBUTION",
+				"label": "SOCSO, SKBBK and EIS contributions for the wage month",
+				"authority": "Employees’ Social Security Act 1969 (Act 4) ss.6, 14A (AGC updated text as at 1 October 2024, latest amendment Act A1724: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf; s.6 as amended from 1 June 2026 by Act A1788 s.3: https://www.perkeso.gov.my/images/akta/ACT%204/Act_A1788_-_EMPLOYEES_SOCIAL_SECURITY_AMENDMENT_ACT_2026.pdf); Employment Insurance System Act 2017 (Act 800) ss.18, 20, 21 (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Contribution Payment (https://www.perkeso.gov.my/en/contribution-payment.html)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"SOCSO\" in run.remittances ? run.remittances[\"SOCSO\"] : 0.0) + (\"SKBBK\" in run.remittances ? run.remittances[\"SKBBK\"] : 0.0) + (\"EIS\" in run.remittances ? run.remittances[\"EIS\"] : 0.0)",
+				"late_charge": "obligation.amount_due * 0.06 * obligation.days_late / 365.0"
+			},
+			{
+				"code": "HRD_LEVY_MONTHLY",
+				"label": "HRD levy for the wage month",
+				"authority": "Pembangunan Sumber Manusia Berhad Act 2001 ss.13(1), 14; HRD Corp Employers FAQ (https://web.archive.org/web/2026/https://hrdcorp.gov.my/faq)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"HRDF\" in run.remittances ? run.remittances[\"HRDF\"] : 0.0)"
+			},
+			{
+				"code": "PCB_REMITTANCE",
+				"label": "MTD remittance for the wage month",
+				"authority": "Income Tax Act 1967 (Act 53) s.107(1)-(4) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); Income Tax (Deduction from Remuneration) Rules 1994; LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0) > 0.0"
+				},
+				"due": "add_days(month_end(period.start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "(\"PCB\" in run.remittances ? run.remittances[\"PCB\"] : 0.0)",
+				"retain_years": "7"
+			},
+			{
+				"code": "WAGE_PAYMENT_DEADLINE",
+				"label": "Wages of the wage period paid",
+				"authority": "Employment Act 1955 (Act 265) ss.18(1), 19(1)-(3) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"amount": "run.net"
+			},
+			{
+				"code": "EPF_EMPLOYEE_REGISTRATION",
+				"label": "EPF member registration of a new employee",
+				"authority": "Employees Provident Fund Act 1991 (Act 452) s.43 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Part VIIA s.70A as substituted by Act A1760 s.3 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/2844030_BI/Act%20A1760-%20EMPLOYEES%20PROVIDED%20FUND%20(AMENDMENT)%20ACT%202025.pdf); KWSP, Employer Mandatory Contribution (https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(month_end(employment.service_start), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "SOCSO_EIS_EMPLOYEE_REGISTRATION",
+				"label": "PERKESO registration of a new employee",
+				"authority": "Employment Insurance System Act 2017 (Act 800) s.16(1)(b) and First Schedule (https://perkeso.gov.my/images/akta/ACT%20800/Akta%20800_EMPLOYMENT%20INSURANCE%20SYSTEM%20ACT%202017.pdf); PERKESO, Employer Registration (https://www.perkeso.gov.my/en/our-services/employer-employee/employer-registration.html)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22_NEW_EMPLOYEE",
+				"label": "e-CP22 notification of a new employee",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(2) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of New Employees (https://www.hasil.gov.my/en/majikan/pemberitahuan-pekerja-baharu/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP22A_CESSATION_AND_WITHHOLDING",
+				"label": "e-CP22A notice of a retirement or death",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(3), (5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground == \"RETIREMENT\""
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "CP21_LEAVING_MALAYSIA",
+				"label": "e-CP21 notice of departure from Malaysia",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(4)-(5) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Notification of Cessation of Employment (https://www.hasil.gov.my/en/majikan/pemberitahuan-pemberhentian-kerja/)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "has(employment.exit_facts.leaving_malaysia) && employment.exit_facts.leaving_malaysia == true"
+				},
+				"due": "add_days(employment.exit_date, -30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					}
+				]
+			},
+			{
+				"code": "EA_FORM",
+				"label": "Form EA to every employee paid in the year",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1A) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 13))",
+				"evidence": [
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
+			},
+			{
+				"code": "FORM_E_CP8D",
+				"label": "Form E with C.P.8D",
+				"authority": "Income Tax Act 1967 (Act 53) s.83(1) (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3345910_BI/Act%2053%20(Online%202026).pdf); LHDN, Employer’s Responsibility (https://www.hasil.gov.my/en/majikan/tanggungjawab-majikan/)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "month_end(add_months(period.start, 14))",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Reference",
+						"description": "The authority’s receipt, acknowledgement or submission reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Paid or submitted on",
+						"description": "The day the payment was made or the submission accepted"
+					}
+				],
+				"retain_years": "7"
 			}
 		]
 	}

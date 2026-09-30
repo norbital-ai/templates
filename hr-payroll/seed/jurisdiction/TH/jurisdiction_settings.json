@@ -435,7 +435,7 @@
 				"assessment_period": "PAY_PERIOD",
 				"counts_statutory": false,
 				"counts_loans": true,
-				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION", "SEIZURE_ORDER"],
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
@@ -495,6 +495,14 @@
 				"label": "SSO flood-relief rate (southern provinces)",
 				"default_value": false,
 				"description": "Ministry of Labour notice under Social Security Act s.46/1, Gazette vol.143 special part 6 Ngor p.7, published 8 January 2026 (https://ratchakitcha.soc.go.th/documents/100888.pdf, cl.1): a registered employer, and its s.33 insured employees, in Trang, Nakhon Si Thammarat, Narathiwat, Pattani, Phatthalung, Yala, Songkhla, Satun or Surat Thani contribute 3% each side instead of 5% for wage months December 2025–May 2026. Record the registration locality, not the worksite address; unrecorded is the ordinary 5%."
+			},
+			{
+				"key": "employer_legal_class",
+				"type": "code",
+				"table": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class (LPA s.4)",
+				"description": "Labour Protection Act s.4 para.1: the Act does not apply to central, provincial or local government administration or to a state enterprise under the State Enterprise Labour Relations Act; s.4/1 (No.9) extends only listed rights to a person such a body hires by service contract. A private company that works on government premises or for a government body is PRIVATE. Owner rule 2026-09-30 (register TH-WAGE-05, -08): default PRIVATE, since the Act covers every employer s.4 does not exclude.",
+				"default_value": "PRIVATE"
 			}
 		],
 		"exit_facts": [
@@ -606,6 +614,14 @@
 				"label": "Pregnancy status",
 				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
 				"options": ["PREGNANT", "NOT_PREGNANT"]
+			},
+			{
+				"key": "wage_route",
+				"type": "code",
+				"table": "WAGE_ROUTE",
+				"label": "Wage-law route",
+				"description": "Which wage law the contract falls under. The Ministry’s explanation of Notice 14 puts work that seeks no economic profit, cargo work on sea-going vessels and seasonal agriculture outside the notice; home work, sea fishing and seafaring have their own statutes. Owner rule 2026-09-30 (register TH-WAGE-09–12): default NOTICE_14; an excluded route keeps the Notice 14 floor with a run warning (an exclusion only lifts a minimum, so paying it is lawful), and a special-statute route is refused, never priced as LPA employment. Record the route of the work actually done, not the employer’s incorporation or tax status.",
+				"default_value": "NOTICE_14"
 			}
 		],
 		"obligations": [
@@ -670,6 +686,201 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class: whether the Labour Protection Act covers the employer (company.facts.employer_legal_class)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "WAGE_ROUTE",
+				"label": "Wage-law route of a contract: ordinary Notice 14 employment, a Notice 14 exclusion, or a special statute (terms.facts.wage_route)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"checks": [
+			{
+				"code": "PUBLIC_EMPLOYER_OUTSIDE_LPA",
+				"at": "PAYSLIP",
+				"when": "has(company.facts.employer_legal_class) && company.facts.employer_legal_class != \"PRIVATE\"",
+				"severity": "REFUSE",
+				"message": "the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise, which the Labour Protection Act and Notice 14 do not cover; this lineage prices only the Act’s employers, so pay these employees under the body’s own pay instrument",
+				"authority": "Labour Protection Act s.4 para.1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); Ministry explanation of Notice 14 item 9 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); register TH-WAGE-05, TH-WAGE-08"
+			},
+			{
+				"code": "SPECIAL_STATUTE_WORK",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"HOME_WORK\", \"SEA_FISHING\", \"SEAFARER\"]",
+				"severity": "REFUSE",
+				"message": "the terms record work under its own statute (commissioned home work, sea fishing or seafaring), which this lineage does not price as Labour Protection Act employment; record it outside payroll or under a lineage that transcribes that statute",
+				"authority": "Home Workers Protection Act B.E.2553; Labour Protection in Fishery Work Act B.E.2562; Maritime Labour Act B.E.2558; register TH-WAGE-11, TH-HR-19, -20, -21"
+			},
+			{
+				"code": "WAGE_ROUTE_SPECIAL_RULE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"NON_PROFIT_WORK\", \"VESSEL_CARGO_HANDLING\", \"SEASONAL_AGRICULTURE\"]",
+				"severity": "WARN",
+				"message": "the terms record work Notice 14’s explanation puts outside the notice; the run still holds it to the Notice 14 daily rate and no special rule for it is transcribed, so confirm any special rate by hand",
+				"authority": "Ministry explanation of Notice 14 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); owner rule 2026-09-30, register TH-WAGE-09, -10, -12"
+			},
+			{
+				"code": "SEIZURE_PROTECTED_WAGE",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"SEIZURE_ORDER\" && deduction.net - deduction.amount < 20000.0",
+				"severity": "REFUSE",
+				"message": "the seizure order would leave less than THB20,000 of the month’s pay, the part of wages the Civil Procedure Code protects from seizure; withhold only the excess (or the lower amount the enforcement officer fixed)",
+				"authority": "Civil Procedure Code s.302(3) (wages of a non-government employee up to THB20,000 a month in total are not subject to seizure, or the amount the officer sets); owner rule 2026-09-30, register TH-DEDUCT-03: measured on net pay after tax, social security and every other deduction"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SSO_REGISTRATION",
+				"label": "Insured-person registration (สปส.1-03)",
+				"authority": "Social Security Act s.34 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer files the insured person’s registration within 30 days from the day the employee becomes insured; Civil and Commercial Code s.193/3 para.2 (the first day not counted); register TH-SS-01, TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_EXIT_NOTICE",
+				"label": "Insured person leaving (สปส.6-09)",
+				"authority": "Social Security Act s.44 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer notifies the Office that an insured person has left by the 15th of the month after the month of leaving; register TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(month_end(employment.exit_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"label": "Social security contributions and return (สปส.1-10)",
+				"authority": "Social Security Act s.47 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employee share deducted at each wage payment and the employer’s share are remitted with the contribution return by the 15th of the month after the deduction; s.49 adds 2% a month on late payment (not priced here). The run carries no per-scheme total for a scheme remitted unrounded, so the instance states the due day and the return reference, not the amount; register TH-SS-01",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"label": "Monthly withholding return (ภ.ง.ด.1) and remittance",
+				"authority": "Revenue Code ss.52, 58(1), 59 (https://www.rd.go.th/5937.html): tax withheld under s.50(1) is filed and remitted within 7 days of the month after the month of payment; the e-filing extension to 15 days (RD notice for filings due 1 Feb 2024–31 Jan 2027) is later and not modelled, so the statutory day is the due day. Raised for every finalised run (owner rule 2026-09-30: a month in which nothing was withheld is waived with that reason); the amount is the run’s PIT withholding, not carried on the instance; register TH-PIT-04",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"label": "Annual withholding summary (ภ.ง.ด.1ก)",
+				"authority": "Revenue Code s.58(2) (https://www.rd.go.th/5937.html): the annual summary of s.40(1) payments and tax withheld is filed within February of the following year (the e-filing extension to 8 March is not modelled); register TH-PIT-04",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 14), -1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_YEAR",
+				"label": "Annual withholding certificates (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): the payer issues each payee the two-copy withholding certificate by 15 February of the following year; register TH-PIT-09",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 13), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_EXIT",
+				"label": "Withholding certificate on departure (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): where employment ends during the year, the certificate is issued within one month of the day it ends; register TH-PIT-09",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_months(employment.exit_date, 1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "FINAL_PAY_DUE",
+				"label": "Money owed on an employer termination",
+				"authority": "Labour Protection Act s.70 para.2 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): where the employer terminates, wages and other money owed on termination are paid within three days of the termination; register TH-EXIT-01, TH-HR-30",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]"
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
 			}
 		]
 	},
@@ -1109,7 +1320,7 @@
 				"assessment_period": "PAY_PERIOD",
 				"counts_statutory": false,
 				"counts_loans": true,
-				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION", "SEIZURE_ORDER"],
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
@@ -1169,6 +1380,14 @@
 				"label": "SSO flood-relief rate (southern provinces)",
 				"default_value": false,
 				"description": "Ministry of Labour notice under Social Security Act s.46/1, Gazette vol.143 special part 6 Ngor p.7, published 8 January 2026 (https://ratchakitcha.soc.go.th/documents/100888.pdf, cl.1): a registered employer, and its s.33 insured employees, in Trang, Nakhon Si Thammarat, Narathiwat, Pattani, Phatthalung, Yala, Songkhla, Satun or Surat Thani contribute 3% each side instead of 5% for wage months December 2025–May 2026. Record the registration locality, not the worksite address; unrecorded is the ordinary 5%."
+			},
+			{
+				"key": "employer_legal_class",
+				"type": "code",
+				"table": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class (LPA s.4)",
+				"description": "Labour Protection Act s.4 para.1: the Act does not apply to central, provincial or local government administration or to a state enterprise under the State Enterprise Labour Relations Act; s.4/1 (No.9) extends only listed rights to a person such a body hires by service contract. A private company that works on government premises or for a government body is PRIVATE. Owner rule 2026-09-30 (register TH-WAGE-05, -08): default PRIVATE, since the Act covers every employer s.4 does not exclude.",
+				"default_value": "PRIVATE"
 			}
 		],
 		"exit_facts": [
@@ -1280,6 +1499,14 @@
 				"label": "Pregnancy status",
 				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
 				"options": ["PREGNANT", "NOT_PREGNANT"]
+			},
+			{
+				"key": "wage_route",
+				"type": "code",
+				"table": "WAGE_ROUTE",
+				"label": "Wage-law route",
+				"description": "Which wage law the contract falls under. The Ministry’s explanation of Notice 14 puts work that seeks no economic profit, cargo work on sea-going vessels and seasonal agriculture outside the notice; home work, sea fishing and seafaring have their own statutes. Owner rule 2026-09-30 (register TH-WAGE-09–12): default NOTICE_14; an excluded route keeps the Notice 14 floor with a run warning (an exclusion only lifts a minimum, so paying it is lawful), and a special-statute route is refused, never priced as LPA employment. Record the route of the work actually done, not the employer’s incorporation or tax status.",
+				"default_value": "NOTICE_14"
 			}
 		],
 		"obligations": [
@@ -1344,6 +1571,229 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class: whether the Labour Protection Act covers the employer (company.facts.employer_legal_class)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "WAGE_ROUTE",
+				"label": "Wage-law route of a contract: ordinary Notice 14 employment, a Notice 14 exclusion, or a special statute (terms.facts.wage_route)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"checks": [
+			{
+				"code": "PUBLIC_EMPLOYER_OUTSIDE_LPA",
+				"at": "PAYSLIP",
+				"when": "has(company.facts.employer_legal_class) && company.facts.employer_legal_class != \"PRIVATE\"",
+				"severity": "REFUSE",
+				"message": "the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise, which the Labour Protection Act and Notice 14 do not cover; this lineage prices only the Act’s employers, so pay these employees under the body’s own pay instrument",
+				"authority": "Labour Protection Act s.4 para.1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); Ministry explanation of Notice 14 item 9 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); register TH-WAGE-05, TH-WAGE-08"
+			},
+			{
+				"code": "SPECIAL_STATUTE_WORK",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"HOME_WORK\", \"SEA_FISHING\", \"SEAFARER\"]",
+				"severity": "REFUSE",
+				"message": "the terms record work under its own statute (commissioned home work, sea fishing or seafaring), which this lineage does not price as Labour Protection Act employment; record it outside payroll or under a lineage that transcribes that statute",
+				"authority": "Home Workers Protection Act B.E.2553; Labour Protection in Fishery Work Act B.E.2562; Maritime Labour Act B.E.2558; register TH-WAGE-11, TH-HR-19, -20, -21"
+			},
+			{
+				"code": "WAGE_ROUTE_SPECIAL_RULE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"NON_PROFIT_WORK\", \"VESSEL_CARGO_HANDLING\", \"SEASONAL_AGRICULTURE\"]",
+				"severity": "WARN",
+				"message": "the terms record work Notice 14’s explanation puts outside the notice; the run still holds it to the Notice 14 daily rate and no special rule for it is transcribed, so confirm any special rate by hand",
+				"authority": "Ministry explanation of Notice 14 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); owner rule 2026-09-30, register TH-WAGE-09, -10, -12"
+			},
+			{
+				"code": "SPOUSE_BIRTH_LEAVE_WINDOW",
+				"at": "LEAVE_ENTRY",
+				"when": "leave.code == \"CHILD_BIRTH_LEAVE\" && (!has(leave.facts.event_date) || leave.facts.event_date == \"\" || leave.from < leave.facts.event_date || leave.to > add_days(leave.facts.event_date, 90))",
+				"severity": "REFUSE",
+				"message": "spouse-birth leave is taken within 90 days counted from the birth: record the birth day as the event date and keep every day of the leave from the birth to the 90th day after it",
+				"authority": "Labour Protection Act s.41/1 added by No.9 B.E.2568 (https://ratchakitcha.soc.go.th/documents/89818.pdf); Civil and Commercial Code s.193/3 para.2 (the first day of a period is not counted); owner rule 2026-09-28, register TH-LEAVE-03: a day before the birth is outside the window"
+			},
+			{
+				"code": "SEIZURE_PROTECTED_WAGE",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"SEIZURE_ORDER\" && deduction.net - deduction.amount < 20000.0",
+				"severity": "REFUSE",
+				"message": "the seizure order would leave less than THB20,000 of the month’s pay, the part of wages the Civil Procedure Code protects from seizure; withhold only the excess (or the lower amount the enforcement officer fixed)",
+				"authority": "Civil Procedure Code s.302(3) (wages of a non-government employee up to THB20,000 a month in total are not subject to seizure, or the amount the officer sets); owner rule 2026-09-30, register TH-DEDUCT-03: measured on net pay after tax, social security and every other deduction"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SSO_REGISTRATION",
+				"label": "Insured-person registration (สปส.1-03)",
+				"authority": "Social Security Act s.34 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer files the insured person’s registration within 30 days from the day the employee becomes insured; Civil and Commercial Code s.193/3 para.2 (the first day not counted); register TH-SS-01, TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_EXIT_NOTICE",
+				"label": "Insured person leaving (สปส.6-09)",
+				"authority": "Social Security Act s.44 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer notifies the Office that an insured person has left by the 15th of the month after the month of leaving; register TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(month_end(employment.exit_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"label": "Social security contributions and return (สปส.1-10)",
+				"authority": "Social Security Act s.47 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employee share deducted at each wage payment and the employer’s share are remitted with the contribution return by the 15th of the month after the deduction; s.49 adds 2% a month on late payment (not priced here). The run carries no per-scheme total for a scheme remitted unrounded, so the instance states the due day and the return reference, not the amount; register TH-SS-01",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"label": "Monthly withholding return (ภ.ง.ด.1) and remittance",
+				"authority": "Revenue Code ss.52, 58(1), 59 (https://www.rd.go.th/5937.html): tax withheld under s.50(1) is filed and remitted within 7 days of the month after the month of payment; the e-filing extension to 15 days (RD notice for filings due 1 Feb 2024–31 Jan 2027) is later and not modelled, so the statutory day is the due day. Raised for every finalised run (owner rule 2026-09-30: a month in which nothing was withheld is waived with that reason); the amount is the run’s PIT withholding, not carried on the instance; register TH-PIT-04",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"label": "Annual withholding summary (ภ.ง.ด.1ก)",
+				"authority": "Revenue Code s.58(2) (https://www.rd.go.th/5937.html): the annual summary of s.40(1) payments and tax withheld is filed within February of the following year (the e-filing extension to 8 March is not modelled); register TH-PIT-04",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 14), -1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_YEAR",
+				"label": "Annual withholding certificates (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): the payer issues each payee the two-copy withholding certificate by 15 February of the following year; register TH-PIT-09",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 13), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_EXIT",
+				"label": "Withholding certificate on departure (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): where employment ends during the year, the certificate is issued within one month of the day it ends; register TH-PIT-09",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_months(employment.exit_date, 1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "FINAL_PAY_DUE",
+				"label": "Money owed on an employer termination",
+				"authority": "Labour Protection Act s.70 para.2 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): where the employer terminates, wages and other money owed on termination are paid within three days of the termination; register TH-EXIT-01, TH-HR-30",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]"
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_CONDITION_REPORT",
+				"label": "Annual report on employment conditions",
+				"authority": "Labour Protection Act s.115/1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; as in force from 7 December 2025): an employer of ten or more employees reports its employment conditions to the labour inspector within January of every year; headcount read on 1 January; register TH-ADMIN-02",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(period.start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
 			}
 		]
 	},
@@ -1783,7 +2233,7 @@
 				"assessment_period": "PAY_PERIOD",
 				"counts_statutory": false,
 				"counts_loans": true,
-				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION", "SEIZURE_ORDER"],
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
@@ -1843,6 +2293,14 @@
 				"label": "SSO flood-relief rate (southern provinces)",
 				"default_value": false,
 				"description": "Ministry of Labour notice under Social Security Act s.46/1, Gazette vol.143 special part 6 Ngor p.7, published 8 January 2026 (https://ratchakitcha.soc.go.th/documents/100888.pdf, cl.1): a registered employer, and its s.33 insured employees, in Trang, Nakhon Si Thammarat, Narathiwat, Pattani, Phatthalung, Yala, Songkhla, Satun or Surat Thani contribute 3% each side instead of 5% for wage months December 2025–May 2026. Record the registration locality, not the worksite address; unrecorded is the ordinary 5%."
+			},
+			{
+				"key": "employer_legal_class",
+				"type": "code",
+				"table": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class (LPA s.4)",
+				"description": "Labour Protection Act s.4 para.1: the Act does not apply to central, provincial or local government administration or to a state enterprise under the State Enterprise Labour Relations Act; s.4/1 (No.9) extends only listed rights to a person such a body hires by service contract. A private company that works on government premises or for a government body is PRIVATE. Owner rule 2026-09-30 (register TH-WAGE-05, -08): default PRIVATE, since the Act covers every employer s.4 does not exclude.",
+				"default_value": "PRIVATE"
 			}
 		],
 		"exit_facts": [
@@ -1954,6 +2412,14 @@
 				"label": "Pregnancy status",
 				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
 				"options": ["PREGNANT", "NOT_PREGNANT"]
+			},
+			{
+				"key": "wage_route",
+				"type": "code",
+				"table": "WAGE_ROUTE",
+				"label": "Wage-law route",
+				"description": "Which wage law the contract falls under. The Ministry’s explanation of Notice 14 puts work that seeks no economic profit, cargo work on sea-going vessels and seasonal agriculture outside the notice; home work, sea fishing and seafaring have their own statutes. Owner rule 2026-09-30 (register TH-WAGE-09–12): default NOTICE_14; an excluded route keeps the Notice 14 floor with a run warning (an exclusion only lifts a minimum, so paying it is lawful), and a special-statute route is refused, never priced as LPA employment. Record the route of the work actually done, not the employer’s incorporation or tax status.",
+				"default_value": "NOTICE_14"
 			}
 		],
 		"obligations": [
@@ -2018,6 +2484,229 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class: whether the Labour Protection Act covers the employer (company.facts.employer_legal_class)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "WAGE_ROUTE",
+				"label": "Wage-law route of a contract: ordinary Notice 14 employment, a Notice 14 exclusion, or a special statute (terms.facts.wage_route)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"checks": [
+			{
+				"code": "PUBLIC_EMPLOYER_OUTSIDE_LPA",
+				"at": "PAYSLIP",
+				"when": "has(company.facts.employer_legal_class) && company.facts.employer_legal_class != \"PRIVATE\"",
+				"severity": "REFUSE",
+				"message": "the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise, which the Labour Protection Act and Notice 14 do not cover; this lineage prices only the Act’s employers, so pay these employees under the body’s own pay instrument",
+				"authority": "Labour Protection Act s.4 para.1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); Ministry explanation of Notice 14 item 9 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); register TH-WAGE-05, TH-WAGE-08"
+			},
+			{
+				"code": "SPECIAL_STATUTE_WORK",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"HOME_WORK\", \"SEA_FISHING\", \"SEAFARER\"]",
+				"severity": "REFUSE",
+				"message": "the terms record work under its own statute (commissioned home work, sea fishing or seafaring), which this lineage does not price as Labour Protection Act employment; record it outside payroll or under a lineage that transcribes that statute",
+				"authority": "Home Workers Protection Act B.E.2553; Labour Protection in Fishery Work Act B.E.2562; Maritime Labour Act B.E.2558; register TH-WAGE-11, TH-HR-19, -20, -21"
+			},
+			{
+				"code": "WAGE_ROUTE_SPECIAL_RULE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"NON_PROFIT_WORK\", \"VESSEL_CARGO_HANDLING\", \"SEASONAL_AGRICULTURE\"]",
+				"severity": "WARN",
+				"message": "the terms record work Notice 14’s explanation puts outside the notice; the run still holds it to the Notice 14 daily rate and no special rule for it is transcribed, so confirm any special rate by hand",
+				"authority": "Ministry explanation of Notice 14 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); owner rule 2026-09-30, register TH-WAGE-09, -10, -12"
+			},
+			{
+				"code": "SPOUSE_BIRTH_LEAVE_WINDOW",
+				"at": "LEAVE_ENTRY",
+				"when": "leave.code == \"CHILD_BIRTH_LEAVE\" && (!has(leave.facts.event_date) || leave.facts.event_date == \"\" || leave.from < leave.facts.event_date || leave.to > add_days(leave.facts.event_date, 90))",
+				"severity": "REFUSE",
+				"message": "spouse-birth leave is taken within 90 days counted from the birth: record the birth day as the event date and keep every day of the leave from the birth to the 90th day after it",
+				"authority": "Labour Protection Act s.41/1 added by No.9 B.E.2568 (https://ratchakitcha.soc.go.th/documents/89818.pdf); Civil and Commercial Code s.193/3 para.2 (the first day of a period is not counted); owner rule 2026-09-28, register TH-LEAVE-03: a day before the birth is outside the window"
+			},
+			{
+				"code": "SEIZURE_PROTECTED_WAGE",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"SEIZURE_ORDER\" && deduction.net - deduction.amount < 20000.0",
+				"severity": "REFUSE",
+				"message": "the seizure order would leave less than THB20,000 of the month’s pay, the part of wages the Civil Procedure Code protects from seizure; withhold only the excess (or the lower amount the enforcement officer fixed)",
+				"authority": "Civil Procedure Code s.302(3) (wages of a non-government employee up to THB20,000 a month in total are not subject to seizure, or the amount the officer sets); owner rule 2026-09-30, register TH-DEDUCT-03: measured on net pay after tax, social security and every other deduction"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SSO_REGISTRATION",
+				"label": "Insured-person registration (สปส.1-03)",
+				"authority": "Social Security Act s.34 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer files the insured person’s registration within 30 days from the day the employee becomes insured; Civil and Commercial Code s.193/3 para.2 (the first day not counted); register TH-SS-01, TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_EXIT_NOTICE",
+				"label": "Insured person leaving (สปส.6-09)",
+				"authority": "Social Security Act s.44 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer notifies the Office that an insured person has left by the 15th of the month after the month of leaving; register TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(month_end(employment.exit_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"label": "Social security contributions and return (สปส.1-10)",
+				"authority": "Social Security Act s.47 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employee share deducted at each wage payment and the employer’s share are remitted with the contribution return by the 15th of the month after the deduction; s.49 adds 2% a month on late payment (not priced here). The run carries no per-scheme total for a scheme remitted unrounded, so the instance states the due day and the return reference, not the amount; register TH-SS-01",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"label": "Monthly withholding return (ภ.ง.ด.1) and remittance",
+				"authority": "Revenue Code ss.52, 58(1), 59 (https://www.rd.go.th/5937.html): tax withheld under s.50(1) is filed and remitted within 7 days of the month after the month of payment; the e-filing extension to 15 days (RD notice for filings due 1 Feb 2024–31 Jan 2027) is later and not modelled, so the statutory day is the due day. Raised for every finalised run (owner rule 2026-09-30: a month in which nothing was withheld is waived with that reason); the amount is the run’s PIT withholding, not carried on the instance; register TH-PIT-04",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"label": "Annual withholding summary (ภ.ง.ด.1ก)",
+				"authority": "Revenue Code s.58(2) (https://www.rd.go.th/5937.html): the annual summary of s.40(1) payments and tax withheld is filed within February of the following year (the e-filing extension to 8 March is not modelled); register TH-PIT-04",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 14), -1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_YEAR",
+				"label": "Annual withholding certificates (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): the payer issues each payee the two-copy withholding certificate by 15 February of the following year; register TH-PIT-09",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 13), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_EXIT",
+				"label": "Withholding certificate on departure (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): where employment ends during the year, the certificate is issued within one month of the day it ends; register TH-PIT-09",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_months(employment.exit_date, 1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "FINAL_PAY_DUE",
+				"label": "Money owed on an employer termination",
+				"authority": "Labour Protection Act s.70 para.2 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): where the employer terminates, wages and other money owed on termination are paid within three days of the termination; register TH-EXIT-01, TH-HR-30",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]"
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_CONDITION_REPORT",
+				"label": "Annual report on employment conditions",
+				"authority": "Labour Protection Act s.115/1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; as in force from 7 December 2025): an employer of ten or more employees reports its employment conditions to the labour inspector within January of every year; headcount read on 1 January; register TH-ADMIN-02",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(period.start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
 			}
 		]
 	},
@@ -2457,7 +3146,7 @@
 				"assessment_period": "PAY_PERIOD",
 				"counts_statutory": false,
 				"counts_loans": true,
-				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION", "SEIZURE_ORDER"],
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
@@ -2510,7 +3199,16 @@
 				"https://infocenter.oic.go.th"
 			]
 		},
-		"facts": [],
+		"facts": [
+			{
+				"key": "employer_legal_class",
+				"type": "code",
+				"table": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class (LPA s.4)",
+				"description": "Labour Protection Act s.4 para.1: the Act does not apply to central, provincial or local government administration or to a state enterprise under the State Enterprise Labour Relations Act; s.4/1 (No.9) extends only listed rights to a person such a body hires by service contract. A private company that works on government premises or for a government body is PRIVATE. Owner rule 2026-09-30 (register TH-WAGE-05, -08): default PRIVATE, since the Act covers every employer s.4 does not exclude.",
+				"default_value": "PRIVATE"
+			}
+		],
 		"exit_facts": [
 			{
 				"key": "dismissed_for_cause",
@@ -2620,6 +3318,21 @@
 				"label": "Pregnancy status",
 				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
 				"options": ["PREGNANT", "NOT_PREGNANT"]
+			},
+			{
+				"key": "wage_route",
+				"type": "code",
+				"table": "WAGE_ROUTE",
+				"label": "Wage-law route",
+				"description": "Which wage law the contract falls under. The Ministry’s explanation of Notice 14 puts work that seeks no economic profit, cargo work on sea-going vessels and seasonal agriculture outside the notice; home work, sea fishing and seafaring have their own statutes. Owner rule 2026-09-30 (register TH-WAGE-09–12): default NOTICE_14; an excluded route keeps the Notice 14 floor with a run warning (an exclusion only lifts a minimum, so paying it is lawful), and a special-statute route is refused, never priced as LPA employment. Record the route of the work actually done, not the employer’s incorporation or tax status.",
+				"default_value": "NOTICE_14"
+			},
+			{
+				"key": "skill_standard",
+				"type": "code",
+				"table": "SKILL_STANDARD",
+				"label": "Skill standard (occupation and grade)",
+				"description": "Wage Committee Notice on skill-standard wage rates No.15 (Gazette vol.143 special part 150 Ngor, 16 June 2026, https://ratchakitcha.soc.go.th/documents/117083.pdf) cls.3–6: the rate is owed per normal working day to an employee whose work needs all or part of the standard’s skill (cl.5), and to a tested employee from the day the employer receives the certificate (cl.6). Start the terms revision on that day. Empty: no skill standard."
 			}
 		],
 		"obligations": [
@@ -2684,6 +3397,258 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class: whether the Labour Protection Act covers the employer (company.facts.employer_legal_class)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "WAGE_ROUTE",
+				"label": "Wage-law route of a contract: ordinary Notice 14 employment, a Notice 14 exclusion, or a special statute (terms.facts.wage_route)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "SKILL_STANDARD",
+				"label": "Skill-standard daily wage rates by occupation and grade (Wage Committee skill-standard notices; terms.facts.skill_standard)",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "daily_rate",
+						"type": "number",
+						"label": "Daily rate (THB) for a normal working day",
+						"minimum": 0
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "PUBLIC_EMPLOYER_OUTSIDE_LPA",
+				"at": "PAYSLIP",
+				"when": "has(company.facts.employer_legal_class) && company.facts.employer_legal_class != \"PRIVATE\"",
+				"severity": "REFUSE",
+				"message": "the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise, which the Labour Protection Act and Notice 14 do not cover; this lineage prices only the Act’s employers, so pay these employees under the body’s own pay instrument",
+				"authority": "Labour Protection Act s.4 para.1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); Ministry explanation of Notice 14 item 9 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); register TH-WAGE-05, TH-WAGE-08"
+			},
+			{
+				"code": "SPECIAL_STATUTE_WORK",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"HOME_WORK\", \"SEA_FISHING\", \"SEAFARER\"]",
+				"severity": "REFUSE",
+				"message": "the terms record work under its own statute (commissioned home work, sea fishing or seafaring), which this lineage does not price as Labour Protection Act employment; record it outside payroll or under a lineage that transcribes that statute",
+				"authority": "Home Workers Protection Act B.E.2553; Labour Protection in Fishery Work Act B.E.2562; Maritime Labour Act B.E.2558; register TH-WAGE-11, TH-HR-19, -20, -21"
+			},
+			{
+				"code": "WAGE_ROUTE_SPECIAL_RULE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"NON_PROFIT_WORK\", \"VESSEL_CARGO_HANDLING\", \"SEASONAL_AGRICULTURE\"]",
+				"severity": "WARN",
+				"message": "the terms record work Notice 14’s explanation puts outside the notice; the run still holds it to the Notice 14 daily rate and no special rule for it is transcribed, so confirm any special rate by hand",
+				"authority": "Ministry explanation of Notice 14 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); owner rule 2026-09-30, register TH-WAGE-09, -10, -12"
+			},
+			{
+				"code": "SPOUSE_BIRTH_LEAVE_WINDOW",
+				"at": "LEAVE_ENTRY",
+				"when": "leave.code == \"CHILD_BIRTH_LEAVE\" && (!has(leave.facts.event_date) || leave.facts.event_date == \"\" || leave.from < leave.facts.event_date || leave.to > add_days(leave.facts.event_date, 90))",
+				"severity": "REFUSE",
+				"message": "spouse-birth leave is taken within 90 days counted from the birth: record the birth day as the event date and keep every day of the leave from the birth to the 90th day after it",
+				"authority": "Labour Protection Act s.41/1 added by No.9 B.E.2568 (https://ratchakitcha.soc.go.th/documents/89818.pdf); Civil and Commercial Code s.193/3 para.2 (the first day of a period is not counted); owner rule 2026-09-28, register TH-LEAVE-03: a day before the birth is outside the window"
+			},
+			{
+				"code": "SEIZURE_PROTECTED_WAGE",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"SEIZURE_ORDER\" && deduction.net - deduction.amount < 20000.0",
+				"severity": "REFUSE",
+				"message": "the seizure order would leave less than THB20,000 of the month’s pay, the part of wages the Civil Procedure Code protects from seizure; withhold only the excess (or the lower amount the enforcement officer fixed)",
+				"authority": "Civil Procedure Code s.302(3) (wages of a non-government employee up to THB20,000 a month in total are not subject to seizure, or the amount the officer sets); owner rule 2026-09-30, register TH-DEDUCT-03: measured on net pay after tax, social security and every other deduction"
+			},
+			{
+				"code": "SKILL_STANDARD_DAILY_RATE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.skill_standard) && terms.facts.skill_standard != \"\" && terms.pay_frequency != \"HOURLY\" && table(\"SKILL_STANDARD\", terms.facts.skill_standard) != null && (terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary * 52.0 / 12.0 / 30.0 : terms.basic_salary / 30.0)) < double(table(\"SKILL_STANDARD\", terms.facts.skill_standard).daily_rate)",
+				"severity": "REFUSE",
+				"message": "the wage is below the skill-standard daily rate of the standard these terms record; a daily wage is compared as it is, a monthly or semi-monthly one as its month ÷ 30 and a weekly one × 52 ÷ 12 ÷ 30",
+				"authority": "Wage Committee skill-standard Notice No.15 cls.3–6 (https://ratchakitcha.soc.go.th/documents/117083.pdf); LPA ss.88, 90; owner rule 2026-09-28 (register TH-WAGE-01): the day of a monthly wage is its month ÷ 30; register TH-SKILL-02"
+			},
+			{
+				"code": "SKILL_STANDARD_HOURLY_TERMS",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.skill_standard) && terms.facts.skill_standard != \"\" && terms.pay_frequency == \"HOURLY\"",
+				"severity": "REFUSE",
+				"message": "the terms record a skill standard on hourly pay; this lineage compares a skill-standard rate only with a daily, weekly, semi-monthly or monthly wage, so state the wage per day or month",
+				"authority": "Wage Committee skill-standard Notice No.15 cl.4 (https://ratchakitcha.soc.go.th/documents/117083.pdf): the rate is per normal working day; register TH-SKILL-02"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SSO_REGISTRATION",
+				"label": "Insured-person registration (สปส.1-03)",
+				"authority": "Social Security Act s.34 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer files the insured person’s registration within 30 days from the day the employee becomes insured; Civil and Commercial Code s.193/3 para.2 (the first day not counted); register TH-SS-01, TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_EXIT_NOTICE",
+				"label": "Insured person leaving (สปส.6-09)",
+				"authority": "Social Security Act s.44 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer notifies the Office that an insured person has left by the 15th of the month after the month of leaving; register TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(month_end(employment.exit_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"label": "Social security contributions and return (สปส.1-10)",
+				"authority": "Social Security Act s.47 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employee share deducted at each wage payment and the employer’s share are remitted with the contribution return by the 15th of the month after the deduction; s.49 adds 2% a month on late payment (not priced here). The run carries no per-scheme total for a scheme remitted unrounded, so the instance states the due day and the return reference, not the amount; register TH-SS-01",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"label": "Monthly withholding return (ภ.ง.ด.1) and remittance",
+				"authority": "Revenue Code ss.52, 58(1), 59 (https://www.rd.go.th/5937.html): tax withheld under s.50(1) is filed and remitted within 7 days of the month after the month of payment; the e-filing extension to 15 days (RD notice for filings due 1 Feb 2024–31 Jan 2027) is later and not modelled, so the statutory day is the due day. Raised for every finalised run (owner rule 2026-09-30: a month in which nothing was withheld is waived with that reason); the amount is the run’s PIT withholding, not carried on the instance; register TH-PIT-04",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"label": "Annual withholding summary (ภ.ง.ด.1ก)",
+				"authority": "Revenue Code s.58(2) (https://www.rd.go.th/5937.html): the annual summary of s.40(1) payments and tax withheld is filed within February of the following year (the e-filing extension to 8 March is not modelled); register TH-PIT-04",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 14), -1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_YEAR",
+				"label": "Annual withholding certificates (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): the payer issues each payee the two-copy withholding certificate by 15 February of the following year; register TH-PIT-09",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 13), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_EXIT",
+				"label": "Withholding certificate on departure (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): where employment ends during the year, the certificate is issued within one month of the day it ends; register TH-PIT-09",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_months(employment.exit_date, 1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "FINAL_PAY_DUE",
+				"label": "Money owed on an employer termination",
+				"authority": "Labour Protection Act s.70 para.2 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): where the employer terminates, wages and other money owed on termination are paid within three days of the termination; register TH-EXIT-01, TH-HR-30",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]"
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_CONDITION_REPORT",
+				"label": "Annual report on employment conditions",
+				"authority": "Labour Protection Act s.115/1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; as in force from 7 December 2025): an employer of ten or more employees reports its employment conditions to the labour inspector within January of every year; headcount read on 1 January; register TH-ADMIN-02",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(period.start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
 			}
 		]
 	},
@@ -3123,7 +4088,7 @@
 				"assessment_period": "PAY_PERIOD",
 				"counts_statutory": false,
 				"counts_loans": true,
-				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION", "SEIZURE_ORDER"],
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
@@ -3181,7 +4146,16 @@
 				"https://infocenter.oic.go.th"
 			]
 		},
-		"facts": [],
+		"facts": [
+			{
+				"key": "employer_legal_class",
+				"type": "code",
+				"table": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class (LPA s.4)",
+				"description": "Labour Protection Act s.4 para.1: the Act does not apply to central, provincial or local government administration or to a state enterprise under the State Enterprise Labour Relations Act; s.4/1 (No.9) extends only listed rights to a person such a body hires by service contract. A private company that works on government premises or for a government body is PRIVATE. Owner rule 2026-09-30 (register TH-WAGE-05, -08): default PRIVATE, since the Act covers every employer s.4 does not exclude.",
+				"default_value": "PRIVATE"
+			}
+		],
 		"exit_facts": [
 			{
 				"key": "dismissed_for_cause",
@@ -3291,6 +4265,21 @@
 				"label": "Pregnancy status",
 				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
 				"options": ["PREGNANT", "NOT_PREGNANT"]
+			},
+			{
+				"key": "wage_route",
+				"type": "code",
+				"table": "WAGE_ROUTE",
+				"label": "Wage-law route",
+				"description": "Which wage law the contract falls under. The Ministry’s explanation of Notice 14 puts work that seeks no economic profit, cargo work on sea-going vessels and seasonal agriculture outside the notice; home work, sea fishing and seafaring have their own statutes. Owner rule 2026-09-30 (register TH-WAGE-09–12): default NOTICE_14; an excluded route keeps the Notice 14 floor with a run warning (an exclusion only lifts a minimum, so paying it is lawful), and a special-statute route is refused, never priced as LPA employment. Record the route of the work actually done, not the employer’s incorporation or tax status.",
+				"default_value": "NOTICE_14"
+			},
+			{
+				"key": "skill_standard",
+				"type": "code",
+				"table": "SKILL_STANDARD",
+				"label": "Skill standard (occupation and grade)",
+				"description": "Wage Committee Notice on skill-standard wage rates No.15 (Gazette vol.143 special part 150 Ngor, 16 June 2026, https://ratchakitcha.soc.go.th/documents/117083.pdf) cls.3–6: the rate is owed per normal working day to an employee whose work needs all or part of the standard’s skill (cl.5), and to a tested employee from the day the employer receives the certificate (cl.6). Start the terms revision on that day. Empty: no skill standard."
 			}
 		],
 		"obligations": [
@@ -3364,6 +4353,277 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class: whether the Labour Protection Act covers the employer (company.facts.employer_legal_class)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "WAGE_ROUTE",
+				"label": "Wage-law route of a contract: ordinary Notice 14 employment, a Notice 14 exclusion, or a special statute (terms.facts.wage_route)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "SKILL_STANDARD",
+				"label": "Skill-standard daily wage rates by occupation and grade (Wage Committee skill-standard notices; terms.facts.skill_standard)",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "daily_rate",
+						"type": "number",
+						"label": "Daily rate (THB) for a normal working day",
+						"minimum": 0
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "PUBLIC_EMPLOYER_OUTSIDE_LPA",
+				"at": "PAYSLIP",
+				"when": "has(company.facts.employer_legal_class) && company.facts.employer_legal_class != \"PRIVATE\"",
+				"severity": "REFUSE",
+				"message": "the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise, which the Labour Protection Act and Notice 14 do not cover; this lineage prices only the Act’s employers, so pay these employees under the body’s own pay instrument",
+				"authority": "Labour Protection Act s.4 para.1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); Ministry explanation of Notice 14 item 9 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); register TH-WAGE-05, TH-WAGE-08"
+			},
+			{
+				"code": "SPECIAL_STATUTE_WORK",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"HOME_WORK\", \"SEA_FISHING\", \"SEAFARER\"]",
+				"severity": "REFUSE",
+				"message": "the terms record work under its own statute (commissioned home work, sea fishing or seafaring), which this lineage does not price as Labour Protection Act employment; record it outside payroll or under a lineage that transcribes that statute",
+				"authority": "Home Workers Protection Act B.E.2553; Labour Protection in Fishery Work Act B.E.2562; Maritime Labour Act B.E.2558; register TH-WAGE-11, TH-HR-19, -20, -21"
+			},
+			{
+				"code": "WAGE_ROUTE_SPECIAL_RULE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"NON_PROFIT_WORK\", \"VESSEL_CARGO_HANDLING\", \"SEASONAL_AGRICULTURE\"]",
+				"severity": "WARN",
+				"message": "the terms record work Notice 14’s explanation puts outside the notice; the run still holds it to the Notice 14 daily rate and no special rule for it is transcribed, so confirm any special rate by hand",
+				"authority": "Ministry explanation of Notice 14 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); owner rule 2026-09-30, register TH-WAGE-09, -10, -12"
+			},
+			{
+				"code": "SPOUSE_BIRTH_LEAVE_WINDOW",
+				"at": "LEAVE_ENTRY",
+				"when": "leave.code == \"CHILD_BIRTH_LEAVE\" && (!has(leave.facts.event_date) || leave.facts.event_date == \"\" || leave.from < leave.facts.event_date || leave.to > add_days(leave.facts.event_date, 90))",
+				"severity": "REFUSE",
+				"message": "spouse-birth leave is taken within 90 days counted from the birth: record the birth day as the event date and keep every day of the leave from the birth to the 90th day after it",
+				"authority": "Labour Protection Act s.41/1 added by No.9 B.E.2568 (https://ratchakitcha.soc.go.th/documents/89818.pdf); Civil and Commercial Code s.193/3 para.2 (the first day of a period is not counted); owner rule 2026-09-28, register TH-LEAVE-03: a day before the birth is outside the window"
+			},
+			{
+				"code": "SEIZURE_PROTECTED_WAGE",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"SEIZURE_ORDER\" && deduction.net - deduction.amount < 20000.0",
+				"severity": "REFUSE",
+				"message": "the seizure order would leave less than THB20,000 of the month’s pay, the part of wages the Civil Procedure Code protects from seizure; withhold only the excess (or the lower amount the enforcement officer fixed)",
+				"authority": "Civil Procedure Code s.302(3) (wages of a non-government employee up to THB20,000 a month in total are not subject to seizure, or the amount the officer sets); owner rule 2026-09-30, register TH-DEDUCT-03: measured on net pay after tax, social security and every other deduction"
+			},
+			{
+				"code": "SKILL_STANDARD_DAILY_RATE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.skill_standard) && terms.facts.skill_standard != \"\" && terms.pay_frequency != \"HOURLY\" && table(\"SKILL_STANDARD\", terms.facts.skill_standard) != null && (terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary * 52.0 / 12.0 / 30.0 : terms.basic_salary / 30.0)) < double(table(\"SKILL_STANDARD\", terms.facts.skill_standard).daily_rate)",
+				"severity": "REFUSE",
+				"message": "the wage is below the skill-standard daily rate of the standard these terms record; a daily wage is compared as it is, a monthly or semi-monthly one as its month ÷ 30 and a weekly one × 52 ÷ 12 ÷ 30",
+				"authority": "Wage Committee skill-standard Notice No.15 cls.3–6 (https://ratchakitcha.soc.go.th/documents/117083.pdf); LPA ss.88, 90; owner rule 2026-09-28 (register TH-WAGE-01): the day of a monthly wage is its month ÷ 30; register TH-SKILL-02"
+			},
+			{
+				"code": "SKILL_STANDARD_HOURLY_TERMS",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.skill_standard) && terms.facts.skill_standard != \"\" && terms.pay_frequency == \"HOURLY\"",
+				"severity": "REFUSE",
+				"message": "the terms record a skill standard on hourly pay; this lineage compares a skill-standard rate only with a daily, weekly, semi-monthly or monthly wage, so state the wage per day or month",
+				"authority": "Wage Committee skill-standard Notice No.15 cl.4 (https://ratchakitcha.soc.go.th/documents/117083.pdf): the rate is per normal working day; register TH-SKILL-02"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SSO_REGISTRATION",
+				"label": "Insured-person registration (สปส.1-03)",
+				"authority": "Social Security Act s.34 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer files the insured person’s registration within 30 days from the day the employee becomes insured; Civil and Commercial Code s.193/3 para.2 (the first day not counted); register TH-SS-01, TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_EXIT_NOTICE",
+				"label": "Insured person leaving (สปส.6-09)",
+				"authority": "Social Security Act s.44 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer notifies the Office that an insured person has left by the 15th of the month after the month of leaving; register TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(month_end(employment.exit_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"label": "Social security contributions and return (สปส.1-10)",
+				"authority": "Social Security Act s.47 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employee share deducted at each wage payment and the employer’s share are remitted with the contribution return by the 15th of the month after the deduction; s.49 adds 2% a month on late payment (not priced here). The run carries no per-scheme total for a scheme remitted unrounded, so the instance states the due day and the return reference, not the amount; register TH-SS-01",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"label": "Monthly withholding return (ภ.ง.ด.1) and remittance",
+				"authority": "Revenue Code ss.52, 58(1), 59 (https://www.rd.go.th/5937.html): tax withheld under s.50(1) is filed and remitted within 7 days of the month after the month of payment; the e-filing extension to 15 days (RD notice for filings due 1 Feb 2024–31 Jan 2027) is later and not modelled, so the statutory day is the due day. Raised for every finalised run (owner rule 2026-09-30: a month in which nothing was withheld is waived with that reason); the amount is the run’s PIT withholding, not carried on the instance; register TH-PIT-04",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"label": "Annual withholding summary (ภ.ง.ด.1ก)",
+				"authority": "Revenue Code s.58(2) (https://www.rd.go.th/5937.html): the annual summary of s.40(1) payments and tax withheld is filed within February of the following year (the e-filing extension to 8 March is not modelled); register TH-PIT-04",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 14), -1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_YEAR",
+				"label": "Annual withholding certificates (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): the payer issues each payee the two-copy withholding certificate by 15 February of the following year; register TH-PIT-09",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 13), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_EXIT",
+				"label": "Withholding certificate on departure (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): where employment ends during the year, the certificate is issued within one month of the day it ends; register TH-PIT-09",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_months(employment.exit_date, 1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "FINAL_PAY_DUE",
+				"label": "Money owed on an employer termination",
+				"authority": "Labour Protection Act s.70 para.2 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): where the employer terminates, wages and other money owed on termination are paid within three days of the termination; register TH-EXIT-01, TH-HR-30",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]"
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_CONDITION_REPORT",
+				"label": "Annual report on employment conditions",
+				"authority": "Labour Protection Act s.115/1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; as in force from 7 December 2025): an employer of ten or more employees reports its employment conditions to the labour inspector within January of every year; headcount read on 1 January; register TH-ADMIN-02",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(period.start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "EWF_REMITTANCE",
+				"label": "Employee Welfare Fund contributions",
+				"authority": "Labour Protection Act ss.130–131 (commencement decree B.E.2568, https://ratchakitcha.soc.go.th/documents/84794.pdf; rate regulation, https://ratchakitcha.soc.go.th/documents/86102.pdf): the employee’s contribution deducted at each wage payment and the employer’s matching share are remitted by the 15th of the following month; coverage read as ten or more employments on the pay date; register TH-EWF-03",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
 			}
 		]
 	},
@@ -3803,7 +5063,7 @@
 				"assessment_period": "PAY_PERIOD",
 				"counts_statutory": false,
 				"counts_loans": true,
-				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION", "SEIZURE_ORDER"],
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
@@ -3861,7 +5121,16 @@
 				"https://infocenter.oic.go.th"
 			]
 		},
-		"facts": [],
+		"facts": [
+			{
+				"key": "employer_legal_class",
+				"type": "code",
+				"table": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class (LPA s.4)",
+				"description": "Labour Protection Act s.4 para.1: the Act does not apply to central, provincial or local government administration or to a state enterprise under the State Enterprise Labour Relations Act; s.4/1 (No.9) extends only listed rights to a person such a body hires by service contract. A private company that works on government premises or for a government body is PRIVATE. Owner rule 2026-09-30 (register TH-WAGE-05, -08): default PRIVATE, since the Act covers every employer s.4 does not exclude.",
+				"default_value": "PRIVATE"
+			}
+		],
 		"exit_facts": [
 			{
 				"key": "dismissed_for_cause",
@@ -3971,6 +5240,21 @@
 				"label": "Pregnancy status",
 				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
 				"options": ["PREGNANT", "NOT_PREGNANT"]
+			},
+			{
+				"key": "wage_route",
+				"type": "code",
+				"table": "WAGE_ROUTE",
+				"label": "Wage-law route",
+				"description": "Which wage law the contract falls under. The Ministry’s explanation of Notice 14 puts work that seeks no economic profit, cargo work on sea-going vessels and seasonal agriculture outside the notice; home work, sea fishing and seafaring have their own statutes. Owner rule 2026-09-30 (register TH-WAGE-09–12): default NOTICE_14; an excluded route keeps the Notice 14 floor with a run warning (an exclusion only lifts a minimum, so paying it is lawful), and a special-statute route is refused, never priced as LPA employment. Record the route of the work actually done, not the employer’s incorporation or tax status.",
+				"default_value": "NOTICE_14"
+			},
+			{
+				"key": "skill_standard",
+				"type": "code",
+				"table": "SKILL_STANDARD",
+				"label": "Skill standard (occupation and grade)",
+				"description": "Wage Committee Notice on skill-standard wage rates No.15 (Gazette vol.143 special part 150 Ngor, 16 June 2026, https://ratchakitcha.soc.go.th/documents/117083.pdf) cls.3–6: the rate is owed per normal working day to an employee whose work needs all or part of the standard’s skill (cl.5), and to a tested employee from the day the employer receives the certificate (cl.6). Start the terms revision on that day. Empty: no skill standard."
 			}
 		],
 		"obligations": [
@@ -4044,6 +5328,277 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class: whether the Labour Protection Act covers the employer (company.facts.employer_legal_class)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "WAGE_ROUTE",
+				"label": "Wage-law route of a contract: ordinary Notice 14 employment, a Notice 14 exclusion, or a special statute (terms.facts.wage_route)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "SKILL_STANDARD",
+				"label": "Skill-standard daily wage rates by occupation and grade (Wage Committee skill-standard notices; terms.facts.skill_standard)",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "daily_rate",
+						"type": "number",
+						"label": "Daily rate (THB) for a normal working day",
+						"minimum": 0
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "PUBLIC_EMPLOYER_OUTSIDE_LPA",
+				"at": "PAYSLIP",
+				"when": "has(company.facts.employer_legal_class) && company.facts.employer_legal_class != \"PRIVATE\"",
+				"severity": "REFUSE",
+				"message": "the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise, which the Labour Protection Act and Notice 14 do not cover; this lineage prices only the Act’s employers, so pay these employees under the body’s own pay instrument",
+				"authority": "Labour Protection Act s.4 para.1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); Ministry explanation of Notice 14 item 9 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); register TH-WAGE-05, TH-WAGE-08"
+			},
+			{
+				"code": "SPECIAL_STATUTE_WORK",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"HOME_WORK\", \"SEA_FISHING\", \"SEAFARER\"]",
+				"severity": "REFUSE",
+				"message": "the terms record work under its own statute (commissioned home work, sea fishing or seafaring), which this lineage does not price as Labour Protection Act employment; record it outside payroll or under a lineage that transcribes that statute",
+				"authority": "Home Workers Protection Act B.E.2553; Labour Protection in Fishery Work Act B.E.2562; Maritime Labour Act B.E.2558; register TH-WAGE-11, TH-HR-19, -20, -21"
+			},
+			{
+				"code": "WAGE_ROUTE_SPECIAL_RULE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"NON_PROFIT_WORK\", \"VESSEL_CARGO_HANDLING\", \"SEASONAL_AGRICULTURE\"]",
+				"severity": "WARN",
+				"message": "the terms record work Notice 14’s explanation puts outside the notice; the run still holds it to the Notice 14 daily rate and no special rule for it is transcribed, so confirm any special rate by hand",
+				"authority": "Ministry explanation of Notice 14 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); owner rule 2026-09-30, register TH-WAGE-09, -10, -12"
+			},
+			{
+				"code": "SPOUSE_BIRTH_LEAVE_WINDOW",
+				"at": "LEAVE_ENTRY",
+				"when": "leave.code == \"CHILD_BIRTH_LEAVE\" && (!has(leave.facts.event_date) || leave.facts.event_date == \"\" || leave.from < leave.facts.event_date || leave.to > add_days(leave.facts.event_date, 90))",
+				"severity": "REFUSE",
+				"message": "spouse-birth leave is taken within 90 days counted from the birth: record the birth day as the event date and keep every day of the leave from the birth to the 90th day after it",
+				"authority": "Labour Protection Act s.41/1 added by No.9 B.E.2568 (https://ratchakitcha.soc.go.th/documents/89818.pdf); Civil and Commercial Code s.193/3 para.2 (the first day of a period is not counted); owner rule 2026-09-28, register TH-LEAVE-03: a day before the birth is outside the window"
+			},
+			{
+				"code": "SEIZURE_PROTECTED_WAGE",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"SEIZURE_ORDER\" && deduction.net - deduction.amount < 20000.0",
+				"severity": "REFUSE",
+				"message": "the seizure order would leave less than THB20,000 of the month’s pay, the part of wages the Civil Procedure Code protects from seizure; withhold only the excess (or the lower amount the enforcement officer fixed)",
+				"authority": "Civil Procedure Code s.302(3) (wages of a non-government employee up to THB20,000 a month in total are not subject to seizure, or the amount the officer sets); owner rule 2026-09-30, register TH-DEDUCT-03: measured on net pay after tax, social security and every other deduction"
+			},
+			{
+				"code": "SKILL_STANDARD_DAILY_RATE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.skill_standard) && terms.facts.skill_standard != \"\" && terms.pay_frequency != \"HOURLY\" && table(\"SKILL_STANDARD\", terms.facts.skill_standard) != null && (terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary * 52.0 / 12.0 / 30.0 : terms.basic_salary / 30.0)) < double(table(\"SKILL_STANDARD\", terms.facts.skill_standard).daily_rate)",
+				"severity": "REFUSE",
+				"message": "the wage is below the skill-standard daily rate of the standard these terms record; a daily wage is compared as it is, a monthly or semi-monthly one as its month ÷ 30 and a weekly one × 52 ÷ 12 ÷ 30",
+				"authority": "Wage Committee skill-standard Notice No.15 cls.3–6 (https://ratchakitcha.soc.go.th/documents/117083.pdf); LPA ss.88, 90; owner rule 2026-09-28 (register TH-WAGE-01): the day of a monthly wage is its month ÷ 30; register TH-SKILL-02"
+			},
+			{
+				"code": "SKILL_STANDARD_HOURLY_TERMS",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.skill_standard) && terms.facts.skill_standard != \"\" && terms.pay_frequency == \"HOURLY\"",
+				"severity": "REFUSE",
+				"message": "the terms record a skill standard on hourly pay; this lineage compares a skill-standard rate only with a daily, weekly, semi-monthly or monthly wage, so state the wage per day or month",
+				"authority": "Wage Committee skill-standard Notice No.15 cl.4 (https://ratchakitcha.soc.go.th/documents/117083.pdf): the rate is per normal working day; register TH-SKILL-02"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SSO_REGISTRATION",
+				"label": "Insured-person registration (สปส.1-03)",
+				"authority": "Social Security Act s.34 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer files the insured person’s registration within 30 days from the day the employee becomes insured; Civil and Commercial Code s.193/3 para.2 (the first day not counted); register TH-SS-01, TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_EXIT_NOTICE",
+				"label": "Insured person leaving (สปส.6-09)",
+				"authority": "Social Security Act s.44 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer notifies the Office that an insured person has left by the 15th of the month after the month of leaving; register TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(month_end(employment.exit_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"label": "Social security contributions and return (สปส.1-10)",
+				"authority": "Social Security Act s.47 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employee share deducted at each wage payment and the employer’s share are remitted with the contribution return by the 15th of the month after the deduction; s.49 adds 2% a month on late payment (not priced here). The run carries no per-scheme total for a scheme remitted unrounded, so the instance states the due day and the return reference, not the amount; register TH-SS-01",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"label": "Monthly withholding return (ภ.ง.ด.1) and remittance",
+				"authority": "Revenue Code ss.52, 58(1), 59 (https://www.rd.go.th/5937.html): tax withheld under s.50(1) is filed and remitted within 7 days of the month after the month of payment; the e-filing extension to 15 days (RD notice for filings due 1 Feb 2024–31 Jan 2027) is later and not modelled, so the statutory day is the due day. Raised for every finalised run (owner rule 2026-09-30: a month in which nothing was withheld is waived with that reason); the amount is the run’s PIT withholding, not carried on the instance; register TH-PIT-04",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"label": "Annual withholding summary (ภ.ง.ด.1ก)",
+				"authority": "Revenue Code s.58(2) (https://www.rd.go.th/5937.html): the annual summary of s.40(1) payments and tax withheld is filed within February of the following year (the e-filing extension to 8 March is not modelled); register TH-PIT-04",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 14), -1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_YEAR",
+				"label": "Annual withholding certificates (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): the payer issues each payee the two-copy withholding certificate by 15 February of the following year; register TH-PIT-09",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 13), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_EXIT",
+				"label": "Withholding certificate on departure (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): where employment ends during the year, the certificate is issued within one month of the day it ends; register TH-PIT-09",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_months(employment.exit_date, 1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "FINAL_PAY_DUE",
+				"label": "Money owed on an employer termination",
+				"authority": "Labour Protection Act s.70 para.2 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): where the employer terminates, wages and other money owed on termination are paid within three days of the termination; register TH-EXIT-01, TH-HR-30",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]"
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_CONDITION_REPORT",
+				"label": "Annual report on employment conditions",
+				"authority": "Labour Protection Act s.115/1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; as in force from 7 December 2025): an employer of ten or more employees reports its employment conditions to the labour inspector within January of every year; headcount read on 1 January; register TH-ADMIN-02",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(period.start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "EWF_REMITTANCE",
+				"label": "Employee Welfare Fund contributions",
+				"authority": "Labour Protection Act ss.130–131 (commencement decree B.E.2568, https://ratchakitcha.soc.go.th/documents/84794.pdf; rate regulation, https://ratchakitcha.soc.go.th/documents/86102.pdf): the employee’s contribution deducted at each wage payment and the employer’s matching share are remitted by the 15th of the following month; coverage read as ten or more employments on the pay date; register TH-EWF-03",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
 			}
 		]
 	},
@@ -4483,7 +6038,7 @@
 				"assessment_period": "PAY_PERIOD",
 				"counts_statutory": false,
 				"counts_loans": true,
-				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION", "SEIZURE_ORDER"],
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
@@ -4541,7 +6096,16 @@
 				"https://infocenter.oic.go.th"
 			]
 		},
-		"facts": [],
+		"facts": [
+			{
+				"key": "employer_legal_class",
+				"type": "code",
+				"table": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class (LPA s.4)",
+				"description": "Labour Protection Act s.4 para.1: the Act does not apply to central, provincial or local government administration or to a state enterprise under the State Enterprise Labour Relations Act; s.4/1 (No.9) extends only listed rights to a person such a body hires by service contract. A private company that works on government premises or for a government body is PRIVATE. Owner rule 2026-09-30 (register TH-WAGE-05, -08): default PRIVATE, since the Act covers every employer s.4 does not exclude.",
+				"default_value": "PRIVATE"
+			}
+		],
 		"exit_facts": [
 			{
 				"key": "dismissed_for_cause",
@@ -4651,6 +6215,21 @@
 				"label": "Pregnancy status",
 				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
 				"options": ["PREGNANT", "NOT_PREGNANT"]
+			},
+			{
+				"key": "wage_route",
+				"type": "code",
+				"table": "WAGE_ROUTE",
+				"label": "Wage-law route",
+				"description": "Which wage law the contract falls under. The Ministry’s explanation of Notice 14 puts work that seeks no economic profit, cargo work on sea-going vessels and seasonal agriculture outside the notice; home work, sea fishing and seafaring have their own statutes. Owner rule 2026-09-30 (register TH-WAGE-09–12): default NOTICE_14; an excluded route keeps the Notice 14 floor with a run warning (an exclusion only lifts a minimum, so paying it is lawful), and a special-statute route is refused, never priced as LPA employment. Record the route of the work actually done, not the employer’s incorporation or tax status.",
+				"default_value": "NOTICE_14"
+			},
+			{
+				"key": "skill_standard",
+				"type": "code",
+				"table": "SKILL_STANDARD",
+				"label": "Skill standard (occupation and grade)",
+				"description": "Wage Committee Notice on skill-standard wage rates No.15 (Gazette vol.143 special part 150 Ngor, 16 June 2026, https://ratchakitcha.soc.go.th/documents/117083.pdf) cls.3–6: the rate is owed per normal working day to an employee whose work needs all or part of the standard’s skill (cl.5), and to a tested employee from the day the employer receives the certificate (cl.6). Start the terms revision on that day. Empty: no skill standard."
 			}
 		],
 		"obligations": [
@@ -4724,6 +6303,277 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class: whether the Labour Protection Act covers the employer (company.facts.employer_legal_class)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "WAGE_ROUTE",
+				"label": "Wage-law route of a contract: ordinary Notice 14 employment, a Notice 14 exclusion, or a special statute (terms.facts.wage_route)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "SKILL_STANDARD",
+				"label": "Skill-standard daily wage rates by occupation and grade (Wage Committee skill-standard notices; terms.facts.skill_standard)",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "daily_rate",
+						"type": "number",
+						"label": "Daily rate (THB) for a normal working day",
+						"minimum": 0
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "PUBLIC_EMPLOYER_OUTSIDE_LPA",
+				"at": "PAYSLIP",
+				"when": "has(company.facts.employer_legal_class) && company.facts.employer_legal_class != \"PRIVATE\"",
+				"severity": "REFUSE",
+				"message": "the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise, which the Labour Protection Act and Notice 14 do not cover; this lineage prices only the Act’s employers, so pay these employees under the body’s own pay instrument",
+				"authority": "Labour Protection Act s.4 para.1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); Ministry explanation of Notice 14 item 9 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); register TH-WAGE-05, TH-WAGE-08"
+			},
+			{
+				"code": "SPECIAL_STATUTE_WORK",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"HOME_WORK\", \"SEA_FISHING\", \"SEAFARER\"]",
+				"severity": "REFUSE",
+				"message": "the terms record work under its own statute (commissioned home work, sea fishing or seafaring), which this lineage does not price as Labour Protection Act employment; record it outside payroll or under a lineage that transcribes that statute",
+				"authority": "Home Workers Protection Act B.E.2553; Labour Protection in Fishery Work Act B.E.2562; Maritime Labour Act B.E.2558; register TH-WAGE-11, TH-HR-19, -20, -21"
+			},
+			{
+				"code": "WAGE_ROUTE_SPECIAL_RULE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"NON_PROFIT_WORK\", \"VESSEL_CARGO_HANDLING\", \"SEASONAL_AGRICULTURE\"]",
+				"severity": "WARN",
+				"message": "the terms record work Notice 14’s explanation puts outside the notice; the run still holds it to the Notice 14 daily rate and no special rule for it is transcribed, so confirm any special rate by hand",
+				"authority": "Ministry explanation of Notice 14 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); owner rule 2026-09-30, register TH-WAGE-09, -10, -12"
+			},
+			{
+				"code": "SPOUSE_BIRTH_LEAVE_WINDOW",
+				"at": "LEAVE_ENTRY",
+				"when": "leave.code == \"CHILD_BIRTH_LEAVE\" && (!has(leave.facts.event_date) || leave.facts.event_date == \"\" || leave.from < leave.facts.event_date || leave.to > add_days(leave.facts.event_date, 90))",
+				"severity": "REFUSE",
+				"message": "spouse-birth leave is taken within 90 days counted from the birth: record the birth day as the event date and keep every day of the leave from the birth to the 90th day after it",
+				"authority": "Labour Protection Act s.41/1 added by No.9 B.E.2568 (https://ratchakitcha.soc.go.th/documents/89818.pdf); Civil and Commercial Code s.193/3 para.2 (the first day of a period is not counted); owner rule 2026-09-28, register TH-LEAVE-03: a day before the birth is outside the window"
+			},
+			{
+				"code": "SEIZURE_PROTECTED_WAGE",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"SEIZURE_ORDER\" && deduction.net - deduction.amount < 20000.0",
+				"severity": "REFUSE",
+				"message": "the seizure order would leave less than THB20,000 of the month’s pay, the part of wages the Civil Procedure Code protects from seizure; withhold only the excess (or the lower amount the enforcement officer fixed)",
+				"authority": "Civil Procedure Code s.302(3) (wages of a non-government employee up to THB20,000 a month in total are not subject to seizure, or the amount the officer sets); owner rule 2026-09-30, register TH-DEDUCT-03: measured on net pay after tax, social security and every other deduction"
+			},
+			{
+				"code": "SKILL_STANDARD_DAILY_RATE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.skill_standard) && terms.facts.skill_standard != \"\" && terms.pay_frequency != \"HOURLY\" && table(\"SKILL_STANDARD\", terms.facts.skill_standard) != null && (terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary * 52.0 / 12.0 / 30.0 : terms.basic_salary / 30.0)) < double(table(\"SKILL_STANDARD\", terms.facts.skill_standard).daily_rate)",
+				"severity": "REFUSE",
+				"message": "the wage is below the skill-standard daily rate of the standard these terms record; a daily wage is compared as it is, a monthly or semi-monthly one as its month ÷ 30 and a weekly one × 52 ÷ 12 ÷ 30",
+				"authority": "Wage Committee skill-standard Notice No.15 cls.3–6 (https://ratchakitcha.soc.go.th/documents/117083.pdf); LPA ss.88, 90; owner rule 2026-09-28 (register TH-WAGE-01): the day of a monthly wage is its month ÷ 30; register TH-SKILL-02"
+			},
+			{
+				"code": "SKILL_STANDARD_HOURLY_TERMS",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.skill_standard) && terms.facts.skill_standard != \"\" && terms.pay_frequency == \"HOURLY\"",
+				"severity": "REFUSE",
+				"message": "the terms record a skill standard on hourly pay; this lineage compares a skill-standard rate only with a daily, weekly, semi-monthly or monthly wage, so state the wage per day or month",
+				"authority": "Wage Committee skill-standard Notice No.15 cl.4 (https://ratchakitcha.soc.go.th/documents/117083.pdf): the rate is per normal working day; register TH-SKILL-02"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SSO_REGISTRATION",
+				"label": "Insured-person registration (สปส.1-03)",
+				"authority": "Social Security Act s.34 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer files the insured person’s registration within 30 days from the day the employee becomes insured; Civil and Commercial Code s.193/3 para.2 (the first day not counted); register TH-SS-01, TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_EXIT_NOTICE",
+				"label": "Insured person leaving (สปส.6-09)",
+				"authority": "Social Security Act s.44 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer notifies the Office that an insured person has left by the 15th of the month after the month of leaving; register TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(month_end(employment.exit_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"label": "Social security contributions and return (สปส.1-10)",
+				"authority": "Social Security Act s.47 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employee share deducted at each wage payment and the employer’s share are remitted with the contribution return by the 15th of the month after the deduction; s.49 adds 2% a month on late payment (not priced here). The run carries no per-scheme total for a scheme remitted unrounded, so the instance states the due day and the return reference, not the amount; register TH-SS-01",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"label": "Monthly withholding return (ภ.ง.ด.1) and remittance",
+				"authority": "Revenue Code ss.52, 58(1), 59 (https://www.rd.go.th/5937.html): tax withheld under s.50(1) is filed and remitted within 7 days of the month after the month of payment; the e-filing extension to 15 days (RD notice for filings due 1 Feb 2024–31 Jan 2027) is later and not modelled, so the statutory day is the due day. Raised for every finalised run (owner rule 2026-09-30: a month in which nothing was withheld is waived with that reason); the amount is the run’s PIT withholding, not carried on the instance; register TH-PIT-04",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"label": "Annual withholding summary (ภ.ง.ด.1ก)",
+				"authority": "Revenue Code s.58(2) (https://www.rd.go.th/5937.html): the annual summary of s.40(1) payments and tax withheld is filed within February of the following year (the e-filing extension to 8 March is not modelled); register TH-PIT-04",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 14), -1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_YEAR",
+				"label": "Annual withholding certificates (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): the payer issues each payee the two-copy withholding certificate by 15 February of the following year; register TH-PIT-09",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 13), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_EXIT",
+				"label": "Withholding certificate on departure (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): where employment ends during the year, the certificate is issued within one month of the day it ends; register TH-PIT-09",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_months(employment.exit_date, 1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "FINAL_PAY_DUE",
+				"label": "Money owed on an employer termination",
+				"authority": "Labour Protection Act s.70 para.2 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): where the employer terminates, wages and other money owed on termination are paid within three days of the termination; register TH-EXIT-01, TH-HR-30",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]"
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_CONDITION_REPORT",
+				"label": "Annual report on employment conditions",
+				"authority": "Labour Protection Act s.115/1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; as in force from 7 December 2025): an employer of ten or more employees reports its employment conditions to the labour inspector within January of every year; headcount read on 1 January; register TH-ADMIN-02",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(period.start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "EWF_REMITTANCE",
+				"label": "Employee Welfare Fund contributions",
+				"authority": "Labour Protection Act ss.130–131 (commencement decree B.E.2568, https://ratchakitcha.soc.go.th/documents/84794.pdf; rate regulation, https://ratchakitcha.soc.go.th/documents/86102.pdf): the employee’s contribution deducted at each wage payment and the employer’s matching share are remitted by the 15th of the following month; coverage read as ten or more employments on the pay date; register TH-EWF-03",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
 			}
 		]
 	},
@@ -5163,7 +7013,7 @@
 				"assessment_period": "PAY_PERIOD",
 				"counts_statutory": false,
 				"counts_loans": true,
-				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION"],
+				"exempt_codes": ["SLF_DEDUCTION", "CONSENTED_DEDUCTION", "SEIZURE_ORDER"],
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
@@ -5221,7 +7071,16 @@
 				"https://infocenter.oic.go.th"
 			]
 		},
-		"facts": [],
+		"facts": [
+			{
+				"key": "employer_legal_class",
+				"type": "code",
+				"table": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class (LPA s.4)",
+				"description": "Labour Protection Act s.4 para.1: the Act does not apply to central, provincial or local government administration or to a state enterprise under the State Enterprise Labour Relations Act; s.4/1 (No.9) extends only listed rights to a person such a body hires by service contract. A private company that works on government premises or for a government body is PRIVATE. Owner rule 2026-09-30 (register TH-WAGE-05, -08): default PRIVATE, since the Act covers every employer s.4 does not exclude.",
+				"default_value": "PRIVATE"
+			}
+		],
 		"exit_facts": [
 			{
 				"key": "dismissed_for_cause",
@@ -5331,6 +7190,21 @@
 				"label": "Pregnancy status",
 				"description": "LPA s.39/1: the dated status read before night, overtime or holiday work is allowed.",
 				"options": ["PREGNANT", "NOT_PREGNANT"]
+			},
+			{
+				"key": "wage_route",
+				"type": "code",
+				"table": "WAGE_ROUTE",
+				"label": "Wage-law route",
+				"description": "Which wage law the contract falls under. The Ministry’s explanation of Notice 14 puts work that seeks no economic profit, cargo work on sea-going vessels and seasonal agriculture outside the notice; home work, sea fishing and seafaring have their own statutes. Owner rule 2026-09-30 (register TH-WAGE-09–12): default NOTICE_14; an excluded route keeps the Notice 14 floor with a run warning (an exclusion only lifts a minimum, so paying it is lawful), and a special-statute route is refused, never priced as LPA employment. Record the route of the work actually done, not the employer’s incorporation or tax status.",
+				"default_value": "NOTICE_14"
+			},
+			{
+				"key": "skill_standard",
+				"type": "code",
+				"table": "SKILL_STANDARD",
+				"label": "Skill standard (occupation and grade)",
+				"description": "Wage Committee Notice on skill-standard wage rates No.15 (Gazette vol.143 special part 150 Ngor, 16 June 2026, https://ratchakitcha.soc.go.th/documents/117083.pdf) cls.3–6: the rate is owed per normal working day to an employee whose work needs all or part of the standard’s skill (cl.5), and to a tested employee from the day the employer receives the certificate (cl.6). Start the terms revision on that day. Empty: no skill standard."
 			}
 		],
 		"obligations": [
@@ -5404,6 +7278,277 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "EMPLOYER_LEGAL_CLASS",
+				"label": "Employer legal class: whether the Labour Protection Act covers the employer (company.facts.employer_legal_class)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "WAGE_ROUTE",
+				"label": "Wage-law route of a contract: ordinary Notice 14 employment, a Notice 14 exclusion, or a special statute (terms.facts.wage_route)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "SKILL_STANDARD",
+				"label": "Skill-standard daily wage rates by occupation and grade (Wage Committee skill-standard notices; terms.facts.skill_standard)",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "daily_rate",
+						"type": "number",
+						"label": "Daily rate (THB) for a normal working day",
+						"minimum": 0
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "PUBLIC_EMPLOYER_OUTSIDE_LPA",
+				"at": "PAYSLIP",
+				"when": "has(company.facts.employer_legal_class) && company.facts.employer_legal_class != \"PRIVATE\"",
+				"severity": "REFUSE",
+				"message": "the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise, which the Labour Protection Act and Notice 14 do not cover; this lineage prices only the Act’s employers, so pay these employees under the body’s own pay instrument",
+				"authority": "Labour Protection Act s.4 para.1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); Ministry explanation of Notice 14 item 9 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); register TH-WAGE-05, TH-WAGE-08"
+			},
+			{
+				"code": "SPECIAL_STATUTE_WORK",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"HOME_WORK\", \"SEA_FISHING\", \"SEAFARER\"]",
+				"severity": "REFUSE",
+				"message": "the terms record work under its own statute (commissioned home work, sea fishing or seafaring), which this lineage does not price as Labour Protection Act employment; record it outside payroll or under a lineage that transcribes that statute",
+				"authority": "Home Workers Protection Act B.E.2553; Labour Protection in Fishery Work Act B.E.2562; Maritime Labour Act B.E.2558; register TH-WAGE-11, TH-HR-19, -20, -21"
+			},
+			{
+				"code": "WAGE_ROUTE_SPECIAL_RULE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.wage_route) && terms.facts.wage_route in [\"NON_PROFIT_WORK\", \"VESSEL_CARGO_HANDLING\", \"SEASONAL_AGRICULTURE\"]",
+				"severity": "WARN",
+				"message": "the terms record work Notice 14’s explanation puts outside the notice; the run still holds it to the Notice 14 daily rate and no special rule for it is transcribed, so confirm any special rate by hand",
+				"authority": "Ministry explanation of Notice 14 (https://www.mol.go.th/wp-content/uploads/sites/2/2025/07/%E0%B8%9B%E0%B8%A3%E0%B8%B0%E0%B8%81%E0%B8%B2%E0%B8%A8-%E0%B8%84%E0%B8%88.%E0%B8%82%E0%B8%B1%E0%B9%89%E0%B8%99%E0%B8%95%E0%B9%88%E0%B8%B3-%E0%B8%8914-%E0%B8%A3%E0%B8%A7%E0%B8%A1.pdf); owner rule 2026-09-30, register TH-WAGE-09, -10, -12"
+			},
+			{
+				"code": "SPOUSE_BIRTH_LEAVE_WINDOW",
+				"at": "LEAVE_ENTRY",
+				"when": "leave.code == \"CHILD_BIRTH_LEAVE\" && (!has(leave.facts.event_date) || leave.facts.event_date == \"\" || leave.from < leave.facts.event_date || leave.to > add_days(leave.facts.event_date, 90))",
+				"severity": "REFUSE",
+				"message": "spouse-birth leave is taken within 90 days counted from the birth: record the birth day as the event date and keep every day of the leave from the birth to the 90th day after it",
+				"authority": "Labour Protection Act s.41/1 added by No.9 B.E.2568 (https://ratchakitcha.soc.go.th/documents/89818.pdf); Civil and Commercial Code s.193/3 para.2 (the first day of a period is not counted); owner rule 2026-09-28, register TH-LEAVE-03: a day before the birth is outside the window"
+			},
+			{
+				"code": "SEIZURE_PROTECTED_WAGE",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"SEIZURE_ORDER\" && deduction.net - deduction.amount < 20000.0",
+				"severity": "REFUSE",
+				"message": "the seizure order would leave less than THB20,000 of the month’s pay, the part of wages the Civil Procedure Code protects from seizure; withhold only the excess (or the lower amount the enforcement officer fixed)",
+				"authority": "Civil Procedure Code s.302(3) (wages of a non-government employee up to THB20,000 a month in total are not subject to seizure, or the amount the officer sets); owner rule 2026-09-30, register TH-DEDUCT-03: measured on net pay after tax, social security and every other deduction"
+			},
+			{
+				"code": "SKILL_STANDARD_DAILY_RATE",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.skill_standard) && terms.facts.skill_standard != \"\" && terms.pay_frequency != \"HOURLY\" && table(\"SKILL_STANDARD\", terms.facts.skill_standard) != null && (terms.pay_frequency == \"DAILY\" ? terms.basic_salary : (terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary * 52.0 / 12.0 / 30.0 : terms.basic_salary / 30.0)) < double(table(\"SKILL_STANDARD\", terms.facts.skill_standard).daily_rate)",
+				"severity": "REFUSE",
+				"message": "the wage is below the skill-standard daily rate of the standard these terms record; a daily wage is compared as it is, a monthly or semi-monthly one as its month ÷ 30 and a weekly one × 52 ÷ 12 ÷ 30",
+				"authority": "Wage Committee skill-standard Notice No.15 cls.3–6 (https://ratchakitcha.soc.go.th/documents/117083.pdf); LPA ss.88, 90; owner rule 2026-09-28 (register TH-WAGE-01): the day of a monthly wage is its month ÷ 30; register TH-SKILL-02"
+			},
+			{
+				"code": "SKILL_STANDARD_HOURLY_TERMS",
+				"at": "PAYSLIP",
+				"when": "has(terms.facts.skill_standard) && terms.facts.skill_standard != \"\" && terms.pay_frequency == \"HOURLY\"",
+				"severity": "REFUSE",
+				"message": "the terms record a skill standard on hourly pay; this lineage compares a skill-standard rate only with a daily, weekly, semi-monthly or monthly wage, so state the wage per day or month",
+				"authority": "Wage Committee skill-standard Notice No.15 cl.4 (https://ratchakitcha.soc.go.th/documents/117083.pdf): the rate is per normal working day; register TH-SKILL-02"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SSO_REGISTRATION",
+				"label": "Insured-person registration (สปส.1-03)",
+				"authority": "Social Security Act s.34 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer files the insured person’s registration within 30 days from the day the employee becomes insured; Civil and Commercial Code s.193/3 para.2 (the first day not counted); register TH-SS-01, TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_EXIT_NOTICE",
+				"label": "Insured person leaving (สปส.6-09)",
+				"authority": "Social Security Act s.44 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employer notifies the Office that an insured person has left by the 15th of the month after the month of leaving; register TH-SS-12",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(month_end(employment.exit_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SSO_MONTHLY_REMITTANCE",
+				"label": "Social security contributions and return (สปส.1-10)",
+				"authority": "Social Security Act s.47 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09): the employee share deducted at each wage payment and the employer’s share are remitted with the contribution return by the 15th of the month after the deduction; s.49 adds 2% a month on late payment (not priced here). The run carries no per-scheme total for a scheme remitted unrounded, so the instance states the due day and the return reference, not the amount; register TH-SS-01",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1_MONTHLY_FILING",
+				"label": "Monthly withholding return (ภ.ง.ด.1) and remittance",
+				"authority": "Revenue Code ss.52, 58(1), 59 (https://www.rd.go.th/5937.html): tax withheld under s.50(1) is filed and remitted within 7 days of the month after the month of payment; the e-filing extension to 15 days (RD notice for filings due 1 Feb 2024–31 Jan 2027) is later and not modelled, so the statutory day is the due day. Raised for every finalised run (owner rule 2026-09-30: a month in which nothing was withheld is waived with that reason); the amount is the run’s PIT withholding, not carried on the instance; register TH-PIT-04",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(run.pay_date), 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PND1K_ANNUAL_FILING",
+				"label": "Annual withholding summary (ภ.ง.ด.1ก)",
+				"authority": "Revenue Code s.58(2) (https://www.rd.go.th/5937.html): the annual summary of s.40(1) payments and tax withheld is filed within February of the following year (the e-filing extension to 8 March is not modelled); register TH-PIT-04",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 14), -1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_YEAR",
+				"label": "Annual withholding certificates (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): the payer issues each payee the two-copy withholding certificate by 15 February of the following year; register TH-PIT-09",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 13), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "WITHHOLDING_CERTIFICATE_EXIT",
+				"label": "Withholding certificate on departure (50 ทวิ)",
+				"authority": "Revenue Code s.50 bis (https://www.rd.go.th/5937.html): where employment ends during the year, the certificate is issued within one month of the day it ends; register TH-PIT-09",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_months(employment.exit_date, 1)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "FINAL_PAY_DUE",
+				"label": "Money owed on an employer termination",
+				"authority": "Labour Protection Act s.70 para.2 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): where the employer terminates, wages and other money owed on termination are paid within three days of the termination; register TH-EXIT-01, TH-HR-30",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]"
+				},
+				"due": "add_days(employment.exit_date, 3)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_CONDITION_REPORT",
+				"label": "Annual report on employment conditions",
+				"authority": "Labour Protection Act s.115/1 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; as in force from 7 December 2025): an employer of ten or more employees reports its employment conditions to the labour inspector within January of every year; headcount read on 1 January; register TH-ADMIN-02",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(period.start, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "EWF_REMITTANCE",
+				"label": "Employee Welfare Fund contributions",
+				"authority": "Labour Protection Act ss.130–131 (commencement decree B.E.2568, https://ratchakitcha.soc.go.th/documents/84794.pdf; rate regulation, https://ratchakitcha.soc.go.th/documents/86102.pdf): the employee’s contribution deducted at each wage payment and the employer’s matching share are remitted by the 15th of the following month; coverage read as ten or more employments on the pay date; register TH-EWF-03",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "company.headcount >= 10"
+				},
+				"due": "add_days(month_end(run.pay_date), 15)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Filing, receipt or payment reference",
+						"min_length": 1
+					}
+				]
 			}
 		]
 	}

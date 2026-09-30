@@ -1334,5 +1334,85 @@
 		],
 		"counts_toward": [],
 		"raised_by": "MANUAL"
+	},
+	{
+		"id": "288529f0-d4ae-555d-a05b-9bcf2039680f",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "EMPLOYEE_DAMAGE_DEDUCTION",
+		"name": "Deduction for a loss the worker caused (赔偿经济损失)",
+		"authority": "劳部发〔1994〕489号 art.16 and 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html): a loss the worker caused may be recovered from wages as the contract agrees, at most 20% of the month’s wage, never leaving less than the monthly minimum wage — the stored check DAMAGE_DEDUCTION_LIMIT refuses a run past either. Taken from net pay; it reduces no insured or taxable wage (register CN-SH04.employee-damage-20pct).",
+		"eligibility": "",
+		"evidence": "OPTIONAL",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1e71c3c4-ca5a-5e4b-9b28-ce4151cc9dee",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "EMPLOYEE_DAMAGE_DEDUCTION",
+		"name": "Deduction for a loss the worker caused (赔偿经济损失)",
+		"authority": "劳部发〔1994〕489号 art.16 and 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html): a loss the worker caused may be recovered from wages as the contract agrees, at most 20% of the month’s wage, never leaving less than the monthly minimum wage — the stored check DAMAGE_DEDUCTION_LIMIT refuses a run past either. Taken from net pay; it reduces no insured or taxable wage (register CN-SH04.employee-damage-20pct).",
+		"eligibility": "",
+		"evidence": "OPTIONAL",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1726af65-6c7f-537a-90a3-657eaa90c0d0",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "EMPLOYEE_DAMAGE_DEDUCTION",
+		"name": "Deduction for a loss the worker caused (赔偿经济损失)",
+		"authority": "劳部发〔1994〕489号 art.16 and 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html): a loss the worker caused may be recovered from wages as the contract agrees, at most 20% of the month’s wage, never leaving less than the monthly minimum wage — the stored check DAMAGE_DEDUCTION_LIMIT refuses a run past either. Taken from net pay; it reduces no insured or taxable wage (register CN-SH04.employee-damage-20pct).",
+		"eligibility": "",
+		"evidence": "OPTIONAL",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "36d62c09-53ba-51fe-8a38-96d1748dc887",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "EMPLOYEE_DAMAGE_DEDUCTION",
+		"name": "Deduction for a loss the worker caused (赔偿经济损失)",
+		"authority": "劳部发〔1994〕489号 art.16 and 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html): a loss the worker caused may be recovered from wages as the contract agrees, at most 20% of the month’s wage, never leaving less than the monthly minimum wage — the stored check DAMAGE_DEDUCTION_LIMIT refuses a run past either. Taken from net pay; it reduces no insured or taxable wage (register CN-SH04.employee-damage-20pct).",
+		"eligibility": "",
+		"evidence": "OPTIONAL",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL"
 	}
 ]

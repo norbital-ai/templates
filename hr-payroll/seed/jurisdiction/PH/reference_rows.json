@@ -5038,5 +5038,929 @@
 		"range_from": null,
 		"range_to": null,
 		"values": {}
+	},
+	{
+		"id": "a31b1684-a206-59ad-8299-4b917241d011",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1b342639-642b-5a99-b070-d349790f7f52",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8899f479-64ae-5627-82c5-c3303a4b56d4",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b4aaa7aa-f8fe-5a56-86aa-74100c49ee19",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0c705c84-b46a-59cd-a3db-4351e062476b",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6bac7696-e5dc-52b1-b429-a0a4b8140483",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ec94829a-db82-5356-9445-b0234bccc334",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9aa42573-8c3a-587b-ad2d-57556f44b1bd",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "15c26758-67bb-58a9-85e5-3fdf50bab450",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "82b54fb6-3694-5aa0-9417-a24dfb368e2b",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7fd61e1b-86f1-5e06-bae4-3c5ecdd63941",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "278b45ea-2d0c-5258-9b53-b261ee27e54b",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b7a80052-2368-5b16-acae-649fb91ec08d",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2544045d-5b7e-5d3f-b752-46f979bc2a13",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f6061de5-4080-532b-a6fa-5b36a882cfa6",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f0ee35b6-9de9-5778-9cd1-dde8a3532810",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1855859f-4373-547e-b1f7-6494f592aba8",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "aaac63df-3acd-5ac7-a390-0205bb5f01ec",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "68492c3d-d79b-5b90-aae7-e49ce1acc465",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "eb06e1b8-efee-5268-86f3-30ab37e92b5a",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "274a66d0-7a0b-5495-a215-8b4cb4c24024",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "128baaa6-3cda-57d8-8f70-8ef332c4165e",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d83561fc-b7c3-50b2-a874-cd6a0a7837e4",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "539b19e4-442f-5cad-984a-a0c9602e6730",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f6561472-31f3-506b-b781-ed9db5cb0f02",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "5004766d-cc71-5390-aa0c-8784e1492301",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "49cc9360-7ad3-5af0-92ea-94dd05dd0d65",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f4541dfa-a3ef-5b49-836c-4add5cb7fbf1",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "41ee734d-9360-56fd-a68f-e73ae52b1403",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "839ea488-5cc4-5792-b103-d92271628749",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "749d22b1-1074-51d6-a8e9-6d65530a2712",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "46fd6b1e-2b51-546a-966a-8e738bc4e8fa",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f8f4ee85-4140-5bce-96b9-e0595ab1df79",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "de72e413-f10f-544e-94ba-c59c522e7c0f",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "991d8c6c-3ab8-5b09-bf70-65c7035dcfee",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9af44202-9701-51f4-8a91-5495f3f3c3af",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "86de8e70-ceff-59d9-bec7-9f0551e15bed",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "03f2862d-e0d5-5847-8e92-e4972cb8e2b8",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "591312c2-db2d-53cc-a191-b60cb0e2baf5",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "5d783bc7-34e9-586a-b984-65d5ef6cf36b",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "5d8ddb7f-4a1a-50b9-b84b-3970c4adc3c7",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a8e5de5d-6aed-5185-b88d-86d6220d2ba5",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "af2777b5-762b-5323-be51-fb7da1111cb8",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f53b10a6-1010-54f4-9350-d8ddafa8433a",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ba7e5cb0-7207-5331-a217-29454a7ae365",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "650cbdf0-a505-505d-b408-101e25e2a273",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "255dcc2e-5ed0-53b4-a524-f7d70791aab3",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "67ba7f58-35ba-5e2d-9a8e-3f2a04dc43a4",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "59c115fc-ba38-52dc-8648-fb6348b8871b",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7c314e4e-4230-5604-a7b0-33854f69813b",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "781a2fb8-5f7c-5535-a2b0-bc13a1bdec66",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "436fdb1b-5bdc-5752-9811-dd14d917830f",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "28fe8112-5aad-52a7-84c1-189c9ab60808",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7f7cd8ea-9480-5a69-a6dc-85cd10c1fb83",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "4ddf93ce-744b-59ac-80c6-719cd424bfb3",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "347b2559-e2bc-55b9-9f80-70e3eb16b4d0",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9ca33411-5758-55a2-9a83-f2831667b3b1",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "19f35caa-ad97-564b-a21f-92f0ad98e678",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7657d206-3b64-5b9f-bc1a-c4ce6a6a5385",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "89e18dfd-b16d-5ed9-a42e-f8da17d3ccf2",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "352ea663-80e1-5d48-bd31-e88faab0a4b6",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9d510a9c-d707-5540-badc-d402812c58b1",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b016bf50-2e69-5b8b-a9d1-5fb15cf7b051",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "45ef77c3-964b-53a8-a846-7f231d7f40d3",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "EBET_PROGRAM",
+		"code": "GENERAL",
+		"label": "General enterprise-based training (RA 12063 s.4(f): at most six months)",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2546873d-0a82-5b28-910b-1ebaaba3ca3e",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "EBET_PROGRAM",
+		"code": "APPRENTICESHIP",
+		"label": "Apprenticeship (RA 12063 s.13(b): at least 75% of the minimum wage)",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "33d65e7c-8773-52ca-aeb2-5da3108d6602",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "EBET_PROGRAM",
+		"code": "UPSKILLING",
+		"label": "Upskilling of an existing employee (RA 12063 s.12: full wages and benefits kept)",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
 	}
 ]

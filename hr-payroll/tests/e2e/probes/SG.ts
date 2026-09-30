@@ -62,6 +62,8 @@ type Terms = {
 	classification?: 'EA_COVERED' | 'MANAGERIAL';
 	/** The opening attendance declaration: absence decided outside through `through`, `absent` unexcused days. */
 	opening?: { through: string; absent: number };
+	/** Declared terms inputs (`terms_facts`). */
+	facts?: Row;
 };
 type Hire = {
 	name: string;
@@ -126,6 +128,7 @@ function hire(h: Hire): ProbeInput[] {
 							opening_unexcused_absence_days: t.opening.absent,
 							opening_attendance_reference: 'PROBE-OPENING-ATTENDANCE'
 						}),
+				...(t.facts == null ? {} : { facts: t.facts }),
 				effective_range: { from: t.from ?? from, to: t.to ?? h.to ?? null }
 			}
 		})),
@@ -3208,3 +3211,462 @@ register(
 		lines: pay(28000, { CPF: [2800, 2380], CDAC: [3, 0], SDL: [0, 11.25] })
 	})
 );
+
+// ── Phase 2 (capability plan §4): stored checks, PWM reference rows and the obligation ledger ─────────────────
+
+/** The last terms row of `inputs`, expected refused with `pattern`. */
+const refuseLastTerms = (inputs: readonly ProbeInput[], pattern: string): ProbeInput[] => {
+	const last = inputs.findLastIndex((input) => input.collection === 'employment_terms');
+	return inputs.map((input, index) => (index === last ? { ...input, refused: pattern } : input));
+};
+/** `e_job` recorded as leaving on `lastDay` for `ground`; `refused` expects the stored EXIT checks to refuse it. */
+const leave = (lastDay: string, ground: string, refused?: string): ProbeInput => ({
+	collection: 'employments',
+	target: '@e_job',
+	values: { effective_range: { from: HIRED, to: lastDay }, exit_ground: ground },
+	...(refused === undefined ? {} : { refused })
+});
+/** A case whose oracle is a refusal or saved rows: the event run commits, and no payslip is pinned. */
+const noSlip = (c: Parameters<typeof sg>[0], saved?: ProbeCase['saved']): ProbeCase => ({
+	...sg(c),
+	expected: [],
+	...(saved === undefined ? {} : { saved })
+});
+
+const RRA_2026 =
+	'Retirement and Re-employment Act 1993 s.4(1): no employer shall dismiss an employee below the prescribed minimum retirement age on the ground of age; Retirement and Re-employment Notifications S 187/2026, in force 1 July 2026 (https://sso.agc.gov.sg/SL/RRA1993-S187-2026?DocDate=20260401&ValidDate=20260701&ViewType=Within); MOM cohorts: born 1 July 1958–30 June 1960 retirement age 62, born 1 July 1960–30 June 1963 63, born from 1 July 1963 64 (re-employment to 69 for all three)';
+/** A Chinese citizen born `born`, on SGD 3,000 from 2 June 2025. */
+const older = (born: string) =>
+	hire({ name: 'Lim Ah Kow', born, race: 'CHINESE', terms: [{ salary: 3000 }] });
+
+register(
+	// ── SG-HR24.born-from-1963 / .born-1960-1963 / .born-1958-1960 ──────────────────────────────────────────────
+	noSlip({
+		id: 'SG-HR24-1',
+		description:
+			'Born 10 February 1964 (the from-1 July 1963 cohort): a RETIREMENT exit on 30 September 2026, aged 62, is refused — the cohort’s minimum retirement age is 64.',
+		citation: [
+			`${RRA_2026}: age on 30 Sep 2026 = 62 < 64 → refused (check RETIREMENT_BELOW_MINIMUM_AGE)`
+		],
+		period: '2026-09',
+		inputs: [...older('1964-02-10'), leave('2026-09-30', 'RETIREMENT', 'minimum retirement age')],
+		lines: {}
+	}),
+	noSlip(
+		{
+			id: 'SG-HR24-2',
+			description:
+				'Born 20 November 1962 (the 1 July 1960–30 June 1963 cohort): a RETIREMENT exit on 30 September 2026 at 63 is saved — a flat 64 would have refused it.',
+			citation: [`${RRA_2026}: age on 30 Sep 2026 = 63, not below the cohort’s 63 → saved`],
+			period: '2026-08',
+			inputs: [...older('1962-11-20'), leave('2026-09-30', 'RETIREMENT')],
+			lines: {}
+		},
+		[{ collection: 'employments', where: { id: '@e_job' }, rows: [{ exit_ground: 'RETIREMENT' }] }]
+	),
+	noSlip(
+		{
+			id: 'SG-HR24-3',
+			description:
+				'Born 1 August 1959 (the 1 July 1958–30 June 1960 cohort): a RETIREMENT exit on 30 September 2026 at 67 is saved.',
+			citation: [`${RRA_2026}: age on 30 Sep 2026 = 67, not below the cohort’s 62 → saved`],
+			period: '2026-08',
+			inputs: [...older('1959-08-01'), leave('2026-09-30', 'RETIREMENT')],
+			lines: {}
+		},
+		[{ collection: 'employments', where: { id: '@e_job' }, rows: [{ exit_ground: 'RETIREMENT' }] }]
+	)
+);
+
+// ── SG-HR31 (Work Permit declared salary), SG-HR32 (EP/S Pass reduction needs the Controller) ─────────────────
+const WP_SALARY =
+	'Employment of Foreign Manpower (Work Passes) Regulations 2012 Fourth Schedule: pay the Work Permit holder at least the fixed monthly salary (basic plus fixed monthly allowances) declared to the Controller (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc4-&ValidDate=20260101); MOM, Paying the salary (https://www.mom.gov.sg/passes-and-permits/work-permit-for-foreign-worker/sector-specific-rules/paying-the-salary)';
+const PASS_REDUCTION =
+	'Employment of Foreign Manpower (Work Passes) Regulations 2012 Fifth/Sixth Schedules: an EP or S Pass salary reduction needs the Controller’s reassessment first (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc5-&ValidDate=20260101)';
+const foreigner = (pass: string, terms: readonly Terms[]) =>
+	hire({
+		name: 'Wang Jun',
+		born: '1990-03-15',
+		race: 'CHINESE',
+		nationality: 'Chinese',
+		terms: terms.map((t): Terms => ({ residency: 'FOREIGNER', pass, ...t }))
+	});
+
+register(
+	sg({
+		id: 'SG-HR31-1',
+		description:
+			'A Work Permit holder declared at SGD 1,800 and paid 1,800 to 31 August 2026; a revision to 1,600 from 1 September is refused. August pays 1,800 with SDL only.',
+		citation: [
+			`${WP_SALARY}: 1,600 < 1,800 → refused (check WORK_PERMIT_BELOW_DECLARED_SALARY)`,
+			`${CPF_ACT}: no CPF or CDAC for a foreign employee`,
+			`${SDL}: 0.25% × 1,800 = 4.50`
+		],
+		period: '2026-08',
+		inputs: refuseLastTerms(
+			foreigner('WORK_PERMIT', [
+				{ salary: 1800, to: '2026-08-31', facts: { declared_fixed_monthly_salary: 1800 } },
+				{ salary: 1600, from: '2026-09-01', facts: { declared_fixed_monthly_salary: 1800 } }
+			]),
+			'declared to the Controller'
+		),
+		lines: { BASIC: 1800, ...pay(1800, { SDL: [0, 4.5] }) }
+	}),
+	sg({
+		id: 'SG-HR31-2',
+		description:
+			'The same Work Permit holder revised to SGD 1,900 from 1 September 2026, above the declared 1,800: saved, and September pays 1,900.',
+		citation: [`${WP_SALARY}: 1,900 ≥ 1,800 → saved`, `${SDL}: 0.25% × 1,900 = 4.75`],
+		period: '2026-09',
+		inputs: foreigner('WORK_PERMIT', [
+			{ salary: 1800, to: '2026-08-31', facts: { declared_fixed_monthly_salary: 1800 } },
+			{ salary: 1900, from: '2026-09-01', facts: { declared_fixed_monthly_salary: 1800 } }
+		]),
+		lines: { BASIC: 1900, ...pay(1900, { SDL: [0, 4.75] }) }
+	}),
+	sg({
+		id: 'SG-HR32-1',
+		description:
+			'An Employment Pass holder on SGD 6,000 to 31 August 2026; a reduction to 5,000 from 1 September with no Controller reassessment is refused. August pays 6,000.',
+		citation: [
+			`${PASS_REDUCTION}: 5,000 < 6,000 and no reassessment recorded → refused (check PASS_SALARY_REDUCTION_UNAPPROVED)`,
+			`${SDL}: 6,000 > 4,500 → $11.25`
+		],
+		period: '2026-08',
+		inputs: refuseLastTerms(
+			foreigner('EMPLOYMENT_PASS', [
+				{ salary: 6000, to: '2026-08-31' },
+				{ salary: 5000, from: '2026-09-01' }
+			]),
+			'without a recorded Controller reassessment'
+		),
+		lines: { BASIC: 6000, ...pay(6000, { SDL: [0, 11.25] }) }
+	}),
+	sg({
+		id: 'SG-HR32-2',
+		description:
+			'The same reduction to SGD 5,000 with the Controller’s reassessment recorded: saved, and September pays 5,000.',
+		citation: [
+			`${PASS_REDUCTION}: reassessment recorded → saved`,
+			`${SDL}: 5,000 > 4,500 → $11.25`
+		],
+		period: '2026-09',
+		inputs: foreigner('EMPLOYMENT_PASS', [
+			{ salary: 6000, to: '2026-08-31' },
+			{
+				salary: 5000,
+				from: '2026-09-01',
+				facts: { pass_salary_reassessment_ref: 'MOM-REASSESSMENT-PROBE-1' }
+			}
+		]),
+		lines: { BASIC: 5000, ...pay(5000, { SDL: [0, 11.25] }) }
+	})
+);
+
+// ── SG-PWM01–10: the PWM_ROLE reference rows and the PWM_BELOW_FLOOR payslip warning ─────────────────────────
+const PWM = (page: string, table: string) =>
+	`MOM, Progressive Wage Model — ${table} (https://www.mom.gov.sg/employment-practices/progressive-wage-model/${page}, read 2026-10-01)`;
+const PWM_WARNING = 'PWM_BELOW_FLOOR: P-SG-001: .*Progressive Wage floor';
+/** A Chinese citizen aged 30 on `salary` in PWM job level `role`. */
+const pwmWorker = (salary: number, role: string) =>
+	hire({
+		name: 'Tan Wei Ming',
+		born: '1996-04-18',
+		race: 'CHINESE',
+		terms: [{ salary, facts: { pwm_role: role } }]
+	});
+/** One PWM case: a citizen on `salary` in `role`, warned or not, with the hand-computed CPF/CDAC/SDL. */
+const pwm = (c: {
+	id: string;
+	description: string;
+	citation: readonly string[];
+	period: string;
+	salary: number;
+	role: string;
+	warned: boolean;
+	charges: Record<string, readonly [number, number]>;
+}) =>
+	sg({
+		id: c.id,
+		description: c.description,
+		citation: c.citation,
+		period: c.period,
+		inputs: pwmWorker(c.salary, c.role),
+		lines: { BASIC: c.salary, ...pay(c.salary, c.charges) },
+		warnings: c.warned ? [PWM_WARNING] : []
+	});
+const CLEANING = PWM(
+	'cleaning-sector',
+	'Group 1 office and commercial: general/indoor cleaner $1,910 (1 Jul 2025–30 Jun 2026), $2,080 (1 Jul 2026–30 Jun 2027), monthly basic wage'
+);
+
+register(
+	pwm({
+		id: 'SG-PWM02-1',
+		description:
+			'A citizen general office cleaner on SGD 2,000 basic in June 2026: above the $1,910 floor of the July 2025 schedule, no warning.',
+		citation: [
+			`${CLEANING}: 2,000 ≥ 1,910 → no warning`,
+			`${CPF_2026}: 37% × 2,000 = 740; employee 400; employer 340`,
+			`${SHG}: CDAC $0.50 (≤$2,000)`,
+			`${SDL}: 0.25% × 2,000 = 5.00`
+		],
+		period: '2026-06',
+		salary: 2000,
+		role: 'CLEAN_OFFICE_GENERAL',
+		warned: false,
+		charges: { CPF: [400, 340], CDAC: [0.5, 0], SDL: [0, 5] }
+	}),
+	pwm({
+		id: 'SG-PWM02-2',
+		description:
+			'The same cleaner on SGD 2,000 in September 2026: under the $2,080 floor from 1 July 2026, so the run warns.',
+		citation: [
+			`${CLEANING}: 2,000 < 2,080 → PWM_BELOW_FLOOR warning`,
+			`${CPF_2026}: 37% × 2,000 = 740; employee 400; employer 340`,
+			`${SHG}: CDAC $0.50`,
+			`${SDL}: 5.00`
+		],
+		period: '2026-09',
+		salary: 2000,
+		role: 'CLEAN_OFFICE_GENERAL',
+		warned: true,
+		charges: { CPF: [400, 340], CDAC: [0.5, 0], SDL: [0, 5] }
+	}),
+	pwm({
+		id: 'SG-PWM02-3',
+		description:
+			'A citizen general office cleaner on SGD 2,080 in September 2026: exactly the floor, no warning.',
+		citation: [
+			`${CLEANING}: 2,080 ≥ 2,080 → no warning`,
+			`${CPF_2026}: 37% × 2,080 = 769.60 → 770; employee 20% = 416; employer 354`,
+			`${SHG}: CDAC $1 (>$2,000–3,500)`,
+			`${SDL}: 0.25% × 2,080 = 5.20`
+		],
+		period: '2026-09',
+		salary: 2080,
+		role: 'CLEAN_OFFICE_GENERAL',
+		warned: false,
+		charges: { CPF: [416, 354], CDAC: [1, 0], SDL: [0, 5.2] }
+	}),
+	sg({
+		id: 'SG-PWM01-1',
+		description:
+			'A Work Permit general office cleaner on SGD 1,500 in September 2026: PWM wages bind local (citizen and SPR) workers only, so no warning.',
+		citation: [
+			`${PWM('what-is-pwm', 'PWM applies to Singapore citizen and permanent resident workers')}: a foreign worker → no warning`,
+			`${CPF_ACT}: no CPF or CDAC for a foreign employee`,
+			`${SDL}: 0.25% × 1,500 = 3.75`
+		],
+		period: '2026-09',
+		inputs: foreigner('WORK_PERMIT', [
+			{ salary: 1500, facts: { pwm_role: 'CLEAN_OFFICE_GENERAL' } }
+		]),
+		lines: { BASIC: 1500, ...pay(1500, { SDL: [0, 3.75] }) },
+		warnings: []
+	}),
+	pwm({
+		id: 'SG-PWM03-1',
+		description:
+			'A citizen outsourced security officer on SGD 3,000 basic in February 2026: under the $3,090 floor of 2026, so the run warns.',
+		citation: [
+			`${PWM('security-sector', 'outsourced security officer basic monthly wage $2,870 (2025), $3,090 (1 Jan–31 Dec 2026)')}: 3,000 < 3,090 → warning`,
+			CPF_BASE_3000,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 7.50`
+		],
+		period: '2026-02',
+		salary: 3000,
+		role: 'SECURITY_OUTSOURCED_OFFICER',
+		warned: true,
+		charges: { CPF: [600, 510], CDAC: [1, 0], SDL: [0, 7.5] }
+	}),
+	pwm({
+		id: 'SG-PWM04-1',
+		description:
+			'A citizen landscape worker on SGD 2,000 basic in September 2026: under the $2,095 floor, so the run warns.',
+		citation: [
+			`${PWM('landscape-sector', 'landscape worker $1,950 (1 Jul 2025–30 Jun 2026), $2,095 (1 Jul 2026–30 Jun 2027), monthly basic wage')}: 2,000 < 2,095 → warning`,
+			`${CPF_2026}: 740; employee 400; employer 340`,
+			`${SHG}: CDAC $0.50`,
+			`${SDL}: 5.00`
+		],
+		period: '2026-09',
+		salary: 2000,
+		role: 'LANDSCAPE_WORKER',
+		warned: true,
+		charges: { CPF: [400, 340], CDAC: [0.5, 0], SDL: [0, 5] }
+	}),
+	pwm({
+		id: 'SG-PWM05-1',
+		description:
+			'A citizen assistant lift and escalator specialist on SGD 2,700 basic in September 2026: under the $2,750 floor, so the run warns.',
+		citation: [
+			`${PWM('lift-and-escalator-sector', 'assistant L&E specialist $2,525 (1 Jul 2025–30 Jun 2026), $2,750 (1 Jul 2026–30 Jun 2027), monthly basic wage')}: 2,700 < 2,750 → warning`,
+			`${CPF_2026}: 37% × 2,700 = 999; employee 540; employer 459`,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 0.25% × 2,700 = 6.75`
+		],
+		period: '2026-09',
+		salary: 2700,
+		role: 'LIFT_ASSISTANT_SPECIALIST',
+		warned: true,
+		charges: { CPF: [540, 459], CDAC: [1, 0], SDL: [0, 6.75] }
+	}),
+	pwm({
+		id: 'SG-PWM06-1',
+		description:
+			'A citizen retail assistant on SGD 2,400 in August 2026: above the $2,305 floor of 1 Sep 2025–31 Aug 2026, no warning.',
+		citation: [
+			`${PWM('retail-sector', 'retail assistant/cashier $2,305 (1 Sep 2025–31 Aug 2026), $2,435 (1 Sep 2026–31 Aug 2027), monthly gross wage excluding OT')}: 2,400 ≥ 2,305 → no warning`,
+			`${CPF_2026}: 37% × 2,400 = 888; employee 480; employer 408`,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 0.25% × 2,400 = 6.00`
+		],
+		period: '2026-08',
+		salary: 2400,
+		role: 'RETAIL_ASSISTANT',
+		warned: false,
+		charges: { CPF: [480, 408], CDAC: [1, 0], SDL: [0, 6] }
+	}),
+	pwm({
+		id: 'SG-PWM06-2',
+		description:
+			'The same retail assistant on SGD 2,400 in September 2026: under the $2,435 floor from 1 September 2026, so the run warns.',
+		citation: [
+			`${PWM('retail-sector', 'retail assistant/cashier $2,435 from 1 Sep 2026')}: 2,400 < 2,435 → warning`,
+			`${CPF_2026}: 888; employee 480; employer 408`,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 6.00`
+		],
+		period: '2026-09',
+		salary: 2400,
+		role: 'RETAIL_ASSISTANT',
+		warned: true,
+		charges: { CPF: [480, 408], CDAC: [1, 0], SDL: [0, 6] }
+	}),
+	pwm({
+		id: 'SG-PWM07-1',
+		description:
+			'A citizen quick-service food/drink stall assistant on SGD 2,200 in September 2026: under the $2,220 floor, so the run warns.',
+		citation: [
+			`${PWM('food-services-sector', 'Category A food/drink stall assistant $2,080 (1 Mar 2025–30 Jun 2026), $2,220 (1 Jul 2026–30 Jun 2027), monthly gross wage excluding OT')}: 2,200 < 2,220 → warning`,
+			`${CPF_2026}: 37% × 2,200 = 814; employee 440; employer 374`,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 0.25% × 2,200 = 5.50`
+		],
+		period: '2026-09',
+		salary: 2200,
+		role: 'FOOD_QS_STALL_ASSISTANT',
+		warned: true,
+		charges: { CPF: [440, 374], CDAC: [1, 0], SDL: [0, 5.5] }
+	}),
+	pwm({
+		id: 'SG-PWM08-1',
+		description:
+			'A citizen waste-collection crew member on SGD 2,800 in September 2026: under the $2,840 floor, so the run warns.',
+		citation: [
+			`${PWM('waste-management-sector', 'waste collection crew $2,630 (1 Jul 2025–30 Jun 2026), $2,840 (1 Jul 2026–30 Jun 2027), monthly gross wage excluding OT')}: 2,800 < 2,840 → warning`,
+			`${CPF_2026}: 37% × 2,800 = 1,036; employee 560; employer 476`,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 0.25% × 2,800 = 7.00`
+		],
+		period: '2026-09',
+		salary: 2800,
+		role: 'WASTE_COLLECTION_CREW',
+		warned: true,
+		charges: { CPF: [560, 476], CDAC: [1, 0], SDL: [0, 7] }
+	}),
+	pwm({
+		id: 'SG-PWM09-1',
+		description:
+			'A citizen administrative assistant on SGD 2,100 in September 2026: under the $2,170 Occupational Progressive Wage, so the run warns.',
+		citation: [
+			`${PWM('occupational-pws-for-administrators-and-drivers', 'administrative assistant $1,980 (1 Jul 2025–30 Jun 2026), $2,170 (1 Jul 2026–30 Jun 2027), monthly gross wage')}: 2,100 < 2,170 → warning`,
+			`${CPF_2026}: 37% × 2,100 = 777; employee 420; employer 357`,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 0.25% × 2,100 = 5.25`
+		],
+		period: '2026-09',
+		salary: 2100,
+		role: 'ADMIN_ASSISTANT',
+		warned: true,
+		charges: { CPF: [420, 357], CDAC: [1, 0], SDL: [0, 5.25] }
+	}),
+	pwm({
+		id: 'SG-PWM10-1',
+		description:
+			'A citizen general driver on SGD 2,300 in June 2026: above the old taxonomy’s $2,190 general-driver floor, no warning.',
+		citation: [
+			`${PWM('occupational-pws-for-administrators-and-drivers', 'general driver $2,190 (1 Jul 2025–30 Jun 2026)')}: 2,300 ≥ 2,190 → no warning`,
+			`${CPF_2026}: 37% × 2,300 = 851; employee 460; employer 391`,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 0.25% × 2,300 = 5.75`
+		],
+		period: '2026-06',
+		salary: 2300,
+		role: 'DRIVER_GENERAL',
+		warned: false,
+		charges: { CPF: [460, 391], CDAC: [1, 0], SDL: [0, 5.75] }
+	}),
+	pwm({
+		id: 'SG-PWM10-2',
+		description:
+			'A citizen Group A Level 1 driver (Class 3 licence) on SGD 2,300 in September 2026: under the new taxonomy’s $2,370, so the run warns.',
+		citation: [
+			`${PWM('occupational-pws-for-administrators-and-drivers', 'Group A (Class 3 or below) Level 1 $2,370 (1 Jul 2026–30 Jun 2027)')}: 2,300 < 2,370 → warning`,
+			`${CPF_2026}: 851; employee 460; employer 391`,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 5.75`
+		],
+		period: '2026-09',
+		salary: 2300,
+		role: 'DRIVER_GROUP_A_LEVEL_1',
+		warned: true,
+		charges: { CPF: [460, 391], CDAC: [1, 0], SDL: [0, 5.75] }
+	})
+);
+
+// ── The obligation ledger: SG-CPF05, SG-CPF16, SG-SDL05, SG-SHG01.remittance, SG-EA09, SG-HR01, SG-IRAS05 ───
+const due = (duty: string, subject: string, rows: readonly Row[], ref?: string) => ({
+	collection: 'obligation_instances',
+	where: {
+		duty_code: duty,
+		subject_id: subject,
+		...(ref === undefined ? {} : { trigger_ref: ref })
+	},
+	rows
+});
+
+register({
+	...sg({
+		id: 'SG-OBL-1',
+		description:
+			'A citizen on SGD 3,000 hired 1 September 2026; the September 2026 run raises the month’s CPF, SDL, SHG and salary-payment duties, the hire raises key employment terms, and the calendar raises the IR8A return of 2025 and 2026, each with its cited due day.',
+		citation: [
+			'CPF Regulations 1987 reg.2(1): not later than 14 days after the end of the month → 30 Sep + 14 = 14 Oct 2026 (a Wednesday) (https://sso.agc.gov.sg/SL/CPFA1953-RG15)',
+			'SDL Regulations reg.3: within 14 days after the month → 14 Oct 2026; the month’s levy 7.50 rounded down to the dollar for a local employee = 7 (SSG SDL NOA 2023 FAQ F.7)',
+			'CPF Board: self-help group contributions are paid with the CPF submission → 14 Oct 2026',
+			'Employment Act 1968 s.21(1): salary before the expiry of the 7th day after the salary period → 30 Sep + 7 = 7 Oct 2026',
+			'Employment Act 1968 s.95A(2): key employment terms not later than 14 days after the start → 1 Sep + 14 = 15 Sep 2026',
+			'Income Tax Act 1947 s.68(2); IRAS AIS: IR8A by 1 March of the following year → 1 Mar 2026 (year 2025), 1 Mar 2027 (year 2026)',
+			CPF_BASE_3000,
+			`${SHG}: CDAC $1`,
+			`${SDL}: 7.50`
+		],
+		period: '2026-09',
+		inputs: citizen(3000, { from: '2026-09-01' }),
+		lines: { BASIC: 3000, ...pay(3000, { CPF: [600, 510], CDAC: [1, 0], SDL: [0, 7.5] }) }
+	}),
+	saved: [
+		due('CPF_MONTHLY_SUBMISSION_AND_PAYMENT', '@run', [
+			{ trigger_ref: '2026-09', due_on: '2026-10-14', state: 'OPEN' }
+		]),
+		due('SDL_REMITTANCE', '@run', [{ due_on: '2026-10-14', amount_due: 7 }]),
+		due('SHG_DEDUCTION_REMITTANCE', '@run', [{ due_on: '2026-10-14' }]),
+		due('SALARY_PAYMENT_DEADLINE', '@run', [{ due_on: '2026-10-07' }]),
+		due('KEY_EMPLOYMENT_TERMS', '@e_job', [{ trigger_ref: 'HIRE', due_on: '2026-09-15' }]),
+		due('ANNUAL_EMPLOYMENT_INCOME_RETURN', '@company', [{ due_on: '2026-03-01' }], '2025'),
+		due('ANNUAL_EMPLOYMENT_INCOME_RETURN', '@company', [{ due_on: '2027-03-01' }], '2026')
+	]
+});

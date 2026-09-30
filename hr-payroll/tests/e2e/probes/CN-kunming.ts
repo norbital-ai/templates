@@ -1973,3 +1973,189 @@ register({
 	refused: 'MINIMUM_WAGE_BELOW: P-KM-low is contracted at 2000 a month',
 	expected: []
 });
+
+/** A part-time hourly contract at one worksite, from `from` (the terms row is the case's TERMS_CHANGE). */
+const hourly = (
+	ref: string,
+	from: string,
+	to: string | null,
+	rates: { rate: number; worksite: string; refused?: string }[]
+): ProbeInput[] => [
+	{
+		collection: 'employees',
+		ref,
+		values: {
+			name: `Hourly ${ref}`,
+			date_of_birth: '1995-03-04',
+			gender: 'FEMALE',
+			nationality: 'Chinese'
+		}
+	},
+	{
+		collection: 'employments',
+		ref: `${ref}_job`,
+		values: {
+			employee_id: `@${ref}`,
+			company_id: '@company',
+			employee_number: `P-KM-${ref}`,
+			prior_service_months: 0,
+			effective_range: { from, to }
+		}
+	},
+	...rates.map((r): ProbeInput => ({
+		collection: 'employment_terms',
+		values: {
+			employment_id: `@${ref}_job`,
+			residency_status: 'CITIZEN',
+			tax_residency: 'RESIDENT',
+			currency: 'CNY',
+			base_salary: r.rate,
+			pay_frequency: 'HOURLY',
+			work_classification: 'EA_COVERED',
+			statutory_work_category: 'NON_MANUAL',
+			employment_type: 'PART_TIME',
+			worksite: r.worksite,
+			shift_pattern_id: '@week',
+			effective_range: { from, to }
+		},
+		...(r.refused == null ? {} : { refused: r.refused })
+	}))
+];
+
+const BELOW_HOURLY = 'The hourly rate is below the hourly minimum wage';
+
+register(
+	{
+		...jan21750(
+			'CN-KM-HOURLY-1',
+			'Hourly floors (stored check HOURLY_MINIMUM_WAGE over the MINIMUM_WAGE table): a Wuhua part-timer at 20.99 in December 2025 (floor 21) and at 21.99 in October 2026 (floor 22) is refused and 22.00 is accepted; a Fumin part-timer at 20.99 in October 2026 (class II floor 21) is refused. The January 2026 payroll of the office worker is unchanged.',
+			[
+				'云人社发〔2025〕19号 (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf): hourly CNY21 class I (Wuhua), 20 class II, from 1 October 2025 (CN-KM01.hourly-floors): 20.99 < 21.',
+				'Yunnan HRSS 29 Aug 2026 (https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html): hourly CNY22 class I, 21 class II (Fumin) from 1 September 2026 (CN-KM02.hourly-floors): 21.99 < 22, 22.00 = 22 passes, 20.99 < 21.',
+				'最低工资规定 art.5: the hourly standard applies to non-full-time employment. The office worker’s lines are the shared 21,750 January case (see jan21750).'
+			],
+			[
+				...hourly('h1', '2025-12-01', '2025-12-31', [
+					{ rate: 20.99, worksite: WUHUA, refused: BELOW_HOURLY }
+				]),
+				...hourly('h2', '2026-10-01', null, [
+					{ rate: 21.99, worksite: WUHUA, refused: BELOW_HOURLY },
+					{ rate: 22, worksite: WUHUA }
+				]),
+				...hourly('h3', '2026-10-01', null, [
+					{ rate: 20.99, worksite: FUMIN, refused: BELOW_HOURLY }
+				])
+			],
+			{ gross: 21750, total_deductions: 5207.24, net: 16542.76, 'IIT.employee': 356.99 }
+		)
+	},
+	jan21750(
+		'CN-KM13-1',
+		'High-temperature allowance (derived line HIGH_TEMPERATURE_ALLOWANCE over the work-day fact high_temperature_day): a boiler-room worker at 33°C or above that cannot be lowered on Tuesday 6 and Wednesday 7 January 2026 is owed CNY10 a day, 20, taxed as wages.',
+		[
+			'云人社发〔2013〕98号 (Yunnan HRSS; register CN-KM13): CNY10 per person per working day outdoors at 35°C or above, and indoors at 33°C or above that cannot be brought lower; 防暑降温措施管理办法 art.17 (https://www.nhc.gov.cn/zhjcj/c100093/201207/2cdae24e57d04213944bcc6ef736a69b.shtml): the allowance is paid in wages. 2 × 10 = 20.',
+			'IIT (wage income, STA 2018 No.61 art.6, month 1): 21,770 − 4,850.25 − 5,000 = 11,919.75 × 3% = 357.5925 → 357.59. Net 21,770 − 4,850.25 − 357.59 = 16,562.16. Bases are the declared 21,750, so contributions are unchanged.'
+		],
+		['2026-01-06', '2026-01-07'].map((day) => {
+			const p = punch('w', day, [
+				['09:00', '13:00'],
+				['14:00', '18:00']
+			]);
+			return { ...p, values: { ...p.values, facts: { high_temperature_day: 1 } } };
+		}),
+		{
+			gross: 21770,
+			HIGH_TEMPERATURE_ALLOWANCE: 20,
+			total_deductions: 5207.84,
+			net: 16562.16,
+			'IIT.employee': 357.59
+		}
+	),
+	{
+		id: 'CN-KM11-1',
+		profile: 'CN-kunming',
+		description:
+			'A worker recorded pregnant from 1 May 2025 (eight months in January 2026) is given two extended hours on Monday 5 January 2026: the stored check PREGNANCY_NO_EXTENDED_HOURS refuses the run.',
+		citation: [
+			'云南省女职工劳动保护特别规定 (Order 232) art.10(3) (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (CN-KM11.overtime-night-restriction). add_months(2025-05-01, 7) = 2025-12-01 ≤ the January rule date, and the day has overtime.'
+		],
+		company: { facts: FACTS_2026 },
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({ ref: 'w', name: 'Worker CN-KM11-1', wage: 21750, gender: 'FEMALE' }),
+			{
+				collection: 'person_facts',
+				values: {
+					employee_id: '@w',
+					facts: { pregnancy_start: '2025-05-01' },
+					effective_range: { from: '2025-05-01', to: null },
+					source: 'HR'
+				}
+			},
+			punch(
+				'w',
+				'2026-01-05',
+				[
+					['09:00', '13:00'],
+					['14:00', '20:00']
+				],
+				2
+			)
+		],
+		period: '2026-01',
+		refused:
+			'P-KM-w: A worker under three months or from seven months pregnant cannot be given extended hours',
+		expected: []
+	},
+	{
+		...jan21750(
+			'CN-KM-DUTY-1',
+			'Obligation ledger, January 2026: a worker hired Thursday 1 January 2026 on 21,750 at a unionised entity. The hire raises the social-insurance and housing-fund registrations (due in 30 days); the finalised run raises the housing-fund remittance (five days after payday), the monthly social-insurance declaration (by the 20th) and the union funds (2% of wages).',
+			[
+				'Social Insurance Law art.58 and 云人社规〔2024〕1号 art.13 (CN-KM29.new-worker-registration): 2026-01-01 + 30 days = 2026-01-31.',
+				'昆公积金规〔2020〕2号 arts.6–9 (https://zc.51shebao.com/detail/825467; CN-KM19.hire-registration): 2026-01-01 + 30 = 2026-01-31. Arts.10–14 (CN-KM20.remittance-five-days): the run’s pay date is the period’s last day, 2026-01-31, + 5 = 2026-02-05; both shares 2,610 + 2,610 = 5,220.',
+				'云南税务公告〔2023〕5号 (https://ylbz.yn.gov.cn/index.php?c=show&id=3576; CN-KM17.monthly-declaration): by the 20th of the contribution month (recorded default), 2026-01-20; pension 1,740 + 3,480, medical 435 + 1,522.50, maternity 195.75, unemployment 65.25 + 152.25, injury 43.50 = 7,634.25.',
+				'Yunnan Trade Union Law measure art.27 (https://www.ynrd.gov.cn/html/2022/sssjrdcwhdsswuchy_1130/19708.html; CN-KM35.union-funds-2pct): 21,750 × 2% = 435.00, due the 15th after the wage month (recorded default) = 2026-02-15; art.30 5‰ a day is the stored late charge (CN-KM35.late-fee).'
+			],
+			[],
+			{ gross: 21750, total_deductions: 5207.24, net: 16542.76, 'IIT.employee': 356.99 },
+			{ from: '2026-01-01' }
+		),
+		company: { facts: { ...FACTS_2026, union_established: true } },
+		saved: [
+			...['SI_REGISTRATION', 'HF_ACCOUNT_REGISTRATION'].map((duty_code) => ({
+				collection: 'obligation_instances',
+				where: { company_id: '@company', duty_code, subject_id: '@w_job' },
+				rows: [
+					{
+						subject_kind: 'EMPLOYMENT',
+						trigger_ref: 'HIRE',
+						triggered_on: '2026-01-01',
+						due_on: '2026-01-31',
+						state: 'OPEN'
+					}
+				]
+			})),
+			...(
+				[
+					['HF_REMITTANCE', '2026-02-05', 5220],
+					['SI_TAX_DECLARATION', '2026-01-20', 7634.25],
+					['UNION_FUNDS', '2026-02-15', 435]
+				] as const
+			).map(([duty_code, due_on, amount_due]) => ({
+				collection: 'obligation_instances',
+				where: { company_id: '@company', duty_code, subject_id: '@run' },
+				rows: [
+					{
+						subject_kind: 'RUN',
+						trigger_ref: '2026-01',
+						triggered_on: '2026-01-31',
+						due_on,
+						amount_due,
+						state: 'OPEN'
+					}
+				]
+			}))
+		]
+	}
+);

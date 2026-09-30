@@ -177,8 +177,8 @@ const worked = (
 		...(approved > 0 ? { approved_overtime_hours: approved } : {})
 	}
 });
-/** A published company holiday. */
-const holiday = (date: string, name: string): ProbeInput => ({
+/** A published company holiday; `replaces` names the holiday date it substitutes. */
+const holiday = (date: string, name: string, replaces?: string): ProbeInput => ({
 	collection: 'jurisdiction_holidays',
 	values: {
 		company_id: '@company',
@@ -186,7 +186,8 @@ const holiday = (date: string, name: string): ProbeInput => ({
 		name,
 		kind: 'PUBLIC_HOLIDAY',
 		source: 'probe',
-		published_at: '2025-12-01T00:00:00.000Z'
+		published_at: '2025-12-01T00:00:00.000Z',
+		...(replaces == null ? {} : { replaces })
 	}
 });
 /** A one-off payment by its catalogue code; a SEPARATION class prices itself (`amount` 0, as the exit automation raises it). */
@@ -2175,10 +2176,14 @@ const leave = (
 	code: string,
 	from: string,
 	to: string,
-	event?: string
+	event?: string,
+	/** `ref` names this entry; `episode` is the ref of the entry that opened the continuing absence. */
+	link: { ref?: string; episode?: string } = {}
 ): ProbeInput => ({
 	collection: 'leave_entries',
+	...(link.ref == null ? {} : { ref: link.ref }),
 	values: {
+		...(link.episode == null ? {} : { episode_id: `@${link.episode}` }),
 		employment_id: `@${job}`,
 		catalogue_id: `@law:leave_catalogue:${code}`,
 		reference: `PROBE-${code}-${from}`,
@@ -2201,10 +2206,11 @@ register(
 		id: 'MY-EA22-1',
 		profile: 'MY',
 		description:
-			'A married citizen employed since January 2024 on RM3,000 is confined on Monday 12 January 2026 and takes 98 consecutive days of maternity leave (12 January – 19 April): she qualifies for the allowance and, paid monthly, keeps January’s wages unabated.',
+			'A married citizen employed since January 2024 on RM3,000 is confined on Monday 12 January 2026 and takes 98 consecutive days of maternity leave (12 January – 19 April), recorded as one episode of four per-period entries: she qualifies for the allowance and, paid monthly, keeps January’s wages unabated.',
 		citation: [
 			`${EA} s.37(1)(a): maternity leave of not less than ninety-eight consecutive days (12 January – 19 April 2026: 20 + 28 + 31 + 19 = 98); s.37(2)(a)(i)–(ii): employed not less than ninety days in the nine months and at some time in the four months immediately before the confinement (every day since 2 January 2024); s.37(1)(c): no surviving children recorded; s.37(2)(c): a monthly-rated employee is deemed paid the allowance when her monthly wages continue without abatement: January gross 3,000`,
 			...PLAIN_3000_CITED,
+			'Recording (docs/inventory/malaysia.csv MY-EA21 recorded default): s.37(1)(a) fixes one continuous period; the product records it one entry per payroll period, each later entry naming the first as its episode (leave_entries.episode_id), so each period settles its own days and the 98 days are one event',
 			`Net: 2,649.35; employer cost ${PLAIN_3000_EMPLOYER}`
 		],
 		company: NO_HRD,
@@ -2214,7 +2220,20 @@ register(
 				gender: 'FEMALE',
 				person: { marital_status: 'MARRIED', spouse_status: 'WITH_INCOME' }
 			}),
-			leave('mother_job', 'MATERNITY_LEAVE', '2026-01-12', '2026-04-19', '2026-01-12')
+			// One continuing absence, one entry per payroll period (a time-off entry settles whole in the period
+			// holding all of its days); the later entries continue the first as its episode.
+			leave('mother_job', 'MATERNITY_LEAVE', '2026-01-12', '2026-01-31', '2026-01-12', {
+				ref: 'mother_maternity'
+			}),
+			leave('mother_job', 'MATERNITY_LEAVE', '2026-02-01', '2026-02-28', '2026-01-12', {
+				episode: 'mother_maternity'
+			}),
+			leave('mother_job', 'MATERNITY_LEAVE', '2026-03-01', '2026-03-31', '2026-01-12', {
+				episode: 'mother_maternity'
+			}),
+			leave('mother_job', 'MATERNITY_LEAVE', '2026-04-01', '2026-04-19', '2026-01-12', {
+				episode: 'mother_maternity'
+			})
 		],
 		period: '2026-01',
 		expected: [
@@ -2230,9 +2249,10 @@ register(
 		id: 'MY-EA22-2',
 		profile: 'MY',
 		description:
-			'A citizen hired on 1 December 2025 on RM3,000 is confined on Tuesday 20 January 2026 after 50 days of service: she has her 98 days of maternity leave (20 January – 27 April) but no allowance, so January pays s.18A(c) for the 19 days before the leave.',
+			'A citizen hired on 1 December 2025 on RM3,000 is confined on Tuesday 20 January 2026 after 50 days of service: she has her 98 days of maternity leave (20 January – 27 April, one episode of four per-period entries) but no allowance, so January pays s.18A(c) for the 19 days before the leave.',
 		citation: [
 			`${EA} s.37(1)(a): 98 consecutive days of leave (20 January – 27 April 2026: 12 + 28 + 31 + 27); s.37(2)(a)(i): employed 1 December 2025 – 19 January 2026 = 50 days, under ninety in the nine months before the confinement: no maternity allowance`,
+			'Recording (docs/inventory/malaysia.csv MY-EA21 recorded default): s.37(1)(a) fixes one continuous period; the product records it one entry per payroll period, each later entry naming the first as its episode (leave_entries.episode_id), so each period settles its own days and the 98 days are one event',
 			`${EA} s.18A(c): leave without pay for 12 of January’s 31 days: 3,000 × 19/31 = 1,838.7097 → 1,838.71`,
 			`${EPF_A}: "1,820.01 to 1,840.00" employer RM240, employee RM203`,
 			`${SOCSO}: row 23 (exceeding RM1,800, not RM1,900) employer RM32.35, employee RM9.25`,
@@ -2248,7 +2268,18 @@ register(
 				from: '2025-12-01',
 				person: { marital_status: 'MARRIED', spouse_status: 'WITH_INCOME' }
 			}),
-			leave('new_mother_job', 'MATERNITY_LEAVE', '2026-01-20', '2026-04-27', '2026-01-20')
+			leave('new_mother_job', 'MATERNITY_LEAVE', '2026-01-20', '2026-01-31', '2026-01-20', {
+				ref: 'new_mother_maternity'
+			}),
+			leave('new_mother_job', 'MATERNITY_LEAVE', '2026-02-01', '2026-02-28', '2026-01-20', {
+				episode: 'new_mother_maternity'
+			}),
+			leave('new_mother_job', 'MATERNITY_LEAVE', '2026-03-01', '2026-03-31', '2026-01-20', {
+				episode: 'new_mother_maternity'
+			}),
+			leave('new_mother_job', 'MATERNITY_LEAVE', '2026-04-01', '2026-04-27', '2026-01-20', {
+				episode: 'new_mother_maternity'
+			})
 		],
 		period: '2026-01',
 		expected: [
@@ -2872,6 +2903,462 @@ register(
 					'EIS.employee': 5.3,
 					'EIS.employer': 5.3,
 					'PCB.employee': 0
+				}
+			}
+		]
+	}
+);
+
+// ── Phase 2 (2026-10-01): the company terms on the MY lineage, each floored at the Act ─────────────
+/**
+ * The customer hour of `work_rules.ordinary_divisor_days`: basic × 12 ÷ (52 × 45) for every payroll
+ * group but 5D, × 12 ÷ (52 × 42.5) for 5D, rounded to the sen by each band (owner-approved company
+ * terms, 2026-09-23). Each band pays the greater of its column and the Act (EA s.7, s.60I(2)).
+ */
+const COMPANY =
+	'MY company terms (owner-approved 2026-09-23, work_rules.authority): the hour is basic × 12 ÷ (52 × 45) — ÷ 195 — or, for payroll group 5D, ÷ (52 × 42.5 ÷ 12) = ÷ 184.17, rounded to the sen; columns 1.5 on a working or off day, 2.0 on every coded rest day, 2.0 then 3.0 on a holiday. Each band pays the greater of its column and the statutory award (EA s.60I(2): another method "shall not result in a rate which is less"; s.7 voids a less favourable term)';
+
+/** Monday–Friday OFFICE with Saturday and Sunday both coded REST: the 5D group's week. */
+const restRestWeek = (from: string): ProbeInput[] => [
+	...officeWeek(from),
+	{
+		collection: 'shift_patterns',
+		ref: 'week_5d',
+		values: {
+			company_id: '@company',
+			code: 'OFFICEx5-REST-REST',
+			name: '5 x OFFICE, REST, REST',
+			pattern: {
+				days: ['@office', '@office', '@office', '@office', '@office', '@rest', '@rest'].map(
+					(roster_code_id) => ({ roster_code_id })
+				)
+			},
+			effective_range: { from, to: null }
+		}
+	}
+];
+
+register(
+	// ── Rest-day work at the company column, age 75 and over ──────────────────────────────────────
+	{
+		id: 'MY-EPF-01-5',
+		profile: 'MY',
+		description:
+			'A citizen aged 76 on RM2,600 works three Sundays in January 2026 (4, 8 and 10 hours): no EPF at 75 or over, SOCSO Second Category on the rest-day pay too, and every rest-day hour at the company 2.0 column on the customer hour 13.33, above the s.60(3) awards it is floored at.',
+		citation: [
+			'EPF: KWSP, Employer mandatory contribution: employees aged 14 to under 75 contribute (https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution); EPF Act 1991 First Schedule para 13 (AGC text as at 1 July 2022) excludes a person who has attained seventy-five: no EPF',
+			`${COMPANY}: 2,600 ÷ 195 = 13.333 → 13.33`,
+			`${EA} s.59(1): of the Saturday OFF and the Sunday REST, Sunday is the rest day; s.60I(1)(a), (1A), (1)(b): ORP 2,600 ÷ 26 = 100.00, hourly 100 ÷ 8 = 12.50. 11 Jan, 4 h: column 4 × 13.33 × 2 = 106.64 ≥ s.60(3)(b)(i) half a day 50.00. 18 Jan, 8 h: 8 × 13.33 × 2 = 213.28 ≥ s.60(3)(b)(ii) one day 100.00. 25 Jan, 10 h: the normal 8 at 213.28 ≥ 100.00, the 2 beyond at 2 × 13.33 × 2 = 53.32 ≥ s.60(3)(c) 2 × 12.50 × 2 = 50.00: 266.60. Total 586.52`,
+			`${SOCSO}: Act 4 wages include rest-day pay: 3,186.52 is the row exceeding RM3,100, not RM3,200: Second Category employer RM39.40`,
+			'EIS: none from sixty (Act 800 First Schedule)',
+			`${PCB}: at most P = 3,186.52 × 12 − 9,000 = 29,238.24; 9,238.24 × 3% − 250 = 27.15 ÷ 12 = 2.26, under RM10 (E(3)): nil`,
+			'Net: 3,186.52; employer cost 39.40'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('elder', 'Tan Boon Huat', 2600, { born: '1949-11-20' }),
+			worked('elder_job', '2026-01-11', [['09:00', '13:00']], 4),
+			worked(
+				'elder_job',
+				'2026-01-18',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				8
+			),
+			worked(
+				'elder_job',
+				'2026-01-25',
+				[
+					['08:00', '12:00'],
+					['13:00', '17:00'],
+					['17:30', '19:30']
+				],
+				10
+			)
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'elder_job',
+				lines: {
+					gross: 3186.52,
+					net: 3186.52,
+					employer_cost: 39.4,
+					BASIC: 2600,
+					'SOCSO.employee': 0,
+					'SOCSO.employer': 39.4
+				}
+			}
+		]
+	},
+
+	// ── Ordinary-day overtime at the company hour, and HRD’s wage base ─────────────────────────────
+	{
+		id: 'MY-EA31-1',
+		profile: 'MY',
+		description:
+			'A citizen on RM2,600 at an HRD-liable company works 10 hours on Monday 5 and 11 hours on Tuesday 6 January 2026: five overtime hours at the company 1.5 × 13.33, above s.60A(3) 1.5 × 12.50; EPF and HRD on the salary, SOCSO and EIS on the overtime too.',
+		citation: [
+			`${COMPANY}: 2,600 ÷ 195 = 13.33`,
+			`${EA} s.60A(3)(a)–(c): the hours beyond the contract's normal eight at not less than 1.5 × the hourly rate, s.60I(1A), (1)(b) 2,600 ÷ 26 ÷ 8 = 12.50. Monday 2 h: 2 × 13.33 × 1.5 = 39.99 (Act 37.50); Tuesday 3 h: 3 × 13.33 × 1.5 = 59.985 → 59.99 (Act 56.25): 99.98. First Schedule para 1A: the wages are within RM4,000`,
+			`${EPF_WAGES}: base 2,600, "2,580.01 to 2,600.00" RM338 / RM286`,
+			`${SOCSO}; Act 4 wages include overtime: base 2,699.98, row 31 (RM2,600–2,700) RM46.35 / RM13.25`,
+			`${EIS}: row 31 RM5.30 each`,
+			`${HRD}: citizen at a compulsory (count 12) Part I employer, 1% × 2,600 = 26.00`,
+			`${PCB}: at most P = 2,413.98 × 12 − 9,000 = 19,967.76, below the RM20,000 row after the RM400 rebate: nil`,
+			'Net: 2,699.98 − 286 − 13.25 − 5.30 = 2,395.43; employer cost 338 + 46.35 + 5.30 + 26 = 415.65'
+		],
+		company: hrd('COMPULSORY', 12),
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('overtime', 'Ah Hock Overtime', 2600),
+			worked(
+				'overtime_job',
+				'2026-01-05',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00'],
+					['18:30', '20:30']
+				],
+				2
+			),
+			worked(
+				'overtime_job',
+				'2026-01-06',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00'],
+					['18:30', '21:30']
+				],
+				3
+			)
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'overtime_job',
+				lines: {
+					gross: 2699.98,
+					net: 2395.43,
+					employer_cost: 415.65,
+					BASIC: 2600,
+					'EPF.employee': 286,
+					'EPF.employer': 338,
+					'SOCSO.employee': 13.25,
+					'SOCSO.employer': 46.35,
+					'EIS.employee': 5.3,
+					'EIS.employer': 5.3,
+					'HRDF.employer': 26
+				}
+			}
+		]
+	},
+
+	// ── First Schedule: who is owed Part XII overtime ─────────────────────────────────────────────
+	{
+		id: 'MY-EA01-1',
+		profile: 'MY',
+		description:
+			'Two non-resident foreign workers on RM5,200 each work 10 hours on Monday 5 January 2026: the non-manual one is over RM4,000 and owed no overtime; the manual labourer is owed it whatever the wage, at the company 1.5 × 26.67.',
+		citation: [
+			`${EA} First Schedule para 1A: for an employee earning over RM4,000 a month, s.60A(3) does not apply; para 2(1): an employee engaged in manual labour is covered irrespective of wages`,
+			`${COMPANY}: 5,200 ÷ 195 = 26.667 → 26.67; 2 h × 26.67 × 1.5 = 80.01 ≥ s.60A(3)(a) 2 × 1.5 × 5,200 ÷ 26 ÷ 8 = 75.00`,
+			`${EPF_F}; overtime is not EPF wages: 2% × 5,200 = 104 each`,
+			`${SOCSO}: non-manual base 5,200, row 56 (RM5,100–5,200) RM90.15 / RM25.75; manual base 5,280.01, row 57 (RM5,200–5,300) RM91.85 / RM26.25`,
+			'EIS: Act 800 First Schedule para 10: no foreign employee',
+			`${PCB}, D(a): 30% of remuneration: 5,200 × 30% = 1,560.00; 5,280.01 × 30% = 1,584.003 → 1,584.00`,
+			'Net: 5,200 − 104 − 25.75 − 1,560 = 3,510.25 (employer 194.15); 5,280.01 − 104 − 26.25 − 1,584 = 3,565.76 (employer 104 + 91.85 = 195.85)'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...hire({
+				ref: 'engineer',
+				name: 'Arjun Engineer',
+				born: '1988-03-03',
+				nationality: 'Indian',
+				standing: 'FOREIGNER',
+				salary: 5200,
+				from: '2024-01-02'
+			}),
+			...hire({
+				ref: 'rigger',
+				name: 'Joko Rigger',
+				born: '1989-04-04',
+				standing: 'FOREIGNER',
+				salary: 5200,
+				from: '2024-01-02',
+				category: 'MANUAL_LABOUR'
+			}),
+			...['engineer_job', 'rigger_job'].map((job) =>
+				worked(
+					job,
+					'2026-01-05',
+					[
+						['09:00', '13:00'],
+						['14:00', '18:00'],
+						['18:30', '20:30']
+					],
+					2
+				)
+			)
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'engineer_job',
+				lines: {
+					gross: 5200,
+					net: 3510.25,
+					employer_cost: 194.15,
+					'EPF_NON_CITIZEN.employee': 104,
+					'EPF_NON_CITIZEN.employer': 104,
+					'SOCSO.employee': 25.75,
+					'SOCSO.employer': 90.15,
+					'PCB.employee': 1560
+				}
+			},
+			{
+				employment: 'rigger_job',
+				lines: {
+					gross: 5280.01,
+					net: 3565.76,
+					employer_cost: 195.85,
+					'EPF_NON_CITIZEN.employee': 104,
+					'EPF_NON_CITIZEN.employer': 104,
+					'SOCSO.employee': 26.25,
+					'SOCSO.employer': 91.85,
+					'PCB.employee': 1584
+				}
+			}
+		]
+	},
+
+	// ── A holiday on the rest day, its published replacement worked ───────────────────────────────
+	{
+		id: 'MY-EA32-1',
+		profile: 'MY',
+		description:
+			'Federal Territory Day falls on Sunday 1 February 2026, the rest day of a Kuala Lumpur citizen on RM2,600; the company publishes Monday 2 February as its replacement, and working it eight hours pays the company holiday column 8 × 13.33 × 2 = 213.28, above the Act’s two days’ wages. Holiday work within the normal hours is EPF wages.',
+		citation: [
+			`${EA} s.60D(1)(a)(iii) (Federal Territory Day for an employee wholly or mainly working in the Federal Territory) and its proviso: a holiday on a rest day is replaced by the next working day; s.60D(3)(a)(i): working the holiday earns two days' wages in addition to the holiday pay, 2 × 2,600 ÷ 26 = 200.00; s.60D(2A): the month's salary is the holiday pay`,
+			`${COMPANY}; holiday_rest_precedence PUBLIC_HOLIDAY: the company publishes its own replacement day (jurisdiction_holidays.replaces), which prices as the holiday: 8 × 13.33 × 2 = 213.28 ≥ 200.00`,
+			`${EPF_WAGES}; KWSP Employer FAQ 21: wages for work during public holidays are subject to EPF unless the work is overtime (https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution); the award within the normal hours settles on HOLIDAY_WORK: base 2,813.28, "2,800.01 to 2,820.00" RM367 / RM311`,
+			`${SOCSO}; Act 800 s.2 wages include extra work on holidays: row 33 (RM2,800–2,900) RM49.85 / RM14.25`,
+			`${EIS}: row 33 RM5.70 each`,
+			`${PCB}: K2 = 311; at most P = 2,502.28 × 12 − 9,000 = 21,027.36; 1,027.36 × 3% − 250 < 0: nil`,
+			'Net: 2,813.28 − 311 − 14.25 − 5.70 = 2,482.33; employer cost 367 + 49.85 + 5.70 = 422.55'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('ftday', 'Farhan Wilayah', 2600, { state: 'KUALA_LUMPUR' }),
+			holiday('2026-02-01', 'Federal Territory Day'),
+			holiday('2026-02-02', 'Federal Territory Day (replacement)', '2026-02-01'),
+			worked(
+				'ftday_job',
+				'2026-02-02',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				8
+			)
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'ftday_job',
+				lines: {
+					gross: 2813.28,
+					net: 2482.33,
+					employer_cost: 422.55,
+					BASIC: 2600,
+					'EPF.employee': 311,
+					'EPF.employer': 367,
+					'SOCSO.employee': 14.25,
+					'SOCSO.employer': 49.85,
+					'EIS.employee': 5.7,
+					'EIS.employer': 5.7
+				}
+			}
+		]
+	},
+
+	// ── The 2026 additional Peninsular holiday, worked ────────────────────────────────────────────
+	{
+		id: 'MY-PEN-HOL-01-1',
+		profile: 'MY',
+		description:
+			'Hari Raya Puasa fell on Saturday 21 March 2026, so Friday 20 March was an additional Peninsular public holiday under Holidays Act s.8; a Selangor citizen on RM2,600 who works it eight hours is paid the company holiday column 213.28, above the Act’s two days’ wages.',
+		citation: [
+			'P.U.(B) 111/2026, Holidays Act 1951 s.8 (https://www.kabinet.gov.my/storage/2026/03/PUB-111_2026.pdf): 20 March 2026 is a public holiday in Peninsular Malaysia if Hari Raya Puasa falls on 21 March 2026; the Keeper of the Rulers’ Seal declared 21 March 2026 (reported: https://www.buletintv3.my/nasional/terkini-umat-islam-malaysia-sambut-aidilfitri-pada-21-mac-2026/)',
+			`${EA} s.60D(1)(b): a day appointed under Holidays Act s.8 is a paid holiday; s.60D(3)(a)(i): 2 × 2,600 ÷ 26 = 200.00`,
+			`${COMPANY}: 8 × 13.33 × 2 = 213.28 ≥ 200.00`,
+			`${EPF_WAGES}; KWSP Employer FAQ 21 (holiday work is EPF wages unless overtime): base 2,813.28, RM367 / RM311`,
+			`${SOCSO}: row 33 RM49.85 / RM14.25; ${EIS}: row 33 RM5.70 each; ${PCB}: nil`,
+			'Net: 2,813.28 − 311 − 14.25 − 5.70 = 2,482.33; employer cost 422.55'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('raya', 'Zainab Raya', 2600, { gender: 'FEMALE' }),
+			holiday('2026-03-20', 'Additional Hari Raya Puasa holiday (P.U.(B) 111/2026)'),
+			worked(
+				'raya_job',
+				'2026-03-20',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				8
+			)
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'raya_job',
+				lines: {
+					gross: 2813.28,
+					net: 2482.33,
+					employer_cost: 422.55,
+					'EPF.employee': 311,
+					'EPF.employer': 367,
+					'SOCSO.employee': 14.25,
+					'SOCSO.employer': 49.85,
+					'EIS.employee': 5.7,
+					'EIS.employer': 5.7
+				}
+			}
+		]
+	},
+
+	// ── Part-time extra hours: the Regulations’ hourly rate is the floor ───────────────────────────
+	{
+		id: 'MY-SR17-1',
+		profile: 'MY',
+		description:
+			'A part-time citizen on RM1,040 for four hours a day, five days a week, beside an eight-hour full-timer, works 9.5 hours on Monday 5 January 2026: the four hours up to the full-timer’s day at 1.0 × RM10.00 and the 1.5 beyond at 1.5 × — the Regulations’ hourly rate, whatever the company divisor.',
+		citation: [
+			'Employment (Part-Time Employees) Regulations 2010 (JTKSM copy: https://jtksm.mohr.gov.my/sites/default/files/2023-03/10.%20Employment%20-%20Part-time%20Employees%20-%20Regulations%202010%20%20%281%29.pdf) reg.2: normal hours of work are those agreed in the contract; reg.5(1)(a): extra work beyond them up to the normal hours of a full-time employee in a similar capacity at not less than the hourly rate of pay, (b) beyond at not less than 1.5 ×; the hourly rate is EA s.60I(1)(b) the ordinary rate of pay ÷ normal hours, a monthly rate ÷ 26 under s.60I(1A)',
+			`${COMPANY}; part-timers take the 26-day divisor and every part-time band pays the greater of the customer hour and the Regulations’ hourly rate: 1,040 ÷ 26 = 40.00 a day, ÷ 4 normal hours = 10.00 an hour. Monday 08:45–13:00, 13:15–17:15, 17:30–18:45 = 9.5 h, 5.5 beyond the 4: 4 h (to the full-timer’s 8) × 10.00 × 1.0 = 40.00; 1.5 h × 10.00 × 1.5 = 22.50; 62.50`,
+			`${EPF_WAGES}: base 1,040, "1,020.01 to 1,040.00" RM136 / RM115`,
+			`${SOCSO}: base 1,102.50, row 16 (RM1,100–1,200) RM20.15 / RM5.75; ${EIS}: row 16 RM2.30 each; ${PCB}: nil`,
+			'Minimum wage: P.U.(A) 376/2024 para 5(1) RM8.72 an hour; RM1,040 for 20 hours a week (86.67 a month) is RM12.00 an hour',
+			'Net: 1,102.50 − 115 − 5.75 − 2.30 = 979.45; employer cost 136 + 20.15 + 2.30 = 158.45'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			{
+				collection: 'shift_definitions',
+				ref: 'morning',
+				values: {
+					company_id: '@company',
+					code: 'MORNING',
+					name: 'Morning (0900 to 1300)',
+					variant: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 },
+					effective_range: { from: '2024-01-01', to: null }
+				}
+			},
+			{
+				collection: 'shift_patterns',
+				ref: 'part_week',
+				values: {
+					company_id: '@company',
+					code: 'MORNINGx5-OFF-REST',
+					name: '5 x MORNING, OFF, REST',
+					pattern: {
+						days: ['@morning', '@morning', '@morning', '@morning', '@morning', '@off', '@rest'].map(
+							(roster_code_id) => ({ roster_code_id })
+						)
+					},
+					effective_range: { from: '2024-01-01', to: null }
+				}
+			},
+			...citizen('part_extra', 'Mei Ling Separuh', 1040, {
+				gender: 'FEMALE',
+				type: 'PART_TIME',
+				pattern: '@part_week',
+				terms: {
+					comparable_full_time_daily_hours: 8,
+					comparable_full_time_weekly_hours: 40,
+					comparable_full_time_presence: 'PRESENT'
+				}
+			}),
+			worked(
+				'part_extra_job',
+				'2026-01-05',
+				[
+					['08:45', '13:00'],
+					['13:15', '17:15'],
+					['17:30', '18:45']
+				],
+				5.5
+			)
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'part_extra_job',
+				lines: {
+					gross: 1102.5,
+					net: 979.45,
+					employer_cost: 158.45,
+					BASIC: 1040,
+					'EPF.employee': 115,
+					'EPF.employer': 136,
+					'SOCSO.employee': 5.75,
+					'SOCSO.employer': 20.15,
+					'EIS.employee': 2.3,
+					'EIS.employer': 2.3
+				}
+			}
+		]
+	},
+
+	// ── s.59(1): the earlier of two rest days is priced, not refused ──────────────────────────────
+	{
+		id: 'MY-EA30N-1',
+		profile: 'MY',
+		description:
+			'A 5D-group citizen on RM2,600 whose week codes Saturday and Sunday REST works four hours on each of Saturday 10 and Sunday 11 January 2026: Sunday is the s.59(1) rest day; Saturday resolves as an off day whose hours are s.60A(3) overtime toward the 104-hour month, still paid the company rest-day column 4 × 14.12 × 2.',
+		citation: [
+			`${EA} s.59(1): where more than one rest day is allowed in a week, the last is the rest day for Part XII; the earlier day's work is s.60A(3) overtime at not less than 1.5 × the s.60I hour (2,600 ÷ 26 ÷ 8 = 12.50) and counts toward the Employment (Limitation of Overtime Work) Regulations 1980 reg.2 104 hours (s.60A(4)(a) proviso excludes only rest-day and holiday work)`,
+			`${COMPANY}: 5D: 2,600 × 12 ÷ (52 × 42.5) = 14.1176 → 14.12. Saturday (EARLIER-REST-2.0X): 4 × 14.12 × 2 = 112.96 ≥ 4 × 12.50 × 1.5 = 75.00. Sunday (RESTDAY-OT-2.0X): 4 × 14.12 × 2 = 112.96 ≥ s.60(3)(b)(i) half a day 50.00`,
+			`${EPF_WAGES}: base 2,600, RM338 / RM286`,
+			`${SOCSO}: base 2,825.92, row 33 (RM2,800–2,900) RM49.85 / RM14.25; ${EIS}: row 33 RM5.70 each`,
+			`${PCB}: K2 = 286; at most P = 2,539.92 × 12 − 9,000 = 21,479.04; 1,479.04 × 3% − 250 < 0: nil`,
+			'Net: 2,825.92 − 286 − 14.25 − 5.70 = 2,519.97; employer cost 338 + 49.85 + 5.70 = 393.55'
+		],
+		company: NO_HRD,
+		inputs: [
+			...restRestWeek('2024-01-01'),
+			...citizen('weekender', 'Hafiz Hujung', 2600, {
+				pattern: '@week_5d',
+				terms: { payroll_group: '5D' }
+			}),
+			worked('weekender_job', '2026-01-10', [['09:00', '13:00']], 4),
+			worked('weekender_job', '2026-01-11', [['09:00', '13:00']], 4)
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'weekender_job',
+				lines: {
+					gross: 2825.92,
+					net: 2519.97,
+					employer_cost: 393.55,
+					BASIC: 2600,
+					'EPF.employee': 286,
+					'EPF.employer': 338,
+					'SOCSO.employee': 14.25,
+					'SOCSO.employer': 49.85,
+					'EIS.employee': 5.7,
+					'EIS.employer': 5.7
 				}
 			}
 		]

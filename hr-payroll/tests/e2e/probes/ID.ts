@@ -6133,4 +6133,224 @@ const round11: ProbeCase[] = [
 	)
 ];
 
-register(...cases, ...round10, ...round11);
+// ─── Phase 2 (2026-10-01): stored checks and the obligation ledger ──────────────────────────────
+const PROBATION_REF =
+	'UU 13/2003 art.60(1): a PKWTT may require probation of at most three months (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); art.58(1)–(2) as amended by UU 6/2023 and PP 35/2021 art.12: a PKWT may not require probation (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)';
+const PKWT_CAP_REF =
+	'PP 35/2021 art.8(1)–(2): a PKWT, extensions included, at most five years (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023';
+/** A worker whose first terms are attempted with `facts` and refused, then written without them. */
+const refusedFirstTerms = (inputs: ProbeInput[], facts: Row, refused: string): ProbeInput[] =>
+	inputs.flatMap((input) => {
+		if (input.collection !== 'employment_terms') return [input];
+		const values = { ...input.values, facts: { ...(input.values.facts as Row), ...facts } };
+		return [{ collection: input.collection, values, refused }, input];
+	});
+/**
+ * The duty instances of one code raised on a subject. The obligation ledger is raised by the daily
+ * `obligation_calendar` sweep (no writer raises inline), so these `saved` oracles need the harness to run that
+ * sweep after the event run and before judging `saved`.
+ */
+const duty = (code: string, subject: string, rows: readonly Row[]) => ({
+	collection: 'obligation_instances',
+	where: { duty_code: code, subject_id: subject },
+	rows
+});
+
+const round12: ProbeCase[] = [
+	{
+		id: 'ID-110-1',
+		profile: 'ID',
+		description:
+			'A PKWTT worker hired Monday 2 June 2025 whose first terms state probation to 2 September 2025 (three months and a day) are refused at the terms write; the same terms with probation to 1 September 2025 are saved, and February 2026 pays the ID-14-1 slip.',
+		citation: [
+			PROBATION_REF,
+			'2 June 2025 + 3 months = 2 September 2025, so the last probation day is 1 September 2025',
+			'ID-14-1 figures: net 9,338,650'
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...refusedFirstTerms(
+				worker({ ref: 'coba', wage: 10_000_000, terms_facts: { probation_end_on: '2025-09-01' } }),
+				{ probation_end_on: '2025-09-02' },
+				'P-ID-coba: A PKWTT probation may last at most three months from the first day of work'
+			)
+		],
+		period: '2026-02',
+		expected: [{ employment: 'coba_job', lines: { ...TEN_MILLION, BASIC: 10_000_000 } }]
+	},
+	{
+		id: 'ID-110-2',
+		profile: 'ID',
+		description:
+			'A citizen PKWT of 2 June 2025 to 31 December 2026 whose first terms state a probation to 1 September 2025 are refused (a PKWT may not require probation); the same terms without it are saved, and February 2026 pays the ID-14-1 slip.',
+		citation: [PROBATION_REF, 'ID-14-1 figures: net 9,338,650'],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...refusedFirstTerms(
+				worker({ ref: 'kontrak', wage: 10_000_000, type: 'CONTRACT', exit: '2026-12-31' }),
+				{ probation_end_on: '2025-09-01' },
+				'P-ID-kontrak: A fixed-term contract \\(PKWT\\) may not require a probation period'
+			)
+		],
+		period: '2026-02',
+		expected: [{ employment: 'kontrak_job', lines: { ...TEN_MILLION, BASIC: 10_000_000 } }]
+	},
+	{
+		id: 'ID-108-1',
+		profile: 'ID',
+		description:
+			'A citizen PKWT recorded from 2 June 2025 to 2 June 2030 (five years and a day), February 2026: the run is refused until the contract ends within five years or is recorded as PKWTT.',
+		citation: [
+			PKWT_CAP_REF,
+			'2 June 2025 + 60 months = 2 June 2030, so the last lawful day is 1 June 2030'
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({ ref: 'lima', wage: 10_000_000, type: 'CONTRACT', exit: '2030-06-02' })
+		],
+		period: '2026-02',
+		refused: 'PKWT_TERM_OVER_FIVE_YEARS.*may last at most five years',
+		expected: []
+	},
+	{
+		id: 'ID-108-2',
+		profile: 'ID',
+		description:
+			'A citizen PKWT of 2 June 2025 to 1 June 2030, exactly five years, February 2026: lawful, the ID-14-1 slip.',
+		citation: [PKWT_CAP_REF, 'ID-14-1 figures: net 9,338,650'],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({ ref: 'genap', wage: 10_000_000, type: 'CONTRACT', exit: '2030-06-01' })
+		],
+		period: '2026-02',
+		expected: [{ employment: 'genap_job', lines: { ...TEN_MILLION, BASIC: 10_000_000 } }]
+	},
+	{
+		id: 'ID-47-1',
+		profile: 'ID',
+		description:
+			'A worker born 1 March 2010 (15 in February 2026) on Rp10,000,000: paid the ID-14-1 slip, and the run warns that a child may be employed only under the arts.69–71 exceptions and their conditions.',
+		citation: [
+			'UU 13/2003 arts.1 angka 26 (a child is under 18), 68 (no employment of children), 69–71 (light work at 13–15 with parental consent, at most 3 hours a day, daytime, outside school hours; curriculum; talent), 74 (worst forms) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-47 owner default: the exceptions are lawful, so the run warns',
+			'ID-14-1 figures: net 9,338,650'
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({ ref: 'muda', wage: 10_000_000, dob: '2010-03-01' })
+		],
+		period: '2026-02',
+		warnings: ['YOUNG_WORKER_CONDITIONS: .*under 18'],
+		expected: [{ employment: 'muda_job', lines: { ...TEN_MILLION, BASIC: 10_000_000 } }]
+	},
+	{
+		id: 'ID-20-1',
+		profile: 'ID',
+		description:
+			'The ID-14-1 February 2026 run raises its monthly duties: BPJS Ketenagakerjaan by 15 March, BPJS Kesehatan by 10 February (the wage month’s own 10th), PPh 21 payment by 15 March and the SPT Masa by 20 March (both kept ten years); no BPA1 outside December.',
+		citation: [
+			'PP 44/2015 art.22(1): BPJS Ketenagakerjaan contributions by the 15th of the month after the contribution month (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)',
+			'Perpres 82/2018 art.39(1): BPJS Kesehatan by the 10th of each month (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)',
+			'PMK 81/2024 art.94(2): PPh 21 paid by the 15th of the following month (https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); UU KUP art.3(3)(a): SPT Masa within 20 days after the period; art.28(11): records kept 10 years',
+			'Wage month February 2026: month end 28 February; + 15 = 15 March; + 20 = 20 March; 1 February + 9 = 10 February; 15 March 2026 + 10 years = 15 March 2036, 20 March 2036',
+			'ID-14-1 figures: net 9,338,650'
+		],
+		company: company(),
+		inputs: [...week('2025-06-02'), ...worker({ ref: 'wajib', wage: 10_000_000 })],
+		period: '2026-02',
+		expected: [{ employment: 'wajib_job', lines: { ...TEN_MILLION, BASIC: 10_000_000 } }],
+		saved: [
+			duty('BPJS_KETENAGAKERJAAN_REMITTANCE', '@run', [
+				{ trigger_ref: '2026-02', due_on: '2026-03-15', state: 'OPEN', amount_due: null }
+			]),
+			duty('BPJS_KESEHATAN_REMITTANCE', '@run', [
+				{ trigger_ref: '2026-02', due_on: '2026-02-10', state: 'OPEN' }
+			]),
+			duty('PPH21_PAYMENT', '@run', [
+				{ trigger_ref: '2026-02', due_on: '2026-03-15', retain_until: '2036-03-15' }
+			]),
+			duty('PPH21_SPT_MASA', '@run', [
+				{ trigger_ref: '2026-02', due_on: '2026-03-20', retain_until: '2036-03-20' }
+			]),
+			duty('PPH21_BPA1_YEAR_END', '@run', [])
+		]
+	},
+	{
+		id: 'ID-26-1',
+		profile: 'ID',
+		description:
+			'The ID-122-1 December 2026 run (a 1 December joiner on Rp60,000,000): December is the last tax period, so it raises the year’s BPA1 by 31 January 2027 beside the PPh 21 payment (15 January) and SPT Masa (20 January).',
+		citation: [
+			'PER-11/PJ/2025 art.7(2): BPA1 within one month after the last tax period ends (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023: December is the last tax period',
+			'PMK 81/2024 art.94(2); UU KUP arts.3(3)(a), 28(11) (as ID-20-1)',
+			'December 2026: 1 December + 1 month = 1 January 2027, month end 31 January 2027; 31 December + 15 = 15 January 2027; + 20 = 20 January 2027'
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({ ref: 'akhir', wage: 60_000_000, hire: '2026-12-01' })
+		],
+		period: '2026-12',
+		expected: [],
+		saved: [
+			duty('PPH21_BPA1_YEAR_END', '@run', [
+				{ trigger_ref: '2026-12', due_on: '2027-01-31', retain_until: '2037-01-31' }
+			]),
+			duty('PPH21_PAYMENT', '@run', [{ trigger_ref: '2026-12', due_on: '2027-01-15' }]),
+			duty('PPH21_SPT_MASA', '@run', [{ trigger_ref: '2026-12', due_on: '2027-01-20' }])
+		]
+	},
+	{
+		id: 'ID-92-1',
+		profile: 'ID',
+		description:
+			'The ID-28-1 leavers of Friday 23 January 2026: the redundancy (efficiency to prevent loss) raises the JKP PHK notice to BPJS by Tuesday 3 February, the seventh working day; the resignation raises none. Each leaver raises a BPA1 by 28 February (the exit month is the last tax period).',
+		citation: [
+			'Permenaker 2/2025 art.9: the employer notifies BPJS of a JKP participant’s PHK within seven working days (https://jdih.kemnaker.go.id/asset/data_puu/2025pmnaker002.pdf); PP 37/2021 art.20 as amended by PP 6/2025: resignation is not a JKP termination',
+			'Working days after Friday 23 January 2026: 26, 27, 28, 29, 30 January, 2 and 3 February — no national holiday falls in the window (SKB 2026, tracker ID-120)',
+			'PER-11/PJ/2025 art.7(2): BPA1 within one month after the last tax period; the exit month January ends 31 January, so by 28 February 2026',
+			SRC.PESANGON
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({
+				ref: 'tono',
+				wage: 10_000_000,
+				hire: '2026-01-05',
+				exit: '2026-01-23',
+				exit_ground: 'REDUNDANCY',
+				exit_facts: departure('EFFICIENCY_PREVENT_LOSS', { separation_wage_basis: 'MONTHLY' })
+			}),
+			adhoc('tono', 'PESANGON', '2026-01-23'),
+			...worker({
+				ref: 'vina',
+				wage: 10_000_000,
+				hire: '2026-01-05',
+				exit: '2026-01-23',
+				exit_ground: 'RESIGNATION',
+				exit_facts: departure('VOLUNTARY_RESIGNATION', {
+					separation_pay_amount: 2_000_000,
+					separation_pay_reference: 'PKB-PROBE-UANG-PISAH'
+				})
+			}),
+			adhoc('vina', 'UANG_PISAH', '2026-01-23')
+		],
+		period: '2026-01',
+		expected: [],
+		saved: [
+			duty('JKP_PHK_NOTIFICATION', '@tono_job', [
+				{ trigger_ref: '2026-01-23', due_on: '2026-02-03', subject_kind: 'EMPLOYMENT' }
+			]),
+			duty('JKP_PHK_NOTIFICATION', '@vina_job', []),
+			duty('PPH21_BPA1_EXIT', '@tono_job', [{ due_on: '2026-02-28', retain_until: '2036-02-28' }]),
+			duty('PPH21_BPA1_EXIT', '@vina_job', [{ due_on: '2026-02-28' }])
+		]
+	}
+];
+
+register(...cases, ...round10, ...round11, ...round12);

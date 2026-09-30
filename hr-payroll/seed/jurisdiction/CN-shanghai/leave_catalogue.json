@@ -1702,5 +1702,89 @@
 				"description": "The day of the event; entries naming the same day are one event"
 			}
 		]
+	},
+	{
+		"id": "8730ca76-4560-5dc1-a055-d61d1e2b6e59",
+		"settings_id": "aea8edb8-6bbd-5fb9-8c5b-84743bf915c5",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (病假)",
+		"authority": "Certified sickness or non-work injury, paid on the day wage (the monthly wage ÷ 21.75). To 15 August 2026, 沪劳保发〔95〕83号 items 3–5 (https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418018.html): continuous leave within six months pays 60/70/80/90/100% by continuous service under 2/4/6/8 years and above; beyond six months 40/50/60% under 1/3 years and above. Continuous service is this stint’s completed months plus the recorded prior service months, and the six months count from the episode’s first day (recorded defaults, register CN-SH12). From 16 August 2026 HRSS confirmed the 1995 notice expired and no successor rate was found: the pay is the lawful minimum, 80% of the city minimum wage (劳部发〔1995〕309号 item 59, https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/gfxwj/zh/202103/t20210330_412011.html; owner rule 2026-09-28, register CN-SH15); a contract or collective agreement paying more is the unit’s own row. Every day is floored at 80% of the minimum wage on the day wage; the 沪劳保保发〔2000〕14号 floor net of the employee’s contributions is not modelled (CN-SH12.net-floor-80pct). The medical period is not limited here (CN-SH15.protected-medical-period).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"pay_fraction": "employment.rule_date <= \"2026-08-15\" ? max(leave.month_index <= 6 ? ((employment.service_months + employment.prior_service_months) < 24 ? 0.6 : ((employment.service_months + employment.prior_service_months) < 48 ? 0.7 : ((employment.service_months + employment.prior_service_months) < 72 ? 0.8 : ((employment.service_months + employment.prior_service_months) < 96 ? 0.9 : 1.0)))) : ((employment.service_months + employment.prior_service_months) < 12 ? 0.4 : ((employment.service_months + employment.prior_service_months) < 36 ? 0.5 : 0.6)), (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic)) : min(1.0, (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic))",
+		"paid_by": "EMPLOYER",
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "addb27ec-6498-53fe-9949-c7ec1597afa9",
+		"settings_id": "deaa29ea-f2ec-559b-92a2-cbcd34a6f703",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (病假)",
+		"authority": "Certified sickness or non-work injury, paid on the day wage (the monthly wage ÷ 21.75). To 15 August 2026, 沪劳保发〔95〕83号 items 3–5 (https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418018.html): continuous leave within six months pays 60/70/80/90/100% by continuous service under 2/4/6/8 years and above; beyond six months 40/50/60% under 1/3 years and above. Continuous service is this stint’s completed months plus the recorded prior service months, and the six months count from the episode’s first day (recorded defaults, register CN-SH12). From 16 August 2026 HRSS confirmed the 1995 notice expired and no successor rate was found: the pay is the lawful minimum, 80% of the city minimum wage (劳部发〔1995〕309号 item 59, https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/gfxwj/zh/202103/t20210330_412011.html; owner rule 2026-09-28, register CN-SH15); a contract or collective agreement paying more is the unit’s own row. Every day is floored at 80% of the minimum wage on the day wage; the 沪劳保保发〔2000〕14号 floor net of the employee’s contributions is not modelled (CN-SH12.net-floor-80pct). The medical period is not limited here (CN-SH15.protected-medical-period).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"pay_fraction": "employment.rule_date <= \"2026-08-15\" ? max(leave.month_index <= 6 ? ((employment.service_months + employment.prior_service_months) < 24 ? 0.6 : ((employment.service_months + employment.prior_service_months) < 48 ? 0.7 : ((employment.service_months + employment.prior_service_months) < 72 ? 0.8 : ((employment.service_months + employment.prior_service_months) < 96 ? 0.9 : 1.0)))) : ((employment.service_months + employment.prior_service_months) < 12 ? 0.4 : ((employment.service_months + employment.prior_service_months) < 36 ? 0.5 : 0.6)), (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic)) : min(1.0, (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic))",
+		"paid_by": "EMPLOYER",
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "3ef486cf-171b-5249-b4fb-4d2370be2730",
+		"settings_id": "53d053f9-b8d9-506e-9adb-74b3c9a7b9b0",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (病假)",
+		"authority": "Certified sickness or non-work injury, paid on the day wage (the monthly wage ÷ 21.75). To 15 August 2026, 沪劳保发〔95〕83号 items 3–5 (https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418018.html): continuous leave within six months pays 60/70/80/90/100% by continuous service under 2/4/6/8 years and above; beyond six months 40/50/60% under 1/3 years and above. Continuous service is this stint’s completed months plus the recorded prior service months, and the six months count from the episode’s first day (recorded defaults, register CN-SH12). From 16 August 2026 HRSS confirmed the 1995 notice expired and no successor rate was found: the pay is the lawful minimum, 80% of the city minimum wage (劳部发〔1995〕309号 item 59, https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/gfxwj/zh/202103/t20210330_412011.html; owner rule 2026-09-28, register CN-SH15); a contract or collective agreement paying more is the unit’s own row. Every day is floored at 80% of the minimum wage on the day wage; the 沪劳保保发〔2000〕14号 floor net of the employee’s contributions is not modelled (CN-SH12.net-floor-80pct). The medical period is not limited here (CN-SH15.protected-medical-period).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"pay_fraction": "employment.rule_date <= \"2026-08-15\" ? max(leave.month_index <= 6 ? ((employment.service_months + employment.prior_service_months) < 24 ? 0.6 : ((employment.service_months + employment.prior_service_months) < 48 ? 0.7 : ((employment.service_months + employment.prior_service_months) < 72 ? 0.8 : ((employment.service_months + employment.prior_service_months) < 96 ? 0.9 : 1.0)))) : ((employment.service_months + employment.prior_service_months) < 12 ? 0.4 : ((employment.service_months + employment.prior_service_months) < 36 ? 0.5 : 0.6)), (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic)) : min(1.0, (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic))",
+		"paid_by": "EMPLOYER",
+		"can_encash": false,
+		"encash_on_exit": false
+	},
+	{
+		"id": "dcfa6890-4a96-5351-b4f6-42105acee546",
+		"settings_id": "60bb8170-27f0-5e88-8ad9-19a57b8a0252",
+		"code": "SICK_LEAVE",
+		"name": "Sick leave (病假)",
+		"authority": "Certified sickness or non-work injury, paid on the day wage (the monthly wage ÷ 21.75). To 15 August 2026, 沪劳保发〔95〕83号 items 3–5 (https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418018.html): continuous leave within six months pays 60/70/80/90/100% by continuous service under 2/4/6/8 years and above; beyond six months 40/50/60% under 1/3 years and above. Continuous service is this stint’s completed months plus the recorded prior service months, and the six months count from the episode’s first day (recorded defaults, register CN-SH12). From 16 August 2026 HRSS confirmed the 1995 notice expired and no successor rate was found: the pay is the lawful minimum, 80% of the city minimum wage (劳部发〔1995〕309号 item 59, https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/gfxwj/zh/202103/t20210330_412011.html; owner rule 2026-09-28, register CN-SH15); a contract or collective agreement paying more is the unit’s own row. Every day is floored at 80% of the minimum wage on the day wage; the 沪劳保保发〔2000〕14号 floor net of the employee’s contributions is not modelled (CN-SH12.net-floor-80pct). The medical period is not limited here (CN-SH15.protected-medical-period).",
+		"eligibility": "",
+		"entitlement": {
+			"availability": "UNLIMITED",
+			"year_start_month": 1,
+			"proration": "NONE",
+			"bands": []
+		},
+		"evidence": "REQUIRED",
+		"evidence_after_days": null,
+		"is_npl": false,
+		"pay_fraction": "employment.rule_date <= \"2026-08-15\" ? max(leave.month_index <= 6 ? ((employment.service_months + employment.prior_service_months) < 24 ? 0.6 : ((employment.service_months + employment.prior_service_months) < 48 ? 0.7 : ((employment.service_months + employment.prior_service_months) < 72 ? 0.8 : ((employment.service_months + employment.prior_service_months) < 96 ? 0.9 : 1.0)))) : ((employment.service_months + employment.prior_service_months) < 12 ? 0.4 : ((employment.service_months + employment.prior_service_months) < 36 ? 0.5 : 0.6)), (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic)) : min(1.0, (terms.monthly_basic <= 0.0 ? 0.0 : 0.8 * wage_floor / terms.monthly_basic))",
+		"paid_by": "EMPLOYER",
+		"can_encash": false,
+		"encash_on_exit": false
 	}
 ]

@@ -2791,7 +2791,9 @@ register(
 				born: '2005-05-14',
 				from: '2026-01-05',
 				salary: 11_000,
-				type: 'APPRENTICE'
+				type: 'APPRENTICE',
+				// RA 12063 s.13(b): the 75% floor belongs to a registered apprenticeship (check EBET_PROGRAM_UNRECORDED).
+				terms: { facts: { ebet_program: 'APPRENTICESHIP' } }
 			})
 		],
 		period: '2026-07',
@@ -3393,3 +3395,56 @@ register(
 		expected: []
 	}
 );
+
+// ── Phase 2 gates (stored checks and the EBET program code) ──────────────────────────────────────
+const EBET =
+	'RA 12063 (Enterprise-Based Education and Training Framework Act) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/98026): s.4 classifies an enterprise-based trainee by registered program (general training, apprenticeship, upskilling; tracker PH-WG03); s.13(b) the 75% floor is an apprenticeship’s; s.4(f) general training lasts at most six months, and training beyond it makes the trainee a regular employee (s.22; PH-EBET04, PH-EBET08)';
+const PROBATION =
+	'Omnibus Rules Implementing the Labor Code Book VI Rule I s.6(a), (d) (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/85819): probationary employment shall not exceed six months from the day the employee actually started working, and an employee allowed to work after it is regular (tracker PH-HR43)';
+const [traineeEmployee, traineeJob, traineeTerms] = hire({
+	ref: 't',
+	name: 'Jose Rizal Santos',
+	born: '2003-03-03',
+	from: '2026-01-05',
+	salary: 6000,
+	type: 'INTERN'
+});
+const trainee = (program?: string): ProbeInput => ({
+	...traineeTerms!,
+	values: {
+		...traineeTerms!.values,
+		...(program === undefined ? {} : { facts: { ebet_program: program } })
+	}
+});
+register({
+	id: 'PH-GATES-1',
+	profile: 'PH',
+	description:
+		'September 2026 at the NCR office. Trainee terms without an EBET program are refused, INTERN terms naming an apprenticeship are refused, and a general EBET trainee is recorded. The run is refused because a probationer hired on 5 January and the general trainee hired the same day are both still on their six-month status in September.',
+	citation: [
+		EBET,
+		PROBATION,
+		'Probation and general training from Monday 5 January 2026: add_months(2026-01-05, 6) = 2026-07-05, and the September payslip ends 30 September, so both PAYSLIP checks (PROBATION_BEYOND_SIX_MONTHS, EBET_GENERAL_BEYOND_SIX_MONTHS) refuse the run'
+	],
+	company: company(),
+	inputs: [
+		...week,
+		...hire({
+			ref: 'p',
+			name: 'Pedro Probinsyano',
+			born: '1995-08-08',
+			from: '2026-01-05',
+			salary: 30_450,
+			type: 'PROBATION'
+		}),
+		traineeEmployee!,
+		traineeJob!,
+		{ ...trainee(), refused: 'without a registered EBET program' },
+		{ ...trainee('APPRENTICESHIP'), refused: 'does not match the EBET program' },
+		trainee('GENERAL')
+	],
+	period: '2026-09',
+	refused:
+		'(?=[\\s\\S]*PROBATION_BEYOND_SIX_MONTHS[\\s\\S]*P-PH-p)(?=[\\s\\S]*EBET_GENERAL_BEYOND_SIX_MONTHS[\\s\\S]*P-PH-t)',
+	expected: []
+});

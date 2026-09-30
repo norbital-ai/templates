@@ -3945,3 +3945,255 @@ register(
 		expected: []
 	}
 );
+
+/**
+ * Phase 2 (capability plan §4): the obligation ledger (L1), the stored checks (E9) and the probation terms inputs
+ * the four live VN versions declare. A duty instance is read back from `obligation_instances` (owner decision
+ * 2026-09-30: a saved duty instance counts as the oracle); its `due_on` is computed by hand below from the cited
+ * deadline. A check is proven by the refusal of the write that breaches it.
+ */
+const SI_REG_CITE = `Law 41/2024/QH15 art.28(1) (registration within 30 days), art.34(4)(a) (the month's contributions by the last day of the following month) (https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm); Civil Code 91/2015/QH13 art.147(1): a period counted from a day starts the next day`;
+const PIT_DEC_CITE =
+	'Law on Tax Administration 38/2019/QH14 art.44(1)(a) (monthly return by the 20th of the following month), (b) (quarterly by the last day of the first month of the following quarter), art.44(2)(a) (annual finalisation by the last day of the third month after the calendar year); Decree 126/2020/NĐ-CP arts.8(1), 9 (quarterly only for a payer eligible to declare VAT quarterly)';
+const PIT_Q_CITE =
+	'Circular 89/2026/TT-BTC art.22(1)(a)(a.1) (from 1 July 2026 a salary payer declares quarterly, https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf p.49); Decree 252/2026/NĐ-CP art.10(3) (by the last day of the first month of the following quarter, https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf)';
+const LABOUR_REPORT_CITE =
+	'Decree 145/2020/NĐ-CP art.4(2) (half-yearly labour-change report “trước ngày 05 tháng 6”, annual “trước ngày 05 tháng 12”, https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf); owner rule 2026-10-01 (VN-LC01-02): “before the 5th” is due by the 4th';
+
+/** An obligation instance of the case's company, narrowed to one duty (and one trigger or subject). */
+const duty = (code: string, narrow: Row, rows: readonly Row[]) => ({
+	collection: 'obligation_instances',
+	where: { company_id: '@company', duty_code: code, ...narrow },
+	rows
+});
+
+/** The hire's inputs with a ref on its (single) terms row, so a case can revise it. */
+const withTermsRef = (inputs: ProbeInput[], ref: string): ProbeInput[] =>
+	inputs.map((input) => (input.collection === 'employment_terms' ? { ...input, ref } : input));
+
+/** A calendar-duty company: one March 2026 hire so the run has a payslip; the duties are the oracle. */
+const calendarCase = (
+	number: string,
+	facts: Row
+): Pick<ProbeCase, 'company' | 'inputs' | 'period' | 'expected'> => ({
+	company: { ...company(), facts },
+	inputs: [
+		...WEEK,
+		...hire({
+			ref: `c${number}`,
+			name: 'Lịch Văn Hạn',
+			number,
+			born: '1990-01-01',
+			salary: 20_000_000,
+			from: '2026-03-02'
+		})
+	],
+	period: '2026-03',
+	expected: []
+});
+
+register(
+	{
+		id: 'VN-SI-06-1',
+		profile: 'VN',
+		description:
+			'A citizen hired Monday 2 March 2026 and the March 2026 run: the SI/HI/UI registration is due 1 April 2026 (30 days after the first day of service), and the March contributions and the 2% union fee are due 30 April 2026 (the last day of the following month).',
+		citation: [
+			`${SI_REG_CITE}: 2 March + 30 days = 1 April 2026; March → 30 April 2026`,
+			'Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2); Decree 191/2013/NĐ-CP art.6 (to 15 May 2026: paid with compulsory SI) — the March fee is due with the March contributions, 30 April 2026',
+			'Owner rule 2026-10-01 (VN-SI-06): the registration duty is raised on every hire; a hire outside compulsory SI is waived with its reason'
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...hire({
+				ref: 'dang',
+				name: 'Đăng Văn Ký',
+				number: 'P-VN-401',
+				born: '1993-03-03',
+				salary: 20_000_000,
+				from: '2026-03-02'
+			})
+		],
+		period: '2026-03',
+		expected: [],
+		saved: [
+			duty('SI_HI_UI_REGISTRATION', { subject_id: '@dang_job' }, [
+				{
+					subject_kind: 'EMPLOYMENT',
+					trigger_ref: 'HIRE',
+					triggered_on: '2026-03-02',
+					due_on: '2026-04-01',
+					state: 'OPEN'
+				}
+			]),
+			duty('SI_HI_UI_MONTHLY_REMITTANCE', { subject_id: '@run' }, [
+				{ subject_kind: 'RUN', trigger_ref: '2026-03', due_on: '2026-04-30', state: 'OPEN' }
+			]),
+			duty('UNION_FEE_REMITTANCE', { subject_id: '@run' }, [
+				{ subject_kind: 'RUN', trigger_ref: '2026-03', due_on: '2026-04-30', state: 'OPEN' }
+			])
+		]
+	},
+	{
+		id: 'VN-PITFILE-01-1',
+		profile: 'VN',
+		description:
+			'A monthly PIT filer: the December 2025, March 2026 and June 2026 salary PIT returns fall due on the 20th of the following month (the June return on the pre-July form), no quarterly return before July, no monthly return from July, and the third quarter of 2026 is due 31 October 2026; the annual finalisations for 2025 and 2026 are due 31 March of the next year; the labour-change reports for December 2025 and June 2026 are due 4 December 2025 and 4 June 2026.',
+		citation: [
+			`${PIT_DEC_CITE}: 2025-12 → 20 January 2026; 2026-03 → 20 April 2026; 2026-06 → 20 July 2026; 2025 → 31 March 2026; 2026 → 31 March 2027`,
+			`Tax Administration Law 108/2025/QH15 art.100(1): a tax period before 1 July 2026 keeps the former return (June 2026)`,
+			`${PIT_Q_CITE}: Q3 2026 → 31 October 2026; July 2026 raises no monthly return`,
+			`${LABOUR_REPORT_CITE}: 4 December 2025, 4 June 2026; March raises none`
+		],
+		...calendarCase('P-VN-402', {}),
+		saved: [
+			duty('PIT_WITHHOLDING_DECLARATION', { trigger_ref: '2025-12' }, [
+				{ subject_kind: 'COMPANY', triggered_on: '2025-12-01', due_on: '2026-01-20' }
+			]),
+			duty('PIT_WITHHOLDING_DECLARATION', { trigger_ref: '2026-03' }, [{ due_on: '2026-04-20' }]),
+			duty('PIT_WITHHOLDING_DECLARATION', { trigger_ref: '2026-06' }, [{ due_on: '2026-07-20' }]),
+			duty('PIT_WITHHOLDING_DECLARATION', { trigger_ref: '2026-07' }, []),
+			duty('PIT_WITHHOLDING_DECLARATION', { trigger_ref: '2026-Q3' }, [{ due_on: '2026-10-31' }]),
+			duty('PIT_WITHHOLDING_DECLARATION_QUARTERLY', { trigger_ref: '2026-Q1' }, []),
+			duty('PIT_ANNUAL_FINALISATION', { trigger_ref: '2025' }, [{ due_on: '2026-03-31' }]),
+			duty('PIT_ANNUAL_FINALISATION', { trigger_ref: '2026' }, [{ due_on: '2027-03-31' }]),
+			duty('LABOUR_USE_REPORT', { trigger_ref: '2025-12' }, [{ due_on: '2025-12-04' }]),
+			duty('LABOUR_USE_REPORT', { trigger_ref: '2026-03' }, []),
+			duty('LABOUR_USE_REPORT', { trigger_ref: '2026-06' }, [{ due_on: '2026-06-04' }])
+		]
+	},
+	{
+		id: 'VN-PITFILE-01-2',
+		profile: 'VN',
+		description:
+			'A quarterly VAT filer (entity fact pit_quarterly_filer) before 1 July 2026: no monthly salary PIT return; the first and second quarters of 2026 are due 30 April and 31 July 2026 (the second on the pre-July form); from July every payer is quarterly, the third quarter due 31 October 2026.',
+		citation: [
+			`${PIT_DEC_CITE}: Q1 2026 → 30 April 2026; Q2 2026 → 31 July 2026`,
+			`${PIT_Q_CITE}: Q3 2026 → 31 October 2026`
+		],
+		...calendarCase('P-VN-403', { pit_quarterly_filer: true }),
+		saved: [
+			duty('PIT_WITHHOLDING_DECLARATION', { trigger_ref: '2026-03' }, []),
+			duty('PIT_WITHHOLDING_DECLARATION_QUARTERLY', { trigger_ref: '2026-Q1' }, [
+				{ subject_kind: 'COMPANY', due_on: '2026-04-30' }
+			]),
+			duty('PIT_WITHHOLDING_DECLARATION_QUARTERLY', { trigger_ref: '2026-Q2' }, [
+				{ due_on: '2026-07-31' }
+			]),
+			duty('PIT_WITHHOLDING_DECLARATION', { trigger_ref: '2026-Q3' }, [{ due_on: '2026-10-31' }])
+		]
+	},
+	{
+		id: 'VN-LC20-01-1',
+		profile: 'VN',
+		description:
+			'A fixed-term (CONTRACT) hire of Monday 5 January 2026: setting its end to 5 January 2029 (36 months and one day) is refused; 4 January 2029 (exactly 36 months) is recorded, and March 2026 is paid.',
+		citation: [
+			`${LC_GAZETTE} art.20(1)(b): a fixed-term contract has a term of at most 36 months from its effective date — 5 January 2026 + 36 months = 5 January 2029, so the last day is at most 4 January 2029`
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...hire({
+				ref: 'dai',
+				name: 'Dài Văn Hạn',
+				number: 'P-VN-404',
+				born: '1990-04-04',
+				salary: 20_000_000,
+				from: '2026-01-05',
+				type: 'CONTRACT'
+			}),
+			{
+				collection: 'employments',
+				target: '@dai_job',
+				values: { effective_range: { from: '2026-01-05', to: '2029-01-05' } },
+				refused: 'P-VN-404: a fixed-term labour contract \\(CONTRACT\\) runs at most 36 months'
+			},
+			{
+				collection: 'employments',
+				target: '@dai_job',
+				values: { effective_range: { from: '2026-01-05', to: '2029-01-04' } }
+			}
+		],
+		period: '2026-03',
+		expected: []
+	},
+	{
+		id: 'VN-LC25-02-1',
+		profile: 'VN',
+		description:
+			'A 60-day probation for a college-level job (2 March – 30 April 2026) at 17,000,000 against a job wage of 20,000,000 (exactly 85%): recorded. Lowering the probation wage to 16,999,999 is refused, and extending the probation to 1 May (61 days) is refused.',
+		citation: [
+			`${LC_GAZETTE} art.25(2): at most 60 days for a job needing college-level or higher qualifications — 2 March to 30 April 2026 is 30 + 30 = 60 days, to 1 May 61`,
+			`${LC_GAZETTE} art.26: the probation wage is at least 85% of the job's wage — 20,000,000 × 85% = 17,000,000 > 16,999,999`
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...withTermsRef(
+				hire({
+					ref: 'thu',
+					name: 'Thử Thị Việc',
+					number: 'P-VN-405',
+					born: '1999-05-05',
+					gender: 'FEMALE',
+					// the terms stay open so the EXIT check reads them on the extended last day
+					salary: [{ amount: 17_000_000, from: '2026-03-02', to: null }],
+					from: '2026-03-02',
+					to: '2026-04-30',
+					type: 'PROBATION',
+					termsFacts: { probation_class: 'COLLEGE_OR_ABOVE', probation_job_wage: 20_000_000 }
+				}),
+				'thu_terms'
+			),
+			{
+				collection: 'employment_terms',
+				target: '@thu_terms',
+				values: { base_salary: 16_999_999 },
+				refused: 'P-VN-405: the probation wage is below 85% of the wage of the job'
+			},
+			{
+				collection: 'employments',
+				target: '@thu_job',
+				values: { effective_range: { from: '2026-03-02', to: '2026-05-01' } },
+				refused: 'P-VN-405: the probation is longer than its job class allows'
+			}
+		],
+		period: '2026-03',
+		expected: []
+	},
+	{
+		id: 'VN-LC145-01-1',
+		profile: 'VN',
+		description:
+			'A 16-year-old hired Monday 2 March 2026 on the 40-hour office week at 6,000,000: recorded. Stating 44 contracted hours a week on the terms is refused.',
+		citation: [
+			`${LC_GAZETTE} art.146(1): a worker aged 15 to under 18 works at most 8 hours a day and 40 hours a week — born 10 January 2010, 16 on 2 March 2026; 44 > 40`
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...withTermsRef(
+				hire({
+					ref: 'tre',
+					name: 'Trẻ Văn Nhỏ',
+					number: 'P-VN-406',
+					born: '2010-01-10',
+					salary: 6_000_000,
+					from: '2026-03-02'
+				}),
+				'tre_terms'
+			),
+			{
+				collection: 'employment_terms',
+				target: '@tre_terms',
+				values: { ordinary_hours_per_week: 44 },
+				refused:
+					'P-VN-406: a worker aged 15 to under 18 works at most 8 hours a day and 40 hours a week'
+			}
+		],
+		period: '2026-03',
+		expected: []
+	}
+);

@@ -2875,3 +2875,307 @@ register(
 		['2026-01-12', '2026-01-21']
 	)
 );
+
+/** Sick leave (病假) on the day wage 21,750 ÷ 21.75 = 1,000: the part of each day not paid comes off BASIC. */
+const SICK = {
+	ladder:
+		'沪劳保发〔95〕83号 items 3–5 (https://rsj.sh.gov.cn/tgzfl_17732/20230901/t0035_1418018.html), to 15 August 2026: continuous sick leave within six months pays 60% under two years’ continuous service, 70% from two to under four, 80% four to six, 90% six to eight, 100% from eight; the six months count from the episode’s first day and continuous service is this stint plus the recorded prior service (recorded defaults, CN-SH12)',
+	floor:
+		'劳部发〔1995〕309号 item 59 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/gfxwj/zh/202103/t20210330_412011.html): sick pay not below 80% of the local minimum wage, CNY2,740 (沪人社规〔2025〕10号). From 16 August 2026 HRSS confirmed the 1995 Shanghai notice expired and no successor rate was found: the recorded default is that lawful minimum (owner rule 2026-09-28, CN-SH15)'
+} as const;
+const sickLeave = (ref: string, from: string, to: string): ProbeInput => ({
+	collection: 'leave_entries',
+	values: {
+		employment_id: `@${ref}_job`,
+		catalogue_id: '@law:leave_catalogue:SICK_LEAVE',
+		reference: `SICK-${ref}`,
+		reason: 'Certified sickness',
+		from_date: from,
+		to_date: to
+	},
+	files: { certificate_file: `sick-${ref}.pdf` }
+});
+/** A 21,750 worker’s insurance and housing fund inside both bases: 1,740 / 3,480, 435 / 1,957.50, 108.75 each, 43.50, 1,523 each. */
+const SI_21750 = si([1740, 3480], [435, 1957.5], [108.75, 108.75], 43.5, 1523);
+const SI_21750_CITE = `${SOURCES.pension}: 21,750 × 8% = 1,740 / × 16% = 3,480; medical 2% / 9% = 435 / 1,957.50; ${SOURCES.unemployment2026}: 108.75 / 108.75; injury 0.2% = 43.50; housing fund 21,750 × 7% = 1,522.50 → 1,523 each side. Employee shares 3,806.75; employer 7,112.75`;
+
+/** Damage recovered from a January 2026 CNY20,000 wage (the JAN_20000 slip otherwise). */
+const damage = (amount: number): ProbeInput => ({
+	collection: 'adhoc_requests',
+	values: {
+		employment_id: '@p_job',
+		catalogue_id: '@law:adhoc_catalogue:EMPLOYEE_DAMAGE_DEDUCTION',
+		amount,
+		event_date: '2026-01-20',
+		reason: 'Recovery of a damaged scanner, as the labour contract agrees'
+	}
+});
+const DAMAGE =
+	'劳部发〔1994〕489号 art.16 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html) and 上海市企业工资支付办法 (CN-SH04): a loss the worker caused may be deducted from wages as the contract agrees, 每月扣除的部分不得超过劳动者当月工资的20%, and the remainder may not fall below the monthly minimum wage (CNY2,740). The month’s wage is gross pay; the remainder is net pay after the deduction (recorded default)';
+const worker20000 = (from = '2025-06-02', to: string | null = null) => [
+	...cnWeek('2025-06-02'),
+	...hire('p', {
+		name: 'Pan Jun',
+		from,
+		wages: [[20000, from, to]],
+		si: 20000,
+		hf: { contribution_base: 20000 }
+	})
+];
+
+register(
+	{
+		id: 'CN-SH12-1',
+		profile: 'CN-shanghai',
+		description:
+			'January 2026, a resident citizen on CNY21,750 hired 2 January 2023 (36 months’ continuous service on the leave days) is certified sick Tuesday 13 – Monday 19 January: five working days at 70%.',
+		citation: [
+			SICK.ladder,
+			`${SICK.floor}: 0.8 × 2,740 ÷ 21,750 = 10.08% of the day, under 70%`,
+			'Day wage 21,750 ÷ 21.75 = 1,000 (人社部发〔2025〕2号); 5 days × 1,000 × 30% = 1,500 off → 20,250',
+			`${SOURCES.si2025}; ${SI_21750_CITE} (the declared base, unchanged by the leave)`,
+			`${SOURCES.iitResident}: 20,250 − 3,806.75 − 5,000 = 11,443.25 × 3% = 343.2975 → 343.30`,
+			'Net 20,250 − 3,806.75 − 343.30 = 16,099.95'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2023-01-02'),
+			...hire('sick', {
+				name: 'Shen Hao',
+				from: '2023-01-02',
+				wages: [[21750, '2023-01-02', null]],
+				si: 21750,
+				hf: { contribution_base: 21750 }
+			}),
+			sickLeave('sick', '2026-01-13', '2026-01-19')
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'sick_job',
+				lines: {
+					gross: 20250,
+					net: 16099.95,
+					employer_cost: 7112.75,
+					...SI_21750,
+					'IIT.employee': 343.3
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-SH15-1',
+		profile: 'CN-shanghai',
+		description:
+			'September 2026, a resident citizen hired 1 September on CNY21,750 is certified sick Tuesday 8 – Thursday 10 September, after the 1995 Shanghai sick-pay notice expired: each day is paid at the 80%-of-minimum-wage floor only.',
+		citation: [
+			`${SICK.floor}: 0.8 × 2,740 = 2,192 a month = 2,192 ÷ 21,750 of the day wage`,
+			'Day wage 21,750 ÷ 21.75 = 1,000; 3 × 1,000 × (1 − 2,192 ÷ 21,750) = 2,697.655… → 2,697.66 off → 19,052.34 (September has 22 working days from the 1st: the whole month, never more than 21,750)',
+			`${SOURCES.si2026}; ${SI_21750_CITE}; ${SOURCES.hf2026}; a transferred worker contributes from the first month`,
+			`${SOURCES.iitResident}: the first month employed here: 19,052.34 − 3,806.75 − 5,000 = 10,245.59 × 3% = 307.3677 → 307.37`,
+			'Net 19,052.34 − 3,806.75 − 307.37 = 14,938.22'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2026-08-31'),
+			...hire('flu', {
+				name: 'Fu Lan',
+				gender: 'FEMALE',
+				from: '2026-09-01',
+				wages: [[21750, '2026-09-01', null]],
+				si: 21750,
+				hf: { contribution_base: 21750, first_ever_account: false }
+			}),
+			sickLeave('flu', '2026-09-08', '2026-09-10')
+		],
+		period: '2026-09',
+		expected: [
+			{
+				employment: 'flu_job',
+				lines: {
+					gross: 19052.34,
+					net: 14938.22,
+					employer_cost: 7112.75,
+					...SI_21750,
+					'IIT.employee': 307.37
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-SH04-1',
+		profile: 'CN-shanghai',
+		description:
+			'January 2026, CNY4,000 of damage recovered from a CNY20,000 wage: exactly 20% of the month, leaving 12,155 above the minimum wage, so it is taken from net pay.',
+		citation: [
+			`${DAMAGE}: 20,000 × 20% = 4,000 ≥ 4,000; 16,155 − 4,000 = 12,155 ≥ 2,740`,
+			`The slip otherwise: ${SOURCES.si2025}; employee shares 1,600 + 400 + 100 + housing fund 1,400 = 3,500; ${SOURCES.iitResident}: (20,000 − 3,500 − 5,000) × 3% = 345; net 16,155. The recovery enters no insured or taxable wage → net 12,155`
+		],
+		company: { facts: FACTS },
+		inputs: [...worker20000(), damage(4000)],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'p_job',
+				lines: { ...JAN_20000_LINES, net: 12155 }
+			}
+		]
+	},
+	{
+		id: 'CN-SH04-2',
+		profile: 'CN-shanghai',
+		description:
+			'January 2026, CNY4,000.01 of damage from a CNY20,000 wage: one fen over 20% of the month, so the run is refused.',
+		citation: [`${DAMAGE}: 4,000.01 > 20,000 × 20% = 4,000`],
+		company: { facts: FACTS },
+		inputs: [...worker20000(), damage(4000.01)],
+		period: '2026-01',
+		refused: 'at most 20% of the month',
+		expected: []
+	},
+	{
+		id: 'CN-SH01-4',
+		profile: 'CN-shanghai',
+		description:
+			'A CNY20,000 full-timer’s contract is to become non-full-time at CNY24 an hour from 1 February 2026: the terms are refused under the CNY25 hourly minimum, and January pays as before.',
+		citation: [
+			'沪人社规〔2025〕10号 item 1(1) (https://rsj.sh.gov.cn/tgzfl_17732/20250714/t0035_1434097.html): from 1 July 2025 the non-full-time hourly minimum wage is CNY25; 24 < 25 (CN-SH01.hourly-floor)',
+			`January unchanged: ${SOURCES.si2025}; employee shares 1,600 + 400 + 100 + housing fund 1,400 = 3,500; ${SOURCES.iitResident}: (20,000 − 3,500 − 5,000) × 3% = 345; net 16,155`
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...worker20000('2025-06-02', '2026-01-31'),
+			{
+				collection: 'employment_terms',
+				values: {
+					employment_id: '@p_job',
+					residency_status: 'CITIZEN',
+					tax_residency: 'RESIDENT',
+					currency: 'CNY',
+					base_salary: 24,
+					pay_frequency: 'HOURLY',
+					ordinary_hours_per_week: 20,
+					work_classification: 'EA_COVERED',
+					statutory_work_category: 'NON_MANUAL',
+					employment_type: 'PART_TIME',
+					worksite: 'SHANGHAI',
+					shift_pattern_id: '@week',
+					effective_range: { from: '2026-02-01', to: null }
+				},
+				refused: 'hourly minimum wage'
+			}
+		],
+		period: '2026-01',
+		expected: [{ employment: 'p_job', lines: JAN_20000_LINES }]
+	},
+	{
+		id: 'CN-SH02-2',
+		profile: 'CN-shanghai',
+		description:
+			'January 2026, a non-full-time worker on a CNY3,000 monthly contract in a monthly payroll: the run is refused, since part-time pay is settled at least every 15 days.',
+		citation: [
+			'Labour Contract Law art.72 (https://flk.npc.gov.cn): 非全日制用工劳动报酬结算支付周期最长不得超过十五日; 上海市企业工资支付办法 (CN-SH02). A monthly payroll settles once a month (recorded default: a weekly or semi-monthly payroll settles within the cycle)'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2025-06-02'),
+			...hire('pt', {
+				name: 'Peng Ting',
+				gender: 'FEMALE',
+				from: '2025-06-02',
+				wages: [[3000, '2025-06-02', null]],
+				si: 3000,
+				hf: { contribution_base: 3000 },
+				terms: { employment_type: 'PART_TIME', ordinary_hours_per_week: 20 }
+			})
+		],
+		period: '2026-01',
+		refused: 'settled at least every 15 days',
+		expected: []
+	},
+	{
+		id: 'CN-SH42-1',
+		profile: 'CN-shanghai',
+		description:
+			'A resident citizen hired Monday 5 January 2026 resigns on Friday 30 January; the January run pays on 31 January. The ledger owes the housing-fund account opening, the account sealing, the run’s remittance and the unit’s 2026 social-insurance base declaration, each on its cited day.',
+		citation: [
+			'上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.10–14: the account within 30 days of hire → 5 January + 30 = 4 February 2026 (CN-SH42.worker-account)',
+			'Same measure arts.36, 38–42: transfer or seal within 30 days of the exit → 30 January + 30 = 1 March 2026 (CN-SH42.exit-transfer-sealing)',
+			'Housing Provident Fund Regulation art.19 (https://www.gov.cn/zhengce/content/202608/content_7078477.htm): both shares remitted within five days after payday → 31 January + 5 = 5 February 2026 (CN-SH43.remittance-five-days)',
+			'Shanghai Tax Bureau 2026 Notice No. 1 (https://shanghai.chinatax.gov.cn/zcfw/zcfgk/sbf/202604/t480144.html): the 2026 base declaration by 25 June 2026 (CN-SH36)'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2026-01-05'),
+			...hire('li', {
+				name: 'Li Na',
+				gender: 'FEMALE',
+				from: '2026-01-05',
+				to: '2026-01-30',
+				wages: [[20000, '2026-01-05', '2026-01-30']],
+				si: 20000,
+				hf: { contribution_base: 20000, first_ever_account: false },
+				employment: {
+					exit_ground: 'RESIGNATION',
+					exit_facts: { lcl_termination_ground: 'ART_37' }
+				}
+			})
+		],
+		period: '2026-01',
+		expected: [],
+		saved: [
+			{
+				collection: 'obligation_instances',
+				where: { company_id: '@company', duty_code: 'HF_WORKER_ACCOUNT' },
+				rows: [
+					{
+						subject_kind: 'EMPLOYMENT',
+						trigger_ref: 'HIRE',
+						triggered_on: '2026-01-05',
+						due_on: '2026-02-04',
+						state: 'OPEN'
+					}
+				]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { company_id: '@company', duty_code: 'HF_ACCOUNT_SEALING' },
+				rows: [
+					{
+						subject_kind: 'EMPLOYMENT',
+						trigger_ref: '2026-01-30',
+						triggered_on: '2026-01-30',
+						due_on: '2026-03-01',
+						state: 'OPEN'
+					}
+				]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { company_id: '@company', duty_code: 'HF_REMITTANCE' },
+				rows: [
+					{
+						subject_kind: 'RUN',
+						trigger_ref: '2026-01',
+						triggered_on: '2026-01-31',
+						due_on: '2026-02-05',
+						state: 'OPEN'
+					}
+				]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { company_id: '@company', duty_code: 'SI_BASE_DECLARATION_2026' },
+				rows: [
+					{
+						subject_kind: 'COMPANY',
+						trigger_ref: '2026',
+						triggered_on: '2026-01-01',
+						due_on: '2026-06-25',
+						state: 'OPEN'
+					}
+				]
+			}
+		]
+	}
+);

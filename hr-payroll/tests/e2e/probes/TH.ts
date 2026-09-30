@@ -4462,3 +4462,431 @@ register(
 		]
 	})
 );
+
+// ─── Phase 2 (1 Oct 2026): the capability configuration (stored checks, tables, duties, orders) ─
+const N15 = 'https://ratchakitcha.soc.go.th/documents/117083.pdf';
+/** The office terms facts with one more declared input. */
+const withFact = (facts: Row): Row => ({
+	facts: { hazardous_work: false, pregnancy_status: 'NOT_PREGNANT', ...facts }
+});
+/** A THB30,000 employee hired 1 January 2026 whose terms record a wage-law route. */
+const routed = (ref: string, route: string) =>
+	person({ ref, wage: 30_000, hire: '2026-01-01', terms: withFact({ wage_route: route }) });
+/** A daily-paid Bangkok worker from 2020 whose terms from 1 October 2026 record a skill standard. */
+const skilled = (ref: string, wage: number, standard: string, terms: Row = dailyTerms('Bangkok')) =>
+	person({
+		ref,
+		wage,
+		terms,
+		changes: [{ from: '2026-10-01', ...withFact({ skill_standard: standard }) }]
+	});
+/** October 2026 has 22 weekdays (1 October is a Thursday); no holiday is recorded. */
+const dailyOct = (rate: number) => {
+	const gross = rate * 22;
+	const sso = Math.floor((gross * 5) / 100 + 0.5);
+	return { gross, net: gross - sso, employer_cost: sso, 'SSO.employee': sso, 'SSO.employer': sso };
+};
+/** A Legal Execution Department seizure order recovered by its rule (L6). */
+const seizure = (ref: string, rule: string): ProbeInput => ({
+	collection: 'loans',
+	values: {
+		employment_id: `@${ref}_job`,
+		loan_catalogue_id: '@law:loan_catalogue:SEIZURE_ORDER',
+		principal: 50_000,
+		effective_range: { from: '2026-02-01', to: '2026-12-31' },
+		reference: `LED-${ref}`,
+		creditor: 'THIRD_PARTY',
+		authority: 'Legal Execution Department — wage seizure order (probe)',
+		recovery_rule: rule,
+		priority: 0,
+		on_exit: 'RULE'
+	}
+});
+const CPC302 =
+	'Civil Procedure Code s.302(3) (Council of State consolidation, https://searchlaw.ocs.go.th): wages, pension, compensation and like income of a non-government employee are not subject to seizure up to THB20,000 a month in total, or the amount the enforcement officer sets; owner rule 2026-09-30 (register TH-DEDUCT-03): measured on net pay after tax, social security and every other deduction; a seizure is a payment provided by law (LPA s.76(1)), outside the s.76 limits.';
+
+register(
+	// ─── LPA s.4: public employers (TH-WAGE-05, -08) ─────────────────────────────────────────────
+	th({
+		id: 'TH-WAGE-05-1',
+		description:
+			'A company recorded as central government employs one person on THB30,000 in February 2026: the Labour Protection Act does not cover it, so the run is refused rather than priced as LPA employment.',
+		citation: [
+			`LPA s.4 para.1 (${LPA}): the Act does not apply to central, provincial or local government administration or to State Enterprise Labour Relations Act state enterprises; Ministry explanation of Notice 14 item 9 (${N14}).`
+		],
+		company: { facts: { employer_legal_class: 'CENTRAL_GOVERNMENT' } },
+		inputs: person({ ref: 'gov', wage: 30_000 }),
+		period: '2026-02',
+		refused:
+			'the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise',
+		expected: []
+	}),
+	th({
+		id: 'TH-WAGE-05-2',
+		description:
+			'A private cleaning contractor recorded PRIVATE whose employee works at a ministry’s premises, THB30,000 in February 2026: the Act covers the contractor, so the ordinary slip is paid.',
+		citation: [
+			`LPA s.4 para.1 (${LPA}): only the listed public bodies are outside the Act; a private company working for or at a government body is an ordinary employer.`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		company: { facts: { employer_legal_class: 'PRIVATE' } },
+		inputs: person({ ref: 'cleaner', wage: 30_000 }),
+		period: '2026-02',
+		expected: [{ employment: 'cleaner_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-WAGE-08-1',
+		description:
+			'A company recorded as a State Enterprise Labour Relations Act state enterprise, one employee on THB30,000 in February 2026: outside the Act, so the run is refused.',
+		citation: [
+			`LPA s.4 para.1 (${LPA}): the Act does not apply to state enterprises under the State Enterprise Labour Relations Act.`
+		],
+		company: { facts: { employer_legal_class: 'STATE_ENTERPRISE' } },
+		inputs: person({ ref: 'selra', wage: 30_000 }),
+		period: '2026-02',
+		refused:
+			'the employer is recorded as a government body or a State Enterprise Labour Relations Act state enterprise',
+		expected: []
+	}),
+
+	// ─── Notice 14 exclusions and special statutes (TH-WAGE-09–12, TH-HR-19–21) ──────────────────
+	...(
+		[
+			['TH-WAGE-09-1', 'charity', 'NON_PROFIT_WORK', 'work that seeks no economic profit'],
+			['TH-WAGE-10-1', 'docker', 'VESSEL_CARGO_HANDLING', 'loading cargo on a sea-going vessel'],
+			['TH-WAGE-12-1', 'farm', 'SEASONAL_AGRICULTURE', 'seasonal agriculture']
+		] as const
+	).map(([id, ref, route, work]) =>
+		th({
+			id,
+			description: `THB30,000 for ${work} (terms route ${route}), February 2026: Notice 14’s explanation puts the work outside the notice and no special rule is transcribed, so the run still pays the ordinary slip (at or above the Notice 14 floor) and warns.`,
+			citation: [
+				`Ministry explanation of Notice 14 (${N14}); owner rule 2026-09-30 (register ${id.slice(0, 10)}): an exclusion only lifts a minimum, so holding the Notice 14 rate is lawful; the special rule is not transcribed.`,
+				`${SSA}; ${P96}: the THB30,000 figures above (hired 1 January 2026, twelve payments).`
+			],
+			inputs: routed(ref, route),
+			period: '2026-02',
+			warnings: [
+				`WAGE_ROUTE_SPECIAL_RULE: P-TH-${ref}: the terms record work Notice 14.s explanation puts outside the notice`
+			],
+			expected: [{ employment: `${ref}_job`, lines: plain30k }]
+		})
+	),
+	...(
+		[
+			['TH-WAGE-11-1', 'homework', 'HOME_WORK', 'Home Workers Protection Act B.E.2553'],
+			['TH-HR-19-1', 'fisher', 'SEA_FISHING', 'Labour Protection in Fishery Work Act B.E.2562'],
+			['TH-HR-20-1', 'seafarer', 'SEAFARER', 'Maritime Labour Act B.E.2558']
+		] as const
+	).map(([id, ref, route, statute]) =>
+		th({
+			id,
+			description: `Terms recording route ${route}, February 2026: the work falls under the ${statute}, not a Labour Protection Act contract this lineage prices, so the run is refused.`,
+			citation: [`${statute}; LPA s.5 (${LPA}) employee and employer.`],
+			inputs: routed(ref, route),
+			period: '2026-02',
+			refused: 'the terms record work under its own statute',
+			expected: []
+		})
+	),
+	th({
+		id: 'TH-WAGE-11-2',
+		description:
+			'An ordinary employee working from home on THB30,000 (route NOTICE_14 recorded), February 2026: remote work does not change the contract, so the ordinary slip is paid.',
+		citation: [
+			`LPA s.23/1 (${LPA}): an employee working outside the workplace keeps the Act’s rights; Notice 14 applies (${N14}).`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: routed('remote', 'NOTICE_14'),
+		period: '2026-02',
+		expected: [{ employment: 'remote_job', lines: plain30k }]
+	}),
+
+	// ─── Skill-standard wages, Notice 15 (TH-SKILL-02) and the student notice (TH-SKILL-03) ──────
+	th({
+		id: 'TH-SKILL-02-1',
+		description:
+			'A daily-paid grade-1 flux-cored welder on THB600 in Bangkok, October 2026: above Notice 15’s THB550 and Notice 14’s THB400, so 22 weekdays are paid: 13,200; SSO 660 each side.',
+		citation: [
+			`Notice 15 (${N15}) cls.3(1), 4: grade 1 THB550 a normal working day, in force from 14 September 2026.`,
+			`${SSA}: 13,200 × 5% = 660. ${P96}: 158,400 − 79,200 − 60,000 − 7,920 = 11,280 → nil.`,
+			'Net 13,200 − 660 = 12,540.'
+		],
+		inputs: skilled('weld1', 600, 'FLUX_CORED_WELDER_1'),
+		period: '2026-10',
+		expected: [{ employment: 'weld1_job', lines: dailyOct(600) }]
+	}),
+	th({
+		id: 'TH-SKILL-02-2',
+		description:
+			'A daily-paid grade-2 flux-cored welder on THB600 in Bangkok, October 2026: below Notice 15’s THB650 though above the geographic THB400, so the run is refused.',
+		citation: [`Notice 15 (${N15}) cls.3(2), 4, 5: grade 2 THB650 a normal working day.`],
+		inputs: skilled('weld2', 600, 'FLUX_CORED_WELDER_2'),
+		period: '2026-10',
+		refused: 'the wage is below the skill-standard daily rate',
+		expected: []
+	}),
+	th({
+		id: 'TH-SKILL-02-3',
+		description:
+			'A monthly MIG welder grade 2 on THB19,500, October 2026: 19,500 ÷ 30 = 650 meets Notice 15’s THB650 exactly, so the slip is paid.',
+		citation: [
+			`Notice 15 (${N15}) cls.3(4), 4. Owner rule 2026-09-28 (register TH-WAGE-01): the day of a monthly wage is its month ÷ 30.`,
+			`${SSA}: the 17,500 ceiling → 875. ${P96}: 234,000 − 100,000 − 60,000 − 10,500 = 63,500 → nil.`,
+			'Net 19,500 − 875 = 18,625.'
+		],
+		inputs: skilled('mig2', 19_500, 'MIG_WELDER_2', {}),
+		period: '2026-10',
+		expected: [
+			{
+				employment: 'mig2_job',
+				lines: {
+					gross: 19_500,
+					net: 18_625,
+					employer_cost: 875,
+					BASIC: 19_500,
+					'SSO.employee': 875,
+					'SSO.employer': 875
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-SKILL-02-4',
+		description:
+			'A monthly MIG welder grade 2 on THB19,499.70, October 2026: 649.99 a day is one satang below THB650, so the run is refused.',
+		citation: [
+			`Notice 15 (${N15}) cls.3(4), 4; owner rule 2026-09-28 (register TH-WAGE-01): month ÷ 30, unrounded.`
+		],
+		inputs: skilled('mig2low', 19_499.7, 'MIG_WELDER_2', {}),
+		period: '2026-10',
+		refused: 'the wage is below the skill-standard daily rate',
+		expected: []
+	}),
+	th({
+		id: 'TH-SKILL-02-5',
+		description:
+			'An off-grid solar installer grade 1 on hourly terms, October 2026: the lineage compares the per-day skill rate only with a daily, weekly or monthly wage, so the run is refused.',
+		citation: [`Notice 15 (${N15}) cls.3(5), 4: THB560 per normal working day.`],
+		inputs: skilled('solar', 80, 'OFF_GRID_SOLAR_INSTALLER_1', {
+			pay_frequency: 'HOURLY',
+			worksite: 'Bangkok'
+		}),
+		period: '2026-10',
+		refused: 'the terms record a skill standard on hourly pay',
+		expected: []
+	}),
+	th({
+		id: 'TH-SKILL-03-1',
+		description:
+			'A 20-year-old part-time student paid THB40 an hour on a four-hour normal day in Bangkok, February 2026: the THB40 student notice is advice, not a floor; the employed student is owed Notice 14’s whole day (THB400), so 160 a day is refused.',
+		citation: [
+			'Student Notice 2 cls.3–5 (https://infocenter.oic.go.th/FILEWEB/CABINFOCENTER3/DRAWER052/GENERAL/DATA0000/00000536.PDF): THB40 an hour is advice for qualifying students; it sets no minimum and exempts no employee.',
+			`Notice 14 (${N14}) cls.19, 20: the day’s rate is owed for a normal working day however short.`
+		],
+		work: FOUR_HOURS,
+		inputs: person({
+			ref: 'student',
+			wage: 40,
+			dob: '2006-03-01',
+			terms: { pay_frequency: 'HOURLY', worksite: 'Bangkok', employment_type: 'PART_TIME' }
+		}),
+		period: '2026-02',
+		refused: 'P-TH-student is paid 160 a day on .* below the Bangkok daily minimum wage of 400',
+		expected: []
+	}),
+
+	// ─── Spouse-birth leave window, s.41/1 (TH-LEAVE-03) ─────────────────────────────────────────
+	th({
+		id: 'TH-LEAVE-03-3',
+		description:
+			'Spouse-birth leave for a birth on 6 February 2026: a day before the birth (5 February), the 91st day after it (8 May) and an entry naming no birth day are each refused; February is paid whole.',
+		citation: [
+			'LPA s.41/1 added by No.9 (https://ratchakitcha.soc.go.th/documents/89818.pdf): leave within 90 days counted from the birth; CCC s.193/3 para.2: the birth day is not counted, so the 90th day is 7 May 2026. Owner rule 2026-09-28 (register TH-LEAVE-03): a day before the birth is outside.',
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'window', wage: 30_000 }),
+			...(
+				[
+					[
+						'2026-02-05',
+						{ event_kind: 'BIRTH', event_relationship: 'SPOUSE', event_date: '2026-02-06' }
+					],
+					[
+						'2026-05-08',
+						{ event_kind: 'BIRTH', event_relationship: 'SPOUSE', event_date: '2026-02-06' }
+					],
+					['2026-02-10', { event_kind: 'BIRTH', event_relationship: 'SPOUSE' }]
+				] as const
+			).map(([day, facts]) => ({
+				...timeOff('window', 'CHILD_BIRTH_LEAVE', day, day, { facts }),
+				refused: 'spouse-birth leave is taken within 90 days counted from the birth'
+			}))
+		],
+		period: '2026-02',
+		expected: [{ employment: 'window_job', lines: plain30k }]
+	}),
+	th({
+		id: 'TH-LEAVE-03-4',
+		description:
+			'Spouse-birth leave on Thursday 7 May 2026, the 90th day after a 6 February birth: inside the window, paid at the working-day wage; May is paid whole.',
+		citation: [
+			'LPA ss.41/1, 59/2 added by No.9 (https://ratchakitcha.soc.go.th/documents/89818.pdf); CCC s.193/3 para.2: day 1 is 7 February, day 90 is 7 May.',
+			`${SSA}; ${P96}: the THB30,000 figures above.`
+		],
+		inputs: [
+			...person({ ref: 'day90', wage: 30_000 }),
+			timeOff('day90', 'CHILD_BIRTH_LEAVE', '2026-05-07', '2026-05-07', {
+				facts: { event_kind: 'BIRTH', event_relationship: 'SPOUSE', event_date: '2026-02-06' }
+			})
+		],
+		period: '2026-05',
+		expected: [{ employment: 'day90_job', lines: plain30k }]
+	}),
+
+	// ─── Interest on late wages, s.9 (TH-HR-29) ──────────────────────────────────────────────────
+	th({
+		id: 'TH-HR-29-1',
+		description:
+			'January 2026’s THB30,000 wage, due 31 January, paid 15 February: s.9 interest of 15% a year for 15 days, 30,000 × 0.15 × 15 ÷ 365 = 184.93, paid with February’s wages outside SSO and PIT.',
+		citation: [
+			`LPA s.9 para.1 (${LPA}): 15% a year during the default. Owner rule 2026-09-30 (register TH-HR-29): the days after the due day through the paid day (CCC s.193/3 para.2) over 365, half up to the satang; not a wage (SSA s.5) and s.40(4)(ก) interest, not s.40(1) income.`,
+			`${SSA}; ${P96}: the THB30,000 figures above.`,
+			'Net 28,960.42 + 184.93 = 29,145.35.'
+		],
+		inputs: [
+			...person({ ref: 'late', wage: 30_000 }),
+			{
+				collection: 'adhoc_requests',
+				values: {
+					employment_id: '@late_job',
+					catalogue_id: '@law:adhoc_catalogue:LATE_WAGE_INTEREST',
+					amount: 30_000,
+					event_date: '2026-02-15',
+					pay_period: '2026-02',
+					reason: 'January wage paid 15 days late (probe)',
+					facts: { wage_due_on: '2026-01-31', paid_on: '2026-02-15' }
+				}
+			}
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'late_job',
+				lines: {
+					...plain30k,
+					gross: 30_184.93,
+					net: 29_145.35,
+					LATE_WAGE_INTEREST: 184.93
+				}
+			}
+		]
+	}),
+
+	// ─── Wage seizure, CPC s.302(3) (TH-DEDUCT-03) ───────────────────────────────────────────────
+	th({
+		id: 'TH-DEDUCT-03-1',
+		description:
+			'A seizure order on THB30,000, February 2026, withholding what net pay has above THB20,000: 28,960.42 − 20,000 = 8,960.42 is withheld and 20,000 paid.',
+		citation: [CPC302, `${SSA}; ${P96}: the THB30,000 figures above.`],
+		inputs: [
+			...person({ ref: 'seize', wage: 30_000 }),
+			seizure('seize', 'max(0.0, payment.net - 20000.0)')
+		],
+		period: '2026-02',
+		expected: [{ employment: 'seize_job', lines: less30k(8_960.42) }]
+	}),
+	th({
+		id: 'TH-DEDUCT-03-2',
+		description:
+			'A seizure order of 30% of THB30,000 gross (9,000), February 2026: net pay would fall to 19,960.42, below the THB20,000 protected, so the run is refused.',
+		citation: [CPC302],
+		inputs: [
+			...person({ ref: 'seize30', wage: 30_000 }),
+			seizure('seize30', '0.3 * payment.gross')
+		],
+		period: '2026-02',
+		refused: 'the seizure order would leave less than THB20,000',
+		expected: []
+	}),
+
+	// ─── The obligation ledger (TH-SS-01, -12; TH-PIT-04, -09; TH-EXIT-01; TH-EWF-03) ───────────
+	// Duty instances are raised by the obligation_calendar sweep; `saved` reads them after the event run.
+	th({
+		id: 'TH-SS-01-7',
+		description:
+			'February 2026: a hire on 2 February raises the s.34 registration due 30 days later (4 March); the finalised run raises the SSO return due 15 March and the ภ.ง.ด.1 due 7 March (the run pays on 28 February).',
+		citation: [
+			`${SSA}: s.34 registration within 30 days, s.47 remittance by the 15th of the next month; CCC s.193/3 para.2 (the first day not counted).`,
+			'Revenue Code ss.52, 59 (https://www.rd.go.th/5937.html): withholding filed and remitted within 7 days of the next month.',
+			`${SSA}; ${P96}: the THB30,000 figures above for the continuing employee.`
+		],
+		inputs: [
+			...person({ ref: 'remit', wage: 30_000 }),
+			...person({ ref: 'newhire', wage: 30_000, hire: '2026-02-02' })
+		],
+		period: '2026-02',
+		expected: [{ employment: 'remit_job', lines: plain30k }],
+		saved: [
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'SSO_REGISTRATION', subject_id: '@newhire_job' },
+				rows: [{ trigger_ref: 'HIRE', due_on: '2026-03-04', state: 'OPEN' }]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'SSO_MONTHLY_REMITTANCE', subject_id: '@run' },
+				rows: [{ trigger_ref: '2026-02', due_on: '2026-03-15', state: 'OPEN' }]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'PND1_MONTHLY_FILING', subject_id: '@run' },
+				rows: [{ trigger_ref: '2026-02', due_on: '2026-03-07', state: 'OPEN' }]
+			}
+		]
+	}),
+	th({
+		id: 'TH-EXIT-01-2',
+		description:
+			'A resignation on 10 March 2026: the s.44 leaving notice is due 15 April and the s.50 bis certificate a month after the exit (10 April); a resignation raises no s.70 para.2 three-day final-pay duty.',
+		citation: [
+			`${SSA}: s.44 notice of an insured person leaving by the 15th of the next month.`,
+			'Revenue Code s.50 bis (https://www.rd.go.th/5937.html): the certificate within one month of the employment ending.',
+			`LPA s.70 para.2 (${LPA}): three days only where the employer terminates.`,
+			'The slip as TH-HR-30-1: 30,000 × 10/31 = 9,677.42; SSO 484; net 9,193.42.'
+		],
+		inputs: person({ ref: 'leaver', wage: 30_000, exit: '2026-03-10', exit_ground: 'RESIGNATION' }),
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'leaver_job',
+				lines: {
+					gross: 9_677.42,
+					net: 9_193.42,
+					employer_cost: 484,
+					BASIC: 9_677.42,
+					'SSO.employee': 484,
+					'SSO.employer': 484
+				}
+			}
+		],
+		saved: [
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'SSO_EXIT_NOTICE', subject_id: '@leaver_job' },
+				rows: [{ trigger_ref: '2026-03-10', due_on: '2026-04-15', state: 'OPEN' }]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'WITHHOLDING_CERTIFICATE_EXIT', subject_id: '@leaver_job' },
+				rows: [{ trigger_ref: '2026-03-10', due_on: '2026-04-10', state: 'OPEN' }]
+			},
+			{
+				collection: 'obligation_instances',
+				where: { duty_code: 'FINAL_PAY_DUE', subject_id: '@leaver_job' },
+				rows: []
+			}
+		]
+	})
+);

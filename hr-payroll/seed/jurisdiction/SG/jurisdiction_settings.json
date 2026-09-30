@@ -60526,6 +60526,38 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "PWM_ROLE",
+				"label": "Progressive Wage Model and Occupational Progressive Wage roles: the dated full-time monthly wage floor of each job level (MOM PWM sector pages, read 2026-10-01)",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "sector",
+						"type": "string",
+						"required": true,
+						"label": "Sector or occupation"
+					},
+					{
+						"key": "base",
+						"type": "string",
+						"required": true,
+						"options": ["BASIC", "GROSS_EX_OT"],
+						"label": "Wage the floor is measured on",
+						"description": "BASIC: the monthly basic wage (cleaning, outsourced security, landscape, lift and escalator). GROSS_EX_OT: monthly gross wage excluding overtime (retail, food services, waste management, in-house security, administrators, drivers)."
+					},
+					{
+						"key": "monthly_floor",
+						"type": "number",
+						"required": true,
+						"label": "Full-time monthly floor (SGD)"
+					},
+					{
+						"key": "source",
+						"type": "string",
+						"label": "MOM page the floor was transcribed from"
+					}
+				]
 			}
 		],
 		"returns": [
@@ -60646,6 +60678,206 @@
 					"line_end": "LF",
 					"name": "'bank_' + filing.pay_date.split('-').join() + '.txt'"
 				}
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "pwm_role",
+				"type": "code",
+				"table": "PWM_ROLE",
+				"label": "PWM / OPW job level",
+				"description": "The Progressive Wage Model or Occupational Progressive Wage job level the local employee is classified in by actual duties (MOM: the role occupying more than half the working time). Empty where no PWM/OPW schedule reaches the job. The run warns when the contract’s monthly wage is below the level’s dated floor."
+			},
+			{
+				"key": "declared_fixed_monthly_salary",
+				"type": "number",
+				"minimum": 0,
+				"label": "Work Permit declared fixed monthly salary (SGD)",
+				"description": "The basic monthly salary plus fixed monthly allowances declared to the Controller for the Work Permit (or its approved revision). Terms whose basic plus fixed allowances fall below it are refused (Work Passes Regulations Fourth Schedule)."
+			},
+			{
+				"key": "pass_salary_reassessment_ref",
+				"type": "string",
+				"label": "Controller reassessment of a pass salary reduction",
+				"description": "The reference of the Controller’s reassessment approving a reduction of an Employment Pass or S Pass holder’s fixed monthly salary. A reduction without it is refused (Work Passes Regulations Fifth/Sixth Schedule)."
+			}
+		],
+		"checks": [
+			{
+				"code": "RETIREMENT_BELOW_MINIMUM_AGE",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.exit_ground == \"RETIREMENT\" && employee.birth_date != \"\" && employee.age_on(employment.exit_date) < (employee.birth_date >= \"1960-07-01\" ? 63 : 62)",
+				"message": "A retirement on the ground of age is recorded before the employee reaches the minimum retirement age that applies to their birth cohort; record a resignation, mutual agreement or other ground instead.",
+				"authority": "Retirement and Re-employment Act 1993 s.4(1); minimum retirement age 63 from 1 July 2022 to 30 June 2026 (born before 1 July 1960: 62)"
+			},
+			{
+				"code": "WORK_PERMIT_BELOW_DECLARED_SALARY",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "after.pass_type == \"WORK_PERMIT\" && \"declared_fixed_monthly_salary\" in after.fact_keys && after.monthly_wage < after.facts.declared_fixed_monthly_salary",
+				"message": "A Work Permit holder’s basic salary plus fixed monthly allowances may not be set below the fixed monthly salary declared to the Controller.",
+				"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012 Fourth Schedule (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc4-&ValidDate=20260101); MOM, Paying the salary of a Work Permit holder"
+			},
+			{
+				"code": "PASS_SALARY_REDUCTION_UNAPPROVED",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "(after.pass_type == \"EMPLOYMENT_PASS\" || after.pass_type == \"S_PASS\") && after.monthly_wage < before.monthly_wage && !(\"pass_salary_reassessment_ref\" in after.fact_keys)",
+				"message": "An Employment Pass or S Pass holder’s fixed monthly salary is reduced without a recorded Controller reassessment; record its reference first.",
+				"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012 Fifth and Sixth Schedules (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc5-&ValidDate=20260101)"
+			},
+			{
+				"code": "PWM_BELOW_FLOOR",
+				"at": "PAYSLIP",
+				"severity": "WARN",
+				"when": "\"pwm_role\" in terms.fact_keys && (employee.citizenship == \"CITIZEN\" || employee.citizenship == \"PERMANENT_RESIDENT\") && terms.pay_frequency == \"MONTHLY\" && table('PWM_ROLE', terms.facts.pwm_role) != null && (table('PWM_ROLE', terms.facts.pwm_role).base == \"BASIC\" ? terms.monthly_basic : terms.monthly_wage) < table('PWM_ROLE', terms.facts.pwm_role).monthly_floor",
+				"message": "The contract’s monthly wage is below the Progressive Wage floor of the recorded job level for this period.",
+				"authority": "Employment of Foreign Manpower Act 1990 work-pass conditions and the sector licensing conditions (cleaning, security, landscape, lift and escalator); MOM Progressive Wage Model sector pages (https://www.mom.gov.sg/employment-practices/progressive-wage-model/what-is-pwm)"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
+				"label": "CPF submission and payment",
+				"authority": "CPF Regulations 1987 reg.2(1): not later than 14 days after the end of the month (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SDL_REMITTANCE",
+				"label": "Skills Development Levy payment",
+				"authority": "Skills Development Levy Regulations reg.3: payable within 14 days after the end of the month (https://sso.agc.gov.sg/SL/SDLA1979-RG2#pr3-); the month’s levy total rounded down to the dollar for local employees (SSG SDL NOA 2023 FAQ F.7)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "has(run.remittances.SDL)"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"amount": "run.remittances.SDL",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SHG_DEDUCTION_REMITTANCE",
+				"label": "Self-help group contributions remitted with CPF",
+				"authority": "CPF Board, Contributions to self-help groups: the deducted CDAC, ECF, MBMF and SINDA amounts are paid with the month’s CPF contributions (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SALARY_PAYMENT_DEADLINE",
+				"label": "Salary paid for the salary period",
+				"authority": "Employment Act 1968 s.21(1): salary paid before the expiry of the 7th day after the last day of the salary period (https://sso.agc.gov.sg/Act/EmA1968)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "KEY_EMPLOYMENT_TERMS",
+				"label": "Key employment terms issued",
+				"authority": "Employment Act 1968 s.95A(2): not later than 14 days after the day the employee starts employment, for an employee employed 14 days or more (https://sso.agc.gov.sg/Act/EmA1968)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE",
+					"when": "employment.exit_date == \"\" || employment.exit_date >= add_days(employment.service_start, 13)"
+				},
+				"due": "add_days(employment.service_start, 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "KET document reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day issued"
+					}
+				]
+			},
+			{
+				"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
+				"label": "IR8A / AIS for the year",
+				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme: by 1 March of the following year (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "string(int(period.start.substring(0, 4)) + 1) + \"-03-01\"",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
 			}
 		]
 	},
@@ -61581,6 +61813,38 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "PWM_ROLE",
+				"label": "Progressive Wage Model and Occupational Progressive Wage roles: the dated full-time monthly wage floor of each job level (MOM PWM sector pages, read 2026-10-01)",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "sector",
+						"type": "string",
+						"required": true,
+						"label": "Sector or occupation"
+					},
+					{
+						"key": "base",
+						"type": "string",
+						"required": true,
+						"options": ["BASIC", "GROSS_EX_OT"],
+						"label": "Wage the floor is measured on",
+						"description": "BASIC: the monthly basic wage (cleaning, outsourced security, landscape, lift and escalator). GROSS_EX_OT: monthly gross wage excluding overtime (retail, food services, waste management, in-house security, administrators, drivers)."
+					},
+					{
+						"key": "monthly_floor",
+						"type": "number",
+						"required": true,
+						"label": "Full-time monthly floor (SGD)"
+					},
+					{
+						"key": "source",
+						"type": "string",
+						"label": "MOM page the floor was transcribed from"
+					}
+				]
 			}
 		],
 		"returns": [
@@ -61701,6 +61965,206 @@
 					"line_end": "LF",
 					"name": "'bank_' + filing.pay_date.split('-').join() + '.txt'"
 				}
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "pwm_role",
+				"type": "code",
+				"table": "PWM_ROLE",
+				"label": "PWM / OPW job level",
+				"description": "The Progressive Wage Model or Occupational Progressive Wage job level the local employee is classified in by actual duties (MOM: the role occupying more than half the working time). Empty where no PWM/OPW schedule reaches the job. The run warns when the contract’s monthly wage is below the level’s dated floor."
+			},
+			{
+				"key": "declared_fixed_monthly_salary",
+				"type": "number",
+				"minimum": 0,
+				"label": "Work Permit declared fixed monthly salary (SGD)",
+				"description": "The basic monthly salary plus fixed monthly allowances declared to the Controller for the Work Permit (or its approved revision). Terms whose basic plus fixed allowances fall below it are refused (Work Passes Regulations Fourth Schedule)."
+			},
+			{
+				"key": "pass_salary_reassessment_ref",
+				"type": "string",
+				"label": "Controller reassessment of a pass salary reduction",
+				"description": "The reference of the Controller’s reassessment approving a reduction of an Employment Pass or S Pass holder’s fixed monthly salary. A reduction without it is refused (Work Passes Regulations Fifth/Sixth Schedule)."
+			}
+		],
+		"checks": [
+			{
+				"code": "RETIREMENT_BELOW_MINIMUM_AGE",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.exit_ground == \"RETIREMENT\" && employee.birth_date != \"\" && employee.age_on(employment.exit_date) < (employee.birth_date >= \"1960-07-01\" ? 63 : 62)",
+				"message": "A retirement on the ground of age is recorded before the employee reaches the minimum retirement age that applies to their birth cohort; record a resignation, mutual agreement or other ground instead.",
+				"authority": "Retirement and Re-employment Act 1993 s.4(1); minimum retirement age 63 from 1 July 2022 to 30 June 2026 (born before 1 July 1960: 62)"
+			},
+			{
+				"code": "WORK_PERMIT_BELOW_DECLARED_SALARY",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "after.pass_type == \"WORK_PERMIT\" && \"declared_fixed_monthly_salary\" in after.fact_keys && after.monthly_wage < after.facts.declared_fixed_monthly_salary",
+				"message": "A Work Permit holder’s basic salary plus fixed monthly allowances may not be set below the fixed monthly salary declared to the Controller.",
+				"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012 Fourth Schedule (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc4-&ValidDate=20260101); MOM, Paying the salary of a Work Permit holder"
+			},
+			{
+				"code": "PASS_SALARY_REDUCTION_UNAPPROVED",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "(after.pass_type == \"EMPLOYMENT_PASS\" || after.pass_type == \"S_PASS\") && after.monthly_wage < before.monthly_wage && !(\"pass_salary_reassessment_ref\" in after.fact_keys)",
+				"message": "An Employment Pass or S Pass holder’s fixed monthly salary is reduced without a recorded Controller reassessment; record its reference first.",
+				"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012 Fifth and Sixth Schedules (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc5-&ValidDate=20260101)"
+			},
+			{
+				"code": "PWM_BELOW_FLOOR",
+				"at": "PAYSLIP",
+				"severity": "WARN",
+				"when": "\"pwm_role\" in terms.fact_keys && (employee.citizenship == \"CITIZEN\" || employee.citizenship == \"PERMANENT_RESIDENT\") && terms.pay_frequency == \"MONTHLY\" && table('PWM_ROLE', terms.facts.pwm_role) != null && (table('PWM_ROLE', terms.facts.pwm_role).base == \"BASIC\" ? terms.monthly_basic : terms.monthly_wage) < table('PWM_ROLE', terms.facts.pwm_role).monthly_floor",
+				"message": "The contract’s monthly wage is below the Progressive Wage floor of the recorded job level for this period.",
+				"authority": "Employment of Foreign Manpower Act 1990 work-pass conditions and the sector licensing conditions (cleaning, security, landscape, lift and escalator); MOM Progressive Wage Model sector pages (https://www.mom.gov.sg/employment-practices/progressive-wage-model/what-is-pwm)"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
+				"label": "CPF submission and payment",
+				"authority": "CPF Regulations 1987 reg.2(1): not later than 14 days after the end of the month (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SDL_REMITTANCE",
+				"label": "Skills Development Levy payment",
+				"authority": "Skills Development Levy Regulations reg.3: payable within 14 days after the end of the month (https://sso.agc.gov.sg/SL/SDLA1979-RG2#pr3-); the month’s levy total rounded down to the dollar for local employees (SSG SDL NOA 2023 FAQ F.7)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "has(run.remittances.SDL)"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"amount": "run.remittances.SDL",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SHG_DEDUCTION_REMITTANCE",
+				"label": "Self-help group contributions remitted with CPF",
+				"authority": "CPF Board, Contributions to self-help groups: the deducted CDAC, ECF, MBMF and SINDA amounts are paid with the month’s CPF contributions (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SALARY_PAYMENT_DEADLINE",
+				"label": "Salary paid for the salary period",
+				"authority": "Employment Act 1968 s.21(1): salary paid before the expiry of the 7th day after the last day of the salary period (https://sso.agc.gov.sg/Act/EmA1968)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "KEY_EMPLOYMENT_TERMS",
+				"label": "Key employment terms issued",
+				"authority": "Employment Act 1968 s.95A(2): not later than 14 days after the day the employee starts employment, for an employee employed 14 days or more (https://sso.agc.gov.sg/Act/EmA1968)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE",
+					"when": "employment.exit_date == \"\" || employment.exit_date >= add_days(employment.service_start, 13)"
+				},
+				"due": "add_days(employment.service_start, 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "KET document reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day issued"
+					}
+				]
+			},
+			{
+				"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
+				"label": "IR8A / AIS for the year",
+				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme: by 1 March of the following year (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "string(int(period.start.substring(0, 4)) + 1) + \"-03-01\"",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
 			}
 		]
 	},
@@ -62636,6 +63100,38 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "PWM_ROLE",
+				"label": "Progressive Wage Model and Occupational Progressive Wage roles: the dated full-time monthly wage floor of each job level (MOM PWM sector pages, read 2026-10-01)",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "sector",
+						"type": "string",
+						"required": true,
+						"label": "Sector or occupation"
+					},
+					{
+						"key": "base",
+						"type": "string",
+						"required": true,
+						"options": ["BASIC", "GROSS_EX_OT"],
+						"label": "Wage the floor is measured on",
+						"description": "BASIC: the monthly basic wage (cleaning, outsourced security, landscape, lift and escalator). GROSS_EX_OT: monthly gross wage excluding overtime (retail, food services, waste management, in-house security, administrators, drivers)."
+					},
+					{
+						"key": "monthly_floor",
+						"type": "number",
+						"required": true,
+						"label": "Full-time monthly floor (SGD)"
+					},
+					{
+						"key": "source",
+						"type": "string",
+						"label": "MOM page the floor was transcribed from"
+					}
+				]
 			}
 		],
 		"returns": [
@@ -62756,6 +63252,206 @@
 					"line_end": "LF",
 					"name": "'bank_' + filing.pay_date.split('-').join() + '.txt'"
 				}
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "pwm_role",
+				"type": "code",
+				"table": "PWM_ROLE",
+				"label": "PWM / OPW job level",
+				"description": "The Progressive Wage Model or Occupational Progressive Wage job level the local employee is classified in by actual duties (MOM: the role occupying more than half the working time). Empty where no PWM/OPW schedule reaches the job. The run warns when the contract’s monthly wage is below the level’s dated floor."
+			},
+			{
+				"key": "declared_fixed_monthly_salary",
+				"type": "number",
+				"minimum": 0,
+				"label": "Work Permit declared fixed monthly salary (SGD)",
+				"description": "The basic monthly salary plus fixed monthly allowances declared to the Controller for the Work Permit (or its approved revision). Terms whose basic plus fixed allowances fall below it are refused (Work Passes Regulations Fourth Schedule)."
+			},
+			{
+				"key": "pass_salary_reassessment_ref",
+				"type": "string",
+				"label": "Controller reassessment of a pass salary reduction",
+				"description": "The reference of the Controller’s reassessment approving a reduction of an Employment Pass or S Pass holder’s fixed monthly salary. A reduction without it is refused (Work Passes Regulations Fifth/Sixth Schedule)."
+			}
+		],
+		"checks": [
+			{
+				"code": "RETIREMENT_BELOW_MINIMUM_AGE",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.exit_ground == \"RETIREMENT\" && employee.birth_date != \"\" && employee.age_on(employment.exit_date) < (employee.birth_date >= \"1960-07-01\" ? 63 : 62)",
+				"message": "A retirement on the ground of age is recorded before the employee reaches the minimum retirement age that applies to their birth cohort; record a resignation, mutual agreement or other ground instead.",
+				"authority": "Retirement and Re-employment Act 1993 s.4(1); minimum retirement age 63 from 1 July 2022 to 30 June 2026 (born before 1 July 1960: 62)"
+			},
+			{
+				"code": "WORK_PERMIT_BELOW_DECLARED_SALARY",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "after.pass_type == \"WORK_PERMIT\" && \"declared_fixed_monthly_salary\" in after.fact_keys && after.monthly_wage < after.facts.declared_fixed_monthly_salary",
+				"message": "A Work Permit holder’s basic salary plus fixed monthly allowances may not be set below the fixed monthly salary declared to the Controller.",
+				"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012 Fourth Schedule (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc4-&ValidDate=20260101); MOM, Paying the salary of a Work Permit holder"
+			},
+			{
+				"code": "PASS_SALARY_REDUCTION_UNAPPROVED",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "(after.pass_type == \"EMPLOYMENT_PASS\" || after.pass_type == \"S_PASS\") && after.monthly_wage < before.monthly_wage && !(\"pass_salary_reassessment_ref\" in after.fact_keys)",
+				"message": "An Employment Pass or S Pass holder’s fixed monthly salary is reduced without a recorded Controller reassessment; record its reference first.",
+				"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012 Fifth and Sixth Schedules (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc5-&ValidDate=20260101)"
+			},
+			{
+				"code": "PWM_BELOW_FLOOR",
+				"at": "PAYSLIP",
+				"severity": "WARN",
+				"when": "\"pwm_role\" in terms.fact_keys && (employee.citizenship == \"CITIZEN\" || employee.citizenship == \"PERMANENT_RESIDENT\") && terms.pay_frequency == \"MONTHLY\" && table('PWM_ROLE', terms.facts.pwm_role) != null && (table('PWM_ROLE', terms.facts.pwm_role).base == \"BASIC\" ? terms.monthly_basic : terms.monthly_wage) < table('PWM_ROLE', terms.facts.pwm_role).monthly_floor",
+				"message": "The contract’s monthly wage is below the Progressive Wage floor of the recorded job level for this period.",
+				"authority": "Employment of Foreign Manpower Act 1990 work-pass conditions and the sector licensing conditions (cleaning, security, landscape, lift and escalator); MOM Progressive Wage Model sector pages (https://www.mom.gov.sg/employment-practices/progressive-wage-model/what-is-pwm)"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
+				"label": "CPF submission and payment",
+				"authority": "CPF Regulations 1987 reg.2(1): not later than 14 days after the end of the month (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SDL_REMITTANCE",
+				"label": "Skills Development Levy payment",
+				"authority": "Skills Development Levy Regulations reg.3: payable within 14 days after the end of the month (https://sso.agc.gov.sg/SL/SDLA1979-RG2#pr3-); the month’s levy total rounded down to the dollar for local employees (SSG SDL NOA 2023 FAQ F.7)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "has(run.remittances.SDL)"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"amount": "run.remittances.SDL",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SHG_DEDUCTION_REMITTANCE",
+				"label": "Self-help group contributions remitted with CPF",
+				"authority": "CPF Board, Contributions to self-help groups: the deducted CDAC, ECF, MBMF and SINDA amounts are paid with the month’s CPF contributions (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SALARY_PAYMENT_DEADLINE",
+				"label": "Salary paid for the salary period",
+				"authority": "Employment Act 1968 s.21(1): salary paid before the expiry of the 7th day after the last day of the salary period (https://sso.agc.gov.sg/Act/EmA1968)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "KEY_EMPLOYMENT_TERMS",
+				"label": "Key employment terms issued",
+				"authority": "Employment Act 1968 s.95A(2): not later than 14 days after the day the employee starts employment, for an employee employed 14 days or more (https://sso.agc.gov.sg/Act/EmA1968)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE",
+					"when": "employment.exit_date == \"\" || employment.exit_date >= add_days(employment.service_start, 13)"
+				},
+				"due": "add_days(employment.service_start, 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "KET document reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day issued"
+					}
+				]
+			},
+			{
+				"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
+				"label": "IR8A / AIS for the year",
+				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme: by 1 March of the following year (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "string(int(period.start.substring(0, 4)) + 1) + \"-03-01\"",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
 			}
 		]
 	},
@@ -63691,6 +64387,38 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "PWM_ROLE",
+				"label": "Progressive Wage Model and Occupational Progressive Wage roles: the dated full-time monthly wage floor of each job level (MOM PWM sector pages, read 2026-10-01)",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "sector",
+						"type": "string",
+						"required": true,
+						"label": "Sector or occupation"
+					},
+					{
+						"key": "base",
+						"type": "string",
+						"required": true,
+						"options": ["BASIC", "GROSS_EX_OT"],
+						"label": "Wage the floor is measured on",
+						"description": "BASIC: the monthly basic wage (cleaning, outsourced security, landscape, lift and escalator). GROSS_EX_OT: monthly gross wage excluding overtime (retail, food services, waste management, in-house security, administrators, drivers)."
+					},
+					{
+						"key": "monthly_floor",
+						"type": "number",
+						"required": true,
+						"label": "Full-time monthly floor (SGD)"
+					},
+					{
+						"key": "source",
+						"type": "string",
+						"label": "MOM page the floor was transcribed from"
+					}
+				]
 			}
 		],
 		"returns": [
@@ -63811,6 +64539,206 @@
 					"line_end": "LF",
 					"name": "'bank_' + filing.pay_date.split('-').join() + '.txt'"
 				}
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "pwm_role",
+				"type": "code",
+				"table": "PWM_ROLE",
+				"label": "PWM / OPW job level",
+				"description": "The Progressive Wage Model or Occupational Progressive Wage job level the local employee is classified in by actual duties (MOM: the role occupying more than half the working time). Empty where no PWM/OPW schedule reaches the job. The run warns when the contract’s monthly wage is below the level’s dated floor."
+			},
+			{
+				"key": "declared_fixed_monthly_salary",
+				"type": "number",
+				"minimum": 0,
+				"label": "Work Permit declared fixed monthly salary (SGD)",
+				"description": "The basic monthly salary plus fixed monthly allowances declared to the Controller for the Work Permit (or its approved revision). Terms whose basic plus fixed allowances fall below it are refused (Work Passes Regulations Fourth Schedule)."
+			},
+			{
+				"key": "pass_salary_reassessment_ref",
+				"type": "string",
+				"label": "Controller reassessment of a pass salary reduction",
+				"description": "The reference of the Controller’s reassessment approving a reduction of an Employment Pass or S Pass holder’s fixed monthly salary. A reduction without it is refused (Work Passes Regulations Fifth/Sixth Schedule)."
+			}
+		],
+		"checks": [
+			{
+				"code": "RETIREMENT_BELOW_MINIMUM_AGE",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.exit_ground == \"RETIREMENT\" && employee.birth_date != \"\" && employee.age_on(employment.exit_date) < (employee.birth_date >= \"1963-07-01\" ? 64 : employee.birth_date >= \"1960-07-01\" ? 63 : 62)",
+				"message": "A retirement on the ground of age is recorded before the employee reaches the minimum retirement age that applies to their birth cohort; record a resignation, mutual agreement or other ground instead.",
+				"authority": "Retirement and Re-employment Act 1993 s.4(1) (no dismissal on the ground of age below the prescribed minimum retirement age) and Retirement and Re-employment Notifications S 187/2026 (https://sso.agc.gov.sg/SL/RRA1993-S187-2026?DocDate=20260401&ValidDate=20260701&ViewType=Within); MOM transitional cohorts: born 1 July 1958–30 June 1960 age 62, born 1 July 1960–30 June 1963 age 63, born from 1 July 1963 age 64"
+			},
+			{
+				"code": "WORK_PERMIT_BELOW_DECLARED_SALARY",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "after.pass_type == \"WORK_PERMIT\" && \"declared_fixed_monthly_salary\" in after.fact_keys && after.monthly_wage < after.facts.declared_fixed_monthly_salary",
+				"message": "A Work Permit holder’s basic salary plus fixed monthly allowances may not be set below the fixed monthly salary declared to the Controller.",
+				"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012 Fourth Schedule (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc4-&ValidDate=20260101); MOM, Paying the salary of a Work Permit holder"
+			},
+			{
+				"code": "PASS_SALARY_REDUCTION_UNAPPROVED",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "(after.pass_type == \"EMPLOYMENT_PASS\" || after.pass_type == \"S_PASS\") && after.monthly_wage < before.monthly_wage && !(\"pass_salary_reassessment_ref\" in after.fact_keys)",
+				"message": "An Employment Pass or S Pass holder’s fixed monthly salary is reduced without a recorded Controller reassessment; record its reference first.",
+				"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012 Fifth and Sixth Schedules (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc5-&ValidDate=20260101)"
+			},
+			{
+				"code": "PWM_BELOW_FLOOR",
+				"at": "PAYSLIP",
+				"severity": "WARN",
+				"when": "\"pwm_role\" in terms.fact_keys && (employee.citizenship == \"CITIZEN\" || employee.citizenship == \"PERMANENT_RESIDENT\") && terms.pay_frequency == \"MONTHLY\" && table('PWM_ROLE', terms.facts.pwm_role) != null && (table('PWM_ROLE', terms.facts.pwm_role).base == \"BASIC\" ? terms.monthly_basic : terms.monthly_wage) < table('PWM_ROLE', terms.facts.pwm_role).monthly_floor",
+				"message": "The contract’s monthly wage is below the Progressive Wage floor of the recorded job level for this period.",
+				"authority": "Employment of Foreign Manpower Act 1990 work-pass conditions and the sector licensing conditions (cleaning, security, landscape, lift and escalator); MOM Progressive Wage Model sector pages (https://www.mom.gov.sg/employment-practices/progressive-wage-model/what-is-pwm)"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
+				"label": "CPF submission and payment",
+				"authority": "CPF Regulations 1987 reg.2(1): not later than 14 days after the end of the month (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SDL_REMITTANCE",
+				"label": "Skills Development Levy payment",
+				"authority": "Skills Development Levy Regulations reg.3: payable within 14 days after the end of the month (https://sso.agc.gov.sg/SL/SDLA1979-RG2#pr3-); the month’s levy total rounded down to the dollar for local employees (SSG SDL NOA 2023 FAQ F.7)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "has(run.remittances.SDL)"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"amount": "run.remittances.SDL",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SHG_DEDUCTION_REMITTANCE",
+				"label": "Self-help group contributions remitted with CPF",
+				"authority": "CPF Board, Contributions to self-help groups: the deducted CDAC, ECF, MBMF and SINDA amounts are paid with the month’s CPF contributions (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SALARY_PAYMENT_DEADLINE",
+				"label": "Salary paid for the salary period",
+				"authority": "Employment Act 1968 s.21(1): salary paid before the expiry of the 7th day after the last day of the salary period (https://sso.agc.gov.sg/Act/EmA1968)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "KEY_EMPLOYMENT_TERMS",
+				"label": "Key employment terms issued",
+				"authority": "Employment Act 1968 s.95A(2): not later than 14 days after the day the employee starts employment, for an employee employed 14 days or more (https://sso.agc.gov.sg/Act/EmA1968)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE",
+					"when": "employment.exit_date == \"\" || employment.exit_date >= add_days(employment.service_start, 13)"
+				},
+				"due": "add_days(employment.service_start, 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "KET document reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day issued"
+					}
+				]
+			},
+			{
+				"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
+				"label": "IR8A / AIS for the year",
+				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme: by 1 March of the following year (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "string(int(period.start.substring(0, 4)) + 1) + \"-03-01\"",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
 			}
 		]
 	},
@@ -64746,6 +65674,38 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "PWM_ROLE",
+				"label": "Progressive Wage Model and Occupational Progressive Wage roles: the dated full-time monthly wage floor of each job level (MOM PWM sector pages, read 2026-10-01)",
+				"keys": ["code"],
+				"columns": [
+					{
+						"key": "sector",
+						"type": "string",
+						"required": true,
+						"label": "Sector or occupation"
+					},
+					{
+						"key": "base",
+						"type": "string",
+						"required": true,
+						"options": ["BASIC", "GROSS_EX_OT"],
+						"label": "Wage the floor is measured on",
+						"description": "BASIC: the monthly basic wage (cleaning, outsourced security, landscape, lift and escalator). GROSS_EX_OT: monthly gross wage excluding overtime (retail, food services, waste management, in-house security, administrators, drivers)."
+					},
+					{
+						"key": "monthly_floor",
+						"type": "number",
+						"required": true,
+						"label": "Full-time monthly floor (SGD)"
+					},
+					{
+						"key": "source",
+						"type": "string",
+						"label": "MOM page the floor was transcribed from"
+					}
+				]
 			}
 		],
 		"returns": [
@@ -64866,6 +65826,206 @@
 					"line_end": "LF",
 					"name": "'bank_' + filing.pay_date.split('-').join() + '.txt'"
 				}
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "pwm_role",
+				"type": "code",
+				"table": "PWM_ROLE",
+				"label": "PWM / OPW job level",
+				"description": "The Progressive Wage Model or Occupational Progressive Wage job level the local employee is classified in by actual duties (MOM: the role occupying more than half the working time). Empty where no PWM/OPW schedule reaches the job. The run warns when the contract’s monthly wage is below the level’s dated floor."
+			},
+			{
+				"key": "declared_fixed_monthly_salary",
+				"type": "number",
+				"minimum": 0,
+				"label": "Work Permit declared fixed monthly salary (SGD)",
+				"description": "The basic monthly salary plus fixed monthly allowances declared to the Controller for the Work Permit (or its approved revision). Terms whose basic plus fixed allowances fall below it are refused (Work Passes Regulations Fourth Schedule)."
+			},
+			{
+				"key": "pass_salary_reassessment_ref",
+				"type": "string",
+				"label": "Controller reassessment of a pass salary reduction",
+				"description": "The reference of the Controller’s reassessment approving a reduction of an Employment Pass or S Pass holder’s fixed monthly salary. A reduction without it is refused (Work Passes Regulations Fifth/Sixth Schedule)."
+			}
+		],
+		"checks": [
+			{
+				"code": "RETIREMENT_BELOW_MINIMUM_AGE",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.exit_ground == \"RETIREMENT\" && employee.birth_date != \"\" && employee.age_on(employment.exit_date) < (employee.birth_date >= \"1963-07-01\" ? 64 : employee.birth_date >= \"1960-07-01\" ? 63 : 62)",
+				"message": "A retirement on the ground of age is recorded before the employee reaches the minimum retirement age that applies to their birth cohort; record a resignation, mutual agreement or other ground instead.",
+				"authority": "Retirement and Re-employment Act 1993 s.4(1) (no dismissal on the ground of age below the prescribed minimum retirement age) and Retirement and Re-employment Notifications S 187/2026 (https://sso.agc.gov.sg/SL/RRA1993-S187-2026?DocDate=20260401&ValidDate=20260701&ViewType=Within); MOM transitional cohorts: born 1 July 1958–30 June 1960 age 62, born 1 July 1960–30 June 1963 age 63, born from 1 July 1963 age 64"
+			},
+			{
+				"code": "WORK_PERMIT_BELOW_DECLARED_SALARY",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "after.pass_type == \"WORK_PERMIT\" && \"declared_fixed_monthly_salary\" in after.fact_keys && after.monthly_wage < after.facts.declared_fixed_monthly_salary",
+				"message": "A Work Permit holder’s basic salary plus fixed monthly allowances may not be set below the fixed monthly salary declared to the Controller.",
+				"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012 Fourth Schedule (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc4-&ValidDate=20260101); MOM, Paying the salary of a Work Permit holder"
+			},
+			{
+				"code": "PASS_SALARY_REDUCTION_UNAPPROVED",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "(after.pass_type == \"EMPLOYMENT_PASS\" || after.pass_type == \"S_PASS\") && after.monthly_wage < before.monthly_wage && !(\"pass_salary_reassessment_ref\" in after.fact_keys)",
+				"message": "An Employment Pass or S Pass holder’s fixed monthly salary is reduced without a recorded Controller reassessment; record its reference first.",
+				"authority": "Employment of Foreign Manpower (Work Passes) Regulations 2012 Fifth and Sixth Schedules (https://sso.agc.gov.sg/SL/EFMA1990-S569-2012?DocDate=20251230&ProvIds=Sc5-&ValidDate=20260101)"
+			},
+			{
+				"code": "PWM_BELOW_FLOOR",
+				"at": "PAYSLIP",
+				"severity": "WARN",
+				"when": "\"pwm_role\" in terms.fact_keys && (employee.citizenship == \"CITIZEN\" || employee.citizenship == \"PERMANENT_RESIDENT\") && terms.pay_frequency == \"MONTHLY\" && table('PWM_ROLE', terms.facts.pwm_role) != null && (table('PWM_ROLE', terms.facts.pwm_role).base == \"BASIC\" ? terms.monthly_basic : terms.monthly_wage) < table('PWM_ROLE', terms.facts.pwm_role).monthly_floor",
+				"message": "The contract’s monthly wage is below the Progressive Wage floor of the recorded job level for this period.",
+				"authority": "Employment of Foreign Manpower Act 1990 work-pass conditions and the sector licensing conditions (cleaning, security, landscape, lift and escalator); MOM Progressive Wage Model sector pages (https://www.mom.gov.sg/employment-practices/progressive-wage-model/what-is-pwm)"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "CPF_MONTHLY_SUBMISSION_AND_PAYMENT",
+				"label": "CPF submission and payment",
+				"authority": "CPF Regulations 1987 reg.2(1): not later than 14 days after the end of the month (https://sso.agc.gov.sg/SL/CPFA1953-RG15); CPF Board, When is the due date for CPF contributions",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SDL_REMITTANCE",
+				"label": "Skills Development Levy payment",
+				"authority": "Skills Development Levy Regulations reg.3: payable within 14 days after the end of the month (https://sso.agc.gov.sg/SL/SDLA1979-RG2#pr3-); the month’s levy total rounded down to the dollar for local employees (SSG SDL NOA 2023 FAQ F.7)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "has(run.remittances.SDL)"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"amount": "run.remittances.SDL",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SHG_DEDUCTION_REMITTANCE",
+				"label": "Self-help group contributions remitted with CPF",
+				"authority": "CPF Board, Contributions to self-help groups: the deducted CDAC, ECF, MBMF and SINDA amounts are paid with the month’s CPF contributions (https://www.cpf.gov.sg/employer/employer-obligations/contributions-to-self-help-groups)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(month_end(period.start), 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "SALARY_PAYMENT_DEADLINE",
+				"label": "Salary paid for the salary period",
+				"authority": "Employment Act 1968 s.21(1): salary paid before the expiry of the 7th day after the last day of the salary period (https://sso.agc.gov.sg/Act/EmA1968)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(period.end, 7)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
+			},
+			{
+				"code": "KEY_EMPLOYMENT_TERMS",
+				"label": "Key employment terms issued",
+				"authority": "Employment Act 1968 s.95A(2): not later than 14 days after the day the employee starts employment, for an employee employed 14 days or more (https://sso.agc.gov.sg/Act/EmA1968)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE",
+					"when": "employment.exit_date == \"\" || employment.exit_date >= add_days(employment.service_start, 13)"
+				},
+				"due": "add_days(employment.service_start, 14)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "KET document reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day issued"
+					}
+				]
+			},
+			{
+				"code": "ANNUAL_EMPLOYMENT_INCOME_RETURN",
+				"label": "IR8A / AIS for the year",
+				"authority": "Income Tax Act 1947 s.68(2); IRAS, Auto Inclusion Scheme: by 1 March of the following year (https://www.iras.gov.sg/taxes/individual-income-tax/employers/auto-inclusion-scheme-(ais)-for-employment-income)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "string(int(period.start.substring(0, 4)) + 1) + \"-03-01\"",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"required": true,
+						"label": "Submission or payment reference"
+					},
+					{
+						"key": "paid_on",
+						"type": "date",
+						"label": "Day paid or filed"
+					}
+				]
 			}
 		]
 	}
