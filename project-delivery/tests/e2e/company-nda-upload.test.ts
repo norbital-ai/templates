@@ -47,8 +47,8 @@ afterAll(async () => {
 it('company creation waits for its NDA upload and persists the completed file', async () => {
 	const context = await browser.newContext();
 	for (const [path, data] of [
-		['code', { email: founder }],
-		['verify', { email: founder, code: '123456' }]
+		['code', { address: founder }],
+		['verify', { address: founder, code: '123456' }]
 	] as const)
 		expect((await context.request.post(`${origin}/__bolt/session/${path}`, { data })).ok()).toBe(
 			true

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="On-Demand Services workspace: book, match, check the shift">
+  <rect width="1600" height="900" fill="#14262f"/>
+  <path d="M96 372H1504" stroke="#2f4a55" stroke-width="2"/>
+  <text x="96" y="158" fill="#f4f7f6" font-family="system-ui, sans-serif" font-size="76" font-weight="650">On-Demand Services</text>
+  <text x="100" y="229" fill="#a9c2c6" font-family="system-ui, sans-serif" font-size="30">The right helper, at the door, on time.</text>
+  <g font-family="system-ui, sans-serif">
+    <rect x="96" y="432" width="418" height="332" rx="18" fill="#1d3842" stroke="#3f5f69"/>
+    <rect x="591" y="432" width="418" height="332" rx="18" fill="#1d3842" stroke="#3f5f69"/>
+    <rect x="1086" y="432" width="418" height="332" rx="18" fill="#2a4a44" stroke="#6cc3a8"/>
+    <text x="128" y="492" font-size="22" fill="#95b3bb">01 / BOOK</text>
+    <text x="623" y="492" font-size="22" fill="#95b3bb">02 / MATCH</text>
+    <text x="1118" y="492" font-size="22" fill="#9ad8c4">03 / ARRIVE</text>
+    <text x="128" y="560" font-size="37" fill="#f4f7f6">Service &amp; time</text>
+    <text x="623" y="560" font-size="37" fill="#f4f7f6">Skill, hours, drive</text>
+    <text x="1118" y="560" font-size="37" fill="#f4f7f6">Shift &amp; ETA check</text>
+    <g stroke="#6a8890" stroke-width="10" stroke-linecap="round">
+      <path d="M133 620H433M133 655H395M133 690H335"/>
+      <path d="M628 620H928M628 655H860M628 690H790"/>
+    </g>
+    <circle cx="1150" cy="650" r="34" fill="none" stroke="#6cc3a8" stroke-width="8"/>
+    <path d="M1136 650l10 10 20-22" fill="none" stroke="#6cc3a8" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M1210 632H1440M1210 670H1380" stroke="#8fbfb2" stroke-width="10" stroke-linecap="round"/>
+  </g>
+</svg>

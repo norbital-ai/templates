@@ -4,12 +4,13 @@ Starter workspaces for [Norbital](https://norbital.ai). Each directory here is a
 filesystem-first Bolt project that can be installed, synchronized, type-checked, migrated,
 and seeded with the public Bolt CLI — and forked into a tenant.
 
-| Template                                    | Directory           | Organization handle     | Purpose                                                                        |
-| ------------------------------------------- | ------------------- | ----------------------- | ------------------------------------------------------------------------------ |
-| [**hr-payroll**](./hr-payroll/)             | `hr-payroll/`       | `norbital_hr`           | Multi-country HR and payroll with effective-dated facts and payroll runs       |
-| [**construction**](./construction/)         | `construction/`     | `norbital_construction` | Project-centered construction ops with BIM and workforce compliance            |
-| [**field-operations**](./field-operations/) | `field-operations/` | `norbital_bca`          | Site operations: dispatch, accountless-contractor WhatsApp, photo integrity    |
-| [**crm**](./crm/)                           | `crm/`              | `norbital_crm`          | B2B quoting and pipeline with purchasing, mirrored masters, and an ERP handoff |
+| Template                                        | Directory             | Organization handle     | Purpose                                                                        |
+| ----------------------------------------------- | --------------------- | ----------------------- | ------------------------------------------------------------------------------ |
+| [**hr-payroll**](./hr-payroll/)                 | `hr-payroll/`         | `norbital_hr`           | Multi-country HR and payroll with effective-dated facts and payroll runs       |
+| [**construction**](./construction/)             | `construction/`       | `norbital_construction` | Project-centered construction ops with BIM and workforce compliance            |
+| [**field-operations**](./field-operations/)     | `field-operations/`   | `norbital_bca`          | Site operations: dispatch, accountless-contractor WhatsApp, photo integrity    |
+| [**crm**](./crm/)                               | `crm/`                | `norbital_crm`          | B2B quoting and pipeline with purchasing, mirrored masters, and an ERP handoff |
+| [**on-demand-services**](./on-demand-services/) | `on-demand-services/` | `norbital_on_demand`    | Home-service bookings with helper matching, shift checks and ETA alerts        |
 
 **Directory and handle are two different names.** The directory is a path in this repository: it is
 what `git subtree split` publishes as `refs/heads/templates/<directory>`, and what the website serves
@@ -40,6 +41,9 @@ every respect except discovery.
   with payment and shipping terms, revision-safe pipeline, and a confirmed-document handoff to the
   third-party ERP — together with the purchasing, supplier, and indicative stock position that make
   those commitments deliverable.
+- **On-Demand Services** books helpers to customers' homes (cleaning, laundry, handyman): skill- and
+  availability-matched visits with travel buffers, preferred-helper scheduling, recurring visits,
+  pre-shift confirmation with automatic reassignment and warning letters, and GPS ETA alerts.
 - **HR & Payroll** is the specialised multi-country payroll workspace, including attendance, leave,
   statutory contribution configuration, and reconciliation guidance.
 
