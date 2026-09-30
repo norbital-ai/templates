@@ -12,36 +12,22 @@
 	let {
 		view,
 		subtitle,
-		kind,
 		children
 	}: {
 		view: RecordView<CollectionName>;
-		/** The fields the subtitle joins, `—` for an empty one. */
+		/** The fields under the heading, each shown by its kind. */
 		subtitle?: readonly string[];
-		/** The frame's title when the row has no label of its own (join rows). */
-		kind?: string;
 		children: Snippet;
 	} = $props();
 	const of = $derived(view.collection);
 	const record = $derived(view.mode === 'update' ? view.record : null);
-	const cells: { readonly [field: string]: unknown } | null = $derived(
-		view.mode === 'update' ? view.record : null
-	);
-	const line = $derived(
-		cells == null || subtitle === undefined
-			? undefined
-			: subtitle
-					.map((f) => (cells[f] == null || cells[f] === '' ? '—' : String(cells[f])))
-					.join(' · ')
-	);
 </script>
 
 <RecordShell
 	{of}
 	mode={view.mode}
 	{...record == null ? {} : { id: record.id }}
-	{...kind === undefined ? {} : { title: kind }}
-	{...line === undefined ? {} : { subtitle: line }}
+	{...subtitle === undefined ? {} : { subtitle }}
 >
 	<Form
 		{of}

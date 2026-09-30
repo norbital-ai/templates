@@ -7,9 +7,9 @@
 	import { bolt } from '$bolt';
 	import { Field } from '@norbital-ai/ui';
 	import { Show } from '@norbital-ai/ui';
-	import { Bound, Cluster, Grid, Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
+	import { Bound, Grid, Inline, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
 	import type { Q } from '@norbital-ai/bolt';
-	import { RecordShell, Table, type RecordView } from '@norbital-ai/ui';
+	import { EmptyState, RecordShell, Table, type RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/record-form.svelte';
 
 	let { view }: { view: RecordView<'projects'> } = $props();
@@ -96,48 +96,35 @@
 
 {#snippet summary()}
 	{#if record}
-		<Stack gap="md" class="border-b pb-5">
-			<Cluster align="start" justify="between" gap="sm">
-				<p class="min-w-0 text-sm text-muted-foreground">
-					{text(record['project_number'], t('component.no_project_number'))} · {text(
-						record['client'],
-						t('component.no_client')
-					)}
+		<Grid minimum="compact" class="border-b pb-5 text-sm">
+			<Stack gap="xs">
+				<p class="text-meta">{t('component.programme')}</p>
+				<p class="font-medium">
+					{#if record['schedule_range']}<Show
+							kind={{ kind: 'period', of: 'date' }}
+							value={record['schedule_range']}
+						/>{:else}{t('component.not_set')}{/if}
 				</p>
-				<span class="rounded-full bg-muted px-3 py-1 text-xs font-medium capitalize">
-					{text(record['status'], t('component.status_not_set'))}
-				</span>
-			</Cluster>
-			<Grid minimum="compact" class="text-sm">
-				<Stack gap="xs">
-					<p class="text-meta">{t('component.programme')}</p>
-					<p class="font-medium">
-						{#if record['schedule_range']}<Show
-								kind={{ kind: 'period', of: 'date' }}
-								value={record['schedule_range']}
-							/>{:else}{t('component.not_set')}{/if}
-					</p>
-				</Stack>
-				<Stack gap="xs">
-					<p class="text-meta">{t('component.contract_value')}</p>
-					<p class="font-medium">
-						{#if record['contract_value'] != null}<Show
-								kind={money}
-								value={record['contract_value']}
-								row={record}
-							/>{:else}{t('component.not_set')}{/if}
-					</p>
-				</Stack>
-				<Stack gap="xs">
-					<p class="text-meta">{t('component.main_contractor')}</p>
-					<p class="font-medium">{text(record['main_contractor'], t('component.not_set'))}</p>
-				</Stack>
-				<Stack gap="xs">
-					<p class="text-meta">{t('component.project_manager')}</p>
-					<p class="font-medium">{text(record['project_manager'], t('component.not_set'))}</p>
-				</Stack>
-			</Grid>
-		</Stack>
+			</Stack>
+			<Stack gap="xs">
+				<p class="text-meta">{t('component.contract_value')}</p>
+				<p class="font-medium">
+					{#if record['contract_value'] != null}<Show
+							kind={money}
+							value={record['contract_value']}
+							row={record}
+						/>{:else}{t('component.not_set')}{/if}
+				</p>
+			</Stack>
+			<Stack gap="xs">
+				<p class="text-meta">{t('component.main_contractor')}</p>
+				<p class="font-medium">{text(record['main_contractor'], t('component.not_set'))}</p>
+			</Stack>
+			<Stack gap="xs">
+				<p class="text-meta">{t('component.project_manager')}</p>
+				<p class="font-medium">{text(record['project_manager'], t('component.not_set'))}</p>
+			</Stack>
+		</Grid>
 	{/if}
 {/snippet}
 
@@ -167,13 +154,12 @@
 				{/await}
 			</Bound>
 		{:else}
-			<Inline
-				align="center"
-				justify="center"
-				class="h-64 rounded-md border border-dashed bg-muted/20 px-6 text-center text-sm text-muted-foreground"
-			>
-				{t('component.link_ifc_document')}
-			</Inline>
+			<EmptyState
+				variant="card"
+				icon="file"
+				title={t('component.no_ifc_model')}
+				hint={t('component.link_ifc_document')}
+			/>
 		{/if}
 	</Stack>
 {/snippet}
@@ -231,73 +217,65 @@
 {/snippet}
 
 {#snippet manpower()}
-	<Stack gap="lg">
-		<Stack gap="xs">
-			<h3 class="text-heading">{t('component.manpower_allocation')}</h3>
-			<p class="max-w-[70ch] text-sm text-muted-foreground">
-				{t('component.manpower_allocation_description')}
-			</p>
-		</Stack>
-		{#if (sites.current?.rows.length ?? 0) === 0}
-			<div
-				class="rounded-md border border-dashed px-6 py-12 text-center text-sm text-muted-foreground"
-			>
-				{t('component.add_site_location')}
-			</div>
-		{:else}
-			<Bound size="standard" clip>
-				<Scroll axis="x" name={t('component.manpower_allocation')} class="pb-2">
-					<Inline align="start" gap="md">
-						{#each sites.current?.rows ?? [] as site (site.id)}
-							{@const allocated = (assignments.current?.rows ?? []).filter(
-								(a) => a['site_location_id'] === site.id
-							)}
-							<Stack as="section" gap="md" class="w-72 rounded-md bg-muted/50 p-3">
-								<Inline align="start" justify="between" gap="sm" class="border-b pb-3">
-									<Stack gap="xs" class="min-w-0">
-										<h4 class="truncate text-sm font-medium">{site['location_name']}</h4>
-										<p class="truncate text-meta">
-											{text(
-												site['location_code'] ?? site['location_type'],
-												t('component.work_front')
-											)}
-										</p>
+	{#if (sites.current?.rows.length ?? 0) === 0}
+		<EmptyState
+			variant="card"
+			title={t('component.no_work_fronts')}
+			hint={t('component.add_site_location')}
+		/>
+	{:else}
+		<Bound size="standard" clip>
+			<Scroll axis="x" name={t('component.manpower_allocation')} class="pb-2">
+				<Inline align="start" gap="md">
+					{#each sites.current?.rows ?? [] as site (site.id)}
+						{@const allocated = (assignments.current?.rows ?? []).filter(
+							(a) => a['site_location_id'] === site.id
+						)}
+						<Stack as="section" gap="md" class="w-72 rounded-md bg-muted/50 p-3">
+							<Inline align="start" justify="between" gap="sm" class="border-b pb-3">
+								<Stack gap="xs" class="min-w-0">
+									<h4 class="truncate text-sm font-medium">{site['location_name']}</h4>
+									<p class="truncate text-meta">
+										{text(
+											site['location_code'] ?? site['location_type'],
+											t('component.work_front')
+										)}
+									</p>
+								</Stack>
+								<span class="rounded-full bg-background px-2 py-0.5 text-xs tabular-nums"
+									>{allocated.length}</span
+								>
+							</Inline>
+							{#each allocated as assignment (assignment.id)}
+								{@const worker = assignment.worker_id}
+								<Stack gap="md" class="rounded-md border bg-card p-3 shadow-xs">
+									<Stack gap="xs">
+										<p class="text-sm font-medium">{text(worker?.worker_name, '—')}</p>
+										<p class="text-meta">{text(assignment.job_id?.job_title, '—')}</p>
 									</Stack>
-									<span class="rounded-full bg-background px-2 py-0.5 text-xs tabular-nums"
-										>{allocated.length}</span
-									>
-								</Inline>
-								{#each allocated as assignment (assignment.id)}
-									{@const worker = assignment.worker_id}
-									<Stack gap="md" class="rounded-md border bg-card p-3 shadow-xs">
-										<Stack gap="xs">
-											<p class="text-sm font-medium">{text(worker?.worker_name, '—')}</p>
-											<p class="text-meta">{text(assignment.job_id?.job_title, '—')}</p>
-										</Stack>
-										<Inline justify="between" gap="sm" class="text-xs">
-											<span
-												>{text(
-													assignment['role'] ?? worker?.['trade'],
-													t('component.site_role')
-												)}</span
-											>
-											<span class="text-muted-foreground tabular-nums"
-												>{t('component.hours_per_day', {
-													hours: String(assignment['hours_per_day'] ?? 0)
-												})}</span
-											>
-										</Inline>
-									</Stack>
-								{:else}
-									<p class="py-6 text-center text-meta">{t('component.no_allocations')}</p>
-								{/each}
-							</Stack>
-						{/each}
-					</Inline>
-				</Scroll>
-			</Bound>
-		{/if}
-	</Stack>
+									<Inline justify="between" gap="sm" class="text-xs">
+										<span
+											>{text(
+												assignment['role'] ?? worker?.['trade'],
+												t('component.site_role')
+											)}</span
+										>
+										<span class="text-muted-foreground tabular-nums"
+											>{t('component.hours_per_day', {
+												hours: String(assignment['hours_per_day'] ?? 0)
+											})}</span
+										>
+									</Inline>
+								</Stack>
+							{:else}
+								<p class="py-6 text-center text-meta">{t('component.no_allocations')}</p>
+							{/each}
+						</Stack>
+					{/each}
+				</Inline>
+			</Scroll>
+		</Bound>
+	{/if}
 {/snippet}
 
 {#snippet controls()}
@@ -367,9 +345,7 @@
 	<RecordShell
 		of="projects"
 		id={record.id}
-		subtitle={[record['project_number'], record['client'], record['status']]
-			.map((v) => text(v, '—'))
-			.join(' · ')}
+		subtitle={['project_number', 'client', 'status']}
 		tabs={[
 			{
 				name: 'coordination',

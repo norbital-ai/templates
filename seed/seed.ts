@@ -60,6 +60,26 @@ function convert(collection: string, row: Row): Row {
 	return out;
 }
 
+/** A join row's `name` is its two sides' labels, as its collection's transform derives it: a seed runs no transform. */
+const JOINS = {
+	jobs_certification_types: [
+		['job_id', 'jobs', 'job_title'],
+		['certification_type_id', 'certification_types', 'certification_name']
+	],
+	jobs_site_locations: [
+		['job_id', 'jobs', 'job_title'],
+		['site_location_id', 'site_locations', 'location_name']
+	],
+	permits_to_work_certification_types: [
+		['permits_to_work_id', 'permits_to_work', 'permit_number'],
+		['certification_type_id', 'certification_types', 'certification_name']
+	],
+	permits_to_work_workers: [
+		['permits_to_work_id', 'permits_to_work', 'permit_number'],
+		['worker_id', 'workers', 'worker_name']
+	]
+} as const;
+
 /** The public base pack: this directory's `<collection>.json` fixtures. */
 const PUBLIC = import.meta.glob<Row[]>('./*.json', { eager: true, import: 'default' });
 
@@ -91,6 +111,17 @@ export default {
 					team: r['team_id'] ?? null
 				}));
 			else out[name] = rows.map((row) => convert(name, row));
+		}
+		for (const [join, sides] of Object.entries(JOINS)) {
+			const labels = sides.map(
+				([fk, of, label]) => [fk, new Map((out[of] ?? []).map((r) => [r['id'], r[label]]))] as const
+			);
+			const rows = out[join];
+			if (rows !== undefined)
+				out[join] = rows.map((row) => ({
+					...row,
+					name: labels.map(([fk, names]) => String(names.get(row[fk]) ?? '—')).join(' · ')
+				}));
 		}
 		return out as never;
 	}

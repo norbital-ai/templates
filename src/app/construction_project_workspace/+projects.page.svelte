@@ -5,9 +5,9 @@
 </script>
 
 <AppShell
-	icon="lucide:layout-dashboard"
+	icon="lucide:building-2"
 	title={bolt.t('app.construction_project_workspace.title')}
-	description="Browse construction projects and open project records."
+	description={bolt.t('app.construction_project_workspace.description')}
 	banner="app-media/construction_project_workspace-banner.webp"
 >
 	<Table

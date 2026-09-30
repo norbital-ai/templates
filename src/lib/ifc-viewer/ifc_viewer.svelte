@@ -432,6 +432,11 @@
 				runtime.world.scene.three.add(group.object);
 				runtime.currentGroup = group;
 			});
+			// Frame the model by its own bounds: the default camera sits far out and a building renders a speck. The
+			// camera skips its own update while scroll-safe mode locks it, so the fit is applied here.
+			const controls = runtime.world.camera.controls;
+			yield* Effect.tryPromise(() => controls.fitToBox(group.box, false));
+			yield* Effect.sync(() => controls.update(0));
 		});
 	}
 

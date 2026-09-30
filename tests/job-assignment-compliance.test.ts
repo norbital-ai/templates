@@ -39,6 +39,11 @@ it('refuses an uncertified worker and admits a covered one, on create and on a m
 		permits_to_work_id: permit,
 		certification_type_id: certA
 	});
+	// a join row is named by its two sides: a label is never a foreign key
+	const names = async (of: 'jobs_certification_types' | 'permits_to_work_workers') =>
+		(await admin.read(of, { all: true })).rows.map((r) => r.name).sort();
+	expect(await names('jobs_certification_types')).toEqual(['Steel · A', 'Steel · B']);
+	expect(await names('permits_to_work_workers')).toEqual(['PTW-1 · Dan']);
 
 	const assign = { worker_id: worker, site_location_id: site, status: 'assigned' };
 	expect(await admin.act('job_assignments.create', assign)).toMatchObject({

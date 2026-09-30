@@ -12,11 +12,11 @@ importers:
         specifier: ^5.2.2
         version: 5.2.2(svelte@5.57.1)
       '@norbital-ai/bolt':
-        specifier: 0.0.148
-        version: 0.0.148(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
+        specifier: 0.0.149
+        version: 0.0.149(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
       '@norbital-ai/ui':
-        specifier: 0.0.148
-        version: 0.0.148(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)
+        specifier: 0.0.149
+        version: 0.0.149(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)
       effect:
         specifier: 4.0.0-rc.112
         version: 4.0.0-rc.112
@@ -31,8 +31,8 @@ importers:
         version: 8.2.2(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.0)
     devDependencies:
       '@norbital-ai/bolt-server':
-        specifier: 0.0.148
-        version: 0.0.148(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
+        specifier: 0.0.149
+        version: 0.0.149(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
       '@sveltejs/vite-plugin-svelte':
         specifier: 7.3.1
         version: 7.3.1(svelte@5.57.1)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.0))
@@ -496,25 +496,28 @@ packages:
     resolution: {integrity: sha512-/SaLcvlqGWdm0HSCWMgHu7cjJiQXfP8/mOY+6dUyV9flQz7sPBBZ+ed2zYtoukojPmxOaL7bm+d/G4GeWWoN7g==}
     engines: {node: '>= 10'}
 
-  '@norbital-ai/bolt-server@0.0.148':
-    resolution: {integrity: sha512-MJzeCZNOS2j/ZAXcCBYYGJJ4/PPS8Ru8qemENeot9eDk54IaiYb/YCIpTVHyXUzSELlEor3RhZfheRTHlwOY5A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-server/0.0.148/86ac3e80201422585c0a45de5f9f9d9c01ed1ffd}
+  '@norbital-ai/bolt-server@0.0.149':
+    resolution: {integrity: sha512-aqOAHa0GKKc6oJkD7xujwiSGIUp7JidRD95E7P1gWuPawJse/R5EMawFXHIF4aKZ+XIoZcXrQQMPbtJijNdmZg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt-server/0.0.149/7dc1e837aeae9720cd4143e76beaef9bde6fc057}
 
-  '@norbital-ai/bolt@0.0.148':
-    resolution: {integrity: sha512-LC6CTc6g65LYIuJSCRIZoyPRYLfJi6342ZNgC3Gig585wca2XHouSQxPu4KvbKYhZ5iQ1M3xV9+EhPSWrgy2cg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.148/0863d88171fa2f4490807e00b99fefc1a6f44661}
+  '@norbital-ai/bolt@0.0.149':
+    resolution: {integrity: sha512-ClXRtVyemYwf8k1S9XorojWoZyFkFoveRE7QNt3pqVse4bTZAMsDw/qypE9o/K6/fGwPDabGwwC8zkbK4wWo1w==, tarball: https://npm.pkg.github.com/download/@norbital-ai/bolt/0.0.149/48ceb15563d0c11758f6428de094b654f5ccab52}
     hasBin: true
     peerDependencies:
       svelte: ^5.0.0
 
-  '@norbital-ai/doctor@0.0.148':
-    resolution: {integrity: sha512-LEBE6FdCP54ze2lHjEEbNcbfHSmGHJpuUF8OoT1k6dyWSYrt4aISIugvcrA9Gvw636RM96evH4O3GuH9kd6P9A==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.148/84d2bfc9674b6e3e25d3991d8e4c8706c3ecd6e4}
+  '@norbital-ai/doctor@0.0.149':
+    resolution: {integrity: sha512-Gi3S5gA5I2jMvWDGkqBXpp3ADsN7WOjTyoZY2KvMRqCWxkNr6HVk3tmsyhf3QjGCOuKOC5lEKW6dZtZZUuLAmg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/doctor/0.0.149/0cb4ce65c971aa580ddf53d946280f787e12e231}
 
-  '@norbital-ai/std@0.0.148':
-    resolution: {integrity: sha512-UW3xSpBXSZiCcnr2q3qw/XtqIzxGaqlp8r6OQtgpqFvcUw3njjzlfeS9IXZVk0vP3mZV8wJRemn+jMlwZCfRGg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.148/38668240f32acd3fdc81c234dee850a40e70c1a2}
+  '@norbital-ai/providers@0.0.149':
+    resolution: {integrity: sha512-/A1tNvbIglhsfvvBTKSapsDiTyJ0Uinv1V5mD2D0/SZL9Ho7/L5fWW0Wb8oVvqpANMykhfxaLzRiOHucCkWOZg==, tarball: https://npm.pkg.github.com/download/@norbital-ai/providers/0.0.149/54be95ba393d30819614ffb14ded062db3b3eede}
+
+  '@norbital-ai/std@0.0.149':
+    resolution: {integrity: sha512-DrEb9rfmxqp8JV9UZLlFW5MvhCoJmr5oVyvEEOdAKLTg62dPQO39K36cmH3abjMeiMsYzbUhuN0qM4YA4wmd2Q==, tarball: https://npm.pkg.github.com/download/@norbital-ai/std/0.0.149/dbcdf4916aac7438715bb98b686a2ee6eac91a52}
     peerDependencies:
       effect: 4.0.0-rc.112
 
-  '@norbital-ai/ui@0.0.148':
-    resolution: {integrity: sha512-ncXNG2MliRi/D+LOG4o1Pfpd7I52ivMGNeLo0y6Jq+C+fdWmnGrgRTDMIS6QzGCa/NaHE2C1ISugE8ZgcW0i0g==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.148/da978b4f6614fa960eea452852cf9e03abdbb8b1}
+  '@norbital-ai/ui@0.0.149':
+    resolution: {integrity: sha512-a3X5QMJWegVqc4O3qSEnyPuqm++1Gn/BL5njTyqxQ6DbWD694hw0ueCcFf7FxVDMK7RKEjoKQdWSB3z649Y5EA==, tarball: https://npm.pkg.github.com/download/@norbital-ai/ui/0.0.149/b2215dcfe42dcfb2d1db98fce6180e73fa7ea3ef}
     peerDependencies:
       svelte: ^5.56.10
 
@@ -1008,6 +1011,9 @@ packages:
   '@xyflow/system@0.0.80':
     resolution: {integrity: sha512-ywc3ZqG91brzWrH1WlwMdIX4goOfrpBy6AbLdVSaof/Xx9l138ijIKRExM6EkMro2F+OImGmSiA/WKcXvKVcfA==}
 
+  '@zone-eu/mailsplit@5.4.19':
+    resolution: {integrity: sha512-nDWzw+X3tqfwd7DpDThAjg3KqtrNA6bG2gkrf6m2j1JBaGyyKAZzu1TguzB4GEco+HYpXAbXZ7kbl4Sn8H1vXw==}
+
   acorn@8.18.0:
     resolution: {integrity: sha512-lGq+9yr1/GuAWaVYIHRjvvySG5/4VfKIvC8EWxStPdcDh/Ka7FG3twP6v4d5BkravUilhIAsG4Qj83t02LWUPQ==}
     engines: {node: '>=0.4.0'}
@@ -1393,6 +1399,10 @@ packages:
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
 
+  encoding-japanese@2.4.0:
+    resolution: {integrity: sha512-PE0KjlsDy9JSsoU4C2Q8NXb1kC4c+bZRac9ZvHXUE4q1Ht63gScKMdEy9jst9+Fi3M4eDkqzkEhBZvix4blP2A==}
+    engines: {node: '>=18.0.0'}
+
   end-of-stream@1.4.5:
     resolution: {integrity: sha512-ooEGc6HP26xXq/N+GCGOT0JKCLDGrq2bQUZrQ7gyrJiZANJ/8YDTxTpQBXGMn+WbIQXNVpyWymm7KYVICQnyOg==}
 
@@ -1527,8 +1537,16 @@ packages:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
 
+  iconv-lite@0.7.3:
+    resolution: {integrity: sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==}
+    engines: {node: '>=0.10.0'}
+
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
+
+  imapflow@2.1.2:
+    resolution: {integrity: sha512-o1cUOUCgvHFHMMEV8KaGLvzsakDaE8DO9vzAGlh7HHaJN1+0FAUP+uEUrk8oIHNk8rBtNU9hBPGCjPXKQfplsg==}
+    engines: {node: '>=20.0.0'}
 
   immediate@3.0.6:
     resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
@@ -1552,6 +1570,10 @@ packages:
 
   iobuffer@6.0.1:
     resolution: {integrity: sha512-SZWYkWNfjIXIBYSDpXDYIgshqtbOPsi4lviawAEceR1Kqk+sHDlcQjWrzNQsii80AyBY0q5c8HCTNjqo74ul+Q==}
+
+  ip-address@10.7.2:
+    resolution: {integrity: sha512-7H/2gFSIitxc0hG3nOI1glS8QLo/EHBFFLk8vEUjXY/xu0AdL8jZ9U1IzO2PUm0d2D/ofQcAifb0g6OBkt8U7w==}
+    engines: {node: '>= 12'}
 
   is-fullwidth-code-point@3.0.0:
     resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
@@ -1604,9 +1626,18 @@ packages:
   leaflet@1.9.4:
     resolution: {integrity: sha512-nxS1ynzJOmOlHp+iL3FyWqK89GtNL8U8rvlMOsQdTTssxZwCXh8N2NB3GDQOL+YR3XnWyZAxwQixURb+FA74PA==}
 
+  libbase64@1.3.1:
+    resolution: {integrity: sha512-1b9LXEjEtXj35YKOR9RqNKBootlb37qbIzmqiw4MsP52cjOsfR6i/AYU1Y8qN4kV2TJQmLJ5aiXn45qI6h+Szw==}
+
   libheif-js@1.23.2:
     resolution: {integrity: sha512-qvHIXtggEsw1lCNCWBYKloL2Z36DJBm0R9ThGiH2JnhKYdeZFLPFkP30Lw4yMskxxhx0bKg1gLrBHX1D2w2pSw==}
     engines: {node: '>=8.0.0'}
+
+  libmime@5.4.6:
+    resolution: {integrity: sha512-Cgx1vHd76GTwDaLNsl0K44CjNFfhkX/1bMcoruoWr8Ugcl0/zMw7x/8NpZERIOcpGyzlQo10tOEw9goGsv2Wlg==}
+
+  libqp@2.1.2:
+    resolution: {integrity: sha512-rp+U80tl9Os4K7GnVbPzPRmghPu6eqB8rcF+ontvNAnoga0JhMFG/bkTD/reC8yoznKMgOc5/ttZHJasiWeFPw==}
 
   libsignal@6.0.0:
     resolution: {integrity: sha512-d/5V3YFtDljbFMufz4ncyUYGYhJl+vzAe+c2EFFBQ6bz1h8Q3IOMEGXYMzlibU60I+e8GagMMpji18iez3P1hA==}
@@ -1902,6 +1933,10 @@ packages:
     resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
     hasBin: true
 
+  nodemailer@10.0.12:
+    resolution: {integrity: sha512-PQ46oNbNMuH/Sno7B5IWIU9etytwrO0xdTFvWXpIQFRXhBAXtzD48243AS+BCbQQTPD8y3fqUrgLn0tSo77gvg==}
+    engines: {node: '>=20.0.0'}
+
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
@@ -2010,8 +2045,15 @@ packages:
   pino-abstract-transport@2.0.0:
     resolution: {integrity: sha512-F63x5tizV6WCh4R6RHyi2Ml+M70DNRXt/+HANowMflpgGFMAym/VKm6G7ZOQRjqN7XbGxK1Lg9t6ZrtzOaivMw==}
 
+  pino-abstract-transport@3.0.0:
+    resolution: {integrity: sha512-wlfUczU+n7Hy/Ha5j9a/gZNy7We5+cXp8YL+X+PG8S0KXxw7n/JXA3c46Y0zQznIJ83URJiwy7Lh56WLokNuxg==}
+
   pino-std-serializers@7.1.0:
     resolution: {integrity: sha512-BndPH67/JxGExRgiX1dX0w1FvZck5Wa4aal9198SrRhZjH3GxKQUKIBnYJTdj2HDN3UQAS06HlfcSbQj2OHmaw==}
+
+  pino@10.3.1:
+    resolution: {integrity: sha512-r34yH/GlQpKZbU1BvFFqOjhISRo1MNx1tWYsYvmj6KIRHSPMT2+yHOEb1SG6NMvRoHRF0a07kCOox/9yakl1vg==}
+    hasBin: true
 
   pino@9.14.0:
     resolution: {integrity: sha512-8OEwKp5juEvb/MjpIc4hjqfgCNysrS94RIOMXYvpYCdm/jglrKEiAYmiumbmGhCvs+IcInsphYDFwqrjr7398w==}
@@ -2024,6 +2066,10 @@ packages:
   pngjs@5.0.0:
     resolution: {integrity: sha512-40QW5YalBNfQo5yRYmiw7Yz6TKKVr3h6970B2YE+3fQpsWcrbj1PzJgxeJ19DRQjhMbKPIuMY8rFaXc8moolVw==}
     engines: {node: '>=10.13.0'}
+
+  postal-mime@4.0.0:
+    resolution: {integrity: sha512-pmAD50GSuJ6Njf7oa4bleSsYrPy8UYxTRmxVFFwysOm2p8t4C3DFEmP+j7tkvQzPdFUT0X1PuzJvrnb2Sx40BA==}
+    engines: {node: '>=20'}
 
   postcss-selector-parser@6.0.10:
     resolution: {integrity: sha512-IQ7TZdoaqbT+LCpShg46jnZVlhWD2w6iQYAcYXfHARZ7X1t/UGhhceQDs5X0cGqKvYlHNOuv7Oa1xmb0oQuA3w==}
@@ -2103,6 +2149,9 @@ packages:
   real-require@0.2.0:
     resolution: {integrity: sha512-57frrGM/OCTLqLOAh0mhVA9VBMHd+9U7Zb2THMGdBUoZVOtGbJzjxsYGDJ3A9AYYCP4hn6y1TVbaOfzWtm5GFg==}
     engines: {node: '>= 12.13.0'}
+
+  real-require@1.0.0:
+    resolution: {integrity: sha512-P4nbQYQfePJxRSmY+v/KINxVucm4NF3p3s7pJveMTtom52FR4YGltUQLB8idDXwDDWW+eYrWDFbuzUnjoWHF7g==}
 
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
@@ -2200,6 +2249,14 @@ packages:
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
 
+  smart-buffer@4.2.0:
+    resolution: {integrity: sha512-94hK0Hh8rPqQl2xXc3HsaBoOXKV20MToPkcXvwbISWLEs+64sBq5kFgn2kJDHb1Pry9yrP0dxrCI9RRci7RXKg==}
+    engines: {node: '>= 6.0.0', npm: '>= 3.0.0'}
+
+  socks@2.8.10:
+    resolution: {integrity: sha512-e0VyvkVTwVYViNovRkZ9aodhxVlyoMn7eJhVUPxZ+eK9P/7CBkxvvsBOHqFPEH416726W8tLXXXjKwqgTErrCQ==}
+    engines: {node: '>= 10.0.0', npm: '>= 3.0.0'}
+
   sonic-boom@4.2.1:
     resolution: {integrity: sha512-w6AxtubXa2wTXAUsZMMWERrsIRAdrK0Sc+FUytWvYAhBJLyuI4llrMIC1DtlNSdI99EI86KZum2MMq3EAZlF9Q==}
 
@@ -2293,6 +2350,10 @@ packages:
 
   thread-stream@3.2.0:
     resolution: {integrity: sha512-zLBvqpwr4Esa0kRjcrzGU6zL25lePWaCLMx0RQFrmteozIfeNdaMLpG5U7PeHzvlFkAWaRKA9/KVW4F60iB+qw==}
+
+  thread-stream@4.2.0:
+    resolution: {integrity: sha512-e2zZ96wSChazBsbENf/Pcm/4swHt2cEKQ92rhUjkL9GCKiTDJIaTBenjE/m9DXi0QBmTMDkFDdOomUy20A1tDQ==}
+    engines: {node: '>=20'}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -2964,16 +3025,15 @@ snapshots:
       '@napi-rs/canvas-win32-x64-msvc': 1.0.8
     optional: true
 
-  '@norbital-ai/bolt-server@0.0.148(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)':
+  '@norbital-ai/bolt-server@0.0.149(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)':
     dependencies:
-      '@norbital-ai/bolt': 0.0.148(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
+      '@norbital-ai/bolt': 0.0.149(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
+      '@norbital-ai/providers': 0.0.149(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
       exceljs: 4.4.0
       mammoth: 1.12.2
       pdfjs-dist: 6.3.289
       pg: 8.23.0
       web-push: 3.6.7
-    optionalDependencies:
-      '@whiskeysockets/baileys': 7.0.0-rc14(sharp@0.35.4(@types/node@26.6.2))
     transitivePeerDependencies:
       - '@sveltejs/kit'
       - '@types/node'
@@ -3000,15 +3060,15 @@ snapshots:
       - yaml
       - zod
 
-  '@norbital-ai/bolt@0.0.148(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)':
+  '@norbital-ai/bolt@0.0.149(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)':
     dependencies:
       '@electric-sql/pglite': 0.5.8
       '@electric-sql/pglite-pgvector': 0.0.6(@electric-sql/pglite@0.5.8)
       '@jridgewell/trace-mapping': 0.3.31
       '@modelcontextprotocol/client': 2.0.0
-      '@norbital-ai/doctor': 0.0.148
-      '@norbital-ai/std': 0.0.148(effect@4.0.0-rc.112)
-      '@norbital-ai/ui': 0.0.148(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)
+      '@norbital-ai/doctor': 0.0.149
+      '@norbital-ai/std': 0.0.149(effect@4.0.0-rc.112)
+      '@norbital-ai/ui': 0.0.149(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)
       '@sveltejs/vite-plugin-svelte': 7.3.1(svelte@5.57.1)(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.0))
       '@tailwindcss/vite': 4.3.3(vite@8.2.2(@types/node@26.6.2)(jiti@2.7.0)(yaml@2.9.0))
       '@xyflow/svelte': 1.6.3(svelte@5.57.1)
@@ -3040,18 +3100,51 @@ snapshots:
       - yaml
       - zod
 
-  '@norbital-ai/doctor@0.0.148':
+  '@norbital-ai/doctor@0.0.149':
     dependencies:
       effect: 4.0.0-rc.112
       typescript: 6.0.3
       yaml: 2.9.0
 
-  '@norbital-ai/std@0.0.148(effect@4.0.0-rc.112)':
+  '@norbital-ai/providers@0.0.149(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(sharp@0.35.4(@types/node@26.6.2))(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)':
+    dependencies:
+      '@norbital-ai/bolt': 0.0.149(@types/node@26.6.2)(effect@4.0.0-rc.112)(jiti@2.7.0)(svelte@5.57.1)(yaml@2.9.0)(zod@4.5.4)
+      imapflow: 2.1.2
+      nodemailer: 10.0.12
+      postal-mime: 4.0.0
+    optionalDependencies:
+      '@whiskeysockets/baileys': 7.0.0-rc14(sharp@0.35.4(@types/node@26.6.2))
+    transitivePeerDependencies:
+      - '@sveltejs/kit'
+      - '@types/node'
+      - '@vitejs/devtools'
+      - audio-decode
+      - bufferutil
+      - effect
+      - esbuild
+      - jimp
+      - jiti
+      - less
+      - link-preview-js
+      - sass
+      - sass-embedded
+      - sharp
+      - stylus
+      - sugarss
+      - supports-color
+      - svelte
+      - terser
+      - tsx
+      - utf-8-validate
+      - yaml
+      - zod
+
+  '@norbital-ai/std@0.0.149(effect@4.0.0-rc.112)':
     dependencies:
       '@marcbachmann/cel-js': 8.0.0
       effect: 4.0.0-rc.112
 
-  '@norbital-ai/ui@0.0.148(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)':
+  '@norbital-ai/ui@0.0.149(effect@4.0.0-rc.112)(svelte@5.57.1)(tailwindcss@4.3.3)(zod@4.5.4)':
     dependencies:
       '@codemirror/lang-javascript': 6.2.5
       '@codemirror/lang-json': 6.0.2
@@ -3063,7 +3156,7 @@ snapshots:
       '@iconify/svelte': 5.2.2(svelte@5.57.1)
       '@internationalized/date': 3.12.4
       '@lezer/highlight': 1.2.3
-      '@norbital-ai/std': 0.0.148(effect@4.0.0-rc.112)
+      '@norbital-ai/std': 0.0.149(effect@4.0.0-rc.112)
       '@tailwindcss/typography': 0.5.20(tailwindcss@4.3.3)
       bits-ui: 2.19.0(@internationalized/date@3.12.4)(svelte@5.57.1)
       clsx: 2.1.1
@@ -3085,8 +3178,7 @@ snapshots:
 
   '@oxc-project/types@0.148.0': {}
 
-  '@pinojs/redact@0.4.0':
-    optional: true
+  '@pinojs/redact@0.4.0': {}
 
   '@protobufjs/aspromise@1.1.2':
     optional: true
@@ -3465,6 +3557,12 @@ snapshots:
       d3-selection: 3.0.0
       d3-zoom: 3.0.0
 
+  '@zone-eu/mailsplit@5.4.19':
+    dependencies:
+      libbase64: 1.3.1
+      libmime: 5.4.6
+      libqp: 2.1.2
+
   acorn@8.18.0: {}
 
   agent-base@7.1.4: {}
@@ -3533,8 +3631,7 @@ snapshots:
 
   async@3.2.6: {}
 
-  atomic-sleep@1.0.0:
-    optional: true
+  atomic-sleep@1.0.0: {}
 
   axobject-query@4.1.0: {}
 
@@ -3860,6 +3957,8 @@ snapshots:
 
   emoji-regex@8.0.0: {}
 
+  encoding-japanese@2.4.0: {}
+
   end-of-stream@1.4.5:
     dependencies:
       once: 1.4.0
@@ -4007,7 +4106,22 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
 
+  iconv-lite@0.7.3:
+    dependencies:
+      safer-buffer: 2.1.2
+
   ieee754@1.2.1: {}
+
+  imapflow@2.1.2:
+    dependencies:
+      '@zone-eu/mailsplit': 5.4.19
+      encoding-japanese: 2.4.0
+      iconv-lite: 0.7.3
+      libbase64: 1.3.1
+      libmime: 5.4.6
+      libqp: 2.1.2
+      pino: 10.3.1
+      socks: 2.8.10
 
   immediate@3.0.6: {}
 
@@ -4025,6 +4139,8 @@ snapshots:
   internmap@2.0.3: {}
 
   iobuffer@6.0.1: {}
+
+  ip-address@10.7.2: {}
 
   is-fullwidth-code-point@3.0.0: {}
 
@@ -4112,7 +4228,18 @@ snapshots:
 
   leaflet@1.9.4: {}
 
+  libbase64@1.3.1: {}
+
   libheif-js@1.23.2: {}
+
+  libmime@5.4.6:
+    dependencies:
+      encoding-japanese: 2.4.0
+      iconv-lite: 0.7.3
+      libbase64: 1.3.1
+      libqp: 2.1.2
+
+  libqp@2.1.2: {}
 
   libsignal@6.0.0:
     dependencies:
@@ -4363,12 +4490,13 @@ snapshots:
 
   node-gyp-build@4.8.4: {}
 
+  nodemailer@10.0.12: {}
+
   normalize-path@3.0.0: {}
 
   obug@2.1.4: {}
 
-  on-exit-leak-free@2.1.2:
-    optional: true
+  on-exit-leak-free@2.1.2: {}
 
   once@1.4.0:
     dependencies:
@@ -4455,8 +4583,25 @@ snapshots:
       split2: 4.2.0
     optional: true
 
-  pino-std-serializers@7.1.0:
-    optional: true
+  pino-abstract-transport@3.0.0:
+    dependencies:
+      split2: 4.2.0
+
+  pino-std-serializers@7.1.0: {}
+
+  pino@10.3.1:
+    dependencies:
+      '@pinojs/redact': 0.4.0
+      atomic-sleep: 1.0.0
+      on-exit-leak-free: 2.1.2
+      pino-abstract-transport: 3.0.0
+      pino-std-serializers: 7.1.0
+      process-warning: 5.1.0
+      quick-format-unescaped: 4.0.4
+      real-require: 0.2.0
+      safe-stable-stringify: 2.5.0
+      sonic-boom: 4.2.1
+      thread-stream: 4.2.0
 
   pino@9.14.0:
     dependencies:
@@ -4476,6 +4621,8 @@ snapshots:
   pkce-challenge@5.0.1: {}
 
   pngjs@5.0.0: {}
+
+  postal-mime@4.0.0: {}
 
   postcss-selector-parser@6.0.10:
     dependencies:
@@ -4507,8 +4654,7 @@ snapshots:
 
   process-nextick-args@2.0.1: {}
 
-  process-warning@5.1.0:
-    optional: true
+  process-warning@5.1.0: {}
 
   protobufjs@7.6.6:
     dependencies:
@@ -4538,8 +4684,7 @@ snapshots:
       pngjs: 5.0.0
       yargs: 15.4.1
 
-  quick-format-unescaped@4.0.4:
-    optional: true
+  quick-format-unescaped@4.0.4: {}
 
   readable-stream@2.3.8:
     dependencies:
@@ -4563,8 +4708,9 @@ snapshots:
 
   readdirp@4.1.2: {}
 
-  real-require@0.2.0:
-    optional: true
+  real-require@0.2.0: {}
+
+  real-require@1.0.0: {}
 
   require-directory@2.1.1: {}
 
@@ -4623,8 +4769,7 @@ snapshots:
 
   safe-buffer@5.2.1: {}
 
-  safe-stable-stringify@2.5.0:
-    optional: true
+  safe-stable-stringify@2.5.0: {}
 
   safer-buffer@2.1.2: {}
 
@@ -4681,10 +4826,16 @@ snapshots:
 
   siginfo@2.0.0: {}
 
+  smart-buffer@4.2.0: {}
+
+  socks@2.8.10:
+    dependencies:
+      ip-address: 10.7.2
+      smart-buffer: 4.2.0
+
   sonic-boom@4.2.1:
     dependencies:
       atomic-sleep: 1.0.0
-    optional: true
 
   source-map-js@1.2.1: {}
 
@@ -4792,6 +4943,10 @@ snapshots:
     dependencies:
       real-require: 0.2.0
     optional: true
+
+  thread-stream@4.2.0:
+    dependencies:
+      real-require: 1.0.0
 
   tinybench@2.9.0: {}
 
