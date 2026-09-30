@@ -132,7 +132,10 @@ test('SG hourly leave rate: 12 × (basic + gross allowances) ÷ (52 × weekly ho
 		assert.equal(evaluatePersonNumber(rule, person('HOURLY', 12, 40, 5)), 12);
 		// The excluded allowance's hour: 12 × 260 ÷ (52 × 20) = 3.
 		assert.equal(
-			evaluatePersonNumber(version.work_rules.hourly_rate_excluded, person('MONTHLY', 0, 20, 5, 260)),
+			evaluatePersonNumber(
+				version.work_rules.hourly_rate_excluded,
+				person('MONTHLY', 0, 20, 5, 260)
+			),
 			3
 		);
 	}
@@ -155,7 +158,13 @@ test('a weekly opening converts to months on the version’s weeks a month', () 
 		openings: new Map([
 			[
 				'X',
-				{ base: 0, employee: 0, employer: 0, payroll_periods: 13, payroll_frequency: 'WEEKLY' as const }
+				{
+					base: 0,
+					employee: 0,
+					employer: 0,
+					payroll_periods: 13,
+					payroll_frequency: 'WEEKLY' as const
+				}
 			]
 		]),
 		frequency: 'MONTHLY',
@@ -169,7 +178,13 @@ test('a weekly opening converts to months on the version’s weeks a month', () 
 				openings: new Map([
 					[
 						'X',
-						{ base: 0, employee: 0, employer: 0, payroll_periods: 13, payroll_frequency: 'WEEKLY' as const }
+						{
+							base: 0,
+							employee: 0,
+							employer: 0,
+							payroll_periods: 13,
+							payroll_frequency: 'WEEKLY' as const
+						}
 					]
 				]),
 				frequency: 'MONTHLY'

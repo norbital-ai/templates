@@ -211,7 +211,7 @@ test('registration status does not erase a version-declared liability or its req
 });
 
 test('thirty-day insurance coverage preserves gaps, month-end continuation and terminated February cover', () => {
-	const scheme = schemeOf('COVER', [band('true', 'coverage_days_30(scheme.since, 0)', '0.0')]);
+	const scheme = schemeOf('COVER', [band('true', 'coverage_days(scheme.since, 0, 30)', '0.0')]);
 	for (const [month, ranges, expected] of [
 		['2026-01', [{ start: '2026-01-01', end: '2026-01-15' }], 15],
 		[
@@ -243,6 +243,32 @@ test('thirty-day insurance coverage preserves gaps, month-end continuation and t
 			coverageByScheme: new Map([['id-COVER', ranges]])
 		});
 		assert.equal(result[0]!.employee, expected, `${month}: ${JSON.stringify(ranges)}`);
+	}
+});
+
+test('coverage_days takes its month length from the rule: 31 counts the 31st, 28 caps continuing and late joins', () => {
+	for (const [monthDays, month, ranges, expected] of [
+		[31, '2026-01', [{ start: '2026-01-01', end: null }], 31],
+		[31, '2026-01', [{ start: '2026-01-31', end: null }], 1],
+		[31, '2026-02', [{ start: '2026-02-01', end: null }], 31],
+		[28, '2026-01', [{ start: '2026-01-01', end: '2026-01-15' }], 15],
+		[28, '2026-01', [{ start: '2026-01-01', end: null }], 28],
+		[28, '2026-01', [{ start: '2026-01-30', end: null }], 1],
+		[28, '2026-01', [{ start: '2026-01-10', end: '2026-01-31' }], 19]
+	] as const) {
+		const scheme = schemeOf('COVER', [
+			band('true', `coverage_days(scheme.since, 0, ${monthDays})`, '0.0')
+		]);
+		const result = charge([scheme], 100, {
+			period: {
+				...PERIOD,
+				key: month,
+				start: `${month}-01`,
+				end: `${month}-${month.endsWith('02') ? '28' : '31'}`
+			},
+			coverageByScheme: new Map([['id-COVER', ranges]])
+		});
+		assert.equal(result[0]!.employee, expected, `${monthDays}/${month}: ${JSON.stringify(ranges)}`);
 	}
 });
 

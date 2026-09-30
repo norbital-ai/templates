@@ -39,7 +39,6 @@ type Opening = {
 	readonly payroll_frequency?: AssessmentFrequency | null | undefined;
 };
 
-
 const frequencyOf = (
 	period: string,
 	frequencies: ReadonlySet<string>
@@ -133,7 +132,7 @@ export function cumulativeHistory(options: {
 	readonly periods: readonly StatutoryPeriodHistory[];
 	readonly openings: ReadonlyMap<string, Opening>;
 	readonly frequency: AssessmentFrequency;
-	/** The version's weeks a month (`work_rules.rate_conversions.weekly_to_monthly`), read only to convert a weekly cadence. */
+	/** The version's weeks a month (`rate_conversions.weekly_to_monthly`), read for a weekly cadence. */
 	readonly weeksPerMonth?: (() => number) | undefined;
 	/** Codes whose `history.<code>.periods` the catalogue reads; their openings must state a cadence. */
 	readonly requirePeriodsFor?: ReadonlySet<string> | undefined;
@@ -184,7 +183,8 @@ export function cumulativeHistory(options: {
 				const sourcePeriods = opening.payroll_periods ?? opening.months;
 				const usable = sourceFrequency != null && sourcePeriods != null && sourcePeriods > 0;
 				periodsRecorded &&= usable;
-				if (usable) periods += convertPeriods(
+				if (usable)
+					periods += convertPeriods(
 						sourcePeriods,
 						sourceFrequency,
 						options.frequency,

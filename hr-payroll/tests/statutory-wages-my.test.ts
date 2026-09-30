@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildStatutory, settingsVersions } from './fixtures/statutory-world.ts';
+import { buildStatutory, settingsVersions, type Person } from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 
 const registration = { EPF_NON_CITIZEN: { kind: 'NOT_REGISTERED' } };
@@ -98,3 +98,69 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		for (const key of ['ALLOWANCE', 'OVER_LIMIT'])
 			assert.equal(overtime(key).length, 0, `${key}: outside the threshold`);
 	});
+
+// PSMB Act 2001 s.2 and First Schedule: the HRD levy is on Malaysian citizens, and an employer of 5
+// or more of them can be levied (5-9 on election, 10+ compulsorily). The results-pay refusal is
+// gated by that seeded expression, and the engine judges it against the run's citizen count.
+const HRD_TEST = 'employee.citizenship == "CITIZEN" && company.headcount_citizens >= 5';
+
+test('MY/MY-nihon — every version seeds the HRD results-pay refusal test', () => {
+	for (const code of ['MY', 'MY-nihon'] as const)
+		for (const version of settingsVersions(code))
+			assert.equal(
+				version.work_rules.wages?.results_pay?.applies_when,
+				HRD_TEST,
+				`${code} ${version.code}`
+			);
+});
+
+test('MY — the results-pay levy refusal follows wages.results_pay.applies_when', () => {
+	// One zero-basic piece worker (1 unit × RM1,800) among ten citizens: HRD liable (10 ≥ 5).
+	const people: Person[] = [
+		{
+			key: 'PIECE-HRD',
+			wage: 0,
+			statutory_work_category: 'PIECE_RATE',
+			citizenship: 'CITIZEN',
+			registrations: registration
+		},
+		...Array.from({ length: 9 }, (_, index): Person => ({
+			key: `HRD-${index}`,
+			wage: 1_700,
+			citizenship: 'CITIZEN',
+			registrations: registration
+		}))
+	];
+	const run = (appliesWhen: string | null) =>
+		buildStatutory({ code: 'MY', period: '2026-01', region: 'Malaysia', people }, (world) => {
+			world.companies[0]!.pay_cutoff_day = 1;
+			if (appliesWhen != null)
+				for (const [index, version] of world.jurisdiction_settings.entries()) {
+					const copy = structuredClone(version) as {
+						work_rules: { wages: { results_pay: Record<string, unknown> } };
+					};
+					copy.work_rules.wages.results_pay.applies_when = appliesWhen;
+					world.jurisdiction_settings[index] = copy;
+				}
+			world.work_days.push({
+				id: 'wd-piece-hrd-gate',
+				employment_id: world.employments[0]!.id,
+				work_date: '2026-01-30',
+				shift_definition_id: null,
+				worked_intervals: null,
+				piece_units: 1,
+				piece_unit_rate: 1_800,
+				approval_id: null
+			});
+		});
+	const refusal = /need an HRD Corp levy classification/;
+	assert.throws(() => run(null), refusal, 'seeded: 10 citizens ≥ 5');
+	// The same run with the test narrowed past this employer's ten citizens: the gate reads the count.
+	let message = '';
+	try {
+		run('company.headcount_citizens >= 11');
+	} catch (error) {
+		message = error instanceof Error ? error.message : String(error);
+	}
+	assert.doesNotMatch(message, refusal);
+});

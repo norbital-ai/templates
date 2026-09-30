@@ -62,7 +62,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
-| `employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `employee.presence_days_in(years_back)` | Days present in the calendar year that many years before the rule date’s, counted as `presence_days` (1 is the previous year; 0 where none is recorded) — MY ITA s.7(1)(c)(ii) counts the preceding years with 90 or more |
 | `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
@@ -223,7 +223,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
-| `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `person.employee.presence_days_in(years_back)` | Days present in the calendar year that many years before the rule date’s, counted as `presence_days` (1 is the previous year; 0 where none is recorded) — MY ITA s.7(1)(c)(ii) counts the preceding years with 90 or more |
 | `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
@@ -400,7 +400,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 
 Used by: work bands, breaks, limits and the night premium — one priced person-day.
 
-Bare names: `age_years`, `attendance_recorded`, `first_work_at`, `night_worked`, `first_night_at`, `holiday_work`, `overtime_work`, `rest_minutes_total`, `longest_rest_minutes`, `longest_run_hours`, `run_hours_before_first_hour_rest`, `rest_before_overtime_minutes`, `shift_hours`, `shift_start_at`, `stated_day_hours`, `day_fact_keys`, `date`, `day_type`, `worked_hours`, `normal_hours`, `comparable_full_time_daily_hours`, `hours_beyond_normal`, `hours_from_start_fraction`, `overtime_hours`, `consecutive_hours`, `continuous_attendance`, `rest_day`, `statutory_rest`, `off_day`, `night_hours`, `requested_by`, `emergency_cause`, `time_off_in_lieu`, `ordinary_hour`, `day_wage`, `hours`.
+Bare names: `age_years`, `attendance_recorded`, `first_work_at`, `night_worked`, `first_night_at`, `holiday_work`, `overtime_work`, `rest_minutes_total`, `longest_rest_minutes`, `longest_run_hours`, `rest_before_overtime_minutes`, `shift_hours`, `shift_start_at`, `stated_day_hours`, `day_fact_keys`, `date`, `day_type`, `worked_hours`, `normal_hours`, `comparable_full_time_daily_hours`, `hours_beyond_normal`, `hours_from_start_fraction`, `overtime_hours`, `consecutive_hours`, `continuous_attendance`, `rest_day`, `statutory_rest`, `off_day`, `night_hours`, `requested_by`, `emergency_cause`, `time_off_in_lieu`, `ordinary_hour`, `day_wage`, `hours`.
 
 Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.period.leave_pay.<key>`, `person.employment.exit_facts.<key>`, `person.terms.facts.<key>`.
 
@@ -426,7 +426,7 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 | `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
-| `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `person.employee.presence_days_in(years_back)` | Days present in the calendar year that many years before the rule date’s, counted as `presence_days` (1 is the previous year; 0 where none is recorded) — MY ITA s.7(1)(c)(ii) counts the preceding years with 90 or more |
 | `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
@@ -579,7 +579,6 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 | `rest_minutes_total` | Minutes of rest between the day’s work spans (a presumed shift’s break) — read by `day_rules` and `overtime_consent`, not by bands |
 | `longest_rest_minutes` | The longest single timed rest between work spans — read by `day_rules` and `overtime_consent`, not by bands |
 | `longest_run_hours` | The longest unbroken work span — read by `day_rules` and `overtime_consent`, not by bands |
-| `run_hours_before_first_hour_rest` | Hours worked before the first rest of 60 minutes or more; the whole day where none — read by `day_rules` and `overtime_consent`, not by bands |
 | `rest_before_overtime_minutes` | Minutes between the end of the normal hours and the first overtime hour, 0 without overtime — read by `day_rules` and `overtime_consent`, not by bands |
 | `shift_hours` | The rostered shift’s paid hours, 0 without a shift — read by `day_rules` and `overtime_consent`, not by bands |
 | `shift_start_at` | The rostered shift’s start, a UTC ISO instant, or empty without a shift — read by `day_rules` and `overtime_consent`, not by bands |
@@ -598,6 +597,7 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 | `progressive(value, table)` | Apply a progressive [from, base, rate] table |
 | `add_months(date, months)` | The calendar day `months` months after a `YYYY-MM-DD` day, clamped to the month’s last day; empty for an empty day |
 | `months_through(from, through)` | Months from one `YYYY-MM-DD` day through another inclusive: completed months plus the part month by its days; 0 when either is empty or `through` is before `from` |
+| `run_hours_before_rest(minutes)` | Hours worked before the day’s first rest of at least `minutes` (a double, `60.0`); the whole day where none — read by `day_rules` and `overtime_consent` |
 
 ## `assessment` — One scheme’s wage: the reserved lines, the catalogue rows and the shared roots.
 
@@ -629,7 +629,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
-| `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `person.employee.presence_days_in(years_back)` | Days present in the calendar year that many years before the rule date’s, counted as `presence_days` (1 is the previous year; 0 where none is recorded) — MY ITA s.7(1)(c)(ii) counts the preceding years with 90 or more |
 | `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
@@ -854,7 +854,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `code('X')` | The signed total of the version’s class X this payslip — for a law that caps or exempts one class alone (MY’s termination-benefit exemption, PH’s de-minimis rice subsidy) |
 | `earned_average(code, months_back, months)` | The average of a component’s earnings on the person’s earlier payslips over `months` calendar months, the window ending `months_back` months before this pay month; 0 with no history in the window. `code` may be a list of codes — reserved lines among them (`OVERTIME`) — summed month by month (TW 施行細則 §27: the three-month average of 工資, overtime included); a scheme part (`WTAX.RICE`) sums every class counting toward it |
 | `days_under(age)` | Calendar days employed in the assessment window before the specified birthday. |
-| `coverage_days_30(since, age)` | Covered days in the assessment month on a thirty-day calendar, starting no earlier than employment and registration. Continuing coverage runs to day 30; termination uses its actual day capped at 30. A positive age ends coverage before that birthday; 0 applies no age limit. |
+| `coverage_days(since, age, month_days)` | Covered days in the assessment month on a fixed calendar of `month_days` days, starting no earlier than employment and registration. Continuing coverage runs to day `month_days` whatever the month’s length; a termination uses its actual day, and a join its actual day, each capped at `month_days`. A positive age ends coverage before that birthday; 0 applies no age limit. |
 | `annual_exempt(amount, earned_before, cap)` | The part still inside an annual exemption |
 | `earned_quantity_exempt(code, limit)` | Earlier paid cash-out exempt within the annual day limit, valued at each payment’s original rate. |
 | `earned_monthly_excess(code, limit)` | Earlier payments in the tax year exceeding the allowance limit in each calendar month; `code` may be a scheme part (`WTAX.RICE`), every class counting toward it. |
@@ -891,7 +891,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
-| `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `person.employee.presence_days_in(years_back)` | Days present in the calendar year that many years before the rule date’s, counted as `presence_days` (1 is the previous year; 0 where none is recorded) — MY ITA s.7(1)(c)(ii) counts the preceding years with 90 or more |
 | `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
@@ -1095,7 +1095,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `months_through(from, through)` | Months from one `YYYY-MM-DD` day through another inclusive: completed months plus the part month by its days; 0 when either is empty or `through` is before `from` |
 | `minimum_wage(region)` | The version’s minimum wage for a region |
 | `days_under(age)` | Calendar days employed in the assessment window before the specified birthday. |
-| `coverage_days_30(since, age)` | Covered days in the assessment month on a thirty-day calendar, starting no earlier than employment and registration. Continuing coverage runs to day 30; termination uses its actual day capped at 30. A positive age ends coverage before that birthday; 0 applies no age limit. |
+| `coverage_days(since, age, month_days)` | Covered days in the assessment month on a fixed calendar of `month_days` days, starting no earlier than employment and registration. Continuing coverage runs to day `month_days` whatever the month’s length; a termination uses its actual day, and a join its actual day, each capped at `month_days`. A positive age ends coverage before that birthday; 0 applies no age limit. |
 | `annual_exempt(amount, earned_before, cap)` | The part still inside an annual exemption |
 | `earned_quantity_exempt(code, limit)` | Earlier paid cash-out exempt within the annual day limit, valued at each payment’s original rate. |
 | `earned_monthly_excess(code, limit)` | Earlier payments in the tax year exceeding the allowance limit in each calendar month; `code` may be a scheme part (`WTAX.RICE`), every class counting toward it. |
@@ -1132,7 +1132,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
-| `employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `employee.presence_days_in(years_back)` | Days present in the calendar year that many years before the rule date’s, counted as `presence_days` (1 is the previous year; 0 where none is recorded) — MY ITA s.7(1)(c)(ii) counts the preceding years with 90 or more |
 | `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
@@ -1301,7 +1301,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
-| `employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `employee.presence_days_in(years_back)` | Days present in the calendar year that many years before the rule date’s, counted as `presence_days` (1 is the previous year; 0 where none is recorded) — MY ITA s.7(1)(c)(ii) counts the preceding years with 90 or more |
 | `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |

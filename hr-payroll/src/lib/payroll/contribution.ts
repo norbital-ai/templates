@@ -318,7 +318,7 @@ function coverageFacts(bundle: EmploymentBundle, configuration: Configuration, a
 					);
 			}
 		}
-		if (!schemeExpressions(scheme).some((expression) => expression.includes('coverage_days_30(')))
+		if (!schemeExpressions(scheme).some((expression) => expression.includes('coverage_days(')))
 			continue;
 		const window =
 			scheme.row.assessment_period !== 'PAY_PERIOD'
@@ -773,8 +773,10 @@ function floorIssues(options: {
 			if (
 				configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
 				person.terms.monthly_basic <= 0 &&
-				person.employee.citizenship === 'CITIZEN' &&
-				(options.headcountCitizens ?? 0) >= 5 &&
+				isEligible(configuration.jurisdiction.work_rules.wages?.results_pay?.applies_when, {
+					...person,
+					company: { ...person.company, headcount_citizens: options.headcountCitizens ?? 0 }
+				}) &&
 				options.charges
 					?.get(bundle.employment.id)
 					?.some(
@@ -1007,7 +1009,8 @@ function raiseFloors(
  * the employer makes it (cl.19), so a daily rate meets the whole floor and an hourly rate meets it
  * over the day's scheduled hours. A monthly or semi-monthly wage (`base_salary` is the month for
  * both) is the month over the version's `ordinary_divisor_days`, a weekly one its month (the
- * version's `rate_conversions.weekly_to_monthly`) over it (owner rule 2026-09-28, register TH-WAGE-01: daily × 30, LPA s.68's monthly ÷ 30).
+ * version's `rate_conversions.weekly_to_monthly`) over it (owner rule 2026-09-28, register
+ * TH-WAGE-01: daily × 30, LPA s.68's monthly ÷ 30).
  * One issue per terms row.
  */
 function dailyFloorIssues(
@@ -1033,10 +1036,7 @@ function dailyFloorIssues(
 	>();
 	// Per terms row: whether the order covers the person (null where it does not) and blocks, and
 	// the version's divisor over them.
-	const judged = new Map<
-		string,
-		{ blocking: boolean; divisor: number; weekly: number } | null
-	>();
+	const judged = new Map<string, { blocking: boolean; divisor: number; weekly: number } | null>();
 	// A work day's recorded site overrides the terms' worksite for that day (cl.20: the day's workplace).
 	const siteOn = new Map(
 		bundle.workDays

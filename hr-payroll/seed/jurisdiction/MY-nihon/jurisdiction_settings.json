@@ -129,6 +129,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -990,6 +991,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -1862,6 +1864,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -2745,6 +2748,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -3628,6 +3632,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -4511,6 +4516,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -5373,6 +5379,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -6246,6 +6253,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -7130,6 +7138,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -8014,6 +8023,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -8898,6 +8908,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -9761,6 +9772,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -10635,6 +10647,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -11520,6 +11533,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -12405,6 +12419,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -13290,6 +13305,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -14194,6 +14210,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -15109,6 +15126,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -16035,6 +16053,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -16961,6 +16980,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -17887,6 +17907,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -18811,6 +18832,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -19735,6 +19757,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -20670,6 +20693,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -21616,6 +21640,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -22562,6 +22587,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -23508,6 +23534,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -24432,6 +24459,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -25356,6 +25384,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -26291,6 +26320,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -27237,6 +27267,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",
@@ -28183,6 +28214,7 @@
 				"results_pay": {
 					"task_only_time_events_refused": true,
 					"levy_scheme": "HRDF",
+					"applies_when": "employee.citizenship == \"CITIZEN\" && company.headcount_citizens >= 5",
 					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
 					"results_wage_codes": [
 						"TASK_MONTHLY_WAGE",

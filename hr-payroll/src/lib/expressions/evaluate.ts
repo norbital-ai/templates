@@ -39,10 +39,12 @@ import {
 	leaveTaken,
 	leaveDays,
 	onLeave,
+	presenceDaysIn,
 	serviceDaysBefore,
 	serviceMonthsNet
 } from './person-functions.js';
 import * as Predicate from 'effect/Predicate';
+import { decodeNumber } from '../wire.js';
 
 /**
  * What differs between two evaluations of the same expression: the region's minimum wage, and —
@@ -67,8 +69,10 @@ export type ExpressionEngine = {
 		((code: string, monthsBack: number, months: number) => number) | undefined;
 	/** `days_under(age)`: the pay window's days on which the person is under that age. */
 	readonly daysUnder?: ((age: number) => number) | undefined;
-	/** Covered days on a thirty-day calendar; age 0 leaves coverage uncapped by age. */
-	readonly coverageDays30?: ((since: string, age: number) => number) | undefined;
+	/** `run_hours_before_rest(minutes)`: a work day's hours before its first rest of at least `minutes`. */
+	readonly runHoursBeforeRest?: ((minutes: number) => number) | undefined;
+	/** Covered days on a `monthDays`-day insurance calendar; age 0 leaves coverage uncapped by age. */
+	readonly coverageDays?: ((since: string, age: number, monthDays: number) => number) | undefined;
 	/** Replaces every money rounding (`round_unit`, `floor_unit`, …): a caller that rounds a blend once. */
 	readonly round?: ((value: number, method: RoundingMethod) => number) | undefined;
 };
@@ -153,6 +157,7 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.age_on(string): int', ageOn],
 	['map.birthday(int): string', birthday],
 	['map.age_months_on(string): int', ageMonthsOn],
+	['map.presence_days_in(int): int', presenceDaysIn],
 	['map.taken(string): double', leaveTaken],
 	['map.earned_monthly_average(int): double', earnedMonthlyAverage],
 	['map.piece_wages_last_workdays(int): double', pieceWagesLastWorkdays],
@@ -171,8 +176,13 @@ const OPS: readonly (readonly [string, (...args: unknown[]) => unknown])[] = [
 	['map.payday_notice_days(dyn, dyn, dyn): double', paydayNoticeDays],
 	['days_under(int): double', (age) => bound.daysUnder?.(Number(age)) ?? 0],
 	[
-		'coverage_days_30(string, int): double',
-		(since, age) => bound.coverageDays30?.(String(since), Number(age)) ?? 0
+		'run_hours_before_rest(double): double',
+		(minutes) => bound.runHoursBeforeRest?.(decodeNumber(minutes)) ?? 0
+	],
+	[
+		'coverage_days(string, int, int): double',
+		(since, age, monthDays) =>
+			bound.coverageDays?.(String(since), Number(age), Number(monthDays)) ?? 0
 	],
 	['map.days(string): double', leaveDays],
 	[
@@ -223,7 +233,8 @@ export function runtimeExpressionEngine(options: Partial<ExpressionEngine> = {})
 		earnedDailyExcess: options.earnedDailyExcess,
 		earnedAverage: options.earnedAverage,
 		daysUnder: options.daysUnder,
-		coverageDays30: options.coverageDays30
+		runHoursBeforeRest: options.runHoursBeforeRest,
+		coverageDays: options.coverageDays
 	};
 }
 

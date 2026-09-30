@@ -120,9 +120,9 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b))'
 	},
 	{
-		path: 'employee.presence_years_90',
+		path: 'employee.presence_days_in(years_back)',
 		description:
-			'Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii))'
+			'Days present in the calendar year that many years before the rule date’s, counted as `presence_days` (1 is the previous year; 0 where none is recorded) — MY ITA s.7(1)(c)(ii) counts the preceding years with 90 or more'
 	},
 	{
 		path: 'employee.employment_days',
@@ -603,7 +603,7 @@ const PERSON_BLANK = {
 		presence_recorded: false,
 		presence_days: 0,
 		presence_linked_days: 0,
-		presence_years_90: 0,
+		presence_by_years_back: {},
 		employment_days: 0
 	},
 	employment: {
@@ -1130,9 +1130,9 @@ const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
 	if (site === 'assessment') functions.push(...CODE_FUNCTIONS, EARNED_AVERAGE);
 	if (site === 'assessment' || site === 'scheme')
 		functions.push(DAYS_UNDER, {
-			path: 'coverage_days_30(since, age)',
+			path: 'coverage_days(since, age, month_days)',
 			description:
-				'Covered days in the assessment month on a thirty-day calendar, starting no earlier than employment and registration. Continuing coverage runs to day 30; termination uses its actual day capped at 30. A positive age ends coverage before that birthday; 0 applies no age limit.'
+				'Covered days in the assessment month on a fixed calendar of month_days days, starting no earlier than employment and registration. Continuing coverage runs to day month_days whatever the month’s length; a termination uses its actual day, and a join its actual day, each capped at month_days. A positive age ends coverage before that birthday; 0 applies no age limit.'
 		});
 	if (site === 'assessment' || site === 'scheme')
 		functions.push(
@@ -1158,6 +1158,12 @@ const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
 					'Current leave cash-out exempt within an annual day limit, after days paid earlier in the tax year. Each entry retains its own rate.'
 			}
 		);
+	if (site === 'work_day')
+		functions.push({
+			path: 'run_hours_before_rest(minutes)',
+			description:
+				'Hours worked before the day’s first rest of at least `minutes` (a double, `60.0`); the whole day where none — read by `day_rules` and `overtime_consent`'
+		});
 	if (site === 'entry')
 		functions.push({
 			path: 'leave.days(code)',
@@ -1492,10 +1498,6 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 			['longest_rest_minutes', 'The longest single timed rest between work spans'],
 			['longest_run_hours', 'The longest unbroken work span'],
 			[
-				'run_hours_before_first_hour_rest',
-				'Hours worked before the first rest of 60 minutes or more; the whole day where none'
-			],
-			[
 				'rest_before_overtime_minutes',
 				'Minutes between the end of the normal hours and the first overtime hour, 0 without overtime'
 			],
@@ -1522,7 +1524,6 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'rest_minutes_total',
 		'longest_rest_minutes',
 		'longest_run_hours',
-		'run_hours_before_first_hour_rest',
 		'rest_before_overtime_minutes',
 		'shift_hours',
 		'shift_start_at',
@@ -1597,7 +1598,6 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		rest_minutes_total: 60,
 		longest_rest_minutes: 60,
 		longest_run_hours: 4,
-		run_hours_before_first_hour_rest: 4,
 		rest_before_overtime_minutes: 0,
 		shift_hours: 9,
 		shift_start_at: '',

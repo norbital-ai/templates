@@ -86,7 +86,9 @@ export function monthlyFactor(
 		}
 	});
 	if (!(factor > 0))
-		throw new Error(`work_rules.rate_conversions.${key} evaluated to ${factor}; it must be positive.`);
+		throw new Error(
+			`work_rules.rate_conversions.${key} evaluated to ${factor}; it must be positive.`
+		);
 	return factor;
 }
 

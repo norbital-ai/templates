@@ -1069,7 +1069,7 @@ test('Thailand — under-18 work needs a timed rest and cannot include overtime 
 	// Official LPA ss.46 and 48: https://www.mol.go.th/wp-content/uploads/sites/2/2018/03/301.pdf.
 	const settle = (
 		override?: readonly [string, string, string, string],
-		extraWork?: 'OVERTIME' | 'HOLIDAY' | 'SHORT_NO_REST'
+		extraWork?: 'OVERTIME' | 'HOLIDAY' | 'SHORT_NO_REST' | 'SPLIT_HOUR_REST' | 'SPLIT_LATE_HOUR_REST'
 	) =>
 		buildStatutory(
 			{ code: TH, period: '2026-01', people: [citizen('MINOR-REST', 12_000, { age: 17 })] },
@@ -1109,6 +1109,20 @@ test('Thailand — under-18 work needs a timed rest and cannot include overtime 
 						{ start: `${date}T09:00:00+07:00`, end: `${date}T13:00:00+07:00` }
 					];
 				}
+				// `run_hours_before_rest(60.0)` counts only a rest of 60 minutes or more: a 30-minute
+				// break does not end the run. 09:00–11:00, 11:30–13:00 = 2 + 1.5 = 3.5 h before the
+				// 13:00–14:00 hour → within s.46's four; 11:30–13:31 = 2 + 121/60 = 4.0167 h → over.
+				if (extraWork === 'SPLIT_HOUR_REST' || extraWork === 'SPLIT_LATE_HOUR_REST') {
+					const date = '2026-01-05';
+					// Both days work eight hours, as the base day: 3.5 + 4.5 and 4.0167 + 3.9833.
+					const [runEnd, hourEnd] =
+						extraWork === 'SPLIT_HOUR_REST' ? ['13:00', '14:00'] : ['13:31', '14:31'];
+					world.work_days.find((row) => row.work_date === date)!.worked_intervals = [
+						{ start: `${date}T09:00:00+07:00`, end: `${date}T11:00:00+07:00` },
+						{ start: `${date}T11:30:00+07:00`, end: `${date}T${runEnd}:00+07:00` },
+						{ start: `${date}T${hourEnd}:00+07:00`, end: `${date}T18:30:00+07:00` }
+					];
+				}
 				if (extraWork === 'HOLIDAY') punch(world, 'MINOR-REST', '2026-01-10', '09:00', '13:00');
 			}
 		);
@@ -1119,6 +1133,11 @@ test('Thailand — under-18 work needs a timed rest and cannot include overtime 
 	);
 	assert.throws(
 		() => settle(['2026-01-05', '13:00', '13:30', '17:30']),
+		/continuous 60-minute rest.*four hours/i
+	);
+	assert.equal(settle(undefined, 'SPLIT_HOUR_REST').slips.get('MINOR-REST')!.gross, 12_000);
+	assert.throws(
+		() => settle(undefined, 'SPLIT_LATE_HOUR_REST'),
 		/continuous 60-minute rest.*four hours/i
 	);
 	assert.throws(

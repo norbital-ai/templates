@@ -192,7 +192,7 @@ type SchemeAssessment = {
 		/**
 		 * The days of the pay month the employment covered, in the proration basis's own units — the
 		 * sum of the payslip's proration segments. Statutory coverage calendars are separate:
-		 * `coverage_days_30` measures a thirty-day insurance month independently of wage proration.
+		 * `coverage_days` measures a fixed-length insurance month independently of wage proration.
 		 */
 		readonly daysEmployed: number;
 		readonly daysInMonth: number;
@@ -372,7 +372,7 @@ function engineFor(
 ): ExpressionEngine {
 	return runtimeExpressionEngine({
 		minimumWage: () => input.minimumWage ?? 0,
-		coverageDays30: (since, age) => {
+		coverageDays: (since, age, monthDays) => {
 			const born = input.person.employee.birth_date;
 			const ends = [input.person.employment.exit_date].filter((date) => date !== '');
 			if (born !== '' && age > 0)
@@ -401,13 +401,17 @@ function engineFor(
 				const end =
 					termination != null && termination <= input.period.end ? termination : input.period.end;
 				if (start > end) continue;
-				// Continuing cover runs to day 30, including February. A termination uses its
-				// actual day, capped at 30; joining on the 31st counts as joining on day 30.
+				// Continuing cover runs to day `monthDays` whatever the month's length. A termination
+				// uses its actual day, capped at `monthDays`; so does a join after that day.
 				const last =
 					termination != null && termination <= input.period.end
-						? Math.min(30, Number.parseInt(end.slice(8, 10), 10))
-						: 30;
-				for (let day = Math.min(30, Number.parseInt(start.slice(8, 10), 10)); day <= last; day += 1)
+						? Math.min(monthDays, Number.parseInt(end.slice(8, 10), 10))
+						: monthDays;
+				for (
+					let day = Math.min(monthDays, Number.parseInt(start.slice(8, 10), 10));
+					day <= last;
+					day += 1
+				)
 					days.add(day);
 			}
 			return days.size;

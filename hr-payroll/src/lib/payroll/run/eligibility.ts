@@ -67,8 +67,12 @@ export type PersonContext = {
 		 * consecutive days in the adjoining basis year).
 		 */
 		readonly presence_linked_days: number;
-		/** Of the four calendar years before the rule date's, those with 90 or more days present (MY ITA s.7(1)(c)(ii)). */
-		readonly presence_years_90: number;
+		/**
+		 * Days present in each calendar year from the first recorded stay's to the rule date's, keyed
+		 * by years back (`"0"` is the rule date's year, `"1"` the one before), counted as
+		 * `presence_days` is. `employee.presence_days_in(n)` reads it; an earlier year reads 0.
+		 */
+		readonly presence_by_years_back: Readonly<Record<string, number>>;
 		/**
 		 * Of `presence_days`, those of stays recorded `employment_exercised`, within this stint: the
 		 * days the employment was exercised in the jurisdiction in the rule date's calendar year, through
@@ -505,7 +509,7 @@ function presenceOn(
 	| 'presence_recorded'
 	| 'presence_days'
 	| 'presence_linked_days'
-	| 'presence_years_90'
+	| 'presence_by_years_back'
 	| 'employment_days'
 > {
 	const day = asOf.slice(0, 10);
@@ -531,6 +535,7 @@ function presenceOn(
 		}, 0);
 	const crossing = runs.find((run) => run.start < `${year}-01-01` && run.end >= `${year}-01-01`);
 	const previousStart = `${year - 1}-01-01`;
+	const first = runs[0] == null ? null : Number.parseInt(runs[0].start.slice(0, 4), 10);
 	return {
 		presence_recorded: (stays ?? []).length > 0,
 		presence_days: daysIn(year),
@@ -541,7 +546,12 @@ function presenceOn(
 						crossing.start > previousStart ? crossing.start : previousStart,
 						`${year - 1}-12-31`
 					),
-		presence_years_90: [1, 2, 3, 4].filter((back) => daysIn(year - back) >= 90).length,
+		presence_by_years_back: Object.fromEntries(
+			Array.from({ length: first == null ? 0 : year - first + 1 }, (_, back) => [
+				String(back),
+				daysIn(year - back)
+			])
+		),
 		// Employment is exercised only inside the stint: a flagged stay is clipped to its first and
 		// last day of work.
 		employment_days: daysIn(

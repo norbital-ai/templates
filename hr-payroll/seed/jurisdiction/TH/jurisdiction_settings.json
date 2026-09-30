@@ -251,7 +251,7 @@
 				},
 				{
 					"key": "minor_four_hours",
-					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"when": "age_years < 18.0 && run_hours_before_rest(60.0) > 4.0",
 					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
 					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
 				},
@@ -889,7 +889,7 @@
 				},
 				{
 					"key": "minor_four_hours",
-					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"when": "age_years < 18.0 && run_hours_before_rest(60.0) > 4.0",
 					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
 					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
 				},
@@ -1527,7 +1527,7 @@
 				},
 				{
 					"key": "minor_four_hours",
-					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"when": "age_years < 18.0 && run_hours_before_rest(60.0) > 4.0",
 					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
 					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
 				},
@@ -2165,7 +2165,7 @@
 				},
 				{
 					"key": "minor_four_hours",
-					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"when": "age_years < 18.0 && run_hours_before_rest(60.0) > 4.0",
 					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
 					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
 				},
@@ -2795,7 +2795,7 @@
 				},
 				{
 					"key": "minor_four_hours",
-					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"when": "age_years < 18.0 && run_hours_before_rest(60.0) > 4.0",
 					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
 					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
 				},
@@ -3439,7 +3439,7 @@
 				},
 				{
 					"key": "minor_four_hours",
-					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"when": "age_years < 18.0 && run_hours_before_rest(60.0) > 4.0",
 					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
 					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
 				},
@@ -4083,7 +4083,7 @@
 				},
 				{
 					"key": "minor_four_hours",
-					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"when": "age_years < 18.0 && run_hours_before_rest(60.0) > 4.0",
 					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
 					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
 				},
@@ -4727,7 +4727,7 @@
 				},
 				{
 					"key": "minor_four_hours",
-					"when": "age_years < 18.0 && run_hours_before_first_hour_rest > 4.0",
+					"when": "age_years < 18.0 && run_hours_before_rest(60.0) > 4.0",
 					"message": "needs a continuous 60-minute rest after at most four hours of Thai under-18 work",
 					"authority": "Labour Protection Act B.E.2541 s.46: a young employee rests at least one continuous hour a day after no more than four hours of work."
 				},

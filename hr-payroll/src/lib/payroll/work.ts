@@ -143,7 +143,13 @@ import type {
 import { baseLine, settlementBucket } from './family.js';
 import { bindingMinimumWage, minimumWageCovers, naming } from './contribution.js';
 import * as Predicate from 'effect/Predicate';
-import { evaluateBoolean, evaluateNumber, expressionEngine } from '../expressions/evaluate.js';
+import {
+	evaluateBoolean,
+	evaluateNumber,
+	expressionEngine,
+	runtimeExpressionEngine,
+	type ExpressionEngine
+} from '../expressions/evaluate.js';
 
 /** A work-day input the day records, as a non-empty string (`work_days.facts`), or undefined. */
 const dayFact = (
@@ -726,9 +732,16 @@ function workContext(
 	/**
 	 * One person-day as the day rules and the overtime-consent rule read it, or null where it was
 	 * neither scheduled nor attended: its work spans (the punches, else the presumed shift split at
-	 * its timed break), the rests between them, the night window's first instant, and the person.
+	 * its timed break), the rests between them, the night window's first instant, and the person —
+	 * with the engine that answers `run_hours_before_rest(minutes)` from those spans.
 	 */
-	const dayRuleContext = (date: IsoDate, day: ScheduledDay): Record<string, unknown> | null => {
+	const dayRuleContext = (
+		date: IsoDate,
+		day: ScheduledDay
+	): {
+		readonly context: Record<string, unknown>;
+		readonly engine: ExpressionEngine;
+	} | null => {
 		const row = workDayByDate.get(date);
 		const intervals = row?.worked_intervals;
 		const shift = day.shift;
@@ -775,7 +788,6 @@ function workContext(
 		const spanHours = spans.map((span) => (span.end - span.start) / 3_600_000);
 		const sum = (values: readonly number[]) => values.reduce((total, value) => total + value, 0);
 		const workedHours = sum(spanHours);
-		const hourRest = gaps.findIndex((minutes) => minutes >= 60);
 		let restBeforeOvertime = 0;
 		if (day.dayType === 'ORDINARY' && workedHours > day.normalHours) {
 			let normalLeft = day.normalHours * 3_600_000;
@@ -824,7 +836,11 @@ function workContext(
 			configuration.jurisdiction
 		).work_day_facts ?? []) as readonly FactKey[];
 		const facts = { ...resolveFactValues(declared, {}, 'Work day', false), ...recorded };
-		return {
+		const runHoursBeforeRest = (minutes: number) => {
+			const rest = gaps.findIndex((gap) => gap >= minutes);
+			return round(sum(spanHours.slice(0, rest < 0 ? spanHours.length : rest + 1)));
+		};
+		const context = {
 			person: personContext({
 				employee: bundle.employee,
 				employment: employmentForPerson(),
@@ -857,9 +873,6 @@ function workContext(
 			),
 			longest_rest_minutes: round(Math.max(0, ...gaps)),
 			longest_run_hours: round(Math.max(0, ...spanHours)),
-			run_hours_before_first_hour_rest: round(
-				sum(spanHours.slice(0, hourRest < 0 ? spanHours.length : hourRest + 1))
-			),
 			rest_before_overtime_minutes: round(restBeforeOvertime),
 			shift_hours: shift == null ? 0 : shift.paid_minutes / 60,
 			shift_start_at:
@@ -867,6 +880,7 @@ function workContext(
 					? ''
 					: new Date(midnight + clockMinutes(shift.start_time) * 60_000).toISOString()
 		};
+		return { context, engine: runtimeExpressionEngine({ runHoursBeforeRest }) };
 	};
 	const dayRules = configuration.work.day_rules ?? [];
 	if (dayRules.length > 0) {
@@ -881,9 +895,11 @@ function workContext(
 				)
 			)
 				continue;
-			const context = dayRuleContext(date, day);
-			if (context == null) continue;
-			const broken = dayRules.find((rule) => evaluateBoolean(expressionEngine, rule.when, context));
+			const judged = dayRuleContext(date, day);
+			if (judged == null) continue;
+			const broken = dayRules.find((rule) =>
+				evaluateBoolean(judged.engine, rule.when, judged.context)
+			);
 			if (broken != null)
 				refuse(
 					`${bundle.employment.employee_number} ${broken.message} on ${date}${broken.authority ? ` (${broken.authority})` : ''}.`
@@ -1506,11 +1522,11 @@ function workAttendance(
 				const firstStart = Math.min(
 					...entry.worked_intervals.map((interval) => Date.parse(interval.start))
 				);
-				const context = options.work.dayRuleContext(date, day);
+				const judged = options.work.dayRuleContext(date, day);
 				if (
-					context != null &&
+					judged != null &&
 					dayFact(entry, consentRule.exception_fact) == null &&
-					evaluateBoolean(expressionEngine, consentRule.required_when, context) &&
+					evaluateBoolean(judged.engine, consentRule.required_when, judged.context) &&
 					(entry.overtime_consented_at == null ||
 						!(Date.parse(entry.overtime_consented_at) < firstStart))
 				)

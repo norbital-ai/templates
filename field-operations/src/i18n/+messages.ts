@@ -25,7 +25,6 @@ export default messages({
 	'app.field_ops_controller.select_dispatch_date': 'Select dispatch date',
 	'app.field_ops_controller.board': 'Board',
 	'app.field_ops_controller.map': 'Map',
-	'app.field_ops_controller.dispatch_map_for': 'Dispatch map for {date}',
 	'app.field_ops_controller.map_empty':
 		'No contractor assignment with a mapped site is scheduled for {date}.',
 	'app.field_ops_controller.sites_description':
