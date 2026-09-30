@@ -4,7 +4,7 @@ export default model({
 	description:
 		'A dated revision of an entity’s declared jurisdiction facts; a fact whose declaration demands evidence carries it as `fact_evidence` on the revision. The revision in force on a calculation date governs historical valuation; the company row itself stays the current record.',
 	icon: 'lucide:history',
-	label: 'company_id',
+	label: 'effective_range',
 	fields: {
 		/** The entity facts in force from the range's start; `{}` when none (set by the transform). */
 		facts: { kind: 'custom', of: 'entity_facts' },
