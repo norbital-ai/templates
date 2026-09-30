@@ -1869,6 +1869,95 @@
 		"name": "Company loan"
 	},
 	{
+		"id": "84e2ce95-5586-5c54-96ee-7b239964df35",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"code": "LOAN_RECOVERY_SSS_SALARY",
+		"loan_type": "GOVERNMENT",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "SSS salary loan recovery"
+	},
+	{
+		"id": "a0af5960-1332-5b7f-b16f-d7e37f1903d1",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"code": "LOAN_RECOVERY_PAGIBIG_SALARY",
+		"loan_type": "GOVERNMENT",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Pag-IBIG salary loan recovery"
+	},
+	{
+		"id": "a546c6e6-adbb-5251-807a-5ebbc019e11c",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"code": "LOAN_RECOVERY_PAGIBIG_CALAMITY",
+		"loan_type": "GOVERNMENT",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Pag-IBIG calamity loan recovery"
+	},
+	{
+		"id": "eeadcc65-12e4-5a2c-a84e-7a4a28e21aee",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"code": "LOAN_RECOVERY_COMPANY",
+		"loan_type": "STAFF",
+		"minimum_repayment": null,
+		"eligibility": "",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Company loan recovery"
+	},
+	{
+		"id": "5221aadb-309a-500b-9f22-6563c3dd8b56",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"code": "COMPANY",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Company loan"
+	},
+	{
 		"id": "eb3b7294-ad7c-5788-8c5e-0330f928efd2",
 		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
 		"code": "LOAN_RECOVERY_SSS_SALARY",

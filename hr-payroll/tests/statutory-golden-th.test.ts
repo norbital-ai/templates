@@ -1,7 +1,7 @@
 /**
  * Thailand: expected payslips against the law itself.
  *
- * The register is docs/inventory/thailand.md; each case names the row it prices. Figures come from
+ * The register is docs/inventory/thailand.csv; each case names the row it prices. Figures come from
  * the instruments, never from the engine:
  *
  * - Social Security Act B.E.2533, Council of State current consolidation
@@ -1724,32 +1724,42 @@ test('Thailand — special severance: s.120 relocation objection, s.121 60 days 
 	// without 60 days' notice owes 60 days besides s.118; s.122: service over six years adds 15
 	// days per full year, a part year over 180 days a year, the s.122 amount at most 360 days.
 	// s.120 para.3: an objecting employee is owed at least the s.118 rate; para.2: 30 days more
-	// where the relocation notice was not posted 30 days ahead.
+	// where the relocation notice was not posted 30 days ahead. The two in-lieu-of-notice payments
+	// (s.120 para.2, s.121 para.2) are line NOTICE_IN_LIEU (owner rule 2026-09-30, TH-EXIT-06/-07).
 	const exit = '2026-03-31';
 	const tech = { technology_restructuring: true };
 	const cases = [
-		['TECH-10Y', '2016-04-01', 'RETRENCHMENT', tech, 510_000], // 300 + 60 + 15 × 10
+		['TECH-10Y', '2016-04-01', 'RETRENCHMENT', tech, 450_000, 60_000], // 300 + 15 × 10; 60
 		[
 			'TECH-10Y-NOTICE',
 			'2016-04-01',
 			'RETRENCHMENT',
 			{ ...tech, technology_notice_60_days: true },
-			450_000
+			450_000,
+			0
 		], // 300 + 150
-		['TECH-30Y', '1996-04-01', 'RETRENCHMENT', tech, 820_000], // 400 + 60 + 360 (15 × 30 = 450 capped)
-		['TECH-7Y-181D', '2018-10-02', 'REDUNDANCY', tech, 420_000], // 240 + 60 + 15 × 8 (181 days is a year)
-		['TECH-7Y-180D', '2018-10-03', 'REDUNDANCY', tech, 405_000], // 240 + 60 + 15 × 7
-		['TECH-5Y', '2021-04-01', 'RETRENCHMENT', tech, 240_000], // 180 + 60; five years is not over six
-		['TECH-100D', '2025-12-22', 'RETRENCHMENT', tech, 60_000], // under 120 days: s.121's 60 days alone
-		['RELOC-OBJECT', '2023-04-01', 'RESIGNATION', { relocation_objection: true }, 210_000], // 180 + 30
+		['TECH-30Y', '1996-04-01', 'RETRENCHMENT', tech, 760_000, 60_000], // 400 + 360 (15 × 30 = 450 capped)
+		['TECH-7Y-181D', '2018-10-02', 'REDUNDANCY', tech, 360_000, 60_000], // 240 + 15 × 8 (181 days is a year)
+		['TECH-7Y-180D', '2018-10-03', 'REDUNDANCY', tech, 345_000, 60_000], // 240 + 15 × 7
+		['TECH-5Y', '2021-04-01', 'RETRENCHMENT', tech, 180_000, 60_000], // five years is not over six
+		['TECH-100D', '2025-12-22', 'RETRENCHMENT', tech, 0, 60_000], // under 120 days: s.121's 60 days alone
+		['RELOC-OBJECT', '2023-04-01', 'RESIGNATION', { relocation_objection: true }, 180_000, 30_000],
 		[
 			'RELOC-OBJECT-POSTED',
 			'2023-04-01',
 			'RESIGNATION',
 			{ relocation_objection: true, relocation_notice_posted: true },
-			180_000
+			180_000,
+			0
 		],
-		['RETR-PLAIN-10Y', '2016-04-01', 'RETRENCHMENT', { technology_restructuring: false }, 300_000]
+		[
+			'RETR-PLAIN-10Y',
+			'2016-04-01',
+			'RETRENCHMENT',
+			{ technology_restructuring: false },
+			300_000,
+			null
+		]
 	] as const;
 	const { slips } = buildStatutory(
 		{
@@ -1763,21 +1773,38 @@ test('Thailand — special severance: s.120 relocation objection, s.121 60 days 
 			for (const [key, , , facts] of cases)
 				world.employments.find((row) => row.employee_number === key)!.exit_facts = facts;
 			severanceWorld(cases, exit, '07')(world);
+			// The in-lieu line as the exit settlement raises it (an ineligible request is skipped);
+			// RETR-PLAIN-10Y recorded no notice, so its s.17/1 amount is not this test's.
+			for (const [index, [key, , , , , notice]] of cases.entries())
+				if (notice != null)
+					adhoc(
+						world,
+						key,
+						'NOTICE_IN_LIEU',
+						0,
+						exit,
+						`d0000000-0000-4000-8000-00000017${String(index).padStart(4, '0')}`
+					);
 		}
 	);
-	for (const [key, , , , amount] of cases)
-		assert.equal(
-			slips.get(key)!.adjustments.find((row) => row.component_code === 'SEVERANCE_PAY')?.amount ??
-				0,
-			amount,
-			key
-		);
-	// Tax (reading: special severance is severance under the Act for MR No.126 cl.2(51)): TECH-10Y's
-	// 510,000 is exempt to the 400-day wage, 400,000; the rest, 110,000 − 7,000 × 10 = 40,000 × 50% =
-	// 20,000, is inside the exempt band. A relocation objector resigned — not retirement or expiry —
-	// so the whole 210,000 is exempt.
+	const line = (key: string, code: string) =>
+		slips.get(key)!.adjustments.find((row) => row.component_code === code)?.amount ?? 0;
+	for (const [key, , , , severance, notice] of cases) {
+		assert.equal(line(key, 'SEVERANCE_PAY'), severance, key);
+		if (notice != null) assert.equal(line(key, 'NOTICE_IN_LIEU'), notice, key);
+	}
+	// Tax (reading: s.120 para.3 and s.122 special severance are severance under the Act for MR
+	// No.126 cl.2(51)): TECH-10Y's 450,000 is exempt to the 400-day wage, 400,000; the rest and the
+	// 60,000 in lieu, 110,000 − 7,000 × 10 = 40,000 × 50% = 20,000, are inside the exempt band.
+	// RELOC-OBJECT (three years, no s.48(5) route): the 180,000 is exempt, the 30,000 in lieu is
+	// withheld with salary (owner rule 2026-09-28, TH-PIT-05): 164.58 + (390,000 − 170,500 =
+	// 219,500 → 3,475; less 1,975 = 1,500) = 1,664.58.
+	const pit = (key: string) =>
+		slips.get(key)!.statutory.find((entry) => entry.scheme_code === 'PIT')?.employee_amount ?? 0;
 	assert.equal(severanceTax(slips.get('TECH-10Y')!), 0);
 	assert.equal(severanceTax(slips.get('RELOC-OBJECT')!), 0);
+	assert.equal(pit('RELOC-OBJECT'), 1_664.58);
+	assert.equal(pit('RELOC-OBJECT-POSTED'), 164.58);
 });
 
 test('Thailand — the ล.ย.01 allowances an employee declares reduce the annualised tax from January (P.96/2543 cl.1(2))', () => {
@@ -1927,8 +1954,19 @@ test('Thailand — s.17/1 pay in lieu as a catalogue line, withheld with severan
 		for (const reason of ['RESIGNATION', 'RETIREMENT', 'END_OF_CONTRACT'])
 			assert.equal(owed(reason), false, reason);
 		assert.equal(owed('DISMISSAL', { dismissed_for_cause: true }), false); // s.17 last para.: s.119
-		// s.121's own 60 days replace s.17 on a technology termination (on the SEVERANCE_PAY line).
-		assert.equal(owed('RETRENCHMENT', { technology_restructuring: true }), false);
+		// s.121 para.1 excludes s.17 para.2 on a technology termination; its para.2 60 days in lieu
+		// of notice are this line (owner rule 2026-09-30, TH-EXIT-07), none after 60 days' notice.
+		assert.equal(owed('RETRENCHMENT', { technology_restructuring: true }), true);
+		assert.equal(
+			owed('RETRENCHMENT', { technology_restructuring: true, technology_notice_60_days: true }),
+			false
+		);
+		// s.120 para.2: 30 days in lieu to an employee who will not move where notice was not posted.
+		assert.equal(owed('RESIGNATION', { relocation_objection: true }), true);
+		assert.equal(
+			owed('RESIGNATION', { relocation_objection: true, relocation_notice_posted: true }),
+			false
+		);
 		// Notice on payday 28 Feb took effect 31 Mar; removed 31 Mar: fully served.
 		assert.equal(owed('RETRENCHMENT', { notice_given_on: '2026-02-28' }), false);
 		assert.equal(owed('RETRENCHMENT', { notice_given_on: '2026-03-31' }), true);
@@ -2177,8 +2215,10 @@ test('Thailand — one person working several sites in the same week is held to 
 	);
 });
 
-test('Thailand — hazardous work has a seven-hour day and 42-hour week (LPA s.23)', () => {
-	const run = (rosterHours: number) =>
+test('Thailand — hazardous work has a seven-hour day and 42-hour week, and no overtime or holiday work (LPA ss.23, 31)', () => {
+	// s.31 (Council of State consolidation, read 30 Sep 2026): no overtime or holiday work in the
+	// hazardous work of s.23 para.1. 21,000 on a seven-hour roster, January 2026.
+	const run = (rosterHours: number, overtime: 'NONE' | 'WEEKDAY' | 'HOLIDAY') =>
 		buildStatutory(
 			{ code: TH, period: '2026-01', people: [citizen('HAZ', 21_000, { hazardous_work: true })] },
 			(world) => {
@@ -2191,15 +2231,17 @@ test('Thailand — hazardous work has a seven-hour day and 42-hour week (LPA s.2
 							break_minutes: 60,
 							break_start_time: '13:00'
 						};
-				punchSeven(world, 'HAZ', '2026-01-05', '21:00', 4);
+				if (overtime === 'WEEKDAY') punchSeven(world, 'HAZ', '2026-01-05', '21:00', 4);
+				// Saturday 10 January, the weekly holiday: seven hours.
+				if (overtime === 'HOLIDAY') punch(world, 'HAZ', '2026-01-10', '09:00', '17:00', 7);
 			}
 		);
-	assert.throws(() => run(8), /normal|hazardous|7 hour/i);
-	const slip = run(7).slips.get('HAZ')!;
-	assert.deepEqual(
-		workLines(slip).filter((row) => row[1] === 'OT-1.5X'),
-		[['2026-01-05', 'OT-1.5X', 4, 600]]
-	);
+	assert.throws(() => run(8, 'NONE'), /normal|hazardous|7 hour/i);
+	assert.throws(() => run(7, 'WEEKDAY'), /overtime or on a holiday in Thai hazardous work/i);
+	assert.throws(() => run(7, 'HOLIDAY'), /overtime or on a holiday in Thai hazardous work/i);
+	const slip = run(7, 'NONE').slips.get('HAZ')!;
+	assert.deepEqual(workLines(slip), []);
+	assert.equal(slip.gross, 21_000);
 });
 
 test('Thailand — inherited seven-day patterns cannot exceed the 48/42-hour normal week (LPA s.23)', () => {
@@ -2648,15 +2690,16 @@ test('Thailand — s.122 needs more than six years’ service; its 180-day rule 
 	const exit = '2026-03-31';
 	const tech = { technology_restructuring: true };
 	const cases = [
-		// Exactly six years (1 April 2020 – 31 March 2026): not more than six. s.118(4) 240 + 60.
-		['S122-6Y', '2020-04-01', 300_000],
+		// Exactly six years (1 April 2020 – 31 March 2026): not more than six. s.118(4) 240 (the
+		// s.121 60 days are line NOTICE_IN_LIEU).
+		['S122-6Y', '2020-04-01', 240_000],
 		// Six years and one day: more than six; six full years, the one-day part not over 180.
-		// 240 + 60 + 15 × 6 = 390.
-		['S122-6Y1D', '2020-03-31', 390_000],
+		// 240 + 15 × 6 = 330.
+		['S122-6Y1D', '2020-03-31', 330_000],
 		// Five years and 181 days (the part 2 October 2025 – 31 March 2026): not more than six
 		// years of service, though the part year would count as one in the amount. s.118(3)
-		// 180 + 60 = 240; no s.122.
-		['S122-5Y181D', '2020-10-02', 240_000]
+		// 180; no s.122.
+		['S122-5Y181D', '2020-10-02', 180_000]
 	] as const;
 	const { slips } = buildStatutory(
 		{

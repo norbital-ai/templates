@@ -82,7 +82,7 @@ test('PH maternity leave approval and payroll do not depend on SSS registration 
 
 test('PH 105-day maternity span charges every calendar day across weekends', async () => {
 	const maternityRows = leaveCatalogue('PH').filter((row) => row.code === 'MATERNITY_LEAVE');
-	assert.equal(maternityRows.length, 6);
+	assert.equal(maternityRows.length, 7);
 	assert.ok(maternityRows.every((row) => row.entitlement.calendar_days === true));
 	const world = createStatutoryWorld({
 		code: 'PH',

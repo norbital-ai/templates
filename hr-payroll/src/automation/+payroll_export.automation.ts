@@ -14,6 +14,8 @@ import * as Predicate from 'effect/Predicate';
 import { loadIncomeReturns } from '../lib/payroll/run/income-return.js';
 import { refuse } from '../lib/refuse.js';
 import { dateKey } from '../lib/iso-day.js';
+import { resolveWindow } from '../lib/payroll/run/period.js';
+import type { WorkspaceRow } from '../lib/rows.js';
 
 /** The four artefacts, in the order the payroll page offers them. */
 const KINDS = [
@@ -159,14 +161,38 @@ payroll_export.run(async ({ ids, kind, authorised_person, submission, submitted 
 		});
 	}
 
-	for (const run of wants('payslip-pdfs') ? exports : []) {
-		if (run.payslips.length === 0) continue;
+	const slipRuns = wants('payslip-pdfs') ? exports.filter((run) => run.payslips.length > 0) : [];
+	const companies =
+		slipRuns.length === 0
+			? []
+			: await readAll<WorkspaceRow<'companies'>>(ctx, 'companies', {
+					id: { in: [...new Set(runs.map((run) => run.company_id))] }
+				});
+	for (const run of slipRuns) {
 		await ctx.progress({ text: `Payslips ${run.period}` });
+		const row = runs.find((candidate) => candidate.id === run.runId)!;
+		const company = companies.find((candidate) => candidate.id === row.company_id);
+		if (company == null)
+			refuse(`Payroll run ${run.period} names a company this export cannot read.`);
+		// ponytail: the salary period is the run's envelope on the company's calendar; a semi-monthly
+		// second half prints the month for a monthly-cadence employee too. Per-employment cadence
+		// windows when a mixed-cadence entity needs each slip's own.
+		const salaryPeriod = resolveWindow(run.period, company).salary;
+		const overtimePeriod = { start: dateKey(row.attendance_from), end: dateKey(row.attendance_to) };
 		const files = [];
 		for (const payslip of run.payslips)
 			files.push(
 				await put(
-					encode(payslipPdf({ period: run.period, payDate: run.payDate, payslip })),
+					encode(
+						payslipPdf({
+							employer: company.name,
+							period: run.period,
+							salaryPeriod,
+							overtimePeriod,
+							payDate: run.payDate,
+							payslip
+						})
+					),
 					`payslip_${run.period}_${payslip.employeeNumber}.pdf`,
 					'application/pdf'
 				)

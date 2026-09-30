@@ -257,7 +257,16 @@ export const wagesValueSchema = Schema.Struct({
 			/** Zero-base TASK_BASIS pay with leave, holiday, clocked work or overtime refuses. */
 			task_only_time_events_refused: Schema.optionalKey(Schema.Boolean),
 			/** Scheme code whose levy refuses zero-basic results wages it cannot classify (MY HRDF). */
-			levy_scheme: Schema.optionalKey(Schema.String)
+			levy_scheme: Schema.optionalKey(Schema.String),
+			/** Ad hoc catalogue codes of the results wages `levy_scheme` cannot classify. */
+			levy_unclassified_codes: Schema.optionalKey(Schema.Array(Schema.String)),
+			/**
+			 * Ad hoc catalogue codes whose requests are a zero-base TASK_BASIS month's results wages
+			 * (task, trip, commission), the pay its monthly minimum is compared with. Absent, none is.
+			 */
+			results_wage_codes: Schema.optionalKey(Schema.Array(Schema.String)),
+			/** Ad hoc catalogue code of the evidenced zero-results attestation for such a month. */
+			zero_results_code: Schema.optionalKey(Schema.String)
 		})
 	),
 	/**

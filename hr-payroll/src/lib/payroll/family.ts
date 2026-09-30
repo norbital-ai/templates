@@ -96,6 +96,8 @@ export type FamilyPayItem = {
 	readonly outpatient_sick_pay?: 'INCLUDE' | 'EXCLUDE' | null | undefined;
 	/** An allowance class priced for every eligible employment, listed on the contract or not. */
 	readonly owed?: boolean | null | undefined;
+	/** An ad hoc class whose line comes off `entry.unpaid_salary` (`adhoc_catalogue`). */
+	readonly reduces_unpaid_salary?: boolean | null | undefined;
 };
 
 import type { InLieuSlice } from '../datatypes/payroll_trace.js';

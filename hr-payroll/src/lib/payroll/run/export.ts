@@ -12,11 +12,13 @@ import {
 	identityRow,
 	outputGroups,
 	workbookRows,
+	type ReportLine,
 	type ReportPayslip,
 	catalogueGroups,
 	catalogueRows
 } from './report.js';
 import * as Predicate from 'effect/Predicate';
+import { INCENTIVE_LINE, OVERTIME_LINE } from '../work-bands.js';
 
 const IDENTITY_COLUMNS = [
 	{ header: 'Employee number', key: 'employee_number', width: 20 },
@@ -624,42 +626,79 @@ function textPdf(lines: readonly string[]): string {
 	return `${body}trailer\n<< /Size ${fontId + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 }
 
-/** One payslip, as a page. */
+/** A bucket that takes money off the payslip: printed with its minus sign, never as a bare magnitude. */
+const SUBTRACTS: ReadonlySet<string> = new Set(['ABSENCE', 'DEDUCTION']);
+
+/** A band's overtime or incentive line: the one family whose quantity is overtime hours. */
+const isOvertime = (line: ReportLine) =>
+	line.family === 'WORK_DAY' &&
+	(line.componentCode === OVERTIME_LINE || line.componentCode === INCENTIVE_LINE);
+
+type DayRange = { readonly start: string; readonly end: string };
+
+/**
+ * One payslip, as a page, carrying the particulars an itemised pay slip states (EA 1968 s.96;
+ * S 148/2016 reg.9, Third Schedule items 1, 3–11): employer and employee names, the salary period's
+ * first and last days, every line itemised with deductions signed, overtime hours and pay, the
+ * overtime period where it differs from the salary period, net pay and the date it is paid.
+ */
 export function payslipPdf(options: {
+	readonly employer: string;
 	readonly period: string;
+	readonly salaryPeriod: DayRange;
+	readonly overtimePeriod: DayRange;
 	readonly payDate: string;
 	readonly payslip: ReportPayslip;
 }): string {
 	const { payslip } = options;
+	const money = (amount: number) => `${amount.toFixed(2)} ${payslip.currency}`;
+	const overtime = payslip.lines.filter(isOvertime);
+	const differs =
+		options.overtimePeriod.start !== options.salaryPeriod.start ||
+		options.overtimePeriod.end !== options.salaryPeriod.end;
 	return textPdf([
 		'PAYSLIP',
-		`Employee: ${payslip.employeeNumber}`,
+		`Employer: ${options.employer}`,
+		`Employee: ${payslip.employeeName} (${payslip.employeeNumber})`,
 		`Period: ${options.period}`,
+		`Salary period: ${options.salaryPeriod.start} to ${options.salaryPeriod.end}`,
 		`Pay date: ${options.payDate}`,
 		'',
 		'Line | Amount | Currency',
 		...payslip.lines.map(
-			(line) => `${line.componentName} | ` + `${line.amount.toFixed(2)} | ${payslip.currency}`
+			(line) =>
+				`${line.componentName}${line.label && line.label !== line.componentCode ? ` ${line.label}` : ''} | ` +
+				`${(SUBTRACTS.has(line.bucket) ? -line.amount : line.amount).toFixed(2)} | ${payslip.currency}`
 		),
+		...(overtime.length === 0
+			? []
+			: [
+					'',
+					...(differs
+						? [`Overtime period: ${options.overtimePeriod.start} to ${options.overtimePeriod.end}`]
+						: []),
+					`Overtime hours: ${overtime.reduce((total, line) => total + (line.quantity ?? 0), 0).toFixed(2)}`,
+					`Overtime pay: ${money(overtime.reduce((total, line) => total + line.amount, 0))} paid ${options.payDate}`
+				]),
 		'',
 		'Statutory | Employee | Employer',
 		...[...payslip.contributions.values()]
 			.toSorted(bySchemeListing)
 			.map(
 				(amounts) =>
-					`${schemeLabel(amounts)} | ${amounts.employee.toFixed(2)} | ${amounts.employer.toFixed(2)}`
+					`${schemeLabel(amounts)} | ${(-amounts.employee).toFixed(2)} | ${amounts.employer.toFixed(2)}`
 			),
 		'',
-		`Gross: ${payslip.gross.toFixed(2)} ${payslip.currency}`,
-		`Total deductions: ${payslip.totalDeductions.toFixed(2)} ${payslip.currency}`,
-		`Net pay: ${payslip.net.toFixed(2)} ${payslip.currency}`,
+		`Gross: ${money(payslip.gross)}`,
+		`Total deductions: ${money(-payslip.totalDeductions)}`,
+		`Net pay: ${money(payslip.net)} paid ${options.payDate}`,
 		...(payslip.unfundedContributions > 0
 			? [
-					`Contribution shortfall: ${payslip.unfundedContributions.toFixed(2)} ${payslip.currency}`,
-					`Funding received: ${payslip.fundingReceived.toFixed(2)} ${payslip.currency}`,
-					`Funding outstanding: ${Math.max(0, payslip.unfundedContributions - payslip.fundingReceived).toFixed(2)} ${payslip.currency}`
+					`Contribution shortfall: ${money(payslip.unfundedContributions)}`,
+					`Funding received: ${money(payslip.fundingReceived)}`,
+					`Funding outstanding: ${money(Math.max(0, payslip.unfundedContributions - payslip.fundingReceived))}`
 				]
 			: []),
-		`Company cost: ${payslip.employerCost.toFixed(2)} ${payslip.currency}`
+		`Company cost: ${money(payslip.employerCost)}`
 	]);
 }

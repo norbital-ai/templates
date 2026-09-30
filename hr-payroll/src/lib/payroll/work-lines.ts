@@ -109,7 +109,7 @@ export function workPayItems(
 				])
 	];
 	const seen = new Set(items.map((row) => row.output));
-	const add = (line: string, label: string) => {
+	const add = (line: string, label: string, day = false) => {
 		const output = `${line}:${label}`;
 		if (seen.has(output)) return;
 		seen.add(output);
@@ -118,14 +118,16 @@ export function workPayItems(
 				settingsId: work.settings_id,
 				code: line,
 				output,
-				definition: { source: 'DERIVED_OVERTIME', unit: 'MONEY' }
+				definition: { source: day ? 'DERIVED_DAY' : 'DERIVED_OVERTIME', unit: 'MONEY' }
 			})
 		);
 	};
 	const incentive = paysIncentive(work);
 	for (const band of work.bands) {
 		if (band.component != null) continue;
-		add(OVERTIME_LINE, band.label);
+		// A band naming its own `line` prices a day the law does not count as overtime: pay on an
+		// item of its own, read as `DAY_PAY` — neither OVERTIME nor the salary (BASE).
+		add(band.line ?? OVERTIME_LINE, band.label, band.line != null);
 		if (incentive) add(INCENTIVE_LINE, band.label);
 	}
 	return items;

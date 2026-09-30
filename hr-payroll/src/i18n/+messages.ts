@@ -514,7 +514,7 @@ export default messages({
 	'component.residency_since': 'Residency start date',
 	'component.residency_status': 'Residency status',
 	'component.risk_class_hint':
-		'The entity’s occupational risk class. Indonesia JKK uses this class to select the contribution rate: {class_iv} is 0.89% and {class_i} is 0.24%. Required when a contribution rule depends on risk class; otherwise leave blank.',
+		'The entity’s occupational risk class code, exactly as the contribution rules of its settings name it; those rules select the rate. Required when a contribution rule depends on risk class; otherwise leave blank.',
 	'component.rule_condition': 'Condition',
 	'component.rule_employee': 'Employee',
 	'component.rule_employer': 'Employer',
@@ -647,6 +647,8 @@ export default messages({
 	'component.workbook_import_failed': '{file} could not be imported.',
 	'component.workbook_imported': 'Imported {count} {label} from {file}.',
 	'component.workbook_layout': 'Payroll workbook layout',
+	'component.workbook_overwritten':
+		'{count} stored day(s) were changed or removed to match the file, including any edit made in the app since the last import:',
 	'component.workbook_not_spreadsheet': '"{file}" could not be opened as a spreadsheet.',
 	'component.workbook_save_as': 'Save it as .xlsx or .csv and try again.',
 	'employee_children.add': 'Add child',
@@ -1204,6 +1206,11 @@ export default messages({
 	'component.pass_type': 'Work pass',
 	'component.tax_residency': 'Tax residency (declared)',
 	'component.notice_days': 'Notice period (days)',
+	'component.opening_attendance_through': 'Attendance decided outside through',
+	'component.opening_attendance_hint':
+		'Absences on and before this day were decided before this workspace; the count below stands for them.',
+	'component.opening_unexcused_absence_days': 'Unexcused absence days (that service year)',
+	'component.opening_attendance_reference': 'Opening attendance record',
 	'component.claim_due_on': 'Payable on',
 	'component.request_facts': 'Request inputs',
 	'component.request_facts_hint': 'Inputs this type declares for each request.',

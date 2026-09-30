@@ -141,7 +141,7 @@ import type {
 	PayRange
 } from './family.js';
 import { baseLine, settlementBucket } from './family.js';
-import { bindingMinimumWage, minimumWageCovers } from './contribution.js';
+import { bindingMinimumWage, minimumWageCovers, naming } from './contribution.js';
 import * as Predicate from 'effect/Predicate';
 import { evaluateBoolean, evaluateNumber, expressionEngine } from '../expressions/evaluate.js';
 
@@ -375,8 +375,8 @@ function asRateTerms(
 					? normalDayHours * days
 					: null;
 	if (rostered == null)
-		throw new Error(
-			'A contract with no rostered days states its ordinary hours a week, or its version states a normal day.'
+		refuse(
+			'A contract with no rostered days states its ordinary hours a week (employment_terms.ordinary_hours_per_week), or its version states a normal day.'
 		);
 	// The week the hourly rate is built on is the normal week, never longer than the statute's
 	// normal day over the pattern's days: the hourly rate is the day's pay over the normal hours
@@ -430,7 +430,11 @@ function termsSnapshotKey(terms: EmploymentBundle['terms'][number]): string {
 }
 
 /** Prepare schedule and rates before money-family totals determine statutory overtime coverage. */
-export function prepareWorkContext(
+export function prepareWorkContext(options: Parameters<typeof workContext>[0]) {
+	return naming(options.bundle.employment.employee_number, () => workContext(options));
+}
+
+function workContext(
 	options: Pick<MeasureEmploymentOptions, 'bundle' | 'configuration' | 'salary'> & {
 		readonly employed: PayRange;
 		/** Consumed dated wage history, recorded for the payslip capture. */
@@ -1395,13 +1399,17 @@ function contractDayHours(
 	const hours = decodeNumber(terms.ordinary_hours_per_week ?? 0);
 	if (hours > 0 && days > 0) return hours / days;
 	if (Number.isFinite(normalDayHours)) return normalDayHours;
-	throw new Error(
-		'A contract with no roster states its ordinary hours a week, or its version states a normal day.'
+	refuse(
+		'A contract with no roster states its ordinary hours a week (employment_terms.ordinary_hours_per_week), or its version states a normal day.'
 	);
 }
 
 /** Price Work attendance using the money families' prepared period totals for wage coverage. */
-export function calculateWorkAttendance(
+export function calculateWorkAttendance(options: Parameters<typeof workAttendance>[0]) {
+	return naming(options.bundle.employment.employee_number, () => workAttendance(options));
+}
+
+function workAttendance(
 	options: Pick<
 		MeasureEmploymentOptions,
 		'bundle' | 'configuration' | 'priorOvertimeHours' | 'priorInLieu'
@@ -1588,18 +1596,25 @@ export function calculateWorkAttendance(
 		// An unworked holiday the person's calendar recorded (a day read and found empty) is a
 		// band day of zero hours: the first band that holds prices it by amount — a regular
 		// holiday's day wage (PH art.94), a holiday on a non-working day (SG s.88).
-		const unworkedHoliday =
-			daily == null &&
-			worked <= 0 &&
-			(day.dayType === 'PUBLIC_HOLIDAY' || day.dayType === 'SPECIAL_HOLIDAY');
+		const holidayDay = day.dayType === 'PUBLIC_HOLIDAY' || day.dayType === 'SPECIAL_HOLIDAY';
+		const unworkedHoliday = daily == null && worked <= 0 && holidayDay;
+		// A holiday the roster gives a working shift is work the employer required (MY EA s.60D(3)(a):
+		// "may be required by his employer to work on any paid holiday", paid "regardless that the
+		// period of work done on that day is less than the normal hours of work"). With no hours
+		// planned on it, the roster is the plan: its normal day, as far as the clock confirms it.
+		// Hours past the normal day still pay only as planned.
+		const rosteredHolidayHours =
+			daily == null && worked > 0 && holidayDay && day.shift != null
+				? Math.min(day.normalHours, worked)
+				: 0;
 		const derived: DailyOvertime | null =
 			daily == null
-				? unworkedHoliday
+				? unworkedHoliday || rosteredHolidayHours > 0
 					? {
 							date: workDate,
 							workDayId: entry.id,
 							dayType: day.dayType,
-							hours: 0,
+							hours: rosteredHolidayHours,
 							incentiveHours: 0,
 							normalHours: day.normalHours,
 							totalWorkHours: worked,
@@ -2597,16 +2612,11 @@ function measureWorkComponent(
 				refuse(
 					`${options.bundle.employment.employee_number}: task, trip and commission results need monthly terms and typed wage requests; piece-unit workday amounts do not identify their statutory earning class.`
 				);
-			const codes = [
-				'TASK_MONTHLY_WAGE',
-				'TRIP_MONTHLY_WAGE',
-				'COMMISSION_MONTHLY',
-				'COMMISSION_IRREGULAR'
-			];
+			const codes = resultsPay?.results_wage_codes ?? [];
 			const attestations = options.bundle.payRequests.filter(
 				(request) =>
 					request.family === 'ADHOC' &&
-					request.catalogueComponent.code === 'RESULTS_ZERO_MONTH' &&
+					request.catalogueComponent.code === resultsPay?.zero_results_code &&
 					(request.pay_period === monthKey(month.start) ||
 						(request.event_date >= month.start && request.event_date <= month.end))
 			);
@@ -2852,6 +2862,7 @@ function measureWorkComponent(
 		case 'ABSENCE':
 		case 'DERIVED_OVERTIME':
 		case 'DERIVED_NORMAL':
+		case 'DERIVED_DAY':
 			return null;
 		default: {
 			const _exhaustive: never = definition;
@@ -3186,9 +3197,11 @@ export function prepareWorkSteps(
 		.map((component) => ({
 			item: component,
 			calculate: () =>
-				isEligible(component.eligibility, options.subject)
-					? measureWorkComponent({ ...options, component })
-					: null
+				naming(options.bundle.employment.employee_number, () =>
+					isEligible(component.eligibility, options.subject)
+						? measureWorkComponent({ ...options, component })
+						: null
+				)
 		}));
 }
 

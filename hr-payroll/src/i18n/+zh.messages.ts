@@ -470,7 +470,7 @@ export default messages({
 	'component.residency_since': '居留身份起始日期',
 	'component.residency_status': '居留身份',
 	'component.risk_class_hint':
-		'企业的职业风险等级。印度尼西亚 JKK 根据此等级确定缴费率：{class_iv} 为 0.89%，{class_i} 为 0.24%。缴费规则涉及风险等级时必填，否则留空。',
+		'企业的职业风险等级代码，须与其设置中缴费规则所用的代码完全一致；费率由这些规则确定。缴费规则涉及风险等级时必填，否则留空。',
 	'component.rule_condition': '条件',
 	'component.rule_employee': '雇员',
 	'component.rule_employer': '雇主',
@@ -593,6 +593,8 @@ export default messages({
 	'component.workbook_import_failed': '无法导入 {file}。',
 	'component.workbook_imported': '已从 {file} 导入 {count} 条{label}。',
 	'component.workbook_layout': '薪资报表版式',
+	'component.workbook_overwritten':
+		'为与文件一致，已更改或删除 {count} 个已存工作日，包括上次导入后在应用内所做的修改：',
 	'component.workbook_not_spreadsheet': '无法将“{file}”作为电子表格打开。',
 	'component.workbook_save_as': '请另存为 .xlsx 或 .csv 后重试。',
 	'employee_children.add': '添加子女',
@@ -1112,6 +1114,11 @@ export default messages({
 	'component.pass_type': '工作准證',
 	'component.tax_residency': '稅務居民身分（申報）',
 	'component.notice_days': '預告期（日）',
+	'component.opening_attendance_through': '系统外已认定出勤截至',
+	'component.opening_attendance_hint':
+		'此日及之前的缺勤已在本工作区之前认定；以下天数代表这些缺勤。',
+	'component.opening_unexcused_absence_days': '无故缺勤天数（该服务年度）',
+	'component.opening_attendance_reference': '期初出勤记录',
 	'component.claim_due_on': '应付日期',
 	'component.request_facts': '申请资料',
 	'component.request_facts_hint': '此类型为每项申请声明的资料。',

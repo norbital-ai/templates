@@ -258,17 +258,31 @@ for (const scenario of monthlyCases)
 	});
 
 test('PH replacement snapshots govern both ends of every corrected interval', () => {
-	const replacements = active.filter((row) => row.change_summary?.includes('R45'));
+	// A replacement replaces a voided snapshot; a later law change inside its interval (RIX-DW-06 on
+	// 20 May 2026) is a successor cloned from the replacement, which carries the rest of it.
+	const replacements = active.filter(
+		(row) =>
+			row.change_summary?.includes('R45') &&
+			!active.some((other) => other.id === row.cloned_from_id)
+	);
 	assert.equal(replacements.length, 6);
 	for (const replacement of replacements) {
 		const original = settings.find((row) => row.id === replacement.cloned_from_id);
 		assert(original);
 		assert(original.voided_at);
-		assert.deepEqual(replacement.effective_range, original.effective_range);
-		const range = governed(replacement.effective_range);
-		assert(range);
-		assert.equal(settingsInForce(settings, 'PH', range.from)?.id, replacement.id);
-		if (range.to) assert.equal(settingsInForce(settings, 'PH', range.to)?.id, replacement.id);
+		const chain = [replacement];
+		for (let next; (next = active.find((row) => row.cloned_from_id === chain.at(-1)!.id));)
+			chain.push(next);
+		assert.deepEqual(
+			{ start: chain[0]!.effective_range.start, end: chain.at(-1)!.effective_range.end },
+			original.effective_range
+		);
+		for (const version of chain) {
+			const range = governed(version.effective_range);
+			assert(range);
+			assert.equal(settingsInForce(settings, 'PH', range.from)?.id, version.id);
+			if (range.to) assert.equal(settingsInForce(settings, 'PH', range.to)?.id, version.id);
+		}
 	}
 });
 

@@ -21,18 +21,35 @@ const matchesNothing = (where: object): boolean =>
 	);
 
 /**
+ * The page a whole-row read takes of a collection whose history grows with every run and whose rows carry large
+ * `custom` values, so one company's rows outgrow one crossing's 4 MiB answer. Measured on MY-nihon's first run
+ * (84 people): a payslip is 10–23 KB of JSON (its `statutory` lines 16 KB), 1.6 MB a run, and the run's own
+ * `calculation_trace` repeats every person's scheme inputs; a second run's unpaged whole-row reads crossed 4 MiB.
+ * ponytail: a single run row past 4 MiB (a trace of several hundred people) still refuses; split the trace per slip then.
+ */
+const WIDE_ROWS: Partial<Record<CollectionName, number>> = {
+	payroll_runs: 1,
+	payslips: 50,
+	leave_entries: 1000,
+	work_days: 1000
+};
+
+/**
  * Every row of `collection` that matches `where`, whole (every field named: a caller's default projection omits
  * `json` and `custom` values, X-33): in one read (rule 9: an explicit `all`), or `page` rows at a time where the rows
- * are too large for one crossing's 4 MiB answer (a lineage's statutory tables). Each page is a crossing.
+ * are too large for one crossing's 4 MiB answer (a lineage's statutory tables, and by default a whole-row read of a
+ * `WIDE_ROWS` collection). Each page is a crossing.
  */
 export async function readAll<T>(
 	reads: Reads,
 	collection: CollectionName,
 	where: object,
 	page?: number,
-	select: object = everyField(collection)
+	narrowed?: object
 ): Promise<T[]> {
 	if (matchesNothing(where)) return [];
+	const select = narrowed ?? everyField(collection);
+	page ??= narrowed === undefined ? WIDE_ROWS[collection] : undefined;
 	if (page === undefined)
 		return plainRows<T>(
 			await reads.read(collection as never, { where, select, all: true } as never)

@@ -626,6 +626,37 @@ test('Philippines — NCR-DW-06 holds a kasambahay to ₱7,800 from 7 February 2
 	);
 });
 
+test('Philippines — RIX-DW-06 holds a Dapitan City kasambahay to ₱6,000 from 20 May 2026', () => {
+	// Wage Order RIX-DW-06 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/05/Wage-Order-No.-RIX-DW-06.pdf)
+	// s.1: chartered cities and first-class municipalities ₱5,500 + ₱500 = ₱6,000 a month; s.5: no
+	// exemption; s.8: in force fifteen days after publication — published 4 May, effective 20 May
+	// 2026. June and July sit wholly inside the 20 May–25 September version: ₱6,000 pays, ₱5,999.99
+	// refuses. The 1 April–19 May version seals no Region IX domestic floor (RIX-DW-05's ₱5,500 is
+	// unseeded), so an April run refuses rather than price a floor it does not hold.
+	const run = (period: string, wage: number) =>
+		buildStatutory({
+			code: 'PH',
+			period,
+			region: 'IX',
+			people: [{ key: 'DW', wage, employment_type: 'DOMESTIC', worksite: 'IX/Dapitan' }]
+		});
+	for (const period of ['2026-06', '2026-07']) {
+		const at = run(period, 6_000);
+		assert.equal(at.slips.get('DW')!.gross, 6_000, period);
+		assert.deepEqual(
+			at.warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW')),
+			[],
+			period
+		);
+		assert.throws(
+			() => run(period, 5_999.99),
+			/MINIMUM_WAGE_BELOW: DW is contracted at 5999\.99 a month, below the IX\/Dapitan minimum wage of 6000/,
+			period
+		);
+	}
+	assert.throws(() => run('2026-04', 6_000), /No sealed minimum-wage rate covers DOMESTIC/);
+});
+
 test('Philippines — NCR-28’s ₱755 is mandatory: an unexempted contract below the five-day floor of 16,421.25 refuses the run', () => {
 	// Wage Order No. NCR-28 s.2 (₱755 non-agriculture, effective 26 September 2026) s.4 (all minimum
 	// wage earners in the private sector) s.6 (non-payment under RA 6727 s.12); only an exemption
@@ -1458,6 +1489,7 @@ test('Philippines — a minimum-wage earner’s overtime and night differential 
 			]),
 		[
 			['2026-04-01', 18_127.92],
+			['2026-05-20', 18_127.92],
 			['2026-09-26', 19_692.92]
 		]
 	);
@@ -1910,7 +1942,9 @@ test('Philippines — a joiner on 16 January is paid the days worked, and charge
 	assert.deepEqual(charge('SSS_EC'), [30_344.83, 0, 30]);
 	// PhilHealth on the fixed monthly basic, not the days paid: 5% × 60,000 = 3,000 → 1,500 each.
 	assert.deepEqual(charge('PHIC'), [60_000, 1500, 1500]);
-	assert.deepEqual(charge('HDMF'), [60_000, 200, 200]);
+	// Pag-IBIG on the fund salary "received in a month" (HDMF Circular 460 p.2): 30,344.83, capped
+	// at ₱10,000 → 2% = 200 each.
+	assert.deepEqual(charge('HDMF'), [30_344.83, 200, 200]);
 	// 30,344.83 − (1,525 + 1,500 + 200) = 27,119.83: 15% × (27,119.83 − 20,833) = 943.0245 → 943.02.
 	assert.deepEqual(charge('WTAX'), [30_344.83, 943.02, 0]);
 });

@@ -381,6 +381,59 @@ register(
 		]
 	}),
 	th({
+		id: 'TH-WAGE-02-2',
+		description:
+			'The rest of each overridden province keeps its own floor, daily-paid, February 2026: Chiang Mai/Mae Rim THB357, Surat Thani/Mueang Surat Thani THB352 and Songkhla/Mueang Songkhla THB352, each paid exactly that.',
+		citation: [
+			`Notice 14 (${N14}) and the Ministry table: Chiang Mai 357, Surat Thani 352, Songkhla 352 outside the Mueang Chiang Mai, Ko Samui and Hat Yai districts; cl.20.`,
+			`${SSA}: 7,140 × 5% = 357; 7,040 × 5% = 352. ${P96}: nil.`
+		],
+		inputs: [
+			...person({ ref: 'maerim', wage: 357, terms: dailyTerms('Chiang Mai/Mae Rim') }),
+			...person({ ref: 'surat', wage: 352, terms: dailyTerms('Surat Thani/Mueang Surat Thani') }),
+			...person({ ref: 'songkhla', wage: 352, terms: dailyTerms('Songkhla/Mueang Songkhla') })
+		],
+		period: '2026-02',
+		expected: [
+			{ employment: 'maerim_job', lines: daily(357) },
+			{ employment: 'surat_job', lines: daily(352) },
+			{ employment: 'songkhla_job', lines: daily(352) }
+		]
+	}),
+	th({
+		id: 'TH-WAGE-01-3',
+		description:
+			'One daily-paid worker in a province of each of the 16 Notice 14 base-rate groups, February 2026, each paid exactly the group’s rate for the 20 working days.',
+		citation: [
+			`Notice 14 (${N14}) and the Ministry’s printed provincial table: 400 Rayong; 372 Nonthaburi; 359 Nakhon Ratchasima; 358 Samut Songkhram; 357 Khon Kaen; 356 Lop Buri; 355 Nakhon Nayok; 354 Krabi; 352 Kanchanaburi; 351 Chumphon; 350 Lamphun; 349 Roi Et; 348 Ang Thong; 347 Loei; 345 Nan; 337 Pattani; cl.20 no less may be paid.`,
+			`LPA ss.56(1), 70 (${LPA}): a daily wage for each working day. ${SSA}: rate × 20 × 5%, a fraction of 50 satang or more a baht. ${P96}: at most 96,000 annualised, nil.`
+		],
+		inputs: (
+			[
+				['g400', 'Rayong', 400],
+				['g372', 'Nonthaburi', 372],
+				['g359', 'Nakhon Ratchasima', 359],
+				['g358', 'Samut Songkhram', 358],
+				['g357', 'Khon Kaen', 357],
+				['g356', 'Lop Buri', 356],
+				['g355', 'Nakhon Nayok', 355],
+				['g354', 'Krabi', 354],
+				['g352', 'Kanchanaburi', 352],
+				['g351', 'Chumphon', 351],
+				['g350', 'Lamphun', 350],
+				['g349', 'Roi Et', 349],
+				['g348', 'Ang Thong', 348],
+				['g347', 'Loei', 347],
+				['g345', 'Nan', 345],
+				['g337', 'Pattani', 337]
+			] as const
+		).flatMap(([ref, site, rate]) => person({ ref, wage: rate, terms: dailyTerms(site) })),
+		period: '2026-02',
+		expected: (
+			[400, 372, 359, 358, 357, 356, 355, 354, 352, 351, 350, 349, 348, 347, 345, 337] as const
+		).map((rate) => ({ employment: `g${rate}_job`, lines: daily(rate) }))
+	}),
+	th({
 		id: 'TH-WAGE-03-1',
 		description:
 			'A type-2 hotel in Mae Rim (Chiang Mai remainder 357) owes the nationwide THB400; paid exactly 400 a day, February 2026.',
@@ -397,6 +450,26 @@ register(
 		expected: [{ employment: 'hotel_job', lines: daily(400) }]
 	}),
 	th({
+		id: 'TH-WAGE-03-2',
+		description:
+			'Hotels in Yala (geographic 337), February 2026, daily-paid: type 3 and type 4 owe the nationwide THB400 and are paid it; a type 1 hotel (rooms only, at most 50) records no sector and is paid Yala’s 337.',
+		citation: [
+			`Notice 14 (${N14}) cl.2(1) and explanation items 7, 12: hotels of type 2–4 THB400 nationwide; a type 1 hotel keeps the geographic rate (Yala 337).`,
+			`${SSA}: 8,000 × 5% = 400; 6,740 × 5% = 337. ${P96}: nil.`
+		],
+		inputs: [
+			...person({ ref: 'type3', wage: 400, terms: dailyTerms('Yala', 'HOTEL_TYPE_3') }),
+			...person({ ref: 'type4', wage: 400, terms: dailyTerms('Yala', 'HOTEL_TYPE_4') }),
+			...person({ ref: 'type1', wage: 337, terms: dailyTerms('Yala') })
+		],
+		period: '2026-02',
+		expected: [
+			{ employment: 'type3_job', lines: daily(400) },
+			{ employment: 'type4_job', lines: daily(400) },
+			{ employment: 'type1_job', lines: daily(337) }
+		]
+	}),
+	th({
 		id: 'TH-WAGE-04-1',
 		description:
 			'A four-hour normal day in Mueang Chiang Mai, daily-paid at the whole THB380 (cl.19: the rate is for the normal day however short), February 2026: 20 × 380 = 7,600.',
@@ -410,16 +483,33 @@ register(
 		expected: [{ employment: 'short_job', lines: daily(380) }]
 	}),
 	th({
+		id: 'TH-WAGE-04-2',
+		description:
+			'The same four-hour normal day in Mueang Chiang Mai, hourly-paid at THB95: 95 × 4 = 380 meets the whole day’s floor; February 2026’s 20 days: 7,600.',
+		citation: [
+			`Notice 14 (${N14}) cl.19: the daily rate is for the normal working day however short; cl.20: an hourly rate is held to it over the day’s paid hours: 95 × 4 = 380.`,
+			`${SSA}: 7,600 × 5% = 380. ${P96}: nil.`
+		],
+		work: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 },
+		inputs: person({
+			ref: 'hourly',
+			wage: 95,
+			terms: { pay_frequency: 'HOURLY', worksite: 'Chiang Mai/Mueang Chiang Mai' }
+		}),
+		period: '2026-02',
+		expected: [{ employment: 'hourly_job', lines: daily(380) }]
+	}),
+	th({
 		id: 'TH-WAGE-07-1',
 		description:
-			'A Service Establishment Act business in Yala (geographic 337) owes THB400; paid exactly 400 a day, February 2026.',
+			'A venue licensed under the Service Establishment Act (explanation item 13: a dance, food-and-liquor, night-club, pub, bar, massage or karaoke venue) in Yala (geographic 337) owes THB400; paid exactly 400 a day, February 2026.',
 		citation: [
 			`Notice 14 (${N14}) cl.2(2) and explanation items 7, 13: a service establishment under the Service Establishment Act THB400 nationwide.`,
 			`${SSA}: 8,000 × 5% = 400.`
 		],
-		inputs: person({ ref: 'spa', wage: 400, terms: dailyTerms('Yala', 'SERVICE_ESTABLISHMENT') }),
+		inputs: person({ ref: 'venue', wage: 400, terms: dailyTerms('Yala', 'SERVICE_ESTABLISHMENT') }),
 		period: '2026-02',
-		expected: [{ employment: 'spa_job', lines: daily(400) }]
+		expected: [{ employment: 'venue_job', lines: daily(400) }]
 	}),
 
 	// ─── Hours, overtime and holidays (TH-WORK-02, -03, -05, -06, -07, -08) ─────────────────────
@@ -571,12 +661,13 @@ register(
 		]
 	}),
 	th({
-		id: 'TH-WORK-07-1',
+		id: 'TH-WORK-05-2',
 		description:
-			'Hazardous work on a seven-hour normal day (09:00–17:00, an hour’s rest): THB21,000 is THB100 an hour (÷ 30 × 7) and the eighth hour is overtime; four hours on Monday 5 January 2026 at 1.5× = 600.',
+			'A seven-hour normal day that is not hazardous work (09:00–17:00, an hour’s rest): THB21,000 is THB100 an hour (÷ 30 × 7) and the eighth hour is overtime; four hours on Monday 5 January 2026 at 1.5× = 600.',
 		citation: [
-			`LPA ss.23, 61, 68 (${LPA}): hazardous normal work at most 7 hours a day; 21,000 ÷ (30 × 7) = 100.`,
-			`${SSA}: 875. ${P96}: 252,000 → 81,500 net → nil.`,
+			`LPA ss.5, 61, 68 (${LPA}): the hourly rate of a monthly wage is monthly ÷ (30 × the normal hours a day); overtime is work beyond the normal hours: 21,000 ÷ (30 × 7) = 100; 4 × 1.5 × 100 = 600.`,
+			`LPA s.27 para.3: 20 minutes’ rest (17:00–17:20) before two or more hours of overtime.`,
+			`${SSA}: 875. ${P96}: 252,000 → 81,500 net → nil, and 252,600 with the overtime still nil.`,
 			'Gross 21,600; net 21,600 − 875 = 20,725.'
 		],
 		work: {
@@ -587,13 +678,9 @@ register(
 			break_start_time: '13:00'
 		},
 		inputs: [
-			...person({
-				ref: 'weld',
-				wage: 21_000,
-				terms: { facts: { hazardous_work: true, pregnancy_status: 'NOT_PREGNANT' } }
-			}),
+			...person({ ref: 'seven', wage: 21_000 }),
 			workDay(
-				'weld',
+				'seven',
 				'2026-01-05',
 				[
 					['09:00', '13:00'],
@@ -606,10 +693,46 @@ register(
 		period: '2026-01',
 		expected: [
 			{
-				employment: 'weld_job',
+				employment: 'seven_job',
 				lines: {
 					gross: 21_600,
 					net: 20_725,
+					employer_cost: 875,
+					BASIC: 21_000,
+					'SSO.employee': 875,
+					'SSO.employer': 875
+				}
+			}
+		]
+	}),
+	th({
+		id: 'TH-WORK-07-1',
+		description:
+			'Hazardous work (the dated terms fact) on a seven-hour normal day (09:00–17:00, an hour’s rest), January 2026, with no overtime or holiday work, which s.31 forbids in hazardous work: the s.23 seven-hour day passes and THB21,000 is paid whole.',
+		citation: [
+			`LPA ss.23 para.1, 31 (${LPA}, read 30 Sep 2026): hazardous normal work at most 7 hours a day and 42 a week; no overtime or holiday work in it.`,
+			`${SSA}: 875. ${P96}: 252,000 − 100,000 − 60,000 − 10,500 = 81,500 → nil.`,
+			'Net 21,000 − 875 = 20,125.'
+		],
+		work: {
+			kind: 'WORK',
+			start_time: '09:00',
+			end_time: '17:00',
+			break_minutes: 60,
+			break_start_time: '13:00'
+		},
+		inputs: person({
+			ref: 'weld',
+			wage: 21_000,
+			terms: { facts: { hazardous_work: true, pregnancy_status: 'NOT_PREGNANT' } }
+		}),
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'weld_job',
+				lines: {
+					gross: 21_000,
+					net: 20_125,
 					employer_cost: 875,
 					BASIC: 21_000,
 					'SSO.employee': 875,
@@ -996,13 +1119,44 @@ register(
 		]
 	}),
 
+	th({
+		id: 'TH-SS-13-3',
+		description:
+			'THB15,000 a month (hourly 62.50), January 2026: two days’ annual leave (14–15 January) paid in the month’s salary, and Saturday 10 January, a weekly holiday, worked 9 hours (8 at s.62(1) 1× = 500, the ninth at s.63 3× = 187.50): SSO on the 15,000 alone.',
+		citation: [
+			`Social Security Act s.5 (ค่าจ้าง): pay for normal working time and for holidays and leave not worked is wage; holiday-work and holiday-overtime pay are not. ${SSA}: 15,000 × 5% = 750.`,
+			`LPA ss.30, 56, 62(1), 63, 68 (${LPA}): 15,000 ÷ 240 = 62.50; 8 × 62.50 = 500; 1 × 3 × 62.50 = 187.50.`,
+			`${P96}: 180,000 − 90,000 − 60,000 − 9,000 = 21,000, and with the 687.50 still inside the exempt band: nil.`,
+			'Gross 15,687.50; net 15,687.50 − 750 = 14,937.50.'
+		],
+		inputs: [
+			...person({ ref: 'rin', wage: 15_000 }),
+			timeOff('rin', 'ANNUAL_LEAVE', '2026-01-14', '2026-01-15'),
+			workDay('rin', '2026-01-10', NINE_HOURS, 9)
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'rin_job',
+				lines: {
+					gross: 15_687.5,
+					net: 14_937.5,
+					employer_cost: 750,
+					BASIC: 15_000,
+					'SSO.employee': 750,
+					'SSO.employer': 750
+				}
+			}
+		]
+	}),
+
 	// ─── Employee Welfare Fund (TH-EWF-01, -02) ─────────────────────────────────────────────────
 	th({
 		id: 'TH-EWF-01-1',
 		description:
 			'Ten employees on THB20,000 in October 2026: the fund covers them at 0.25% each side (50); the one in the employer’s registered provident fund is outside it.',
 		citation: [
-			`LPA ss.130–131 (${LPA}): a business of ten or more employees; a qualifying employer provident fund member is excluded. Commencement decree (https://ratchakitcha.soc.go.th/documents/84794.pdf): from 1 October 2026. Rate regulation B.E.2568 cl.3(1) (Gazette vol.142 part 60 Kor pp.3–4): 0.25% each side; 20,000 × 0.25% = 50.`,
+			`LPA s.130 para.1 (${LPA}): employees of a business with ten or more employees are members; para.2 takes out a business whose employer provides a provident fund or exit/death welfare under the Ministerial Regulation, and the per-member exclusion of a member of the employer’s registered provident fund follows the 2024 alternative-arrangement regulation (https://www.ocs.go.th/searchlaw/law-index/item/13230). Commencement decree (https://ratchakitcha.soc.go.th/documents/84794.pdf): from 1 October 2026. Rate regulation B.E.2568 cl.3(1) (Gazette vol.142 part 60 Kor pp.3–4): 0.25% each side; 20,000 × 0.25% = 50.`,
 			`${SSA}: 875. ${P96}: 240,000 − 170,500 = 69,500 → nil.`,
 			'Nets 20,000 − 875 − 50 = 19,075 (employer 925); the provident-fund member 19,125 (employer 875).'
 		],
@@ -1046,6 +1200,30 @@ register(
 				}
 			}
 		]
+	}),
+	th({
+		id: 'TH-EWF-01-2',
+		description:
+			'Nine employees on THB20,000 in October 2026, none a voluntary member: the business is under ten, so no fund contribution.',
+		citation: [
+			`LPA s.130 paras 1, 3 (${LPA}): membership is for a business of ten or more employees; a smaller business only by Royal Decree (none issued) or voluntary membership (para.4).`,
+			`${SSA}: 875. ${P96}: 240,000 − 170,500 = 69,500 → nil.`,
+			'Net 20,000 − 875 = 19,125.'
+		],
+		inputs: Array.from({ length: 9 }, (_, index) =>
+			person({ ref: `small${index}`, wage: 20_000 })
+		).flat(),
+		period: '2026-10',
+		expected: Array.from({ length: 9 }, (_, index) => ({
+			employment: `small${index}_job`,
+			lines: {
+				gross: 20_000,
+				net: 19_125,
+				employer_cost: 875,
+				'SSO.employee': 875,
+				'SSO.employer': 875
+			}
+		}))
 	}),
 	th({
 		id: 'TH-EWF-02-1',
@@ -1104,6 +1282,47 @@ register(
 					employer_cost: 875,
 					'SSO.employee': 875,
 					'SSO.employer': 875
+				}
+			}
+		]
+	}),
+
+	th({
+		id: 'TH-EWF-02-3',
+		description:
+			'The same voluntary member on THB60,000 in October 2031, the first month of the 0.50% step: 300 each side; SSO at the 2029–2031 THB20,000 ceiling, 1,000.',
+		citation: [
+			'EWF rate regulation B.E.2568 cl.3(2) (Gazette vol.142 part 60 Kor pp.3–4, https://ratchakitcha.soc.go.th/documents/86102.pdf; Council of State copy https://www.ocs.go.th/searchlaw/law-index/item/13221): 0.50% each side from 1 October 2031, no wage ceiling: 60,000 × 0.5% = 300.',
+			'Social Security Act ss.33, 46 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/alJWY29wVXFRUUo0WkF2MTEwSndpQT09); 5% (MR B.E.2565 Schedule B); base THB1,650–20,000 1 January 2029–31 December 2031 (MR B.E.2568 cl.3(2), https://www.sso.go.th/wpr/download/download_by_pool_file/47755): 1,000.',
+			`${P96}: 720,000 − 100,000 − 60,000 − 12,000 = 548,000 → 27,500 + 48,000 × 15% = 34,700 ÷ 12 = 2,891.666 → 2,891.66.`,
+			'Net 60,000 − 1,000 − 300 − 2,891.66 = 55,808.34; employer 1,300.'
+		],
+		inputs: [
+			...person({ ref: 'vol31', wage: 60_000 }),
+			statutory(
+				'vol31',
+				'EWF',
+				{
+					voluntary_ewf_member: true,
+					voluntary_ewf_consent_reference: 'worker-and-employer-consent-31',
+					voluntary_ewf_certificate_reference: 'DLPW-certificate-31'
+				},
+				'2026-10-01'
+			)
+		],
+		period: '2031-10',
+		expected: [
+			{
+				employment: 'vol31_job',
+				lines: {
+					gross: 60_000,
+					net: 55_808.34,
+					employer_cost: 1_300,
+					'SSO.employee': 1_000,
+					'SSO.employer': 1_000,
+					'EWF.employee': 300,
+					'EWF.employer': 300,
+					'PIT.employee': 2_891.66
 				}
 			}
 		]
@@ -1750,6 +1969,39 @@ register(
 		]
 	}),
 	th({
+		id: 'TH-EXIT-03-3',
+		description:
+			'No severance, 31 March 2026, THB30,000: a retrenchment after 119 days (hired 3 December 2025, notice served), and a written two-year special-project fixed term (1 April 2024–31 March 2026) that s.118 paras 3–4 exempt.',
+		citation: [
+			`LPA s.118 paras 1, 3–4 (${LPA}): severance from 120 days’ continuous service (3 December 2025 – 31 March 2026 counted inclusively is 119 days); none at the end of a written fixed term for a special project outside the normal business finished within two years.`,
+			`${SSA}: 875. ${P96}: 164.58.`,
+			'Nets 28,960.42.'
+		],
+		inputs: [
+			...person({
+				ref: 'd119',
+				wage: 30_000,
+				hire: '2025-12-03',
+				exit: EXIT,
+				exit_reason: 'RETRENCHMENT',
+				exit_facts: SERVED
+			}),
+			...person({
+				ref: 'project',
+				wage: 30_000,
+				hire: '2024-04-01',
+				exit: EXIT,
+				exit_reason: 'END_OF_CONTRACT',
+				exit_facts: { fixed_term_project_exempt: true }
+			})
+		],
+		period: '2026-03',
+		expected: [
+			{ employment: 'd119_job', lines: plain30k },
+			{ employment: 'project_job', lines: plain30k }
+		]
+	}),
+	th({
 		id: 'TH-EXIT-04-1',
 		description:
 			'Retrenched without notice on payday 31 March 2026 after three years on THB30,000: notice given that day would take effect on 30 April, so April’s 30,000 is owed in lieu; 180 days’ severance, exempt.',
@@ -1832,11 +2084,11 @@ register(
 	th({
 		id: 'TH-EXIT-06-1',
 		description:
-			'Two employees of three years on THB30,000 object to a workplace relocation and leave on 31 March 2026: s.120 special severance at the s.118 rate (180 days), plus 30 days where the notice was not posted 30 days ahead.',
+			'Two employees of three years on THB30,000 object to a workplace relocation and leave on 31 March 2026: s.120 para.3 special severance at the s.118 rate (180 days) on SEVERANCE_PAY, and s.120 para.2’s 30 days in lieu of notice on NOTICE_IN_LIEU where the notice was not posted 30 days ahead.',
 		citation: [
-			`LPA s.120 paras 1–3 (${LPA}): 180,000 + 30,000 = 210,000 unposted; 180,000 posted.`,
-			`${SEVERANCE_TAX_LAW} (special severance read as severance under the Act): inside the exemption. ${P96}: 164.58.`,
-			'Nets 240,000 − 1,039.58 = 238,960.42 and 210,000 − 1,039.58 = 208,960.42.'
+			`LPA s.120 paras 1–3 (${LPA}, read 30 Sep 2026): 180,000 each; 30 × 1,000 = 30,000 in lieu where the notice was not posted.`,
+			`${SEVERANCE_TAX_LAW} (s.120 para.3 special severance read as severance under the Act): the 180,000 is inside the exemption. Owner rule 2026-09-30 (register TH-EXIT-06): the s.120 para.2 payment in lieu of notice is taxed like s.17/1 pay, outside the exemption, and under five years withheld with salary: ${P96}: 164.58 + (390,000 − 170,500 = 219,500 → 3,475; less 1,975 = 1,500) = 1,664.58; posted: 164.58.`,
+			'Nets 240,000 − 875 − 1,664.58 = 237,460.42 and 210,000 − 1,039.58 = 208,960.42.'
 		],
 		inputs: [
 			...person({
@@ -1856,6 +2108,7 @@ register(
 				exit_facts: { relocation_objection: true, relocation_notice_posted: true }
 			}),
 			adhoc('reloc', 'SEVERANCE_PAY', 0, EXIT),
+			adhoc('reloc', 'NOTICE_IN_LIEU', 0, EXIT),
 			adhoc('posted', 'SEVERANCE_PAY', 0, EXIT)
 		],
 		period: '2026-03',
@@ -1864,11 +2117,12 @@ register(
 				employment: 'reloc_job',
 				lines: {
 					gross: 240_000,
-					net: 238_960.42,
-					SEVERANCE_PAY: 210_000,
+					net: 237_460.42,
+					SEVERANCE_PAY: 180_000,
+					NOTICE_IN_LIEU: 30_000,
 					'SSO.employee': 875,
 					'SSO.employer': 875,
-					'PIT.employee': 164.58
+					'PIT.employee': 1_664.58
 				}
 			},
 			{
@@ -1887,10 +2141,10 @@ register(
 	th({
 		id: 'TH-EXIT-07-1',
 		description:
-			'Technology restructuring without 60 days’ notice, 31 March 2026, THB30,000: ten years → 300 + 60 + 15 × 10 = 510 days; thirty years → 400 + 60 + 360 (15 × 30 capped) = 820 days.',
+			'Technology restructuring without 60 days’ notice, 31 March 2026, THB30,000: ten years → SEVERANCE_PAY 300 + 15 × 10 = 450 days; thirty years → 400 + 360 (15 × 30 capped) = 760 days; each with s.121 para.2’s 60 days in lieu of notice on NOTICE_IN_LIEU.',
 		citation: [
-			`LPA ss.118, 121, 122 (${LPA}): s.121 para.2 60 days in lieu of notice; s.122 15 days per full year over six years, at most 360.`,
-			`${SEVERANCE_TAX_LAW}: 510,000 − 400,000 = 110,000 − 70,000 = 40,000 × 50% → nil; 820,000 − 400,000 = 420,000 − 210,000 = 210,000 × 50% = 105,000 → nil.`,
+			`LPA ss.118, 121, 122 (${LPA}, read 30 Sep 2026): s.121 para.2 60 days in lieu of notice (deemed the Civil and Commercial Code pay in lieu by para.3); s.122 15 days per full year over six years, at most 360.`,
+			`${SEVERANCE_TAX_LAW}; owner rule 2026-09-30 (register TH-EXIT-07): the 60 days in lieu join the base outside the exemption: 450,000 + 60,000 − 400,000 = 110,000 − 70,000 = 40,000 × 50% → nil; 760,000 + 60,000 − 400,000 = 420,000 − 210,000 = 210,000 × 50% = 105,000 → nil.`,
 			`${P96}: 164.58.`,
 			'Nets 540,000 − 1,039.58 = 538,960.42 and 850,000 − 1,039.58 = 848,960.42.'
 		],
@@ -1913,7 +2167,9 @@ register(
 				exit_facts: { technology_restructuring: true }
 			}),
 			adhoc('tech10', 'SEVERANCE_PAY', 0, EXIT),
-			adhoc('tech30', 'SEVERANCE_PAY', 0, EXIT)
+			adhoc('tech10', 'NOTICE_IN_LIEU', 0, EXIT),
+			adhoc('tech30', 'SEVERANCE_PAY', 0, EXIT),
+			adhoc('tech30', 'NOTICE_IN_LIEU', 0, EXIT)
 		],
 		period: '2026-03',
 		expected: [
@@ -1922,7 +2178,8 @@ register(
 				lines: {
 					gross: 540_000,
 					net: 538_960.42,
-					SEVERANCE_PAY: 510_000,
+					SEVERANCE_PAY: 450_000,
+					NOTICE_IN_LIEU: 60_000,
 					'SSO.employee': 875,
 					'SSO.employer': 875,
 					'PIT.employee': 164.58
@@ -1933,7 +2190,8 @@ register(
 				lines: {
 					gross: 850_000,
 					net: 848_960.42,
-					SEVERANCE_PAY: 820_000,
+					SEVERANCE_PAY: 760_000,
+					NOTICE_IN_LIEU: 60_000,
 					'SSO.employee': 875,
 					'SSO.employer': 875,
 					'PIT.employee': 164.58

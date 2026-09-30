@@ -269,7 +269,7 @@ register(
 			'Rates and bases: see the file header (CN-KM03, KM04, KM20, KM25, KM26, KM27, KM32).',
 			'Pension 800 / 1,600; medical 200 / 700; maternity 90; unemployment 30 / 70; injury 20; fund 1,200 / 1,200.',
 			'IIT (STA 2018 No.61 art.6, month 1): 10,000 − (800 + 200 + 30 + 1,200) − 5,000 = 2,770 × 3% = 83.10.',
-			'昆明市工资支付条例 (CN-KM-WP09): only tax and social insurance are withheld. Net 10,000 − 2,230 − 83.10 = 7,686.90; employer 1,600 + 700 + 90 + 70 + 20 + 1,200 = 3,680.'
+			'昆明市工资支付条例 art.16 (CN-KM-WP09; https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=67457): the employer may withhold only personal income tax, the worker’s social insurance, court-ordered 抚养费/赡养费 and other amounts laws and regulations prescribe; the housing-fund share is withheld under that last item with the Housing Provident Fund Regulation (CN-N08). Net 10,000 − 2,230 − 83.10 = 7,686.90; employer 1,600 + 700 + 90 + 70 + 20 + 1,200 = 3,680.'
 		],
 		company: { facts: FACTS_2026 },
 		inputs: [...officeWeek(SINCE), ...worker({ ref: 'li', name: 'Li Ming', wage: 10000 })],
@@ -419,17 +419,24 @@ register(
 		id: 'CN-KM02-1',
 		profile: 'CN-kunming',
 		description:
-			'September 2026, a Wuhua hire on Tuesday 1 September at the new class I minimum 2,270: insured at the 4,403 floor (medical now included), a 2,270 fund base at 5% = 113.50 rounds up to 114 on each side.',
+			'September 2026, a Wuhua worker transferred in on Tuesday 1 September (an existing fund account moved from a previous employer, `first_ever_account` false) at the new class I minimum 2,270: insured at the 4,403 floor (medical now included), a 2,270 fund base at 5% = 113.50 rounds up to 114 on each side.',
 		citation: [
 			'Minimum 2,270 from 1 Sep 2026, gross including the worker’s insurance and fund (CN-KM02): 2,270 is not below it.',
 			'Medical and maternity on 4,403 from 1 Sep 2026: 308.21 / 88.06, 39.627 → 39.63; pension 704.48 / 352.24, unemployment 30.82 / 13.21, injury 8.81.',
-			'Fund: new/transferred-account floor 2,270 from 1 Sep 2026 (CN-KM05); 2,270 × 5% = 113.50 → 114 each side, 228 combined, not 227 (art.13 四舍五入 per side, CN-KM20).',
+			'Fund: a transferred worker contributes from the first month of pay at the full monthly wage (昆公积金规〔2020〕2号 art.12, https://zc.51shebao.com/detail/825467; a first-ever account would start only in the second month, CN-KM20-1); new/transferred-account floor 2,270 from 1 Sep 2026 (CN-KM05); 2,270 × 5% = 113.50 → 114 each side, 228 combined, not 227 (art.13 四舍五入 per side, CN-KM20).',
 			'IIT nil. Net 2,270 − 567.51 = 1,702.49; employer 704.48 + 308.21 + 39.63 + 30.82 + 8.81 + 114 = 1,205.95.'
 		],
 		company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
 		inputs: [
 			...officeWeek(SINCE),
-			...worker({ ref: 'sun', name: 'Sun Yan', wage: 2270, siBase: 2270, from: '2026-09-01' })
+			...worker({
+				ref: 'sun',
+				name: 'Sun Yan',
+				wage: 2270,
+				siBase: 2270,
+				from: '2026-09-01',
+				hf: { first_ever_account: false }
+			})
 		],
 		period: '2026-09',
 		expected: [

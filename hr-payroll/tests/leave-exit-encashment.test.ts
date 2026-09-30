@@ -405,3 +405,27 @@ test('Thailand s.67 pays carried annual leave on every exit and only earned curr
 		assert.equal(approved.allocations[0]?.credit_entry_id, id(11));
 	}
 });
+
+test('a due departure missing an owed declaration refuses by the leaver’s name and stays due for the daily catch-up', async () => {
+	const context = closed(leaveContext());
+	context.employees[0]!.name = 'Aisyah Rahman';
+	context.versions[0]!.exit_facts = [
+		{
+			key: 'terminated_without_notice',
+			type: 'boolean',
+			label: 'Left without notice',
+			required_when: 'employment.exit_reason == "RESIGNATION"'
+		}
+	];
+	const missing = harness(context, 'RESIGNATION');
+	await assert.rejects(
+		missing.run(),
+		/Departure of Aisyah Rahman on 2026-06-30: Left without notice is required before calculation\./
+	);
+	assert.deepEqual(missing.stamps, [{ encashment_due_on: EXIT }]);
+	assert.equal(missing.writes.length, 0);
+	// Owed only on a resignation; recorded, it settles.
+	await run(context, 'RETIREMENT');
+	context.employments[0]!.exit_facts = { terminated_without_notice: false };
+	await run(context, 'RESIGNATION');
+});

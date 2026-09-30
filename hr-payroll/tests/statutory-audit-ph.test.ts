@@ -60,9 +60,9 @@ const owed = (book, key: string, code: string): [number, number] => {
 
 test('PH audit — all six mandatory schemes assess liability despite missing registration', () => {
 	const versions = settingsVersions('PH');
-	assert.equal(versions.length, 6);
+	assert.equal(versions.length, 7);
 	const schemes = contributionSchemes('PH');
-	assert.equal(schemes.length, 36);
+	assert.equal(schemes.length, 42);
 	for (const scheme of schemes)
 		assert.equal(scheme.unregistered_action, 'ASSESS', scheme.settings_id);
 	const run = (wage: number, unregistered: readonly string[]) =>
@@ -704,6 +704,16 @@ test('PH audit: NCR and IV-A wage-order floors are the daily rate × 313 ÷ 12 o
 			'IV-A-RETAIL-SMALL': f(485)
 		},
 		'2026-04-01': {
+			NCR: f(695),
+			'NCR-AGRI-SMALL': f(658),
+			'IV-A': f(600),
+			'IV-A-1ST': f(550),
+			'IV-A-RECLASSIFIED-1ST': f(550),
+			'IV-A-2ND-5TH': f(525),
+			'IV-A-RETAIL-SMALL': f(508)
+		},
+		// RIX-DW-06 (20 May) moves only the Region IX domestic floor.
+		'2026-05-20': {
 			NCR: f(695),
 			'NCR-AGRI-SMALL': f(658),
 			'IV-A': f(600),

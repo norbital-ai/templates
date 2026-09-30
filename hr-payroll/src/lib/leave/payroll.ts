@@ -212,7 +212,9 @@ type GatheredLeave = Omit<PreparedLeavePayroll, 'deductionEligibility'> & {
 export function withLeaveDeductionEligibility(
 	gathered: GatheredLeave,
 	options: {
-		readonly employment: Parameters<typeof serviceStart>[0];
+		readonly employment: Parameters<typeof serviceStart>[0] & {
+			readonly employee_number?: string | null | undefined;
+		};
 		readonly servicePeriods: readonly { readonly start: string; readonly end: string | null }[];
 		readonly employee: LeaveContext['employees'][number];
 		readonly configuration: Pick<
@@ -370,7 +372,9 @@ export function withLeaveDeductionEligibility(
 						.availability === 'PER_EVENT'
 			)
 		)
-			refuse('Per-event leave requires the dated event that grants it.');
+			refuse(
+				`Per-event leave requires the dated event that grants it: ${options.employment.employee_number ?? 'this employee'}'s ${entry.leave_code} entry ${entry.reference} names no event date. Reverse it and file a replacement that names the event.`
+			);
 		const calendarEntitlement = [
 			entry.catalogue_id,
 			...entry.charges.map((charge) => charge.catalogue_id)
@@ -428,16 +432,18 @@ export function withLeaveDeductionEligibility(
 			);
 			if (datedCatalogue?.entitlement.requires_wife_prior_living_biological_children === true) {
 				if (entry.event_relationship !== 'WIFE')
-					refuse('VN paternity leave requires the birth event to identify the employee’s wife.');
+					refuse(
+						`${datedCatalogue.name} requires the birth event to identify the employee’s wife.`
+					);
 				if (!entry.reference.trim() || entry.certificate_file == null)
-					refuse('VN paternity leave requires its birth evidence and supporting reference.');
+					refuse(`${datedCatalogue.name} requires its birth evidence and supporting reference.`);
 				if (
 					['BIRTH', 'BIRTH_SURGERY', 'PRETERM_BIRTH'].includes(entry.event_kind ?? '') &&
 					(!Number.isInteger(entry.event_wife_prior_living_biological_children) ||
 						(entry.event_wife_prior_living_biological_children ?? -1) < 0)
 				)
 					refuse(
-						'VN paternity leave requires the wife’s prior living biological child count on the birth date.'
+						`${datedCatalogue.name} requires the wife’s prior living biological child count on the birth date.`
 					);
 			}
 			const excludesShift =

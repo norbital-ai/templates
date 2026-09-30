@@ -262,7 +262,9 @@ const tw = (c: TwCase): ProbeCase => ({
 		...c.people.flatMap(personInputs),
 		...(c.extra?.((person) => `@${person}_job`) ?? [])
 	],
-	expected: Object.entries(c.expected).map(([ref, lines]) => ({ employment: `${ref}_job`, lines }))
+	expected: Object.entries(c.expected).map(([ref, lines]) => ({ employment: `${ref}_job`, lines })),
+	...(c.warnings === undefined ? {} : { warnings: c.warnings }),
+	...(c.companyLines === undefined ? {} : { companyLines: c.companyLines })
 });
 
 const leave = (
@@ -346,6 +348,10 @@ const EVERY = [
 	SRC.occGrades,
 	SRC.occRate
 ];
+const ARREARS =
+	'勞動基準法 §28(3) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=28) and BLI 積欠工資墊償基金 (https://www.bli.gov.tw/0110180.html, read 2026-09-30): 墊償提繳費 = 墊償提繳薪資總額 (the 勞保投保薪資, day-prorated) × 0.025%, 角以下四捨五入, paid by the unit alone';
+const NHI_EMPLOYER =
+	'全民健康保險法 §34 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=34, read 2026-09-30): 投保單位 每月支付之薪資所得總額逾其受僱者當月投保金額總額時，應按其差額及前條比率 (2.11%) 計算應負擔之補充保險費 — one establishment line, not a payslip charge';
 const citizen = (
 	ref: string,
 	name: string,
@@ -1136,7 +1142,7 @@ register(
 			'A raise from NT$40,000 to 48,000 on 16 March 2026: each rate takes its calendar share; every insured grade stays 40,100 until the notified adjustment takes effect the next month.',
 		citation: [
 			...EVERY,
-			'Owner rule 2026-09-28 (law silent on a mid-month rate change): each rate is paid for its calendar share of the month — 40,000 × 15/31 = 19,354.84 and 48,000 × 16/31 = 24,774.19, 44,129.03.',
+			'Owner rule 2026-09-28 (law silent on a mid-month rate change): each rate is paid for its calendar share of the month — 40,000 × 15/31 = 19,354.84 and 48,000 × 16/31 = 24,774.19, 44,129.03. A whole month of service is one month’s pay whatever its length, so the shares sum to one; only a part month of service is paid by the day at 月薪 ÷ 30 (TW-WAGE-05-1). Recorded in tracker TW-WAGE-05.',
 			'勞工保險條例 §14(2), 勞工退休金條例 §15(2) and NHIA (https://www.nhi.gov.tw/ch/cp-3204-6ecca-2568-1.html): an adjusted insured amount takes effect from the first of the month after notification — March stays on 40,100: 922 / 3,228, 80 / 281, 622 / 1,940, 2,406, 48.',
 			'The table withholds nothing. Net 44,129.03 − (922 + 80 + 622) = 42,505.03; employer 7,903.'
 		],
@@ -1252,6 +1258,10 @@ register(
 				exit_facts: { lsa_termination_ground: 'OTHER' }
 			})
 		],
+		// 施行細則 §9 settles on the last day; the March run pays on the month end, so the run says it is late.
+		warnings: [
+			'^FINAL_PAY_LATE: P-SHIH left on 2026-03-20; .*by 2026-03-20, and this run pays on 2026-03-31'
+		],
 		expected: {
 			shih: {
 				gross: 24_000,
@@ -1276,7 +1286,7 @@ register(
 			...EVERY,
 			SRC.fivePercent,
 			`${SRC.lsa} §38(4): 特別休假 因…契約終止而未休之日數，雇主應發給工資; 勞動基準法施行細則 §24-1(2)(1)(2): 計月者 為…契約終止前最近一個月正常工作時間所得之工資除以三十 — February 60,000 ÷ 30 × 5 = 10,000 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24-1).`,
-			'財政部 74-05-29 台財稅第16713號 (MOF portal Q&A 1125, https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/7jOz7Dr): pay for work on 特別休假日 within the 勞基法 standard is 加班費 免納所得稅 (所得稅法 §14(1) 第三類 (四)), so the 5% is on the salary alone: 3,000.',
+			'財政部高雄國稅局 2019-12-30 news release on the MOF portal, 未休完特別休假日折發之不休假加班費，不超過規定標準者免計入薪資所得課稅 (https://www.mof.gov.tw/singlehtml/384fb3077bb349ea973e7fc6f13b6974?cntId=a7d14ce02a444dd4a09af3efc0a524d1; read via web.archive.org 2020-09-26 capture, the live page redirects): 勞工在年度終結或契約終止時未休完特別休假之所有日數，雇主應發給工資，該不休假獎金屬加班費的一種 … 免計入薪資所得課稅, within 財政部 74-05-29 台財稅第16713號 (所得稅法 §14(1) 第三類 (四)); 高雄國稅局 Q&A 員工領取不休假加班費，需要辦理扣繳嗎？ (https://www.ntbk.gov.tw/singlehtml/8edee6a2f90d4254a5e8d38c1db38137?cntId=4cb256a9677b4f0ba2812d1e3f542213): exempt where the days are within §38 and the pay within the §39 standard. Here 5 days ≤ the §38(1)(3) 10 days for 2–3 years’ service, at the §24-1 rate, so the 5% is on the salary alone: 3,000.',
 			'Exit on the 31st: 30 insured days. 勞保/就保 ceiling; 健保 60,800: 943 / 2,942; 勞退 3,648; 災保 72.96 → 73.',
 			'Net 70,000 − (1,053 + 92 + 943 + 3,000) = 64,912; employer 3,687 + 321 + 2,942 + 3,648 + 73 = 10,671.'
 		],
@@ -1661,8 +1671,9 @@ register(
 		citation: [
 			...EVERY,
 			`${SRC.lsa} §16(1)(2): 繼續工作一年以上三年未滿者，於二十日前預告之; §16(3): 未依第一項規定期間預告而終止契約者，應給付預告期間之工資 — 15 days × 36,000 ÷ 30 = 18,000 (the day wage 1,200 is above the 平均工資 1,193.37).`,
-			'勞工退休金條例 §12(1): 0.5 × 2 years = 1 month × 216,000 ÷ 181 × 30 = 35,801.10. The one line: 35,801.10 + 18,000 = 53,801.10 → 53,801.',
-			'退職所得 206,000 × 2 = 412,000 exempt → no withholding; 5% × 18,000 → 0.',
+			'勞工退休金條例 §12(1): 0.5 × 2 years = 1 month × 216,000 ÷ 181 × 30 = 35,801.10. The one line: 35,801.10 + 18,000 = 53,801.10 → 53,801 (law silent on rounding; the tracker default rounds the one 退職所得 amount to the 元 once, TW-EXIT-01).',
+			'財政部 83-08-09 台財稅第831604301號 (https://law-out.mof.gov.tw/LawContent.aspx?id=GL006450): 依勞動基準法第16條第3項規定給付勞工預告期間之工資，兼具資遣費性質 — the notice pay is 退職所得 (所得稅法 §14(1) 第九類) with the 資遣費, so both sit on the one SEVERANCE_PAY line: 206,000 × 2 = 412,000 exempt → no withholding.',
+			'The separate 18,000 is the 15 days actually worked, 1–15 March (15 × 1,200), 薪資所得: 5% × 18,000 = 900, not over 2,000 → 0.',
 			'15 insured days on 36,300: 勞保 417.45 → 417; 1,461.08 → 1,461; 就保 36.30 → 36; 127.05 → 127; 勞退 1,089; 災保 21.78 → 22.',
 			'Gross 18,000 + 53,801 = 71,801; net 71,801 − (417 + 36) = 71,348; employer 1,461 + 127 + 1,089 + 22 = 2,699.'
 		],
@@ -2339,11 +2350,20 @@ register(
 			...EVERY,
 			'全民健康保險法 §31(1)(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=L0060001&flno=31) and NHIA 補充保險費計算公式 (https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html): 全年累計超過當月投保金額4倍部分的獎金 × 2.11% — (250,000 − 183,200) × 2.11% = 1,409.48 → 1,409.',
 			'MOF NM11BZY (https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/withheld-rule/rule/NM11BZY): 非每月給付之薪資 5% — 12,500. The salary 45,000 on the table withholds 0.',
-			'Net 295,000 − (1,053 + 92 + 710 + 12,500 + 1,409) = 279,236; employer 9,027.'
+			'Net 295,000 − (1,053 + 92 + 710 + 12,500 + 1,409) = 279,236; employer 9,027.',
+			ARREARS,
+			NHI_EMPLOYER,
+			'Establishment lines: 墊償 45,800 × 0.025% = 11.45 → 11; 補充保費(雇主) (295,000 − 45,800) × 2.11% = 5,258.12 → 5,258.'
 		],
 		period: '2026-03',
 		people: [citizen('ting', 'Ting Shao-wei', 45_000, all(45_800))],
 		extra: (job) => [adhoc(job('ting'), 'bonus', 250_000, '2026-03-10', 'Year-end bonus')],
+		companyLines: {
+			// 45,800 × 0.025% = 11.45 → 11
+			'WAGE_ARREARS_FUND.employer': 11,
+			// (295,000 salary income − 45,800 insured) × 2.11% = 5,258.12 → 5,258
+			'NHI_SUPPLEMENT_EMPLOYER.employer': 5258
+		},
 		expected: {
 			ting: {
 				gross: 295_000,
@@ -2360,6 +2380,50 @@ register(
 				'OCC_INJURY.employer': 55,
 				'INCOME_TAX_BONUS.employee': 12_500,
 				'NHI_SUPPLEMENT.employee': 1409
+			}
+		}
+	}),
+	tw({
+		id: 'TW-WAGE-06-1',
+		description:
+			'A served wage garnishment of NT$12,000 on a NT$36,000 March 2026 wage, the order attached as evidence: net pay falls by exactly the ordered amount; gross and every statutory line stay whole.',
+		citation: [
+			...EVERY,
+			SRC.table,
+			'強制執行法 §115-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=B0010004&flno=115-1): the order on 繼續性報酬債權 不得逾各期給付數額三分之一 unless the court departs from it; the garnishee deducts what the order fixes (12,000 = one third). Owner default 2026-09-28 (tracker TW-WAGE-06): a net deduction outside every wage, insured and tax base.',
+			'Grades 36,300: 勞保 835 / 2,922, 就保 73 / 254, 健保 563 / 1,757, 勞退 2,178, 災保 43.56 → 44; the table withholds nothing. Net 36,000 − (835 + 73 + 563) − 12,000 = 22,529; employer 7,155.',
+			ARREARS,
+			NHI_EMPLOYER,
+			'Establishment lines: 墊償 36,300 × 0.025% = 9.075 → 9; 補充保費(雇主) none (36,000 paid ≤ 36,300 insured).'
+		],
+		period: '2026-03',
+		people: [citizen('yeh', 'Yeh Chun-hung', 36_000, all(36_300))],
+		extra: (job) => [
+			{
+				...adhoc(
+					job('yeh'),
+					'COURT_GARNISHMENT',
+					12_000,
+					'2026-03-10',
+					'強制執行法 §115-1 扣押命令 / 移轉命令'
+				),
+				files: { evidence_file: 'garnishment-order.pdf' }
+			}
+		],
+		companyLines: { 'WAGE_ARREARS_FUND.employer': 9 },
+		expected: {
+			yeh: {
+				gross: 36_000,
+				net: 22_529,
+				employer_cost: 7155,
+				'LI.employee': 835,
+				'LI.employer': 2922,
+				'EI.employee': 73,
+				'EI.employer': 254,
+				'NHI.employee': 563,
+				'NHI.employer': 1757,
+				'LABOR_PENSION.employer': 2178,
+				'OCC_INJURY.employer': 44
 			}
 		}
 	}),
@@ -2463,6 +2527,238 @@ register(
 				'LABOR_PENSION.employer': 2748,
 				'OCC_INJURY.employer': 55,
 				'INCOME_TAX_NON_RESIDENT.employee': 7965
+			}
+		}
+	}),
+
+	// ── Branches added 2026-09-30 for PARTIAL rows ─────────────────────────────────────────────────
+	tw({
+		id: 'TW-NHI-14-2',
+		description:
+			'A 重度 disability certificate: the state pays the whole of the worker’s own 勞保, 就保 and 健保 share; the unit share is untouched.',
+		citation: [
+			...EVERY,
+			'身心障礙者參加社會保險保險費補助辦法 §4–5, §7 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090): 保險費補助，以其自付者為限; 極重度及重度身心障礙者全額補助; the insurer 在其所屬投保單位保險費計算表內直接減免之.',
+			'40,100: 勞保 922.30 less 922.30 = 0; 就保 80.20 less 80.20 = 0; 健保 622 less 622 = 0. Units: 3,228, 281, 1,940; 勞退 2,406; 災保 48.',
+			'Net 40,000; employer 7,903.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('hou', 'Hou Chih-yuan', 40_000, all(40_100), {
+				elections: {
+					LI: { disability_subsidy: 100 },
+					EI: { disability_subsidy: 100 },
+					NHI: { disability_subsidy: 100 }
+				}
+			})
+		],
+		expected: {
+			hou: {
+				gross: 40_000,
+				net: 40_000,
+				employer_cost: 7903,
+				'LI.employee': 0,
+				'LI.employer': 3228,
+				'EI.employee': 0,
+				'EI.employer': 281,
+				'NHI.employee': 0,
+				'NHI.employer': 1940,
+				'LABOR_PENSION.employer': 2406,
+				'OCC_INJURY.employer': 48
+			}
+		}
+	}),
+	tw({
+		id: 'TW-TAX-06-2',
+		description:
+			'A retained old-system worker on NT$40,000 + a 3,000 meal allowance: the whole 43,000 is the §56 reserve wage (2% = 860) and the insured wage (43,900).',
+		citation: [
+			...EVERY,
+			'勞動基準法 §2(3), §56(1) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001): 工資 includes 津貼, and the reserve is 2–15% of 每月薪資總額; 施行細則 §10 does not exclude a 伙食津貼 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030002). 43,000 × 2% = 860.',
+			'營利事業所得稅查核準則 §88(2)(1) (https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): the 3,000 meal allowance is not 薪資所得; the table withholds nothing on 40,000.',
+			'43,900: 勞保 1,010 / 3,534; 就保 88 / 307; 健保 681 / 2,124; 災保 52.68 → 53; no 勞退 (old system).',
+			'Net 43,000 − (1,010 + 88 + 681) = 41,221; employer 3,534 + 307 + 2,124 + 53 + 860 = 6,878.'
+		],
+		company: { facts: { pension_reserve_rate: 2 } },
+		period: '2026-03',
+		people: [
+			citizen(
+				'yu',
+				'Yu Cheng-hsien',
+				40_000,
+				{ LI: 43_900, EI: 43_900, NHI: 43_900, OCC_INJURY: 43_900 },
+				{
+					born: '1975-04-12',
+					hired: '2004-03-01',
+					standing: { LABOR_PENSION: OLD_SYSTEM },
+					terms: {
+						allowances: [{ catalogue_id: '@law:allowance_catalogue:MEAL_ALLOWANCE', amount: 3000 }]
+					}
+				}
+			)
+		],
+		expected: {
+			yu: {
+				gross: 43_000,
+				net: 41_221,
+				employer_cost: 6878,
+				MEAL_ALLOWANCE: 3000,
+				'LI.employee': 1010,
+				'LI.employer': 3534,
+				'EI.employee': 88,
+				'EI.employer': 307,
+				'NHI.employee': 681,
+				'NHI.employer': 2124,
+				'OCC_INJURY.employer': 53,
+				'LABOR_PENSION_RESERVE.employer': 860
+			}
+		}
+	}),
+	tw({
+		id: 'TW-EXIT-01-2',
+		description:
+			'A §11 layoff on 15 March 2026 after six months with no notice given: 10 days’ notice pay beside a quarter-month of 資遣費, on the under-six-months 平均工資.',
+		citation: [
+			...EVERY,
+			SRC.fivePercent,
+			`${SRC.lsa} §2(4): 工作未滿六個月者，謂工作期間所得工資總額除以工作期間之總日數 — 16 Sep 2025–14 Mar 2026, 180 days: 18,000 + 5 × 36,000 + 16,800 = 214,800 ÷ 180 = 1,193.33. §16(1)(1): 繼續工作三個月以上一年未滿者，於十日前預告之; §16(3): none given → 10 × 1,200 (the last day wage, above 1,193.33) = 12,000.`,
+			'勞工退休金條例 §12(1): 0.5 × 6/12 = 0.25 month × 214,800 ÷ 180 × 30 = 8,950. One 退職所得 line (財政部 83-08-09 台財稅第831604301號, https://law-out.mof.gov.tw/LawContent.aspx?id=GL006450): 8,950 + 12,000 = 20,950; 所得稅法 §14(1) 第九類 exempts 206,000 for the six months (滿六個月者，以一年計) → no withholding.',
+			'1–15 March worked: 15 × 1,200 = 18,000; 5% = 900 → 0. 15 insured days on 36,300: 勞保 417 / 1,461; 就保 36 / 127; 勞退 1,089; 災保 22; 健保法 §30(2): none.',
+			'Gross 18,000 + 20,950 = 38,950; net 38,950 − (417 + 36) = 38,497; employer 1,461 + 127 + 1,089 + 22 = 2,699.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('hsiao', 'Hsiao Wei-ting', 36_000, all(36_300), {
+				hired: '2025-09-16',
+				tax: FIVE,
+				left: '2026-03-15',
+				exit_reason: 'REDUNDANCY',
+				exit_facts: {
+					lsa_termination_ground: 'ARTICLE_11',
+					notice_days_given: 0,
+					average_daily_wage: 214_800 / 180,
+					old_system_service_months: 0
+				}
+			})
+		],
+		extra: (job) => [
+			adhoc(job('hsiao'), 'SEVERANCE_PAY', 0, '2026-03-15', 'SEVERANCE_PAY on departure 2026-03-15')
+		],
+		expected: {
+			hsiao: {
+				gross: 38_950,
+				net: 38_497,
+				employer_cost: 2699,
+				SEVERANCE_PAY: 20_950,
+				'LI.employee': 417,
+				'LI.employer': 1461,
+				'EI.employee': 36,
+				'EI.employer': 127,
+				'LABOR_PENSION.employer': 1089,
+				'OCC_INJURY.employer': 22
+			}
+		}
+	}),
+	tw({
+		id: 'TW-EXIT-02-2',
+		description:
+			'A §11 layoff on 15 March 2026 after over twenty new-system years: 資遣費 stops at six months of 平均工資.',
+		citation: [
+			...EVERY,
+			SRC.fivePercent,
+			'勞工退休金條例 §12(1) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030020): 每滿一年發給二分之一個月之平均工資 … 最高以發給六個月平均工資為限 — 1 Jul 2005–15 Mar 2026 is over 20 years, 0.5 × 20 > 6 → 6 months: 270,000 ÷ 181 × 30 × 6 = 268,508.29 → 268,508.',
+			`${SRC.lsa} §16(1)(3): 30 days’ notice given, so no notice pay. 所得稅法 §14(1) 第九類: 206,000 × 20 years and more exempt → no withholding. 15 × 1,500 = 22,500; 5% = 1,125 → 0.`,
+			'15 insured days on 45,800: 527 / 1,843, 46 / 160, 勞退 1,374, 災保 27. 健保法 §30(2): none.',
+			'Gross 22,500 + 268,508 = 291,008; net 291,008 − (527 + 46) = 290,435; employer 1,843 + 160 + 1,374 + 27 = 3,404.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('tseng2', 'Tseng Kuo-an', 45_000, all(45_800), {
+				born: '1975-05-10',
+				hired: '2005-07-01',
+				tax: FIVE,
+				left: '2026-03-15',
+				exit_reason: 'REDUNDANCY',
+				exit_facts: { ...NOTICE, average_daily_wage: 270_000 / 181, old_system_service_months: 0 }
+			})
+		],
+		extra: (job) => [
+			adhoc(
+				job('tseng2'),
+				'SEVERANCE_PAY',
+				0,
+				'2026-03-15',
+				'SEVERANCE_PAY on departure 2026-03-15'
+			)
+		],
+		expected: {
+			tseng2: {
+				gross: 291_008,
+				net: 290_435,
+				employer_cost: 3404,
+				SEVERANCE_PAY: 268_508,
+				'LI.employee': 527,
+				'LI.employer': 1843,
+				'EI.employee': 46,
+				'EI.employer': 160,
+				'LABOR_PENSION.employer': 1374,
+				'OCC_INJURY.employer': 27
+			}
+		}
+	}),
+	tw({
+		id: 'TW-TAX-03-2',
+		description:
+			'A §11 layoff on 15 March 2026 of a retained old-system worker since 16 March 2004 at NT$450,000: 22 months’ 平均工資, part of it above the 414,000 × 22 band and wholly taxable.',
+		citation: [
+			...EVERY,
+			`${SRC.lsa} §17(1), §2(4): 2,700,000 ÷ 181 × 30 × 22 = 9,845,303.87 → 9,845,304 (勞工退休金條例 §11(2) old-system seniority).`,
+			'所得稅法 §14(1) 第九類 一 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=14) with 115年 amounts 206,000 / 414,000 (https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/taxation-scope/which-income/O9EmLJZ): 206,000 × 22 = 4,532,000 is 0; 4,532,000–9,108,000 (414,000 × 22) is half: 2,288,000; the 737,304 above 9,108,000 is whole: 所得額 3,025,304.',
+			'各類所得扣繳率標準 §2(9) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340028): 6% of the 所得額 — 181,518.24 → 181,518.',
+			'勞動基準法 §56(1) reserve 2% × 225,000 = 4,500. 15 days × 15,000 = 225,000; 5% = 11,250.',
+			'15 insured days: 勞保 527 / 1,843; 就保 46 / 160; 災保 72,800 × 0.12% × ½ = 43.68 → 44; no 勞退 (old system); no 健保 (§30(2)).',
+			'Gross 225,000 + 9,845,304 = 10,070,304; net 10,070,304 − (527 + 46 + 11,250 + 181,518) = 9,876,963; employer 1,843 + 160 + 44 + 4,500 = 6,547.'
+		],
+		company: { facts: { pension_reserve_rate: 2 } },
+		period: '2026-03',
+		people: [
+			citizen(
+				'chiu',
+				'Chiu Ming-tsung',
+				450_000,
+				{ LI: 45_800, EI: 45_800, NHI: 313_000, OCC_INJURY: 72_800 },
+				{
+					born: '1970-09-09',
+					hired: '2004-03-16',
+					tax: FIVE,
+					left: '2026-03-15',
+					exit_reason: 'REDUNDANCY',
+					exit_facts: {
+						...NOTICE,
+						average_daily_wage: 2_700_000 / 181,
+						old_system_service_months: 264
+					},
+					standing: { LABOR_PENSION: OLD_SYSTEM }
+				}
+			)
+		],
+		extra: (job) => [
+			adhoc(job('chiu'), 'SEVERANCE_PAY', 0, '2026-03-15', 'SEVERANCE_PAY on departure 2026-03-15')
+		],
+		expected: {
+			chiu: {
+				gross: 10_070_304,
+				net: 9_876_963,
+				employer_cost: 6547,
+				SEVERANCE_PAY: 9_845_304,
+				'LI.employee': 527,
+				'LI.employer': 1843,
+				'EI.employee': 46,
+				'EI.employer': 160,
+				'OCC_INJURY.employer': 44,
+				'LABOR_PENSION_RESERVE.employer': 4500,
+				'INCOME_TAX.employee': 11_250,
+				'SEVERANCE_TAX.employee': 181_518
 			}
 		}
 	})

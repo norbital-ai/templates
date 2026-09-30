@@ -417,7 +417,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 					absenceOf(workAttendance.adjustments) -
 					adjustments.reduce(
 						(sum, row) =>
-							row.catalogueComponent.code === 'KASAMBAHAY_FORFEITURE' ? sum + row.amount : sum,
+							row.catalogueComponent.reduces_unpaid_salary === true ? sum + row.amount : sum,
 						0
 					)
 			),

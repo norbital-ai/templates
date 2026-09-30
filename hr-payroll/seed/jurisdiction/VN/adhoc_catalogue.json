@@ -998,5 +998,465 @@
 		],
 		"counts_toward": ["PIT"],
 		"raised_by": "MANUAL"
+	},
+	{
+		"id": "35bb80a5-3aa2-5182-abad-e136f9394501",
+		"settings_id": "469fa629-27f2-590d-a32d-8002527b2173",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "29aabdce-da10-5462-b782-c89d0d279507",
+		"settings_id": "b7a3c3cd-1a69-5671-8dc4-2dfb30d30ce8",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "ed5889ab-04bc-5aba-a686-293ebe15b52e",
+		"settings_id": "c4ae7537-4277-5c51-b2c5-f4acd4f6b5a0",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "b327c783-2bc2-51da-bdf2-b40924036629",
+		"settings_id": "3e9ec72c-8248-57c4-a30d-336b620f13b0",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "d90e5462-db80-5502-be73-5f6c7869e166",
+		"settings_id": "5affd360-4551-50a3-9b69-8e2d883b90b6",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f2031489-5074-552f-97a3-1d0c6b33a12a",
+		"settings_id": "c2a6f8dc-1baa-53f2-a469-372d6fdf9962",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c6e55ee6-737f-59fa-af2d-4e6c9bcedf17",
+		"settings_id": "88af2811-6efb-5c3d-a8e7-c6abe8058f86",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f99bbfdd-ec02-5428-9b32-9c5b1113f25e",
+		"settings_id": "7c39ad83-e7f5-5945-8f0a-48f69a7672fa",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f795a91f-e9e1-5d65-9f3f-9eaf6cdfc2db",
+		"settings_id": "87c4fcc3-34ee-56b8-afb4-7be3c8900c05",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "bb384093-4eb0-538c-93f9-ca992ae1e6a8",
+		"settings_id": "0a34c1a5-88ad-5252-a198-fecfd596ca80",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "8b0b4a51-e96e-551f-8ffd-f2e8c0bfdba3",
+		"settings_id": "54a64216-a80f-5f39-a09a-bc56baf97202",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "39b6029c-dc26-51fb-9dc2-146d637afa02",
+		"settings_id": "c568b5b3-afad-54c6-a2fc-3f3f65140921",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "4e5ec75c-d149-56ba-9816-38a7d39837fa",
+		"settings_id": "653e6cb8-16f8-58c5-ab45-3f0a710a32ef",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "433b0a8a-8cd7-5ff7-a029-7def9617cc7b",
+		"settings_id": "c07f6541-3c32-5143-ab6f-33ba0a7ea171",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c7ebcb66-cf03-54b5-b9f9-826d6959531f",
+		"settings_id": "bd218876-976e-5449-a96e-8786339c81c2",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "62f21725-82d6-529f-9cac-f314e38d6a18",
+		"settings_id": "d925f077-0984-5101-9621-e1beb7f30225",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "1a144ef6-c880-5250-b514-ea596ddb1f39",
+		"settings_id": "0435bc9b-8d8d-529a-86ca-4a992ca1198b",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "c958f605-968d-5e83-948e-4ce1ae549aaf",
+		"settings_id": "00bed3e1-b0f0-54dd-bfff-7cc75ddd0a90",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "4d523714-0bfb-553e-82c2-5a6660734f0f",
+		"settings_id": "967b7d06-1e8b-53ff-9a3e-375fa142b847",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "f0246d90-46e3-56fe-bab8-ab2df1f67b89",
+		"settings_id": "5cc1b1e9-6da0-5e56-8f54-c6e496b74d9e",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "5283ab96-6d48-5fe0-a02d-c5e1323e6168",
+		"settings_id": "a97c87e5-ef4b-5256-ab59-21f0b7ed5639",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "fbb340d3-3273-5da6-b58b-f874c3081ebb",
+		"settings_id": "9b1cb22a-d399-52cc-adef-8e72ec084b78",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
+	},
+	{
+		"id": "a3546209-31bc-5cd2-bcc6-c15e0815d633",
+		"settings_id": "2b556ee6-e9e1-5b07-bfba-e91625653f0a",
+		"code": "BONUS",
+		"name": "Tiền thưởng (bonus, Labour Code art.104)",
+		"authority": "Labour Code 45/2019/QH14 art.104 (Official Gazette 993+994; unchanged in consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus (thưởng) is money, property or another form the employer awards on the results of production and business and the worker's degree of work completion; the bonus regulation (quy chế thưởng) is the employer's, decided and published at the workplace after consulting the grassroots worker representative where one exists. The law sets no amount, no minimum and no 13th-month or Tết bonus (register VN-LC104-02): HR raises one request per bonus paid, the amount is the sum the regulation awards. The published regulation and the consultation are the employer's conduct, not a payroll input (evidence NONE). Salary income taxed in the month paid: Circular 111/2013/TT-BTC art.2(2)(e) (“Các khoản thưởng bằng tiền hoặc không bằng tiền dưới mọi hình thức”, except the state-honour and award bonuses of e.1–e.4: state titles and commendations, national and international awards, technical innovations, reporting violations) and, for tax period 2026, Decree 253/2026/NĐ-CP art.8(2)(i) (the state-honour and award bonuses excluded by art.8(4)(a)). Outside the insurance salary: Decree 158/2025/NĐ-CP art.7(1)(c) excludes the supplements that depend on or vary with productivity, work history or performance, and Circular 10/2020/TT-BLĐTBXH art.3(5)(c) sets art.104 bonuses apart from the contract's wage supplements; HI, UI, the union fee and union dues read the same insured salary, so none of them reads it.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "PAY",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"counts_toward": ["PIT"],
+		"raised_by": "MANUAL"
 	}
 ]

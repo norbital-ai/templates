@@ -10,6 +10,11 @@ export default model({
 		jurisdiction_code: { kind: 'text' },
 		/** Entry day to exit day inclusive; an open end is a stay still running. */
 		period: { kind: 'period', of: 'date' },
+		/**
+		 * Whether the employment was exercised in the jurisdiction on the days of this stay: the days a
+		 * short-stay employment exemption counts (MY ITA 1967 Sch.6 para 21), not mere presence.
+		 */
+		employment_exercised: { kind: 'bool', default: false },
 		/** Passport stamps, travel record or other evidence of the days. */
 		reference: { kind: 'text' }
 	},

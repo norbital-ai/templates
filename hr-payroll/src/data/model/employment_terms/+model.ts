@@ -87,6 +87,19 @@ export default model({
 			values: ['PRESENT', 'ABSENT'],
 			optional: true
 		},
+		/**
+		 * The opening attendance declaration: absence on and before this day was decided outside the
+		 * workspace (before its first recorded work day), so an absence-forfeiture test reads the
+		 * count below instead of dated work days for those days (`entitlement.forfeit_above_absence_share`).
+		 */
+		opening_attendance_through: { kind: 'date', optional: true },
+		/**
+		 * Whole working days absent without permission and without reasonable excuse, from the start
+		 * of the service year holding `opening_attendance_through` to that day.
+		 */
+		opening_unexcused_absence_days: { kind: 'int', min: 0, optional: true },
+		/** Where that opening decision is recorded (the attendance register or file it was read from). */
+		opening_attendance_reference: { kind: 'text', optional: true },
 		/** Jurisdiction inputs the lineage declares in `terms_facts`, dated with these terms; `terms.facts.<key>`. */
 		facts: { kind: 'custom', of: 'entity_facts', default: {} },
 		effective_range: { kind: 'period', of: 'date' },

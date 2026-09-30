@@ -6,7 +6,7 @@ import { dateKey } from '../iso-day.js';
 import { isEligible, scalarFacts } from '../../lib/payroll/run/eligibility.js';
 import { defaultPayPeriod } from '../../lib/payroll/run/period.js';
 import { coversDate, readRange } from '../../lib/payroll/run/effective.js';
-import { resolveExitFacts } from '../declared-facts.js';
+import { exitFactsMissing, resolveExitFacts } from '../declared-facts.js';
 import { plain, plainRows } from '../wire.js';
 import { refuse } from '../refuse.js';
 import { personAt, readLeaveContext, leavePool, leaveRules, type LeaveContext } from './context.js';
@@ -57,6 +57,29 @@ function versionOn(context: LeaveContext, employmentId: string, day: string) {
 }
 
 /**
+ * The departure declaration the leaver owes under the law of their last day and has not recorded, as a refusal naming
+ * the leaver; null when nothing owed is missing. The contract write refuses it, and a settlement that still meets it
+ * (a departure recorded before the check, or a person fact that moved since) refuses by name rather than dropping it.
+ */
+export function departureFactsMissing(
+	context: LeaveContext,
+	employmentId: string,
+	exitDate: string
+): string | null {
+	const leaver = context.employments.find((row) => row.id === employmentId);
+	const missing = exitFactsMissing(
+		versionOn(context, employmentId, exitDate)?.exit_facts ?? [],
+		scalarFacts(leaver?.exit_facts),
+		personAt(context, employmentId, exitDate)
+	);
+	if (missing == null) return null;
+	// readAll reads the whole row; the leave context's type names only what leave rules read
+	const employee: { readonly id: string; readonly name?: string } | undefined =
+		context.employees.find((row) => row.id === leaver?.employee_id);
+	return `Departure of ${employee?.name ?? employmentId} on ${exitDate}: ${missing}`;
+}
+
+/**
  * Settles a departure that is due: the unused encashable leave (held for the HR Manager), the separation payments
  * the version in force on the last day owes, and the exit clearance hold it declares. Each is skipped when it
  * already stands, so a retry never duplicates. A future departure is `not_due`; the contract then records its due
@@ -97,6 +120,16 @@ export async function settleExit(ctx: Ctx, employmentId: string): Promise<ExitSe
 				set: { encashment_due_on: PlainDate(exit_date) }
 			});
 		return out('not_due');
+	}
+	const missing = departureFactsMissing(context, employmentId, exit_date);
+	if (missing != null) {
+		// kept on the contract for the daily catch-up, which reports it until the facts are recorded
+		if (String(row.encashment_due_on) !== exit_date)
+			await ctx.act('employments.update', {
+				target: row.id,
+				set: { encashment_due_on: PlainDate(exit_date) }
+			});
+		refuse(missing);
 	}
 	const exitVersion = versionOn(context, employmentId, exit_date);
 	const leaver = context.employments.find((e) => e.id === employmentId);

@@ -40,6 +40,9 @@ const terms = collection('employment_terms', {
 				'comparable_full_time_weekly_hours',
 				'comparable_full_time_presence',
 				'shift_pattern_id',
+				'opening_attendance_through',
+				'opening_unexcused_absence_days',
+				'opening_attendance_reference',
 				'facts',
 				'effective_range'
 			]
@@ -74,6 +77,9 @@ const terms = collection('employment_terms', {
 				'comparable_full_time_weekly_hours',
 				'comparable_full_time_presence',
 				'shift_pattern_id',
+				'opening_attendance_through',
+				'opening_unexcused_absence_days',
+				'opening_attendance_reference',
 				'facts',
 				'effective_range'
 			]
@@ -201,6 +207,17 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 			);
 			if (fault != null) refuse(fault, { field: 'facts' });
 		}
+		// The opening attendance declaration is one fact: its day, its count and its record together.
+		const opening = [
+			row.opening_attendance_through,
+			row.opening_unexcused_absence_days,
+			(row.opening_attendance_reference ?? '').trim() || null
+		];
+		if (opening.some((value) => value != null) && opening.some((value) => value == null))
+			refuse(
+				'An opening attendance declaration needs its day, its unexcused absence days and its reference.',
+				{ field: 'opening_attendance_through' }
+			);
 		const derived = { ...input, summary: termsSummary(row) };
 		const range = readRange(row.effective_range);
 		if (!range || (range.end != null && dateKey(range.end) < dateKey(range.start)))

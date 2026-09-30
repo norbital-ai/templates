@@ -69,6 +69,12 @@ export type PersonContext = {
 		readonly presence_linked_days: number;
 		/** Of the four calendar years before the rule date's, those with 90 or more days present (MY ITA s.7(1)(c)(ii)). */
 		readonly presence_years_90: number;
+		/**
+		 * Of `presence_days`, those of stays recorded `employment_exercised`, within this stint: the
+		 * days the employment was exercised in the jurisdiction in the rule date's calendar year, through
+		 * the rule date (MY ITA Sch.6 para 21(a), 22(a)).
+		 */
+		readonly employment_days: number;
 	};
 	readonly employment: {
 		readonly type: string;
@@ -324,7 +330,13 @@ export type PersonInput = {
 		readonly { readonly start: string; readonly end: string | null }[] | undefined;
 	/** Recorded stays in the jurisdiction, entry to exit day (null while running); absent is none recorded. */
 	readonly presence?:
-		readonly { readonly start: string; readonly end: string | null }[] | undefined;
+		| readonly {
+				readonly start: string;
+				readonly end: string | null;
+				/** The employment was exercised in the jurisdiction on the stay's days (`presence_periods.employment_exercised`). */
+				readonly employment_exercised?: boolean | undefined;
+		  }[]
+		| undefined;
 	/** The contract's allowances in force on `asOf`, summed; see `contractAllowancesOn`. */
 	readonly fixedAllowances?: number | null | undefined;
 	/** Of them, those in the gross rate of pay; absent is all of them. */
@@ -486,24 +498,33 @@ function wholeMonthsBetween(start: string, end: string): number {
  */
 function presenceOn(
 	stays: PersonInput['presence'],
-	asOf: string
+	asOf: string,
+	stint: { readonly start: string; readonly exit: string }
 ): Pick<
 	PersonContext['employee'],
-	'presence_recorded' | 'presence_days' | 'presence_linked_days' | 'presence_years_90'
+	| 'presence_recorded'
+	| 'presence_days'
+	| 'presence_linked_days'
+	| 'presence_years_90'
+	| 'employment_days'
 > {
 	const day = asOf.slice(0, 10);
-	const runs: { start: string; end: string }[] = [];
-	for (const stay of (stays ?? []).toSorted((a, b) => a.start.localeCompare(b.start))) {
-		const end = stay.end == null || stay.end > day ? day : stay.end;
-		if (stay.start === '' || end < stay.start) continue;
-		const last = runs.at(-1);
-		if (last != null && stay.start <= addDays(last.end, 1)) {
-			if (end > last.end) last.end = end;
-		} else runs.push({ start: stay.start, end });
-	}
+	const merge = (spans: readonly { start: string; end: string | null }[], last: string) => {
+		const runs: { start: string; end: string }[] = [];
+		for (const stay of spans.toSorted((a, b) => a.start.localeCompare(b.start))) {
+			const end = stay.end == null || stay.end > last ? last : stay.end;
+			if (stay.start === '' || end < stay.start) continue;
+			const previous = runs.at(-1);
+			if (previous != null && stay.start <= addDays(previous.end, 1)) {
+				if (end > previous.end) previous.end = end;
+			} else runs.push({ start: stay.start, end });
+		}
+		return runs;
+	};
+	const runs = merge(stays ?? [], day);
 	const year = Number.parseInt(day.slice(0, 4), 10);
-	const daysIn = (y: number) =>
-		runs.reduce((sum, run) => {
+	const daysIn = (y: number, spans = runs) =>
+		spans.reduce((sum, run) => {
 			const from = run.start > `${y}-01-01` ? run.start : `${y}-01-01`;
 			const to = run.end < `${y}-12-31` ? run.end : `${y}-12-31`;
 			return to < from ? sum : sum + inclusiveDays(from, to);
@@ -520,7 +541,21 @@ function presenceOn(
 						crossing.start > previousStart ? crossing.start : previousStart,
 						`${year - 1}-12-31`
 					),
-		presence_years_90: [1, 2, 3, 4].filter((back) => daysIn(year - back) >= 90).length
+		presence_years_90: [1, 2, 3, 4].filter((back) => daysIn(year - back) >= 90).length,
+		// Employment is exercised only inside the stint: a flagged stay is clipped to its first and
+		// last day of work.
+		employment_days: daysIn(
+			year,
+			merge(
+				(stays ?? [])
+					.filter((stay) => stay.employment_exercised === true)
+					.map((stay) => ({
+						start: stay.start < stint.start ? stint.start : stay.start,
+						end: stay.end
+					})),
+				stint.exit !== '' && stint.exit < day ? stint.exit : day
+			)
+		)
 	};
 }
 
@@ -588,7 +623,7 @@ export function personContext(input: PersonInput): PersonContext {
 			// every April payroll — day-exact counting held it in year one until May.
 			residency_months:
 				residency === '' || residency > input.asOf ? 0 : wholeMonthsBetween(residency, input.asOf),
-			...presenceOn(input.presence, input.asOf)
+			...presenceOn(input.presence, input.asOf, { start, exit })
 		},
 		employment: {
 			type: input.terms?.employment_type ?? '',
@@ -709,6 +744,7 @@ export function personContext(input: PersonInput): PersonContext {
 		wage_floor_pay: {
 			BASE: 0,
 			OVERTIME: 0,
+			DAY_PAY: 0,
 			NIGHT_PREMIUM: 0,
 			OVERTIME_PREMIUM: 0,
 			ABSENCE: 0,

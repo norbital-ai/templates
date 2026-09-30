@@ -6,6 +6,7 @@ import { resolveFactValues } from './declared-facts.js';
 import type { FactKey } from './datatypes/fact_keys.js';
 import { coversDate, readRange, type StoredRange } from '../lib/payroll/run/effective.js';
 import { dateKey } from './iso-day.js';
+import { decodeNumber } from './wire.js';
 import type { LeaveCharge } from './datatypes/leave_charges.js';
 import {
 	leaveActivityOf,
@@ -132,7 +133,7 @@ export function leaveTermsThrough(
 			? (candidates.toSorted()[0] ?? null)
 			: activity === 'CARRY_FORWARD'
 				? (entry.to_date ?? null)
-				: activity === 'ADJUSTMENT' && (entry.hours ?? entry.days ?? 0) < 0
+				: activity === 'ADJUSTMENT' && decodeNumber(entry.hours ?? entry.days ?? 0) < 0
 					? (entry.effective_on ?? null)
 					: null;
 	return date == null ? null : [date, ...(exit == null ? [] : [exit])].toSorted()[0]!;

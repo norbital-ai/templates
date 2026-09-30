@@ -36,7 +36,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -47,6 +47,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -122,7 +123,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -883,7 +892,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -894,6 +903,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -969,7 +979,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -1741,7 +1759,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -1752,6 +1770,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -1827,7 +1846,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -2610,7 +2637,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -2621,6 +2648,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -2696,7 +2724,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -3479,7 +3515,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -3490,6 +3526,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -3565,7 +3602,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -4348,7 +4393,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -4359,6 +4404,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -4434,7 +4480,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -5196,7 +5250,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -5207,6 +5261,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -5282,7 +5337,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -6055,7 +6118,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -6066,6 +6129,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -6141,7 +6205,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -6925,7 +6997,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -6936,6 +7008,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -7011,7 +7084,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -7795,7 +7876,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -7806,6 +7887,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -7881,7 +7963,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -8665,7 +8755,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -8676,6 +8766,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -8751,7 +8842,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -9514,7 +9613,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -9525,6 +9624,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -9600,7 +9700,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -10374,7 +10482,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -10385,6 +10493,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -10460,7 +10569,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -11245,7 +11362,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -11256,6 +11373,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -11331,7 +11449,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -12116,7 +12242,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -12127,6 +12253,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -12202,7 +12329,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -12987,7 +13122,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -12998,6 +13133,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -13073,7 +13209,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -13877,7 +14021,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -13888,6 +14032,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -13963,7 +14108,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -14778,7 +14931,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -14789,6 +14942,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -14864,7 +15018,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -15690,7 +15852,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -15701,6 +15863,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -15776,7 +15939,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -16602,7 +16773,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -16613,6 +16784,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -16688,7 +16860,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -17514,7 +17694,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -17525,6 +17705,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -17600,7 +17781,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -18424,7 +18613,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -18435,6 +18624,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -18510,7 +18700,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -19334,7 +19532,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -19345,6 +19543,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -19420,7 +19619,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -20255,7 +20462,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -20266,6 +20473,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -20341,7 +20549,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -21187,7 +21403,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -21198,6 +21414,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -21273,7 +21490,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -22119,7 +22344,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -22130,6 +22355,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -22205,7 +22431,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -23051,7 +23285,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -23062,6 +23296,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -23137,7 +23372,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -23961,7 +24204,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -23972,6 +24215,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -24047,7 +24291,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -24871,7 +25123,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -24882,6 +25134,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -24957,7 +25210,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -25792,7 +26053,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -25803,6 +26064,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -25878,7 +26140,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -26724,7 +26994,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -26735,6 +27005,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -26810,7 +27081,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -27656,7 +27935,7 @@
 					"label": "WORKDAY-OT-1.5X",
 					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\"",
 					"take_hours": "hours_beyond_normal",
-					"price_amount": "hours * round_cent(ordinary_hour) * 1.5",
+					"price_amount": "hours * (round_cent(ordinary_hour) > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round_cent(ordinary_hour) : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
@@ -27667,6 +27946,7 @@
 				},
 				{
 					"label": "HOLIDAY-2.0X",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "(hours * round_cent(ordinary_hour) * 2.0 > 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) ? hours * round_cent(ordinary_hour) * 2.0 : 2.0 * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)))"
@@ -27742,7 +28022,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {

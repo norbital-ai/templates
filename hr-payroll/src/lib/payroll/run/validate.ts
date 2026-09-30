@@ -6,7 +6,7 @@
  */
 
 import { decodeNumber } from '../../wire.js';
-import { INCENTIVE_LINE, OVERTIME_LINE } from '../../../lib/payroll/work-bands.js';
+import { INCENTIVE_LINE, lineOf } from '../../../lib/payroll/work-bands.js';
 import { paysIncentive } from '../../../lib/payroll/work-lines.js';
 
 import type { Configuration } from './configuration.js';
@@ -45,12 +45,13 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 
 	// Every rate band must settle under a pay item of its own (line:label), or the run has no
 	// component to price the hours it produces.
-	// A normal-day band (`component`) settles under the item it names.
+	// A normal-day band (`component`) settles under the item it names; an overtime band under its
+	// own `line`, else OVERTIME.
 	for (const band of configuration.work.bands) {
 		const outputs =
 			band.component != null
 				? [band.component]
-				: [OVERTIME_LINE, ...(paysIncentive(configuration.work) ? [INCENTIVE_LINE] : [])].map(
+				: [lineOf(band), ...(paysIncentive(configuration.work) ? [INCENTIVE_LINE] : [])].map(
 						(line) => `${line}:${band.label}`
 					);
 		for (const output of outputs)

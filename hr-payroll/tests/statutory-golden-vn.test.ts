@@ -1526,9 +1526,15 @@ test('Vietnam — a preexisting July paternity entry without the wife’s child 
 				});
 			}
 		);
-	assert.throws(() => run(null), /wife’s prior living biological child count on the birth date/);
-	assert.throws(() => run(1, 'OTHER'), /identify the employee’s wife/);
-	assert.throws(() => run(1, 'WIFE', false), /birth evidence and supporting reference/);
+	// The refusal names the dated catalogue row, never a hard-coded jurisdiction label.
+	const named = (tail: string) => ({ message: `${paternity.name} requires ${tail}` });
+	assert.equal(paternity.name, 'Paternity leave (Nghỉ khi vợ sinh con)');
+	assert.throws(
+		() => run(null),
+		named('the wife’s prior living biological child count on the birth date.')
+	);
+	assert.throws(() => run(1, 'OTHER'), named('the birth event to identify the employee’s wife.'));
+	assert.throws(() => run(1, 'WIFE', false), named('its birth evidence and supporting reference.'));
 	run(0);
 });
 

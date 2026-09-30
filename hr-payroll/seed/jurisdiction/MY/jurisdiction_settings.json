@@ -70,6 +70,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -145,7 +146,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -940,6 +949,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -1015,7 +1025,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -1821,6 +1839,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -1896,7 +1915,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -2713,6 +2740,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -2788,7 +2816,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -3605,6 +3641,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -3680,7 +3717,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -4497,6 +4542,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -4572,7 +4618,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -5368,6 +5422,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -5443,7 +5498,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -6250,6 +6313,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -6325,7 +6389,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -7143,6 +7215,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -7218,7 +7291,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -8036,6 +8117,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -8111,7 +8193,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -8929,6 +9019,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -9004,7 +9095,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -9801,6 +9900,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -9876,7 +9976,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -10684,6 +10792,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -10759,7 +10868,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -11578,6 +11695,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -11653,7 +11771,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -12472,6 +12598,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -12547,7 +12674,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -13366,6 +13501,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -13441,7 +13577,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -14279,6 +14423,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -14354,7 +14499,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -15203,6 +15356,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -15278,7 +15432,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -16138,6 +16300,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -16213,7 +16376,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -17073,6 +17244,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -17148,7 +17320,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -18008,6 +18188,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -18083,7 +18264,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -18941,6 +19130,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -19016,7 +19206,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -19874,6 +20072,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -19949,7 +20148,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -20818,6 +21025,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -20893,7 +21101,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -21773,6 +21989,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -21848,7 +22065,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -22728,6 +22953,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -22803,7 +23029,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -23683,6 +23917,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -23758,7 +23993,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -24616,6 +24859,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -24691,7 +24935,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -25549,6 +25801,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -25624,7 +25877,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -26493,6 +26754,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -26568,7 +26830,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -27448,6 +27718,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -27523,7 +27794,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {
@@ -28403,6 +28682,7 @@
 				},
 				{
 					"label": "HOLIDAY-2-DAYS-PAY",
+					"line": "HOLIDAY_WORK",
 					"when": "day_type == \"PUBLIC_HOLIDAY\"",
 					"take_hours": "normal_hours",
 					"price_amount": "day_wage * 2.0"
@@ -28478,7 +28758,15 @@
 				"block_unmeasured_results_pay": true,
 				"results_pay": {
 					"task_only_time_events_refused": true,
-					"levy_scheme": "HRDF"
+					"levy_scheme": "HRDF",
+					"levy_unclassified_codes": ["TASK_MONTHLY_WAGE", "TRIP_MONTHLY_WAGE"],
+					"results_wage_codes": [
+						"TASK_MONTHLY_WAGE",
+						"TRIP_MONTHLY_WAGE",
+						"COMMISSION_MONTHLY",
+						"COMMISSION_IRREGULAR"
+					],
+					"zero_results_code": "RESULTS_ZERO_MONTH"
 				},
 				"part_time_monthly_hourly_floor": true,
 				"by_region": {

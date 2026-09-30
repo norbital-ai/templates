@@ -107,6 +107,9 @@ export type LeaveContext = {
 		readonly pass_type: string | null;
 		readonly tax_residency: string | null;
 		readonly notice_days: number | null;
+		/** The opening attendance declaration (`employment_terms.opening_*`); absent is none. */
+		readonly opening_attendance_through?: string | null;
+		readonly opening_unexcused_absence_days?: number | string | null;
 	}[];
 	/** The lineage's scheme codes, so `facts.<CODE>` reads false rather than failing for an unregistered one. */
 	schemeCodes?: string[] | undefined;
@@ -918,7 +921,10 @@ export function leaveRules(
 	/**
 	 * Whether the window's grant is forfeited: unexcused whole-day absences above `share` of its
 	 * working days (`entitlement.forfeit_above_absence_share`), each day's decision read from its
-	 * recorded absence inputs.
+	 * recorded absence inputs. Days on and before the terms' opening attendance declaration were
+	 * decided outside the workspace: they still count toward the working days, and the declared
+	 * unexcused days stand for their absences. The law is silent on evidence that predates the
+	 * system; an unrecorded day is never read as worked.
 	 */
 	const forfeited = (
 		window: LeaveWindow,
@@ -927,6 +933,24 @@ export function leaveRules(
 	): boolean => {
 		if (share == null) return false;
 		const what = `${selected.code} forfeiture`;
+		const declared = terms.filter((row) => row.opening_attendance_through != null);
+		const openedThrough = dateKey(declared[0]?.opening_attendance_through);
+		const openingAbsent = decodeNumber(declared[0]?.opening_unexcused_absence_days ?? 0);
+		if (
+			declared.some(
+				(row) =>
+					dateKey(row.opening_attendance_through) !== openedThrough ||
+					decodeNumber(row.opening_unexcused_absence_days ?? 0) !== openingAbsent
+			)
+		)
+			refuse(`${what} needs one opening attendance declaration.`);
+		// The declared count is the service year holding the opening day; an earlier year has none.
+		if (openedThrough > window.end && window.end >= hire)
+			refuse(
+				`${what} for the service year ending ${window.end} needs its absences recorded; the opening attendance declaration (${openedThrough}) counts only the service year holding it.`
+			);
+		// A coverage gap on a declared day matters only if a denominator is needed.
+		const uncounted: string[] = [];
 		const recorded = new Map(
 			(context.annualAttendance ?? [])
 				.filter((row) => row.employment_id === employmentId)
@@ -953,11 +977,21 @@ export function leaveRules(
 		let unexcused = 0;
 		for (const day of daysBetween(window.start, asOf < window.end ? asOf : window.end)) {
 			if (day < hire || (exit != null && day > exit)) continue;
+			const decided = day <= openedThrough;
+			const gap = (message: string) => {
+				if (!decided) refuse(message);
+				uncounted.push(message);
+			};
 			const term = terms.find((row) => coversDate(row.effective_range, day));
-			if (term == null) refuse(`${what} needs employment terms on ${day}.`);
+			if (term == null) {
+				gap(`${what} needs employment terms on ${day}.`);
+				continue;
+			}
 			const pattern = termPatternRow(term, patterns);
-			if (pattern == null || !coversDate(pattern.effective_range, day))
-				refuse(`${what} needs a dated work pattern on ${day}.`);
+			if (pattern == null || !coversDate(pattern.effective_range, day)) {
+				gap(`${what} needs a dated work pattern on ${day}.`);
+				continue;
+			}
 			const row = recorded.get(day);
 			const codeId =
 				row?.shift_definition_id ??
@@ -966,12 +1000,15 @@ export function leaveRules(
 			const shift = context.shifts.find(
 				(candidate) => candidate.id === codeId && candidate.company_id === company.id
 			);
-			if (shift == null || !coversDate(shift.effective_range, day))
-				refuse(`${what} needs a dated roster code on ${day}.`);
+			if (shift == null || !coversDate(shift.effective_range, day)) {
+				gap(`${what} needs a dated roster code on ${day}.`);
+				continue;
+			}
 			if (rosterCodeKind(shift.variant) !== 'WORK') continue;
 			withHolidays += 1;
 			const holiday = holidays.has(day);
 			if (!holiday) withoutHolidays += 1;
+			if (decided) continue;
 			const facts: Readonly<Record<string, unknown>> = row?.facts ?? {};
 			if (facts.partial_absence === true)
 				refuse(`${what} needs a statutory partial-day absence convention.`);
@@ -1025,7 +1062,9 @@ export function leaveRules(
 			if (facts.absence_permission === 'NO' && facts.absence_reasonable_excuse === 'NO')
 				unexcused += 1;
 		}
+		if (openedThrough >= window.start) unexcused += openingAbsent;
 		if (unexcused === 0) return false;
+		if (uncounted.length > 0) refuse(uncounted[0]!);
 		if (
 			hire > window.start ||
 			(exit != null && exit < window.end) ||

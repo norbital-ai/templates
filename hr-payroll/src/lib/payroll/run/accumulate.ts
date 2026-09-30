@@ -1,8 +1,8 @@
 /**
  * Step 5 — ACCUMULATE.
  *
- * One pass per payslip over every priced line, producing the six **reserved magnitudes** — the
- * engine's own money, `BASE`, `OVERTIME`, `NIGHT_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`,
+ * One pass per payslip over every priced line, producing the **reserved magnitudes** — the
+ * engine's own money, `BASE`, `OVERTIME`, `DAY_PAY`, `NIGHT_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`,
  * `ENCASHMENT` — and a `code → signed amount` map over every catalogue row the payslip priced.
  * A scheme's `assessed_on` is then one expression over those two facts, so what a statute charges
  * is read against the Act rather than admitted entry by entry.
@@ -29,6 +29,12 @@ import { decodeNumber } from '../../wire.js';
 export type ReservedLine =
 	| 'BASE'
 	| 'OVERTIME'
+	/**
+	 * A band's day pay posted to its own `line` (`bands[].line`): a day the law prices but does not
+	 * count as overtime, and which is not the salary either — outside BASE and OVERTIME, so each
+	 * scheme names it where its wage includes it.
+	 */
+	| 'DAY_PAY'
 	| 'NIGHT_PREMIUM'
 	| 'OVERTIME_PREMIUM'
 	| 'ABSENCE'
@@ -105,6 +111,11 @@ function reservedOf(item: PricedItem): ReservedLine | null {
 			'DERIVED_NORMAL'
 	)
 		return 'BASE';
+	if (
+		(component as { readonly definition?: { readonly source?: string } }).definition?.source ===
+		'DERIVED_DAY'
+	)
+		return 'DAY_PAY';
 	if (component.output === 'absence') return 'ABSENCE';
 	if (component.output === 'night') return 'NIGHT_PREMIUM';
 	return 'OVERTIME';
@@ -129,6 +140,7 @@ export function accumulatePayslip(options: {
 	const magnitudes: Record<ReservedLine, number> = {
 		BASE: 0,
 		OVERTIME: 0,
+		DAY_PAY: 0,
 		NIGHT_PREMIUM: 0,
 		OVERTIME_PREMIUM: 0,
 		ABSENCE: 0,
@@ -210,6 +222,7 @@ export function sumAccumulations(parts: readonly AccumulatedPayslip[]): Accumula
 	const reserved: Record<ReservedLine, number> = {
 		BASE: 0,
 		OVERTIME: 0,
+		DAY_PAY: 0,
 		NIGHT_PREMIUM: 0,
 		OVERTIME_PREMIUM: 0,
 		ABSENCE: 0,

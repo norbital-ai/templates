@@ -123,6 +123,29 @@ for (const code of ['MY', 'MY-nihon'] as const)
 			]
 		});
 		expectStatutory(book, 'UNKNOWN-RESIDENCE', 'PCB', 1500.3, 0);
+		// D(a) states the unknown case, so it is priced, not refused: 30% × 5,001 = 1,500.30. The
+		// run names the employee whose residence is unrecorded; an explicit NON_RESIDENT, a known
+		// status, is priced the same and warns nothing.
+		const unknownNote = (tax_residency: string | null) =>
+			buildStatutory({
+				code,
+				period: '2026-01',
+				people: [
+					{
+						key: 'MY-RES',
+						wage: 5001,
+						citizenship: 'CITIZEN',
+						tax_residency,
+						registrations: MY_LOCAL
+					}
+				]
+			}).warnings.filter((line) => line.includes('PCB: tax residence is not recorded'));
+		assert.deepEqual(
+			unknownNote(null).map((line) => line.startsWith('CONTRIBUTION_RULE_WARNING: MY-RES: PCB:')),
+			[true]
+		);
+		assert.deepEqual(unknownNote('NON_RESIDENT'), []);
+		assert.deepEqual(unknownNote('RESIDENT'), []);
 	});
 
 test('Malaysia — a bonus month withholds the additional remuneration’s whole tax difference (MTD spec 2026, additional remuneration)', () => {
@@ -1214,10 +1237,12 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 	);
 	// Which schemes see the overtime is each scheme's own `assessed_on`: EPF Act 1991 s.2 keeps
 	// overtime out of wages, Act 4 and Act 800 take it in, HRD Corp levies basic and fixed
-	// allowances only.
+	// allowances only. The two holiday awards within the normal hours are not overtime (EA
+	// s.60A(3)(b), s.60A(4) proviso) and are EPF wages (KWSP Employer FAQ 21): they settle on
+	// HOLIDAY_WORK (`DAY_PAY`), so EPF is 2,600 + 200 + 200 = 3,000 while HRDF stays on 2,600.
 	const charge = (code: string) =>
 		slips.get('MY-EA')!.statutory.find((row) => row.scheme_code === code)!;
-	assert.equal(charge('EPF').base_amount, 2600);
+	assert.equal(charge('EPF').base_amount, 3000);
 	assert.equal(charge('HRDF').base_amount, 2600);
 	assert.equal(charge('SOCSO').base_amount, 3500);
 	assert.equal(charge('EIS').base_amount, 3500);
@@ -1475,7 +1500,7 @@ test('MY-nihon — a short rest day or holiday is lifted to the Act’s day awar
 	]);
 });
 
-test('Nihon cash allowances enter the contribution bases but not the overtime hour', () => {
+test('Nihon cash allowances enter the contribution bases and lift the overtime hour to the Act (EA s.60A(3)(a), s.60I(2))', () => {
 	const { slips } = buildStatutory(
 		{
 			code: 'MY-nihon',
@@ -1500,13 +1525,16 @@ test('Nihon cash allowances enter the contribution bases but not the overtime ho
 	const slip = slips.get('N-GROSS')!;
 	assert.equal(slip.statutory.find((row) => row.scheme_code === 'EPF')!.base_amount, 2860);
 	for (const code of ['SOCSO', 'EIS', 'PCB'])
-		assert.equal(slip.statutory.find((row) => row.scheme_code === code)!.base_amount, 2939.98);
+		assert.equal(slip.statutory.find((row) => row.scheme_code === code)!.base_amount, 2942.5); // 2,860 + 82.50 overtime (Act 4 s.2(24))
 
-	// The customer’s hour is basic only: round(2,600 ÷ 195) = 13.33, not (2,600 + 260) ÷ 26 ÷ 8.
-	// Four hours past the normal eight: 4 × 13.33 × 1.5 = 79.98.
+	// The customer’s hour is basic only: round(2,600 ÷ 195) = 13.33. EA 1955 (AGC reprint as at
+	// 1 Aug 2023) s.60A(3)(a) owes 1.5 × the hourly rate, s.60I(1)(b) the ORP ÷ normal hours, and
+	// s.60I(1A) the ORP of a monthly wage (s.2 "wages": the SUA is cash wages) is ÷ 26:
+	// (2,600 + 260) ÷ 26 ÷ 8 = 13.75. s.60I(2)/s.7: the customer’s hour stands only where it is not
+	// less, so four hours past the normal eight are 4 × 13.75 × 1.5 = 82.50 (was 79.98).
 	assert.deepEqual(
 		slip.adjustments.map((row) => [row.statutory_rule_key, row.quantity, row.amount]),
-		[['OVERTIME:WORKDAY-OT-1.5X', 4, 79.98]]
+		[['OVERTIME:WORKDAY-OT-1.5X', 4, 82.5]]
 	);
 });
 
@@ -1671,6 +1699,35 @@ test('MY-nihon — a rostered person’s hour is the contract week’s, whatever
 		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 26.16]
 	]);
 	assert.equal(slips.get('NHPMY0339')!.gross, 1726.16);
+});
+
+test('MY-nihon — a holiday the roster works pays its holiday award with nothing planned (EA s.60D(3)(a))', () => {
+	// Probe 2026-09-30: NHPMY0394 worked the Agong's Birthday on a rostered shift, with no hours on
+	// the Overtime sheet, and the slip carried no holiday line. s.60D(3)(a): an employee "required by
+	// his employer to work on any paid holiday" is paid two days' wages "regardless that the period
+	// of work done on that day is less than the normal hours of work". The roster is the requirement.
+	// RM1,700 on 7.5-hour shifts, six days: Monday 1 June worked 08:00–16:30 with the hour as a gap,
+	// 7.5 h. Column 7.5 × 8.72 × 2 = 130.80; s.60D(3)(a)(i) 2 × 1,700 ÷ 26 = 130.77. The greater.
+	const { slips } = buildStatutory(
+		{
+			code: 'MY-nihon',
+			period: '2026-06',
+			people: [
+				{ key: 'NHPMY0394', wage: 1700, citizenship: 'CITIZEN', registrations: REGISTERED_LOCAL }
+			]
+		},
+		(world) => {
+			world.jurisdiction_holidays.push(holiday('2026-06-01', "Agong's Birthday"));
+			rostered(world, 'NHPMY0394', '2026-05-01', '2026-06-30', 6);
+			// Nothing planned: the fixture's clock-as-plan step skips a day that states its plan.
+			world.work_days.find((row) => row.id === 'wd-NHPMY0394-2026-06-01')!.approved_overtime_hours =
+				0;
+		}
+	);
+	assert.deepEqual(workLines(slips.get('NHPMY0394')!), [
+		['2026-06-01', 'HOLIDAY-2.0X', 7.5, 130.8]
+	]);
+	assert.equal(slips.get('NHPMY0394')!.gross, 1830.8);
 });
 
 test('MY-nihon — a deferred rostered joiner is paid their arrears without a roster in the deferred window', () => {
@@ -2821,7 +2878,8 @@ for (const code of ['MY', 'MY-nihon'] as const)
 	test(`${code} — a paragraph 21 election without worked-in-Malaysia days refuses before saving`, () => {
 		// Income Tax Act 1967 Schedule 6 para 21 (AGC online text as at 1 January 2026) exempts a
 		// non-resident's income from an employment exercised in Malaysia for not more than sixty days.
-		// The boolean election does not record how many days the employment was exercised here.
+		// The boolean election does not record how many days the employment was exercised here, and
+		// no stay records `employment_exercised`: `employee.employment_days` is 0, so the claim refuses.
 		const foreign = (para21: boolean) => ({
 			...MY_FOREIGN,
 			PCB: { kind: 'REGISTERED', elections: { pcb_sch6_para21: para21 } }
@@ -3457,7 +3515,78 @@ test('Malaysia — a travelling contract allowance is outside the s.60I ordinary
 		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 41.25],
 		['2026-01-11', 'RESTDAY-FULL-DAY-PAY', 6.5, 110]
 	]);
-	// EPF s.2 and KWSP FAQ Q11: the travelling allowance is no EPF wage either; the meal allowance is.
+	// EPF s.2 and KWSP FAQ Q11: the travelling allowance is no EPF wage either; the meal allowance
+	// is. The 220 holiday award within the normal hours is an EPF wage (KWSP Employer FAQ 21):
+	// 2,860 + 220 = 3,080.
 	const epf = slips.get('MY-TRAVEL')!.statutory.find((row) => row.scheme_code === 'EPF')!;
-	assert.equal(epf.base_amount, 2860);
+	assert.equal(epf.base_amount, 3080);
+});
+
+test('Malaysia — seed-bank data gaps refuse naming the employee and the field, never price silently (F22)', () => {
+	for (const code of ['MY', 'MY-nihon'] as const) {
+		const run = (
+			person: Parameters<typeof assessStatutory>[0]['people'][number],
+			drop?: { scheme: string; election: string }
+		) =>
+			assessStatutory(
+				{ code, period: '2026-06', region: 'Malaysia', people: [person] },
+				(world) => {
+					if (drop == null) return;
+					const ids = new Set(
+						world.statutory_contributions
+							.filter((row) => row.code === drop.scheme)
+							.map((row) => row.id)
+					);
+					for (const fact of world.employment_statutory_facts)
+						if (ids.has(fact.statutory_contribution_id))
+							delete (fact.status as { elections: Record<string, unknown> }).elections[
+								drop.election
+							];
+				}
+			);
+		// Golden control, RM1,700 (the Minimum Wages Order 2024 floor): EPF Third Schedule row
+		// "1,680.01 – 1,700.00" 187 / 221; EIS Second Schedule row "exceeding RM1,600 but not
+		// exceeding RM1,700" 3.30 / 3.30.
+		const paid = run({
+			key: 'MY-1700',
+			wage: 1700,
+			citizenship: 'CITIZEN',
+			registrations: MY_LOCAL
+		});
+		expectStatutory(paid, 'MY-1700', 'EPF', 187, 221);
+		expectStatutory(paid, 'MY-1700', 'EIS', 3.3, 3.3);
+		// Two Nihon staff at RM900: below the RM1,700 floor, a blocker naming the person and the terms.
+		assert.throws(
+			() => run({ key: 'MY-RM900', wage: 900, citizenship: 'CITIZEN', registrations: MY_LOCAL }),
+			/MINIMUM_WAGE_BELOW: MY-RM900 is contracted at 900 a month, below the Malaysia minimum wage of 1700/
+		);
+		// Nihon terms carry no worksite_state: EA 1955 s.1(2) reaches Peninsular Malaysia and Labuan only.
+		assert.throws(
+			() =>
+				run({
+					key: 'MY-NOSTATE',
+					wage: 1700,
+					citizenship: 'CITIZEN',
+					worksite_state: null,
+					registrations: MY_LOCAL
+				}),
+			/MY-NOSTATE: record a supported Peninsular Malaysia or Labuan worksite state on employment terms for \d{4}-\d{2}-\d{2} before payroll\./
+		);
+		// Foreign NOT_REGISTERED EIS/EPF rows with no election: the exemption rests on the election,
+		// so its absence refuses by scheme and label rather than skipping the charge.
+		const foreign = {
+			key: 'MY-FX',
+			wage: 1700,
+			citizenship: 'FOREIGNER',
+			registrations: MY_FOREIGN
+		} as const;
+		assert.throws(
+			() => run(foreign, { scheme: 'EIS', election: 'mykas_resident' }),
+			/MY-FX: EIS: Resident non-citizen holding a reg\.5\(3\)\(c\) identity card is required before calculation\./
+		);
+		assert.throws(
+			() => run(foreign, { scheme: 'EPF', election: 'member_before_1998' }),
+			/MY-FX: EPF: EPF member before 1 August 1998 is required before calculation\./
+		);
+	}
 });

@@ -160,7 +160,16 @@ const c = collection('work_days', {
 					}
 				}
 			},
-			output: { kind: 'json' }
+			output: {
+				kind: 'object',
+				fields: {
+					days: { kind: 'number' },
+					created: { kind: 'number' },
+					updated: { kind: 'number' },
+					removed: { kind: 'number' },
+					overwritten: { kind: 'list', of: { kind: 'text' } }
+				}
+			}
 		}
 	}
 });

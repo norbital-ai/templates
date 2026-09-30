@@ -21,15 +21,17 @@ const foreigner = (key: string) => ({
 	registrations: MY_FOREIGN
 });
 
-/** Record one stay per person, by the person's key. */
+/** Record one stay per person, by the person's key; `employment_exercised` where the employee worked here. */
 const stays =
-	(byKey: Record<string, { start: string; end: string | null }>) => (world: PayrollWorld) => {
+	(byKey: Record<string, { start: string; end: string | null; employment_exercised?: boolean }>) =>
+	(world: PayrollWorld) => {
 		Object.assign(world, {
 			presence_periods: Object.entries(byKey).map(([key, period], index) => ({
 				id: `stay-${index}`,
 				employee_id: world.employees.find((row) => row.name === key)!.id,
 				jurisdiction_code: 'MY',
 				period: { from: period.start, to: period.end },
+				employment_exercised: period.employment_exercised === true,
 				reference: 'passport stamps',
 				approval_id: null
 			}))
@@ -74,20 +76,71 @@ test('presence counts: whole entry and exit days, clipped to the rule date, by c
 		[on('2026-02-10', []).presence_recorded, on('2026-02-10', []).presence_days],
 		[false, 0]
 	);
+	// Employment days (Sch.6 para 21): only stays recorded `employment_exercised`, inside the stint.
+	// A contract 1 February – 13 March 2026, in Malaysia 25 January – 15 March and 1–5 April (a
+	// visit, not work). Present: 7 (25–31 Jan) + 28 + 15 + 5 = 55. Employed here: 28 (Feb) + 13
+	// (1–13 Mar) = 41 — the 25–31 January and 14–15 March days fall outside the stint.
+	const contract = personContext({
+		employment: { service_start: '2026-02-01', exit_date: '2026-03-13' },
+		terms: null,
+		presence: [
+			{ start: '2026-01-25', end: '2026-03-15', employment_exercised: true },
+			{ start: '2026-04-01', end: '2026-04-05' }
+		],
+		asOf: '2026-04-30'
+	}).employee;
+	assert.deepEqual([contract.presence_days, contract.employment_days], [55, 41]);
+	// Through the rule date: on 28 February, 28 days employed here.
+	assert.equal(
+		personContext({
+			employment: { service_start: '2026-02-01', exit_date: '2026-03-13' },
+			terms: null,
+			presence: [{ start: '2026-01-25', end: '2026-03-15', employment_exercised: true }],
+			asOf: '2026-02-28'
+		}).employee.employment_days,
+		28
+	);
+	// Presence without the flag counts no employment day.
+	assert.equal(on('2026-03-31', history).employment_days, 0);
 });
 
 for (const code of ['MY', 'MY-nihon'] as const)
-	test(`${code} — presence alone cannot prove the sixty-day employment exemption`, () => {
-		const prepare = stays({ NR: { start: '2026-01-01', end: '2026-03-02' } });
+	test(`${code} — presence alone proves no employment day; sixty recorded employment days are exempt, sixty-one are not (ITA Sch.6 paras 21–22)`, () => {
+		const claiming = (key: string) => ({
+			...foreigner(key),
+			registrations: {
+				...MY_FOREIGN,
+				PCB: { kind: 'REGISTERED', elections: { pcb_sch6_para21: true } }
+			}
+		});
+		// In Malaysia 1 January – 2 March 2026 (31 + 28 + 2 = 61 days), no employment recorded as
+		// exercised here: a para 21 claim refuses; without the claim, D(a)'s 30% × 5,001 = 1,500.30.
+		const present = stays({ NR: { start: '2026-01-01', end: '2026-03-02' } });
 		assert.throws(
-			() => buildStatutory({ code, period: '2026-01', people: [foreigner('NR')] }, prepare),
+			() => buildStatutory({ code, period: '2026-01', people: [claiming('NR')] }, present),
 			/PCB: Schedule 6 paragraph 21 needs dated days employment was exercised in Malaysia/
 		);
-		// Sixty-one presence days could still contain sixty or fewer exercised-employment days.
-		assert.throws(
-			() => buildStatutory({ code, period: '2026-03', people: [foreigner('NR')] }, prepare),
-			/PCB: Schedule 6 paragraph 21 needs dated days employment was exercised in Malaysia/
+		expectStatutory(
+			assessStatutory({ code, period: '2026-01', people: [foreigner('NR')] }, present),
+			'NR',
+			'PCB',
+			1500.3,
+			0
 		);
+		// Recorded as employment exercised here, hired 1 January, so every day is inside the stint.
+		// To 1 March: 31 January, 31 days; 28 February, 59; 31 March, 31 + 28 + 1 = 60 — "not
+		// exceeding sixty days" (para 21(a)): nil. To 2 March: 61 days by 31 March, para 22(a) —
+		// the exemption is gone: 30% × 5,001 = 1,500.30 (no earlier nil slip in this world to recover).
+		const worked = (end: string) =>
+			stays({ NR: { start: '2026-01-01', end, employment_exercised: true } });
+		const pcb = (period: string, end: string, person = claiming('NR')) =>
+			assessStatutory({ code, period, people: [person] }, worked(end));
+		expectStatutory(pcb('2026-01', '2026-03-01'), 'NR', 'PCB', 0, 0);
+		expectStatutory(pcb('2026-02', '2026-03-01'), 'NR', 'PCB', 0, 0);
+		expectStatutory(pcb('2026-03', '2026-03-01'), 'NR', 'PCB', 0, 0);
+		expectStatutory(pcb('2026-03', '2026-03-02'), 'NR', 'PCB', 1500.3, 0);
+		// Employment days without the claim: the ordinary non-resident 30%.
+		expectStatutory(pcb('2026-01', '2026-03-01', foreigner('NR')), 'NR', 'PCB', 1500.3, 0);
 	});
 
 for (const code of ['MY', 'MY-nihon'] as const)
@@ -98,19 +151,49 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		// 182-day contract golden: K1 = K2 = 100.02 (Part F 2% × 5,001, A1760 para 2), no SOCSO
 		// relief without a TP1 claim (MTD spec 2026 D.2(ii) item k), relief 9,000, P = 4,900.98 × 12
 		// − 9,000 = 49,811.76, Table 1 600 + 14,811.76 × 6% = 1,488.7056 ÷ 12 = 124.058 → 124.05.
-		// From 4 July, 181 days:
-		// not resident; physical presence alone does not prove days employment was exercised here.
+		// From 4 July, 181 days: not resident, and no para 21 claim — D(a)'s 30% × 5,001 = 1,500.30.
 		const book = assessStatutory(
 			{ code, period: '2026-01', people: [foreigner('L-182')] },
 			stays({ 'L-182': { start: '2025-07-03', end: null } })
 		);
 		expectStatutory(book, 'L-182', 'PCB', 124.05, 0);
-		assert.throws(
-			() =>
-				buildStatutory(
-					{ code, period: '2026-01', people: [foreigner('L-181')] },
-					stays({ 'L-181': { start: '2025-07-04', end: null } })
-				),
-			/PCB: Schedule 6 paragraph 21 needs dated days employment was exercised in Malaysia/
+		expectStatutory(
+			assessStatutory(
+				{ code, period: '2026-01', people: [foreigner('L-181')] },
+				stays({ 'L-181': { start: '2025-07-04', end: null } })
+			),
+			'L-181',
+			'PCB',
+			1500.3,
+			0
 		);
+		// No recorded status at all: the linked 182-day stay makes the employee known to be
+		// resident (124.05, no note); at 181 days D(a)'s "not known to be resident" 30% applies
+		// (1,500.30) and the run names the employee whose residence is unrecorded.
+		const unrecorded = (key: string) => ({
+			code,
+			period: '2026-01',
+			people: [{ ...foreigner(key), tax_residency: null }]
+		});
+		const at = (key: string, start: string) => stays({ [key]: { start, end: null } });
+		const notes = (key: string, start: string) =>
+			buildStatutory(unrecorded(key), at(key, start)).warnings.filter((line) =>
+				line.startsWith(`CONTRIBUTION_RULE_WARNING: ${key}: PCB: tax residence is not recorded`)
+			).length;
+		expectStatutory(
+			assessStatutory(unrecorded('U-182'), at('U-182', '2025-07-03')),
+			'U-182',
+			'PCB',
+			124.05,
+			0
+		);
+		assert.equal(notes('U-182', '2025-07-03'), 0);
+		expectStatutory(
+			assessStatutory(unrecorded('U-181'), at('U-181', '2025-07-04')),
+			'U-181',
+			'PCB',
+			1500.3,
+			0
+		);
+		assert.equal(notes('U-181', '2025-07-04'), 1);
 	});

@@ -34,6 +34,17 @@
  * summed per code); `<scheme_code>.employee` and `<scheme_code>.employer` for each statutory charge. Every expected
  * key must match to the cent, and a non-zero statutory amount the case does not list is a failure too: the case
  * names every scheme that charges.
+ *
+ * Beyond payslips (each optional):
+ *   - an input's `files: { certificate_file: 'order.pdf' }` uploads a fixture document through
+ *     `PUT /__bolt/files/<collection>.<field>` and sets that field to the stored FileRef;
+ *   - an input's `refused: '<pattern>'` expects that create to be refused, the pattern (a RegExp source) matching
+ *     `<code> <rule> <message>` of the outcome; the case goes on without the row;
+ *   - `refused` on the case expects `payroll_runs.create` itself refused (then `expected` is `[]`);
+ *   - `warnings: ['<pattern>', …]` pins the run's warnings: each pattern matches a line of the saved run's
+ *     `warnings`, and every line is matched by one;
+ *   - `company` expectations are `companyLines`: the run's COMPANY-assessed charges (`company_charges`), keyed and
+ *     judged as payslip statutory keys (a non-zero charge the case does not list fails).
  */
 import { randomBytes, randomUUID } from 'node:crypto';
 import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
@@ -43,7 +54,15 @@ import { start, type RunningServer } from '@norbital-ai/bolt-server';
 
 type Json = null | boolean | number | string | readonly Json[] | { readonly [k: string]: Json };
 export type Row = { readonly [field: string]: Json };
-export type ProbeInput = { collection: string; ref?: string; values: Row };
+export type ProbeInput = {
+	collection: string;
+	ref?: string;
+	values: Row;
+	/** field → fixture file name, uploaded and set as the field's FileRef */
+	files?: { readonly [field: string]: string };
+	/** RegExp source the refusal must match; the create must be refused */
+	refused?: string;
+};
 export type ProbeExpectation = { employment: string; lines: { readonly [key: string]: number } };
 export type ProbeCase = {
 	id: string;
@@ -54,6 +73,12 @@ export type ProbeCase = {
 	inputs: readonly ProbeInput[];
 	period: string;
 	expected: readonly ProbeExpectation[];
+	/** RegExp source: the run itself must be refused with a matching outcome */
+	refused?: string;
+	/** RegExp sources, one per warning line the run must save (and no other) */
+	warnings?: readonly string[];
+	/** The run's COMPANY-assessed charges, `<scheme>.employee` / `<scheme>.employer` */
+	companyLines?: { readonly [key: string]: number };
 };
 
 export const PROFILES = [
@@ -185,17 +210,38 @@ export async function boot(root = process.cwd()) {
 	if (!cookie.includes('nb_s='))
 		throw new Error(`sign-in refused: ${JSON.stringify(verified.body)}`);
 
-	/** One `/act`: the committed records, or the outcome as the error. */
-	const act = async (callable: string, input: Row) => {
+	/** One `/act`: its outcome, whatever it is. */
+	const attempt = async (callable: string, input: Row) => {
 		const { body } = await post(
 			'/__bolt/act',
 			{ callable, input, issuedAt: new Date().toISOString() },
 			{ 'Idempotency-Key': randomUUID() }
 		);
-		const outcome = (body as { outcome?: { kind: string; records?: Row[] } }).outcome;
+		return { body, outcome: (body as { outcome?: Outcome }).outcome };
+	};
+	/** One `/act`: the committed records, or the outcome as the error. */
+	const act = async (callable: string, input: Row) => {
+		const { body, outcome } = await attempt(callable, input);
 		if (outcome?.kind !== 'committed')
 			throw new Error(`${callable} was not committed: ${JSON.stringify(body)}`);
 		return outcome.records ?? [];
+	};
+	/** A fixture document uploaded to `<collection>.<field>`: the FileRef the field stores. */
+	const upload = async (collection: string, field: string, name: string) => {
+		const response = await fetch(`${server.url}/__bolt/files/${collection}.${field}`, {
+			method: 'PUT',
+			headers: {
+				cookie,
+				'content-type': 'application/pdf',
+				'content-disposition': `attachment; filename*=UTF-8''${encodeURIComponent(name)}`,
+				'Idempotency-Key': randomUUID()
+			},
+			body: `%PDF-1.4\n% payroll probe fixture: ${name}\n%%EOF\n`
+		});
+		const body = (await response.json()) as Json;
+		if (!response.ok || typeof body !== 'object' || body === null || 'error' in body)
+			throw new Error(`upload to ${collection}.${field} refused: ${JSON.stringify(body)}`);
+		return body;
 	};
 	/** One `/q` read of a collection, every page. */
 	const read = async (collection: string, query: Row) => {
@@ -211,8 +257,14 @@ export async function boot(root = process.cwd()) {
 		await server.close();
 		rmSync(scratch, { recursive: true, force: true });
 	};
-	return { act, read, close };
+	return { act, attempt, upload, read, close };
 }
+type Outcome = { kind: string; code?: string; rule?: string; message?: string; records?: Row[] };
+/** A refusal as the text a case's pattern reads: `<code> <rule> <message>`. */
+const refusalText = (o: Outcome | undefined) =>
+	o?.kind === 'committed'
+		? null
+		: `${o?.code ?? o?.kind ?? ''} ${o?.rule ?? ''} ${o?.message ?? ''}`;
 export type Host = Awaited<ReturnType<typeof boot>>;
 
 /** The wire's tagged scalars untagged: `{ $dec }` a number, `{ $d }` a date and `{ $t }` an instant as their strings. */
@@ -311,6 +363,7 @@ export async function runCase(host: Host, probe: ProbeCase) {
 		const row = records.find((r) => r.collection === collection);
 		if (ref !== undefined) ids.set(ref, row!.id as string);
 	};
+	const results: { employment: string; actual: unknown; differences: string[] }[] = [];
 	await create(
 		'companies',
 		{
@@ -323,12 +376,79 @@ export async function runCase(host: Host, probe: ProbeCase) {
 		},
 		'company'
 	);
-	for (const input of probe.inputs) await create(input.collection, input.values, input.ref);
-	const run = await host.act('payroll_runs.create', {
-		company_id: ids.get('company')!,
-		period: probe.period
-	});
+	for (const [n, input] of probe.inputs.entries()) {
+		const values: Record<string, Json> = { ...input.values };
+		for (const [field, name] of Object.entries(input.files ?? {}))
+			values[field] = await host.upload(input.collection, field, name);
+		if (input.refused === undefined) {
+			await create(input.collection, values, input.ref);
+			continue;
+		}
+		const { outcome } = await host.attempt(
+			`${input.collection}.create`,
+			(await resolve(values)) as Row
+		);
+		const text = refusalText(outcome);
+		results.push({
+			employment: `input ${n} (${input.collection})`,
+			actual: outcome,
+			differences:
+				text !== null && new RegExp(input.refused).test(text)
+					? []
+					: [`expected a refusal matching /${input.refused}/, got ${text ?? 'a commit'}`]
+		});
+	}
+	const runInput = { company_id: ids.get('company')!, period: probe.period };
+	if (probe.refused !== undefined) {
+		const { outcome } = await host.attempt('payroll_runs.create', runInput);
+		const text = refusalText(outcome);
+		results.push({
+			employment: 'run',
+			actual: outcome,
+			differences:
+				text !== null && new RegExp(probe.refused).test(text)
+					? []
+					: [`expected the run refused matching /${probe.refused}/, got ${text ?? 'a commit'}`]
+		});
+		return results;
+	}
+	const run = await host.act('payroll_runs.create', runInput);
 	const runId = run.find((r) => r.collection === 'payroll_runs')!.id as string;
+	if (probe.warnings !== undefined || probe.companyLines !== undefined) {
+		const [saved] = await host.read('payroll_runs', {
+			where: { id: { eq: runId } },
+			select: { warnings: true, company_charges: true }
+		});
+		if (probe.warnings !== undefined) {
+			const saw = String(saved?.warnings ?? '')
+				.split('\n')
+				.filter((line) => line.trim() !== '');
+			const patterns = probe.warnings.map((p) => new RegExp(p));
+			results.push({
+				employment: 'warnings',
+				actual: saw,
+				differences: [
+					...patterns
+						.filter((p) => !saw.some((line) => p.test(line)))
+						.map((p) => `no warning matches /${p.source}/`),
+					...saw
+						.filter((line) => !patterns.some((p) => p.test(line)))
+						.map((line) => `unexpected warning: ${line}`)
+				]
+			});
+		}
+		if (probe.companyLines !== undefined) {
+			const actual = lines({ statutory: saved?.company_charges ?? [] });
+			const charges = Object.fromEntries(
+				Object.entries(actual).filter(([key]) => /\.(employee|employer)$/.test(key))
+			);
+			results.push({
+				employment: 'company',
+				actual: charges,
+				differences: differences(probe.companyLines, charges)
+			});
+		}
+	}
 	const slips = await host.read('payslips', {
 		where: { payroll_run_id: { eq: runId } },
 		select: Object.fromEntries(
@@ -344,16 +464,19 @@ export async function runCase(host: Host, probe: ProbeCase) {
 			].map((f) => [f, true])
 		)
 	});
-	return probe.expected.map((expectation) => {
-		const employment = ids.get(expectation.employment);
-		const slip = slips.find((s) => s.employment_id === employment);
-		if (slip === undefined)
-			throw new Error(`${probe.id}: no saved payslip for ${expectation.employment}`);
-		const actual = lines(slip);
-		return {
-			employment: expectation.employment,
-			actual,
-			differences: differences(expectation.lines, actual)
-		};
-	});
+	return [
+		...results,
+		...probe.expected.map((expectation) => {
+			const employment = ids.get(expectation.employment);
+			const slip = slips.find((s) => s.employment_id === employment);
+			if (slip === undefined)
+				throw new Error(`${probe.id}: no saved payslip for ${expectation.employment}`);
+			const actual = lines(slip);
+			return {
+				employment: expectation.employment,
+				actual,
+				differences: differences(expectation.lines, actual)
+			};
+		})
+	];
 }

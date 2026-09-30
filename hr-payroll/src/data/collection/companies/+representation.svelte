@@ -99,7 +99,7 @@
 					<Field
 						name="risk_class"
 						label={t('component.statutory_risk_class')}
-						help={t('component.risk_class_hint', { class_iv: 'IV', class_i: 'I' })}
+						help={t('component.risk_class_hint')}
 					/>
 					<Column span="all"
 						><Field name="effective_range" label={t('component.effective_period')} /></Column
