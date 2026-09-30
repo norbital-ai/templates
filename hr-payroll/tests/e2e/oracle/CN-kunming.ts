@@ -251,7 +251,7 @@ function leaveGrant(leave: NonNullable<Scenario['time']['leave']>): number | und
 			return (leave.childrenUnder3 ?? 0) >= 2 ? 15 : (leave.childrenUnder3 ?? 0) === 1 ? 10 : 0;
 		// CN-KM31.*: Yunnan regulation art.19
 		case 'FAMILY_PLANNING_PROCEDURE_LEAVE':
-			return (<Record<string, number>>{
+			return ({
 				IUD_INSERTION: 7,
 				IUD_REMOVAL: 7,
 				TUBAL_LIGATION: 30,
@@ -260,7 +260,7 @@ function leaveGrant(leave: NonNullable<Scenario['time']['leave']>): number | und
 				VAS_REVERSAL: 15,
 				REMEDIAL_UNDER_4_MONTHS: 15,
 				REMEDIAL_4_MONTHS_OR_MORE: 42
-			})[leave.procedure ?? 'IUD_INSERTION'];
+			} as Record<string, number>)[leave.procedure ?? 'IUD_INSERTION'];
 		// CN-N20.maternity-98-days / difficult-birth-15 / additional-infant-15 / miscarriage, CN-KM12.maternity-and-
 		// partner-days (98 + Yunnan 60 = 158); miscarriage under 4 months 15, at 4 months 42 (national art.7); DEFAULT at
 		// 7 months or more the full leave (the Kunming fund days, CN-KM32.fund-benefits)
