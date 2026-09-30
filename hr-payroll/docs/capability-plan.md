@@ -13,12 +13,12 @@ Malaysia is one profile, `MY`: the former Nihon fork, renamed on 2026-09-30.
 
 The row counts come from the 2026-09-30 blocker ranking, run over all nine trackers:
 
-| Rows | Count |
-|---|---|
-| All tracker rows | 3,004 |
-| VERIFIED | 142 |
-| NOT-APPLICABLE | 117 |
-| **Open** | **2,745** |
+| Rows             | Count     |
+| ---------------- | --------- |
+| All tracker rows | 3,004     |
+| VERIFIED         | 142       |
+| NOT-APPLICABLE   | 117       |
+| **Open**         | **2,745** |
 
 The ranking lists only its top tags, so the per-tag figures below add up to less than the class
 totals. Class totals are exact.
@@ -29,14 +29,14 @@ totals. Class totals are exact.
 
 ### 1.1 Classes of gaps
 
-| Class | Rows | What it is | Largest tags |
-|---|---|---|---|
-| PROBE | 786 | Behaviour exists (IMPLEMENTED, TESTED or PARTIAL), but no production-path probe has matched it | JP production-path 138, SG golden-only 111, CN not-run 107, ID pending-test 43, VN golden-case 42, MY saved-path 41, CN none 41, CN rerun 40, TW pending-run 36, PH awaiting-run 30, SG no-golden 27, PH missing-case 26, CN unseeded 20 |
-| INPUT | 700 | The fact that decides the result has no place to be captured, or cannot be validated | JP worksite-industry-class 230, JP in-kind-provision 52, evidence-document 32, dated-person-fact 31, CN worker-class 26, company-fact(s) 25, CN dated-pay-state 12, SG worker-profile-status 11, SG occupation-sector 10 |
-| FEATURE | 658 | A product lifecycle the app does not have | statutory-filing 93, benefit-case 34, CN filing-evidence 32, MY obligation-evidence-ledger 30, CN construction-project-regime 29, SG gov-reimbursement 23, employer-levy 20, retro-recalc 18, CN subsidy-claim 18 |
-| ENGINE | 248 | A calculation shape the expression language cannot state | MY territorial-lineage-overlay 45, derived-contribution-base 10, CN admission-gate 7, ID nonmonthly-contribution-base 6, plus the tail (trailing averages, premium base, leave units, rolling limits) |
-| LAW | 205 | Law text that is missing, unpublished or unresolved | source-blocked 72, JP awaiting-gazette 41, legal-reading 26, ID locality-decree-transcription 15, awaiting-publication 14, JP operative-order-text 8 |
-| EXTERNAL | 148 | Duties outside the employer's payroll | SG/MY enforcement 14, SG organisation-governance 11, SG individual-gov-benefit 10, SG gov-administration 8, TH insurer-benefit 6 |
+| Class    | Rows | What it is                                                                                     | Largest tags                                                                                                                                                                                                                             |
+| -------- | ---- | ---------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PROBE    | 786  | Behaviour exists (IMPLEMENTED, TESTED or PARTIAL), but no production-path probe has matched it | JP production-path 138, SG golden-only 111, CN not-run 107, ID pending-test 43, VN golden-case 42, MY saved-path 41, CN none 41, CN rerun 40, TW pending-run 36, PH awaiting-run 30, SG no-golden 27, PH missing-case 26, CN unseeded 20 |
+| INPUT    | 700  | The fact that decides the result has no place to be captured, or cannot be validated           | JP worksite-industry-class 230, JP in-kind-provision 52, evidence-document 32, dated-person-fact 31, CN worker-class 26, company-fact(s) 25, CN dated-pay-state 12, SG worker-profile-status 11, SG occupation-sector 10                 |
+| FEATURE  | 658  | A product lifecycle the app does not have                                                      | statutory-filing 93, benefit-case 34, CN filing-evidence 32, MY obligation-evidence-ledger 30, CN construction-project-regime 29, SG gov-reimbursement 23, employer-levy 20, retro-recalc 18, CN subsidy-claim 18                        |
+| ENGINE   | 248  | A calculation shape the expression language cannot state                                       | MY territorial-lineage-overlay 45, derived-contribution-base 10, CN admission-gate 7, ID nonmonthly-contribution-base 6, plus the tail (trailing averages, premium base, leave units, rolling limits)                                    |
+| LAW      | 205  | Law text that is missing, unpublished or unresolved                                            | source-blocked 72, JP awaiting-gazette 41, legal-reading 26, ID locality-decree-transcription 15, awaiting-publication 14, JP operative-order-text 8                                                                                     |
+| EXTERNAL | 148  | Duties outside the employer's payroll                                                          | SG/MY enforcement 14, SG organisation-governance 11, SG individual-gov-benefit 10, SG gov-administration 8, TH insurer-benefit 6                                                                                                         |
 
 ### 1.2 Why the current architecture cannot reach 100%
 
@@ -107,15 +107,15 @@ fixtures), and a production-path probe in `tests/e2e/probes/<J>.ts`.
 
 ### Conflicts resolved in the merge
 
-| Conflict | Decision | Why |
-|---|---|---|
-| Tables: a `jurisdiction_settings.tables` JSON field (A1) or a `reference_rows` child collection (A2) | One child collection, `reference_rows`, serving both option lists and band rows | The JSIC codes and JP's 230 floors are too large for one JSON field. A code picker needs row queries. Holidays already set the child-row precedent (sealed and cloned with the version). |
-| `lookup()` (A2) or `table()`/`band()` (A1) | `table()`, `band()`, `bands()` | One function family |
-| Admission and exit gates (A1 E8) or obligation `blocks` (A3 L1) | One mechanism: stored `checks`. L1 exposes `obligations.open(code)` for a check to read | One gate code path |
-| Entity and year cadence (A1 E10), annual assessment (A3 L5), concurrent scope (A3 L8) | One capability, E7, owning `contribute.ts` | They share one file and one abstraction |
-| Opening history (A1 E4 extends wage periods) and prior history (A2 I6) | Opening pay stays in `employment_wage_periods`. Non-pay periods (prior employer year-to-date, insured periods, military service, prior contracts) go in `employment_history`. E4 reads both. | No second pay store |
-| Leave episode (A1 E7) | Folded into I4 as one generic `episode_id` on `leave_entries` | Same file owner |
-| Worksite as a relation (I1) or as a terms fact (A1) | `worksites` collection | An establishment's facts are shared by its workers and dated. Copying them onto each terms row drifts. L1 also needs a worksite subject. |
+| Conflict                                                                                             | Decision                                                                                                                                                                                     | Why                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tables: a `jurisdiction_settings.tables` JSON field (A1) or a `reference_rows` child collection (A2) | One child collection, `reference_rows`, serving both option lists and band rows                                                                                                              | The JSIC codes and JP's 230 floors are too large for one JSON field. A code picker needs row queries. Holidays already set the child-row precedent (sealed and cloned with the version). |
+| `lookup()` (A2) or `table()`/`band()` (A1)                                                           | `table()`, `band()`, `bands()`                                                                                                                                                               | One function family                                                                                                                                                                      |
+| Admission and exit gates (A1 E8) or obligation `blocks` (A3 L1)                                      | One mechanism: stored `checks`. L1 exposes `obligations.open(code)` for a check to read                                                                                                      | One gate code path                                                                                                                                                                       |
+| Entity and year cadence (A1 E10), annual assessment (A3 L5), concurrent scope (A3 L8)                | One capability, E7, owning `contribute.ts`                                                                                                                                                   | They share one file and one abstraction                                                                                                                                                  |
+| Opening history (A1 E4 extends wage periods) and prior history (A2 I6)                               | Opening pay stays in `employment_wage_periods`. Non-pay periods (prior employer year-to-date, insured periods, military service, prior contracts) go in `employment_history`. E4 reads both. | No second pay store                                                                                                                                                                      |
+| Leave episode (A1 E7)                                                                                | Folded into I4 as one generic `episode_id` on `leave_entries`                                                                                                                                | Same file owner                                                                                                                                                                          |
+| Worksite as a relation (I1) or as a terms fact (A1)                                                  | `worksites` collection                                                                                                                                                                       | An establishment's facts are shared by its workers and dated. Copying them onto each terms row drifts. L1 also needs a worksite subject.                                                 |
 
 Architect 1's E12 was truncated in transit and is not in this plan. If it held a capability that
 does not appear here, it re-enters as its own GAP.
@@ -216,15 +216,15 @@ does not appear here, it re-enters as its own GAP.
   - Probe: the H1 multi-period harness.
 - **Unblocks.** About 45 direct rows:
 
-  | Rows | Count |
-  |---|---|
-  | trailing-average and trailing-aggregate | 10 |
-  | derived-contribution-base | 10 |
-  | nonmonthly-contribution-base | 6 |
-  | leave-pay-expression | 6 |
-  | pattern-average | 4 |
-  | rolling-period-limit | 4 |
-  | others | about 5 |
+  | Rows                                    | Count   |
+  | --------------------------------------- | ------- |
+  | trailing-average and trailing-aggregate | 10      |
+  | derived-contribution-base               | 10      |
+  | nonmonthly-contribution-base            | 6       |
+  | leave-pay-expression                    | 6       |
+  | pattern-average                         | 4       |
+  | rolling-period-limit                    | 4       |
+  | others                                  | about 5 |
 
   It is also the prerequisite of E5, E7, L4 and L6.
 
@@ -236,7 +236,7 @@ does not appear here, it re-enters as its own GAP.
     - `leave_pay_reference`,
     - `encashment_reference`,
     - `proration`.
-    Each is an expression over `contract.classes`, `table()` and `history`.
+      Each is an expression over `contract.classes`, `table()` and `history`.
   - `leave_catalogue` rows gain `charge`, `pay` and `entitlement` expressions, plus
     `per: EPISODE | EVENT | YEAR` and a `cease_when` expression.
   - The enum values become seed expressions. Then the enums are deleted: `ordinary_rate_reference`,
@@ -331,7 +331,7 @@ This merges A1 E8 with A3's L1 `blocks`.
 
 - **Configuration.**
   - `jurisdiction_settings.checks:
-    [{at: EMPLOYMENT_START|TERMS_CHANGE|EXIT|PAYSLIP|LEAVE_ENTRY|DEDUCTION, when, action: REFUSE|WARN, message, authority}]`.
+[{at: EMPLOYMENT_START|TERMS_CHANGE|EXIT|PAYSLIP|LEAVE_ENTRY|DEDUCTION, when, action: REFUSE|WARN, message, authority}]`.
   - It absorbs `worksite_coverage.refuse_when` and `final_pay_due_days`.
 - **Engine.**
   - What each check can read:
@@ -450,8 +450,7 @@ This merges A1 E8 with A3's L1 `blocks`.
   `TERMINATION_GROUND` table. Exit facts can carry evidence. Writers are swept first, as in the
   lesson on deleting a column.
 - **Proof.** Probes: SG-EA06, TH-EXIT-05 and VN-LC34-01.
-- **Unblocks.** termination-cause 4, termination-ground 4, and the input half of termination-case
-  6.
+- **Unblocks.** termination-cause 4, termination-ground 4, and the input half of termination-case 6.
 
 #### I8. Facts-owed gate and inputs oracle — M
 
@@ -571,6 +570,7 @@ This merges A1 E8 with A3's L1 `blocks`.
 
   Deadlines are L1 duty types with subject CASE. `credit_top_count`, `daily_divisor`,
   `full_pay_days_divisor` and `credit_window` are deleted.
+
 - **Engine.** Files: `src/lib/benefit-cases/*`. A new `case` site with:
   - `credits.window(..).top(n)`,
   - `earnings.average(m)`,
@@ -633,14 +633,14 @@ This merges A1 E8 with A3's L1 `blocks`.
 "100%" means every row is either VERIFIED or in an honest terminal status: NOT-APPLICABLE,
 EXTERNAL-RECORDED, EXTERNAL, AWAITING-LAW or SOURCE-BLOCKED. No row stays GAP or PARTIAL.
 
-| Remaining | Rows | Why it stays |
-|---|---|---|
-| LAW: source-blocked | 72 | The official text cannot be reached. It stays SOURCE-BLOCKED until a source is found. This is research work, not product work. |
-| LAW: awaiting gazette or publication | 55 | Not yet law (JP R8 revisions and others). It stays AWAITING-LAW, then becomes a new sealed version once gazetted. |
-| LAW: legal-reading | 26 | **Resolvable by decision.** Under the owner rule ("law silent → a lawful, consistent default"), each one gets a recorded default and then goes through the normal path. |
-| LAW: locality-decree transcription and operative-order text | 23 | **Seed work** once the text is obtained. No capability is missing. |
-| EXTERNAL with nothing the employer can evidence | about 43 visible (enforcement 14, organisation governance 11, individual government benefit 10, government administration 8), plus the tail | Duties of a government, a court or another party. They stay EXTERNAL permanently, and that is the honest terminal status. |
-| EXTERNAL with capturable evidence | the rest of the 148 | Move to EXTERNAL-RECORDED through L1 and L5. |
+| Remaining                                                   | Rows                                                                                                                                        | Why it stays                                                                                                                                                            |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| LAW: source-blocked                                         | 72                                                                                                                                          | The official text cannot be reached. It stays SOURCE-BLOCKED until a source is found. This is research work, not product work.                                          |
+| LAW: awaiting gazette or publication                        | 55                                                                                                                                          | Not yet law (JP R8 revisions and others). It stays AWAITING-LAW, then becomes a new sealed version once gazetted.                                                       |
+| LAW: legal-reading                                          | 26                                                                                                                                          | **Resolvable by decision.** Under the owner rule ("law silent → a lawful, consistent default"), each one gets a recorded default and then goes through the normal path. |
+| LAW: locality-decree transcription and operative-order text | 23                                                                                                                                          | **Seed work** once the text is obtained. No capability is missing.                                                                                                      |
+| EXTERNAL with nothing the employer can evidence             | about 43 visible (enforcement 14, organisation governance 11, individual government benefit 10, government administration 8), plus the tail | Duties of a government, a court or another party. They stay EXTERNAL permanently, and that is the honest terminal status.                                               |
+| EXTERNAL with capturable evidence                           | the rest of the 148                                                                                                                         | Move to EXTERNAL-RECORDED through L1 and L5.                                                                                                                            |
 
 The true ceiling is about 150 rows that stay SOURCE-BLOCKED or AWAITING-LAW, plus about 50 or more
 that stay EXTERNAL. That is about 7% of all 3,004 rows. It is outside the product's control. Every
@@ -652,56 +652,56 @@ other open row is structurally reachable once §2 lands.
 
 ### Ownership rules for shared hotspots
 
-| File or files | Owner | Others |
-|---|---|---|
-| `src/lib/expressions/{contexts,compile,evaluate}.ts`, `docs/expression-context.md` | **K** | Request site members in writing; function modules live in their own files, and K registers them |
-| `src/lib/payroll/run/gather.ts`, `run/eligibility.ts` | **K** | Send loaders as exported functions |
-| `src/data/+relationship.ts` | **D** | Send their entries |
-| `jurisdiction_settings` model and collection, `settings_clone.ts`, `settings_seal.ts` | **T** | Send field additions as single hunks |
-| `run/configuration.ts`, `run/effective.ts`, `lib/jurisdiction_settings.ts` | **Y** | — |
-| `run/contribute.ts` | **S** | — |
-| `run/graph.ts`, `run/engine.ts`, `run/period.ts` | **N** | Call L1 `materialise()` and L6 instalment capture as pure imports, stubbed until they land |
-| `datatypes/payroll_settings.ts` | **C** | Send one-line property hunks |
+| File or files                                                                         | Owner | Others                                                                                          |
+| ------------------------------------------------------------------------------------- | ----- | ----------------------------------------------------------------------------------------------- |
+| `src/lib/expressions/{contexts,compile,evaluate}.ts`, `docs/expression-context.md`    | **K** | Request site members in writing; function modules live in their own files, and K registers them |
+| `src/lib/payroll/run/gather.ts`, `run/eligibility.ts`                                 | **K** | Send loaders as exported functions                                                              |
+| `src/data/+relationship.ts`                                                           | **D** | Send their entries                                                                              |
+| `jurisdiction_settings` model and collection, `settings_clone.ts`, `settings_seal.ts` | **T** | Send field additions as single hunks                                                            |
+| `run/configuration.ts`, `run/effective.ts`, `lib/jurisdiction_settings.ts`            | **Y** | —                                                                                               |
+| `run/contribute.ts`                                                                   | **S** | —                                                                                               |
+| `run/graph.ts`, `run/engine.ts`, `run/period.ts`                                      | **N** | Call L1 `materialise()` and L6 instalment capture as pure imports, stubbed until they land      |
+| `datatypes/payroll_settings.ts`                                                       | **C** | Send one-line property hunks                                                                    |
 
 ### Wave 1 — parallel, no cross dependencies
 
-| Pkg | Capabilities | Owns | Effort |
-|---|---|---|---|
-| **K** kernel | E1, E3, the new sites (rate, obligation, filing, case), registration | expressions/*, `expressions/functions/{core,spans}.ts`, `gather.ts`, `eligibility.ts`, `run/rounding.ts`, `tests/expressions*.test.ts` | M |
-| **T** tables | I2, E2 | `data/{model,collection}/reference_rows/*`, the `jurisdiction_settings` model and collection, `settings_clone.ts`, `settings_seal.ts`, `datatypes/fact_keys.ts`, `lib/declared-facts.ts`, `expressions/functions/tables.ts` | M |
-| **W** worksites | I1 | `data/{model,collection}/worksites/*`, the `employment_terms` model and collection | M |
-| **P** people | I3, I6 | `data/{model,collection}/{person_facts,employment_history}/*`, the `employees` model | M |
-| **D** events, exit, evidence | I4, I5, I7 | the `leave_entries`, `leave_catalogue`, `employments` and `fact_evidence` models and collections, `+relationship.ts` | M |
-| **O** obligations | L1 (except the gate) | `data/{model,collection}/obligation_instances/*`, `custom_field/obligations/*`, `lib/obligations/*`, `automation/+obligation_calendar.automation.ts`, `app/hr_controller/compliance/*`, `tests/obligations.test.ts` | L |
-| **H** harness | H1, the I8 oracle test | `tests/e2e/probes/` harness helpers, `tests/inventory-csv.test.ts`, `tests/inventory-inputs.test.ts` | M |
+| Pkg                          | Capabilities                                                         | Owns                                                                                                                                                                                                                        | Effort |
+| ---------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| **K** kernel                 | E1, E3, the new sites (rate, obligation, filing, case), registration | expressions/*, `expressions/functions/{core,spans}.ts`, `gather.ts`, `eligibility.ts`, `run/rounding.ts`, `tests/expressions*.test.ts`                                                                                      | M      |
+| **T** tables                 | I2, E2                                                               | `data/{model,collection}/reference_rows/*`, the `jurisdiction_settings` model and collection, `settings_clone.ts`, `settings_seal.ts`, `datatypes/fact_keys.ts`, `lib/declared-facts.ts`, `expressions/functions/tables.ts` | M      |
+| **W** worksites              | I1                                                                   | `data/{model,collection}/worksites/*`, the `employment_terms` model and collection                                                                                                                                          | M      |
+| **P** people                 | I3, I6                                                               | `data/{model,collection}/{person_facts,employment_history}/*`, the `employees` model                                                                                                                                        | M      |
+| **D** events, exit, evidence | I4, I5, I7                                                           | the `leave_entries`, `leave_catalogue`, `employments` and `fact_evidence` models and collections, `+relationship.ts`                                                                                                        | M      |
+| **O** obligations            | L1 (except the gate)                                                 | `data/{model,collection}/obligation_instances/*`, `custom_field/obligations/*`, `lib/obligations/*`, `automation/+obligation_calendar.automation.ts`, `app/hr_controller/compliance/*`, `tests/obligations.test.ts`         | L      |
+| **H** harness                | H1, the I8 oracle test                                               | `tests/e2e/probes/` harness helpers, `tests/inventory-csv.test.ts`, `tests/inventory-inputs.test.ts`                                                                                                                        | M      |
 
 ### Wave 2 — after K and T (the others as noted)
 
-| Pkg | Capabilities | Owns | Needs |
-|---|---|---|---|
-| **R** history | E4 | `payroll/history.ts`, `expressions/functions/history.ts`, folding in `reference-wages.ts` and `statutory-history.ts` | K, P |
-| **G** checks | E9 | `lib/checks.ts`, `datatypes/checks.ts`, `run/validate.ts`, `run/precheck.ts` | K, O |
-| **N** run kinds | L3 | `data/{model,collection}/payroll_runs/*`, `run/{period,engine,graph,settlement}.ts`, `datatypes/pay_calendar.ts`, `tests/run-kinds.test.ts` | K, O |
-| **Y** overlays | E8 | `lib/jurisdiction_settings.ts`, `run/{configuration,effective}.ts` | T, W |
-| **V** derived lines | E6 | `run/accumulate.ts`, `payroll/work-lines.ts` | K, T |
-| **F** returns | L2 | `run/{income-return,export,export-data,bank-formats}.ts`, `datatypes/returns.ts`, `automation/+payroll_export.automation.ts` | K, O |
-| **L** orders | L6 | `data/{model,collection}/{loans,loan_repayments}/*`, `payroll/loan.ts`, `loan-schedule.ts` | K, O |
-| **U** capture UI | I8 (UI) | `ui/declared-facts-field.svelte`, `app/hr_controller/+facts_owed.page.svelte` | T, D, P |
+| Pkg                 | Capabilities | Owns                                                                                                                                        | Needs   |
+| ------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| **R** history       | E4           | `payroll/history.ts`, `expressions/functions/history.ts`, folding in `reference-wages.ts` and `statutory-history.ts`                        | K, P    |
+| **G** checks        | E9           | `lib/checks.ts`, `datatypes/checks.ts`, `run/validate.ts`, `run/precheck.ts`                                                                | K, O    |
+| **N** run kinds     | L3           | `data/{model,collection}/payroll_runs/*`, `run/{period,engine,graph,settlement}.ts`, `datatypes/pay_calendar.ts`, `tests/run-kinds.test.ts` | K, O    |
+| **Y** overlays      | E8           | `lib/jurisdiction_settings.ts`, `run/{configuration,effective}.ts`                                                                          | T, W    |
+| **V** derived lines | E6           | `run/accumulate.ts`, `payroll/work-lines.ts`                                                                                                | K, T    |
+| **F** returns       | L2           | `run/{income-return,export,export-data,bank-formats}.ts`, `datatypes/returns.ts`, `automation/+payroll_export.automation.ts`                | K, O    |
+| **L** orders        | L6           | `data/{model,collection}/{loans,loan_repayments}/*`, `payroll/loan.ts`, `loan-schedule.ts`                                                  | K, O    |
+| **U** capture UI    | I8 (UI)      | `ui/declared-facts-field.svelte`, `app/hr_controller/+facts_owed.page.svelte`                                                               | T, D, P |
 
 ### Wave 3 — after R
 
-| Pkg | Capabilities | Owns | Needs |
-|---|---|---|---|
-| **S** contributions | E7 | `run/contribute.ts`, `payroll/contribution.ts`, `run/statutory-facts.ts`, `statutory_contributions/*`, `expressions/functions/company.ts` | R, O, L (directed-tax removal) |
-| **E** rate and leave | E5 | `datatypes/{work_rules,leave_entitlement}.ts`, `run/{ordinary-rate,overtime,proration}.ts`, `payroll/{work-bands,work}.ts`, `lib/leave/*` | R, D |
-| **C** cases | L5 | `benefit-cases/*`, `benefit_case*` models, `datatypes/{case_types,payroll_settings}.ts` | R, O |
+| Pkg                  | Capabilities | Owns                                                                                                                                      | Needs                          |
+| -------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| **S** contributions  | E7           | `run/contribute.ts`, `payroll/contribution.ts`, `run/statutory-facts.ts`, `statutory_contributions/*`, `expressions/functions/company.ts` | R, O, L (directed-tax removal) |
+| **E** rate and leave | E5           | `datatypes/{work_rules,leave_entitlement}.ts`, `run/{ordinary-rate,overtime,proration}.ts`, `payroll/{work-bands,work}.ts`, `lib/leave/*` | R, D                           |
+| **C** cases          | L5           | `benefit-cases/*`, `benefit_case*` models, `datatypes/{case_types,payroll_settings}.ts`                                                   | R, O                           |
 
 ### Wave 4 — after N and S
 
-| Pkg | Capabilities | Owns | Needs |
-|---|---|---|---|
-| **X** retro | L4 | `run/retro.ts`, `datatypes/payslip_adjustments.ts`, supersession in the `employment_terms` and `work_days` collections (after W hands over) | N, S, owner decision 2 |
-| **Z** legacy sweep | Zero-legacy deletes | `wages.ts` flags, the pruned `evaluate.ts` functions (through K), `exit_reason` readers, fixed employee and leave columns | All the replacements seeded. Writers are swept before columns are deleted. |
+| Pkg                | Capabilities        | Owns                                                                                                                                        | Needs                                                                      |
+| ------------------ | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| **X** retro        | L4                  | `run/retro.ts`, `datatypes/payslip_adjustments.ts`, supersession in the `employment_terms` and `work_days` collections (after W hands over) | N, S, owner decision 2                                                     |
+| **Z** legacy sweep | Zero-legacy deletes | `wages.ts` flags, the pruned `evaluate.ts` functions (through K), `exit_reason` readers, fixed employee and leave columns                   | All the replacements seeded. Writers are swept before columns are deleted. |
 
 ### Gates for every package
 
@@ -720,13 +720,13 @@ A package lands its source and its test together.
 - MY has one owner.
 - Seeding can start per capability as each package goes green. It does not wait for everything.
 
-| Order | Jurisdiction | Needs | Main work |
-|---|---|---|---|
-| 1 | JP | T, W, K; then R and E | Tables for regional, specific and in-kind values; 290 rows |
-| 2 | SG | T, P, D, O, C, H | PWM tables, person facts, evidence, WICA and CD cases, the golden-only → probe backlog (138) |
-| 3 | CN | P, D, R, S, O, N, H | Worker class, stoppage, dispatch, bases, construction duties, the not-run and rerun backlog (147+) |
-| 4 | MY | Y, W, S, O, F | Sabah and Sarawak overlays, EPF floor, the obligation ledger, returns |
-| 5 | ID, PH, TH, TW, VN | In parallel once their dependencies are green | — |
+| Order | Jurisdiction       | Needs                                         | Main work                                                                                          |
+| ----- | ------------------ | --------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 1     | JP                 | T, W, K; then R and E                         | Tables for regional, specific and in-kind values; 290 rows                                         |
+| 2     | SG                 | T, P, D, O, C, H                              | PWM tables, person facts, evidence, WICA and CD cases, the golden-only → probe backlog (138)       |
+| 3     | CN                 | P, D, R, S, O, N, H                           | Worker class, stoppage, dispatch, bases, construction duties, the not-run and rerun backlog (147+) |
+| 4     | MY                 | Y, W, S, O, F                                 | Sabah and Sarawak overlays, EPF floor, the obligation ledger, returns                              |
+| 5     | ID, PH, TH, TW, VN | In parallel once their dependencies are green | —                                                                                                  |
 
 In every jurisdiction:
 

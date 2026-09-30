@@ -52,8 +52,10 @@ const entries = periods.map(([from, through], index) => ({
 	employment_id: 'employment',
 	leave_code: 'MATERNITY_LEAVE',
 	approval_id: null,
-	event_kind: 'BIRTH',
-	event_date: '2026-10-05',
+	facts: {
+		event_kind: 'BIRTH',
+		event_date: '2026-10-05'
+	},
 	charges: daysBetween(from, through).map((date) => ({ date, days: 1 })),
 	payslip_id: `slip-${index}`
 }));
@@ -210,7 +212,7 @@ test('PH payroll holds miscarriage and emergency-termination leave to 60 consecu
 		];
 		const entry = {
 			...entries[0],
-			event_kind,
+			facts: { ...entries[0].facts, event_kind },
 			charges: daysBetween('2026-10-05', '2026-12-03').map((date) => ({ date, days: 1 }))
 		};
 		const unsafe = (changed) => phMaternityLeaveUnsafe({ entries: [changed], cases: [], paying });
@@ -226,7 +228,7 @@ test('PH payroll holds miscarriage and emergency-termination leave to 60 consecu
 			}),
 			true
 		);
-		assert.equal(unsafe({ ...entry, event_kind: null }), true);
+		assert.equal(unsafe({ ...entry, facts: { ...entry.facts, event_kind: null } }), true);
 	}
 });
 
@@ -308,7 +310,7 @@ test('PH miscarriage needs 60 days starting on the event; unproved solo-parent a
 	};
 	const miscarriageEntry = {
 		...entries[0],
-		event_kind: 'MISCARRIAGE',
+		facts: { ...entries[0].facts, event_kind: 'MISCARRIAGE' },
 		charges: daysBetween('2026-10-05', '2026-12-03').map((date) => ({ date, days: 1 }))
 	};
 	assert.equal(

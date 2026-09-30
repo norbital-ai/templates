@@ -9,7 +9,8 @@
 	import type { CustomFieldView } from '@norbital-ai/ui';
 	import EntityFactsRenderer from '../../../data/custom_field/entity_facts/+renderer.svelte';
 	import type { FactKey } from '../../datatypes/fact_keys.js';
-	import type { BenefitCaseType, PayrollSettings } from '../../datatypes/payroll_settings.js';
+	import type { BenefitCaseType } from '../../datatypes/case_types.js';
+	import type { PayrollSettings } from '../../datatypes/payroll_settings.js';
 	import { settingsInForce } from '../../jurisdiction_settings.js';
 	import { todayKey } from '../calendar.js';
 	import { live, liveRows } from '../live.svelte.js';

@@ -45,7 +45,7 @@ export type Payslip = {
 
 // ---------- money and dates ----------
 /** DEFAULT: every line rounds half-up to the centavo once (no source states a per-line rounding). */
-const r2 = (x: number) => Math.sign(x) * Math.round(Math.abs(x) * 100 + 1e-6) / 100;
+const r2 = (x: number) => (Math.sign(x) * Math.round(Math.abs(x) * 100 + 1e-6)) / 100;
 const trunc2 = (x: number) => Math.floor(x * 100 + 1e-6) / 100;
 const day = (iso: string) => new Date(`${iso}T00:00:00Z`);
 const iso = (d: Date) => d.toISOString().slice(0, 10);
@@ -68,11 +68,28 @@ const addYears = (s: string, n: number) => `${Number(s.slice(0, 4)) + n}${s.slic
 
 // [PROC] 2026 national holidays (tracker PH-HR36 list).
 const REGULAR_HOLIDAYS = new Set([
-	'2026-01-01', '2026-03-20', '2026-04-02', '2026-04-03', '2026-04-09', '2026-05-01', '2026-05-27',
-	'2026-06-12', '2026-08-31', '2026-11-30', '2026-12-25', '2026-12-30'
+	'2026-01-01',
+	'2026-03-20',
+	'2026-04-02',
+	'2026-04-03',
+	'2026-04-09',
+	'2026-05-01',
+	'2026-05-27',
+	'2026-06-12',
+	'2026-08-31',
+	'2026-11-30',
+	'2026-12-25',
+	'2026-12-30'
 ]);
 const SPECIAL_DAYS = new Set([
-	'2026-02-17', '2026-04-04', '2026-08-21', '2026-11-01', '2026-11-02', '2026-12-08', '2026-12-24', '2026-12-31'
+	'2026-02-17',
+	'2026-04-04',
+	'2026-08-21',
+	'2026-11-01',
+	'2026-11-02',
+	'2026-12-08',
+	'2026-12-24',
+	'2026-12-31'
 ]);
 
 // ---------- wage floors ----------
@@ -105,7 +122,8 @@ function precedingWorkday(d: string) {
 
 /** The employed window of `period`, clipped to hire and exit. */
 function window(s: PHScenario, period: string) {
-	const from = s.employment.hireDate > monthStart(period) ? s.employment.hireDate : monthStart(period);
+	const from =
+		s.employment.hireDate > monthStart(period) ? s.employment.hireDate : monthStart(period);
 	const exit = s.employment.exitDate;
 	const to = exit !== undefined && exit < monthEnd(period) ? exit : monthEnd(period);
 	return { from, to };
@@ -184,7 +202,11 @@ function hdmf(s: PHScenario, fundSalary: number, periodStart: string): Charge | 
 	if (fundSalary <= 0 || periodStart > addYears(s.employee.birthDate!, 60)) return undefined;
 	if (s.employment.type === 'DOMESTIC' && fundSalary < 5000)
 		// [HDMF] 1.5: kasambahay below PHP5,000: employer shoulders 3% (≤1,500) or 4% (over 1,500), kasambahay nothing.
-		return { employee: 0, employer: r2(fundSalary * (fundSalary <= 1500 ? 0.03 : 0.04)), base: fundSalary };
+		return {
+			employee: 0,
+			employer: r2(fundSalary * (fundSalary <= 1500 ? 0.03 : 0.04)),
+			base: fundSalary
+		};
 	const base = Math.min(fundSalary, 10000); // [HDMF] maximum fund salary PHP10,000
 	return {
 		employee: r2(base * (base <= 1500 ? 0.01 : 0.02)), // [HDMF] C: 1% at PHP1,500 and below, 2% over
@@ -256,7 +278,15 @@ function hoursPremiums(s: PHScenario) {
 	};
 	for (const e of s.work) {
 		const rest = dow(e.date) === 0;
-		const kind = REGULAR_HOLIDAYS.has(e.date) ? 'RH' : SPECIAL_DAYS.has(e.date) ? (rest ? 'SHR' : 'SH') : rest ? 'REST' : 'ORD';
+		const kind = REGULAR_HOLIDAYS.has(e.date)
+			? 'RH'
+			: SPECIAL_DAYS.has(e.date)
+				? rest
+					? 'SHR'
+					: 'SH'
+				: rest
+					? 'REST'
+					: 'ORD';
 		// [day rate, extra paid on top of the monthly wage for normal hours, OT rate]
 		const [dayRate, normalExtra, otRate, code] = {
 			ORD: [1, 0, 1.25, 'OVERTIME'],
@@ -281,7 +311,12 @@ function unpaidDays(s: PHScenario) {
 	const days = new Set(s.unpaidLeave);
 	// [HB] ch.2 §A: no regular-holiday pay when absent without pay on the workday immediately preceding it.
 	for (const h of REGULAR_HOLIDAYS)
-		if (h.startsWith(s.period) && isWeekday(h) && days.has(precedingWorkday(h)) && !s.work.some((w) => w.date === h))
+		if (
+			h.startsWith(s.period) &&
+			isWeekday(h) &&
+			days.has(precedingWorkday(h)) &&
+			!s.work.some((w) => w.date === h)
+		)
 			days.add(h);
 	const { from, to } = window(s, s.period);
 	return [...days].filter((d) => d >= from && d <= to && isWeekday(d));
@@ -291,10 +326,17 @@ function unpaidDays(s: PHScenario) {
 export function computePayslip(s: PHScenario): Payslip {
 	const warnings: string[] = [];
 	const refuse = (why: string): Payslip => ({
-		refused: why, warnings, lines: {}, gross: 0, total_deductions: 0, net: 0, employer_cost: 0
+		refused: why,
+		warnings,
+		lines: {},
+		gross: 0,
+		total_deductions: 0,
+		net: 0,
+		employer_cost: 0
 	});
 	// Tracker PH-SS10: an unknown birth date refuses a payable SSS assessment.
-	if (s.employee.birthDate === null) return refuse('birth date unknown: SSS compulsory coverage age undecidable');
+	if (s.employee.birthDate === null)
+		return refuse('birth date unknown: SSS compulsory coverage age undecidable');
 
 	const { from, to } = window(s, s.period);
 	const emp = s.employment;
@@ -324,7 +366,8 @@ export function computePayslip(s: PHScenario): Payslip {
 	// Earnings.
 	const lines: Record<string, Line> = {};
 	const earn = (code: string, amount: number) => {
-		if (Math.abs(amount) >= 0.005) lines[code] = { amount: r2((lines[code]?.amount ?? 0) + amount) };
+		if (Math.abs(amount) >= 0.005)
+			lines[code] = { amount: r2((lines[code]?.amount ?? 0) + amount) };
 	};
 	const unpaid = unpaidDays(s);
 	const basic = r2(basicFor(s, s.period) - dailyRate(s) * unpaid.length);
@@ -359,26 +402,33 @@ export function computePayslip(s: PHScenario): Payslip {
 		const month = emp.monthlyBasic;
 		const cause = s.exitCause;
 		// [LC] art.298: redundancy / labour-saving device: one month per year, at least one month.
-		if (cause === 'REDUNDANCY' || cause === 'LABOUR_SAVING') separation = Math.max(month, month * years);
+		if (cause === 'REDUNDANCY' || cause === 'LABOUR_SAVING')
+			separation = Math.max(month, month * years);
 		// [LC] arts.298–299: retrenchment, closure not due to serious losses, disease: half a month per year, at least one month.
-		if (cause === 'RETRENCHMENT' || cause === 'CLOSURE' || cause === 'DISEASE') separation = Math.max(month, (month / 2) * years);
+		if (cause === 'RETRENCHMENT' || cause === 'CLOSURE' || cause === 'DISEASE')
+			separation = Math.max(month, (month / 2) * years);
 	}
 	earn('SEPARATION_PAY', separation);
 	// [LC] art.302 (RA 7641): retiring at 60–65 with at least five years: 22.5 days per year of service.
 	let retirement = 0;
 	if (exiting && s.exitCause === 'RETIREMENT') {
 		const age = ageOn(s.employee.birthDate, emp.exitDate!);
-		if (age >= 60 && age <= 65 && Math.floor(months / 12) >= 5) retirement = 22.5 * dailyRate(s) * years;
+		if (age >= 60 && age <= 65 && Math.floor(months / 12) >= 5)
+			retirement = 22.5 * dailyRate(s) * years;
 	}
 	earn('RETIREMENT_PAY', retirement);
 	// [LC] art.95; [HB] ch.6: unused SIL commuted at the salary rate (days given by the scenario).
-	const sil = exiting && (s.silDaysToEncash ?? 0) > 0 && months >= 12 ? dailyRate(s) * s.silDaysToEncash! : 0;
+	const sil =
+		exiting && (s.silDaysToEncash ?? 0) > 0 && months >= 12 ? dailyRate(s) * s.silDaysToEncash! : 0;
 	earn('SIL_ENCASHMENT', sil);
 	// [RA10361] s.32: unjust dismissal → 15 days' indemnity; unjustified departure → up to 15 days' unpaid pay forfeited.
 	const fifteenDays = domestic ? 15 * domesticDaily(s) : 0;
-	if (domestic && exiting && s.exitCause === 'KASAMBAHAY_UNJUST_DISMISSAL') earn('KASAMBAHAY_INDEMNITY', fifteenDays);
+	if (domestic && exiting && s.exitCause === 'KASAMBAHAY_UNJUST_DISMISSAL')
+		earn('KASAMBAHAY_INDEMNITY', fifteenDays);
 	const forfeiture =
-		domestic && exiting && s.exitCause === 'KASAMBAHAY_UNJUSTIFIED_DEPARTURE' ? r2(Math.min(basic, fifteenDays)) : 0;
+		domestic && exiting && s.exitCause === 'KASAMBAHAY_UNJUSTIFIED_DEPARTURE'
+			? r2(Math.min(basic, fifteenDays))
+			: 0;
 
 	// Contribution bases.
 	const amt = (c: string) => lines[c]?.amount ?? 0;
@@ -400,21 +450,30 @@ export function computePayslip(s: PHScenario): Payslip {
 	if (domestic) {
 		// [RA10361] s.30: a domestic worker "who has rendered at least one (1) month of service shall be covered" by
 		// SSS, PhilHealth and Pag-IBIG. DEFAULT: judged at the end of the employed window (month end or exit).
-		if (wholeMonths(emp.hireDate, addDays(to, 1)) < 1) for (const k of ['SSS', 'SSS_EC', 'SSS_MPF', 'PHIC', 'HDMF']) delete charges[k];
+		if (wholeMonths(emp.hireDate, addDays(to, 1)) < 1)
+			for (const k of ['SSS', 'SSS_EC', 'SSS_MPF', 'PHIC', 'HDMF']) delete charges[k];
 		// [RA10361] s.30: premiums "shall be shouldered by the employer" unless the worker receives P5,000 and above per
 		// month. SSS (CI 2024-007) and Pag-IBIG (Circular 460 1.5) carry their own household branches above; for
 		// PhilHealth, DEFAULT: the same month's compensation decides, and below P5,000 the employer pays the whole premium.
 		else if (sssComp < 5000 && charges.PHIC)
-			charges.PHIC = { employee: 0, employer: r2(charges.PHIC.employee + charges.PHIC.employer), base: charges.PHIC.base };
+			charges.PHIC = {
+				employee: 0,
+				employer: r2(charges.PHIC.employee + charges.PHIC.employer),
+				base: charges.PHIC.base
+			};
 	}
 	const eeContrib = Object.values(charges).reduce((a, c) => a + c.employee, 0);
 
 	// Withholding tax.
 	const wtax = withholding(s, {
-		basic, hoursPay, eeContrib, mwe,
+		basic,
+		hoursPay,
+		eeContrib,
+		mwe,
 		commission: amt('COMMISSION'),
 		benefits: amt('BONUS') + thirteenth,
-		exiting, history
+		exiting,
+		history
 	});
 	if (wtax.amount !== 0) charges.WTAX = { employee: wtax.amount, employer: 0, base: wtax.base };
 
@@ -423,11 +482,23 @@ export function computePayslip(s: PHScenario): Payslip {
 	if (forfeiture > 0) lines.KASAMBAHAY_FORFEITURE = { amount: -forfeiture };
 
 	const gross = r2(
-		Object.entries(lines).reduce((a, [k, l]) => (k in charges || l.amount === undefined || l.amount < 0 ? a : a + l.amount), 0)
+		Object.entries(lines).reduce(
+			(a, [k, l]) => (k in charges || l.amount === undefined || l.amount < 0 ? a : a + l.amount),
+			0
+		)
 	);
-	const total_deductions = r2(Object.values(charges).reduce((a, c) => a + c.employee, 0) + forfeiture);
+	const total_deductions = r2(
+		Object.values(charges).reduce((a, c) => a + c.employee, 0) + forfeiture
+	);
 	const employer_cost = r2(Object.values(charges).reduce((a, c) => a + c.employer, 0));
-	return { warnings, lines, gross, total_deductions, net: r2(gross - total_deductions), employer_cost };
+	return {
+		warnings,
+		lines,
+		gross,
+		total_deductions,
+		net: r2(gross - total_deductions),
+		employer_cost
+	};
 }
 
 type History = { basic: number; taxable: number; withheld: number }[];
@@ -456,8 +527,14 @@ function priorMonths(s: PHScenario): History {
 function withholding(
 	s: PHScenario,
 	x: {
-		basic: number; hoursPay: number; eeContrib: number; mwe: boolean; commission: number; benefits: number;
-		exiting: boolean; history: History;
+		basic: number;
+		hoursPay: number;
+		eeContrib: number;
+		mwe: boolean;
+		commission: number;
+		benefits: number;
+		exiting: boolean;
+		history: History;
 	}
 ) {
 	// [RR11] (B)(11): 13th month and other benefits exempt up to PHP90,000 a year; the excess is supplementary.
@@ -496,7 +573,10 @@ function withholding(
 /** The probe harness's line keys ([payroll-probe.ts] `lines`): statutory keys only when non-zero. */
 export function probeLines(slip: Payslip): Record<string, number> {
 	const out: Record<string, number> = {
-		gross: slip.gross, net: slip.net, total_deductions: slip.total_deductions, employer_cost: slip.employer_cost
+		gross: slip.gross,
+		net: slip.net,
+		total_deductions: slip.total_deductions,
+		employer_cost: slip.employer_cost
 	};
 	for (const [code, l] of Object.entries(slip.lines)) {
 		if (l.amount !== undefined) out[code] = l.amount;

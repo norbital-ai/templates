@@ -13,7 +13,7 @@ import {
 	ordinaryDivisorDays
 } from '../src/lib/payroll/run/ordinary-rate.ts';
 import { evaluatePersonNumber, personContext } from '../src/lib/payroll/run/eligibility.ts';
-import { cumulativeHistory } from '../src/lib/payroll/statutory-history.ts';
+import { cumulativeHistory } from '../src/lib/payroll/history.ts';
 import { settingsVersions } from './fixtures/statutory-world.ts';
 
 const LINEAGES = [

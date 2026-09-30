@@ -8,12 +8,15 @@ import { plain } from '../../../lib/wire.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { isEligible } from '../../../lib/payroll/run/eligibility.js';
 import { readRange } from '../../../lib/payroll/run/effective.js';
+import { compileExpression } from '../../../lib/expressions/compile.js';
 
 /**
  * The loan agreement and its repayment schedule, one submission (§3.3.4): the form edits the whole matrix, so the
  * update accepts create, update and delete on the schedule, and nothing is deleted by omission. The schedule is
  * judged whole here. A repayment a payslip settled is money history: it cannot be changed or removed until the
- * draft payroll holding it is deleted. Every recovery is a payroll deduction (`lib/payroll/loan.ts`).
+ * draft payroll holding it is deleted. Every recovery is a payroll deduction (`lib/payroll/loan.ts`). An order
+ * with a `recovery_rule` has no schedule: the run writes each repayment it withheld, so the form only removes an
+ * unlinked one a deleted draft left behind.
  */
 const c = collection('loans', {
 	read: { fields: 'all' },
@@ -26,7 +29,12 @@ const c = collection('loans', {
 				'effective_range',
 				'reference',
 				'approval_reference',
-				'disbursed_on'
+				'disbursed_on',
+				'creditor',
+				'authority',
+				'recovery_rule',
+				'priority',
+				'on_exit'
 			],
 			with: { loan_repayments: { create: { columns: ['due_date', 'amount_due', 'sequence'] } } }
 		}
@@ -40,7 +48,12 @@ const c = collection('loans', {
 				'effective_range',
 				'reference',
 				'approval_reference',
-				'disbursed_on'
+				'disbursed_on',
+				'creditor',
+				'authority',
+				'recovery_rule',
+				'priority',
+				'on_exit'
 			],
 			with: {
 				loan_repayments: {
@@ -68,6 +81,9 @@ type Loan = {
 	readonly loan_catalogue_id: string;
 	readonly principal: unknown;
 	readonly effective_range: unknown;
+	readonly creditor?: string | null;
+	readonly authority?: string | null;
+	readonly recovery_rule?: string | null;
 };
 type Schedule = {
 	readonly create?: readonly Repayment[];
@@ -161,17 +177,50 @@ c.transform(async (inputs, ctx) => {
 			assertRepayment(row);
 			schedule.set(`new:${position}`, row);
 		}
-		if (loan == null && creates.length === 0)
-			refuse('Create the loan together with its complete repayment schedule.');
-		if (schedule.size === 0)
-			refuse('A loan repayment schedule cannot be empty. Delete an unused agreement instead.');
 		const effectiveRange = input.effective_range ?? loan?.effective_range;
-		const refusals = loanScheduleRefusals({
-			principal,
-			effectiveRange,
-			rows: [...schedule.values()]
-		});
-		if (refusals.length) refuse(refusals.map((one) => one.message).join(' '));
+		const rule = String(input.recovery_rule ?? loan?.recovery_rule ?? '').trim();
+		const creditor = input.creditor ?? loan?.creditor ?? 'EMPLOYER';
+		if (creditor === 'THIRD_PARTY' && !String(input.authority ?? loan?.authority ?? '').trim())
+			refuse('A third-party order names the authority it is remitted to.', { field: 'authority' });
+		if (
+			loan != null &&
+			schedule.size > 0 &&
+			rule !== String(loan.recovery_rule ?? '').trim() &&
+			(rule === '' || String(loan.recovery_rule ?? '').trim() === '')
+		)
+			refuse(
+				'An agreement with repayments cannot switch between a schedule and a recovery rule. Create a new agreement.',
+				{ field: 'recovery_rule' }
+			);
+		if (rule !== '') {
+			// An order: the run computes each period's amount and writes its repayment, already linked.
+			const fault = compileExpression({ expression: rule, site: 'order', type: 'money' });
+			if (fault != null) refuse(fault, { field: 'recovery_rule' });
+			if (creates.length > 0 || (actions.update ?? []).length > 0)
+				refuse(
+					'A rule-recovered order has no schedule: its repayments are what payroll withheld, and the run records them.'
+				);
+			const recovered = [...schedule.values()].reduce(
+				(total, row) => total + (row.payslip_id == null ? 0 : decodeNumber(row.amount_due)),
+				0
+			);
+			if (principal < recovered - 0.01)
+				refuse(
+					`Payroll has already withheld ${recovered.toFixed(2)} under this order; its principal cannot be less.`,
+					{ field: 'principal' }
+				);
+		} else {
+			if (loan == null && creates.length === 0)
+				refuse('Create the loan together with its complete repayment schedule.');
+			if (schedule.size === 0)
+				refuse('A loan repayment schedule cannot be empty. Delete an unused agreement instead.');
+			const refusals = loanScheduleRefusals({
+				principal,
+				effectiveRange,
+				rows: [...schedule.values()]
+			});
+			if (refusals.length) refuse(refusals.map((one) => one.message).join(' '));
+		}
 		const catalogue = catalogueById.get(String(input.loan_catalogue_id ?? loan?.loan_catalogue_id));
 		if (!catalogue)
 			refuse('A loan must reference a loan catalogue entry.', { field: 'loan_catalogue_id' });

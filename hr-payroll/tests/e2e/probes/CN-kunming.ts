@@ -579,7 +579,7 @@ register(
 				from: '2026-01-05',
 				to: '2026-01-16',
 				employment: {
-					exit_reason: 'MUTUAL',
+					exit_ground: 'MUTUAL',
 					exit_facts: { lcl_termination_ground: 'ART_36_EMPLOYER', renewal_offer_refused: false }
 				}
 			}),
@@ -837,8 +837,10 @@ register(
 		],
 		[
 			leave('w', 'MARRIAGE_LEAVE', '2026-01-12', '2026-01-16', {
-				event_kind: 'MARRIAGE',
-				event_date: '2026-01-10'
+				facts: {
+					event_kind: 'MARRIAGE',
+					event_date: '2026-01-10'
+				}
 			})
 		],
 		{ gross: 21750, BASIC: 21750, total_deductions: 5207.24, net: 16542.76, 'IIT.employee': 356.99 }
@@ -1037,7 +1039,7 @@ register(
 					wage: 21750,
 					to,
 					employment: {
-						exit_reason: 'RESIGNATION',
+						exit_ground: 'RESIGNATION',
 						exit_facts: { lcl_termination_ground: 'ART_37', renewal_offer_refused: false }
 					}
 				})
@@ -1107,8 +1109,10 @@ register(
 			...worker({ ref: 'w', name: 'Worker CN-KM31-1', wage: 21750, gender: 'FEMALE' }),
 			{
 				...leave('w', 'FAMILY_PLANNING_PROCEDURE_LEAVE', '2026-01-12', '2026-01-16', {
-					event_kind: 'IUD_INSERTION',
-					event_date: '2026-01-12'
+					facts: {
+						event_kind: 'IUD_INSERTION',
+						event_date: '2026-01-12'
+					}
 				}),
 				files: { certificate_file: 'iud-certificate.pdf' }
 			}
@@ -1130,8 +1134,10 @@ register(
 			...worker({ ref: 'w', name: 'Worker CN-KM-WP13-1', wage: 21750 }),
 			{
 				...leave('w', 'WORK_INJURY_LEAVE', '2026-01-12', '2026-01-16', {
-					event_kind: 'WORK_INJURY',
-					event_date: '2026-01-09'
+					facts: {
+						event_kind: 'WORK_INJURY',
+						event_date: '2026-01-09'
+					}
 				}),
 				files: { certificate_file: 'injury-recognition.pdf' }
 			}
@@ -1146,9 +1152,11 @@ register(
 		],
 		[
 			leave('w', 'FUNERAL_LEAVE', '2026-01-19', '2026-01-21', {
-				event_kind: 'DEATH',
-				event_relationship: 'PARENT',
-				event_date: '2026-01-17'
+				facts: {
+					event_kind: 'DEATH',
+					event_relationship: 'PARENT',
+					event_date: '2026-01-17'
+				}
 			})
 		],
 		JAN_21750_PAID
@@ -1300,8 +1308,10 @@ register(
 			...officeWeek(SINCE),
 			...worker({ ref: 'xu', name: 'Xu Ying', wage: 12000, gender: 'FEMALE' }),
 			leave('xu', 'MATERNITY_LEAVE', '2026-08-03', '2027-01-07', {
-				event_kind: 'BIRTH',
-				event_date: '2026-08-03'
+				facts: {
+					event_kind: 'BIRTH',
+					event_date: '2026-08-03'
+				}
 			}),
 			{
 				...adhoc(
@@ -1367,7 +1377,7 @@ const leaverOn = (
 			from: '2026-01-05',
 			to: '2026-01-16',
 			employment: {
-				exit_reason: 'DISMISSAL',
+				exit_ground: 'DISMISSAL',
 				exit_facts: { renewal_offer_refused: false, ...facts }
 			}
 		}),
@@ -1637,7 +1647,13 @@ const iit = (claims: Row[]): ProbeInput => ({
 });
 
 /** One Wuhua worker on 10,000 whose run the housing-fund scheme must refuse. */
-const fundRefused = (id: string, description: string, citation: string[], w: Partial<Worker>, refused: string): ProbeCase => ({
+const fundRefused = (
+	id: string,
+	description: string,
+	citation: string[],
+	w: Partial<Worker>,
+	refused: string
+): ProbeCase => ({
 	id,
 	profile: 'CN-kunming',
 	description,
@@ -1660,8 +1676,14 @@ register(
 		[
 			adhoc('w', 'ONE_CHILD_SUBSIDY', 100, '2026-01-10', 'CN-N55-2'),
 			adhoc('w', 'CHILDCARE_SUBSIDY', 200, '2026-01-10', 'CN-N55-2'),
-			{ ...adhoc('w', 'TRAVEL_ALLOWANCE', 300, '2026-01-10', 'CN-N55-2'), files: { evidence_file: 'trip-record.pdf' } },
-			{ ...adhoc('w', 'MISSED_MEAL_SUBSIDY', 50, '2026-01-10', 'CN-N55-2'), files: { evidence_file: 'meal-record.pdf' } }
+			{
+				...adhoc('w', 'TRAVEL_ALLOWANCE', 300, '2026-01-10', 'CN-N55-2'),
+				files: { evidence_file: 'trip-record.pdf' }
+			},
+			{
+				...adhoc('w', 'MISSED_MEAL_SUBSIDY', 50, '2026-01-10', 'CN-N55-2'),
+				files: { evidence_file: 'meal-record.pdf' }
+			}
 		],
 		{
 			gross: 22400,
@@ -1684,8 +1706,20 @@ register(
 		],
 		[
 			iit([
-				{ period: '2026-01', category: 'INFANT_CARE', amount: 2000, source: 'EMPLOYEE', reference: 'INFANT-2026-01' },
-				{ period: '2026-01', category: 'CONTINUING_EDUCATION', amount: 400, source: 'EMPLOYEE', reference: 'EDU-2026-01' }
+				{
+					period: '2026-01',
+					category: 'INFANT_CARE',
+					amount: 2000,
+					source: 'EMPLOYEE',
+					reference: 'INFANT-2026-01'
+				},
+				{
+					period: '2026-01',
+					category: 'CONTINUING_EDUCATION',
+					amount: 400,
+					source: 'EMPLOYEE',
+					reference: 'EDU-2026-01'
+				}
 			])
 		],
 		{ gross: 21750, BASIC: 21750, total_deductions: 5135.24, net: 16614.76, 'IIT.employee': 284.99 }
@@ -1710,7 +1744,7 @@ register(
 				from: '2026-01-05',
 				to: '2026-01-16',
 				employment: {
-					exit_reason: 'RETIREMENT',
+					exit_ground: 'RETIREMENT',
 					exit_facts: { lcl_termination_ground: 'ART_44_2_3', iit164_early_retirement_years: 4 }
 				}
 			}),
@@ -1880,7 +1914,9 @@ register(
 		...fundRefused(
 			'CN-KM05-4',
 			'September 2026, the CN-KM05-3 transfer declares a fund base of 2,100: above the old class II 2,020, below the new 2,120 — the run is refused.',
-			['New, transferred and reopened accounts from 1 September 2026: class II floor 2,120 (CN-KM05); 2,100 < 2,120.'],
+			[
+				'New, transferred and reopened accounts from 1 September 2026: class II floor 2,120 (CN-KM05); 2,100 < 2,120.'
+			],
 			{ hfBase: 2100, worksite: FUMIN, from: '2026-09-01', hf: { first_ever_account: false } },
 			'declared housing-fund base is below'
 		),
@@ -1901,7 +1937,10 @@ register(
 	belowFloorWithOvertime(
 		'CN-KM02-4',
 		'September 2026, a Wuhua worker contracted at CNY2,200 who works six approved extended hours (Tuesday 8 and Wednesday 9 September): with overtime gross would be 2,313.79, but overtime is outside the comparison — the run is refused against 2,270.',
-		[MIN_WAGE_2026, '2,200 ÷ 21.75 ÷ 8 × 1.5 × 6 = 113.79 (CN-N02); 2,200 < 2,270 on the contract wage alone.'],
+		[
+			MIN_WAGE_2026,
+			'2,200 ÷ 21.75 ÷ 8 × 1.5 × 6 = 113.79 (CN-N02); 2,200 < 2,270 on the contract wage alone.'
+		],
 		'2026-09',
 		2200,
 		['2026-09-08', '2026-09-09'],
@@ -1921,7 +1960,14 @@ register({
 	company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
 	inputs: [
 		...officeWeek(SINCE),
-		...worker({ ref: 'low', name: 'Floor CN-KM01-5', wage: 2000, siBase: 2300, hfBase: 2300, worksite: FUMIN })
+		...worker({
+			ref: 'low',
+			name: 'Floor CN-KM01-5',
+			wage: 2000,
+			siBase: 2300,
+			hfBase: 2300,
+			worksite: FUMIN
+		})
 	],
 	period: '2026-01',
 	refused: 'MINIMUM_WAGE_BELOW: P-KM-low is contracted at 2000 a month',

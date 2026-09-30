@@ -395,12 +395,6 @@
 				{t('renderer.payslip_statutory.base_amount')}:
 				{formatNumeric(charge.base_amount)}
 			</p>
-			{#if charge.directed_amount}
-				<p class="text-xs tabular-nums" data-directed-amount>
-					{t('renderer.payslip_statutory.directed_amount')}:
-					{formatNumeric(charge.directed_amount)}
-				</p>
-			{/if}
 			{#if detail != null && detail.inputs.length > 0}
 				<p class="text-meta">{t('component.flow_inputs')}</p>
 				<ul class="text-xs">

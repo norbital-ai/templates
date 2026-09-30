@@ -307,7 +307,7 @@ const vnLate = (exit: string, holidays: readonly string[] = []) =>
 					key: 'VN-LEAVER',
 					wage: 10_000_000,
 					exit_date: exit,
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					citizenship: 'CITIZEN',
 					registrations: {
 						PIT: {
@@ -349,7 +349,7 @@ test('SG EA s.23: a resignation with notice served is paid on the last day, with
 				code: 'SG',
 				period: '2026-01',
 				people: [
-					{ key: 'SG-QUIT', wage: 6000, exit_date: '2026-01-10', exit_reason: 'RESIGNATION' }
+					{ key: 'SG-QUIT', wage: 6000, exit_date: '2026-01-10', exit_ground: 'RESIGNATION' }
 				]
 			},
 			(world) => {
@@ -377,7 +377,7 @@ test('SG EA s.22: employer exit is payable immediately unless same-day payment w
 				code: 'SG',
 				period: '2026-01',
 				people: [
-					{ key: 'SG-DISMISSED', wage: 6000, exit_date: '2026-01-23', exit_reason: 'DISMISSAL' }
+					{ key: 'SG-DISMISSED', wage: 6000, exit_date: '2026-01-23', exit_ground: 'DISMISSAL' }
 				]
 			},
 			(world) => {
@@ -450,7 +450,7 @@ async function exitPayout(code: string, exitReason: string, facts: Record<string
 	const employment = {
 		...context.employments[0],
 		employee_number: 'E-1',
-		exit_reason: exitReason,
+		exit_ground: exitReason,
 		approval_id: null
 	};
 	const rows = {

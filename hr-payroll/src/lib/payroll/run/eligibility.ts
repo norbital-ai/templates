@@ -5,7 +5,7 @@
  * when the catalogue is written. The members are in `lib/expressions/contexts.ts`.
  */
 
-import { programFor } from '../../../lib/expressions/evaluate.js';
+import { evaluateUnderBound } from '../../../lib/expressions/evaluate.js';
 import { decodeNumber } from '../../wire.js';
 import { addDays, completedMonths, completedYears, exactMonths, inclusiveDays } from './dates.js';
 import { dateKey } from '../../../lib/iso-day.js';
@@ -24,7 +24,45 @@ export const scalarFacts = (
 		)
 	);
 import type { ReservedLine } from './accumulate.js';
+import { TABLES, type TableLookup } from '../../../lib/expressions/functions/tables.js';
+import { HISTORY } from '../../../lib/expressions/functions/history.js';
+import type { HistoryAccess } from '../history.js';
 import type { PersonHistory } from '../../../lib/expressions/person-functions.js';
+
+/**
+ * What a person context resolves on its own date beyond the rows it is handed: the run stores it
+ * on the company row and the employee row every caller passes on, under a key CEL and a
+ * serialisation never see (`withDatedInputs` in configuration.ts).
+ */
+export const DATED: unique symbol = Symbol('dated inputs');
+
+/** One worksite revision as `worksite.*` reads it. */
+export type DatedWorksite = {
+	readonly code: string;
+	readonly region?: string | null;
+	readonly facts: Readonly<Record<string, unknown>> | null | undefined;
+};
+
+/** The entity's dated inputs: its version's tables and its worksites on a date. */
+export type DatedCompany = {
+	readonly tables: (asOf: string) => TableLookup | undefined;
+	/** The revision of the named worksite in force on `asOf`; refused where it has none. */
+	readonly worksite: (id: string, asOf: string) => DatedWorksite;
+};
+
+/** The person's dated inputs: their declared facts on a date, an employment's row over the personal one. */
+export type DatedEmployee = {
+	/** The person's saved past in this run (`history.*`); absent off a run. */
+	readonly history?: HistoryAccess | undefined;
+	/** Absent where the lineage declares no person facts: every fact reads as undeclared. */
+	readonly facts?: (
+		asOf: string,
+		employmentId: string | undefined
+	) => {
+		readonly facts: Readonly<Record<string, string | number | boolean>>;
+		readonly fact_keys: readonly string[];
+	};
+};
 
 /** The person, as an expression sees them. Every key is present; nothing is null. */
 export type PersonContext = {
@@ -79,6 +117,16 @@ export type PersonContext = {
 		 * the rule date (MY ITA Sch.6 para 21(a), 22(a)).
 		 */
 		readonly employment_days: number;
+		/** The version's `person_facts` on the rule date (`person_facts` rows), defaults filled. */
+		readonly facts: Readonly<Record<string, string | number | boolean>>;
+		/** The keys a revision actually records, before defaults. */
+		readonly fact_keys: readonly string[];
+	};
+	/** The establishment the terms (or the day) name, its revision in force on the rule date; empty where none. */
+	readonly worksite: {
+		readonly code: string;
+		readonly region: string;
+		readonly facts: Readonly<Record<string, string | number | boolean>>;
 	};
 	readonly employment: {
 		readonly type: string;
@@ -106,14 +154,14 @@ export type PersonContext = {
 		readonly exit_date: string;
 		/** Calendar days from the rule date to `exit_date`: 0 on the exit day, after it, or while open. */
 		readonly days_to_exit: number;
-		/** Whether the contract states no end: a fixed-term contract's end is its `exit_date`, unless an early `exit_reason` cut it short. */
+		/** Whether the contract states no end: a fixed-term contract's end is its `exit_date`, unless an early `exit_ground` cut it short. */
 		readonly open_ended: boolean;
 		/** Whole months of a fixed-term contract, first day to last; 0 where open-ended. */
 		readonly contract_months: number;
 		/** Calendar days of a fixed-term contract, first day to last inclusive; 0 where open-ended. */
 		readonly contract_days: number;
-		/** `employments.exit_reason`, or empty while the stint is open or unrecorded. */
-		readonly exit_reason: string;
+		/** `employments.exit_ground`: a `TERMINATION_GROUND` code, or empty. */
+		readonly exit_ground: string;
 		readonly exit_facts: Readonly<Record<string, string | number | boolean>>;
 		readonly exit_fact_keys: readonly string[];
 		/**
@@ -301,6 +349,12 @@ export type PersonContext = {
 	};
 	/** The terms row's own part-month basis (`employment_terms.proration`); not an expression member. */
 	readonly contract_proration?: ProrationBasis | undefined;
+	/** The receiver of `history.slips|days|leave|terms|external(…)`; the rows come from `[HISTORY]`. */
+	readonly history: Readonly<Record<string, never>>;
+	/** The version's tables on the rule date (`table()`); not an expression member. */
+	readonly [TABLES]?: TableLookup | undefined;
+	/** The person's saved past (`history.*`); not an expression member. */
+	readonly [HISTORY]?: HistoryAccess | undefined;
 };
 
 export type PersonInput = {
@@ -316,12 +370,15 @@ export type PersonInput = {
 		readonly receiving_pension?: boolean | null | undefined;
 		readonly race?: string | null | undefined;
 		readonly religion?: string | null | undefined;
+		readonly [DATED]?: DatedEmployee | undefined;
 	} | null;
 	readonly employment: {
+		/** The employment id, which picks its own `person_facts` row over the personal one. */
+		readonly id?: string | undefined;
 		readonly service_start: string;
 		readonly prior_service_months?: number | null | undefined;
 		readonly exit_date?: string | null | undefined;
-		readonly exit_reason?: string | null | undefined;
+		readonly exit_ground?: string | null | undefined;
 		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
 		/** The departure inputs actually recorded, where `exit_facts` carries declared defaults (`stint`). */
 		readonly exit_fact_keys?: readonly string[] | undefined;
@@ -364,6 +421,8 @@ export type PersonInput = {
 		readonly weather_dependent_piece?: boolean | null | undefined;
 		readonly worksite?: string | null | undefined;
 		readonly worksite_sector?: string | null | undefined;
+		/** The establishment the terms are worked at (`worksite.*`). */
+		readonly worksite_id?: string | null | undefined;
 		readonly department?: string | null | undefined;
 		readonly payroll_group?: string | null | undefined;
 		readonly paid_rest_days?: boolean | null | undefined;
@@ -395,7 +454,10 @@ export type PersonInput = {
 		readonly headcount_citizens?: number | null | undefined;
 		readonly pay_frequency?: string | null | undefined;
 		readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
+		readonly [DATED]?: DatedCompany | undefined;
 	} | null;
+	/** A work day's own worksite, where it names one other than the terms'. */
+	readonly worksiteId?: string | null | undefined;
 	/** The statutory wage comparand this run derived, where one is known. */
 	readonly statutoryWages?: number | null | undefined;
 	/** The region's minimum wage where the wages order covers this person; 0 when it does not. */
@@ -586,7 +648,7 @@ export function personContext(input: PersonInput): PersonContext {
 	// The recorded end is the contract's stated term only while nothing cut the stint short: a
 	// resignation, dismissal or other early exit ends an indefinite contract without giving it a
 	// term (Labour Code 2019 art.20(1)(a)), and the model records no other term.
-	const reason = input.employment.exit_reason ?? '';
+	const reason = input.employment.exit_ground ?? '';
 	const fixedTerm =
 		exit !== '' &&
 		start !== '' &&
@@ -604,7 +666,13 @@ export function personContext(input: PersonInput): PersonContext {
 	// Event indices address the append-only stored array. Date filtering must not renumber it.
 	const selected = input.children?.[decodeNumber(input.event?.child_index ?? 0) - 1];
 	const named = selected != null && children.includes(selected) ? selected : undefined;
+	const personal = input.employee?.[DATED]?.facts?.(day, input.employment.id);
+	const worksiteId = input.worksiteId ?? input.terms?.worksite_id;
+	const site = worksiteId == null ? null : input.company?.[DATED]?.worksite(worksiteId, day);
 	return {
+		[TABLES]: input.company?.[DATED]?.tables(day),
+		[HISTORY]: input.employee?.[DATED]?.history,
+		history: {},
 		employee: {
 			gender: input.employee?.gender ?? '',
 			age: born === '' ? 0 : completedYears(born, input.asOf),
@@ -633,7 +701,14 @@ export function personContext(input: PersonInput): PersonContext {
 			// every April payroll — day-exact counting held it in year one until May.
 			residency_months:
 				residency === '' || residency > input.asOf ? 0 : wholeMonthsBetween(residency, input.asOf),
-			...presenceOn(input.presence, input.asOf, { start, exit })
+			...presenceOn(input.presence, input.asOf, { start, exit }),
+			facts: personal?.facts ?? {},
+			fact_keys: personal?.fact_keys ?? []
+		},
+		worksite: {
+			code: site?.code ?? '',
+			region: site?.region ?? '',
+			facts: scalarFacts(site?.facts)
 		},
 		employment: {
 			type: input.terms?.employment_type ?? '',
@@ -652,7 +727,7 @@ export function personContext(input: PersonInput): PersonContext {
 			open_ended: !fixedTerm,
 			contract_months: !fixedTerm || exit < start ? 0 : completedMonths(start, addDays(exit, 1)),
 			contract_days: !fixedTerm || exit < start ? 0 : inclusiveDays(start, exit),
-			exit_reason: input.employment.exit_reason ?? '',
+			exit_ground: input.employment.exit_ground ?? '',
 			exit_facts: scalarFacts(input.employment.exit_facts),
 			exit_fact_keys:
 				input.employment.exit_fact_keys ?? Object.keys(input.employment.exit_facts ?? {}),
@@ -817,7 +892,7 @@ export function personContext(input: PersonInput): PersonContext {
  * age, service, notice and rounding functions, so what `compile.ts` accepts at write time is what evaluates here.
  */
 function evaluate(expression: string, context: PersonContext): unknown {
-	return programFor(expression)(context);
+	return evaluateUnderBound(expression, context);
 }
 
 /** A number over the person: a leave ladder's `days`, a wages order's `scale`. */

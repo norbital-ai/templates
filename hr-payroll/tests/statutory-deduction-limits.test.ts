@@ -231,7 +231,7 @@ test('MY and VN monthly deduction limits retain unused room and prior deductions
 				accumulation: accumulatePayslip({
 					items: [line('BASIC', 2000), line('DAMAGE', 300, 'DEDUCTION')]
 				}),
-				charged: new Map([['SI', { employee: 200, employer: 0, directed: 50 }]])
+				charged: new Map([['SI', { employee: 250, employer: 0 }]])
 			};
 			// MY: 4,000 x 50% - (250 + 200 statutory) - 300 already recovered = 1,250.
 			// VN: (4,000 - 250 - 200) x 30% - 300 = 765; union dues are not a base deduction.

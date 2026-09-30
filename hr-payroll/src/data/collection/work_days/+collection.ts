@@ -57,6 +57,7 @@ import {
 import { resolveFactValues } from '../../../lib/declared-facts.js';
 import type { FactKey } from '../../../lib/datatypes/fact_keys.js';
 import * as Predicate from 'effect/Predicate';
+import { worksiteFault } from '../worksites/lib/in-force.js';
 
 const columns = [
 	'employment_id',
@@ -68,6 +69,7 @@ const columns = [
 	'comparable_full_time_daily_hours',
 	'incentive_hours',
 	'worksite',
+	'worksite_id',
 	'piece_units',
 	'piece_unit_rate',
 	'requested_by',
@@ -1028,6 +1030,31 @@ c.transform(async (inputs, ctx) => {
 		}
 	}
 
+	// A day worked away from the terms' worksite names one of its company's, in force that day.
+	const siteIds = [
+		...new Set(
+			inputs.flatMap((input, index) => {
+				const id = '$delete' in input ? null : (input.worksite_id ?? existing[index]?.worksite_id);
+				return id == null ? [] : [id];
+			})
+		)
+	];
+	const named =
+		siteIds.length === 0
+			? []
+			: (await db.read('worksites', { where: { id: { in: siteIds } }, all: true })).rows;
+	const sites =
+		named.length === 0
+			? []
+			: (
+					await db.read('worksites', {
+						where: {
+							company_id: { in: [...new Set(named.map((site) => site.company_id))] },
+							code: { in: [...new Set(named.map((site) => site.code))] }
+						},
+						all: true
+					})
+				).rows;
 	const assignments: Parameters<typeof assertNoOverlap>[1][number][] = [];
 	for (const [index, row] of inputs.entries()) {
 		const input = row as Write;
@@ -1076,6 +1103,11 @@ c.transform(async (inputs, ctx) => {
 					.flatMap((version) => version.work_day_facts ?? [])
 			);
 			if (fault != null) refuse(fault, { field: 'facts' });
+		}
+		const worksiteId = input.worksite_id !== undefined ? input.worksite_id : stored?.worksite_id;
+		if (worksiteId != null) {
+			const fault = worksiteFault(sites, worksiteId, companyOf(employmentId)?.id, workDate);
+			if (fault != null) refuse(fault, { field: 'worksite_id' });
 		}
 		// The version's person-day protections a write can judge: no incentive hours where the version
 		// refuses them, consent (or its exception) for a planned occasion, and every day rule that

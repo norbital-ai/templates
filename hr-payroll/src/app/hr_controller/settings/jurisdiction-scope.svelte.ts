@@ -10,9 +10,8 @@ import { t } from '../../../lib/ui/t.js';
  * of the same law were invisible from the control that was supposedly scoping them.
  *
  * The scope is a grouped list now. A group is a lineage — the country code and the name its
- * newest version carries — and its options are that lineage's versions, each identified by its
- * snapshot id `<code>_<rolling index>` (`MY_1`, `MY_2`, …) with its effective range as the
- * description and its state badge. Only a version is an option: a lineage is a family of snapshots,
+ * newest version carries — and its options are that lineage's versions, each named by its
+ * effective range with its state badge as the description. Only a version is an option: a lineage is a family of snapshots,
  * and "the MY settings" is not a thing the page can show.
  */
 import { bolt } from '$bolt';
@@ -88,27 +87,15 @@ export function resolveJurisdictionScope(
 }
 
 /**
- * The snapshot id of the row at `offset` in a lineage's newest-first version list: `<code>_<index>`
- * counts from the oldest, so `MY_1` is the first version the lineage ever sealed and a successor
- * extends the roll without renumbering an identifier an operator already saw.
- */
-export const snapshotId = (code: string, rows: readonly unknown[], offset: number): string =>
-	`${code}_${rows.length - offset}`;
-
-/**
  * The grouped options the header's combobox lists: one group per lineage, one option per version,
- * newest first, the description naming the version's range and state so the one in force reads at a glance.
- *
- * A version is identified by its snapshot id, `<code>_<rolling index>` — `MY_1` is the first
- * version the lineage ever sealed and the index rolls forward with each successor — with its
- * effective range beside it: the id names the snapshot, the range says when it was the law.
+ * newest first, each named by its effective range with its state beside it, so the one in force reads at a glance.
  */
 export function jurisdictionOptions(
 	versions: Versions
 ): ComboboxOption<Id<'jurisdiction_settings'>>[] {
 	const today = todayKey();
 	return lineages(versions).flatMap(([code, rows]) =>
-		rows.map((row, offset) => {
+		rows.map((row) => {
 			const inForce = isInForceCandidate(row) && coversDay(row.effective_range, today);
 			const [icon, badge] =
 				row.voided_at != null
@@ -118,12 +105,11 @@ export function jurisdictionOptions(
 						: row.sealed_at != null
 							? (['lucide:lock', t('app.settings.version_sealed')] as const)
 							: (['lucide:pencil', t('app.settings.version_draft')] as const);
-			const snapshot = snapshotId(code, rows, offset);
 			const range = formatSettingsRange(row.effective_range);
 			return {
 				value: row.id,
-				label: snapshot,
-				description: `${range} · ${badge}`,
+				label: range,
+				description: badge,
 				group: `${rows[0]?.name ?? code} · ${code}`,
 				icon,
 				keywords: `${code} ${rows[0]?.name ?? ''} ${range}`

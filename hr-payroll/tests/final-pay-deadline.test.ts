@@ -8,7 +8,7 @@ const warningsFor = (code: 'SG' | 'PH' | 'TW', reason: string, exit: string) =>
 		period: exit.slice(0, 7),
 		// TW prices 職災 on the entity's industry class and refuses without one.
 		riskClass: code === 'TW' ? '1' : null,
-		people: [{ key: 'LEAVER', wage: 6000, exit_date: exit, exit_reason: reason }]
+		people: [{ key: 'LEAVER', wage: 6000, exit_date: exit, exit_ground: reason }]
 	}).warnings;
 
 test('SG: a resignation is due within seven days and the warning names s.23(2)', () => {
@@ -31,7 +31,7 @@ test('SG: an employer termination is due on the last day unless same-day payment
 		{
 			code: 'SG',
 			period: '2026-01',
-			people: [{ key: 'LEAVER', wage: 6000, exit_date: '2026-01-10', exit_reason: 'REDUNDANCY' }]
+			people: [{ key: 'LEAVER', wage: 6000, exit_date: '2026-01-10', exit_ground: 'REDUNDANCY' }]
 		},
 		(world) => {
 			world.employments[0]!.exit_facts.final_pay_not_possible = true;

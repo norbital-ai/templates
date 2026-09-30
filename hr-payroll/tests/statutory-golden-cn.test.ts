@@ -814,7 +814,7 @@ test('Shanghai — a mid-month joiner and a leaver on the 21.75-day conversion (
 		companyFacts: SH_2026_FACTS,
 		people: [
 			person('SH-JOINER', 22_000, { hire_date: '2026-01-19', hf: { first_ever_account: true } }),
-			person('SH-LEAVER', 22_000, { exit_date: '2026-01-15', exit_reason: 'RESIGNATION' })
+			person('SH-LEAVER', 22_000, { exit_date: '2026-01-15', exit_ground: 'RESIGNATION' })
 		]
 	});
 	// 22,000 ÷ 21.75 a paid day. Joiner on Monday 19 January: 10 working days → 10,114.942… →
@@ -1001,7 +1001,7 @@ function annualLeaveOnExit(
 					...(code === KM ? { base: 21_000 } : {}),
 					hire_date: '2019-01-01',
 					exit_date: exit,
-					exit_reason: 'RESIGNATION'
+					exit_ground: 'RESIGNATION'
 				})
 			]
 		},
@@ -1492,8 +1492,8 @@ test('Shanghai — final pay is due on the exit day; a month-end run pays a mid-
 		region: 'SHANGHAI',
 		companyFacts: SH_2026_FACTS,
 		people: [
-			person('SH-MID', 22_000, { exit_date: '2026-01-15', exit_reason: 'RESIGNATION' }),
-			person('SH-END', 22_000, { exit_date: '2026-01-31', exit_reason: 'RESIGNATION' })
+			person('SH-MID', 22_000, { exit_date: '2026-01-15', exit_ground: 'RESIGNATION' }),
+			person('SH-END', 22_000, { exit_date: '2026-01-31', exit_ground: 'RESIGNATION' })
 		]
 	});
 	const late = warnings.filter((line) => line.startsWith('FINAL_PAY_LATE'));
@@ -1514,8 +1514,8 @@ test('Kunming — final pay within five working days of the end of the relations
 		region: 'CATEGORY_I',
 		companyFacts: KM_2026_FACTS,
 		people: [
-			person('KM-MID', 21_000, { exit_date: '2026-01-15', exit_reason: 'RESIGNATION' }),
-			person('KM-LATE-MONTH', 21_000, { exit_date: '2026-01-27', exit_reason: 'RESIGNATION' })
+			person('KM-MID', 21_000, { exit_date: '2026-01-15', exit_ground: 'RESIGNATION' }),
+			person('KM-LATE-MONTH', 21_000, { exit_date: '2026-01-27', exit_ground: 'RESIGNATION' })
 		]
 	});
 	const late = warnings.filter((line) => line.startsWith('FINAL_PAY_LATE'));
@@ -1537,7 +1537,7 @@ test('Kunming — a joiner and a leaver on the 21.75-day conversion, one unpaid 
 			companyFacts: KM_2026_FACTS,
 			people: [
 				person('KM-JOINER', 21_750, { hire_date: '2026-01-19', hf: { first_ever_account: true } }),
-				person('KM-LEAVER', 21_750, { exit_date: '2026-01-15', exit_reason: 'RESIGNATION' }),
+				person('KM-LEAVER', 21_750, { exit_date: '2026-01-15', exit_ground: 'RESIGNATION' }),
 				person('KM-NPL', 21_750),
 				person('KM-BONUS', 20_000),
 				person('KM-YEB', 20_000)
@@ -1749,7 +1749,7 @@ function severance(
 				person(leaver.key, leaver.wage, {
 					hire_date: leaver.hire,
 					exit_date: leaver.exit,
-					exit_reason: leaver.ground === 'ART_41' ? 'REDUNDANCY' : 'MUTUAL',
+					exit_ground: leaver.ground === 'ART_41' ? 'REDUNDANCY' : 'MUTUAL',
 					...(leaver.base == null ? {} : { base: leaver.base }),
 					...(leaver.hfBase == null ? {} : { hfBase: leaver.hfBase })
 				})
@@ -2270,8 +2270,10 @@ function maternityMonth(
 					reference: `ML-${index}`,
 					from_date: entry.from,
 					to_date: entry.to,
-					event_kind: 'BIRTH',
-					event_date: entry.from,
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: entry.from
+					},
 					half_day_start: false,
 					half_day_end: false,
 					days: dates.length,
@@ -2972,7 +2974,7 @@ test('both cities — an early-retirement subsidy is spread over the actual year
 					person(key, 20_000, {
 						hire_date: '2010-01-01',
 						exit_date: '2026-06-30',
-						exit_reason: 'RETIREMENT'
+						exit_ground: 'RETIREMENT'
 					})
 				]
 			},

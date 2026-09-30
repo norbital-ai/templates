@@ -160,7 +160,8 @@ const monthEnd = (ym: string) => {
 };
 const ymOf = (s: string) => s.slice(0, 7);
 const nextYm = (ym: string) => ymOf(addDays(monthEnd(ym), 1));
-const daysBetween = (a: string, b: string) => Math.round((day(b).getTime() - day(a).getTime()) / 86400000);
+const daysBetween = (a: string, b: string) =>
+	Math.round((day(b).getTime() - day(a).getTime()) / 86400000);
 
 export type DayType = 'WORKDAY' | 'REST' | 'HOLIDAY';
 /** Labour Law art.44 day classes on the dated calendar above. */
@@ -265,7 +266,10 @@ function overtimePay(W: bigint, list: Scenario['month']['overtime']) {
 function wholeMonths(from: string, toExclusive: string) {
 	if (toExclusive <= from) return 0;
 	const span = serviceSpan(from, toExclusive);
-	if (span.days !== 0) throw new Error(`oracle: ${from}–${toExclusive} is not whole months; part months are not transcribed`);
+	if (span.days !== 0)
+		throw new Error(
+			`oracle: ${from}–${toExclusive} is not whole months; part months are not transcribed`
+		);
 	return span.months;
 }
 const addMonths = (iso0: string, n: number) => {
@@ -283,7 +287,14 @@ function contributionYear(ym: string): 2025 | 2026 {
 }
 
 function month(s: Scenario, ym: string, isPeriod: boolean): Month {
-	const out: Month = { components: {}, wageIncome: 0n, si: {}, separate: {}, warnings: [], unpriced: [] };
+	const out: Month = {
+		components: {},
+		wageIncome: 0n,
+		si: {},
+		separate: {},
+		warnings: [],
+		unpriced: []
+	};
 	const e = s.employment;
 	const from = e.hireDate > monthStart(ym) ? e.hireDate : monthStart(ym);
 	const exit = isPeriod ? e.exitDate : null;
@@ -301,7 +312,10 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 		// LCL art.68/72 (CN-N27): hourly pay; 沪人社规〔2025〕10号 hourly floor CNY25 (CN-SH01).
 		const rate = cents(e.hourlyWage ?? 0);
 		if (rate < MIN_HOURLY)
-				out.refused = { code: 'MINIMUM_WAGE_HOURLY', rows: ['CN-SH01.hourly-floor', 'CN-N27.hourly-minimum', 'CN-N50.floor-test'] };
+			out.refused = {
+				code: 'MINIMUM_WAGE_HOURLY',
+				rows: ['CN-SH01.hourly-floor', 'CN-N27.hourly-minimum', 'CN-N50.floor-test']
+			};
 		const h = q(s.month.partTimeHours);
 		add('BASIC', div(rate * h.n, h.d));
 	} else if (wholeMonth) {
@@ -310,7 +324,8 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 		// DEFAULT (CN-N02, recorded): a part month pays its working days at the 21.75-day wage. 人社部发〔2025〕2号
 		// fixes only the day-wage divisor; the calendar here is exact only in a month without 调休, so the oracle
 		// refuses to guess elsewhere.
-		if (!plainMonth(ym)) throw new Error(`oracle: part month ${ym} has holidays or 调休; not transcribed`);
+		if (!plainMonth(ym))
+			throw new Error(`oracle: part month ${ym} has holidays or 调休; not transcribed`);
 		add('BASIC', div(W * BigInt(workdays(from, to)) * PAID_DAYS.d, PAID_DAYS.n));
 	}
 	if (isPeriod && s.month.unpaidLeaveDays > 0) {
@@ -333,7 +348,8 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 		// 沪人社规〔2019〕19号 (CN-SH19, N26): CNY300/month, June–September, for exposed work; wages, taxed; outside the
 		// minimum-wage comparison (CN-SH01). A higher contract figure is paid as agreed.
 		const m = Number(ym.slice(5));
-		if (m >= 6 && m <= 9) add('HEAT_ALLOWANCE', cents(Math.max(300, s.month.heatAllowanceContract)));
+		if (m >= 6 && m <= 9)
+			add('HEAT_ALLOWANCE', cents(Math.max(300, s.month.heatAllowanceContract)));
 	}
 	if (isPeriod && s.month.bonus > 0) add('BONUS', cents(s.month.bonus)); // CN-N53: contractual; wages (CN-N10)
 	if (isPeriod)
@@ -349,7 +365,8 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 	// ── Maternity (CN-N20.insured-benefit-or-wage; CN-SH21 to 30 Jun 2026, CN-SH14 from 1 Jul 2026) ──
 	const mat = isPeriod ? s.month.maternity : undefined;
 	if (mat !== undefined) {
-		if (mat.from > monthStart(ym) || mat.to < monthEnd(ym)) throw new Error('oracle: a part month of maternity is not transcribed');
+		if (mat.from > monthStart(ym) || mat.to < monthEnd(ym))
+			throw new Error('oracle: a part month of maternity is not transcribed');
 		// SH21 / SH14 item 4: the allowance paid to the worker offsets the leave wage; the employer pays the shortfall.
 		// RECORDED: the allowance for this month's leave days is the agency's determination (unit average bounded to
 		// 60–300% of the city average ÷ 30 × days), carried by the scenario.
@@ -359,11 +376,22 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 		// fund pays months/12 and the employer advances the rest. DEFAULT: the advance is the insurance allowance itself,
 		// so it stays untaxed (财税〔2008〕8号: 生育津贴 exempt) — not wage income.
 		if (mat.insuredMonthsCumulative < 12 && mat.insuredMonthsConsecutive < 9)
-			add('MATERNITY_BENEFIT_EMPLOYER', div(A * BigInt(12 - mat.insuredMonthsCumulative), 12n), false);
+			add(
+				'MATERNITY_BENEFIT_EMPLOYER',
+				div(A * BigInt(12 - mat.insuredMonthsCumulative), 12n),
+				false
+			);
 		// Item 4(2) (CN-*.above-cap-excess): the employer pays its average above 300% of the city average ÷ 30 × days.
 		// RECORDED: the monthly excess is the agency's figure. DEFAULT: employer-paid, so wage income.
 		if (mat.unitAverageExcessOverCap > 0)
-			add('MATERNITY_BENEFIT_EMPLOYER', div(cents(mat.unitAverageExcessOverCap) * BigInt(daysBetween(monthStart(ym), addDays(monthEnd(ym), 1))), 30n));
+			add(
+				'MATERNITY_BENEFIT_EMPLOYER',
+				div(
+					cents(mat.unitAverageExcessOverCap) *
+						BigInt(daysBetween(monthStart(ym), addDays(monthEnd(ym), 1))),
+					30n
+				)
+			);
 	}
 
 	// ── Contract claims settled this period (LCL arts.19–20, 70, 82–83; Regulation arts.6–7, 15) ──
@@ -372,7 +400,8 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 		// Art.19 (CN-N41.probation-*): no probation under a 3-month term or for non-full-time work (art.70); 3 months to
 		// under 1 year → 1 month; 1 to under 3 years → 2; 3 years or open-ended → 6.
 		const t = c.probation.termMonths;
-		const limit = e.kind === 'PART_TIME' ? 0 : t === null ? 6 : t < 3 ? 0 : t < 12 ? 1 : t < 36 ? 2 : 6;
+		const limit =
+			e.kind === 'PART_TIME' ? 0 : t === null ? 6 : t < 3 ? 0 : t < 12 ? 1 : t < 36 ? 2 : 6;
 		// Art.83 (CN-N12.probation, N19.probation-limits): damages at the post-probation monthly wage for each month
 		// served beyond the limit. DEFAULT: paid through payroll as income connected with employment (wage income).
 		const excess = Math.max(0, c.probation.servedMonths - limit);
@@ -395,7 +424,10 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 	if (c.openEnded !== undefined) {
 		// Art.82 para.2 (CN-N41.open-ended-second-wage): a second wage from the day an open-ended contract was due until it
 		// is concluded. The due day is recorded, not derived. DEFAULT: wage income.
-		add('OPEN_ENDED_CONTRACT_WAGE', W * BigInt(wholeMonths(c.openEnded.dueOn, c.openEnded.concludedOn)));
+		add(
+			'OPEN_ENDED_CONTRACT_WAGE',
+			W * BigInt(wholeMonths(c.openEnded.dueOn, c.openEnded.concludedOn))
+		);
 	}
 	const ir = isPeriod ? s.month.internalRetirement : undefined;
 	if (ir !== undefined) {
@@ -409,11 +441,17 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 	const pensioner = s.worker.pensionRecipient; // CN-N13, SH41 art.21: a pension recipient is outside SI and fund
 	if (e.kind === 'PART_TIME') {
 		// 劳社部发〔2003〕12号: a non-full-time employer owes work-injury insurance; its Shanghai base is not in the tracker.
-		out.unpriced.push({ row: 'CN-N27.injury-cover', what: 'INJURY for a non-full-time worker (base not transcribed)' });
+		out.unpriced.push({
+			row: 'CN-N27.injury-cover',
+			what: 'INJURY for a non-full-time worker (base not transcribed)'
+		});
 	} else if (pensioner) {
 		// CN-SH25.post-retirement-workers: 沪人社规〔2025〕22号 offers a separate work-injury-only enrolment; whether this
 		// employer enrolled, and at what floating rate, is not transcribed.
-		out.unpriced.push({ row: 'CN-SH25.post-retirement-workers', what: 'INJURY for a pensioned retiree (separate enrolment)' });
+		out.unpriced.push({
+			row: 'CN-SH25.post-retirement-workers',
+			what: 'INJURY for a pensioned retiree (separate enrolment)'
+		});
 	} else {
 		const year = contributionYear(ym);
 		const [lo, hi] = SI_BOUNDS[year];
@@ -467,9 +505,15 @@ function month(s: Scenario, ym: string, isPeriod: boolean): Month {
 			0n
 		);
 		if (W - ee < MIN_MONTHLY)
-			out.refused = { code: 'MINIMUM_WAGE', rows: ['CN-SH01.below-floor-refusal', 'CN-N50.floor-test'] };
+			out.refused = {
+				code: 'MINIMUM_WAGE',
+				rows: ['CN-SH01.below-floor-refusal', 'CN-N50.floor-test']
+			};
 	} else if (e.kind === 'FULL_TIME') {
-		out.unpriced.push({ row: 'CN-SH01.net-of-employee-contributions', what: 'minimum-wage test on a part month or with unpaid leave' });
+		out.unpriced.push({
+			row: 'CN-SH01.net-of-employee-contributions',
+			what: 'minimum-wage test on a part month or with unpaid leave'
+		});
 	}
 
 	if (isPeriod) exitPay(s, ym, out, W);
@@ -487,7 +531,9 @@ function exitPay(s: Scenario, ym: string, out: Month, W: bigint) {
 	const span = serviceSpan(e.hireDate, end);
 	const hiredThisMonth = ymOf(e.hireDate) === ym;
 	if (!hiredThisMonth && !e.hireDate.endsWith('-01'))
-		throw new Error('oracle: an average over a part first month is not transcribed; hire on the 1st');
+		throw new Error(
+			'oracle: an average over a part first month is not transcribed; hire on the 1st'
+		);
 	// Implementing Regulation art.27 (CN-N19.severance-wage-base): the monthly wage is the wage due, bonus and allowances
 	// included, averaged over the 12 months before the end (LCL art.47: the actual months if under 12). With every such
 	// month a whole month at the contract wage, the average is the contract wage. DEFAULT (CN-SH-A2.art47-average): hired
@@ -498,14 +544,17 @@ function exitPay(s: Scenario, ym: string, out: Month, W: bigint) {
 		// The window is the 12 months ending with the exit month; the scenario exits on its last day, hired ≥ 12 months
 		// before, so every month in it is a whole month (the ones before the tax year at the contract wage alone).
 		if (e.exitDate !== monthEnd(ym) || serviceSpan(e.hireDate, end).months < 12)
-			throw new Error('oracle: an average with earlier pay needs a month-end exit after ≥ 12 months');
+			throw new Error(
+				'oracle: an average with earlier pay needs a month-end exit after ≥ 12 months'
+			);
 		for (const x of s.earlier) {
 			const bonus = cents(x.bonus ?? 0);
 			window.leave += bonus;
 			window.sev += bonus + (x.overtime ? overtimePay(W, x.overtime).pay : 0n);
 		}
 	}
-	const floorAvg = (sum: bigint): Q => (sum < MIN_MONTHLY * 12n ? { n: MIN_MONTHLY, d: 1n } : { n: sum, d: 12n });
+	const floorAvg = (sum: bigint): Q =>
+		sum < MIN_MONTHLY * 12n ? { n: MIN_MONTHLY, d: 1n } : { n: sum, d: 12n };
 	const avgSev = floorAvg(window.sev);
 	const avgLeave = floorAvg(window.leave);
 
@@ -577,7 +626,10 @@ function exitPay(s: Scenario, ym: string, out: Month, W: bigint) {
 	// 财税〔2018〕164号 item 5(1) (CN-N39.termination-lump-sum): exempt up to 3 × the local prior-year average annual wage (36 × the monthly
 	// figure, DEFAULT CN-SH50 series); the excess taxed alone on the annual table, outside comprehensive income.
 	if (!s.worker.taxResident) {
-		out.unpriced.push({ row: 'CN-N39.termination-lump-sum', what: 'termination lump sum of a non-resident' });
+		out.unpriced.push({
+			row: 'CN-N39.termination-lump-sum',
+			what: 'termination lump sum of a non-resident'
+		});
 		return;
 	}
 	out.separate.IIT_SEVERANCE = { base: pay, ee: tableTax(ANNUAL_TABLE, max0(pay - 36n * city)) };
@@ -609,7 +661,8 @@ function annualBonus(s: Scenario, out: Month) {
 export function runsFor(s: Scenario): string[] {
 	const yearStart = `${s.period.slice(0, 4)}-01`;
 	let ym = ymOf(s.employment.hireDate) > yearStart ? ymOf(s.employment.hireDate) : yearStart;
-	if (ym < '2025-12') throw new Error(`oracle: ${s.id} needs a ${ym} run before the transcribed range`);
+	if (ym < '2025-12')
+		throw new Error(`oracle: ${s.id} needs a ${ym} run before the transcribed range`);
 	const out: string[] = [];
 	for (; ym <= s.period; ym = nextYm(ym)) out.push(ym);
 	return out;
@@ -677,10 +730,7 @@ export function computePayslip(s: Scenario): Expected {
 				: (s.tax.firstWageIncomeThisYear ? monthNo : n) * BASIC_EXPENSE;
 			const upto = months.slice(0, i + 1);
 			const income = upto.reduce((t, x) => t + x.wageIncome, 0n);
-			const ee = upto.reduce(
-				(t, x) => t + Object.values(x.si).reduce((u, c) => u + c.ee, 0n),
-				0n
-			);
+			const ee = upto.reduce((t, x) => t + Object.values(x.si).reduce((u, c) => u + c.ee, 0n), 0n);
 			const taxable = income - basic - ee - special * n;
 			// Period tax = cumulative taxable × rate − QD − tax already withheld, never below zero (no refund).
 			const tax = max0(tableTax(ANNUAL_TABLE, taxable) - withheld);
@@ -696,7 +746,8 @@ export function computePayslip(s: Scenario): Expected {
 	for (const [code, c] of Object.entries(now.components)) result.components[code] = yuan(c);
 	for (const [code, c] of Object.entries(now.si))
 		result.statutory[code] = { base: yuan(c.base), employee: yuan(c.ee), employer: yuan(c.er) };
-	if (iit > 0n) result.statutory.IIT = { base: yuan(now.wageIncome), employee: yuan(iit), employer: 0 };
+	if (iit > 0n)
+		result.statutory.IIT = { base: yuan(now.wageIncome), employee: yuan(iit), employer: 0 };
 	for (const [code, c] of Object.entries(now.separate))
 		result.statutory[code] = { base: yuan(c.base), employee: yuan(c.ee), employer: 0 };
 

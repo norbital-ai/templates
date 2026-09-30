@@ -8,7 +8,7 @@ export default model({
 	description:
 		"One person's settlement for one run. Contracted base, the proration segments the calendar produced, the statutory charges over their sum and every adjustment one captured input caused are held here. Year-to-date is a SUM over payslips, never a stored column.",
 	icon: 'lucide:receipt',
-	label: ['currency', 'net'],
+	label: 'net',
 	fields: {
 		/** The latest contract date this settlement consumed; terms through it are frozen. */
 		terms_through: { kind: 'date' },

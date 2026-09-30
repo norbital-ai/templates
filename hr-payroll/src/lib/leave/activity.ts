@@ -32,6 +32,7 @@ import { evaluatePersonNumber, isEligible } from '../../lib/payroll/run/eligibil
 import {
 	emptyActivityFields,
 	leaveActivityOf,
+	leaveEventOf,
 	type LeaveActivityKind,
 	type LeaveEntryActivity
 } from './activity-fields.js';
@@ -174,22 +175,23 @@ export function planLeaveActivity(
 	id: string,
 	entries: readonly LeaveActivity[] = context.entries
 ) {
+	// The event the entry answers to, as its declared facts record it (`leave_catalogue.event_facts`).
+	const event = leaveEventOf(input);
 	const rules = leaveRules(
 		context,
 		input.employment_id,
 		input.catalogue_id,
-		input.event_kind == null &&
-			input.event_relationship == null &&
-			input.event_child_index == null &&
-			input.event_wife_prior_living_biological_children == null
+		event.kind == null &&
+			event.relationship == null &&
+			event.child_index == null &&
+			event.wife_prior_living_biological_children == null
 			? undefined
 			: {
-					kind: input.event_kind ?? null,
-					relationship: input.event_relationship ?? null,
-					child_index: input.event_child_index ?? null,
-					wife_prior_living_biological_children:
-						input.event_wife_prior_living_biological_children ?? null,
-					date: input.event_date ?? null
+					kind: event.kind,
+					relationship: event.relationship,
+					child_index: event.child_index,
+					wife_prior_living_biological_children: event.wife_prior_living_biological_children,
+					date: event.date
 				}
 	);
 	if (!input.reference.trim()) refuse('A leave entry needs a unique supporting reference.');
@@ -221,13 +223,7 @@ export function planLeaveActivity(
 		available_from: input.available_from ?? null,
 		expires_on: input.expires_on ?? null,
 		reason: input.reason ?? null,
-		event_kind: input.event_kind ?? null,
-		event_relationship: input.event_relationship ?? null,
-		event_child_index: input.event_child_index ?? null,
-		event_wife_prior_living_biological_children:
-			input.event_wife_prior_living_biological_children ?? null,
-		event_date: input.event_date ?? null,
-		agreed_pay_fraction: input.agreed_pay_fraction ?? null
+		facts: input.facts ?? {}
 	};
 	const charges: LeaveCharge[] = [];
 	const allocations: LeaveAllocation[] = [];
@@ -496,21 +492,21 @@ export function planLeaveActivity(
 				(row) => row.case_type === rules.selected.code
 			);
 			const benefitCase =
-				caseType == null || fields.event_date == null
+				caseType == null || event.date == null
 					? undefined
 					: context.benefitCases?.find(
 							(row) =>
 								row.employment_id === input.employment_id &&
 								row.case_type === caseType.case_type &&
-								row.event_kind === (fields.event_kind ?? null) &&
-								dateKey(row.event_on) === dateKey(fields.event_date)
+								row.event_kind === event.kind &&
+								dateKey(row.event_on) === event.date
 						);
 			const person = rules.personOn(first.date, {
-				kind: fields.event_kind,
-				relationship: fields.event_relationship,
-				child_index: fields.event_child_index,
-				wife_prior_living_biological_children: fields.event_wife_prior_living_biological_children,
-				date: fields.event_date,
+				kind: event.kind,
+				relationship: event.relationship,
+				child_index: event.child_index,
+				wife_prior_living_biological_children: event.wife_prior_living_biological_children,
+				date: event.date,
 				case:
 					caseType == null || benefitCase == null
 						? null
@@ -519,7 +515,7 @@ export function planLeaveActivity(
 									caseType,
 									benefitCase,
 									evidenceOf(context.benefitEvidence ?? [], benefitCase.id)
-								).facts
+								).case.facts
 							}
 			});
 			const granted = grantedDays(rule, person);
@@ -528,10 +524,10 @@ export function planLeaveActivity(
 			// Twins are one birth (MSF: multiple births carry one entitlement), so the event is its
 			// kind, relationship and date, not the child; an entry that names no date is its own event.
 			const sameEvent = (row: LeaveActivity) =>
-				fields.event_date != null &&
-				row.event_kind === (fields.event_kind ?? null) &&
-				(caseType != null || row.event_relationship === (fields.event_relationship ?? null)) &&
-				dateKey(row.event_date) === dateKey(fields.event_date);
+				event.date != null &&
+				leaveEventOf(row).kind === event.kind &&
+				(caseType != null || leaveEventOf(row).relationship === event.relationship) &&
+				leaveEventOf(row).date === event.date;
 			const eventCharges = activeTimeOff(sameLeave)
 				.filter(
 					(row) =>
@@ -646,7 +642,7 @@ export function planLeaveActivity(
 					`${rules.selected.code} without an employee request needs its lawful pay and service basis assessed.`
 				);
 			if (
-				fields.event_date == null &&
+				event.date == null &&
 				daysBetween(range.start.date, range.end.date).some(
 					(date) => rules.catalogueOn(date).entitlement.availability === 'PER_EVENT'
 				)
@@ -750,11 +746,11 @@ export function planLeaveActivity(
 				});
 			}
 			if (charges.length === 0) refuse('The range contains no eligible scheduled work time.');
-			if (fields.event_date != null) {
+			if (event.date != null) {
 				const eventDates = [
 					...charges.map((charge) => charge.date),
 					...activeTimeOff(sameLeave)
-						.filter((row) => dateKey(row.event_date) === dateKey(fields.event_date))
+						.filter((row) => leaveEventOf(row).date === event.date)
 						.flatMap((row) => row.charges.map((charge) => charge.date))
 				];
 				for (const charge of charges) {

@@ -160,8 +160,8 @@ records payment events and settlements outside a contract.
 
 ![Settings: a country rules version](images/13-settings.png)
 
-Pick a country version at the top: each is named by country and a number, marked in force, sealed,
-draft or voided.
+Pick a country version at the top: each country lists its versions by the dates they govern, marked
+in force, sealed, draft or voided.
 
 - **General**: currency, time zone, tax year, work rules and the official sources.
 - **Statutory contributions**: the schemes (for Singapore: CPF, SDL, CDAC, ECF, MBMF, SINDA) and
@@ -169,6 +169,7 @@ draft or voided.
 - **Catalog**: leave types, claim, loan, allowance and ad hoc classes.
 - **Compare snapshots**: what changed between two versions.
 
+**New version**, **Seal version** and **Void version** sit in the header of the **General** tab.
 **New version** starts a draft from the current one. Sealing a draft freezes it; **Void version**
 retires one. Both need approval.
 

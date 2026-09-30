@@ -34,16 +34,6 @@ export const sealedLineages = (codes: readonly string[]) =>
 		all: true
 	}) as const;
 
-/** The declared schemas a subject's `facts` are judged against, by the subject collection. */
-export const SUBJECT_SCHEMA = {
-	company_facts: 'facts',
-	employment_terms: 'terms_facts',
-	work_days: 'work_day_facts',
-	payment_events: 'payment_facts',
-	noncontract_settlements: 'settlement_facts'
-} as const;
-export type FactSubject = keyof typeof SUBJECT_SCHEMA;
-
 /**
  * One evidence row against the declarations of its subject's lineage: some declaration of the key
  * must demand evidence, and the row must carry what that declaration names. The refusal, or null.

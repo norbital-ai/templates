@@ -27,6 +27,7 @@ import {
 	buildStatutory,
 	chargeOf,
 	leaveCatalogue,
+	settingsIdOn,
 	settingsVersions
 } from './fixtures/statutory-world.ts';
 import { computedEntitlement } from '../src/lib/leave/entitlement.ts';
@@ -143,20 +144,19 @@ test('PH D15: RA 7641 reads its own fact — a small manufacturer still owes ret
 						age: 62,
 						hire_date: '2016-01-01',
 						exit_date: '2026-01-31',
-						exit_reason: 'RETIREMENT'
+						exit_ground: 'RETIREMENT'
 					}
 				]
 			},
 			(world) => {
 				world.company_facts![0]!.facts = facts;
-				const version = world.jurisdiction_settings.find((row) =>
-					String(row.effective_range.start).startsWith('2026-01-06')
-				)!;
+				// the catalogue of the version governing the final service day
+				const settingsId = settingsIdOn('PH', '2026-01-31');
 				world.adhoc_requests!.push({
 					id: 'a5000000-0000-4000-8000-000000000001',
 					employment_id: world.employments[0]!.id,
 					catalogue_id: world.adhoc_catalogue!.find(
-						(row) => row.code === 'RETIREMENT_PAY' && row.settings_id === version.id
+						(row) => row.code === 'RETIREMENT_PAY' && row.settings_id === settingsId
 					)!.id,
 					amount: 0,
 					event_date: '2026-01-31',

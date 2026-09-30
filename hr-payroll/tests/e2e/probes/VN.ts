@@ -1,4 +1,10 @@
-import { officeWeek, register, type ProbeCase, type ProbeInput, type Row } from '../payroll-probe.ts';
+import {
+	officeWeek,
+	register,
+	type ProbeCase,
+	type ProbeInput,
+	type Row
+} from '../payroll-probe.ts';
 
 /**
  * VN cases: see the case shape at the top of payroll-probe.ts. Every figure is computed by hand from the cited
@@ -132,7 +138,7 @@ function hire(p: Hire): ProbeInput[] {
 				effective_range: { from: p.from, to: p.to ?? null },
 				...(p.exitReason == null
 					? {}
-					: { exit_reason: p.exitReason, exit_facts: p.exitFacts ?? {} })
+					: { exit_ground: p.exitReason, exit_facts: p.exitFacts ?? {} })
 			}
 		},
 		...segments.map((segment): ProbeInput => ({
@@ -745,18 +751,22 @@ register(
 				reference: 'BRV-U-1',
 				from_date: '2026-03-10',
 				to_date: '2026-03-10',
-				event_kind: 'DEATH',
-				event_relationship: 'GRANDPARENT',
-				event_date: '2026-03-09',
+				facts: {
+					event_kind: 'DEATH',
+					event_relationship: 'GRANDPARENT',
+					event_date: '2026-03-09'
+				},
 				reason: 'Death of a grandparent'
 			}),
 			leave('nga_job', 'MARRIAGE_LEAVE', {
 				reference: 'MAR-1',
 				from_date: '2026-03-10',
 				to_date: '2026-03-12',
-				event_kind: 'MARRIAGE',
-				event_relationship: 'SELF',
-				event_date: '2026-03-10',
+				facts: {
+					event_kind: 'MARRIAGE',
+					event_relationship: 'SELF',
+					event_date: '2026-03-10'
+				},
 				reason: 'Own marriage'
 			}),
 			...hire({
@@ -790,27 +800,33 @@ register(
 				reference: 'MAR-C-1',
 				from_date: '2026-03-16',
 				to_date: '2026-03-16',
-				event_kind: 'MARRIAGE',
-				event_relationship: 'CHILD',
-				event_date: '2026-03-16',
+				facts: {
+					event_kind: 'MARRIAGE',
+					event_relationship: 'CHILD',
+					event_date: '2026-03-16'
+				},
 				reason: 'Child’s marriage'
 			}),
 			leave('quyen_job', 'BEREAVEMENT_LEAVE', {
 				reference: 'BRV-P-1',
 				from_date: '2026-03-17',
 				to_date: '2026-03-19',
-				event_kind: 'DEATH',
-				event_relationship: 'PARENT_IN_LAW',
-				event_date: '2026-03-17',
+				facts: {
+					event_kind: 'DEATH',
+					event_relationship: 'PARENT_IN_LAW',
+					event_date: '2026-03-17'
+				},
 				reason: 'Death of a spouse’s parent'
 			}),
 			leave('rang_job', 'BEREAVEMENT_LEAVE_UNPAID', {
 				reference: 'BRV-U-2',
 				from_date: '2026-03-20',
 				to_date: '2026-03-20',
-				event_kind: 'MARRIAGE',
-				event_relationship: 'SIBLING',
-				event_date: '2026-03-20',
+				facts: {
+					event_kind: 'MARRIAGE',
+					event_relationship: 'SIBLING',
+					event_date: '2026-03-20'
+				},
 				reason: 'Marriage of a sibling'
 			})
 		],
@@ -2187,7 +2203,10 @@ register(
 		'VN-MW293-04-3',
 		'2026-03',
 		'A Region I hourly contract at 25,000, under the 2026 hourly floor of 25,500, March 2026: the run is refused.',
-		[MW293_CITE, 'Decree 293/2025/ND-CP art.4(2): an hourly-paid worker is held to the hourly minimum wage'],
+		[
+			MW293_CITE,
+			'Decree 293/2025/ND-CP art.4(2): an hourly-paid worker is held to the hourly minimum wage'
+		],
 		25_000,
 		'HOURLY',
 		'P-VN-213',
@@ -2197,7 +2216,10 @@ register(
 		'VN-MW74-01-5',
 		'2025-12',
 		'A Region I hourly contract at 23,700, under the December 2025 hourly floor of 23,800: the run is refused.',
-		[MW74_CITE, 'Decree 74/2024/ND-CP art.4(2): an hourly-paid worker is held to the hourly minimum wage'],
+		[
+			MW74_CITE,
+			'Decree 74/2024/ND-CP art.4(2): an hourly-paid worker is held to the hourly minimum wage'
+		],
 		23_700,
 		'HOURLY',
 		'P-VN-214',
@@ -2207,7 +2229,10 @@ register(
 		'VN-MW74-01-6',
 		'2025-12',
 		'A Region I full-time monthly contract at 4,959,999, one đồng under the December 2025 floor: the run is refused.',
-		[MW74_CITE, 'Decree 74/2024/ND-CP art.4(1): a monthly-paid worker is paid at least the monthly minimum'],
+		[
+			MW74_CITE,
+			'Decree 74/2024/ND-CP art.4(1): a monthly-paid worker is paid at least the monthly minimum'
+		],
 		4_959_999,
 		'MONTHLY',
 		'P-VN-215',
@@ -2228,45 +2253,108 @@ register(
 		company: { ...company(), facts: { occupational_accident_reduced: true } },
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'kha', name: 'Kha Văn Ích', number: 'P-VN-231', born: '1990-01-01', salary: 20_000_000, from: '2025-06-02' }),
-			...hire({ ref: 'kim', name: 'Kim Văn Lợi', number: 'P-VN-232', born: '1981-01-01', salary: 60_000_000, from: '2025-06-02' })
+			...hire({
+				ref: 'kha',
+				name: 'Kha Văn Ích',
+				number: 'P-VN-231',
+				born: '1990-01-01',
+				salary: 20_000_000,
+				from: '2025-06-02'
+			}),
+			...hire({
+				ref: 'kim',
+				name: 'Kim Văn Lợi',
+				number: 'P-VN-232',
+				born: '1981-01-01',
+				salary: 60_000_000,
+				from: '2025-06-02'
+			})
 		],
 		period: '2026-03',
 		expected: [
 			{
 				employment: 'kha_job',
-				lines: slip(20_000_000, 17_780_000, 4_260_000, [1_600_000, 3_460_000], [300_000, 600_000], [200_000, 200_000], 120_000)
+				lines: slip(
+					20_000_000,
+					17_780_000,
+					4_260_000,
+					[1_600_000, 3_460_000],
+					[300_000, 600_000],
+					[200_000, 200_000],
+					120_000
+				)
 			},
 			{
 				employment: 'kim_job',
-				lines: slip(60_000_000, 50_563_200, 10_100_400, [3_744_000, 8_096_400], [702_000, 1_404_000], [600_000, 600_000], 4_390_800)
+				lines: slip(
+					60_000_000,
+					50_563_200,
+					10_100_400,
+					[3_744_000, 8_096_400],
+					[702_000, 1_404_000],
+					[600_000, 600_000],
+					4_390_800
+				)
 			}
 		]
 	},
 	...(
 		[
-			['VN-SI-05-6', '2026-06', 'June 2026, the last month on the 2,340,000 reference level: SI and HI stop at 46,800,000', slip(60_000_000, 50_563_200, 10_194_000, [3_744_000, 8_190_000], [702_000, 1_404_000], [600_000, 600_000], 4_390_800), 'SI 3,744,000 / 8,190,000, HI 702,000 / 1,404,000, UI 600,000 each; PIT 60,000,000 − 5,046,000 − 15,500,000 = 39,454,000 → 500,000 + 2,000,000 + 9,454,000 × 20% = 4,390,800; net 50,563,200'],
-			['VN-SI-05-7', '2026-07', 'July 2026, the first month on the 2,530,000 reference level (Decree 161/2026/ND-CP): SI and HI stop at 50,600,000', slip(60_000_000, 50_274_400, 10_973_000, [4_048_000, 8_855_000], [759_000, 1_518_000], [600_000, 600_000], 4_318_600), 'SI 4,048,000 / 8,855,000, HI 759,000 / 1,518,000, UI 600,000 each; PIT 60,000,000 − 5,407,000 − 15,500,000 = 39,093,000 → 4,318,600; net 50,274,400']
+			[
+				'VN-SI-05-6',
+				'2026-06',
+				'June 2026, the last month on the 2,340,000 reference level: SI and HI stop at 46,800,000',
+				slip(
+					60_000_000,
+					50_563_200,
+					10_194_000,
+					[3_744_000, 8_190_000],
+					[702_000, 1_404_000],
+					[600_000, 600_000],
+					4_390_800
+				),
+				'SI 3,744,000 / 8,190,000, HI 702,000 / 1,404,000, UI 600,000 each; PIT 60,000,000 − 5,046,000 − 15,500,000 = 39,454,000 → 500,000 + 2,000,000 + 9,454,000 × 20% = 4,390,800; net 50,563,200'
+			],
+			[
+				'VN-SI-05-7',
+				'2026-07',
+				'July 2026, the first month on the 2,530,000 reference level (Decree 161/2026/ND-CP): SI and HI stop at 50,600,000',
+				slip(
+					60_000_000,
+					50_274_400,
+					10_973_000,
+					[4_048_000, 8_855_000],
+					[759_000, 1_518_000],
+					[600_000, 600_000],
+					4_318_600
+				),
+				'SI 4,048,000 / 8,855,000, HI 759,000 / 1,518,000, UI 600,000 each; PIT 60,000,000 − 5,407,000 − 15,500,000 = 39,093,000 → 4,318,600; net 50,274,400'
+			]
 		] as const
-	).map(
-		([id, period, what, lines, figures]): ProbeCase => ({
-			id,
-			profile: 'VN',
-			description: `The 30 June / 1 July 2026 seam, ${what}; the resident 2026 PIT table applies on both sides (Law 109/2025/QH15 art.29(2)).`,
-			citation: [
-				'SI: Law 41/2024/QH15 art.31 ceiling 20 × the reference level; Decree 73/2024/ND-CP base salary 2,340,000 to 30 June 2026; Decree 161/2026/ND-CP art.3(2) 2,530,000 from 1 July 2026 (signed text p.3, https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/5/161-ndcp.signed.pdf)',
-				`${HI_CITE}; ${UI_CITE}; ${PIT_CITE}`,
-				`60,000,000: ${figures}`
-			],
-			company: company(),
-			inputs: [
-				...WEEK,
-				...hire({ ref: 'seam', name: 'Lê Văn Mốc', number: `P-VN-24${period.slice(-1)}`, born: '1979-09-09', salary: 60_000_000, from: '2025-06-02' })
-			],
-			period,
-			expected: [{ employment: 'seam_job', lines }]
-		})
-	),
+	).map(([id, period, what, lines, figures]): ProbeCase => ({
+		id,
+		profile: 'VN',
+		description: `The 30 June / 1 July 2026 seam, ${what}; the resident 2026 PIT table applies on both sides (Law 109/2025/QH15 art.29(2)).`,
+		citation: [
+			'SI: Law 41/2024/QH15 art.31 ceiling 20 × the reference level; Decree 73/2024/ND-CP base salary 2,340,000 to 30 June 2026; Decree 161/2026/ND-CP art.3(2) 2,530,000 from 1 July 2026 (signed text p.3, https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/5/161-ndcp.signed.pdf)',
+			`${HI_CITE}; ${UI_CITE}; ${PIT_CITE}`,
+			`60,000,000: ${figures}`
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...hire({
+				ref: 'seam',
+				name: 'Lê Văn Mốc',
+				number: `P-VN-24${period.slice(-1)}`,
+				born: '1979-09-09',
+				salary: 60_000_000,
+				from: '2025-06-02'
+			})
+		],
+		period,
+		expected: [{ employment: 'seam_job', lines }]
+	})),
 	{
 		id: 'VN-LC169-02-1',
 		profile: 'VN',
@@ -2289,18 +2377,43 @@ register(
 					['taro', 'Suzuki Taro', 'P-VN-253', '1964-10-06', 'MALE']
 				] as const
 			).flatMap(([ref, name, number, born, gender]) =>
-				hire({ ref, name, number, born, gender, foreigner: true, type: 'CONTRACT', salary: 30_000_000, from: '2026-01-05', to: '2028-01-04' })
+				hire({
+					ref,
+					name,
+					number,
+					born,
+					gender,
+					foreigner: true,
+					type: 'CONTRACT',
+					salary: 30_000_000,
+					from: '2026-01-05',
+					to: '2028-01-04'
+				})
 			)
 		],
 		period: '2026-03',
 		expected: [
 			...['ken_job', 'yumi_job'].map((employment) => ({
 				employment,
-				lines: { gross: 36_150_000, net: 34_585_000, employer_cost: 0, INSURANCE_EQUIVALENT: 6_150_000, 'PIT.employee': 1_565_000 }
+				lines: {
+					gross: 36_150_000,
+					net: 34_585_000,
+					employer_cost: 0,
+					INSURANCE_EQUIVALENT: 6_150_000,
+					'PIT.employee': 1_565_000
+				}
 			})),
 			{
 				employment: 'taro_job',
-				lines: slip(30_000_000, 26_485_000, 6_150_000, [2_400_000, 5_250_000], [450_000, 900_000], null, 665_000)
+				lines: slip(
+					30_000_000,
+					26_485_000,
+					6_150_000,
+					[2_400_000, 5_250_000],
+					[450_000, 900_000],
+					null,
+					665_000
+				)
 			}
 		]
 	},
@@ -2320,7 +2433,13 @@ register(
 			{
 				collection: 'shift_definitions',
 				ref: 'half',
-				values: { company_id: '@company', code: 'HALF', name: 'Half day (0900 to 1300)', variant: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 }, effective_range: { from: '2007-12-31', to: null } }
+				values: {
+					company_id: '@company',
+					code: 'HALF',
+					name: 'Half day (0900 to 1300)',
+					variant: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 },
+					effective_range: { from: '2007-12-31', to: null }
+				}
 			},
 			{
 				collection: 'shift_patterns',
@@ -2329,17 +2448,53 @@ register(
 					company_id: '@company',
 					code: 'HALFx5-OFF-REST',
 					name: '5 x HALF, OFF, REST',
-					pattern: { days: ['@half', '@half', '@half', '@half', '@half', '@off', '@rest'].map((roster_code_id) => ({ roster_code_id })) },
+					pattern: {
+						days: ['@half', '@half', '@half', '@half', '@half', '@off', '@rest'].map(
+							(roster_code_id) => ({ roster_code_id })
+						)
+					},
 					effective_range: { from: '2007-12-31', to: null }
 				}
 			},
-			...hire({ ref: 'nhu', name: 'Lê Thị Như', number: 'P-VN-261', born: '2002-02-02', gender: 'FEMALE', type: 'PART_TIME', salary: 2_000_000, from: '2025-06-02', region: 'IV', pattern: '@halfweek', terms: { ordinary_hours_per_week: 20 } }),
-			...hire({ ref: 'toan', name: 'Hồ Văn Toàn', number: 'P-VN-262', born: '2005-05-05', type: 'INTERN', salary: 5_000_000, from: '2025-06-02', region: 'IV' })
+			...hire({
+				ref: 'nhu',
+				name: 'Lê Thị Như',
+				number: 'P-VN-261',
+				born: '2002-02-02',
+				gender: 'FEMALE',
+				type: 'PART_TIME',
+				salary: 2_000_000,
+				from: '2025-06-02',
+				region: 'IV',
+				pattern: '@halfweek',
+				terms: { ordinary_hours_per_week: 20 }
+			}),
+			...hire({
+				ref: 'toan',
+				name: 'Hồ Văn Toàn',
+				number: 'P-VN-262',
+				born: '2005-05-05',
+				type: 'INTERN',
+				salary: 5_000_000,
+				from: '2025-06-02',
+				region: 'IV'
+			})
 		],
 		period: '2026-03',
 		expected: [
-			{ employment: 'nhu_job', lines: { gross: 2_503_100, net: 2_503_100, employer_cost: 0, INSURANCE_EQUIVALENT: 503_100 } },
-			{ employment: 'toan_job', lines: { gross: 6_075_000, net: 6_075_000, employer_cost: 0, INSURANCE_EQUIVALENT: 1_075_000 } }
+			{
+				employment: 'nhu_job',
+				lines: { gross: 2_503_100, net: 2_503_100, employer_cost: 0, INSURANCE_EQUIVALENT: 503_100 }
+			},
+			{
+				employment: 'toan_job',
+				lines: {
+					gross: 6_075_000,
+					net: 6_075_000,
+					employer_cost: 0,
+					INSURANCE_EQUIVALENT: 1_075_000
+				}
+			}
 		]
 	},
 	{
@@ -2357,8 +2512,26 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'quan', name: 'Vi Văn Quân', number: 'P-VN-271', born: '2005-06-06', type: 'INTERN', salary: 5_000_000, from: '2025-06-02', member: true }),
-			...hire({ ref: 'rin', name: 'Đồng Thị Rin', number: 'P-VN-272', born: '1990-06-06', gender: 'FEMALE', salary: 22_000_000, from: '2025-06-02', member: true }),
+			...hire({
+				ref: 'quan',
+				name: 'Vi Văn Quân',
+				number: 'P-VN-271',
+				born: '2005-06-06',
+				type: 'INTERN',
+				salary: 5_000_000,
+				from: '2025-06-02',
+				member: true
+			}),
+			...hire({
+				ref: 'rin',
+				name: 'Đồng Thị Rin',
+				number: 'P-VN-272',
+				born: '1990-06-06',
+				gender: 'FEMALE',
+				salary: 22_000_000,
+				from: '2025-06-02',
+				member: true
+			}),
 			{
 				collection: 'employment_statutory_facts',
 				values: {
@@ -2366,15 +2539,40 @@ register(
 					employment_id: '@rin_job',
 					statutory_contribution_id: '@law:statutory_contributions:SI',
 					effective_range: { from: '2026-03-01', to: '2026-03-31' },
-					status: { kind: 'REGISTERED', reference_number: 'PROBE-SI-P-VN-272', elections: { continue_si_unpaid: false } }
+					status: {
+						kind: 'REGISTERED',
+						reference_number: 'PROBE-SI-P-VN-272',
+						elections: { continue_si_unpaid: false }
+					}
 				}
 			},
-			leave('rin_job', 'UNPAID_LEAVE', { reference: 'UPL-15', from_date: '2026-03-02', to_date: '2026-03-20', reason: 'Agreed unpaid leave (Labour Code art.115(3))' })
+			leave('rin_job', 'UNPAID_LEAVE', {
+				reference: 'UPL-15',
+				from_date: '2026-03-02',
+				to_date: '2026-03-20',
+				reason: 'Agreed unpaid leave (Labour Code art.115(3))'
+			})
 		],
 		period: '2026-03',
 		expected: [
-			{ employment: 'quan_job', lines: { gross: 6_075_000, net: 6_063_300, INSURANCE_EQUIVALENT: 1_075_000, 'UNION_DUES.employee': 11_700 } },
-			{ employment: 'rin_job', lines: { gross: 7_000_000, net: 6_890_000, employer_cost: 0, 'UNION_DUES.employee': 110_000 } }
+			{
+				employment: 'quan_job',
+				lines: {
+					gross: 6_075_000,
+					net: 6_063_300,
+					INSURANCE_EQUIVALENT: 1_075_000,
+					'UNION_DUES.employee': 11_700
+				}
+			},
+			{
+				employment: 'rin_job',
+				lines: {
+					gross: 7_000_000,
+					net: 6_890_000,
+					employer_cost: 0,
+					'UNION_DUES.employee': 110_000
+				}
+			}
 		]
 	},
 	{
@@ -2391,18 +2589,99 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'sang', name: 'Tống Văn Sang', number: 'P-VN-281', born: '1988-08-08', salary: 22_000_000, from: '2025-06-02' }),
-			...hire({ ref: 'tien', name: 'Ứng Thị Tiên', number: 'P-VN-282', born: '1989-09-09', gender: 'FEMALE', salary: 22_000_000, from: '2025-06-02' }),
-			...hire({ ref: 'uyen', name: 'Viên Thị Uyên', number: 'P-VN-283', born: '1995-05-05', gender: 'FEMALE', salary: 22_000_000, from: '2025-06-02' }),
-			leave('sang_job', 'BEREAVEMENT_LEAVE', { reference: 'BRV-OWN', from_date: '2026-03-10', to_date: '2026-03-12', event_kind: 'DEATH', event_relationship: 'PARENT', event_date: '2026-03-09', reason: 'Death of a parent' }),
-			leave('tien_job', 'BEREAVEMENT_LEAVE_UNPAID', { reference: 'BRV-SIB', from_date: '2026-03-17', to_date: '2026-03-17', event_kind: 'DEATH', event_relationship: 'SIBLING', event_date: '2026-03-16', reason: 'Death of a sibling' }),
-			leave('uyen_job', 'UNPAID_LEAVE', { reference: 'UPL-2', from_date: '2026-03-23', to_date: '2026-03-24', reason: 'Agreed unpaid leave (Labour Code art.115(3))' })
+			...hire({
+				ref: 'sang',
+				name: 'Tống Văn Sang',
+				number: 'P-VN-281',
+				born: '1988-08-08',
+				salary: 22_000_000,
+				from: '2025-06-02'
+			}),
+			...hire({
+				ref: 'tien',
+				name: 'Ứng Thị Tiên',
+				number: 'P-VN-282',
+				born: '1989-09-09',
+				gender: 'FEMALE',
+				salary: 22_000_000,
+				from: '2025-06-02'
+			}),
+			...hire({
+				ref: 'uyen',
+				name: 'Viên Thị Uyên',
+				number: 'P-VN-283',
+				born: '1995-05-05',
+				gender: 'FEMALE',
+				salary: 22_000_000,
+				from: '2025-06-02'
+			}),
+			leave('sang_job', 'BEREAVEMENT_LEAVE', {
+				reference: 'BRV-OWN',
+				from_date: '2026-03-10',
+				to_date: '2026-03-12',
+				facts: {
+					event_kind: 'DEATH',
+					event_relationship: 'PARENT',
+					event_date: '2026-03-09'
+				},
+				reason: 'Death of a parent'
+			}),
+			leave('tien_job', 'BEREAVEMENT_LEAVE_UNPAID', {
+				reference: 'BRV-SIB',
+				from_date: '2026-03-17',
+				to_date: '2026-03-17',
+				facts: {
+					event_kind: 'DEATH',
+					event_relationship: 'SIBLING',
+					event_date: '2026-03-16'
+				},
+				reason: 'Death of a sibling'
+			}),
+			leave('uyen_job', 'UNPAID_LEAVE', {
+				reference: 'UPL-2',
+				from_date: '2026-03-23',
+				to_date: '2026-03-24',
+				reason: 'Agreed unpaid leave (Labour Code art.115(3))'
+			})
 		],
 		period: '2026-03',
 		expected: [
-			{ employment: 'sang_job', lines: slip(22_000_000, 19_480_500, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000], 209_500) },
-			{ employment: 'tien_job', lines: slip(21_000_000, 18_530_500, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000], 159_500) },
-			{ employment: 'uyen_job', lines: slip(20_000_000, 17_580_500, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000], 109_500) }
+			{
+				employment: 'sang_job',
+				lines: slip(
+					22_000_000,
+					19_480_500,
+					4_730_000,
+					[1_760_000, 3_850_000],
+					[330_000, 660_000],
+					[220_000, 220_000],
+					209_500
+				)
+			},
+			{
+				employment: 'tien_job',
+				lines: slip(
+					21_000_000,
+					18_530_500,
+					4_730_000,
+					[1_760_000, 3_850_000],
+					[330_000, 660_000],
+					[220_000, 220_000],
+					159_500
+				)
+			},
+			{
+				employment: 'uyen_job',
+				lines: slip(
+					20_000_000,
+					17_580_500,
+					4_730_000,
+					[1_760_000, 3_850_000],
+					[330_000, 660_000],
+					[220_000, 220_000],
+					109_500
+				)
+			}
 		]
 	},
 	{
@@ -2421,18 +2700,94 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'vu', name: 'Vũ Văn Vũ', number: 'P-VN-291', born: '1987-07-07', salary: 22_000_000, from: '2025-06-02' }),
-			...hire({ ref: 'xa', name: 'Xa Thị Xa', number: 'P-VN-292', born: '1988-08-08', gender: 'FEMALE', salary: 22_000_000, from: '2025-06-02' }),
-			...hire({ ref: 'y', name: 'Y Văn Ý', number: 'P-VN-293', born: '1989-09-09', salary: 22_000_000, from: '2025-06-02' }),
-			leave('vu_job', 'STOPPAGE_EMPLOYER_FAULT', { reference: 'STOP-EF', from_date: '2026-03-02', to_date: '2026-03-04', reason: 'Stoppage through the employer’s fault (Labour Code art.99(1))' }),
-			leave('xa_job', 'STOPPAGE_COWORKER', { reference: 'STOP-CW', from_date: '2026-03-02', to_date: '2026-03-06', agreed_pay_fraction: 0.7, reason: 'Stopped by a co-worker’s fault (Labour Code art.99(2))' }),
-			leave('y_job', 'STOPPAGE_OBJECTIVE', { reference: 'STOP-OBJ', from_date: '2026-03-02', to_date: '2026-03-23', event_date: '2026-03-02', agreed_pay_fraction: 0.3, reason: 'Power failure not the employer’s fault (Labour Code art.99(3))' })
+			...hire({
+				ref: 'vu',
+				name: 'Vũ Văn Vũ',
+				number: 'P-VN-291',
+				born: '1987-07-07',
+				salary: 22_000_000,
+				from: '2025-06-02'
+			}),
+			...hire({
+				ref: 'xa',
+				name: 'Xa Thị Xa',
+				number: 'P-VN-292',
+				born: '1988-08-08',
+				gender: 'FEMALE',
+				salary: 22_000_000,
+				from: '2025-06-02'
+			}),
+			...hire({
+				ref: 'y',
+				name: 'Y Văn Ý',
+				number: 'P-VN-293',
+				born: '1989-09-09',
+				salary: 22_000_000,
+				from: '2025-06-02'
+			}),
+			leave('vu_job', 'STOPPAGE_EMPLOYER_FAULT', {
+				reference: 'STOP-EF',
+				from_date: '2026-03-02',
+				to_date: '2026-03-04',
+				reason: 'Stoppage through the employer’s fault (Labour Code art.99(1))'
+			}),
+			leave('xa_job', 'STOPPAGE_COWORKER', {
+				reference: 'STOP-CW',
+				from_date: '2026-03-02',
+				to_date: '2026-03-06',
+				facts: {
+					agreed_pay_fraction: 0.7
+				},
+				reason: 'Stopped by a co-worker’s fault (Labour Code art.99(2))'
+			}),
+			leave('y_job', 'STOPPAGE_OBJECTIVE', {
+				reference: 'STOP-OBJ',
+				from_date: '2026-03-02',
+				to_date: '2026-03-23',
+				facts: {
+					event_date: '2026-03-02',
+					agreed_pay_fraction: 0.3
+				},
+				reason: 'Power failure not the employer’s fault (Labour Code art.99(3))'
+			})
 		],
 		period: '2026-03',
 		expected: [
-			{ employment: 'vu_job', lines: slip(22_000_000, 19_480_500, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000], 209_500) },
-			{ employment: 'xa_job', lines: slip(20_500_000, 18_055_500, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000], 134_500) },
-			{ employment: 'y_job', lines: slip(9_979_091, 7_669_091, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000]) }
+			{
+				employment: 'vu_job',
+				lines: slip(
+					22_000_000,
+					19_480_500,
+					4_730_000,
+					[1_760_000, 3_850_000],
+					[330_000, 660_000],
+					[220_000, 220_000],
+					209_500
+				)
+			},
+			{
+				employment: 'xa_job',
+				lines: slip(
+					20_500_000,
+					18_055_500,
+					4_730_000,
+					[1_760_000, 3_850_000],
+					[330_000, 660_000],
+					[220_000, 220_000],
+					134_500
+				)
+			},
+			{
+				employment: 'y_job',
+				lines: slip(
+					9_979_091,
+					7_669_091,
+					4_730_000,
+					[1_760_000, 3_850_000],
+					[330_000, 660_000],
+					[220_000, 220_000]
+				)
+			}
 		]
 	},
 	{
@@ -2454,9 +2809,30 @@ register(
 			holiday('2026-04-30', 'Ngày Chiến thắng'),
 			...(
 				[
-					{ ref: 'khoa', name: 'Khổng Văn Khoa', uiFrom: '2009-01-01', reason: 'RESIGNATION', facts: { pension_eligible: true }, code: 'SEVERANCE_ALLOWANCE' },
-					{ ref: 'lam', name: 'Lâm Thị Lam', uiFrom: '2009-01-01', reason: 'UNILATERAL', facts: { pension_eligible: false, absent_five_days: true }, code: 'SEVERANCE_ALLOWANCE' },
-					{ ref: 'mai', name: 'Mai Văn Mãi', uiFrom: '2011-01-01', reason: 'REDUNDANCY', facts: {}, code: 'JOB_LOSS_ALLOWANCE' }
+					{
+						ref: 'khoa',
+						name: 'Khổng Văn Khoa',
+						uiFrom: '2009-01-01',
+						reason: 'RESIGNATION',
+						facts: { pension_eligible: true },
+						code: 'SEVERANCE_ALLOWANCE'
+					},
+					{
+						ref: 'lam',
+						name: 'Lâm Thị Lam',
+						uiFrom: '2009-01-01',
+						reason: 'UNILATERAL',
+						facts: { pension_eligible: false, absent_five_days: true },
+						code: 'SEVERANCE_ALLOWANCE'
+					},
+					{
+						ref: 'mai',
+						name: 'Mai Văn Mãi',
+						uiFrom: '2011-01-01',
+						reason: 'REDUNDANCY',
+						facts: {},
+						code: 'JOB_LOSS_ALLOWANCE'
+					}
 				] as const
 			).flatMap(({ ref, name, uiFrom, reason, facts, code }, index) => [
 				...hire({
@@ -2470,7 +2846,17 @@ register(
 					uiFrom,
 					exitReason: reason,
 					exitFacts: facts,
-					pit: { unit_assessments: [{ period: '2026-04', gross: 13_000_000, units: 1, reference: 'FINAL-WAGE', paid_on: '2026-04-30' }] }
+					pit: {
+						unit_assessments: [
+							{
+								period: '2026-04',
+								gross: 13_000_000,
+								units: 1,
+								reference: 'FINAL-WAGE',
+								paid_on: '2026-04-30'
+							}
+						]
+					}
 				}),
 				leave(`${ref}_job`, 'ANNUAL_LEAVE', {
 					reference: `EXIT-AL-${ref}`,
@@ -2499,11 +2885,30 @@ register(
 		expected: [
 			...['khoa_job', 'lam_job'].map((employment) => ({
 				employment,
-				lines: slip(18_000_000, 14_390_000, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000], 1_300_000)
+				lines: slip(
+					18_000_000,
+					14_390_000,
+					4_730_000,
+					[1_760_000, 3_850_000],
+					[330_000, 660_000],
+					[220_000, 220_000],
+					1_300_000
+				)
 			})),
 			{
 				employment: 'mai_job',
-				lines: { ...slip(84_000_000, 80_390_000, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000], 1_300_000), JOB_LOSS_ALLOWANCE: 66_000_000 }
+				lines: {
+					...slip(
+						84_000_000,
+						80_390_000,
+						4_730_000,
+						[1_760_000, 3_850_000],
+						[330_000, 660_000],
+						[220_000, 220_000],
+						1_300_000
+					),
+					JOB_LOSS_ALLOWANCE: 66_000_000
+				}
 			}
 		]
 	},
@@ -2524,19 +2929,46 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'dem', name: 'Đêm Văn Khuya', number: 'P-VN-311', born: '1994-04-04', salary: 17_600_000, from: '2025-06-02' }),
+			...hire({
+				ref: 'dem',
+				name: 'Đêm Văn Khuya',
+				number: 'P-VN-311',
+				born: '1994-04-04',
+				salary: 17_600_000,
+				from: '2025-06-02'
+			}),
 			holiday('2026-01-01', 'Tết Dương lịch'),
 			worked('dem_job', '2026-01-01', [['18:00', '23:00']], 5),
-			worked('dem_job', '2026-01-06', [['14:00', '18:00'], ['19:00', '23:00']]),
+			worked('dem_job', '2026-01-06', [
+				['14:00', '18:00'],
+				['19:00', '23:00']
+			]),
 			worked('dem_job', '2026-01-11', [['18:00', '23:00']], 5),
-			worked('dem_job', '2026-01-13', [['09:00', '13:00'], ['14:00', '18:00'], ['22:00', '23:00']], 1)
+			worked(
+				'dem_job',
+				'2026-01-13',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00'],
+					['22:00', '23:00']
+				],
+				1
+			)
 		],
 		period: '2026-01',
 		expected: [
 			{
 				employment: 'dem_job',
 				lines: {
-					...slip(20_490_000, 18_629_400, 3_784_000, [1_408_000, 3_080_000], [264_000, 528_000], [176_000, 176_000], 12_600),
+					...slip(
+						20_490_000,
+						18_629_400,
+						3_784_000,
+						[1_408_000, 3_080_000],
+						[264_000, 528_000],
+						[176_000, 176_000],
+						12_600
+					),
 					BASIC: 17_600_000,
 					OVERTIME: 2_710_000,
 					NIGHT_PREMIUM: 180_000
@@ -2557,13 +2989,50 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'cal', name: 'Lịch Văn Ngày', number: 'P-VN-321', born: '1997-03-03', salary: 22_000_000, from: '2026-03-16', terms: { proration: { by: 'CALENDAR_DAYS' } } }),
-			...hire({ ref: 'fix', name: 'Cố Thị Định', number: 'P-VN-322', born: '1998-04-04', gender: 'FEMALE', salary: 22_000_000, from: '2026-03-16', terms: { proration: { by: 'FIXED_DAYS', days: 26 } } })
+			...hire({
+				ref: 'cal',
+				name: 'Lịch Văn Ngày',
+				number: 'P-VN-321',
+				born: '1997-03-03',
+				salary: 22_000_000,
+				from: '2026-03-16',
+				terms: { proration: { by: 'CALENDAR_DAYS' } }
+			}),
+			...hire({
+				ref: 'fix',
+				name: 'Cố Thị Định',
+				number: 'P-VN-322',
+				born: '1998-04-04',
+				gender: 'FEMALE',
+				salary: 22_000_000,
+				from: '2026-03-16',
+				terms: { proration: { by: 'FIXED_DAYS', days: 26 } }
+			})
 		],
 		period: '2026-03',
 		expected: [
-			{ employment: 'cal_job', lines: slip(11_354_839, 9_044_839, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000]) },
-			{ employment: 'fix_job', lines: slip(10_153_846, 7_843_846, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000]) }
+			{
+				employment: 'cal_job',
+				lines: slip(
+					11_354_839,
+					9_044_839,
+					4_730_000,
+					[1_760_000, 3_850_000],
+					[330_000, 660_000],
+					[220_000, 220_000]
+				)
+			},
+			{
+				employment: 'fix_job',
+				lines: slip(
+					10_153_846,
+					7_843_846,
+					4_730_000,
+					[1_760_000, 3_850_000],
+					[330_000, 660_000],
+					[220_000, 220_000]
+				)
+			}
 		]
 	},
 	{
@@ -2579,11 +3048,30 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'gia', name: 'Già Văn Hưu', number: 'P-VN-331', born: '1962-10-01', salary: 20_000_000, from: '2025-06-02', pensionQualified: true })
+			...hire({
+				ref: 'gia',
+				name: 'Già Văn Hưu',
+				number: 'P-VN-331',
+				born: '1962-10-01',
+				salary: 20_000_000,
+				from: '2025-06-02',
+				pensionQualified: true
+			})
 		],
 		period: '2026-03',
 		expected: [
-			{ employment: 'gia_job', lines: slip(20_000_000, 17_970_000, 4_100_000, [1_600_000, 3_500_000], [300_000, 600_000], null, 130_000) }
+			{
+				employment: 'gia_job',
+				lines: slip(
+					20_000_000,
+					17_970_000,
+					4_100_000,
+					[1_600_000, 3_500_000],
+					[300_000, 600_000],
+					null,
+					130_000
+				)
+			}
 		]
 	},
 	{
@@ -2617,14 +3105,45 @@ register(
 					to: '2026-09-30',
 					exitReason: 'END_OF_CONTRACT',
 					region: 'IV',
-					pit: { unit_assessments: [{ period: '2026-08', gross: salary, units: 1, reference: 'AUG-WAGE', paid_on: '2026-08-31' }] }
+					pit: {
+						unit_assessments: [
+							{
+								period: '2026-08',
+								gross: salary,
+								units: 1,
+								reference: 'AUG-WAGE',
+								paid_on: '2026-08-31'
+							}
+						]
+					}
 				})
 			)
 		],
 		period: '2026-08',
 		expected: [
-			{ employment: 'ha_job', lines: slip(4_900_000, 4_385_500, 1_053_500, [392_000, 857_500], [73_500, 147_000], [49_000, 49_000]) },
-			{ employment: 'thu2_job', lines: slip(5_000_000, 3_975_000, 1_075_000, [400_000, 875_000], [75_000, 150_000], [50_000, 50_000], 500_000) }
+			{
+				employment: 'ha_job',
+				lines: slip(
+					4_900_000,
+					4_385_500,
+					1_053_500,
+					[392_000, 857_500],
+					[73_500, 147_000],
+					[49_000, 49_000]
+				)
+			},
+			{
+				employment: 'thu2_job',
+				lines: slip(
+					5_000_000,
+					3_975_000,
+					1_075_000,
+					[400_000, 875_000],
+					[75_000, 150_000],
+					[50_000, 50_000],
+					500_000
+				)
+			}
 		]
 	},
 	{
@@ -2640,11 +3159,34 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'lee', name: 'Lee Minho', number: 'P-VN-351', born: '1985-05-05', nationality: 'Korean', foreigner: true, nonResident: true, type: 'CONTRACT', salary: 30_000_000, from: '2025-06-02', to: '2027-06-01' })
+			...hire({
+				ref: 'lee',
+				name: 'Lee Minho',
+				number: 'P-VN-351',
+				born: '1985-05-05',
+				nationality: 'Korean',
+				foreigner: true,
+				nonResident: true,
+				type: 'CONTRACT',
+				salary: 30_000_000,
+				from: '2025-06-02',
+				to: '2027-06-01'
+			})
 		],
 		period: '2026-08',
 		expected: [
-			{ employment: 'lee_job', lines: slip(30_000_000, 21_150_000, 6_150_000, [2_400_000, 5_250_000], [450_000, 900_000], null, 6_000_000) }
+			{
+				employment: 'lee_job',
+				lines: slip(
+					30_000_000,
+					21_150_000,
+					6_150_000,
+					[2_400_000, 5_250_000],
+					[450_000, 900_000],
+					null,
+					6_000_000
+				)
+			}
 		]
 	}
 );
@@ -2682,7 +3224,17 @@ register(
 		],
 		period: '2026-03',
 		expected: [
-			{ employment: 'moi_job', lines: slip(3_700_000, 3_311_500, 795_500, [296_000, 647_500], [55_500, 111_000], [37_000, 37_000]) }
+			{
+				employment: 'moi_job',
+				lines: slip(
+					3_700_000,
+					3_311_500,
+					795_500,
+					[296_000, 647_500],
+					[55_500, 111_000],
+					[37_000, 37_000]
+				)
+			}
 		]
 	},
 	{
@@ -2757,7 +3309,14 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'gio', name: 'Hùng Văn Giỗ', number: 'P-VN-364', born: '1990-04-26', salary: 17_600_000, from: '2025-06-02' }),
+			...hire({
+				ref: 'gio',
+				name: 'Hùng Văn Giỗ',
+				number: 'P-VN-364',
+				born: '1990-04-26',
+				salary: 17_600_000,
+				from: '2025-06-02'
+			}),
 			holiday('2026-04-26', 'Giỗ Tổ Hùng Vương'),
 			{
 				collection: 'jurisdiction_holidays',
@@ -2771,15 +3330,39 @@ register(
 				}
 			},
 			holiday('2026-04-30', 'Ngày Chiến thắng'),
-			worked('gio_job', '2026-04-26', [['09:00', '13:00'], ['14:00', '18:00']], 8),
-			worked('gio_job', '2026-04-27', [['09:00', '13:00'], ['14:00', '18:00']], 8)
+			worked(
+				'gio_job',
+				'2026-04-26',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				8
+			),
+			worked(
+				'gio_job',
+				'2026-04-27',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				8
+			)
 		],
 		period: '2026-04',
 		expected: [
 			{
 				employment: 'gio_job',
 				lines: {
-					...slip(21_600_000, 19_739_400, 3_784_000, [1_408_000, 3_080_000], [264_000, 528_000], [176_000, 176_000], 12_600),
+					...slip(
+						21_600_000,
+						19_739_400,
+						3_784_000,
+						[1_408_000, 3_080_000],
+						[264_000, 528_000],
+						[176_000, 176_000],
+						12_600
+					),
 					BASIC: 17_600_000,
 					OVERTIME: 4_000_000
 				}
@@ -2807,16 +3390,36 @@ register(
 				born: '1993-08-08',
 				salary: 21_000_000,
 				from: '2025-06-02',
-				terms: { allowances: [{ catalogue_id: '@law:allowance_catalogue:MEAL_ALLOWANCE', amount: 1_500_000 }] }
+				terms: {
+					allowances: [
+						{ catalogue_id: '@law:allowance_catalogue:MEAL_ALLOWANCE', amount: 1_500_000 }
+					]
+				}
 			}),
-			worked('com_job', '2026-08-04', [['09:00', '13:00'], ['14:00', '20:00']], 2)
+			worked(
+				'com_job',
+				'2026-08-04',
+				[
+					['09:00', '13:00'],
+					['14:00', '20:00']
+				],
+				2
+			)
 		],
 		period: '2026-08',
 		expected: [
 			{
 				employment: 'com_job',
 				lines: {
-					...slip(22_875_000, 20_490_250, 4_515_000, [1_680_000, 3_675_000], [315_000, 630_000], [210_000, 210_000], 179_750),
+					...slip(
+						22_875_000,
+						20_490_250,
+						4_515_000,
+						[1_680_000, 3_675_000],
+						[315_000, 630_000],
+						[210_000, 210_000],
+						179_750
+					),
 					BASIC: 21_000_000,
 					MEAL_ALLOWANCE: 1_500_000,
 					OVERTIME: 375_000
@@ -2839,13 +3442,57 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'con', name: 'Nuôi Văn Con', number: 'P-VN-366', born: '1988-12-12', salary: 20_000_000, from: '2025-06-02', uiFrom: null, dependants: 1 }),
-			...hire({ ref: 'park', name: 'Park Jiwoo', number: 'P-VN-367', born: '1984-04-04', nationality: 'Korean', foreigner: true, nonResident: true, type: 'CONTRACT', salary: 30_000_000, from: '2025-06-02', to: '2027-06-01', uiFrom: null })
+			...hire({
+				ref: 'con',
+				name: 'Nuôi Văn Con',
+				number: 'P-VN-366',
+				born: '1988-12-12',
+				salary: 20_000_000,
+				from: '2025-06-02',
+				uiFrom: null,
+				dependants: 1
+			}),
+			...hire({
+				ref: 'park',
+				name: 'Park Jiwoo',
+				number: 'P-VN-367',
+				born: '1984-04-04',
+				nationality: 'Korean',
+				foreigner: true,
+				nonResident: true,
+				type: 'CONTRACT',
+				salary: 30_000_000,
+				from: '2025-06-02',
+				to: '2027-06-01',
+				uiFrom: null
+			})
 		],
 		period: '2025-12',
 		expected: [
-			{ employment: 'con_job', lines: slip(20_000_000, 17_775_000, 4_300_000, [1_600_000, 3_500_000], [300_000, 600_000], [200_000, 200_000], 125_000) },
-			{ employment: 'park_job', lines: slip(30_000_000, 21_150_000, 6_150_000, [2_400_000, 5_250_000], [450_000, 900_000], null, 6_000_000) }
+			{
+				employment: 'con_job',
+				lines: slip(
+					20_000_000,
+					17_775_000,
+					4_300_000,
+					[1_600_000, 3_500_000],
+					[300_000, 600_000],
+					[200_000, 200_000],
+					125_000
+				)
+			},
+			{
+				employment: 'park_job',
+				lines: slip(
+					30_000_000,
+					21_150_000,
+					6_150_000,
+					[2_400_000, 5_250_000],
+					[450_000, 900_000],
+					null,
+					6_000_000
+				)
+			}
 		]
 	},
 	{
@@ -2874,11 +3521,23 @@ register(
 				to: '2026-05-22',
 				exitReason: 'END_OF_CONTRACT',
 				region: 'IV',
-				pit: { unit_assessments: [{ period: '2026-03', gross: 1_177_273, units: 1, reference: 'MAR-WAGE', paid_on: '2026-03-31' }] }
+				pit: {
+					unit_assessments: [
+						{
+							period: '2026-03',
+							gross: 1_177_273,
+							units: 1,
+							reference: 'MAR-WAGE',
+							paid_on: '2026-03-31'
+						}
+					]
+				}
 			})
 		],
 		period: '2026-03',
-		expected: [{ employment: 'ngan_job', lines: { gross: 1_177_273, net: 1_177_273, employer_cost: 0 } }]
+		expected: [
+			{ employment: 'ngan_job', lines: { gross: 1_177_273, net: 1_177_273, employer_cost: 0 } }
+		]
 	}
 );
 
@@ -2891,7 +3550,12 @@ const LC_GAZETTE =
 	'Labour Code 45/2019/QH14, Official Gazette 993+994 of 26 December 2019 (https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf, text layer read 2026-09-30)';
 
 /** A dated SI or HI declaration for March 2026 (the other VN cases leave both to the run's ASSESS default). */
-const registered = (ref: string, number: string, code: 'SI' | 'HI', elections: Row = {}): ProbeInput => ({
+const registered = (
+	ref: string,
+	number: string,
+	code: 'SI' | 'HI',
+	elections: Row = {}
+): ProbeInput => ({
 	collection: 'employment_statutory_facts',
 	values: {
 		employee_id: `@${ref}`,
@@ -2980,11 +3644,27 @@ register(
 		expected: [
 			{
 				employment: 'khuyet_job',
-				lines: slip(20_000_000, 17_780_000, 4_100_000, [1_600_000, 3_500_000], [300_000, 600_000], [200_000, 0], 120_000)
+				lines: slip(
+					20_000_000,
+					17_780_000,
+					4_100_000,
+					[1_600_000, 3_500_000],
+					[300_000, 600_000],
+					[200_000, 0],
+					120_000
+				)
 			},
 			...['khuyet2_job', 'khuyet3_job'].map((employment) => ({
 				employment,
-				lines: slip(20_000_000, 17_780_000, 4_300_000, [1_600_000, 3_500_000], [300_000, 600_000], [200_000, 200_000], 120_000)
+				lines: slip(
+					20_000_000,
+					17_780_000,
+					4_300_000,
+					[1_600_000, 3_500_000],
+					[300_000, 600_000],
+					[200_000, 200_000],
+					120_000
+				)
 			}))
 		]
 	},
@@ -3007,8 +3687,20 @@ register(
 			...WEEK,
 			...(
 				[
-					{ ref: 'roi', name: 'Rời Văn Đi', number: 'P-VN-371', uiFrom: '2022-01-01', redundant: false },
-					{ ref: 'cat', name: 'Cắt Thị Giảm', number: 'P-VN-372', uiFrom: '2024-01-01', redundant: true }
+					{
+						ref: 'roi',
+						name: 'Rời Văn Đi',
+						number: 'P-VN-371',
+						uiFrom: '2022-01-01',
+						redundant: false
+					},
+					{
+						ref: 'cat',
+						name: 'Cắt Thị Giảm',
+						number: 'P-VN-372',
+						uiFrom: '2024-01-01',
+						redundant: true
+					}
 				] as const
 			).flatMap(({ ref, name, number, uiFrom, redundant }) => [
 				...hire({
@@ -3025,7 +3717,13 @@ register(
 					exitFacts: redundant ? {} : { pension_eligible: false },
 					pit: {
 						unit_assessments: [
-							{ period: '2026-03', gross: 5_000_000, units: 1, reference: 'FINAL-WAGE', paid_on: '2026-03-31' }
+							{
+								period: '2026-03',
+								gross: 5_000_000,
+								units: 1,
+								reference: 'FINAL-WAGE',
+								paid_on: '2026-03-31'
+							}
 						]
 					}
 				}),
@@ -3050,7 +3748,10 @@ register(
 		period: '2026-03',
 		warnings: ['FINAL_PAY_LATE: P-VN-371 left on 2026-03-06.*by 2026-03-26.*pays on 2026-03-31'],
 		expected: [
-			{ employment: 'roi_job', lines: { gross: 7_200_000, net: 6_700_000, employer_cost: 0, 'PIT.employee': 500_000 } },
+			{
+				employment: 'roi_job',
+				lines: { gross: 7_200_000, net: 6_700_000, employer_cost: 0, 'PIT.employee': 500_000 }
+			},
 			{
 				employment: 'cat_job',
 				lines: {
@@ -3079,9 +3780,24 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'gio40', name: 'Giờ Văn Trần', number: 'P-VN-391', born: '1991-01-01', salary: 17_600_000, from: '2025-06-02' }),
+			...hire({
+				ref: 'gio40',
+				name: 'Giờ Văn Trần',
+				number: 'P-VN-391',
+				born: '1991-01-01',
+				salary: 17_600_000,
+				from: '2025-06-02'
+			}),
 			...[2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 16, 17, 18, 19].map((day) =>
-				worked('gio40_job', `2026-03-${String(day).padStart(2, '0')}`, [['09:00', '13:00'], ['14:00', '21:00']], 3)
+				worked(
+					'gio40_job',
+					`2026-03-${String(day).padStart(2, '0')}`,
+					[
+						['09:00', '13:00'],
+						['14:00', '21:00']
+					],
+					3
+				)
 			)
 		],
 		period: '2026-03',
@@ -3089,7 +3805,15 @@ register(
 			{
 				employment: 'gio40_job',
 				lines: {
-					...slip(23_900_000, 22_024_400, 3_784_000, [1_408_000, 3_080_000], [264_000, 528_000], [176_000, 176_000], 27_600),
+					...slip(
+						23_900_000,
+						22_024_400,
+						3_784_000,
+						[1_408_000, 3_080_000],
+						[264_000, 528_000],
+						[176_000, 176_000],
+						27_600
+					),
 					BASIC: 17_600_000,
 					OVERTIME: 6_000_000,
 					INCENTIVE: 300_000
@@ -3111,8 +3835,20 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'om', name: 'Ốm Thị Đau', number: 'P-VN-392', born: '1992-02-02', gender: 'FEMALE', salary: 22_000_000, from: '2025-06-02' }),
-			registered('om', 'P-VN-392', 'SI', { sickness_benefit_eligible: true, long_term_sickness: false, first_return_month: false }),
+			...hire({
+				ref: 'om',
+				name: 'Ốm Thị Đau',
+				number: 'P-VN-392',
+				born: '1992-02-02',
+				gender: 'FEMALE',
+				salary: 22_000_000,
+				from: '2025-06-02'
+			}),
+			registered('om', 'P-VN-392', 'SI', {
+				sickness_benefit_eligible: true,
+				long_term_sickness: false,
+				first_return_month: false
+			}),
 			{
 				...leave('om_job', 'SICK_LEAVE', {
 					reference: 'SICK-2',
@@ -3125,7 +3861,18 @@ register(
 		],
 		period: '2026-03',
 		expected: [
-			{ employment: 'om_job', lines: slip(20_000_000, 17_580_500, 4_730_000, [1_760_000, 3_850_000], [330_000, 660_000], [220_000, 220_000], 109_500) }
+			{
+				employment: 'om_job',
+				lines: slip(
+					20_000_000,
+					17_580_500,
+					4_730_000,
+					[1_760_000, 3_850_000],
+					[330_000, 660_000],
+					[220_000, 220_000],
+					109_500
+				)
+			}
 		]
 	},
 	{
@@ -3141,7 +3888,14 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'hong', name: 'Hỏng Văn Máy', number: 'P-VN-393', born: '1989-09-09', salary: 20_000_000, from: '2025-06-02' }),
+			...hire({
+				ref: 'hong',
+				name: 'Hỏng Văn Máy',
+				number: 'P-VN-393',
+				born: '1989-09-09',
+				salary: 20_000_000,
+				from: '2025-06-02'
+			}),
 			damage('hong', 5_334_000)
 		],
 		period: '2026-03',
@@ -3149,7 +3903,15 @@ register(
 			{
 				employment: 'hong_job',
 				lines: {
-					...slip(20_000_000, 12_446_000, 4_300_000, [1_600_000, 3_500_000], [300_000, 600_000], [200_000, 200_000], 120_000),
+					...slip(
+						20_000_000,
+						12_446_000,
+						4_300_000,
+						[1_600_000, 3_500_000],
+						[300_000, 600_000],
+						[200_000, 200_000],
+						120_000
+					),
 					total_deductions: 7_554_000,
 					PROPERTY_DAMAGE_COMPENSATION: 5_334_000
 				}
@@ -3167,7 +3929,15 @@ register(
 		company: company(),
 		inputs: [
 			...WEEK,
-			...hire({ ref: 'hong2', name: 'Hỏng Thị Thêm', number: 'P-VN-394', born: '1990-10-10', gender: 'FEMALE', salary: 20_000_000, from: '2025-06-02' }),
+			...hire({
+				ref: 'hong2',
+				name: 'Hỏng Thị Thêm',
+				number: 'P-VN-394',
+				born: '1990-10-10',
+				gender: 'FEMALE',
+				salary: 20_000_000,
+				from: '2025-06-02'
+			}),
 			damage('hong2', 5_334_001)
 		],
 		period: '2026-03',

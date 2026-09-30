@@ -1,124 +1,7 @@
-import { Schema } from 'effect';
-import { isCalendarDate } from '../iso-day.js';
-import { factKeySchema, type FactKey } from './fact_keys.js';
+import { caseTypeFault, type BenefitCaseType } from './case_types.js';
+import { payCalendarFault, type PayCalendar } from './pay_calendar.js';
 
 type Codes = readonly string[] | null;
-
-/**
- * A statutory benefit case a leave code opens (a maternity benefit the employer advances and a
- * scheme reimburses): the facts a case records, the scheme credits its cash is priced on, and the
- * employer's advance deadline and full-pay differential. Every expression reads the case site:
- * `event.kind`, `event.date`, `event.month`, `facts.<key>` (declared facts, then `qualifications`)
- * and `evidenced` (the fact keys whose `fact_evidence` the declaration's `evidence` accepts).
- */
-export type BenefitCaseType = {
-	/** The leave catalogue code the case prices; its per-event entries are the case's leave. */
-	readonly case_type: string;
-	/** The case's recorded facts; `valid_when` and `required_when` are judged on every write. */
-	readonly facts: readonly FactKey[];
-	/**
-	 * Derived booleans added to `facts` (and to `event.case.facts` for the leave grant): a claim
-	 * fact declared true counts only where `when` holds; otherwise the case refuses with `message`.
-	 */
-	readonly qualifications?:
-		| readonly {
-				readonly key: string;
-				readonly claim: string;
-				readonly when: string;
-				readonly message: string;
-		  }[]
-		| null;
-	/** The event kinds a case records; the first is the kind an expected event anticipates. */
-	readonly event_kinds: readonly string[];
-	/** Dated cash evidence: money paid to the employee, or the scheme's refund received by the employer. */
-	readonly movement_kinds: readonly {
-		readonly code: string;
-		readonly direction: 'EMPLOYEE_PAYMENT' | 'EMPLOYER_RECEIPT';
-		readonly component: string;
-	}[];
-	/** The two cash components a payable tranche settles: the scheme award and the employer's differential. */
-	readonly components: { readonly award: string; readonly differential: string };
-	/** The earliest event the rules price. */
-	readonly min_event_on: string;
-	/** The statutory scheme whose contribution statement credits the award. */
-	readonly credit_scheme: string;
-	/** The highest monthly credit a statement month may carry. */
-	readonly credit_cap: number;
-	/**
-	 * The credit window: `months` coverage months ending the month before its close, which is
-	 * `ends_months_before_event` (an expression) months before the event's month. Only credits
-	 * paid before the close count.
-	 */
-	readonly credit_window: { readonly months: number; readonly ends_months_before_event: string };
-	/** Paid months the window needs before any award is due. */
-	readonly credit_min_count: number;
-	/** The highest credits summed. */
-	readonly credit_top_count: number;
-	/** The summed credits ÷ this is the daily credit. */
-	readonly daily_divisor: number;
-	/** The compensable days: an expression over the event and the facts. */
-	readonly days: string;
-	/** Of the leave span, at least this many days (capped at the compensable days) fall on or after the event. */
-	readonly min_days_after_event: number;
-	/** Days after the application by which the employer advances the award. */
-	readonly advance_due_days: number;
-	/** Full pay is the monthly salary × compensable days ÷ this. */
-	readonly full_pay_days_divisor: number;
-	/** The statutory schemes whose employee shares full pay is net of, by `statutory_contributions` code. */
-	readonly premium_schemes: readonly string[];
-	/** The facts a claimed exemption from the differential states together, all or none. */
-	readonly differential_exemption_facts: readonly string[];
-	readonly authority: string;
-};
-
-const count = (value: number, least: number) => Number.isInteger(value) && value >= least;
-
-function benefitCaseFault(row: BenefitCaseType): string | undefined {
-	const at = `benefit_cases.${row.case_type || '?'}`;
-	if (row.case_type === '' || row.authority === '' || row.days.trim() === '')
-		return `${at}: a case type states its leave code, days and authority`;
-	if (!row.facts.every(Schema.is(factKeySchema))) return `${at}: every fact is a fact key`;
-	const keys = new Set(row.facts.map((field) => field.key));
-	if (keys.size !== row.facts.length) return `${at}: fact keys are unique`;
-	if (
-		(row.qualifications ?? []).some(
-			(q) =>
-				keys.has(q.key) ||
-				row.facts.find((field) => field.key === q.claim)?.type !== 'boolean' ||
-				q.when.trim() === '' ||
-				q.message.trim() === ''
-		)
-	)
-		return `${at}: a qualification names a new key, a boolean claim fact, its condition and message`;
-	if (!row.differential_exemption_facts.every((key) => keys.has(key)))
-		return `${at}: exemption facts are declared facts`;
-	if (row.event_kinds.length === 0 || new Set(row.event_kinds).size !== row.event_kinds.length)
-		return `${at}: event kinds are nonempty and unique`;
-	const components = [row.components.award, row.components.differential];
-	if (
-		components.some((code) => code === '') ||
-		components[0] === components[1] ||
-		row.movement_kinds.some((kind) => kind.code === '' || !components.includes(kind.component)) ||
-		new Set(row.movement_kinds.map((kind) => kind.code)).size !== row.movement_kinds.length
-	)
-		return `${at}: movement kinds are unique and settle a declared component`;
-	if (!isCalendarDate(row.min_event_on)) return `${at}: min_event_on is a calendar day`;
-	if (
-		row.credit_scheme === '' ||
-		!(row.credit_cap > 0) ||
-		!count(row.credit_window.months, 1) ||
-		row.credit_window.ends_months_before_event.trim() === '' ||
-		!count(row.credit_min_count, 0) ||
-		!count(row.credit_top_count, 1) ||
-		!(row.daily_divisor > 0) ||
-		!count(row.min_days_after_event, 0) ||
-		!count(row.advance_due_days, 0) ||
-		!(row.full_pay_days_divisor > 0) ||
-		row.premium_schemes.some((code) => code === '')
-	)
-		return `${at}: the credit scheme, window, counts and divisors are positive`;
-	return undefined;
-}
 
 /** How settled payslips become the employer's annual employment-income return. */
 export type IncomeReturnSettings = {
@@ -269,8 +152,6 @@ export type PayrollSettings = {
 	 */
 	readonly trailing_wage_short_months?: number | null;
 	readonly trailing_wage_long_months?: number | null;
-	/** Configured days after the last day of work for the final-pay warning; absent is no rule. */
-	readonly final_pay_due_days?: number | null;
 	/** Final-pay deadlines per circumstance; `when` is CEL over the leaver, empty the default. */
 	readonly final_pay_deadlines?:
 		| readonly {
@@ -377,9 +258,6 @@ export type PayrollSettings = {
 			readonly { readonly values: readonly string[]; readonly message: string }[] | null;
 		/** The sentence for any other uncovered day (`{value}`, `{day}`); absent is the generic one. */
 		readonly uncovered_message?: string | null;
-		/** A person expression over each salary-window terms row; true refuses with `refuse_message`. */
-		readonly refuse_when?: string | null;
-		readonly refuse_message?: string | null;
 		readonly spans: readonly ('SALARY' | 'ATTENDANCE' | 'ARREARS' | 'SERVICE_AFTER_EXIT')[];
 		readonly authority: string;
 	} | null;
@@ -401,6 +279,8 @@ export type PayrollSettings = {
 		| null;
 	/** Statutory benefit cases, one per leave code (`BenefitCaseType`). */
 	readonly benefit_cases?: readonly BenefitCaseType[] | null;
+	/** When wages of each cadence fall due (`PayCalendar`). */
+	readonly pay_calendar?: PayCalendar | null;
 	/**
 	 * The codes the version admits in each generic `employment_terms` classification field; the
 	 * lineage's expressions compare them. Absent declares none, so only an empty value is admitted.
@@ -421,7 +301,8 @@ const share = (value: number | null | undefined) => value == null || (value >= 0
 
 export function payrollSettingsFault(value: PayrollSettings): string | undefined {
 	if (value.currency === '' || value.timezone === '') return 'Enter the currency and timezone.';
-	if ((value.final_pay_due_days ?? 1) <= 0) return 'final_pay_due_days: must be positive';
+	const calendar = payCalendarFault(value.pay_calendar);
+	if (calendar) return calendar;
 	if (value.payment_occasion_scheme != null && value.payment_occasion_scheme.trim() === '')
 		return 'payment_occasion_scheme: name a statutory scheme code';
 	if (
@@ -482,10 +363,9 @@ export function payrollSettingsFault(value: PayrollSettings): string | undefined
 			(coverage.covered_by_wage_regions === true) === (coverage.covered != null) ||
 			(coverage.covered ?? []).some((row) => row === '') ||
 			coverage.spans.length === 0 ||
-			coverage.authority === '' ||
-			((coverage.refuse_when ?? '') !== '' && (coverage.refuse_message ?? '') === ''))
+			coverage.authority === '')
 	)
-		return 'worksite_coverage: a source, either covered values or covered_by_wage_regions, spans, authority and a refuse_message for refuse_when';
+		return 'worksite_coverage: a source, either covered values or covered_by_wage_regions, spans and authority';
 	if (value.leave_constraints?.some((row) => row.code === '' || row.authority === ''))
 		return 'leave_constraints: each constraint states its leave code and authority';
 	const income = value.income_return == null ? undefined : incomeReturnFault(value.income_return);
@@ -504,7 +384,7 @@ export function payrollSettingsFault(value: PayrollSettings): string | undefined
 	if (new Set(cases.map((row) => row.case_type)).size !== cases.length)
 		return 'benefit_cases: one case type per leave code';
 	for (const row of cases) {
-		const fault = benefitCaseFault(row);
+		const fault = caseTypeFault(row);
 		if (fault != null) return fault;
 	}
 	return undefined;

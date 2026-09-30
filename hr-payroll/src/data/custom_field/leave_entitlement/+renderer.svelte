@@ -28,7 +28,7 @@
 		{
 			key: 'days',
 			label: t('component.days'),
-			// A figure, or a number over the person (`12.0 + floor_unit(employment.service_months / 60.0)`).
+			// A figure, or a number over the person (`12.0 + round(employment.service_months / 60.0, 1, 'DOWN')`).
 			field: { name: 'days', kind: 'text', nullable: false } satisfies CollectionField,
 			width: 220
 		}

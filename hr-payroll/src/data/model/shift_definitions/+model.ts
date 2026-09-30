@@ -4,7 +4,7 @@ export default model({
 	description:
 		'A code used by one entity’s work patterns, rosters and imports: either a scheduled work window, a protected rest day, or another planned off day. Public holidays are overlaid from the observed holiday calendar.',
 	icon: 'lucide:calendar-range',
-	label: ['code', 'name'],
+	label: 'name',
 	fields: {
 		code: { kind: 'text' },
 		name: { kind: 'text' },

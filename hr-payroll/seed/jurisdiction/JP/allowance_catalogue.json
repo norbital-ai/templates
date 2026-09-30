@@ -15,12 +15,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "36f95dbb-2631-54a4-8ccd-7ba76f43a294",
@@ -38,12 +33,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "b0127f8e-33d8-5628-8bbe-95c6d6e6685d",
@@ -61,12 +51,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "5f251e2d-ddd1-581d-ae2b-75e8b73a3717",
@@ -84,12 +69,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "5293a4ed-463c-5db5-bee3-1604798f8e5c",
@@ -107,12 +87,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "e4ca3236-fe27-5598-a075-5f50ee44e385",
@@ -130,12 +105,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "21d58761-7e39-5528-bdd8-2304faabb1b4",
@@ -153,12 +123,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "89492558-26c6-5863-bd51-973f4997fb43",
@@ -176,12 +141,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "fd846320-d1e3-5dcc-b054-fe4cd4292f55",
@@ -199,12 +159,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "9c34ef50-b916-5c56-af32-554ce042b92b",
@@ -222,12 +177,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "4d18a244-0256-5785-88fb-b0cea61622d2",
@@ -245,12 +195,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "e08b8690-a94a-50c5-8d3f-89e9d7e88df4",
@@ -268,12 +213,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "ece86fa8-ddae-5c0d-a69c-124b45b56193",
@@ -291,12 +231,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "a0c8b1bd-c97e-5df8-ae6c-f4ea676b2665",
@@ -314,12 +249,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "3f8d4320-9f83-5e80-a2d4-e52f67edb5a0",
@@ -337,12 +267,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "f4020083-8736-5e10-a346-43f56feec616",
@@ -360,12 +285,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "c1a1a3d0-d4ab-5c93-ae75-3d26e104cbfe",
@@ -383,12 +303,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "ea57b555-9b70-5266-904d-593ade866423",
@@ -406,12 +321,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "3992b069-9490-522d-8874-9647c1c9fe77",
@@ -429,12 +339,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "8effcef9-4367-5137-bc71-dc80742b8679",
@@ -452,12 +357,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "249a2fe7-f5e8-5ea5-b087-3ebc1aedbd8c",
@@ -475,12 +375,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "e01b68c8-d942-5f59-94b8-060b44f9b825",
@@ -498,12 +393,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "24ff8267-570a-5aea-b774-ad60757b6a4e",
@@ -521,12 +411,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "235dc74d-2984-5e4b-870a-2747ed4d97ba",
@@ -544,12 +429,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "33135446-e605-5631-9065-3eb23a2071d6",
@@ -567,12 +447,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "9c1cee82-e006-5006-a4af-696241b08b0c",
@@ -590,12 +465,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "d3adca3c-f5d1-5a07-8eb8-950309533697",
@@ -613,12 +483,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "92d5c451-08d2-5130-911b-054de9d9acdf",
@@ -636,12 +501,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "6a082391-7eb1-5c0b-97f8-92d0b57c4eb2",
@@ -659,12 +519,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "55de5dc5-5f48-5269-9911-5677d0bd2d33",
@@ -682,12 +537,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "720c690c-bb5b-5031-807b-b8bdb3ec9823",
@@ -705,12 +555,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "07f21d53-720a-5100-86c5-80e330a908cb",
@@ -728,12 +573,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "84579388-3b28-5c6f-b7d2-144c66bbfe3f",
@@ -751,12 +591,7 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	},
 	{
 		"id": "2ae07e70-c6de-593d-94b0-49ce51de251b",
@@ -774,11 +609,6 @@
 			}
 		],
 		"eligibility": "",
-		"counts_toward": [
-			"EMPLOYMENT_INSURANCE",
-			"INCOME_TAX",
-			"WORKERS_COMP",
-			"RESIDENT_TAX"
-		]
+		"counts_toward": ["EMPLOYMENT_INSURANCE", "INCOME_TAX", "WORKERS_COMP", "RESIDENT_TAX"]
 	}
 ]

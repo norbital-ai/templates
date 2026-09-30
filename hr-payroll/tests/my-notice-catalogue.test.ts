@@ -18,7 +18,7 @@ engine.registerFunction('map.service_years_on(dyn): int', serviceYearsOn);
 engine.registerFunction('map.notice_days_remaining(dyn, dyn, dyn): double', noticeDaysRemaining);
 engine.registerFunction('map.notice_monthly_wages(dyn, dyn, dyn, dyn): double', noticeMonthlyWages);
 engine.registerFunction(
-	'round_cent(dyn): double',
+	'round(dyn, 0.01, "HALF_UP"): double',
 	(value) => Math.round(Number(value) * 100) / 100
 );
 
@@ -67,7 +67,7 @@ function person(
 			type: overrides.type ?? (overrides.domestic ? 'DOMESTIC' : 'PERMANENT'),
 			service_start: overrides.hire ?? '2025-01-01',
 			exit_date: overrides.exit ?? '2026-01-31',
-			exit_reason: overrides.reason ?? 'UNILATERAL',
+			exit_ground: overrides.reason ?? 'UNILATERAL',
 			exit_facts: declarations,
 			exit_fact_keys: Object.keys(declarations)
 		},

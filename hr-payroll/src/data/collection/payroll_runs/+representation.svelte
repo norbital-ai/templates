@@ -73,7 +73,10 @@
 	const runs = liveRows(() =>
 		run != null
 			? null
-			: bolt.read('payroll_runs', { select: { company_id: true, period: true }, all: true })
+			: bolt.read('payroll_runs', {
+					select: { company_id: true, period: true, kind: true },
+					all: true
+				})
 	);
 	const periodCandidates = periodWindow(37, 12);
 	const monthName = (month: string) =>
@@ -100,11 +103,19 @@
 			to: range.to
 		});
 	};
-	/** The periods a company can still run, most recent first. */
-	const periodsOf = (company: Company | undefined) => {
+	/**
+	 * The periods a company can still run, most recent first: a REGULAR run takes its period, and any
+	 * other kind stands beside it but never behind a later period.
+	 */
+	const periodsOf = (company: Company | undefined, kind: unknown) => {
 		if (company == null) return [];
+		const own = (runs.current ?? []).filter((row) => row.company_id === company.id);
+		const latest = own.reduce((max, row) => (row.period > max ? row.period : max), '');
 		const taken = new Set(
-			(runs.current ?? []).filter((row) => row.company_id === company.id).map((row) => row.period)
+			own
+				.filter((row) => (kind ?? 'REGULAR') !== 'REGULAR' || row.kind === 'REGULAR')
+				.map((row) => row.period)
+				.filter((period) => (kind ?? 'REGULAR') === 'REGULAR' || period < latest)
 		);
 		return companyPeriods(periodCandidates, company.pay_frequency)
 			.filter((candidate) => !taken.has(candidate) && windowFor(candidate, company) != null)
@@ -335,7 +346,7 @@
 										: t('component.choose_payroll_period')}
 									options={chosen == null
 										? []
-										: periodsOf(chosen).map((candidate) => ({
+										: periodsOf(chosen, form.get('kind')).map((candidate) => ({
 												value: candidate,
 												label: periodLabel(candidate, chosen)
 											}))}
@@ -345,6 +356,9 @@
 								/>
 							{/snippet}
 						</Field>
+						<Field name="kind" />
+						<!-- OFF_CYCLE and CORRECTION: the request ids the run pays; refused on REGULAR and FINAL. -->
+						<Field name="sources" />
 						<Field name="pay_due_date" label={t('component.pay_due_date')} />
 					</Grid>
 					{#if window}

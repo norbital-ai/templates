@@ -2002,41 +2002,6 @@ test('Malaysia — a mid-year joiner’s PCB reads the previous employer’s TP3
 	expectStatutory(book, 'MY-FRESH', 'PCB', 0, 0);
 });
 
-test('Malaysia — a paid CP38 instalment does not reduce the following month’s normal PCB', () => {
-	// LHDN MTD 2026 section D, definition of X (p.11): accumulated MTD excludes
-	// tax instalments. January's RM1,000 CP38 is retained separately on its payslip.
-	const people = [{ key: 'MY-CP38', wage: 5001, citizenship: 'CITIZEN', registrations: MY_LOCAL }];
-	const january = buildStatutory({ code: 'MY', period: '2026-01', people }, (world) => {
-		const pcbIds = new Set(
-			world.statutory_contributions.filter((row) => row.code === 'PCB').map((row) => row.id)
-		);
-		for (const fact of world.employment_statutory_facts)
-			if (pcbIds.has(fact.statutory_contribution_id) && fact.status.kind === 'REGISTERED')
-				fact.status = {
-					...fact.status,
-					instalments: [{ amount: 1000, from: '2026-01', to: '2026-01', reference: 'CP38-TEST' }]
-				};
-	});
-	const prior = january.slips.get('MY-CP38')!;
-	const januaryTax = prior.statutory.find((row) => row.scheme_code === 'PCB')!;
-	assert.equal(januaryTax.employee_amount, 1110.1);
-	assert.equal(januaryTax.directed_amount, 1000);
-	const february = assessStatutory({ code: 'MY', period: '2026-02', people }, (world) => {
-		world.payroll_runs.push({ id: 'paid-january', company_id: COMPANY_ID, period: '2026-01' });
-		world.payslips.push({
-			...prior,
-			id: 'cp38-january-slip',
-			payroll_run_id: 'paid-january',
-			status: 'PAID',
-			paid_at: '2026-01-31'
-		});
-	});
-	// K2 = (4,000 − 1,122)/10 = 287.80; P = 4,440 × 2 + 4,713.20 × 10 − 9,000 = 47,012 (no TP1,
-	// so no SOCSO/EIS relief). Tax = 600 + 12,012 × 6% = 1,320.72; (tax − 110.10) / 11 = 110.056
-	// → 110.05.
-	expectStatutory(february, 'MY-CP38', 'PCB', 110.05, 0);
-});
-
 test('Malaysia — paid zakat remains in the next month’s accumulated rebate', () => {
 	const people = [
 		{
@@ -2197,7 +2162,7 @@ for (const code of ['MY'] as const)
 						registrations: MY_LOCAL,
 						hire_date: '2023-05-15',
 						exit_date: '2026-01-31',
-						exit_reason: 'REDUNDANCY'
+						exit_ground: 'REDUNDANCY'
 					}
 				]
 			},
@@ -2420,7 +2385,7 @@ for (const code of ['MY'] as const)
 						citizenship: 'CITIZEN',
 						hire_date: '2015-01-01',
 						exit_date: '2026-06-15',
-						exit_reason: 'RESIGNATION',
+						exit_ground: 'RESIGNATION',
 						registrations: MY_LOCAL
 					}
 				]
@@ -2720,7 +2685,7 @@ for (const code of ['MY'] as const)
 					citizenship: 'CITIZEN',
 					hire_date: '2015-01-01',
 					exit_date: '2026-01-15',
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					registrations: MY_LOCAL
 				}
 			]
@@ -2745,11 +2710,11 @@ for (const code of ['MY'] as const)
 		//   DISMISSED dismissed for misconduct after inquiry 27 Jan (s.14(1)(a)) → due 27 Jan → late.
 		//   MONTH-END resigned with notice, last day 31 Jan → due 31 Jan → on time.
 		const people = [
-			{ key: 'NOTICE', exit_date: '2026-01-27', exit_reason: 'RESIGNATION' },
-			{ key: 'WALKOUT', exit_date: '2026-01-27', exit_reason: 'RESIGNATION' },
-			{ key: 'WALKOUT29', exit_date: '2026-01-29', exit_reason: 'RESIGNATION' },
-			{ key: 'DISMISSED', exit_date: '2026-01-27', exit_reason: 'DISMISSAL' },
-			{ key: 'MONTH-END', exit_date: '2026-01-31', exit_reason: 'RESIGNATION' }
+			{ key: 'NOTICE', exit_date: '2026-01-27', exit_ground: 'RESIGNATION' },
+			{ key: 'WALKOUT', exit_date: '2026-01-27', exit_ground: 'RESIGNATION' },
+			{ key: 'WALKOUT29', exit_date: '2026-01-29', exit_ground: 'RESIGNATION' },
+			{ key: 'DISMISSED', exit_date: '2026-01-27', exit_ground: 'DISMISSAL' },
+			{ key: 'MONTH-END', exit_date: '2026-01-31', exit_ground: 'RESIGNATION' }
 		].map((row) => ({ ...row, wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }));
 		const { warnings } = buildStatutory({ code, period: '2026-01', people }, (world) => {
 			for (const row of world.employments) {

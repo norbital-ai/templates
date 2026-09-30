@@ -176,6 +176,7 @@
 			base_salary: salary,
 			worksite: row.worksite,
 			worksite_sector: row.worksite_sector,
+			worksite_id: row.worksite_id,
 			facts: row.facts,
 			allowances: draft.allowances,
 			pay_frequency: payFrequency,

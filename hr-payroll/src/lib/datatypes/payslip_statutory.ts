@@ -15,8 +15,6 @@ export type PayslipStatutory = {
 	/** Negative in a year-end refund month. */
 	readonly employee_amount: number;
 	readonly employer_amount: number;
-	/** Directed instalments added after the ladder, already inside `employee_amount`. */
-	readonly directed_amount?: number | null;
 	readonly rebate_amount?: number | null;
 	readonly rule_when?: string | null;
 	readonly payment_occasion?: boolean | null;

@@ -189,7 +189,9 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		MEAL_ALLOWANCE: ['PIT.MEAL'],
 		HOUSING: ['PIT.HOUSING'],
 		JOB_LOSS_ALLOWANCE: [],
-		SEVERANCE_ALLOWANCE: []
+		SEVERANCE_ALLOWANCE: [],
+		// Labour Code art.102: a deduction for damaged property comes out of net pay, outside every base.
+		PROPERTY_DAMAGE_COMPENSATION: []
 	},
 	// 所得稅法 §14(1)(3): a bonus is 薪資所得; 勞退條例 §14 and NHI supplement read it; severance is outside.
 	// 勞基法 §2(3) with 施行細則 §10: a monthly 伙食津貼 is 工資 (no §10 exclusion); 查核準則 §88(2)(1)
@@ -212,6 +214,19 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 			'OCC_INJURY'
 		],
 		OCC_INJURY_OFFSET: [],
+		// 勞基法 §2(3): a 全勤獎金 paid for work is 工資, in every wage base like the monthly meal allowance.
+		FULL_ATTENDANCE_BONUS: [
+			'EI',
+			'INCOME_TAX',
+			'INCOME_TAX_NON_RESIDENT',
+			'LABOR_PENSION',
+			'LABOR_PENSION_RESERVE',
+			'LI',
+			'NHI',
+			'NHI_PART_TIME',
+			'NHI_SUPPLEMENT_EMPLOYER',
+			'OCC_INJURY'
+		],
 		// 強制執行法 §115-1: the attached wage stays the worker's; a net deduction outside every base (TW-WAGE-06).
 		COURT_GARNISHMENT: [],
 		// 勞基法 §59 職業災害補償費: not 工資 (施行細則 §10(7)), exempt from income tax (所得稅法 §4(1)(3)-(4)).
@@ -276,7 +291,18 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	// s.50(1). Social Security Act s.5 wages exclude a bonus; LPA s.118 severance is outside both.
 	// LPA s.17/1 pay in lieu of notice is a one-time payment on leaving (DG Notification No.45
 	// cl.1(ง)), withheld with severance under s.50(1) para.3, and not pay for work (SSA s.5).
-	TH: { BONUS: ['PIT'], NOTICE_IN_LIEU: [], SEVERANCE_PAY: [] },
+	// LPA s.76(2)–(4) and last para.; Student Loan Fund Act B.E.2560 s.51: deductions from net pay,
+	// outside every base.
+	TH: {
+		BONUS: ['PIT'],
+		NOTICE_IN_LIEU: [],
+		SEVERANCE_PAY: [],
+		SLF_DEDUCTION: [],
+		UNION_DUES: [],
+		COOPERATIVE_DEDUCTION: [],
+		DAMAGE_COMPENSATION: [],
+		CONSENTED_DEDUCTION: []
+	},
 	// 个人所得税法 art.2 and 实施条例 art.6: a bonus is 工资薪金 in the cumulative withholding; the annual
 	// one-time bonus may be taxed apart (财政部 税务总局公告2023年第30号, to 31 Dec 2027). The SI and
 	// housing-fund base is the prior year's average wage, so neither enters a current month.

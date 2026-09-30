@@ -1356,7 +1356,7 @@ register(
 				from: '2026-01-05',
 				to: '2026-09-11',
 				exit: {
-					exit_reason: 'DISMISSAL',
+					exit_ground: 'DISMISSAL',
 					exit_facts: { misconduct_dismissal: false, final_pay_not_possible: false }
 				}
 			}),
@@ -1386,7 +1386,7 @@ register(
 				from: '2023-03-01',
 				to: '2026-09-18',
 				terms: [{ salary: 9000, opening: { through: '2026-02-28', absent: 0 } }],
-				exit: { exit_reason: 'RETRENCHMENT', exit_facts: { final_pay_not_possible: false } }
+				exit: { exit_ground: 'RETRENCHMENT', exit_facts: { final_pay_not_possible: false } }
 			}),
 			...attended('2026-03-01', '2026-09-18'),
 			encash(5, ['2026-03-01', '2027-02-28'], '2026-09-18'),
@@ -1560,8 +1560,12 @@ const MOM_PH =
 
 /** Part 4's $2,288 non-workman: 12.00 an hour, 105.60 a day (Fourth and Third Schedules). */
 const clerk = (more: Partial<Hire> = {}) => citizen(2288, more);
-const restDay = (date: string, clock: readonly (readonly [string, string])[], hours: number, by: string) =>
-	workDay(date, clock, { approved_overtime_hours: hours, requested_by: by });
+const restDay = (
+	date: string,
+	clock: readonly (readonly [string, string])[],
+	hours: number,
+	by: string
+) => workDay(date, clock, { approved_overtime_hours: hours, requested_by: by });
 const unpaid = (from: string, to: string): ProbeInput => ({
 	collection: 'leave_entries',
 	values: {
@@ -1578,18 +1582,68 @@ const unpaid = (from: string, to: string): ProbeInput => ({
 });
 const resigned = (to: string) => ({
 	to,
-	exit: { exit_reason: 'RESIGNATION', exit_facts: { notice_served: true } }
+	exit: { exit_ground: 'RESIGNATION', exit_facts: { notice_served: true } }
 });
 
 register(
 	// ── s.37 rest-day awards not yet probed (SG-EA21) ──────────────────────────────────────────────────────────
 	...(
 		[
-			['SG-EA21-3', 'seven hours at his own request', [['09:00', '16:00']], 7, 'EMPLOYEE', 's.37(2)(b): more than half, not more than the normal hours → one day = 105.60', 105.6, [478, 408], 5.98],
-			['SG-EA21-4', 'four hours at the employer’s request', [['09:00', '13:00']], 4, 'EMPLOYER', 's.37(3)(a): not more than half the normal hours → one day = 105.60', 105.6, [478, 408], 5.98],
-			['SG-EA21-5', 'eleven hours at the employer’s request', [['09:00', '20:00']], 11, 'EMPLOYER', 's.37(3)(c): two days 211.20 + 3 h beyond the normal 8 × 12.00 × 1.5 = 54.00 → 265.20', 265.2, [510, 435], 6.38],
-			['SG-EA21-6', 'ten hours at his own request', [['09:00', '19:00']], 10, 'EMPLOYEE', 's.37(2)(c): one day 105.60 + 2 h × 12.00 × 1.5 = 36.00 → 141.60', 141.6, [485, 414], 6.07],
-			['SG-EA21-7', 'eight and a half hours at the employer’s request', [['09:00', '17:30']], 8.5, 'EMPLOYER', 's.37(3)(c)(ii): two days 211.20 + the half hour beyond the normal 8 is an “hour or part thereof” → 1 × 12.00 × 1.5 = 18.00 → 229.20', 229.2, [503, 428], 6.29]
+			[
+				'SG-EA21-3',
+				'seven hours at his own request',
+				[['09:00', '16:00']],
+				7,
+				'EMPLOYEE',
+				's.37(2)(b): more than half, not more than the normal hours → one day = 105.60',
+				105.6,
+				[478, 408],
+				5.98
+			],
+			[
+				'SG-EA21-4',
+				'four hours at the employer’s request',
+				[['09:00', '13:00']],
+				4,
+				'EMPLOYER',
+				's.37(3)(a): not more than half the normal hours → one day = 105.60',
+				105.6,
+				[478, 408],
+				5.98
+			],
+			[
+				'SG-EA21-5',
+				'eleven hours at the employer’s request',
+				[['09:00', '20:00']],
+				11,
+				'EMPLOYER',
+				's.37(3)(c): two days 211.20 + 3 h beyond the normal 8 × 12.00 × 1.5 = 54.00 → 265.20',
+				265.2,
+				[510, 435],
+				6.38
+			],
+			[
+				'SG-EA21-6',
+				'ten hours at his own request',
+				[['09:00', '19:00']],
+				10,
+				'EMPLOYEE',
+				's.37(2)(c): one day 105.60 + 2 h × 12.00 × 1.5 = 36.00 → 141.60',
+				141.6,
+				[485, 414],
+				6.07
+			],
+			[
+				'SG-EA21-7',
+				'eight and a half hours at the employer’s request',
+				[['09:00', '17:30']],
+				8.5,
+				'EMPLOYER',
+				's.37(3)(c)(ii): two days 211.20 + the half hour beyond the normal 8 is an “hour or part thereof” → 1 × 12.00 × 1.5 = 18.00 → 229.20',
+				229.2,
+				[503, 428],
+				6.29
+			]
 		] as const
 	).map(([id, what, clock, hours, by, rule, award, total, levy]) => {
 		const gross = cents(2288 + award);
@@ -1624,7 +1678,14 @@ register(
 		period: '2026-09',
 		inputs: [
 			...citizen(2600),
-			workDay('2026-09-07', [['09:00', '13:00'], ['14:00', '20:00']], { approved_overtime_hours: 2 })
+			workDay(
+				'2026-09-07',
+				[
+					['09:00', '13:00'],
+					['14:00', '20:00']
+				],
+				{ approved_overtime_hours: 2 }
+			)
 		],
 		lines: pay(2640.91, { CPF: [528, 449], CDAC: [1, 0], SDL: [0, 6.6] })
 	}),
@@ -1641,7 +1702,14 @@ register(
 		period: '2026-09',
 		inputs: [
 			...citizen(2600.01),
-			workDay('2026-09-07', [['09:00', '13:00'], ['14:00', '20:00']], { approved_overtime_hours: 2 })
+			workDay(
+				'2026-09-07',
+				[
+					['09:00', '13:00'],
+					['14:00', '20:00']
+				],
+				{ approved_overtime_hours: 2 }
+			)
 		],
 		lines: pay(2600.01, { CPF: [520, 442], CDAC: [1, 0], SDL: [0, 6.5] })
 	}),
@@ -1659,7 +1727,14 @@ register(
 		period: '2026-09',
 		inputs: [
 			...citizen(4500, { terms: [{ salary: 4500, category: 'MANUAL_LABOUR' }] }),
-			workDay('2026-09-07', [['09:00', '13:00'], ['14:00', '20:00']], { approved_overtime_hours: 2 })
+			workDay(
+				'2026-09-07',
+				[
+					['09:00', '13:00'],
+					['14:00', '20:00']
+				],
+				{ approved_overtime_hours: 2 }
+			)
 		],
 		lines: pay(4570.8, { CPF: [914, 777], CDAC: [1.5, 0], SDL: [0, 11.25] })
 	}),
@@ -1676,7 +1751,14 @@ register(
 		period: '2026-09',
 		inputs: [
 			...citizen(4500.01, { terms: [{ salary: 4500.01, category: 'MANUAL_LABOUR' }] }),
-			workDay('2026-09-07', [['09:00', '13:00'], ['14:00', '20:00']], { approved_overtime_hours: 2 })
+			workDay(
+				'2026-09-07',
+				[
+					['09:00', '13:00'],
+					['14:00', '20:00']
+				],
+				{ approved_overtime_hours: 2 }
+			)
 		],
 		lines: pay(4500.01, { CPF: [900, 765], CDAC: [1.5, 0], SDL: [0, 11.25] })
 	}),
@@ -1693,7 +1775,14 @@ register(
 		period: '2026-09',
 		inputs: [
 			...citizen(2288, { terms: [{ salary: 2288, classification: 'MANAGERIAL' }] }),
-			workDay('2026-09-07', [['09:00', '13:00'], ['14:00', '20:00']], { approved_overtime_hours: 2 })
+			workDay(
+				'2026-09-07',
+				[
+					['09:00', '13:00'],
+					['14:00', '20:00']
+				],
+				{ approved_overtime_hours: 2 }
+			)
 		],
 		lines: pay(2288, { CPF: [457, 390], CDAC: [1, 0], SDL: [0, 5.72] })
 	}),
@@ -1716,15 +1805,46 @@ register(
 			...clerk(),
 			holiday('2026-05-01', 'Labour Day'),
 			holiday('2026-05-27', 'Hari Raya Haji'),
-			workDay('2026-05-27', [['09:00', '13:00'], ['14:00', '20:00']], { approved_overtime_hours: 10 })
+			workDay(
+				'2026-05-27',
+				[
+					['09:00', '13:00'],
+					['14:00', '20:00']
+				],
+				{ approved_overtime_hours: 10 }
+			)
 		],
 		lines: pay(2429.6, { CPF: [485, 414], CDAC: [1, 0], SDL: [0, 6.07] })
 	}),
 	...(
 		[
-			['SG-EA33-3', 'Friday 7 August (the working day before)', ['2026-08-07'], 19, 2171.43, [434, 369], 5.43],
-			['SG-EA33-4', 'both Friday 7 and Tuesday 11 August (the holiday is forfeited once)', ['2026-08-07', '2026-08-11'], 18, 2057.14, [411, 350], 5.14],
-			['SG-EA33-5', 'Thursday 6 August (not adjacent: only the day itself)', ['2026-08-06'], 20, 2285.71, [457, 389], 5.71]
+			[
+				'SG-EA33-3',
+				'Friday 7 August (the working day before)',
+				['2026-08-07'],
+				19,
+				2171.43,
+				[434, 369],
+				5.43
+			],
+			[
+				'SG-EA33-4',
+				'both Friday 7 and Tuesday 11 August (the holiday is forfeited once)',
+				['2026-08-07', '2026-08-11'],
+				18,
+				2057.14,
+				[411, 350],
+				5.14
+			],
+			[
+				'SG-EA33-5',
+				'Thursday 6 August (not adjacent: only the day itself)',
+				['2026-08-06'],
+				20,
+				2285.71,
+				[457, 389],
+				5.71
+			]
 		] as const
 	).map(([id, when, days, paid, gross, cpf, levy]) =>
 		sg({
@@ -1801,7 +1921,14 @@ register(
 			...citizen(3000),
 			holiday('2026-05-01', 'Labour Day'),
 			holiday('2026-05-27', 'Hari Raya Haji'),
-			workDay('2026-05-27', [['09:00', '13:00'], ['14:00', '18:00']], { approved_overtime_hours: 8 })
+			workDay(
+				'2026-05-27',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				{ approved_overtime_hours: 8 }
+			)
 		],
 		lines: pay(3138.46, { CPF: [627, 534], CDAC: [1, 0], SDL: [0, 7.85] })
 	}),
@@ -1822,7 +1949,14 @@ register(
 			...citizen(3000),
 			holiday('2026-05-01', 'Labour Day'),
 			holiday('2026-05-27', 'Hari Raya Haji'),
-			workDay('2026-05-27', [['09:00', '13:00'], ['14:00', '18:00']], { approved_overtime_hours: 8 })
+			workDay(
+				'2026-05-27',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				{ approved_overtime_hours: 8 }
+			)
 		],
 		lines: pay(3000, { CPF: [600, 510], CDAC: [1, 0], SDL: [0, 7.5] })
 	}),
@@ -1843,7 +1977,14 @@ register(
 			...clerk(),
 			holiday('2026-05-01', 'Labour Day'),
 			holiday('2026-05-27', 'Hari Raya Haji'),
-			workDay('2026-05-27', [['09:00', '13:00'], ['14:00', '18:00']], { approved_overtime_hours: 8 })
+			workDay(
+				'2026-05-27',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				{ approved_overtime_hours: 8 }
+			)
 		],
 		lines: pay(2393.6, { CPF: [478, 408], CDAC: [1, 0], SDL: [0, 5.98] })
 	}),
@@ -1862,7 +2003,14 @@ register(
 		inputs: [
 			...clerk(),
 			holiday('2025-12-25', 'Christmas Day'),
-			workDay('2025-12-25', [['09:00', '13:00'], ['14:00', '18:00']], { approved_overtime_hours: 8 })
+			workDay(
+				'2025-12-25',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				{ approved_overtime_hours: 8 }
+			)
 		],
 		lines: pay(2393.6, { CPF: [478, 408], CDAC: [1, 0], SDL: [0, 5.98] })
 	}),
@@ -1881,7 +2029,14 @@ register(
 		inputs: [
 			...clerk(),
 			holiday('2027-03-10', 'Hari Raya Puasa'),
-			workDay('2027-03-10', [['09:00', '13:00'], ['14:00', '18:00']], { approved_overtime_hours: 8 })
+			workDay(
+				'2027-03-10',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				{ approved_overtime_hours: 8 }
+			)
 		],
 		lines: pay(2393.6, { CPF: [478, 408], CDAC: [1, 0], SDL: [0, 5.98] })
 	}),
@@ -1979,7 +2134,7 @@ register(
 			...citizen(3000, {
 				to: '2026-02-27',
 				exit: {
-					exit_reason: 'DISMISSAL',
+					exit_ground: 'DISMISSAL',
 					exit_facts: { misconduct_dismissal: false, final_pay_not_possible: false }
 				}
 			}),
@@ -1991,16 +2146,116 @@ register(
 	// ── CPF: the senior, SPR and 2027 cells no probe read (SG-CPF18, SG-CPF19, SG-CPF29) ───────────────────────
 	...(
 		[
-			['SG-CPF18-15', '1958-05-10', '2025-12', 3000, CPF_2025_SENIOR, 'above 65–70: 16.5% = 495; employee 7.5% = 225; employer 270', [225, 270], 1, 7.5],
-			['SG-CPF18-16', '1953-05-10', '2025-12', 3000, CPF_2025_SENIOR, 'above 70: 12.5% = 375; employee 5% = 150; employer 225', [150, 225], 1, 7.5],
-			['SG-CPF18-17', '1968-05-10', '2026-02', 600, CPF_2026_SENIOR, 'above 55–60, >$500–750: 16% × 600 + 0.54 × 100 = 150; employee 54; employer 96', [54, 96], 0.5, 2],
-			['SG-CPF18-18', '1963-05-10', '2026-02', 400, CPF_2026_SENIOR, 'above 60–65, >$50–500: 12.5% × 400 = 50; employee nil', [0, 50], 0.5, 2],
-			['SG-CPF18-19', '1953-05-10', '2026-02', 700, CPF_2026_SENIOR, 'above 70, >$500–750: 7.5% × 700 + 0.15 × 200 = 82.50 → 83; employee 30; employer 53', [30, 53], 0.5, 2],
-			['SG-CPF18-20', '1958-05-10', '2026-02', 10000, CPF_2026_SENIOR, 'above 65–70 at the $8,000 OW ceiling: max 1,320; employee max 600; employer 720', [600, 720], 3, 11.25],
-			['SG-CPF29-6', '1969-05-10', '2027-01', 600, CPF_2027_TABLE, 'above 55–60, >$500–750: 16.5% × 600 + 0.57 × 100 = 156; employee 57; employer 99', [57, 99], 0.5, 2],
-			['SG-CPF29-7', '1964-05-10', '2027-01', 700, CPF_2027_TABLE, 'above 60–65, >$500–750: 13% × 700 + 0.39 × 200 = 169; employee 78; employer 91', [78, 91], 0.5, 2],
-			['SG-CPF29-8', '1969-05-10', '2027-01', 10000, CPF_2027_TABLE, 'above 55–60 at the $8,000 OW ceiling: max 2,840; employee max 1,520; employer 1,320', [1520, 1320], 3, 11.25],
-			['SG-CPF29-9', '1964-05-10', '2027-01', 400, CPF_2027_TABLE, 'above 60–65, >$50–500: 13% × 400 = 52; employee nil', [0, 52], 0.5, 2]
+			[
+				'SG-CPF18-15',
+				'1958-05-10',
+				'2025-12',
+				3000,
+				CPF_2025_SENIOR,
+				'above 65–70: 16.5% = 495; employee 7.5% = 225; employer 270',
+				[225, 270],
+				1,
+				7.5
+			],
+			[
+				'SG-CPF18-16',
+				'1953-05-10',
+				'2025-12',
+				3000,
+				CPF_2025_SENIOR,
+				'above 70: 12.5% = 375; employee 5% = 150; employer 225',
+				[150, 225],
+				1,
+				7.5
+			],
+			[
+				'SG-CPF18-17',
+				'1968-05-10',
+				'2026-02',
+				600,
+				CPF_2026_SENIOR,
+				'above 55–60, >$500–750: 16% × 600 + 0.54 × 100 = 150; employee 54; employer 96',
+				[54, 96],
+				0.5,
+				2
+			],
+			[
+				'SG-CPF18-18',
+				'1963-05-10',
+				'2026-02',
+				400,
+				CPF_2026_SENIOR,
+				'above 60–65, >$50–500: 12.5% × 400 = 50; employee nil',
+				[0, 50],
+				0.5,
+				2
+			],
+			[
+				'SG-CPF18-19',
+				'1953-05-10',
+				'2026-02',
+				700,
+				CPF_2026_SENIOR,
+				'above 70, >$500–750: 7.5% × 700 + 0.15 × 200 = 82.50 → 83; employee 30; employer 53',
+				[30, 53],
+				0.5,
+				2
+			],
+			[
+				'SG-CPF18-20',
+				'1958-05-10',
+				'2026-02',
+				10000,
+				CPF_2026_SENIOR,
+				'above 65–70 at the $8,000 OW ceiling: max 1,320; employee max 600; employer 720',
+				[600, 720],
+				3,
+				11.25
+			],
+			[
+				'SG-CPF29-6',
+				'1969-05-10',
+				'2027-01',
+				600,
+				CPF_2027_TABLE,
+				'above 55–60, >$500–750: 16.5% × 600 + 0.57 × 100 = 156; employee 57; employer 99',
+				[57, 99],
+				0.5,
+				2
+			],
+			[
+				'SG-CPF29-7',
+				'1964-05-10',
+				'2027-01',
+				700,
+				CPF_2027_TABLE,
+				'above 60–65, >$500–750: 13% × 700 + 0.39 × 200 = 169; employee 78; employer 91',
+				[78, 91],
+				0.5,
+				2
+			],
+			[
+				'SG-CPF29-8',
+				'1969-05-10',
+				'2027-01',
+				10000,
+				CPF_2027_TABLE,
+				'above 55–60 at the $8,000 OW ceiling: max 2,840; employee max 1,520; employer 1,320',
+				[1520, 1320],
+				3,
+				11.25
+			],
+			[
+				'SG-CPF29-9',
+				'1964-05-10',
+				'2027-01',
+				400,
+				CPF_2027_TABLE,
+				'above 60–65, >$50–500: 13% × 400 = 52; employee nil',
+				[0, 52],
+				0.5,
+				2
+			]
 		] as const
 	).map(([id, born, period, salary, table, rule, cpf, cdac, levy]) =>
 		sg({
@@ -2014,13 +2269,83 @@ register(
 	),
 	...(
 		[
-			['SG-CPF19-6', '1963-05-10', '2025-11-10', 3000, null, 'Table 2 (1st year G/G), above 60–65: 8.5% × 3,000 = 255; employee 5% = 150; employer 105', [150, 105], 1, 7.5],
-			['SG-CPF19-7', '1968-05-10', '2024-11-10', 3000, null, 'Table 3 (2nd year G/G), above 55–60: 18.5% × 3,000 = 555; employee 12.5% = 375; employer 180', [375, 180], 1, 7.5],
-			['SG-CPF19-8', '1996-04-18', '2025-11-10', 600, null, 'Table 2, 55 & below, >$500–750: 4% × 600 + 0.15 × 100 = 39; employee 15; employer 24', [15, 24], 0.5, 2],
-			['SG-CPF19-9', '1996-04-18', '2024-11-10', 400, null, 'Table 3, 55 & below, >$50–500: 9% × 400 = 36; employee nil', [0, 36], 0.5, 2],
-			['SG-CPF19-10', '1958-05-10', '2025-11-10', 3000, 'CPF-JOINT-APPROVAL-4', 'Table 4 (1st year F/G), above 65–70: 14% × 3,000 = 420; employee 5% = 150; employer 270', [150, 270], 1, 7.5],
-			['SG-CPF19-11', '1968-05-10', '2024-11-10', 3000, 'CPF-JOINT-APPROVAL-5', 'Table 5 (2nd year F/G), above 55–60: 28.5% × 3,000 = 855; employee 12.5% = 375; employer 480', [375, 480], 1, 7.5],
-			['SG-CPF19-12', '1996-04-18', '2025-11-10', 10000, null, 'Table 2, 55 & below at the $8,000 OW ceiling: max 720; employee max 400; employer 320', [400, 320], 3, 11.25]
+			[
+				'SG-CPF19-6',
+				'1963-05-10',
+				'2025-11-10',
+				3000,
+				null,
+				'Table 2 (1st year G/G), above 60–65: 8.5% × 3,000 = 255; employee 5% = 150; employer 105',
+				[150, 105],
+				1,
+				7.5
+			],
+			[
+				'SG-CPF19-7',
+				'1968-05-10',
+				'2024-11-10',
+				3000,
+				null,
+				'Table 3 (2nd year G/G), above 55–60: 18.5% × 3,000 = 555; employee 12.5% = 375; employer 180',
+				[375, 180],
+				1,
+				7.5
+			],
+			[
+				'SG-CPF19-8',
+				'1996-04-18',
+				'2025-11-10',
+				600,
+				null,
+				'Table 2, 55 & below, >$500–750: 4% × 600 + 0.15 × 100 = 39; employee 15; employer 24',
+				[15, 24],
+				0.5,
+				2
+			],
+			[
+				'SG-CPF19-9',
+				'1996-04-18',
+				'2024-11-10',
+				400,
+				null,
+				'Table 3, 55 & below, >$50–500: 9% × 400 = 36; employee nil',
+				[0, 36],
+				0.5,
+				2
+			],
+			[
+				'SG-CPF19-10',
+				'1958-05-10',
+				'2025-11-10',
+				3000,
+				'CPF-JOINT-APPROVAL-4',
+				'Table 4 (1st year F/G), above 65–70: 14% × 3,000 = 420; employee 5% = 150; employer 270',
+				[150, 270],
+				1,
+				7.5
+			],
+			[
+				'SG-CPF19-11',
+				'1968-05-10',
+				'2024-11-10',
+				3000,
+				'CPF-JOINT-APPROVAL-5',
+				'Table 5 (2nd year F/G), above 55–60: 28.5% × 3,000 = 855; employee 12.5% = 375; employer 480',
+				[375, 480],
+				1,
+				7.5
+			],
+			[
+				'SG-CPF19-12',
+				'1996-04-18',
+				'2025-11-10',
+				10000,
+				null,
+				'Table 2, 55 & below at the $8,000 OW ceiling: max 720; employee max 400; employer 320',
+				[400, 320],
+				3,
+				11.25
+			]
 		] as const
 	).map(([id, born, since, salary, approval, rule, cpf, cdac, levy]) => {
 		const from = since < HIRED ? HIRED : since;
@@ -2066,8 +2391,20 @@ register(
 	// ── the AW ceiling on cessation (SG-CPF21, SG-CPF03) ───────────────────────────────────────────────────────
 	...(
 		[
-			['SG-CPF21-3', true, 'resigns with notice, last day 31 March', '102,000 − (16,000 + 8,000) actual OW to cessation = 78,000; base 8,000 + 78,000 = 86,000: 37% = 31,820; employee 17,200; employer 14,620', [17200, 14620]],
-			['SG-CPF21-4', false, 'stays on', '102,000 − (16,000 + 8,000 × 10) estimated OW = 6,000; base 8,000 + 6,000 = 14,000: 37% = 5,180; employee 2,800; employer 2,380', [2800, 2380]]
+			[
+				'SG-CPF21-3',
+				true,
+				'resigns with notice, last day 31 March',
+				'102,000 − (16,000 + 8,000) actual OW to cessation = 78,000; base 8,000 + 78,000 = 86,000: 37% = 31,820; employee 17,200; employer 14,620',
+				[17200, 14620]
+			],
+			[
+				'SG-CPF21-4',
+				false,
+				'stays on',
+				'102,000 − (16,000 + 8,000 × 10) estimated OW = 6,000; base 8,000 + 6,000 = 14,000: 37% = 5,180; employee 2,800; employer 2,380',
+				[2800, 2380]
+			]
 		] as const
 	).map(([id, leaves, what, rule, cpf]) =>
 		sg({
@@ -2125,8 +2462,22 @@ register(
 	}),
 	...(
 		[
-			['SG-SHG03-9', 'CHINESE', 'CDAC', 5, 'CPF (Contributions to Community Fund — CDAC) Rules 1992 r.8 (SSO, read 30 Sep 2026, https://sso.agc.gov.sg/SL/CPFA1953-R6?ProvIds=pr8-): written notice to contribute in excess of the Schedule rate — $5 instead of $1', 'CDAC-R8-NOTICE'],
-			['SG-SHG03-10', 'INDIAN', 'SINDA', 2, 'SINDA Rules 1992 r.8(2) (https://sso.agc.gov.sg/SL/CPFA1953-R5): notice on SINDA’s form of a lesser amount — $2 instead of $7 (golden “a fund instruction for a different monthly amount…”)', 'SINDA-R8-FORM']
+			[
+				'SG-SHG03-9',
+				'CHINESE',
+				'CDAC',
+				5,
+				'CPF (Contributions to Community Fund — CDAC) Rules 1992 r.8 (SSO, read 30 Sep 2026, https://sso.agc.gov.sg/SL/CPFA1953-R6?ProvIds=pr8-): written notice to contribute in excess of the Schedule rate — $5 instead of $1',
+				'CDAC-R8-NOTICE'
+			],
+			[
+				'SG-SHG03-10',
+				'INDIAN',
+				'SINDA',
+				2,
+				'SINDA Rules 1992 r.8(2) (https://sso.agc.gov.sg/SL/CPFA1953-R5): notice on SINDA’s form of a lesser amount — $2 instead of $7 (golden “a fund instruction for a different monthly amount…”)',
+				'SINDA-R8-FORM'
+			]
 		] as const
 	).map(([id, race, fund, amount, rule, reference]) =>
 		sg({
@@ -2140,7 +2491,12 @@ register(
 			],
 			period: '2026-09',
 			inputs: [
-				...hire({ name: `${fund} instruction`, born: '1996-04-18', race, terms: [{ salary: 3000 }] }),
+				...hire({
+					name: `${fund} instruction`,
+					born: '1996-04-18',
+					race,
+					terms: [{ salary: 3000 }]
+				}),
 				registration(fund, HIRED, {
 					reference_number: `PROBE-${fund}`,
 					elections: { shg_monthly_amount: amount, shg_instruction_reference: reference }
@@ -2247,7 +2603,13 @@ register(
 				`${SDL}: ${sdl}`
 			],
 			period: '2026-02',
-			inputs: hire({ name: `${fund} rung probe`, born: '1996-04-18', race, religion, terms: [{ salary }] }),
+			inputs: hire({
+				name: `${fund} rung probe`,
+				born: '1996-04-18',
+				race,
+				religion,
+				terms: [{ salary }]
+			}),
 			lines: pay(salary, { CPF: [cpf[0], cpf[1]], [fund]: [amount, 0], SDL: [0, sdl] })
 		})
 	),
@@ -2271,7 +2633,10 @@ register(
 			'A damage deduction of SGD 750.01 without the Commissioner’s permission: a cent over s.29(1), so the run is refused.',
 		citation: [`${EA_DEDUCT}: s.29(1) ¼ × 3,000 = 750 < 750.01 → excess 0.01`, EA_DEDUCT_BASE],
 		period: '2026-09',
-		inputs: [...citizen(3000), deduct('DAMAGE_RECOVERY', 750.01, 'Damaged equipment, inquiry held')],
+		inputs: [
+			...citizen(3000),
+			deduct('DAMAGE_RECOVERY', 750.01, 'Damaged equipment, inquiry held')
+		],
 		lines: {},
 		refused: 'DEDUCTION_CEILING_EXCEEDED.*by 0\\.01 SGD'
 	}),
@@ -2294,7 +2659,10 @@ register(
 		id: 'SG-EA15-4',
 		description:
 			'Consented accommodation SGD 500 and amenities SGD 250 in one salary period: together exactly one-quarter of the salary.',
-		citation: [`${EA_DEDUCT}: s.30(2) 500 + 250 = 750 = ¼ × 3,000; s.32(1) 750 ≤ 899`, EA_DEDUCT_BASE],
+		citation: [
+			`${EA_DEDUCT}: s.30(2) 500 + 250 = 750 = ¼ × 3,000; s.32(1) 750 ≤ 899`,
+			EA_DEDUCT_BASE
+		],
 		period: '2026-09',
 		inputs: [
 			...citizen(3000),
@@ -2419,12 +2787,17 @@ const unregistered = (scheme: string): ProbeInput => ({
 		status: { kind: 'NOT_REGISTERED', reason: 'Registration pending' }
 	}
 });
-const dismissed = (from: string, to: string, salary: number, more: Partial<Terms> = {}): Partial<Hire> => ({
+const dismissed = (
+	from: string,
+	to: string,
+	salary: number,
+	more: Partial<Terms> = {}
+): Partial<Hire> => ({
 	from,
 	to,
 	terms: [{ salary, ...more }],
 	exit: {
-		exit_reason: 'DISMISSAL',
+		exit_ground: 'DISMISSAL',
 		exit_facts: { misconduct_dismissal: false, final_pay_not_possible: false }
 	}
 });
@@ -2456,7 +2829,12 @@ register(
 		citation: [SHG_DUAL, `${SHG}: SINDA $7, CDAC $1`, CPF_BASE_3000, `${SDL}: 7.50`],
 		period: '2026-02',
 		inputs: [
-			...hire({ name: 'Harpreet Lim', born: '1996-04-18', race: 'SIKH', terms: [{ salary: 3000 }] }),
+			...hire({
+				name: 'Harpreet Lim',
+				born: '1996-04-18',
+				race: 'SIKH',
+				terms: [{ salary: 3000 }]
+			}),
 			registration('CDAC', HIRED, {
 				reference_number: 'PROBE-CDAC',
 				elections: {
@@ -2475,7 +2853,12 @@ register(
 		citation: [SHG_DUAL],
 		period: '2026-02',
 		inputs: [
-			...hire({ name: 'Kumar Singh', born: '1996-04-18', race: 'TAMIL', terms: [{ salary: 3000 }] }),
+			...hire({
+				name: 'Kumar Singh',
+				born: '1996-04-18',
+				race: 'TAMIL',
+				terms: [{ salary: 3000 }]
+			}),
 			registration('SINDA', HIRED, {
 				reference_number: 'PROBE-SINDA',
 				elections: {
@@ -2492,10 +2875,34 @@ register(
 	// ── SG-CPF09.year-seams: the SPR year turns the month after the anniversary month ──────────────────────────
 	...(
 		[
-			['SG-CPF09-1', '2025-09-10', '2026-09', 'first anniversary month (September 2026): still Table 2 (1st year G/G), 9% × 3,000 = 270; employee 5% = 150; employer 120', [150, 120]],
-			['SG-CPF09-2', '2025-09-10', '2026-10', 'the month after the first anniversary: Table 3 (2nd year G/G), 24% × 3,000 = 720; employee 15% = 450; employer 270', [450, 270]],
-			['SG-CPF09-3', '2024-09-10', '2026-09', 'second anniversary month (September 2026): still Table 3, 720; 450 / 270', [450, 270]],
-			['SG-CPF09-4', '2024-09-10', '2026-10', 'the month after the second anniversary: Table 1 full rates, 37% = 1,110; 600 / 510', [600, 510]]
+			[
+				'SG-CPF09-1',
+				'2025-09-10',
+				'2026-09',
+				'first anniversary month (September 2026): still Table 2 (1st year G/G), 9% × 3,000 = 270; employee 5% = 150; employer 120',
+				[150, 120]
+			],
+			[
+				'SG-CPF09-2',
+				'2025-09-10',
+				'2026-10',
+				'the month after the first anniversary: Table 3 (2nd year G/G), 24% × 3,000 = 720; employee 15% = 450; employer 270',
+				[450, 270]
+			],
+			[
+				'SG-CPF09-3',
+				'2024-09-10',
+				'2026-09',
+				'second anniversary month (September 2026): still Table 3, 720; 450 / 270',
+				[450, 270]
+			],
+			[
+				'SG-CPF09-4',
+				'2024-09-10',
+				'2026-10',
+				'the month after the second anniversary: Table 1 full rates, 37% = 1,110; 600 / 510',
+				[600, 510]
+			]
 		] as const
 	).map(([id, since, period, rule, cpf]) =>
 		sg({
@@ -2514,10 +2921,38 @@ register(
 	// ── SG-CPF31.spr-tables: the 2027 SPR tables ──────────────────────────────────────────────────────────────
 	...(
 		[
-			['SG-CPF31-1', '1996-04-18', '2026-06-10', null, 'Table 2, 55 & below: 9% × 3,000 = 270; employee 5% = 150; employer 120', [150, 120]],
-			['SG-CPF31-2', '1964-05-10', '2025-06-10', null, 'Table 3, above 60–65: 11% × 3,000 = 330; employee 7.5% = 225; employer 105', [225, 105]],
-			['SG-CPF31-3', '1969-05-10', '2026-06-10', 'CPF-JOINT-APPROVAL-6', 'Table 4, above 55–60: 21.5% × 3,000 = 645; employee 5% = 150; employer 495', [150, 495]],
-			['SG-CPF31-4', '1964-05-10', '2025-06-10', 'CPF-JOINT-APPROVAL-7', 'Table 5, above 60–65: 20.5% × 3,000 = 615; employee 7.5% = 225; employer 390', [225, 390]]
+			[
+				'SG-CPF31-1',
+				'1996-04-18',
+				'2026-06-10',
+				null,
+				'Table 2, 55 & below: 9% × 3,000 = 270; employee 5% = 150; employer 120',
+				[150, 120]
+			],
+			[
+				'SG-CPF31-2',
+				'1964-05-10',
+				'2025-06-10',
+				null,
+				'Table 3, above 60–65: 11% × 3,000 = 330; employee 7.5% = 225; employer 105',
+				[225, 105]
+			],
+			[
+				'SG-CPF31-3',
+				'1969-05-10',
+				'2026-06-10',
+				'CPF-JOINT-APPROVAL-6',
+				'Table 4, above 55–60: 21.5% × 3,000 = 645; employee 5% = 150; employer 495',
+				[150, 495]
+			],
+			[
+				'SG-CPF31-4',
+				'1964-05-10',
+				'2025-06-10',
+				'CPF-JOINT-APPROVAL-7',
+				'Table 5, above 60–65: 20.5% × 3,000 = 615; employee 7.5% = 225; employer 390',
+				[225, 390]
+			]
 		] as const
 	).map(([id, born, since, approval, rule, cpf]) =>
 		sg({
@@ -2574,7 +3009,14 @@ register(
 			...citizen(3000, { terms: [{ salary: 3000, classification: 'MANAGERIAL' }] }),
 			holiday('2026-05-01', 'Labour Day'),
 			holiday('2026-05-27', 'Hari Raya Haji'),
-			workDay('2026-05-27', [['09:00', '13:00'], ['14:00', '18:00']], { approved_overtime_hours: 8 })
+			workDay(
+				'2026-05-27',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00']
+				],
+				{ approved_overtime_hours: 8 }
+			)
 		],
 		lines: pay(3138.46, { CPF: [627, 534], CDAC: [1, 0], SDL: [0, 7.85] })
 	}),
@@ -2600,8 +3042,22 @@ register(
 					{ salary: 2288, from: '2026-09-16' }
 				]
 			}),
-			workDay('2026-09-07', [['09:00', '13:00'], ['14:00', '20:00']], { approved_overtime_hours: 2 }),
-			workDay('2026-09-21', [['09:00', '13:00'], ['14:00', '20:00']], { approved_overtime_hours: 2 })
+			workDay(
+				'2026-09-07',
+				[
+					['09:00', '13:00'],
+					['14:00', '20:00']
+				],
+				{ approved_overtime_hours: 2 }
+			),
+			workDay(
+				'2026-09-21',
+				[
+					['09:00', '13:00'],
+					['14:00', '20:00']
+				],
+				{ approved_overtime_hours: 2 }
+			)
 		],
 		lines: pay(2324, { CPF: [464, 396], CDAC: [1, 0], SDL: [0, 5.81] })
 	}),
@@ -2644,7 +3100,9 @@ register(
 		inputs: [
 			...citizen(
 				4400,
-				dismissed('2018-03-01', '2026-09-18', 4400, { opening: { through: '2026-02-28', absent: 0 } })
+				dismissed('2018-03-01', '2026-09-18', 4400, {
+					opening: { through: '2026-02-28', absent: 0 }
+				})
 			),
 			...attended('2026-03-01', '2026-09-18'),
 			encash(7, ['2026-03-01', '2027-02-28'], '2026-09-18')

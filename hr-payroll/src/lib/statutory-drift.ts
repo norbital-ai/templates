@@ -112,7 +112,8 @@ const familiesOf = (tree: SettingsVersionTree) => ({
 	loan_catalogue: tree.loanCatalogue,
 	claim_catalogue: tree.claimCatalogue,
 	adhoc_catalogue: tree.adhocCatalogue,
-	allowance_catalogue: tree.allowanceCatalogue
+	allowance_catalogue: tree.allowanceCatalogue,
+	reference_rows: tree.referenceRows
 });
 
 /** Each change names a row of this version or it cannot be applied: the rows it can, and the ones it names wrongly. */
@@ -153,7 +154,8 @@ function withChanges(tree: SettingsVersionTree, changes: readonly Change[]): Set
 		loanCatalogue: patch('loan_catalogue', tree.loanCatalogue),
 		claimCatalogue: patch('claim_catalogue', tree.claimCatalogue),
 		adhocCatalogue: patch('adhoc_catalogue', tree.adhocCatalogue),
-		allowanceCatalogue: patch('allowance_catalogue', tree.allowanceCatalogue)
+		allowanceCatalogue: patch('allowance_catalogue', tree.allowanceCatalogue),
+		referenceRows: patch('reference_rows', tree.referenceRows)
 	};
 }
 

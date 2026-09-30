@@ -15,7 +15,7 @@ const contract = (id, from, to = null, over = {}) => ({
 	company_id: 'entity',
 	employee_number: 'E1',
 	effective_range: { from, to },
-	exit_reason: null,
+	exit_ground: null,
 	exit_facts: null,
 	comments: null,
 	...over
@@ -97,7 +97,7 @@ test('a referenced contract takes only its departure; a closed one never reopens
 	await assert.rejects(one({ employee_number: 'E2' }), /sealed by employment terms/);
 	await one({
 		effective_range: { from: '2025-01-01', to: '2026-03-31' },
-		exit_reason: 'RESIGNATION'
+		exit_ground: 'RESIGNATION'
 	});
 	const closed = { ...open, effective_range: { from: '2025-01-01', to: '2026-03-31' } };
 	await one({ comments: 'Left on good terms' }, closed);
@@ -126,7 +126,7 @@ test('departure inputs follow the law of the last working day and are fixed by a
 		employments: [left],
 		payslips: [{ employment_id: 'a', status: 'PAID', terms_through: '2025-12-31' }]
 	});
-	await assert.rejects(one({ exit_reason: 'DISMISSAL' }, paid), /fixed by paid final payroll/);
+	await assert.rejects(one({ exit_ground: 'DISMISSAL' }, paid), /fixed by paid final payroll/);
 });
 
 test('a departure write that leaves an owed declaration unrecorded is refused, naming the leaver', async () => {
@@ -179,7 +179,7 @@ test('a departure write that leaves an owed declaration unrecorded is refused, n
 						key: 'terminated_without_notice',
 						type: 'boolean',
 						label: 'Left without notice',
-						required_when: 'employment.exit_reason == "RESIGNATION"'
+						required_when: 'employment.exit_ground == "RESIGNATION"'
 					}
 				]
 			}
@@ -188,16 +188,16 @@ test('a departure write that leaves an owed declaration unrecorded is refused, n
 	const leave = (set, row = open) => transform(employments, [set], { existing: [row], tables });
 	const range = { from: '2025-01-01', to: '2026-03-31' };
 	await assert.rejects(
-		leave({ effective_range: range, exit_reason: 'RESIGNATION' }),
+		leave({ effective_range: range, exit_ground: 'RESIGNATION' }),
 		/Departure of Aisyah Rahman on 2026-03-31: Left without notice is required before calculation\./
 	);
 	await leave({
 		effective_range: range,
-		exit_reason: 'RESIGNATION',
+		exit_ground: 'RESIGNATION',
 		exit_facts: { terminated_without_notice: false }
 	});
-	await leave({ effective_range: range, exit_reason: 'RETIREMENT' });
+	await leave({ effective_range: range, exit_ground: 'RETIREMENT' });
 	// A note on a departure recorded before the check is not a departure change.
-	const recorded = { ...open, effective_range: range, exit_reason: 'RESIGNATION' };
+	const recorded = { ...open, effective_range: range, exit_ground: 'RESIGNATION' };
 	await leave({ comments: 'Handover done' }, recorded);
 });

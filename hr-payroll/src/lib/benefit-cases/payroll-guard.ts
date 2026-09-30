@@ -1,4 +1,4 @@
-import type { BenefitCaseType } from '../datatypes/payroll_settings.js';
+import type { BenefitCaseType } from '../datatypes/case_types.js';
 import { dateKey, isCalendarDate } from '../iso-day.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { addDays } from '../payroll/run/dates.js';
@@ -17,6 +17,7 @@ import {
 	type CaseEvidence
 } from './benefit.js';
 import { reversedIds } from './reconciliation.js';
+import { leaveEventOf } from '../leave/activity-fields.js';
 
 type Case = Pick<
 	WorkspaceRow<'benefit_cases'>,
@@ -66,8 +67,9 @@ export function benefitLeaveUnsafe(input: {
 			reversed.has(entry.id)
 		)
 			continue;
-		const eventDay = dateKey(entry.event_date);
-		if (!type.event_kinds.includes(entry.event_kind ?? '') || !isCalendarDate(eventDay)) {
+		const recorded = leaveEventOf(entry);
+		const eventDay = recorded.date ?? '';
+		if (!type.event_kinds.includes(recorded.kind ?? '') || !isCalendarDate(eventDay)) {
 			if (
 				input.paying.some(
 					(pay) =>
@@ -80,11 +82,11 @@ export function benefitLeaveUnsafe(input: {
 				return true;
 			continue;
 		}
-		const key = `${entry.employment_id}:${entry.leave_code}:${entry.event_kind}:${eventDay}`;
+		const key = `${entry.employment_id}:${entry.leave_code}:${recorded.kind}:${eventDay}`;
 		const event = events.get(key) ?? {
 			type,
 			employmentId: entry.employment_id,
-			kind: entry.event_kind!,
+			kind: recorded.kind!,
 			day: eventDay,
 			dates: new Map<string, { count: number; days: number }>()
 		};
@@ -188,10 +190,10 @@ export function benefitCashConflictsWithPayroll(input: {
 					(entry) =>
 						entry.employment_id === caseRow.employment_id &&
 						entry.leave_code === caseRow.case_type &&
-						entry.event_kind != null &&
-						entry.event_kind === caseRow.event_kind &&
-						dateKey(entry.event_date) !== '' &&
-						dateKey(entry.event_date) === dateKey(caseRow.event_on) &&
+						leaveEventOf(entry).kind != null &&
+						leaveEventOf(entry).kind === caseRow.event_kind &&
+						leaveEventOf(entry).date != null &&
+						leaveEventOf(entry).date === dateKey(caseRow.event_on) &&
 						entry.charges.some(
 							(charge) => charge.date >= pay.salary.start && charge.date <= pay.salary.end
 						)

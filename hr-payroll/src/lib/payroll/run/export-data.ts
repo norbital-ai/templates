@@ -42,7 +42,16 @@ import { normalizedWorkedIntervals, type WorkDayLike } from './overtime.js';
 import { decodeNumber } from '../../wire.js';
 import { dateKey } from '../../iso-day.js';
 import * as Predicate from 'effect/Predicate';
-import { payerAccountSchema, type PayerAccount } from './bank-formats.js';
+
+const trimmed = Schema.Trimmed.check(Schema.isMinLength(1));
+/** The entity's originator account (`companies.disbursement_account`): the payer a bank file names. */
+export const payerAccountSchema = Schema.Struct({
+	bank_name: trimmed,
+	bank_code: trimmed,
+	bank_account_number: trimmed,
+	bank_account_name: trimmed
+});
+export type PayerAccount = Schema.Schema.Type<typeof payerAccountSchema>;
 
 type RunExport = {
 	readonly runId: string;

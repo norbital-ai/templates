@@ -10,15 +10,29 @@ import {
 import {
 	describeVersion,
 	governed,
+	overlayFault,
 	periodsOverlap,
 	stableJson,
-	type Governed
+	type Governed,
+	type LineageOverlay
 } from '../../../lib/jurisdiction_settings.js';
+import { checksOf } from '../../../lib/datatypes/checks.js';
+import { returnsFault, returnsOf } from '../../../lib/datatypes/returns.js';
 import {
 	createSettingsDraft,
 	readSettingsVersionTree,
 	settingsDraftWrite
 } from '../../../lib/settings_clone.js';
+import {
+	referenceCodes,
+	referenceRowOf,
+	referenceRowsFault,
+	tableMentionFault
+} from '../../../lib/expressions/functions/tables.js';
+import type { ReferenceTable } from '../../../lib/datatypes/reference_tables.js';
+import { DOCUMENT_TABLE } from '../../../lib/datatypes/fact_keys.js';
+import { dutyTypesOf } from '../../../lib/obligations/materialise.js';
+import { everyField } from '../../../lib/every-field.js';
 
 /** Settings versions. A version is created with its schemes and catalogues in one write (a clone); sealing and voiding are the reviewed writes (the policies' approval routes). */
 const settings = collection('jurisdiction_settings', {
@@ -42,7 +56,15 @@ const settings = collection('jurisdiction_settings', {
 				'work_day_facts',
 				'payment_facts',
 				'settlement_facts',
+				'worksite_facts',
+				'person_facts',
+				'history_kinds',
+				'tables',
+				'overlays',
 				'obligations',
+				'duty_types',
+				'checks',
+				'returns',
 				'change_summary',
 				'effective_range'
 			],
@@ -133,7 +155,22 @@ const settings = collection('jurisdiction_settings', {
 							'unit',
 							'evidence_after_days',
 							'entitlement',
-							'requires_no_pay_origin'
+							'requires_no_pay_origin',
+							'event_facts'
+						]
+					}
+				},
+				reference_rows: {
+					create: {
+						columns: [
+							'table',
+							'code',
+							'parent_code',
+							'label',
+							'effective_range',
+							'range_from',
+							'range_to',
+							'values'
 						]
 					}
 				},
@@ -189,7 +226,15 @@ const settings = collection('jurisdiction_settings', {
 				'work_day_facts',
 				'payment_facts',
 				'settlement_facts',
+				'worksite_facts',
+				'person_facts',
+				'history_kinds',
+				'tables',
+				'overlays',
 				'obligations',
+				'duty_types',
+				'checks',
+				'returns',
 				'change_summary',
 				'effective_range'
 			]
@@ -224,6 +269,7 @@ function onlyShortens(stored: Governed | null, next: Governed | null): boolean {
 
 type WorkRules = {
 	readonly ordinary_divisor_days: string;
+	readonly ordinary_rate?: { readonly hour: string; readonly day: string } | null;
 	readonly overtime_when: string;
 	readonly bands: readonly {
 		readonly when: string;
@@ -239,6 +285,8 @@ type WorkRules = {
 /** Every expression a version's work rules carry, for the entity-fact key check. */
 const workRuleExpressions = (work: WorkRules): string[] => [
 	work.ordinary_divisor_days,
+	work.ordinary_rate?.hour ?? '',
+	work.ordinary_rate?.day ?? '',
 	work.overtime_when,
 	...work.bands.flatMap((band) => [
 		band.when,
@@ -273,33 +321,87 @@ settings.transform(async (inputs, { existing, db, refuse }) => {
 	const under = { settings_id: { in: sealing }, ...held } as const;
 	const none = { rows: [] as const, next: null };
 	// One wave: every read is keyed by the inputs and their stored rows.
-	const [paidRuns, schemes, allowances, adhoc, claims, loans, leaves, siblings] = await Promise.all(
-		[
-			voiding.length === 0
-				? none
-				: db.read('payroll_runs', {
-						where: { settings_id: { in: voiding }, payslips: { some: { status: { eq: 'PAID' } } } },
-						all: true
-					}),
-			sealing.length === 0 ? none : db.read('statutory_contributions', { where: under, all: true }),
-			sealing.length === 0 ? none : db.read('allowance_catalogue', { where: under, all: true }),
-			sealing.length === 0 ? none : db.read('adhoc_catalogue', { where: under, all: true }),
-			sealing.length === 0 ? none : db.read('claim_catalogue', { where: under, all: true }),
-			sealing.length === 0 ? none : db.read('loan_catalogue', { where: under, all: true }),
-			sealing.length === 0 ? none : db.read('leave_catalogue', { where: under, all: true }),
-			codes.length === 0
-				? none
-				: db.read('jurisdiction_settings', {
-						where: {
-							code: { in: codes },
-							sealed_at: { isNull: false },
-							voided_at: { isNull: true },
-							...held
-						},
-						all: true
-					})
-		]
+	const [
+		paidRuns,
+		schemes,
+		allowances,
+		adhoc,
+		claims,
+		loans,
+		leaves,
+		siblings,
+		references,
+		lineages
+	] = await Promise.all([
+		voiding.length === 0
+			? none
+			: db.read('payroll_runs', {
+					where: { settings_id: { in: voiding }, payslips: { some: { status: { eq: 'PAID' } } } },
+					all: true
+				}),
+		sealing.length === 0 ? none : db.read('statutory_contributions', { where: under, all: true }),
+		sealing.length === 0 ? none : db.read('allowance_catalogue', { where: under, all: true }),
+		sealing.length === 0 ? none : db.read('adhoc_catalogue', { where: under, all: true }),
+		sealing.length === 0 ? none : db.read('claim_catalogue', { where: under, all: true }),
+		sealing.length === 0 ? none : db.read('loan_catalogue', { where: under, all: true }),
+		sealing.length === 0 ? none : db.read('leave_catalogue', { where: under, all: true }),
+		codes.length === 0
+			? none
+			: db.read('jurisdiction_settings', {
+					where: {
+						code: { in: codes },
+						sealed_at: { isNull: false },
+						voided_at: { isNull: true },
+						...held
+					},
+					all: true
+				}),
+		sealing.length === 0
+			? none
+			: db.read('reference_rows', {
+					where: under,
+					select: everyField('reference_rows'),
+					all: true
+				}),
+		// Every sealed live version: an overlay and the base it serves are judged together (E8).
+		sealing.length === 0
+			? none
+			: db.read('jurisdiction_settings', {
+					where: { sealed_at: { isNull: false }, voided_at: { isNull: true }, ...held },
+					select: {
+						id: true,
+						code: true,
+						name: true,
+						work_rules: true,
+						overlays: true,
+						effective_range: true
+					},
+					all: true
+				})
+	]);
+	// The overlay versions a sealing base names, and their schemes (an overlay states none).
+	const overlaysOf = (version: { readonly overlays?: unknown }) =>
+		(version.overlays ?? []) as readonly LineageOverlay[];
+	const named = new Set(
+		inputs.flatMap((input, index) =>
+			sealing.includes(existing[index]?.id as Id<'jurisdiction_settings'>)
+				? overlaysOf({ ...existing[index], ...input }).map((declaration) => declaration.lineage)
+				: []
+		)
 	);
+	const overlayIds = lineages.rows.filter((row) => named.has(row.code)).map((row) => row.id);
+	const overlaySchemes =
+		overlayIds.length === 0
+			? none
+			: await db.read('statutory_contributions', {
+					where: { settings_id: { in: overlayIds }, ...held },
+					select: { code: true, settings_id: true },
+					all: true
+				});
+	const schemeCodesOf = (settingsId: string) =>
+		[...overlaySchemes.rows, ...schemes.rows]
+			.filter((scheme) => scheme.settings_id === settingsId)
+			.map((scheme) => scheme.code);
 	const catalogues = catalogueCodes({
 		allowances: allowances.rows,
 		adhoc: adhoc.rows,
@@ -382,20 +484,15 @@ settings.transform(async (inputs, { existing, db, refuse }) => {
 				const fault = compileExpression({ expression, site: 'person', type: 'boolean', exitFacts });
 				if (fault != null) refuse(`${field.key} departure ${kind}: ${fault}`);
 			}
-		// An entity fact's evidence is recorded on its dated revision; a departure has no subject row.
-		for (const field of exitFacts)
-			if (field.evidence != null)
-				refuse(
-					`${field.key}: evidence is declared on entity, terms, work-day, payment and settlement ` +
-						'inputs, whose subjects record it.'
-				);
 		// A subject's inputs are judged at the person site (terms, work days) or the payment site.
 		const termsFacts = (row.terms_facts ?? []) as readonly DeclaredKey[];
 		const workDayFacts = (row.work_day_facts ?? []) as readonly DeclaredKey[];
 		const paymentFacts = (row.payment_facts ?? []) as readonly DeclaredKey[];
 		const settlementFacts = (row.settlement_facts ?? []) as readonly DeclaredKey[];
+		const personFacts = (row.person_facts ?? []) as readonly DeclaredKey[];
 		for (const [noun, fields, site] of [
 			['terms', termsFacts, 'person'],
+			['person', personFacts, 'person'],
 			['work-day', workDayFacts, 'person'],
 			['payment', paymentFacts, 'payment'],
 			['settlement', settlementFacts, 'payment']
@@ -417,6 +514,41 @@ settings.transform(async (inputs, { existing, db, refuse }) => {
 					});
 					if (fault != null) refuse(`${field.key} ${noun} ${kind}: ${fault}`);
 				}
+		// A duty type's expressions are judged at the obligation site, with the version's entity facts.
+		for (const duty of dutyTypesOf(row))
+			for (const [kind, expression, type] of [
+				['trigger', duty.trigger.when, 'boolean'],
+				['due day', duty.due, 'date'],
+				['amount', duty.amount, 'money'],
+				['late charge', duty.late_charge, 'money'],
+				['retention', duty.retain_years, 'number'],
+				...(duty.evidence ?? []).flatMap((field) => [
+					[`${field.key} requirement`, field.required_when, 'boolean'] as const,
+					[`${field.key} validation`, field.valid_when, 'boolean'] as const
+				])
+			] as const) {
+				const fault = compileExpression({ expression, site: 'obligation', type, facts });
+				if (fault != null) refuse(`Duty ${duty.code} ${kind}: ${fault}`);
+			}
+		// A stored check is judged at the check site, with the version's declared inputs (E9).
+		for (const check of checksOf(row)) {
+			const fault = compileExpression({
+				expression: check.when,
+				site: 'check',
+				type: 'boolean',
+				facts,
+				exitFacts,
+				termsFacts,
+				personFacts
+			});
+			if (fault != null) refuse(`Check ${check.code}: ${fault}`);
+		}
+		// Returns and bank files are judged with the version's tables (L2).
+		const returnFault = returnsFault(
+			returnsOf(row),
+			(row.tables ?? []) as readonly ReferenceTable[]
+		);
+		if (returnFault != null) refuse(returnFault);
 		for (const [region, wage] of Object.entries(row.work_rules?.wages?.by_region ?? {}))
 			if (!(wage > 0)) refuse(`The minimum wage of region ${region} must be a positive amount.`);
 		const filled =
@@ -425,7 +557,11 @@ settings.transform(async (inputs, { existing, db, refuse }) => {
 						...input,
 						facts: row.facts ?? [],
 						exit_facts: row.exit_facts ?? [],
-						obligations: row.obligations ?? []
+						obligations: row.obligations ?? [],
+						duty_types: row.duty_types ?? [],
+						checks: row.checks ?? [],
+						returns: row.returns ?? [],
+						overlays: row.overlays ?? []
 					}
 				: input;
 		if (row.sealed_at == null) return filled;
@@ -528,7 +664,76 @@ settings.transform(async (inputs, { existing, db, refuse }) => {
 								'Declare the work-day input (its key and type) on the version first.'
 						);
 			}
+			// The version's tables: its rows fit their declarations, every table an expression reads is
+			// declared for that lookup, and every `code` input picks from a declared table.
+			const tables = (row.tables ?? []) as readonly ReferenceTable[];
+			const ownRows = references.rows
+				.filter((reference) => reference.settings_id === stored.id)
+				.map(referenceRowOf);
+			const rowsFault = referenceRowsFault(tables, ownRows);
+			if (rowsFault != null) refuse(rowsFault);
+			for (const expression of expressions) {
+				const fault = tableMentionFault(tables, expression);
+				if (fault != null) refuse(`This settings version: ${fault}`);
+			}
+			const codes = referenceCodes(ownRows, governed(row.effective_range)?.from ?? '');
+			const declarations = [
+				...facts,
+				...exitFacts,
+				...termsFacts,
+				...workDayFacts,
+				...paymentFacts,
+				...settlementFacts,
+				...personFacts,
+				...((row.worksite_facts ?? []) as readonly DeclaredKey[]),
+				...(row.history_kinds ?? []).flatMap((kind) => kind.facts as readonly DeclaredKey[]),
+				...(row.duty_types ?? []).flatMap((duty) => (duty.evidence ?? []) as readonly DeclaredKey[])
+			];
+			for (const field of declarations) {
+				const document = field.evidence?.document;
+				if (document != null && codes(DOCUMENT_TABLE, document) == null)
+					refuse(
+						`${field.key}: its evidence names document ${document}, which is not a ${DOCUMENT_TABLE} ` +
+							'row of this settings version when it begins.'
+					);
+			}
+			for (const field of declarations)
+				if (field.type === 'code') {
+					if (!tables.some((table) => table.name === field.table))
+						refuse(
+							`${field.key} picks its codes from table ${field.table}, which this settings version does not declare.`
+						);
+					for (const value of [field.default_value, ...(field.options ?? [])])
+						if (value != null && codes(field.table!, String(value)) == null)
+							refuse(
+								`${field.key}: ${String(value)} is not a code of table ${field.table} when this version begins.`
+							);
+				}
 		}
+		// An overlay never replaces a scheme, never routes further, and states what its base says it
+		// replaces: judged from both sides, sealing the base or sealing the overlay (E8).
+		const days0 = governed(row.effective_range);
+		const overlapping = (other: { readonly effective_range: unknown }) => {
+			const span = governed(other.effective_range);
+			return days0 != null && span != null && periodsOverlap(days0, span);
+		};
+		for (const declaration of overlaysOf(row)) {
+			const self = overlayFault(row.code, declaration, { code: '', work_rules: {} }, []);
+			if (self != null) refuse(self);
+			for (const overlay of lineages.rows)
+				if (overlay.code === declaration.lineage && overlapping(overlay)) {
+					const fault = overlayFault(row.code, declaration, overlay, schemeCodesOf(overlay.id));
+					if (fault != null) refuse(fault);
+				}
+		}
+		if (stored != null)
+			for (const base of lineages.rows)
+				if (base.code !== row.code && overlapping(base))
+					for (const declaration of overlaysOf(base))
+						if (declaration.lineage === row.code) {
+							const fault = overlayFault(base.code, declaration, row, schemeCodesOf(stored.id));
+							if (fault != null) refuse(fault);
+						}
 		// Sealing. The sealed-only `noOverlap` holds the overlap too; the sentence is why it happens here, and the batch
 		// is read so a predecessor ended in the same write counts.
 		const days =

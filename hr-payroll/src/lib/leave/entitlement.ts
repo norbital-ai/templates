@@ -264,8 +264,7 @@ export function computedEntitlement(options: {
 					month = addDays(monthBounds(month).end, 1).slice(0, 7)
 				) {
 					const days = daysBetween(monthBounds(month).start, monthBounds(month).end);
-					if (days.filter((date) => eligible.has(date)).length >= share * days.length)
-						months += 1;
+					if (days.filter((date) => eligible.has(date)).length >= share * days.length) months += 1;
 				}
 				return months / 12;
 			}

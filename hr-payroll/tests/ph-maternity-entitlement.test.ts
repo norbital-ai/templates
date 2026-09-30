@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { COMPANY_ID, createStatutoryWorld, leaveCatalogue } from './fixtures/statutory-world.ts';
+import {
+	COMPANY_ID,
+	createStatutoryWorld,
+	leaveCatalogue,
+	settingsVersions
+} from './fixtures/statutory-world.ts';
 import { payrollWorld } from './fixtures/memory-payroll-api.ts';
 import { memoryDb } from './helpers/ctx.ts';
 import { readLeaveContext } from '../src/lib/leave/context.ts';
@@ -52,8 +57,10 @@ test('PH maternity leave approval and payroll do not depend on SSS registration 
 				reference: `BIRTH-${sssKind}`,
 				from_date: '2026-10-05',
 				to_date: '2026-10-05',
-				event_kind: 'BIRTH',
-				event_date: '2026-10-05'
+				facts: {
+					event_kind: 'BIRTH',
+					event_date: '2026-10-05'
+				}
 			},
 			'a2000000-0000-4000-8000-000000009001'
 		);
@@ -71,7 +78,7 @@ test('PH maternity leave approval and payroll do not depend on SSS registration 
 			period: '2026-10'
 		});
 		const slip = buildPayrollRun(prepared).payslip_payroll_run[0]!;
-		assert.equal(prepared.gathered.bundles[0]!.leave.entries[0]!.event_kind, 'BIRTH');
+		assert.equal(prepared.gathered.bundles[0]!.leave.entries[0]!.facts?.event_kind, 'BIRTH');
 		assert.equal(
 			slip.adjustments.find((line) => line.component_code === 'MATERNITY_LEAVE')?.amount ?? 0,
 			0
@@ -82,7 +89,8 @@ test('PH maternity leave approval and payroll do not depend on SSS registration 
 
 test('PH 105-day maternity span charges every calendar day across weekends', async () => {
 	const maternityRows = leaveCatalogue('PH').filter((row) => row.code === 'MATERNITY_LEAVE');
-	assert.equal(maternityRows.length, 7);
+	// one row on every version
+	assert.equal(maternityRows.length, settingsVersions('PH').length);
 	assert.ok(maternityRows.every((row) => row.entitlement.calendar_days === true));
 	const world = createStatutoryWorld({
 		code: 'PH',
@@ -119,8 +127,10 @@ test('PH 105-day maternity span charges every calendar day across weekends', asy
 				reference: `BIRTH-105-${index}`,
 				from_date: from,
 				to_date: to,
-				event_kind: 'BIRTH',
-				event_date: '2026-10-05'
+				facts: {
+					event_kind: 'BIRTH',
+					event_date: '2026-10-05'
+				}
 			},
 			id
 		);
@@ -176,8 +186,10 @@ test('PH day 106 needs a birth-matched solo-parent case document, not the curren
 		reference: 'BIRTH-120',
 		from_date,
 		to_date,
-		event_kind: 'BIRTH',
-		event_date: '2026-10-05'
+		facts: {
+			event_kind: 'BIRTH',
+			event_date: '2026-10-05'
+		}
 	});
 	const first = planLeaveActivity(
 		context,
@@ -195,7 +207,7 @@ test('PH day 106 needs a birth-matched solo-parent case document, not the curren
 	const extension = {
 		...request('2027-01-18', '2027-02-01'),
 		reference: 'BIRTH-120-EXT',
-		event_relationship: 'CHILD'
+		facts: { event_kind: 'BIRTH', event_date: '2026-10-05', event_relationship: 'CHILD' }
 	};
 	assert.throws(
 		() => planLeaveActivity(context, extension, 'a2000000-0000-4000-8000-000000009121'),

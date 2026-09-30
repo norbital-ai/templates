@@ -105,7 +105,7 @@ test('ID: hourly pay is part-time only and meets the sector-aware monthly floor 
 					wage,
 					hire_date: '2026-01-01',
 					exit_date: '2026-03-31',
-					exit_reason: 'END_OF_CONTRACT',
+					exit_ground: 'END_OF_CONTRACT',
 					citizenship: 'FOREIGNER',
 					tax_residency: 'NON_RESIDENT',
 					id_foreign_prior_indonesia_work: 'NONE',
@@ -677,7 +677,7 @@ function separationAmounts(options: {
 					wage: options.wage ?? 10_000_000,
 					hire_date: '2022-01-31',
 					exit_date: '2026-01-31',
-					exit_reason: options.reason ?? 'DISMISSAL'
+					exit_ground: options.reason ?? 'DISMISSAL'
 				}
 			]
 		},
@@ -868,7 +868,7 @@ test('ID fixed-term compensation remains separate from permanent termination ben
 				wage: 10_000_000,
 				hire_date: '2022-01-31',
 				exit_date: '2026-01-31',
-				exit_reason: employment_type === 'CONTRACT' ? 'END_OF_CONTRACT' : 'REDUNDANCY'
+				exit_ground: employment_type === 'CONTRACT' ? 'END_OF_CONTRACT' : 'REDUNDANCY'
 			}))
 		},
 		(world) => {

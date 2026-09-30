@@ -50,16 +50,7 @@ export const LINEAGES = readdirSync(jurisdictionRoot, { withFileTypes: true })
 	.sort() as readonly Lineage[];
 
 export type Lineage =
-	| 'MY'
-	| 'PH'
-	| 'SG'
-	| 'VN'
-	| 'TW'
-	| 'ID'
-	| 'TH'
-	| 'CN-shanghai'
-	| 'CN-kunming'
-	| 'JP';
+	'MY' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID' | 'TH' | 'CN-shanghai' | 'CN-kunming' | 'JP';
 
 function law(code: Lineage, file: string, options?: { optional: true }): any[] {
 	const rows = readLawFile(resolve(jurisdictionRoot, code, file), options);
@@ -224,8 +215,8 @@ export type Person = {
 	readonly th_pregnancy_status?: 'PREGNANT' | 'NOT_PREGNANT' | null;
 	/** The last employed day; the fixture closes the employment and its terms on it. */
 	readonly exit_date?: string;
-	/** `employments.exit_reason`, the separation bands' gate. */
-	readonly exit_reason?: string;
+	/** `employments.exit_ground`, the separation bands' gate. */
+	readonly exit_ground?: string;
 	/**
 	 * Per-scheme registration: a code mapped to `NOT_REGISTERED`, a flat rate override, or the
 	 * employment's declared elections under that scheme (e.g. `shg_opt_out`).
@@ -353,7 +344,7 @@ function exitFactsFor(
 	code: Lineage,
 	person: Person
 ): { exit_facts?: Record<string, string | number | boolean> } {
-	const reason = person.exit_reason;
+	const reason = person.exit_ground;
 	const facts: Record<string, string | number | boolean> = {};
 	if (code === 'MY') {
 		facts.notice_termination_party =
@@ -467,8 +458,8 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		employee_number: person.key,
 		bank: null,
 		effective_range: { start: person.hire_date ?? '2015-01-01', end: person.exit_date ?? null },
-		exit_reason: person.exit_reason ?? null,
-		...(person.exit_reason == null ? {} : exitFactsFor(code, person)),
+		exit_ground: person.exit_ground ?? null,
+		...(person.exit_ground == null ? {} : exitFactsFor(code, person)),
 		approval_id: null
 	}));
 
@@ -672,7 +663,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 									sdl_student_class: 'NONE'
 								}
 							: {}),
-						...((code === 'MY') && person.citizenship === 'FOREIGNER'
+						...(code === 'MY' && person.citizenship === 'FOREIGNER'
 							? scheme.code === 'EIS'
 								? { mykas_resident: false }
 								: scheme.code === 'EPF' || scheme.code === 'EPF_NON_CITIZEN'
@@ -1092,7 +1083,7 @@ function keyClockOverruns(prepared: PreparedRun): void {
 	for (const bundle of prepared.gathered.bundles) {
 		const punched = bundle.workDays.filter((entry) => entry.worked_intervals != null);
 		if (punched.length === 0) continue;
-		const configuration = atWorksite(prepared.configuration, bundle.termsHistory);
+		const configuration = atWorksite(prepared.configuration, bundle.termsHistory, bundle.workDays);
 		const work = prepareWorkContext({
 			bundle,
 			configuration,

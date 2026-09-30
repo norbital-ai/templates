@@ -25,10 +25,8 @@ export const fromMinorUnits = (minor: bigint, currency: string): number =>
 	Number(minor) / 10 ** currencyFractionDigits(currency);
 
 /**
- * Every rounding the engine executes. A scheme's rule names one of these as a registered helper
- * (`round_cent`, `round_5_cents`, `truncate_cent`, `up_5_cents`, `round_unit`, `floor_unit`,
- * `up_to_unit`); `roundMoney` is their shared implementation, called by `cents` and the overtime
- * floor too.
+ * The engine's own roundings (`cents`, the overtime floor, a cap's share). A stored rule rounds
+ * with `round(value, step, 'MODE')` (`roundStep`), its direction and step written in the rule.
  */
 export type RoundingMethod =
 	'NEAREST_CENT' | 'TRUNCATE_CENT' | 'UP_5_CENTS' | 'NEAREST_UNIT' | 'FLOOR_UNIT' | 'UP_TO_UNIT';
@@ -80,30 +78,74 @@ export function cents(value: number, currency?: string): number {
 	return Math.round((value + epsilon(value)) * scale) / scale;
 }
 
+/**
+ * The directions a stored `round(value, step, mode)` names. UP is toward +∞ and DOWN toward −∞;
+ * TRUNCATE drops toward zero; HALF_UP takes a half away from zero; HALF_EVEN takes a half to the
+ * even multiple.
+ */
+export const ROUND_MODES = ['HALF_UP', 'HALF_EVEN', 'UP', 'DOWN', 'TRUNCATE'] as const;
+export type RoundMode = (typeof ROUND_MODES)[number];
+
 /** A stored rounding step: the multiple a figure rounds to, and the direction. */
 export type StepRounding = { readonly step: number; readonly mode: 'UP' | 'DOWN' | 'HALF_UP' };
 
 /** Round to a multiple of `step`: up, down, or to the nearest with a half up. */
 export function roundToStep(value: number, { step, mode }: StepRounding): number {
-	if (!Number.isFinite(value) || !(step > 0))
+	return roundStep(value, step, mode);
+}
+
+/**
+ * Round to a multiple of `step` in one of the `ROUND_MODES`. The quotient carries the same
+ * compensating epsilon as `roundMoney`, so 1.15 / 0.05 (22.999999999999996) is the whole 23 it
+ * stands for; the product is re-fixed to the step's own decimals, so 3 × 0.05 is 0.15, not
+ * 0.15000000000000002.
+ */
+export function roundStep(value: number, step: number, mode: RoundMode): number {
+	if (!Number.isFinite(value) || !(step > 0) || !Number.isFinite(step))
 		throw new Error('Rounding needs a finite value and a positive step.');
-	const per = 1 / step;
-	const scaled = value * per;
+	const quotient = value / step;
+	const eps = epsilon(quotient);
+	const sign = quotient < 0 ? -1 : 1;
+	const magnitude = Math.abs(quotient);
+	let multiple: number;
 	switch (mode) {
 		case 'UP':
-			return Math.ceil(scaled - epsilon(scaled)) / per;
+			multiple = Math.ceil(quotient - eps);
+			break;
 		case 'DOWN':
-			return Math.floor(scaled + epsilon(scaled)) / per;
+			multiple = Math.floor(quotient + eps);
+			break;
+		case 'TRUNCATE':
+			multiple = sign * Math.floor(magnitude + eps);
+			break;
 		case 'HALF_UP':
-			return Math.round((value + epsilon(value)) * per) / per;
+			multiple = sign * Math.floor(magnitude + 0.5 + eps);
+			break;
+		case 'HALF_EVEN': {
+			const whole = Math.floor(magnitude + eps);
+			const rest = magnitude - whole;
+			const nearest =
+				Math.abs(rest - 0.5) <= eps
+					? whole % 2 === 0
+						? whole
+						: whole + 1
+					: Math.floor(magnitude + 0.5);
+			multiple = sign * nearest;
+			break;
+		}
+		default:
+			throw new Error(`Unknown rounding mode ${String(mode)}.`);
 	}
+	const decimals = (String(step).split('.')[1] ?? '').length;
+	// `|| 0` folds a −0 (a negative value rounded to nothing) into 0.
+	return Number((multiple * step).toFixed(decimals)) || 0;
 }
 
 /**
  * An hour count to the minute the punches were made in. Clock arithmetic yields 2.9999999999999996
  * for three hours; the minute is the punch's own unit, so nothing the day earned is lost or
  * invented. No statute states a coarser payable unit — a jurisdiction that prices "each hour or
- * part thereof" says so in its band (`up_to_unit(hours)`), not here.
+ * part thereof" says so in its band (`round(hours, 1, 'UP')`), not here.
  */
 export function roundMinute(hours: number): number {
 	return Math.round(hours * 60) / 60;

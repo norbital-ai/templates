@@ -1,5 +1,6 @@
 <script lang="ts">
 	/** A benefit case, its facts rendered with the case type its employment's lineage declares. */
+	import { bolt } from '$bolt';
 	import { Field, Form, RecordShell, type RecordView } from '@norbital-ai/ui';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
@@ -20,36 +21,36 @@
 		mode={view.mode}
 		{record}
 		values={createValues(view)}
-		submit={record == null ? 'Open benefit case' : 'Save benefit case'}
+		submit={bolt.t(record == null ? 'component.benefit_case_open' : 'component.benefit_case_save')}
 		onOutcome={openCreated(view)}
 	>
 		{#snippet children(form)}
 			<FormSection
 				first
-				title="Benefit case"
-				hint="The case type is the leave code whose statutory benefit the case prices. Its facts are the ones that case type declares; attach their files as fact evidence."
+				title={bolt.t('component.benefit_case')}
+				hint={bolt.t('component.benefit_case_hint')}
 			>
 				<Grid gap="sm" minimum="compact">
 					{#if record == null}
-						<Field name="employee_id" label="Person" />
-						<Field name="employment_id" label="Employment" />
-						<Field name="case_type" label="Case type (leave code)" />
-						<Field name="case_reference" label="Application reference" />
-						<Field name="application_on" label="Application date" />
+						<Field name="employee_id" />
+						<Field name="employment_id" />
+						<Field name="case_type" />
+						<Field name="case_reference" />
+						<Field name="application_on" />
 					{/if}
-					<Field name="expected_event_on" label="Expected event" />
-					<Field name="event_kind" label="Event kind" />
-					<Field name="event_on" label="Event date" />
-					<Field name="leave_from" label="Planned leave from" />
-					<Field name="leave_through" label="Planned leave through" />
-					<Field name="notified_on" label="Scheme notified on" />
-					<Field name="notification_reference" label="Notification reference" />
-					<Field name="award_amount" label="Actual award" />
-					<Field name="awarded_on" label="Awarded on" />
-					<Field name="award_reference" label="Award reference" />
-					<Field name="award_file" label="Award document" />
+					<Field name="expected_event_on" />
+					<Field name="event_kind" />
+					<Field name="event_on" />
+					<Field name="leave_from" />
+					<Field name="leave_through" />
+					<Field name="notified_on" />
+					<Field name="notification_reference" />
+					<Field name="award_amount" />
+					<Field name="awarded_on" />
+					<Field name="award_reference" />
+					<Field name="award_file" />
 					<Column span="all">
-						<Field name="facts" label="Case facts">
+						<Field name="facts">
 							{#snippet editor(field)}
 								<BenefitCaseFactsField
 									view={{

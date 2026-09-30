@@ -615,7 +615,7 @@ function separation(exitReason: string, noticeDays: number | null, code: string)
 					registrations: LOCAL,
 					hire_date: '2023-05-15',
 					exit_date: '2026-01-31',
-					exit_reason: exitReason
+					exit_ground: exitReason
 				}
 			]
 		},

@@ -64,7 +64,8 @@ export type Sector =
 	| 'SERVICE_ESTABLISHMENT';
 /** LPA s.65: (1) authority to hire/reward/dismiss; (2) commission sales; (3)–(9) the hourly-rate classes;
  *  GUARD: s.65(9) guarding of premises or property as normal duty (MR 2552, then MR 2568 from 24 Apr 2026). */
-export type WorkClass = 'ORDINARY' | 'S65_1_AUTHORITY' | 'S65_2_COMMISSION_SALES' | 'S65_3_9_HOURLY' | 'GUARD';
+export type WorkClass =
+	'ORDINARY' | 'S65_1_AUTHORITY' | 'S65_2_COMMISSION_SALES' | 'S65_3_9_HOURLY' | 'GUARD';
 export type ExitCause =
 	| 'RESIGNATION'
 	| 'EMPLOYER_TERMINATION'
@@ -136,7 +137,7 @@ export type Payslip = { refused: string | null; lines: Record<string, Line> };
 // ---------- arithmetic ----------
 const EPS = 1e-7;
 /** DEFAULT: money lines kept to the satang, half up (law silent). */
-export const r2 = (x: number) => Math.sign(x) * Math.floor(Math.abs(x) * 100 + 0.5 + EPS) / 100;
+export const r2 = (x: number) => (Math.sign(x) * Math.floor(Math.abs(x) * 100 + 0.5 + EPS)) / 100;
 /** P96 cl.1(3): the per-payment quotient; any remainder goes to the year's last payment, so truncate. */
 const t2 = (x: number) => Math.floor(x * 100 + EPS) / 100;
 /** SSA s.46 para.5: a fraction of 50 satang or more counts as one baht, less is dropped. */
@@ -154,7 +155,8 @@ export const addYears = (d: string, n: number) => {
 	return md === '02-29' && !isLeap(y) ? `${y}-03-01` : `${y}-${md}`;
 };
 const isLeap = (y: number) => (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
-const daysIn = (period: string) => new Date(Date.UTC(+period.slice(0, 4), +period.slice(5, 7), 0)).getUTCDate();
+const daysIn = (period: string) =>
+	new Date(Date.UTC(+period.slice(0, 4), +period.slice(5, 7), 0)).getUTCDate();
 export const monthEnd = (period: string) => `${period}-${String(daysIn(period)).padStart(2, '0')}`;
 const nextPeriod = (p: string) => addDays(monthEnd(p), 1).slice(0, 7);
 /** inclusive day count a..b */
@@ -170,7 +172,11 @@ const service = (hire: string, last: string) => {
 	const end = addDays(last, 1);
 	let years = 0;
 	while (D(addYears(hire, years + 1)) <= D(end)) years += 1;
-	return { years, restDays: (D(end) - D(addYears(hire, years))) / DAY, totalDays: span(hire, last) };
+	return {
+		years,
+		restDays: (D(end) - D(addYears(hire, years))) / DAY,
+		totalDays: span(hire, last)
+	};
 };
 
 // ---------- statutory tables (each from the source cited) ----------
@@ -178,7 +184,10 @@ const service = (hire: string, last: string) => {
  *  Service Establishment Act venues (TH-WAGE-03, -07); a type 1 hotel keeps the geographic rate. */
 const minimumDaily = (w: Worksite, s: Sector) => {
 	const geo = WORKSITE_DAILY[w];
-	return s === 'HOTEL_TYPE_2' || s === 'HOTEL_TYPE_3' || s === 'HOTEL_TYPE_4' || s === 'SERVICE_ESTABLISHMENT'
+	return s === 'HOTEL_TYPE_2' ||
+		s === 'HOTEL_TYPE_3' ||
+		s === 'HOTEL_TYPE_4' ||
+		s === 'SERVICE_ESTABLISHMENT'
 		? Math.max(geo, 400)
 		: geo;
 };
@@ -186,7 +195,8 @@ const minimumDaily = (w: Worksite, s: Sector) => {
  *  Jan 2026–Dec 2028, 20,000 Jan 2029–Dec 2031, 23,000 from Jan 2032 (TH-SS-01). */
 const ssoBase = (period: string) => {
 	if (period < '2025-12') throw new Error(`no TH SSO base transcribed for ${period}`);
-	const ceiling = period <= '2025-12' ? 15000 : period <= '2028-12' ? 17500 : period <= '2031-12' ? 20000 : 23000;
+	const ceiling =
+		period <= '2025-12' ? 15000 : period <= '2028-12' ? 17500 : period <= '2031-12' ? 20000 : 23000;
 	return { floor: 1650, ceiling };
 };
 /** 2565 rate regulation Schedule B 5% each side; flood notice cl.1: 3% each side Dec 2025–May 2026 in the area. */
@@ -219,7 +229,19 @@ const annualTax = (income: number, relief: number) =>
 	taxOn(Math.max(0, income - Math.min(income * 0.5, 100_000) - 60_000 - relief));
 /** LPA s.118 (No.7 B.E.2562) severance days by continuous service. */
 const s118Days = (years: number, totalDays: number) =>
-	totalDays < 120 ? 0 : years < 1 ? 30 : years < 3 ? 90 : years < 6 ? 180 : years < 10 ? 240 : years < 20 ? 300 : 400;
+	totalDays < 120
+		? 0
+		: years < 1
+			? 30
+			: years < 3
+				? 90
+				: years < 6
+					? 180
+					: years < 10
+						? 240
+						: years < 20
+							? 300
+							: 400;
 
 export function computePayslip(sc: Scenario): Payslip {
 	const { employee: e, company: c, period } = sc;
@@ -237,16 +259,21 @@ export function computePayslip(sc: Scenario): Payslip {
 	const anyOt = sc.time.overtimeHours > 0 || (sc.time.holidayWork?.overtimeHours ?? 0) > 0;
 	const anyHoliday = sc.time.holidayWork !== null;
 	if (minor && (anyOt || anyHoliday)) return refuse('under-18 overtime/holiday work (LPA s.48)');
-	if (e.pregnant && (anyOt || anyHoliday)) return refuse('pregnant overtime/holiday work (LPA s.39/1)');
-	if (e.hazardous && (anyOt || anyHoliday)) return refuse('hazardous overtime/holiday work (LPA s.31)');
+	if (e.pregnant && (anyOt || anyHoliday))
+		return refuse('pregnant overtime/holiday work (LPA s.39/1)');
+	if (e.hazardous && (anyOt || anyHoliday))
+		return refuse('hazardous overtime/holiday work (LPA s.31)');
 	// LPA s.23: normal day ≤ 8 hours, hazardous ≤ 7; MR 2568 cl.4 lets a guard agree a longer normal day from
 	// 24 Apr 2026 (the 48-hour week it also requires is not modelled here)
 	const guardNew = e.workClass === 'GUARD' && period >= '2026-05';
-	if (e.workClass === 'GUARD' && period === '2026-04') throw new Error('guard April 2026 straddles the MR 2568 cutover');
-	if (e.hazardous && e.normalDailyHours > 7) return refuse('hazardous normal day over 7 hours (LPA s.23)');
+	if (e.workClass === 'GUARD' && period === '2026-04')
+		throw new Error('guard April 2026 straddles the MR 2568 cutover');
+	if (e.hazardous && e.normalDailyHours > 7)
+		return refuse('hazardous normal day over 7 hours (LPA s.23)');
 	if (e.normalDailyHours > 8 && !guardNew) return refuse('normal day over 8 hours (LPA s.23)');
 	// No.9 ss.41 para.4, 41/1: child-care and spouse-birth leave "not more than fifteen days"
-	if (sc.leave.childCareDays > 15 || sc.leave.spouseBirthDays > 15) return refuse('leave beyond 15 days');
+	if (sc.leave.childCareDays > 15 || sc.leave.spouseBirthDays > 15)
+		return refuse('leave beyond 15 days');
 
 	// ---- regular pay ----
 	const start = e.hireDate > first ? e.hireDate : first;
@@ -257,16 +284,25 @@ export function computePayslip(sc: Scenario): Payslip {
 	if (e.pay.basis === 'MONTHLY') {
 		perDay = e.pay.monthly / 30; // DEFAULT (TH-WORK-05): a monthly wage's day is monthly ÷ 30
 		// DEFAULT (TH-WORK-05 proration.by CALENDAR_DAYS): a part month on calendar days
-		const salary = employedDays === daysIn(period) ? e.pay.monthly : r2((e.pay.monthly * employedDays) / daysIn(period));
+		const salary =
+			employedDays === daysIn(period)
+				? e.pay.monthly
+				: r2((e.pay.monthly * employedDays) / daysIn(period));
 		lines.SALARY = { amount: salary, base: employedDays };
 		// unpaid-day equivalents (each day at monthly ÷ 30)
 		let unpaid = sc.leave.unpaidDays;
 		// LPA s.57: sick leave paid up to 30 working days a year
-		unpaid += Math.max(0, sc.leave.sick.prior + sc.leave.sick.days - 30) - Math.max(0, sc.leave.sick.prior - 30);
+		unpaid +=
+			Math.max(0, sc.leave.sick.prior + sc.leave.sick.days - 30) -
+			Math.max(0, sc.leave.sick.prior - 30);
 		// LPA s.57/1: personal-business leave paid up to 3 days a year; a day granted beyond is unpaid
-		unpaid += Math.max(0, sc.leave.personal.prior + sc.leave.personal.days - 3) - Math.max(0, sc.leave.personal.prior - 3);
+		unpaid +=
+			Math.max(0, sc.leave.personal.prior + sc.leave.personal.days - 3) -
+			Math.max(0, sc.leave.personal.prior - 3);
 		// LPA s.58: military leave paid up to 60 days a year
-		unpaid += Math.max(0, sc.leave.military.prior + sc.leave.military.days - 60) - Math.max(0, sc.leave.military.prior - 60);
+		unpaid +=
+			Math.max(0, sc.leave.military.prior + sc.leave.military.days - 60) -
+			Math.max(0, sc.leave.military.prior - 60);
 		// No.9 s.59/1: child-care leave at 50% of wages
 		unpaid += sc.leave.childCareDays * 0.5;
 		// No.9 s.59/2: spouse-birth leave fully paid (no deduction). LPA s.56: annual leave paid.
@@ -284,14 +320,20 @@ export function computePayslip(sc: Scenario): Payslip {
 		// LPA s.56(2): traditional holidays paid to all; weekly holidays not paid to daily staff (s.56(1))
 		lines.DAILY_WAGES = { amount: r2(e.pay.daily * e.pay.workedDays), base: e.pay.workedDays };
 		if (e.pay.paidTraditionalHolidays > 0)
-			lines.HOLIDAY_PAY = { amount: r2(e.pay.daily * e.pay.paidTraditionalHolidays), base: e.pay.paidTraditionalHolidays };
+			lines.HOLIDAY_PAY = {
+				amount: r2(e.pay.daily * e.pay.paidTraditionalHolidays),
+				base: e.pay.paidTraditionalHolidays
+			};
 		regular = (lines.DAILY_WAGES.amount ?? 0) + (lines.HOLIDAY_PAY?.amount ?? 0);
 		// MR 2568 cl.4: a guard not paid monthly on an agreed normal day over eight hours gets ≥ 1.25× the hourly
 		// rate for each normal hour beyond eight. READING: on top of the day wage (the day wage pays the agreed
 		// normal day at 1×); hourly = day ÷ agreed normal hours (s.68); DEFAULT: in the s.5 wage (normal hours).
 		if (guardNew && e.normalDailyHours > 8) {
 			const h = (e.normalDailyHours - 8) * e.pay.workedDays;
-			lines.GUARD_NORMAL_SUPPLEMENT = { amount: r2((e.pay.daily / e.normalDailyHours) * 1.25 * h), base: h };
+			lines.GUARD_NORMAL_SUPPLEMENT = {
+				amount: r2((e.pay.daily / e.normalDailyHours) * 1.25 * h),
+				base: h
+			};
 			regular += lines.GUARD_NORMAL_SUPPLEMENT.amount!;
 		}
 	}
@@ -304,8 +346,21 @@ export function computePayslip(sc: Scenario): Payslip {
 	if (sc.time.overtimeHours > 0) {
 		// s.61 ≥1.5×; s.65(1),(2) none; s.65(3)–(9) the hourly rate per hour; guard: MR 2552 cl.2 1× before
 		// 24 Apr 2026, MR 2568 cl.3 ≥1.25× from then
-		const m = cls === 'ORDINARY' ? 1.5 : cls === 'S65_3_9_HOURLY' ? 1 : cls === 'GUARD' ? (guardNew ? 1.25 : 1) : 0;
-		if (m > 0) lines.OVERTIME = { amount: r2(hourly * m * sc.time.overtimeHours), base: sc.time.overtimeHours };
+		const m =
+			cls === 'ORDINARY'
+				? 1.5
+				: cls === 'S65_3_9_HOURLY'
+					? 1
+					: cls === 'GUARD'
+						? guardNew
+							? 1.25
+							: 1
+						: 0;
+		if (m > 0)
+			lines.OVERTIME = {
+				amount: r2(hourly * m * sc.time.overtimeHours),
+				base: sc.time.overtimeHours
+			};
 	}
 	const hw = sc.time.holidayWork;
 	if (hw) {
@@ -313,14 +368,32 @@ export function computePayslip(sc: Scenario): Payslip {
 		// holiday); s.66 removes s.62 only from class (1)
 		const paidForHoliday = e.pay.basis === 'MONTHLY' || hw.kind === 'TRADITIONAL';
 		if (cls !== 'S65_1_AUTHORITY' && hw.hours > 0)
-			lines.HOLIDAY_WORK = { amount: r2(hourly * (paidForHoliday ? 1 : 2) * hw.hours), base: hw.hours };
+			lines.HOLIDAY_WORK = {
+				amount: r2(hourly * (paidForHoliday ? 1 : 2) * hw.hours),
+				base: hw.hours
+			};
 		// s.63 ≥3×; s.65 classes as for s.61; guard: MR 2552 cl.2 1×, MR 2568 cl.3 ≥2.5×
-		const m = cls === 'ORDINARY' ? 3 : cls === 'S65_3_9_HOURLY' ? 1 : cls === 'GUARD' ? (guardNew ? 2.5 : 1) : 0;
+		const m =
+			cls === 'ORDINARY'
+				? 3
+				: cls === 'S65_3_9_HOURLY'
+					? 1
+					: cls === 'GUARD'
+						? guardNew
+							? 2.5
+							: 1
+						: 0;
 		if (m > 0 && hw.overtimeHours > 0)
-			lines.HOLIDAY_OVERTIME = { amount: r2(hourly * m * hw.overtimeHours), base: hw.overtimeHours };
+			lines.HOLIDAY_OVERTIME = {
+				amount: r2(hourly * m * hw.overtimeHours),
+				base: hw.overtimeHours
+			};
 	}
 	if (sc.bonus > 0) lines.BONUS = { amount: sc.bonus }; // LPA s.5: no statutory bonus; a paid one is income
-	special = ['OVERTIME', 'HOLIDAY_WORK', 'HOLIDAY_OVERTIME', 'BONUS'].reduce((s, k) => s + (lines[k]?.amount ?? 0), 0);
+	special = ['OVERTIME', 'HOLIDAY_WORK', 'HOLIDAY_OVERTIME', 'BONUS'].reduce(
+		(s, k) => s + (lines[k]?.amount ?? 0),
+		0
+	);
 
 	// ---- exit (LPA ss.17, 17/1, 67, 118–122) ----
 	let severance = 0;
@@ -330,8 +403,7 @@ export function computePayslip(sc: Scenario): Payslip {
 	const x = sc.exit;
 	if (x) {
 		svc = service(e.hireDate, x.date);
-		const employerEnds =
-			x.cause !== 'RESIGNATION' && x.cause !== 'DISMISSAL_S119'; // s.118/1: retirement is termination
+		const employerEnds = x.cause !== 'RESIGNATION' && x.cause !== 'DISMISSAL_S119'; // s.118/1: retirement is termination
 		// s.118; none on s.119 cause, resignation, or the para.3–4 exempt project/seasonal fixed term
 		const owesSeverance = employerEnds && x.cause !== 'FIXED_TERM_PROJECT_EXEMPT';
 		if (owesSeverance) {
@@ -440,7 +512,8 @@ export function computePayslip(sc: Scenario): Payslip {
 			toPit = other - otherIn;
 		}
 		// DEFAULT (TH-PIT-05): the rest withheld whole as the increment on the annualised liability
-		if (toPit > 0) pit += r2(annualTax(withSpecial + toPit, relief) - annualTax(withSpecial, relief));
+		if (toPit > 0)
+			pit += r2(annualTax(withSpecial + toPit, relief) - annualTax(withSpecial, relief));
 		if (severanceTax > 0) lines.SEVERANCE_TAX = { employee: severanceTax };
 	}
 	pit = r2(pit);

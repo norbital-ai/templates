@@ -1,0 +1,5042 @@
+[
+	{
+		"id": "4b3693f0-d282-56b3-bdfc-f1fd331e4807",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d3f8ddd6-f80b-55e3-984b-bded50cfe4e7",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "28b43345-49c0-50fc-8c0f-032b1fce0100",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d3f48cde-67da-5a70-b851-399b60d366c6",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ab0d0a0e-5bb3-5f53-98fb-a115f68c019a",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0ba56d77-d2bd-5076-9fbd-f5ea92d755c7",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "48c0c7bf-03b6-50dd-b8d6-e2f9b9bdfab2",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9f3c1b0a-53eb-544f-b0a9-a0ab7f259816",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0517fdde-5d5d-585e-ba61-e90c59f00dee",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "74e629d6-b51b-5d73-a95f-69dd24ab031f",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6979e5b0-5fef-52c4-aad0-81b4372b7106",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0b93254d-eb3f-52d1-8873-229fa536471d",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "93ae3a11-44c8-51f4-a241-89b94df476a0",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "80144a70-7fa0-58d3-8681-7662f0c03cbd",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "5076c645-caba-59f6-8c7b-62096152f41e",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b373dcd3-3877-5cfc-8a63-4ae648077e21",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d5e03d9f-22e3-57a2-a027-e90811a9f873",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "68c34006-f1a2-596e-b2dd-be6c78315acb",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c75fef4c-8f07-50f3-b536-4c4498d34872",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "215b8795-bdb2-532a-9053-f6bf9a833c71",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6ea96b1f-37fc-5246-83f4-3c2cb151f593",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2a49357d-849c-527a-87d8-43f26e07bcbc",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b8be24b4-9f28-50f0-9253-2410b5ccab92",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "329154a4-d35c-550d-b536-bcaa9be8c815",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ff8dd088-0b12-502a-b20f-594097a20e95",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a066c6a6-383c-58b2-8895-15b276a94b87",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6249a6ec-1df9-5a04-97f0-ef5d71006b8e",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bd0e3da4-a6d1-5e15-8be8-1dcb3186ad50",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "aec63b5e-681f-5322-b96c-d9629ca1b41b",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "71b7afd5-5669-5c84-8aaf-395ce5a27055",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "893f2387-ab8b-578a-858a-ed7083e2d254",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e7ad6395-c9ff-5f6a-999d-6be94d28fc50",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a025a96b-4edc-5381-b09d-21a97541366d",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c5b6f24b-4ddd-5983-a15f-7f739bf175e7",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "39a4cc69-8e5c-511a-8af9-bd102adf162a",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b68728e5-2e88-50bf-ae39-5bda5eed1df3",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f13b7104-676d-57a2-aa46-c6f2f3516bac",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bc58bd6d-14b1-5f16-992a-eb64e9af810d",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8fb038cc-5912-516e-91c0-6f6de8fd3357",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "fef1f584-9229-5112-88ff-a61a1467f8e4",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "dff7f8e5-4aa8-5b1e-8774-489dc5f43050",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8f2c6329-9dc6-595b-a4da-430bba7ba8e7",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9a701fa5-798b-5ff7-9152-160b58c037dd",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "af5f5e2d-2c07-51e0-b807-06abf97e52a1",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "74200e30-80d1-5411-ba42-93733333f449",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "90af9ed9-d8c3-5e8b-ac80-1619dbf45b14",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7afee5b8-536f-5538-b488-fa0447dc4123",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "101f7dbf-5ced-55a5-8d3a-f69bc1f70b0a",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c9f9c46a-998b-5435-ba4e-5ac8daa4fa6e",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "901f572d-38ce-5187-b18f-ca11a5422fe4",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d24f28a5-0591-53a8-969b-af86ae885c2e",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "607e5215-1f02-5269-b8e3-0b744621ab63",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "abe469ea-6f3d-513c-ba30-b974599e1a04",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bff28a05-45a1-55fe-9552-6f767325ab2b",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c00bf948-5d82-5705-9b8c-6f29adf32e6f",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2d551490-fb41-5d90-a57b-188d90ad0fa9",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "80435b33-8b99-52e1-8acc-a8473b7949db",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a5a9add3-dd1f-58d2-b3d1-8290636eab5a",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "cce40d9e-f72a-5e45-91c8-05bb18bcbf48",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "92c8bed6-7e8d-50e8-aec7-020b02e6fa5c",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0a852c3f-2fb1-569d-99cb-91764593b8d0",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "147ef31a-ac4b-5441-a19a-c44e49ddfa72",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "4a7d4878-4da9-5cad-a4f0-b4cb63316cca",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "526eb1eb-b6ab-5951-a854-31ffbb657b29",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9720c721-65a3-5919-99e1-5d3127a2c29c",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "19e0785d-7159-521e-b0ee-8fd27ec521f5",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8990f773-f4b2-5714-b81d-072610780f68",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2e51565e-5021-56fa-82d1-b0972f47803c",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "3c7dcf99-6a20-525b-a291-8c6b794900c1",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "83a3517e-091f-5035-add3-205c007cc808",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "47844f8a-5b90-5f83-90ce-e514311a4d54",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2654d32a-f92f-5fc0-8ce4-678a2b02f8fa",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6eea25bc-5aea-570f-ac49-d69b6835efa5",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9abeb749-02ae-5f93-8b63-5946ad9510a6",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f50db166-83b4-5c7e-913a-e427419478c7",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "32130d55-5721-5c82-bac0-c11ef3e5cff4",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f6c1f937-fcfd-50ec-8e02-83383b3798f7",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e0c6a8f5-647a-565b-af07-4cfdc512eb5b",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e690e3f0-436a-5c23-ad3e-c332c67299fa",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1c6659c9-857b-5a5c-974d-539d399636cc",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c7200956-d3b7-5043-a061-fffcc7059918",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bc36b0ac-9200-5bc7-8723-7af6787dfb8a",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2bca4b8e-1165-587a-9b91-4b74516daae5",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bdd4c0ad-dc6a-5edd-9048-42a2ffc5cd7d",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7f851678-5ba8-5f36-9235-be7bc8bd206a",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9328edd9-fad8-5f21-9864-2b73bbacf2b0",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7eca5b9b-b960-5f74-8fab-32853e9232e3",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "babf5358-efb0-5e3f-9778-6bac2991bf10",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2ab3e4e8-45b1-58b8-aacc-1673ba49c321",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9277a32b-88cb-54a9-b9de-8a532fcdafe6",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "655b324d-f74b-590d-bc98-bf0262cf4f53",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "dd41696b-d9fe-5d5d-a500-4ba4e3789f1e",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c5f45044-768b-5ae1-8117-b4d3c9d01243",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ee177fb8-78f3-56ae-9805-dbc44152dfbc",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f414c1c6-a2d3-5ea8-b6a2-6d5159767737",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "78c3c493-7ceb-5984-93a9-f12badf1f06e",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b946af13-38ed-5e1d-90ce-97a1d401d8ab",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d735d865-2e49-5a26-98e3-a190b38fb31f",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b86d86ad-436c-554d-ac80-8d97b0e670d9",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b6c03eeb-dc71-5bc7-be39-30d5f57c7370",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e8013c92-9837-5a05-8416-533c03ff33a4",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6a7053c6-0a91-54f0-8878-707b01d3be09",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "45793aef-c371-54a0-a025-2f7d22000986",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "3104ae7a-2423-595c-9173-6f2665f7d79d",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1a5b1e36-ce2e-529f-9a4d-d58cbbf06675",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1a4f558a-033e-5054-adda-f3a2b9ece5b1",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "61a275c5-8521-5be0-a0cb-c5a20a8b2864",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "671c6533-e8e6-54cd-a77a-2d179b06f8cf",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "34cea431-3530-5c59-bd70-319d5041cf8c",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d3d63fba-9bac-5627-bdfd-2b276facfc78",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "28b3b52e-37d2-5c58-a897-bc6ac10bace3",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f40fba69-d665-5998-8df6-b64b948f438c",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "dc6a08c8-88f9-5937-968d-e042a879999d",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "19ef7acd-3e62-543a-95e9-c00ff67807b2",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0c174282-1265-5d74-a178-a3b099ccbf10",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0e131fff-95f8-551e-baae-e342c0e8b075",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "864971e4-c2ef-5916-bf70-d02d07f6fa49",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d183d2e7-12b1-5957-9cd7-b4d56f9942df",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "af10768a-e2c7-525b-b5a7-8cdebe2b3a0a",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b9dfeaeb-88ca-51ff-924e-85b45bcdc488",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a1e22d40-f38d-534a-bd6c-670e48a51d4d",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "3f223160-5a86-5fb8-b263-bead8224cd91",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "eacf939c-affd-564c-81ac-1708db04c411",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "62299674-cddb-5264-8476-7fdd69e7e2b3",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "043d3486-6588-5025-971c-0aea74d399ba",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0db56436-fd58-597e-bf18-2809fc19eba8",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "eac2e50f-07bc-56d5-aee3-15b07760d850",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6a472a88-cdc1-5707-bb8e-88e8405030b7",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b04b5baf-6004-586c-9470-22a2c04b117a",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8ff01740-f548-5ca9-8a9b-f4739df021da",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1be20dad-4145-582b-b21d-c73ed2b608ab",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "4bc74b98-2638-5ad8-9a1b-8378eebdf8b4",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a3a9a40e-019d-5284-b8f8-b0f20eb66c73",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "934fccb8-6039-5fb2-bf85-9193ec25b379",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c7014707-ce46-56ba-8409-1e2be968bf25",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b2fb67e3-7e0c-51dd-a575-6ffee8a312be",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e8dee40d-cc10-51b1-8e01-2e3c990ef909",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "391b850f-ef08-544d-954f-374684e68bd0",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bed82fc4-cf2a-53c6-a33f-018aff045bf9",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bb003e06-f965-52d8-a905-a88701dbad70",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8b7b515a-a58c-5177-a8d7-36bf46882059",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "96c87823-ff0c-5bd2-95c0-7aeee16707c5",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8a502a2d-8db0-5b77-bade-28a6386bbcb9",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "5a6a3f79-7209-5dbe-b83a-64241ddb875a",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8f4c8eb5-80a1-569d-ac47-d581e67eda52",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "39f4f1ed-6086-5c34-9cbc-954ef35e47e4",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "89ae63bb-3ee5-53c7-a167-7f5b9e3a5945",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c7f144d3-8f2d-5198-98fc-e5b8718d3f08",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "88963a41-6569-5f27-9b99-d7fdc5f130c4",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f7be7f35-90b5-5148-915c-8d7ffc6bb832",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "24349ac8-6e68-59e1-ac2b-01ded0828e48",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "14821eba-fe1e-5f03-beea-f646ac9cd0fe",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "66b298cc-3adb-5e9b-befe-926e93d6fa0d",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "970fb627-f50b-505c-acde-043d4f60a4b0",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "71b0249a-f200-5d9c-992e-071d2da1704b",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e9d4659f-bacb-5daf-b3af-30c8d6f10388",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "848a9778-a1d0-5169-a62a-bcb67d8ebcdd",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "39e72789-4029-58e4-8db6-aa1073a35f01",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "02d58fdd-5493-59d8-bc17-1d3c45c86d11",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "79830366-db53-547b-8394-46ee2ab017ce",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ec5665f1-6e2b-5ca4-b44c-b2af723405c8",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "31974da6-b589-5cb1-b968-35018755d253",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "df4df8b0-5adf-5abc-8c72-73459654b767",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7f10ff98-c512-5377-acdb-47ab05955c2d",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6f961229-f610-5138-a851-d1993e3c7a0e",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ce457406-edfd-53b0-a826-3598f22e0113",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c14e28db-0393-5ab4-99fd-9aa286508b65",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "14f687ff-069f-5ab2-aab4-5bd99335c9b5",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "62f7fd78-6dc6-5e4c-8073-6a798affe7f3",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "4b9f0ad6-7c4d-5e6a-a19f-a22ee8623ae7",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9cd49786-0648-5608-9500-f5f3efc390f2",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9eb06dc1-5060-54d7-aa45-39724e5efdba",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8382eb38-51a2-52da-9326-63f8a83295ab",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "eb06968d-d735-52cc-9fa8-6b92c1059dd5",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1cdb2df1-a379-5632-8b2b-7eca46c43c53",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "22d52398-b0b3-5b48-98e6-6c6474cb2658",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8fd5dfe3-1f94-591d-a5b4-ab5ba6c0dca9",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "51a57c9d-90ef-5ac8-9a3c-2c869beef94a",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "cdc2cc0b-5b5e-5ebc-9063-cffeb54682d5",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "5c36b9d8-8ec9-50c1-a32e-337eb0e13a5e",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2025-12-08",
+			"to": "2025-12-14"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "44de9923-3fc6-550b-9b01-e8324dcf29e1",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2d56bfa8-576c-5692-848c-e89741e5a67b",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d37a78e3-299f-5321-917b-91c513c481ff",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8b4a5459-6302-59b3-8a77-48670e76237a",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "57a4917c-bada-51d7-9fa7-94d91b695a9f",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d5e08fdf-fe47-5de3-aa50-4ba1002a7094",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "69e8c09d-6e65-5a70-b9ae-e2c53abb5eb2",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ebb3a87c-d8e1-5017-b6df-27038a2fa85b",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "09e69dd0-c6f8-5461-9681-fe5d17681f45",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2025-12-15",
+			"to": "2025-12-29"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "14830999-d50a-59c6-a49c-38b7d2e94277",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2bc42772-13ea-5fc5-a6e6-6d232baaf9f1",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "82d490cb-4c08-5b88-8877-2404067e25ca",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2f2694bd-e10a-5484-8368-dac0877ee87c",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0e9ce846-95f3-5adc-9264-ea00fc36139f",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e3462c23-e945-5dc5-b610-8c406cf7e948",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8c30269e-86bd-5057-a51f-f6eb2b489220",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "cd7d8744-b6d5-5ef9-80ff-6c1f064131ac",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "acdb98ca-d683-509e-ba37-787958f94557",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2025-12-30",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "34c6ad39-b2f2-5814-b98b-c81ab2ebc228",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "61a23ad6-5c08-5b8b-bfd0-cff7863e442f",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "246b894a-4140-5f65-82e4-b31f673a458a",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "535d41de-8abc-5c73-8e6e-6b1fad7c30d6",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f27d06a1-3fbf-5d4a-9205-01e214bae44d",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "654ba8a1-5d1f-596e-82a5-4e5bea8f19f0",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ffa79293-638c-5b63-95e7-4dde97e2f5c9",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8019986f-42cd-5307-a3f6-5462069af5d4",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "97de3167-92f8-54bc-87a5-52c3eda7ffb1",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-01-02"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "157dbf03-87fd-5c9d-86b8-7992caae7493",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "eb62d186-eb24-59ad-9c79-c3f64c927a43",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d51b104d-8fc3-5881-afe4-52d3daac1491",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d116f7c5-f925-5b6e-8815-dc6916cf9147",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d1c0dbd7-0eed-571a-b73f-ea17cf112d18",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "fd637e7e-bd4d-58f8-b21c-31c26676a7b7",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ab52aec7-36b7-5341-b871-91d3929fdf7f",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bd4ee0ff-e7d8-570d-aaa5-d11ddf6d0d68",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "97bc9310-299a-537d-beb3-92f061337baa",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-03",
+			"to": "2026-01-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c0d3cc10-a951-5c22-a708-76ffc5b5662b",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "83340d7c-f918-5b96-89bb-8099bac030fe",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "87dd0c6d-88e5-5073-99c5-2b6cdfc16199",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "02de034c-aa15-5a4c-bc20-c7fae51133cf",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "4e04da13-ce96-501b-b47f-6d2eae0e4fe7",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "660807af-595e-5025-8f72-4a634865f009",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b2635d00-98f5-5b5b-8aa2-f88b3bfb6f80",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9fa9639d-51b2-51f8-84c8-20dfb88a5dc0",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "182acadf-1749-5fa3-a522-8d06d9dccbb0",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-06",
+			"to": "2026-01-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "49b1deca-e1c0-57ed-a9d7-c8e066cddec6",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b0f30c07-720c-52cb-9278-fce8c6af3e24",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "eaf6ea11-e5b4-5d3c-955a-e250524da763",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8e0f30e8-05f6-5576-a693-a2c834f42657",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "650a2d8e-b608-53f2-ad58-e5dd6d4a18a7",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "655ae8af-f03c-5888-9e11-ab0a3593260b",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "cd8a42ea-bb98-5289-bdc6-420408b98e2e",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b06234f1-9cfe-5da3-a4f8-306e1f863a90",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d56c0654-fc04-5bba-bb26-7aa51e92a49e",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-08",
+			"to": "2026-01-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9e5312d6-92eb-559e-a73d-2f9dd0d85882",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bd0a643f-b316-511a-9ebf-dc7f427f0790",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "76723f77-ebbb-5dce-8463-fd6f246d0374",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c765f523-7d73-52dc-a978-60762baa127f",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "964ae79c-5175-55da-ac20-ea74719d0cf6",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "35e489d4-1d8f-5561-b57c-5579dde738f6",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0a7c5741-d96d-5c7e-9e80-b72576b29abd",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "97f488a0-6ff0-5d34-b546-714c88bb6ac5",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d7917c8d-1c9b-555b-81bc-bead70eb6a5a",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-01-16",
+			"to": "2026-02-06"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "63dc3fa3-99fe-529f-86ae-7593d225e53e",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1fc471ab-ecbe-5d94-ba1c-a79c6c7fabb1",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "506e4598-3325-5750-b7d8-b0b4b51640af",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d11bb103-0879-5290-bd9c-1815d527a1b4",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "548d23b9-5119-5844-a97a-0719c8d5d861",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "edde8db2-19fd-50e6-8864-99b35aaed5a2",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a975b04f-2fad-5586-bc46-263dac710975",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "69ae0044-fe60-590e-9448-8f2817ce4d05",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9478dfbd-fc08-5b47-818f-05528841a081",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-02-07",
+			"to": "2026-03-12"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ac331f91-680d-53b6-a975-cf9b8e817739",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "deb2cfab-7545-5461-b723-184b79974733",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "265120b0-294d-5f9e-89b1-d09c8e5de09c",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "200bf9db-e9d2-50da-8c13-1f5617506acd",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1aa2a693-df6e-583c-a249-4e2c99d4bff8",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f8da9451-10fd-52f8-a426-354d8e79e7a1",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7e9c3d13-87a5-50a3-a084-53f6ca8725ae",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a35e5f54-c478-58e6-84be-8653977d2e49",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0e8a3a79-69d3-5bd7-92d7-9c6acb56673c",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-03-13",
+			"to": "2026-03-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "741bc377-e7f3-5296-ad0e-51b6dabd17af",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "324b4ee8-3a85-55a3-9651-25138761dacb",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2f9d861e-5180-5854-ae50-09933e3e9aec",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8508c696-5da3-5042-b4d8-07cd0317493f",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8d11ed67-4d15-55b1-956d-c834a89bb1e7",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e895f83d-434a-5215-8e9f-68e7162702ee",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1b3edbe2-790e-555e-86cf-f2f2dc0311af",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d07b41c4-b6b3-56e1-aa63-744ea2338859",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ee0e1563-f751-558f-8c59-2e765174a253",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-04-01",
+			"to": "2026-04-07"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "057b67d1-979d-50fa-8c89-6b9d708593b0",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2631171b-6f71-5126-9bcd-bdee3fa66457",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "68d4999f-070c-56bf-9b6e-a58743485e74",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "74424ec5-2fb3-512f-87f5-479489d0d787",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0fc8104b-a9f3-5d6d-99f1-00fe0ac2f74e",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bbca199b-2a0c-5edd-82a8-97ed5b0044cc",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "63a9be64-7e1c-589d-9712-a0d106fbe24e",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "daa01ef0-ea1a-5865-964b-42abcb66b3d6",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2dd5e345-8dcb-55fd-9c00-169b922da85d",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-04-08",
+			"to": "2026-04-15"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "297a879f-ea4d-5b6e-8a7d-f84d04e0b5c2",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "cebf7ba7-a029-557a-adf9-ac489079a5d4",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e9eae02f-5886-5a3c-b096-39b893b7c068",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "db45def1-576f-554b-b0af-d4a74c96f3f2",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "3ad6de42-e7c4-5bdf-b4db-00ada0f4c20e",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "af244179-e1eb-5157-8807-709136926a4a",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "80a4ed78-71f6-52f5-9b87-7dc9def8fc2c",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a7ac7c20-15cb-596a-8b9a-e06ea29fc454",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e6add0dd-0111-5ddd-86a6-30fc7c2bcd4f",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-04-16",
+			"to": "2026-04-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ba388f38-e920-59bc-bd13-b96568b08cc2",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "01544510-bec2-5d26-8004-8828360728fd",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "44ed41de-8d9e-5f7b-b0f3-3f5f7c119d4a",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "265d7c81-afed-562e-81c0-384370efeb69",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d4077bde-b0e9-5ba7-a419-f7f5eb2de9b0",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0992dedf-55a5-53fc-abe5-c41afbe42cf9",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "330cf854-5857-54ce-9b56-3c516e3c5a14",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8456c002-8ded-5a6a-95b0-d5185cf00aad",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8df8be7f-50fe-5f3e-9ce3-6031d55df3f9",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-05-01",
+			"to": "2026-05-19"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "3bfb61f1-9005-5ab0-abdf-4d24a2e2828f",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "773b7d50-20ee-51f9-89dc-74252c291d90",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a4ec3d9b-7b5b-5ae3-8e23-da0204fadd0b",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f9f26f86-8394-5abe-91cd-eb824b685a8e",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6b0309ac-81dd-5d4c-9aff-704508cb3b9e",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f4262ab2-473b-5269-8747-6ad099495ce5",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "22f8a5af-12b3-5568-9998-21698c525180",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "69938051-9cb4-51dc-975c-de90df10b178",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "5e220379-1123-5f06-9b07-0dfc4f6b1e6c",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-05-20",
+			"to": "2026-05-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f92eaa75-31bc-5445-931a-e43cdeb20977",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8c925eee-5712-5d93-9532-c95e5c766fb5",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "251cab56-5730-5a3d-8f9f-cc372f0f0ba6",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ce321b13-966b-553f-9c73-8ba116225e3d",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "279d2006-5a62-5834-b80e-7f39892e4dc3",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7d19f5e8-bcf8-517a-8f9b-d91d0f60303a",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "534b1bb7-be42-56e4-9c70-2e3598e14b7c",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8627f083-55e0-5e3f-a496-340adee1b68a",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "cf73b05f-07cf-58c7-aee6-d73134eb6285",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-06-01",
+			"to": "2026-08-05"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2dbf0454-9070-5b94-8338-8728aaa4c897",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "98b0c679-e00c-5e2a-ab0f-678f36f610f4",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "fd8d507e-2a6a-5557-973f-567526f8d4a5",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b43e4616-0c63-5cfb-a817-3a3fa2e67ee4",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8af50818-db7d-506d-8a0c-918bae06fb63",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "42cb11d8-b5bd-5fcf-b7e5-8f5392ec5196",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "34e06002-f267-592d-a4d0-1f062cd9e2a1",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ce446a8c-49ab-530e-81be-c420ccc3603a",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "991aec6f-d6ad-5396-8d47-5c8477f10731",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-08-06",
+			"to": "2026-08-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "00ee26ec-5591-5e9c-a962-737a65357d74",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bbd60463-cf47-552c-86a2-6bb6b67d1746",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "a4a42739-1d7d-592c-a7aa-6bdfdafbf299",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "865a8643-8dde-5d33-b9a3-796f8643a415",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "913f6811-0275-5492-b0a5-9265c2dcbe58",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "324c58dd-4dbb-5510-bf64-0a6654dfec7e",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9c9c1944-5e62-5e04-854d-6ccdc7ca5a07",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e306b364-8fb0-5fe9-bdc6-3f2b7ee8c9fb",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b4d95373-2910-5b39-a6bf-781ae7e3a94f",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-09-01",
+			"to": "2026-09-25"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "01aeab6d-ec8c-5199-a922-7b32f93212a4",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "dabb32dd-0929-5368-9778-3d4bed7e2f82",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "3da77eb7-2784-516b-a90b-3700ba81068e",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e948b18d-6f1a-5daa-ba6a-905b3d237e03",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "036dfe5e-f4ce-5ab4-883d-027cdc7c6738",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "237373a0-67f7-531f-bb54-bde6cee39563",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7b5bf9ac-bc2e-5826-939b-06d4889612ec",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "38e8bb5a-fb6e-586f-86c7-2ca5006c2df6",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "518d3988-1177-5315-a7dc-076188c29e7d",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-09-26",
+			"to": "2026-10-13"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "ea3a5db7-3080-5769-b44c-415c54a24443",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d06e30e0-5614-5634-9477-9390d8defd0e",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e9d23788-4360-5701-8d10-80e498a3d394",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "69fba926-0ec0-5371-96f0-926282a0a472",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "efcf7ddc-2280-5021-ab38-2f2ffc7881d0",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "60b31aa3-07cb-5783-9fb7-c255560de7ab",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2704dec8-ce0e-5061-a19b-3da2213dd9b2",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6176bca0-85d7-54c1-a5c5-a89a82dda74b",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "62c72a5e-e8d9-5121-982a-c2d797dd7805",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-10-14",
+			"to": "2026-11-30"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "93baf21d-f291-581d-bc8c-ec84f38ec919",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "TERMINATION_GROUND",
+		"code": "RESIGNATION",
+		"label": "Resignation",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "39c0cfce-fce1-5697-8735-4d71ef77380a",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "TERMINATION_GROUND",
+		"code": "DISMISSAL",
+		"label": "Dismissal",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "f368409f-3b6b-5aad-8d9b-a24b1a057439",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "TERMINATION_GROUND",
+		"code": "REDUNDANCY",
+		"label": "Redundancy",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "5f0d9a36-c1a3-5e8f-8eca-cfa1c1ae08fa",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "TERMINATION_GROUND",
+		"code": "RETRENCHMENT",
+		"label": "Retrenchment",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "52055d05-fe95-59d0-a9ac-0f1f4c34a947",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "TERMINATION_GROUND",
+		"code": "UNILATERAL",
+		"label": "Unilateral termination",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "4822621a-6ddf-5cc1-82f1-0b920c3e7aa5",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "TERMINATION_GROUND",
+		"code": "RETIREMENT",
+		"label": "Retirement",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "00310632-871b-5b3c-be3f-f91bc3708c07",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "TERMINATION_GROUND",
+		"code": "END_OF_CONTRACT",
+		"label": "End of contract",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "fe470096-bae0-5d14-8712-54a85ea7e24e",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "TERMINATION_GROUND",
+		"code": "MUTUAL",
+		"label": "Mutual agreement",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "c4ad4b98-bfef-5331-8fc3-88f395a71789",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"table": "TERMINATION_GROUND",
+		"code": "DEATH",
+		"label": "Death",
+		"effective_range": {
+			"from": "2026-12-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	}
+]

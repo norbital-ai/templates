@@ -6,7 +6,7 @@
 	import ScopeGate from '../../../../lib/ui/ScopeGate.svelte';
 	import { t } from '../../../../lib/ui/t.js';
 	import type { Id } from '@norbital-ai/bolt';
-	import { AppShell, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, Tabs } from '@norbital-ai/ui';
 	import { leavePeriodWhere } from '../../../../lib/leave/activity-fields.js';
 	import CompanyScope from '../../../../lib/ui/CompanyScope.svelte';
@@ -48,8 +48,8 @@
 
 <AppShell
 	icon="lucide:calendar-check-2"
-	title="Leave"
-	description="Manual leave activities and their payroll settlement"
+	title={t('app.leave.title')}
+	description={t('app.leave.description')}
 >
 	{#snippet actions()}
 		<MonthPeriodPicker
@@ -91,13 +91,13 @@
 				<Table
 					of="benefit_cases"
 					key={`benefit-cases-${id}`}
-					toolbar={{ title: 'Benefit cases', new: true }}
+					toolbar={{ title: t('app.leave.benefit_cases'), new: true }}
 					where={{ employment_id: { is: { company_id: { eq: id } } } }}
 					orderBy={{ application_on: 'desc' }}
 					columns={[
 						'case_reference',
 						'case_type',
-						{ field: 'employment_id', label: 'Person', cell: personCell },
+						{ field: 'employment_id', label: t('component.person'), cell: personCell },
 						'application_on',
 						'expected_event_on',
 						'event_on',
@@ -109,7 +109,7 @@
 				<Table
 					of="contribution_statement_months"
 					key={`contribution-history-${id}`}
-					toolbar={{ title: 'Paid contribution history', new: true }}
+					toolbar={{ title: t('app.leave.contribution_history'), new: true }}
 					where={{ employee_id: { is: { employments: { some: { company_id: { eq: id } } } } } }}
 					orderBy={{ coverage_month: 'desc' }}
 					columns={[
@@ -124,36 +124,33 @@
 				/>
 			{/snippet}
 			{#snippet advancePlans()}
-				<Stack gap="md">
-					<p class="text-sm text-muted-foreground">
-						A candidate is calculated from documented contribution history. The status compares
-						recorded employee cash with the case type's advance deadline; it does not certify
-						payment or settle payroll.
-					</p>
-					<Table
-						of="benefit_case_plans"
-						key={`benefit-plans-${id}`}
-						toolbar={{ title: 'Advance plans', new: true }}
-						where={{
-							benefit_case_id: { is: { employment_id: { is: { company_id: { eq: id } } } } }
-						}}
-						orderBy={{ advance_due_on: 'desc' }}
-						columns={[
-							'benefit_case_id',
-							'revision',
-							'basis_reference',
-							'candidate_amount',
-							'advance_due_on',
-							{ field: 'id', label: 'Recorded advance status', cell: advanceCell }
-						]}
-					/>
-				</Stack>
+				<Table
+					of="benefit_case_plans"
+					key={`benefit-plans-${id}`}
+					toolbar={{
+						title: t('app.leave.advance_plans'),
+						description: t('app.leave.advance_plans_description'),
+						new: true
+					}}
+					where={{
+						benefit_case_id: { is: { employment_id: { is: { company_id: { eq: id } } } } }
+					}}
+					orderBy={{ advance_due_on: 'desc' }}
+					columns={[
+						'benefit_case_id',
+						'revision',
+						'basis_reference',
+						'candidate_amount',
+						'advance_due_on',
+						{ field: 'id', label: t('app.leave.advance_status'), cell: advanceCell }
+					]}
+				/>
 			{/snippet}
 			{#snippet cutoffs()}
 				<Table
 					of="benefit_case_cutoffs"
 					key={`benefit-cutoffs-${id}`}
-					toolbar={{ title: 'Benefit cutoff evidence', new: true }}
+					toolbar={{ title: t('app.leave.cutoffs'), new: true }}
 					where={{
 						benefit_case_plan_id: {
 							is: {
@@ -174,60 +171,63 @@
 				/>
 			{/snippet}
 			{#snippet cash()}
-				<Stack gap="md">
-					<p class="text-sm text-muted-foreground">
-						Award advances and salary differential are employee cash. The scheme's refund is money
-						received by the employer and is excluded from employee pay.
-					</p>
-					<Table
-						of="benefit_case_movements"
-						key={`benefit-cash-${id}`}
-						toolbar={{ title: 'Benefit cash evidence', new: true }}
-						where={{
-							benefit_case_id: { is: { employment_id: { is: { company_id: { eq: id } } } } }
-						}}
-						orderBy={{ paid_on: 'desc' }}
-						columns={[
-							'benefit_case_id',
-							'kind',
-							'direction',
-							'paid_on',
-							'amount',
-							'payment_reference',
-							'evidence_file'
-						]}
-					/>
-				</Stack>
+				<Table
+					of="benefit_case_movements"
+					key={`benefit-cash-${id}`}
+					toolbar={{
+						title: t('app.leave.cash'),
+						description: t('app.leave.cash_description'),
+						new: true
+					}}
+					where={{
+						benefit_case_id: { is: { employment_id: { is: { company_id: { eq: id } } } } }
+					}}
+					orderBy={{ paid_on: 'desc' }}
+					columns={[
+						'benefit_case_id',
+						'kind',
+						'direction',
+						'paid_on',
+						'amount',
+						'payment_reference',
+						'evidence_file'
+					]}
+				/>
 			{/snippet}
 			{#if declaresCases}
 				<Tabs
 					tabs={[
 						{
 							name: 'leave',
-							title: 'Leave entries',
+							title: t('app.leave.requests_title'),
 							icon: 'lucide:calendar-check-2',
 							body: leaveRows
 						},
 						{
 							name: 'benefit-cases',
-							title: 'Benefit cases',
+							title: t('app.leave.benefit_cases'),
 							icon: 'lucide:file-heart',
 							body: cases
 						},
 						{
 							name: 'contribution-history',
-							title: 'Contribution history',
+							title: t('app.leave.contribution_history'),
 							icon: 'lucide:badge-check',
 							body: contributionHistory
 						},
 						{
 							name: 'advance-plans',
-							title: 'Advance plans',
+							title: t('app.leave.advance_plans'),
 							icon: 'lucide:file-calculator',
 							body: advancePlans
 						},
-						{ name: 'cutoffs', title: 'Cutoffs', icon: 'lucide:calendar-range', body: cutoffs },
-						{ name: 'cash', title: 'Cash evidence', icon: 'lucide:receipt', body: cash }
+						{
+							name: 'cutoffs',
+							title: t('app.leave.cutoffs'),
+							icon: 'lucide:calendar-range',
+							body: cutoffs
+						},
+						{ name: 'cash', title: t('app.leave.cash'), icon: 'lucide:receipt', body: cash }
 					]}
 				/>
 			{:else}

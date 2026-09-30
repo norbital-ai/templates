@@ -6,7 +6,9 @@
 	 * schemes are their own tab and belong to it, as does the calculation order they compute in.
 	 */
 	import { t } from '../../../lib/ui/t.js';
-	import { setContext } from 'svelte';
+	import { bolt } from '$bolt';
+	import { getContext, setContext } from 'svelte';
+	import type { Id } from '@norbital-ai/bolt';
 	import { Field, Form } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell, Table, type RecordView } from '@norbital-ai/ui';
@@ -17,6 +19,11 @@
 		type HrCreateScope
 	} from '../../../lib/ui/create-scope.js';
 	import FormSection from '../../../lib/ui/form-section.svelte';
+	import { newestFirst } from '../../../lib/jurisdiction_settings.js';
+	import { liveRows } from '../../../lib/ui/live.svelte.js';
+	import VersionLifecycle, {
+		CHOOSE_SETTINGS_VERSION
+	} from '../../../lib/ui/settings-version-lifecycle.svelte';
 
 	let { view }: { view: RecordView<'jurisdiction_settings'> } = $props();
 	const record = $derived(
@@ -24,6 +31,25 @@
 	);
 	const sealed = $derived(record?.sealed_at != null);
 	const voided = $derived(record?.voided_at != null);
+	/** Every committed version of this lineage: the seal ends its predecessor, the clone starts from it. */
+	const lineage = liveRows(() =>
+		record == null
+			? null
+			: bolt.read('jurisdiction_settings', {
+					where: { code: { eq: record.code }, approval_id: { isNull: true } },
+					select: {
+						code: true,
+						name: true,
+						effective_range: true,
+						sealed_at: true,
+						voided_at: true
+					},
+					all: true
+				})
+	);
+	const choose = getContext<((id: Id<'jurisdiction_settings'>) => void) | undefined>(
+		CHOOSE_SETTINGS_VERSION
+	);
 	/**
 	 * Every row under this version belongs to it: the schemes table's form files a scheme into the version on screen,
 	 * never another (the version picker is not offered).
@@ -92,10 +118,18 @@
 						label={t('component.settlement_facts')}
 						help={t('component.settlement_facts_declaration_hint')}
 					/>
+					<Field name="worksite_facts" />
+					<Field name="person_facts" />
+					<Field name="history_kinds" />
+					<Field name="tables" />
+					<Field name="overlays" />
 				</Grid>
 			</FormSection>
 			<FormSection title={t('component.obligations')} hint={t('component.obligations_hint')}>
 				<Field name="obligations" />
+				<Field name="duty_types" />
+				<Field name="checks" />
+				<Field name="returns" />
 			</FormSection>
 			<FormSection title={t('component.work_rules')} hint={t('component.work_rules_hint')}>
 				<Field name="work_rules" label={t('component.work_rules')} />
@@ -112,6 +146,16 @@
 			</Stack>
 		</Stack>
 	</Form>
+{/snippet}
+
+{#snippet lifecycle()}
+	{#if record && lineage.current}
+		<VersionLifecycle
+			version={record}
+			lineage={newestFirst(lineage.current)}
+			{...choose == null ? {} : { onChosen: choose }}
+		/>
+	{/if}
 {/snippet}
 
 {#snippet flow()}
@@ -137,7 +181,7 @@
 <RecordShell
 	of="jurisdiction_settings"
 	mode={view.mode}
-	{...record == null ? {} : { id: record.id }}
+	{...record == null ? {} : { id: record.id, actions: lifecycle }}
 	{...voided
 		? {
 				icon: 'lucide:circle-slash',

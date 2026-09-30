@@ -22,6 +22,11 @@ export default relationship({
 		optional: true,
 		onDelete: 'setNull'
 	},
+	'reference_rows.settings_id': {
+		to: 'jurisdiction_settings',
+		inverse: 'reference_rows',
+		owned: true
+	},
 	'statutory_contributions.settings_id': {
 		to: 'jurisdiction_settings',
 		inverse: 'statutory_contributions',
@@ -58,6 +63,8 @@ export default relationship({
 	'company_facts.company_id': { to: 'companies', inverse: 'company_facts', owned: true },
 	'shift_definitions.company_id': { to: 'companies', inverse: 'shift_definitions' },
 	'shift_patterns.company_id': { to: 'companies', inverse: 'shift_patterns' },
+	/** An establishment's dated revisions; a revision terms or days name cannot be deleted. */
+	'worksites.company_id': { to: 'companies', inverse: 'worksites', owned: true },
 
 	// ── people and contracts ──
 	/** The member this person signs in as; a removed member leaves the person unlinked. */
@@ -67,6 +74,20 @@ export default relationship({
 	'employment_terms.employment_id': { to: 'employments', inverse: 'employment_terms', owned: true },
 	/** The base the terms project their days from; a pattern in use cannot be deleted. */
 	'employment_terms.shift_pattern_id': { to: 'shift_patterns', inverse: 'employment_terms' },
+	/** The establishment the terms are worked at; the revision of its code in force on a date governs. */
+	'employment_terms.worksite_id': { to: 'worksites', inverse: 'employment_terms', optional: true },
+	'person_facts.employee_id': { to: 'employees', inverse: 'person_facts', owned: true },
+	/** Null for the personal row; an employment row overrides it key by key for that employment. */
+	'person_facts.employment_id': {
+		to: 'employments',
+		inverse: 'person_facts',
+		optional: true
+	},
+	'employment_history.employee_id': {
+		to: 'employees',
+		inverse: 'employment_history',
+		owned: true
+	},
 	'employment_statutory_facts.employee_id': {
 		to: 'employees',
 		inverse: 'employment_statutory_facts',
@@ -130,6 +151,8 @@ export default relationship({
 		inverse: 'work_days',
 		optional: true
 	},
+	/** Where the day was worked when not at the terms' worksite. */
+	'work_days.worksite_id': { to: 'worksites', inverse: 'work_days', optional: true },
 	'work_days.payslip_id': {
 		to: 'payslips',
 		inverse: 'work_days',
@@ -142,6 +165,8 @@ export default relationship({
 	'leave_entries.catalogue_id': { to: 'leave_catalogue', inverse: 'leave_entries' },
 	/** The approved entry this reversal cancels; unique, so a source reverses once. */
 	'leave_entries.reversal_of_id': { to: 'leave_entries', inverse: 'reversals', optional: true },
+	/** The episode's first entry: one continuing absence (a maternity, a stoppage) across entries and periods. */
+	'leave_entries.episode_id': { to: 'leave_entries', inverse: 'episode_entries', optional: true },
 	'leave_entries.payslip_id': {
 		to: 'payslips',
 		inverse: 'leave_entries',
@@ -214,7 +239,18 @@ export default relationship({
 		to: 'payable_tranches',
 		inverse: 'payment_allocations'
 	},
-	/** One declared fact's evidence; it goes with the fact revision, terms, day, payment, settlement or benefit case it evidences. */
+	/** The entity that owes the duty; its ledger goes with it. */
+	'obligation_instances.company_id': {
+		to: 'companies',
+		inverse: 'obligation_instances',
+		owned: true
+	},
+	/** The sealed version whose duty type raised the instance; a version a duty used is history. */
+	'obligation_instances.settings_id': {
+		to: 'jurisdiction_settings',
+		inverse: 'obligation_instances'
+	},
+	/** One declared fact's evidence; it goes with the subject it evidences. */
 	'fact_evidence.subject': {
 		to: [
 			'company_facts',
@@ -222,7 +258,16 @@ export default relationship({
 			'work_days',
 			'payment_events',
 			'noncontract_settlements',
-			'benefit_cases'
+			'benefit_cases',
+			'person_facts',
+			'worksites',
+			'employments',
+			'leave_entries',
+			'adhoc_requests',
+			'claim_requests',
+			'employment_statutory_facts',
+			'employment_history',
+			'obligation_instances'
 		],
 		inverse: 'fact_evidence',
 		owned: true

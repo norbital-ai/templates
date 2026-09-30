@@ -13,8 +13,13 @@
  */
 
 import { DEDUCTION_TOTAL_KEYS } from '../statutory-deductions.js';
+import { ROUND_MODES } from '../payroll/run/rounding.js';
 import type { FactKey } from '../datatypes/fact_keys.js';
-import { programFor } from './evaluate.js';
+import { evaluateExpression, programFor, runtimeExpressionEngine } from './evaluate.js';
+import { callsTables, declaredTables } from './functions/tables.js';
+import { historyWindowFault } from './functions/history.js';
+import { BLANK_HISTORY } from '../payroll/history.js';
+import type { ReferenceTable } from '../datatypes/reference_tables.js';
 import {
 	CATALOGUE_WORDS,
 	EXPRESSION_CONTEXTS,
@@ -27,6 +32,7 @@ import {
 import * as Predicate from 'effect/Predicate';
 
 const KEYWORDS = new Set(['true', 'false', 'null', 'in']);
+const HISTORY_METHODS = new Set(['slips', 'days', 'leave', 'terms', 'external']);
 
 /** How a refusal names what the field returns. */
 const RETURNS: Readonly<Record<ExpressionType, string>> = {
@@ -35,16 +41,14 @@ const RETURNS: Readonly<Record<ExpressionType, string>> = {
 	hours: 'a number of hours',
 	minutes: 'a number of minutes',
 	days: 'a number of days',
-	number: 'a number'
+	number: 'a number',
+	date: 'a `YYYY-MM-DD` date',
+	text: 'a text or number value'
 };
 
 /**
  * Compiled by the same environment the run evaluates with (`programFor`), so a function an
  * expression may call is callable in both and a stand-in list cannot drift from the real one.
- *
- * No custom binary `min`/`max`: cel-js refuses a `(dyn, dyn)` overload beside its own
- * `(dyn, string)` one, and its aggregate forms already cover lists. Clamp with a ternary
- * (`worked_hours > limits.daily_total ? worked_hours - limits.daily_total : 0`).
  */
 
 /** Dotted paths as written, with `(args)` and `<key>` suffixes stripped. */
@@ -55,6 +59,8 @@ function declaredPaths(context: ExpressionContext): readonly string[] {
 const STRING_LITERAL = /(['"])(?:\\.|(?!\1).)*\1/g;
 const CHAIN = /(?<![\w.])([a-z_][a-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)/g;
 const BARE = /(?<![\w.])([A-Za-z_][A-Za-z0-9_]*)(?![.\w(])/g;
+/** The iteration variable of a CEL macro: `list.filter(d, …)`, `.map`, `.all`, `.exists`, `.exists_one`. */
+const MACRO_VARIABLE = /\.(?:all|exists|exists_one|filter|map)\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*,/g;
 
 /**
  * The assessment context of one scheme: the site's context with the scheme's parts as roots of
@@ -109,12 +115,15 @@ function unknownMember(context: ExpressionContext, expression: string): string |
 	const paths = declaredPaths(context);
 	const available = paths.join(', ');
 	const source = expression.replace(STRING_LITERAL, "''");
+	// A macro's variable is one item of the list it walks; its members are validated by evaluation.
+	const variables = new Set([...source.matchAll(MACRO_VARIABLE)].map((match) => match[1]!));
 	for (const match of source.matchAll(CHAIN)) {
 		const chain = match[1];
 		if (chain == null) continue;
 		// A call (`name(`, method or global) is validated by evaluation, not by the member list.
 		if (source[match.index + match[0].length] === '(') continue;
 		if (KEYWORDS.has(chain)) continue;
+		if (variables.has(chain.split('.')[0]!)) continue;
 		if (underOpen(context, chain)) continue;
 		const known = paths.some((path) => path === chain || path.startsWith(`${chain}.`));
 		if (!known)
@@ -125,7 +134,8 @@ function unknownMember(context: ExpressionContext, expression: string): string |
 	}
 	for (const match of source.matchAll(BARE)) {
 		const identifier = match[1]!;
-		if (KEYWORDS.has(identifier) || context.bare.includes(identifier)) continue;
+		if (KEYWORDS.has(identifier) || context.bare.includes(identifier) || variables.has(identifier))
+			continue;
 		return (
 			`The ${context.site} expression names ${identifier}, which the context does not declare. ` +
 			`Available: ${available}.`
@@ -143,7 +153,8 @@ export const EMPTY_OF: Readonly<Record<DeclaredKey['type'], boolean | number | s
 	number: 0,
 	string: '',
 	date: '',
-	instant: ''
+	instant: '',
+	code: ''
 };
 
 /** A subject's declared inputs: the open root they are read under and the option that types them. */
@@ -154,13 +165,22 @@ type SubjectFacts = {
 	readonly settlementFacts?: readonly DeclaredKey[] | undefined;
 	/** A catalogue row's `request_facts`, read as `entry.facts` on the entry site. */
 	readonly requestFacts?: readonly DeclaredKey[] | undefined;
+	/** The version's `person_facts`, read as `employee.facts`. */
+	readonly personFacts?: readonly DeclaredKey[] | undefined;
+	/** The version's `worksite_facts`, read as `worksite.facts`. */
+	readonly worksiteFacts?: readonly DeclaredKey[] | undefined;
+	/** A leave catalogue row's `event_facts`, read as `leave.facts` on the leave-day site. */
+	readonly eventFacts?: readonly DeclaredKey[] | undefined;
 };
 const SUBJECT_ROOTS = [
 	['termsFacts', 'terms', 'terms.facts'],
 	['workDayFacts', 'work-day', 'day_facts'],
 	['paymentFacts', 'payment', 'payment.facts'],
 	['settlementFacts', 'settlement', 'settlement.facts'],
-	['requestFacts', 'request', 'entry.facts']
+	['requestFacts', 'request', 'entry.facts'],
+	['personFacts', 'person', 'employee.facts'],
+	['worksiteFacts', 'worksite', 'worksite.facts'],
+	['eventFacts', 'leave event', 'leave.facts']
 ] as const;
 /** The site's spelling of a subject root: the person's own roots sit under `person.` off the person site. */
 const rootOf = (context: ExpressionContext, root: string): string | null =>
@@ -212,7 +232,10 @@ function openKeyBlank(
 				}
 			])
 		);
-	const history = openKeyMentions(expression, 'history');
+	// `history.slips(…)` and its siblings are the accessor's methods, not scheme codes.
+	const history = openKeyMentions(expression, 'history').filter(
+		(code) => !HISTORY_METHODS.has(code)
+	);
 	if (history.length > 0)
 		blank.history = Object.fromEntries(
 			history.map((code) => [
@@ -256,6 +279,8 @@ function openKeyBlank(
 		blank.company.facts = Object.fromEntries(
 			facts.map((field) => [field.key, EMPTY_OF[field.type]])
 		);
+	// A case type's declared facts type `case.facts.<key>` where the caller holds them.
+	if (context.site === 'case' && facts.length > 0) blank.case.facts = typedMap(facts);
 	if (elections.length > 0) {
 		blank.scheme = structuredClone(blank.scheme);
 		blank.scheme.elections = Object.fromEntries(
@@ -267,13 +292,33 @@ function openKeyBlank(
 		blank.limits = structuredClone(blank.limits);
 		for (const key of limits) if (!(key in blank.limits)) blank.limits[key] = 0;
 	}
-	const person = context.site === 'person' || context.site === 'leave_day' ? blank : blank.person;
+	for (const prefix of ZERO_FILLED) {
+		if (!context.open.includes(prefix)) continue;
+		const path = prefix.split('.');
+		const key = path.pop()!;
+		const parent = path.reduce<Record<string, unknown> | undefined>(
+			(node, part) => node?.[part] as Record<string, unknown> | undefined,
+			blank
+		);
+		if (parent != null) zeroMap(parent, key, openKeyMentions(expression, prefix));
+	}
+	const person =
+		context.site === 'person' ||
+		context.site === 'leave_day' ||
+		context.site === 'rate' ||
+		context.site === 'check' ||
+		context.site === 'derived_line'
+			? blank
+			: blank.person;
 	const prefix = person === blank ? '' : 'person.';
 	if (person != null) {
 		person.employment.exit_facts = Object.fromEntries(
 			exitFacts.map((field) => [field.key, EMPTY_OF[field.type]])
 		);
 		if (subjects.termsFacts != null) person.terms.facts = typedMap(subjects.termsFacts);
+		if (subjects.personFacts != null) person.employee.facts = typedMap(subjects.personFacts);
+		if (subjects.worksiteFacts != null && person.worksite != null)
+			person.worksite.facts = typedMap(subjects.worksiteFacts);
 		zeroMap(person.period, 'leave_days', openKeyMentions(expression, `${prefix}period.leave_days`));
 		zeroMap(person.period, 'leave_pay', openKeyMentions(expression, `${prefix}period.leave_pay`));
 		zeroMap(
@@ -295,7 +340,12 @@ function openKeyBlank(
 	}
 	if (subjects.requestFacts != null && context.site === 'entry')
 		blank.entry.facts = typedMap(subjects.requestFacts);
-	if (subjects.workDayFacts != null && context.site === 'work_day')
+	if (subjects.eventFacts != null && context.site === 'leave_day')
+		blank.leave.facts = typedMap(subjects.eventFacts);
+	if (
+		subjects.workDayFacts != null &&
+		(context.site === 'work_day' || context.site === 'derived_line')
+	)
 		blank.day_facts = typedMap(subjects.workDayFacts);
 	if (context.site === 'payment') {
 		if (subjects.paymentFacts != null) blank.payment.facts = typedMap(subjects.paymentFacts);
@@ -304,6 +354,19 @@ function openKeyBlank(
 	}
 	return blank;
 }
+
+/** Open maps of amounts whose keys are data: a mentioned key compiles as 0. */
+const ZERO_FILLED = [
+	'contract.classes',
+	'run.remittances',
+	'worksite.facts',
+	'event.facts',
+	'employment.exit_facts',
+	'case.facts',
+	'run.withheld',
+	'payslip.lines',
+	...['lines', 'classes', 'base', 'employee', 'employer'].map((key) => `totals.${key}`)
+];
 
 function describe(value: unknown): string {
 	if (Array.isArray(value)) return 'a list';
@@ -344,12 +407,17 @@ function compileOnce(
 		readonly exitFacts?: readonly DeclaredKey[] | undefined;
 		/** The scheme's declared parts, each a root of the catalogue words: `ORDINARY.ALLOWANCES`. */
 		readonly parts?: readonly string[] | undefined;
+		/** The version's table declarations; a `table()` read is only typed where the caller holds them. */
+		readonly tables?: readonly ReferenceTable[] | undefined;
 	} & SubjectFacts
 ): string | null {
 	const expression = (options.expression ?? '').trim();
 	if (expression === '') return null;
 	const context = withParts(EXPRESSION_CONTEXTS[options.site], options.parts ?? []);
-	const memberFault = unknownMember(context, expression);
+	const memberFault =
+		unknownMember(context, expression) ??
+		roundModeFault(expression) ??
+		historyWindowFault(expression);
 	if (memberFault != null) return memberFault;
 	const factPrefix = context.open.includes('person.facts') ? 'person.facts' : 'facts';
 	const factCodes = context.open.includes(factPrefix)
@@ -364,7 +432,9 @@ function compileOnce(
 			if (!options.exitFacts.some((field) => field.key === key))
 				return `The settings version does not declare departure input ${key}.`;
 	}
-	let needsSchemeDeclarations = exitKeys.length > 0 && options.exitFacts == null;
+	let needsSchemeDeclarations =
+		(exitKeys.length > 0 && options.exitFacts == null) ||
+		(options.tables == null && callsTables(expression));
 	// A subject input is typed by its version's declaration: an undeclared key is refused where the
 	// caller holds the declarations; elsewhere the expression is parsed and member-checked only.
 	for (const [option, noun, root] of SUBJECT_ROOTS) {
@@ -443,7 +513,15 @@ function compileOnce(
 	);
 	let value: unknown;
 	try {
-		value = programFor(expression)(blank);
+		value = evaluateExpression(
+			runtimeExpressionEngine({
+				tables: options.tables == null ? undefined : declaredTables(options.tables),
+				history: BLANK_HISTORY,
+				company: { employments: [], year: { from: '', to: '' } }
+			}),
+			expression,
+			blank
+		);
 	} catch (error) {
 		const message = error instanceof Error ? error.message.split('\n')[0] : String(error);
 		return `The ${options.site} expression does not compile: ${message}`;
@@ -453,7 +531,11 @@ function compileOnce(
 	const ok =
 		options.type === 'boolean'
 			? Predicate.isBoolean(value)
-			: Predicate.isNumber(value) || Predicate.isBigInt(value);
+			: options.type === 'date'
+				? Predicate.isString(value)
+				: options.type === 'text'
+					? Predicate.isString(value) || Predicate.isNumber(value) || Predicate.isBigInt(value)
+					: Predicate.isNumber(value) || Predicate.isBigInt(value);
 	if (!ok)
 		return (
 			`The ${options.site} expression must produce ${RETURNS[options.type]}; ` +
@@ -469,6 +551,41 @@ type AstNode = {
 
 const isNode = (value: unknown): value is AstNode =>
 	Predicate.isObjectOrArray(value) && 'op' in value;
+
+/** Every node under one, the node included. */
+function* nodesOf(node: unknown): Generator<AstNode> {
+	if (Array.isArray(node)) {
+		for (const item of node) yield* nodesOf(item);
+		return;
+	}
+	if (!isNode(node)) return;
+	yield node;
+	yield* nodesOf(node.args);
+}
+
+/**
+ * A `round(value, step, mode)` whose mode is not one of the literal `ROUND_MODES`: the direction
+ * is part of the stored rule, never a value computed at run time. A malformed expression is the
+ * evaluation's to refuse.
+ */
+function roundModeFault(expression: string): string | null {
+	let ast: unknown;
+	try {
+		ast = programFor(expression).ast;
+	} catch {
+		return null;
+	}
+	for (const node of nodesOf(ast)) {
+		if (node.op !== 'call') continue;
+		const [name, args] = node.args as [unknown, unknown];
+		if (name !== 'round') continue;
+		const mode = Array.isArray(args) ? args[2] : undefined;
+		const literal = isNode(mode) && mode.op === 'value' ? mode.args : undefined;
+		if (!(ROUND_MODES as readonly unknown[]).includes(literal))
+			return `round() takes its mode as a literal: one of ${ROUND_MODES.map((one) => `'${one}'`).join(', ')}.`;
+	}
+	return null;
+}
 
 /**
  * The property chain of a member access, or null where the node is not one. Shared with

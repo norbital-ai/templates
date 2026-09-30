@@ -55,66 +55,66 @@ export function generateProfiles(): Scenario[] {
 	): Scenario => {
 		const period = p.period ?? '2026-02';
 		const s: Scenario = {
-		id: `ID-O-${id}`,
-		profile: 'ID',
-		rows,
-		branches,
-		description,
-		period,
-		runs: [],
-		company: {
-			workplace: 'DKI',
-			kbli: '62019',
-			jkkRiskGroup: 'I',
-			umspConditions: [],
-			padatKarya: false,
-			workWeek: 5,
-			dtpKlu: false,
-			microSmall: false,
-			...p.company
-		},
-		employee: {
-			birthDate: adult(),
-			citizen: true,
-			taxResident: true,
-			hasTaxId: true,
-			ptkp: 'TK/0',
-			foreignWorkMonths: 0,
-			jpRegistered: false,
-			jpDeferral: false,
-			kesehatanExtraMembers: 0,
-			subjectivePartYear: false,
-			zakat: 0,
-			...p.employee
-		},
-		employment: {
-			type: 'PKWTT',
-			payBasis: 'MONTHLY',
-			partTime: false,
-			// a December (last-period) case joins that month unless it names a hire date: one run reckons the year
-			hireDate: period.endsWith('-12') ? `${period}-01` : '2025-06-02',
-			contractEnd: null,
-			exitDate: null,
-			exitCause: null,
-			basic: 8_000_000,
-			raise: null,
-			fixedAllowance: 0,
-			nonFixedAllowance: 0,
-			rate: 0,
-			serviceFee: 0,
-			...p.employment
-		},
-		inputs: {
-			unpaidDates: [],
-			paidLeave: [],
-			overtime: [],
-			thrHolidayDate: null,
-			bonus: 0,
-			wageDeduction: 0,
-			uangPisah: 0,
-			reducedPay: null,
-			...p.inputs
-		}
+			id: `ID-O-${id}`,
+			profile: 'ID',
+			rows,
+			branches,
+			description,
+			period,
+			runs: [],
+			company: {
+				workplace: 'DKI',
+				kbli: '62019',
+				jkkRiskGroup: 'I',
+				umspConditions: [],
+				padatKarya: false,
+				workWeek: 5,
+				dtpKlu: false,
+				microSmall: false,
+				...p.company
+			},
+			employee: {
+				birthDate: adult(),
+				citizen: true,
+				taxResident: true,
+				hasTaxId: true,
+				ptkp: 'TK/0',
+				foreignWorkMonths: 0,
+				jpRegistered: false,
+				jpDeferral: false,
+				kesehatanExtraMembers: 0,
+				subjectivePartYear: false,
+				zakat: 0,
+				...p.employee
+			},
+			employment: {
+				type: 'PKWTT',
+				payBasis: 'MONTHLY',
+				partTime: false,
+				// a December (last-period) case joins that month unless it names a hire date: one run reckons the year
+				hireDate: period.endsWith('-12') ? `${period}-01` : '2025-06-02',
+				contractEnd: null,
+				exitDate: null,
+				exitCause: null,
+				basic: 8_000_000,
+				raise: null,
+				fixedAllowance: 0,
+				nonFixedAllowance: 0,
+				rate: 0,
+				serviceFee: 0,
+				...p.employment
+			},
+			inputs: {
+				unpaidDates: [],
+				paidLeave: [],
+				overtime: [],
+				thrHolidayDate: null,
+				bonus: 0,
+				wageDeduction: 0,
+				uangPisah: 0,
+				reducedPay: null,
+				...p.inputs
+			}
 		};
 		s.runs = periodsToRun(s);
 		return s;
@@ -291,7 +291,12 @@ export function generateProfiles(): Scenario[] {
 		'Resignation on 15 June 2026: runs January to June',
 		{
 			period: '2026-06',
-			employment: { basic: 12_000_000, hireDate: '2023-07-03', exitDate: '2026-06-15', exitCause: 'RESIGNATION' },
+			employment: {
+				basic: 12_000_000,
+				hireDate: '2023-07-03',
+				exitDate: '2026-06-15',
+				exitCause: 'RESIGNATION'
+			},
 			inputs: { uangPisah: 2_000_000 }
 		}
 	);
@@ -475,7 +480,9 @@ export function generateProfiles(): Scenario[] {
 		);
 	// one KBLI per distinct unconditional Kep.33/2026 amount, at and a sen under
 	const seen = new Set<number>();
-	const umspLines = Object.entries(DKI_UMSP_2026).filter(([, v]) => !seen.has(v) && seen.add(v) !== undefined);
+	const umspLines = Object.entries(DKI_UMSP_2026).filter(
+		([, v]) => !seen.has(v) && seen.add(v) !== undefined
+	);
 	for (const [kbli, floor] of umspLines) {
 		make(
 			`UMSP-${kbli}-at`,
@@ -1131,7 +1138,11 @@ export function generateProfiles(): Scenario[] {
 		make(
 			`PARTYEAR-${tag}`,
 			['ID-21', 'ID-122', 'ID-127', 'ID-175'],
-			[part ? 'subjective part year: neto annualised, tax pro rata' : 'job change only: actual neto'],
+			[
+				part
+					? 'subjective part year: neto annualised, tax pro rata'
+					: 'job change only: actual neto'
+			],
 			'Foreign resident arriving in / leaving Indonesia inside the tax year',
 			{
 				period,
@@ -1152,10 +1163,16 @@ export function generateProfiles(): Scenario[] {
 		['30th', 10_500_000, 11_000_000, '2026-04-30'],
 		['over-jp-cap', 10_000_000, 13_000_000, '2026-04-11']
 	] as const)
-		make(`RAISE-${tag}`, ['ID-161', 'ID-106', 'ID-15', 'ID-19', 'ID-14'], [`raise from ${from}`], 'Mid-month raise', {
-			period: '2026-04',
-			employment: { basic, raise: { from, basic: raised } }
-		});
+		make(
+			`RAISE-${tag}`,
+			['ID-161', 'ID-106', 'ID-15', 'ID-19', 'ID-14'],
+			[`raise from ${from}`],
+			'Mid-month raise',
+			{
+				period: '2026-04',
+				employment: { basic, raise: { from, basic: raised } }
+			}
+		);
 
 	// ---- 17c. Paid statutory leave inside its entitlement: no deduction.
 	for (const [tag, kind, dates, row] of [
@@ -1163,13 +1180,24 @@ export function generateProfiles(): Scenario[] {
 		['bereavement-2d', 'BEREAVEMENT', ['2026-04-13', '2026-04-14'], 'ID-12'],
 		['paternity-2d', 'PATERNITY', ['2026-04-20', '2026-04-21'], 'ID-126'],
 		['menstrual-2d', 'MENSTRUAL', ['2026-04-09', '2026-04-10'], 'ID-11'],
-		['annual-5d', 'ANNUAL', ['2026-04-06', '2026-04-07', '2026-04-08', '2026-04-09', '2026-04-10'], 'ID-121']
+		[
+			'annual-5d',
+			'ANNUAL',
+			['2026-04-06', '2026-04-07', '2026-04-08', '2026-04-09', '2026-04-10'],
+			'ID-121'
+		]
 	] as const)
-		make(`PAIDLEAVE-${tag}`, [row, 'ID-11', 'ID-106'], [`paid ${kind} leave`], 'Paid leave: full wage', {
-			period: '2026-04',
-			employment: { basic: 9_300_000, hireDate: '2024-03-01' },
-			inputs: { paidLeave: [{ kind, dates: [...dates] }] }
-		});
+		make(
+			`PAIDLEAVE-${tag}`,
+			[row, 'ID-11', 'ID-106'],
+			[`paid ${kind} leave`],
+			'Paid leave: full wage',
+			{
+				period: '2026-04',
+				employment: { basic: 9_300_000, hireDate: '2024-03-01' },
+				inputs: { paidLeave: [{ kind, dates: [...dates] }] }
+			}
+		);
 
 	// ---- 18. PP36 art 65 deduction ceiling.
 	for (const [tag, d] of [

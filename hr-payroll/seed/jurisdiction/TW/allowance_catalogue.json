@@ -417,7 +417,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -447,7 +447,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -477,7 +477,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -507,7 +507,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -537,7 +537,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -567,7 +567,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -597,7 +597,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -627,7 +627,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -657,7 +657,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -687,7 +687,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -717,7 +717,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -747,7 +747,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -777,7 +777,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],
@@ -807,7 +807,7 @@
 		"bands": [
 			{
 				"when": "",
-				"amount": "entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) > 0.0 ? entry.amount - floor_unit(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0) : 0.0",
+				"amount": "entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') > 0.0 ? entry.amount - round(entry.amount * (person.period.leave_days.SICK_LEAVE + person.period.leave_days.HOSPITALISED_SICK_LEAVE + person.period.leave_days.PERSONAL_LEAVE) / 30.0, 1, 'DOWN') : 0.0",
 				"limit": null
 			}
 		],

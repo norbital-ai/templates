@@ -244,7 +244,7 @@ c.transform(async (inputs, ctx) => {
 					employment: {
 						service_start: dateKey(range?.start),
 						exit_date: exit,
-						exit_reason: employment.exit_reason,
+						exit_ground: employment.exit_ground,
 						exit_facts: employment.exit_facts
 					},
 					terms: term ?? null,

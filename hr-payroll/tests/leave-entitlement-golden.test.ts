@@ -291,11 +291,10 @@ for (const lineage of ['MY'] as const)
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 test('Philippines — service incentive leave and the special statutory leaves', () => {
-	// No sealed version changes the leave law: the same ladder on all seven (6 January 2026 is
-	// RR 29-2025, 7 February NCR-DW-06, 20 May RIX-DW-06, 2026-09-26 Wage Order NCR-28 — none a
-	// leave row).
+	// No sealed version changes the leave law: the same ladder on every one (each is a wage order,
+	// RR 29-2025 or a withholding correction — none a leave row).
 	const BIRTH = { kind: 'BIRTH' } as const;
-	for (const version of [0, 1, 2, 3, 4, 5, 6]) {
+	for (const version of settingsVersions('PH').keys()) {
 		assert.deepEqual(ladder('PH', version, 'ANNUAL_LEAVE'), [0, 5, 5]);
 		// RA 10361 s.29: a kasambahay has the five days on their own row, never encashed.
 		assert.deepEqual(ladder('PH', version, 'ANNUAL_LEAVE', { employment_type: 'DOMESTIC' }), [
@@ -1290,23 +1289,27 @@ test('JP — 労働基準法 §39 and 育児・介護休業法 leaves on every s
 			ladder('JP', version, 'MATERNITY_LEAVE', { ...FEMALE, ...birth('MULTIPLE_BIRTH') }),
 			[154, 154, 154]
 		);
-		assert.deepEqual(
-			ladder('JP', version, 'MATERNITY_LEAVE', { ...MALE, ...birth('BIRTH') }),
-			[null, null, null]
-		);
+		assert.deepEqual(ladder('JP', version, 'MATERNITY_LEAVE', { ...MALE, ...birth('BIRTH') }), [
+			null,
+			null,
+			null
+		]);
 		// 育児・介護休業法 §9-2: 28 days of 出生時育児休業 per birth or adoption, from day one.
-		assert.deepEqual(ladder('JP', version, 'POSTNATAL_CHILDCARE_LEAVE', birth('BIRTH')), [
-			28, 28, 28
-		]);
-		assert.deepEqual(ladder('JP', version, 'POSTNATAL_CHILDCARE_LEAVE', birth('ADOPTION')), [
-			28, 28, 28
-		]);
+		assert.deepEqual(
+			ladder('JP', version, 'POSTNATAL_CHILDCARE_LEAVE', birth('BIRTH')),
+			[28, 28, 28]
+		);
+		assert.deepEqual(
+			ladder('JP', version, 'POSTNATAL_CHILDCARE_LEAVE', birth('ADOPTION')),
+			[28, 28, 28]
+		);
 		// §5: 育児休業 is bounded by the child's age, which the engine does not meter.
 		assert.deepEqual(ladder('JP', version, 'CHILDCARE_LEAVE'), [null, null, null]);
 		// §11, §15(1): 93 days per 対象家族; only a family-care event opens it.
-		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_LEAVE', birth('FAMILY_CARE')), [
-			93, 93, 93
-		]);
+		assert.deepEqual(
+			ladder('JP', version, 'FAMILY_CARE_LEAVE', birth('FAMILY_CARE')),
+			[93, 93, 93]
+		);
 		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_LEAVE', birth('BIRTH')), [
 			null,
 			null,

@@ -843,7 +843,7 @@ register(
 				to: '2026-06-30',
 				schemes: ['EPF', 'SOCSO', 'SKBBK', 'EIS'],
 				employment: {
-					exit_reason: 'RETRENCHMENT',
+					exit_ground: 'RETRENCHMENT',
 					exit_facts: {
 						leaving_malaysia: false,
 						wages_12m: 36000,
@@ -920,7 +920,7 @@ register(
 				from: '2020-01-06',
 				to: '2026-01-15',
 				employment: {
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					exit_facts: {
 						terminated_without_notice: false,
 						leaving_malaysia: false,
@@ -975,7 +975,7 @@ register(
 				from: '2025-06-01',
 				to: '2026-01-31',
 				employment: {
-					exit_reason: 'REDUNDANCY',
+					exit_ground: 'REDUNDANCY',
 					exit_facts: {
 						leaving_malaysia: false,
 						notice_termination_party: 'EMPLOYER',
@@ -1473,7 +1473,7 @@ register(
 				to: '2026-07-01',
 				type: 'CONTRACT',
 				employment: {
-					exit_reason: 'END_OF_CONTRACT',
+					exit_ground: 'END_OF_CONTRACT',
 					exit_facts: { notice_termination_party: 'NEITHER' }
 				}
 			}),
@@ -1539,7 +1539,7 @@ register(
 				to: '2026-03-13',
 				type: 'CONTRACT',
 				employment: {
-					exit_reason: 'END_OF_CONTRACT',
+					exit_ground: 'END_OF_CONTRACT',
 					exit_facts: { notice_termination_party: 'NEITHER' }
 				},
 				pcb: { elections: { pcb_sch6_para21: true } }
@@ -1611,7 +1611,7 @@ const PLAIN_3000_CITED = [
 ];
 /** A retrenchment departure on `last`, notice served from `noticeOn`. */
 const retrenched = (noticeOn: string) => ({
-	exit_reason: 'RETRENCHMENT',
+	exit_ground: 'RETRENCHMENT',
 	exit_facts: {
 		leaving_malaysia: false,
 		wages_12m: 36000,
@@ -2039,7 +2039,7 @@ register(
 				to: '2026-06-30',
 				type: 'CONTRACT',
 				employment: {
-					exit_reason: 'END_OF_CONTRACT',
+					exit_ground: 'END_OF_CONTRACT',
 					exit_facts: { notice_termination_party: 'NEITHER' }
 				}
 			})
@@ -2186,7 +2186,7 @@ const leave = (
 		to_date: to,
 		half_day_start: false,
 		half_day_end: false,
-		...(event == null ? {} : { event_kind: 'BIRTH', event_date: event }),
+		...(event == null ? {} : { facts: { event_kind: 'BIRTH', event_date: event } }),
 		reason: `probe ${code}`
 	},
 	files: { certificate_file: `${code.toLowerCase()}-certificate.pdf` }
@@ -2349,7 +2349,7 @@ register(
 				to: '2026-03-31',
 				type: 'CONTRACT',
 				employment: {
-					exit_reason: 'END_OF_CONTRACT',
+					exit_ground: 'END_OF_CONTRACT',
 					exit_facts: { notice_termination_party: 'NEITHER' }
 				},
 				pcb: { elections: { pcb_sch6_para21: true } }
@@ -2491,7 +2491,7 @@ register(
 // ── Round 2026-09-30 (batch 10): notice tiers, national service, young worker, reliefs, ORP allowance ──
 /** A no-notice retrenchment on the last day of January 2026; `wages12m` states the twelve months before it (reg.6(2)). */
 const retrenchedWithoutNotice = (wages12m: number) => ({
-	exit_reason: 'RETRENCHMENT',
+	exit_ground: 'RETRENCHMENT',
 	exit_facts: {
 		leaving_malaysia: false,
 		wages_12m: wages12m,

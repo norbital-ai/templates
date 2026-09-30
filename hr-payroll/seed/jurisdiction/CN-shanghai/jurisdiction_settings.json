@@ -256,7 +256,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -351,6 +351,14 @@
 				"owner": "Payroll",
 				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -629,7 +637,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -724,6 +732,14 @@
 				"owner": "Payroll",
 				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -1002,7 +1018,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -1097,6 +1113,14 @@
 				"owner": "Payroll",
 				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -1375,7 +1399,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -1470,6 +1494,14 @@
 				"owner": "Payroll",
 				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	}

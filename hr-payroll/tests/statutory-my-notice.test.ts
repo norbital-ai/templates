@@ -32,7 +32,7 @@ function notice(
 					registrations: { EPF_NON_CITIZEN: { kind: 'NOT_REGISTERED' } },
 					hire_date: options.hire ?? '2025-01-01',
 					exit_date: exit,
-					exit_reason: options.reason ?? 'UNILATERAL',
+					exit_ground: options.reason ?? 'UNILATERAL',
 					employment_type: options.domestic ? 'DOMESTIC' : 'PERMANENT'
 				}
 			]

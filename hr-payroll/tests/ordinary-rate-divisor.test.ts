@@ -124,36 +124,6 @@ test('the Work states every week shape it rosters, so no person falls through', 
 	assert.doesNotThrow(() => dayWageOf(0, 0, false));
 });
 
-for (const code of ['MY'] as const)
-	test(`${code}: weekly ordinary pay retains monthly allowance units (EA 60I)`, () => {
-		const original = person(40, 5);
-		const subject = {
-			...original,
-			terms: {
-				...original.terms,
-				basic_salary: 601,
-				monthly_wage: 861,
-				fixed_allowances: 260,
-				pay_frequency: 'WEEKLY'
-			}
-		};
-		const weekly = { ...terms(40, 5, 601), pay_frequency: 'WEEKLY' as const };
-		for (const version of settingsVersions(code)) {
-			const divisor = ordinaryDivisorDays({
-				expression: version.work_rules.ordinary_divisor_days,
-				person: subject
-			});
-			// Weekly basic 601 / 6 plus monthly normal-hours allowance 260 / 26; the week is the
-			// version's month by `rate_conversions.weekly_to_monthly`.
-			const conversion = { work: version.work_rules, person: subject };
-			assert.ok(Math.abs(ordinaryDayWage(weekly, divisor, conversion) - (601 / 6 + 10)) < 1e-10);
-			assert.ok(
-				Math.abs(ordinaryHourlyRate(weekly, divisor, undefined, conversion) - (601 / 6 + 10) / 8) <
-					1e-10
-			);
-		}
-	});
-
 test('MY: the hour is basic × 12 ÷ (52 × the contract week), whatever week the roster measured', () => {
 	// The customer's own basis, owner-accepted: ÷ 195 for the 45-hour 6D group, ÷ 184.17 for the
 	// 42.5-hour 5D office group. The divisor states it over the roster-measured week the engine
@@ -181,7 +151,7 @@ test('MY: the hour is basic × 12 ÷ (52 × the contract week), whatever week th
 			const hour = ordinaryHourlyRate(monthly(hours, days), divisor);
 			assert.ok(Math.abs(hour - (1_700 * 12) / (52 * week)) < 1e-10, `${group} ${hours}/${days}`);
 		}
-	// 1,700 ÷ 195 = 8.7179… → 8.72 a sen; the bands price round_cent(ordinary_hour).
+	// 1,700 ÷ 195 = 8.7179… → 8.72 a sen; the bands price round(ordinary_hour, 0.01, 'HALF_UP').
 	assert.equal(Math.round(((1_700 * 12) / (52 * 45)) * 100) / 100, 8.72);
 	assert.equal(Math.round(((1_700 * 12) / (52 * 42.5)) * 100) / 100, 9.23);
 });

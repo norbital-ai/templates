@@ -103,7 +103,11 @@ export type Scenario = {
 };
 
 export type Line = { amount?: number; employee?: number; employer?: number; base?: number };
-export type Payslip = { refused: string | null; lines: Record<string, Line>; companyLines: Record<string, Line> };
+export type Payslip = {
+	refused: string | null;
+	lines: Record<string, Line>;
+	companyLines: Record<string, Line>;
+};
 
 // ---------- arithmetic and dates ----------
 const EPS = 1e-7;
@@ -113,7 +117,8 @@ const D = (iso: string) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso
 const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
 const DAY = 86_400_000;
 export const addDays = (d: string, n: number) => iso(D(d) + n * DAY);
-export const daysIn = (period: string) => new Date(Date.UTC(+period.slice(0, 4), +period.slice(5, 7), 0)).getUTCDate();
+export const daysIn = (period: string) =>
+	new Date(Date.UTC(+period.slice(0, 4), +period.slice(5, 7), 0)).getUTCDate();
 export const monthEnd = (period: string) => `${period}-${String(daysIn(period)).padStart(2, '0')}`;
 export const prevPeriod = (p: string) => addDays(`${p}-01`, -1).slice(0, 7);
 /** Monday–Friday days in a..b inclusive: the officeWeek roster; a public holiday on a weekday stays a paid working day. */
@@ -143,11 +148,22 @@ const addMonths = (d: string, n: number) => {
 // ---------- statutory tables ----------
 /** D74 art.3 (to 31 Dec 2025) and D293 art.3 (from 1 Jan 2026): regional monthly / hourly floors (VN-MW74-01, VN-MW293-02). */
 const FLOORS: Record<'2025' | '2026', Record<Region, [number, number]>> = {
-	'2025': { I: [4_960_000, 23_800], II: [4_410_000, 21_200], III: [3_860_000, 18_600], IV: [3_450_000, 16_600] },
-	'2026': { I: [5_310_000, 25_500], II: [4_730_000, 22_700], III: [4_140_000, 20_000], IV: [3_700_000, 17_800] }
+	'2025': {
+		I: [4_960_000, 23_800],
+		II: [4_410_000, 21_200],
+		III: [3_860_000, 18_600],
+		IV: [3_450_000, 16_600]
+	},
+	'2026': {
+		I: [5_310_000, 25_500],
+		II: [4_730_000, 22_700],
+		III: [4_140_000, 20_000],
+		IV: [3_700_000, 17_800]
+	}
 };
 const floorsOn = (period: string) => {
-	if (period < '2025-12' || period > '2026-12') throw new Error(`no VN floors transcribed for ${period}`);
+	if (period < '2025-12' || period > '2026-12')
+		throw new Error(`no VN floors transcribed for ${period}`);
 	return FLOORS[period < '2026-01' ? '2025' : '2026'];
 };
 /** SI art.31(1)(đ) reference level = base salary: 2,340,000; D161 art.3(2): 2,530,000 from 1 July 2026 (VN-SI-05). */
@@ -167,7 +183,8 @@ const retirementAgeMonths = (birth: string, sex: 'M' | 'F') => {
 	throw new Error(`retirement age for ${sex} born ${birth} not transcribed here`);
 };
 /** the day the worker reaches the normal retirement age */
-export const retirementDay = (birth: string, sex: 'M' | 'F') => addMonths(birth, retirementAgeMonths(birth, sex));
+export const retirementDay = (birth: string, sex: 'M' | 'F') =>
+	addMonths(birth, retirementAgeMonths(birth, sex));
 
 /** PIT04 art.22 monthly ladder (December 2025) and PIT109 / 2026 ladder (VN-PIT-01, VN-PIT-05). */
 const LADDER_2025: [number, number][] = [
@@ -207,7 +224,8 @@ export function computePayslip(sc: Scenario): Payslip {
 
 	// ---- minimum wage (D293 art.4(1)–(2); D74 art.3): the job wage for normal hours, never allowances ----
 	const [floorMonthly, floorHourly] = floorsOn(period)[sc.company.region];
-	if (k.partTime ? k.partTime.hourly < floorHourly : k.monthly < floorMonthly) return refuse('minimum wage');
+	if (k.partTime ? k.partTime.hourly < floorHourly : k.monthly < floorMonthly)
+		return refuse('minimum wage');
 
 	// ---- employed span and working days ----
 	const start = k.start > first ? k.start : first;
@@ -221,11 +239,14 @@ export function computePayslip(sc: Scenario): Payslip {
 	const unpaidMonth = WD - paidWD >= 14;
 
 	// ---- pay (DEFAULT VN-PRORATE-01: period working days; each unpaid working day at monthly ÷ WD) ----
-	const contractWage = k.partTime ? r0(k.partTime.hourly * k.partTime.hours) : k.monthly + k.allowance;
+	const contractWage = k.partTime
+		? r0(k.partTime.hourly * k.partTime.hours)
+		: k.monthly + k.allowance;
 	if (k.partTime) lines.SALARY = { amount: contractWage, base: k.partTime.hours };
 	else {
 		lines.SALARY = { amount: r0((k.monthly * paidWD) / WD), base: paidWD };
-		if (k.allowance > 0) lines.ALLOWANCE = { amount: r0((k.allowance * paidWD) / WD), base: paidWD };
+		if (k.allowance > 0)
+			lines.ALLOWANCE = { amount: r0((k.allowance * paidWD) / WD), base: paidWD };
 	}
 
 	// ---- overtime and night work (LC art.98; D145 arts.55–57) ----
@@ -247,7 +268,14 @@ export function computePayslip(sc: Scenario): Payslip {
 	];
 	// LC art.107(2)(b): at most 40 OT hours a month; pay beyond is still owed but is not lawful OT, so no PIT
 	// exemption reaches it (PIT109 art.4(8) / TT111 art.3(9) exempt OT "theo quy định của pháp luật"; VN-LC107-01).
-	const otHours = t.ot.weekday + t.ot.rest + t.ot.holiday + n.weekdayNoDayOt + n.weekdayAfterDayOt + n.rest + n.holiday;
+	const otHours =
+		t.ot.weekday +
+		t.ot.rest +
+		t.ot.holiday +
+		n.weekdayNoDayOt +
+		n.weekdayAfterDayOt +
+		n.rest +
+		n.holiday;
 	const overLimit = Math.max(0, otHours - 40); // generator puts any excess on weekday OT only
 	let otPay = 0;
 	let otTaxableOld = 0; // taxable under PIT04 (premium exempt)
@@ -276,9 +304,12 @@ export function computePayslip(sc: Scenario): Payslip {
 	// art.43(1)(b)) every fixed term (VN-SI-01 Issue 44, VN-UI-01).
 	// Law 74/2025 art.31(2): a worker on a probation contract is outside UI from 1 January 2026 (VN-UI-01 Issue 45;
 	// December 2025 under Law 38/2013 left as insured, the tracker's open branch).
-	const uiSubject = !foreign && !e.receivingPension && (is2026 ? contractMonths >= 1 && !k.probation : true);
+	const uiSubject =
+		!foreign && !e.receivingPension && (is2026 ? contractMonths >= 1 && !k.probation : true);
 	if (k.partTime && contractWage < referenceLevel(period))
-		throw new Error('part-time below the reference level is outside these scenarios (VN-LC168-01-2 unproven)');
+		throw new Error(
+			'part-time below the reference level is outside these scenarios (VN-LC168-01-2 unproven)'
+		);
 
 	const floor = referenceLevel(period);
 	const ceiling = 20 * floor; // SI art.31(1)
@@ -341,10 +372,14 @@ export function computePayslip(sc: Scenario): Payslip {
 		const service = monthsBetween(k.start, dayAfter);
 		// D145 art.8(3)(b): UI time — citizens from uiFrom; a foreigner has none (no UI, no UI equivalent)
 		const uiStart = foreign ? null : k.uiFrom;
-		const uiMonths = uiStart && uiStart < dayAfter ? monthsBetween(uiStart > k.start ? uiStart : k.start, dayAfter) : 0;
+		const uiMonths =
+			uiStart && uiStart < dayAfter
+				? monthsBetween(uiStart > k.start ? uiStart : k.start, dayAfter)
+				: 0;
 		const countable = service - uiMonths;
 		// D145 art.8(3)(c): whole years; a remainder ≤ 6 months = ½ year, over 6 = 1 year
-		const years = Math.floor(countable / 12) + (countable % 12 === 0 ? 0 : countable % 12 <= 6 ? 0.5 : 1);
+		const years =
+			Math.floor(countable / 12) + (countable % 12 === 0 ? 0 : countable % 12 <= 6 ? 0.5 : 1);
 		const avg = k.monthly + k.allowance; // LC art.46(3): six-month contractual average (constant here)
 		if (service >= 12) {
 			// D145 art.8(1): ≥ 12 months; LC art.34(1),(2),(3),(4),(6),(7),(9),(10); not pension-eligible, not art.36(1)(e)
@@ -379,13 +414,18 @@ export function computePayslip(sc: Scenario): Payslip {
 			// D145 art.67(3): the contract wage of the month before the exit month; DEFAULT (VN-LC113-03) ÷ its normal
 			// working days
 			const prev = prevPeriod(x.date.slice(0, 7));
-			encash = r0((untaken * (k.monthly + k.allowance)) / workingDays(`${prev}-01`, monthEnd(prev)));
+			encash = r0(
+				(untaken * (k.monthly + k.allowance)) / workingDays(`${prev}-01`, monthEnd(prev))
+			);
 			lines.ENCASHMENT = { amount: encash, base: untaken };
 		}
 	}
 
 	// ---- gross ----
-	const regular = (lines.SALARY.amount ?? 0) + (lines.ALLOWANCE?.amount ?? 0) + (lines.INSURANCE_EQUIVALENT?.amount ?? 0);
+	const regular =
+		(lines.SALARY.amount ?? 0) +
+		(lines.ALLOWANCE?.amount ?? 0) +
+		(lines.INSURANCE_EQUIVALENT?.amount ?? 0);
 	const gross = regular + otPay + sc.bonus + severance + encash;
 
 	// ---- PIT ----
@@ -399,7 +439,8 @@ export function computePayslip(sc: Scenario): Payslip {
 	let pit = 0;
 	const shortContract = contractMonths < 3; // D253 art.50(2); TT111 art.25(1)(i): under three months
 	const afterContract = exitDate !== null && exitDate < last; // paid on the period end, after the contract ended
-	if (!e.taxResident) pit = r0(taxable * 0.2); // PIT04 art.26 / TT111 art.18(1); PIT109 art.21
+	if (!e.taxResident)
+		pit = r0(taxable * 0.2); // PIT04 art.26 / TT111 art.18(1); PIT109 art.21
 	else if (shortContract || afterContract) {
 		// TT111 art.25(1)(i) ≥ 2,000,000 before July 2026; D253 art.50(2) ≥ 5,000,000 from July; a payment after a
 		// long contract ends is treated alike (VN-PIT-06 Round 12/18: D253 art.50(2) from July; owner default before)
@@ -409,7 +450,8 @@ export function computePayslip(sc: Scenario): Payslip {
 		const self = is2026 ? 15_500_000 : 11_000_000; // NQ110 / NQ954
 		const dep = is2026 ? 6_200_000 : 4_400_000;
 		const pensionCap = is2026 ? 3_000_000 : 1_000_000; // D253 art.46(2)(a) / TT92 art.15
-		const assessable = taxable - eeIns - self - dep * e.dependants - Math.min(e.voluntaryPension, pensionCap);
+		const assessable =
+			taxable - eeIns - self - dep * e.dependants - Math.min(e.voluntaryPension, pensionCap);
 		pit = r0(ladder(Math.max(0, assessable), is2026 ? LADDER_2026 : LADDER_2025));
 	}
 	if (pit > 0) lines.PIT = { employee: pit, base: taxable };

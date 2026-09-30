@@ -150,7 +150,7 @@ function pkwt(wage: number, taxResidency: string | null = 'RESIDENT') {
 					tax_residency: taxResidency,
 					hire_date: '2024-01-31',
 					exit_date: '2026-01-31',
-					exit_reason: 'END_OF_CONTRACT'
+					exit_ground: 'END_OF_CONTRACT'
 				}
 			]
 		},

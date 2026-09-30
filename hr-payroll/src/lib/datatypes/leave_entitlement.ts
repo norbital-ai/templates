@@ -223,7 +223,7 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 		Schema.Struct({
 			/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
 			eligibility: Schema.String,
-			/** The grant, or a number over the person: a seniority ladder with no top (VN art.114: `12.0 + floor_unit(employment.service_months / 60.0)`). */
+			/** The grant, or a number over the person: a seniority ladder with no top (VN art.114: `12.0 + round(employment.service_months / 60.0, 1, 'DOWN')`). */
 			days: Schema.Union([Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)), Schema.String])
 		})
 	)

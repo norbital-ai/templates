@@ -113,7 +113,11 @@ export type Scenario = {
 		/** hours beyond the normal day on a working day, at the employer's request (EA s.38(4); PT reg.5) */
 		overtime?: readonly { date: string; hours: number }[];
 		/** work on the Sunday rest day (EA s.37) */
-		rest_day_work?: readonly { date: string; hours: number; requested_by: 'EMPLOYEE' | 'EMPLOYER' }[];
+		rest_day_work?: readonly {
+			date: string;
+			hours: number;
+			requested_by: 'EMPLOYEE' | 'EMPLOYER';
+		}[];
 		/** work on a public holiday at the employer's request (EA s.88(4)) */
 		holiday_work?: readonly {
 			date: string;
@@ -228,10 +232,12 @@ export const PUBLIC_HOLIDAYS: readonly string[] = [
 ];
 /** HA s.4(2): the Monday a Sunday holiday moves to. */
 const SUNDAY_SUBSTITUTES = new Set(['2026-06-01', '2026-08-10', '2026-11-09', '2027-02-08']);
-export const publicHolidays = (period: string) => PUBLIC_HOLIDAYS.filter((d) => d.startsWith(period));
+export const publicHolidays = (period: string) =>
+	PUBLIC_HOLIDAYS.filter((d) => d.startsWith(period));
 export const weekdayHolidays = (period: string) => publicHolidays(period).filter(isWorkingDay);
 /** holidays on the Saturday off day */
-export const offDayHolidays = (period: string) => publicHolidays(period).filter((d) => weekday(d) === 6);
+export const offDayHolidays = (period: string) =>
+	publicHolidays(period).filter((d) => weekday(d) === 6);
 
 // ---------------------------------------------------------------------------------------------------------------
 // EA day and hour rates
@@ -252,7 +258,8 @@ export const hourlyBasic = (monthlyBasic: number) => (12 * monthlyBasic) / (52 *
 export const noticePayInLieu = (monthlyGross: number, weeks: number, days = 0) =>
 	cents(grossDay(monthlyGross) * (weeks * DAYS_A_WEEK + days));
 /** Leave pay at the gross rate of pay for a day [EA s.88A(7)/(8) via Third Schedule item 2]. */
-export const leavePay = (monthlyGross: number, days: number) => cents(grossDay(monthlyGross) * days);
+export const leavePay = (monthlyGross: number, days: number) =>
+	cents(grossDay(monthlyGross) * days);
 
 /** EA s.35: Part 4 covers a workman on salary ≤ $4,500, and any other non-managerial employee on salary ≤ $2,600 (salary excluding allowances). */
 export const partFourCovers = (e: Scenario['employment']) =>
@@ -278,7 +285,10 @@ const T3: Table = [
 	[3.5, 0.225, 11, 7.5],
 	[3.5, 0.15, 8.5, 5]
 ];
-const RATES: Record<number, { owc: number; T1: Table; T2: Table; T3: Table; T4: Table; T5: Table }> = {
+const RATES: Record<
+	number,
+	{ owc: number; T1: Table; T2: Table; T3: Table; T4: Table; T5: Table }
+> = {
 	// [CPF25]; OW ceiling $7,400 [CPFA para 5(ea)(iii)]
 	2025: {
 		owc: 7400,
@@ -397,7 +407,11 @@ export const statusOn = (e: Scenario['employee'], day: string): Residency => {
 	return e.spr_granted_on !== undefined && day >= e.spr_granted_on ? 'SPR' : 'FOREIGNER';
 };
 
-export const cpfTable = (e: Scenario['employee'], period: string, status: Residency = e.residency): TableName | null => {
+export const cpfTable = (
+	e: Scenario['employee'],
+	period: string,
+	status: Residency = e.residency
+): TableName | null => {
 	if (status === 'FOREIGNER') return null; // CPFA para 5(dc): no contribution for a foreign employee
 	if (status === 'CITIZEN') return 'T1';
 	const year = sprYear(e.spr_granted_on!, period);
@@ -451,7 +465,8 @@ export function cpf(parts: readonly CpfPart[], group: number, year: number, tw: 
  * SDLA s.3(1)–(2): the greater of 0.25% of the month's wages and $2, not chargeable on wages above $4,500.
  * DEFAULT (law silent, SG-SDL13): each employee's levy half-up to the cent. No wages paid or payable → no levy (SG-SDL02).
  */
-export const sdl = (wages: number) => (wages <= 0 ? 0 : cents(Math.max(2, pct(Math.min(wages, 4500), 0.25))));
+export const sdl = (wages: number) =>
+	wages <= 0 ? 0 : cents(Math.max(2, pct(Math.min(wages, 4500), 0.25)));
 
 type Rung = readonly [upTo: number, amount: number];
 /** Monthly total wages "exceeding" the previous rung's limit up to and including `upTo` [SHG]. */
@@ -500,7 +515,11 @@ export const fundRow = (fund: keyof typeof FUNDS, wages: number) => {
 	const rungs = FUNDS[fund];
 	const i = rungs.findIndex(([upTo]) => wages <= upTo + EPS);
 	const name =
-		i === 0 ? `le-${rungs[0]![0]}` : i === rungs.length - 1 ? `above-${rungs[i - 1]![0]}` : `${rungs[i - 1]![0]}-${rungs[i]![0]}`;
+		i === 0
+			? `le-${rungs[0]![0]}`
+			: i === rungs.length - 1
+				? `above-${rungs[i - 1]![0]}`
+				: `${rungs[i - 1]![0]}-${rungs[i]![0]}`;
 	return `SG-SHG03.${fund.toLowerCase()}-${name}`;
 };
 
@@ -559,7 +578,8 @@ export const shgRaceRow = (race: string) =>
 		: SINDA_NAMED.has(race) && race !== 'INDIAN'
 			? 'SG-SHG04'
 			: null;
-export const indianCommunity = (race: string | undefined) => race !== undefined && INDIAN_COMMUNITY.has(race);
+export const indianCommunity = (race: string | undefined) =>
+	race !== undefined && INDIAN_COMMUNITY.has(race);
 /**
  * Which funds deduct [SHG; Rules r.2–4]:
  *  - MBMF: every Muslim employee, any residency (AMLA s.78; CPF Board "Foreign employees" included).
@@ -646,15 +666,31 @@ export function computePayslip(s: Scenario): Payslip {
 	}
 	// The holiday calendar shapes this payslip only where days are counted or a holiday is worked, forfeited or off-day.
 	const calendarMatters =
-		incomplete || changes || absent.size > 0 || (s.month.holiday_work ?? []).length > 0 || offDayHolidays(s.period).length > 0;
+		incomplete ||
+		changes ||
+		absent.size > 0 ||
+		(s.month.holiday_work ?? []).length > 0 ||
+		offDayHolidays(s.period).length > 0;
 	if (calendarMatters)
 		for (const h of publicHolidays(s.period).filter(employed)) {
-			hit(h.startsWith('2025') ? 'SG-HOL01.2025-12' : h.startsWith('2026') ? 'SG-HOL01.2026' : 'SG-HOL02');
+			hit(
+				h.startsWith('2025')
+					? 'SG-HOL01.2025-12'
+					: h.startsWith('2026')
+						? 'SG-HOL01.2026'
+						: 'SG-HOL02'
+			);
 			if (SUNDAY_SUBSTITUTES.has(h)) hit('SG-HOL01.sunday');
 		}
 	for (const h of holidays) if (npl.has(h)) hit('SG-EA33.no-pay-leave');
 	for (const l of s.month.paid_leave ?? [])
-		hit(l.kind === 'ANNUAL' ? 'SG-EA34.leave-pay' : l.kind === 'OUTPATIENT' ? 'SG-EA35.outpatient' : 'SG-EA35.hospitalisation');
+		hit(
+			l.kind === 'ANNUAL'
+				? 'SG-EA34.leave-pay'
+				: l.kind === 'OUTPATIENT'
+					? 'SG-EA35.outpatient'
+					: 'SG-EA35.hospitalisation'
+		);
 
 	// EA s.28(2): "in the case of a monthly-rated employee the amount of deduction in respect of any one day is the gross
 	// rate of pay for one day's work" (s.107A Third Schedule). EA s.88(3): an absence without consent or excuse on the
@@ -667,13 +703,22 @@ export function computePayslip(s: Scenario): Payslip {
 	const adjacentAbsence = (h: string) =>
 		[workingNeighbour(h, -1), workingNeighbour(h, 1)].some((d) => d !== undefined && absent.has(d));
 	const forfeited = [...holidays].filter(
-		(h) => employed(h) && !npl.has(h) && !(s.month.holiday_work ?? []).some((w) => w.date === h) && adjacentAbsence(h)
+		(h) =>
+			employed(h) &&
+			!npl.has(h) &&
+			!(s.month.holiday_work ?? []).some((w) => w.date === h) &&
+			adjacentAbsence(h)
 	);
 	const absenceDays = [...absent].filter((d) => employed(d));
-	const absenceDeduction = cents([...absenceDays, ...forfeited].reduce((a, d) => a + grossDay(rateOn(d).G), 0));
+	const absenceDeduction = cents(
+		[...absenceDays, ...forfeited].reduce((a, d) => a + grossDay(rateOn(d).G), 0)
+	);
 	if (absenceDays.length > 0) hit('SG-EA14.unexcused-absence', 'SG-EA40.fixed-monthly');
 	if (forfeited.length > 0) hit('SG-EA33.adjacent-absence');
-	if (absenceDeduction > 0) notes.push(`EA s.28(2)/s.88(3): ${absenceDays.length + forfeited.length} gross day(s) deducted`);
+	if (absenceDeduction > 0)
+		notes.push(
+			`EA s.28(2)/s.88(3): ${absenceDays.length + forfeited.length} gross day(s) deducted`
+		);
 	salary = cents(Math.max(0, salary - absenceDeduction));
 
 	// EA s.88(1)(c): a holiday on the Saturday off day is paid at the gross rate for one day, or a substitute day off is
@@ -700,7 +745,11 @@ export function computePayslip(s: Scenario): Payslip {
 	// amount half-up to the cent (SG-EA46-R01 owner rule).
 	let overtime = 0;
 	const otHours = (s.month.overtime ?? []).reduce((a, o) => a + o.hours, 0);
-	const scopeRow = e.managerial ? 'SG-EA19.manager' : e.workman ? 'SG-EA19.workman' : 'SG-EA19.non-workman';
+	const scopeRow = e.managerial
+		? 'SG-EA19.manager'
+		: e.workman
+			? 'SG-EA19.workman'
+			: 'SG-EA19.non-workman';
 	if (otHours > 0 || (s.month.rest_day_work ?? []).length > 0) hit(scopeRow);
 	if (covered && otHours > 0) {
 		if (e.part_time) {
@@ -750,13 +799,21 @@ export function computePayslip(s: Scenario): Payslip {
 
 	const bonus = s.month.bonus ?? 0;
 	if (bonus > 0) hit('SG-CPF04.bonus', 'SG-SDL02.bonus');
-	const leaveOnExit = s.month.leave_days_paid_on_exit ? leavePay(G, s.month.leave_days_paid_on_exit) : 0;
+	const leaveOnExit = s.month.leave_days_paid_on_exit
+		? leavePay(G, s.month.leave_days_paid_on_exit)
+		: 0;
 	if (leaveOnExit > 0) hit('SG-CPF04.leave-pay', 'SG-EA34.exit-payment', 'SG-EA40.fixed-monthly');
 	const silon =
 		s.month.notice_in_lieu_weeks || s.month.notice_in_lieu_days
 			? noticePayInLieu(G, s.month.notice_in_lieu_weeks ?? 0, s.month.notice_in_lieu_days ?? 0)
 			: 0;
-	if (silon > 0) hit('SG-EA05.in-lieu-of-notice', 'SG-CPF04.notice-compensation', 'SG-SDL02.notice-pay', 'SG-EA40.fixed-monthly');
+	if (silon > 0)
+		hit(
+			'SG-EA05.in-lieu-of-notice',
+			'SG-CPF04.notice-compensation',
+			'SG-SDL02.notice-pay',
+			'SG-EA40.fixed-monthly'
+		);
 	const medical = s.month.medical_reimbursement ?? 0;
 	if (medical > 0) hit('SG-CPF04.medical-reimbursement', 'SG-SDL03', 'SG-SDL03A', 'SG-CPF-MED01');
 	const retrenchment = s.month.retrenchment_benefit ?? 0;
@@ -801,7 +858,8 @@ export function computePayslip(s: Scenario): Payslip {
 		const related = opening.related_company_approved ? (opening.other_employer_ow_ytd ?? 0) : 0;
 		const owThis = Math.min(liableOw, owc);
 		const lastMonth = m === 12 || endsHere;
-		const yearOw = opening.ordinary_wages_ytd + related + owThis + (lastMonth ? 0 : owThis * (12 - m));
+		const yearOw =
+			opening.ordinary_wages_ytd + related + owThis + (lastMonth ? 0 : owThis * (12 - m));
 		const rawRoom = AW_APPLICABLE_AMOUNT - yearOw - opening.additional_wages_ytd;
 		const awc = Math.min(aw, Math.max(0, rawRoom));
 		if (aw > 0) {
@@ -809,7 +867,8 @@ export function computePayslip(s: Scenario): Payslip {
 			if (m === 12) hit('SG-CPF03.december-true-up', 'SG-CPF21.december-true-up');
 			else if (endsHere) hit('SG-CPF03.exit-true-up', 'SG-CPF21.leaver-true-up');
 			else hit('SG-CPF21.estimate');
-			if (opening.related_company_approved) hit('SG-CPF03.related-company', 'SG-CPF22.related-transfer');
+			if (opening.related_company_approved)
+				hit('SG-CPF03.related-company', 'SG-CPF22.related-transfer');
 			if (rawRoom < 0) hit('SG-CPF03.excess-refund', 'SG-CPF21.overpayment');
 		}
 		if (awc < aw) notes.push(`CPFA para 2: AW ${aw} capped at ${awc}`);
@@ -819,18 +878,35 @@ export function computePayslip(s: Scenario): Payslip {
 		const tw = ow + awc; // para 5(f) Total Wages: the month's whole OW (SG-CPF34.band-on-month-total) plus chargeable AW
 		const group = ageGroup(person.birth_date, s.period);
 		const c = cpf(parts, group, year, tw);
-		charges.push({ code: 'CPF', employee: c.employee, employer: c.employer, base: cents(Math.min(liableOw, owc) + awc) });
+		charges.push({
+			code: 'CPF',
+			employee: c.employee,
+			employer: c.employer,
+			base: cents(Math.min(liableOw, owc) + awc)
+		});
 		notes.push(`CPF ${parts.map((p) => p.table).join('+')} group ${group} rates ${year}`);
 
 		for (const p of parts) {
 			hit(`SG-CPF19.table-${p.table.slice(1)}`);
 			if (p.table === 'T1') {
-				if (statusOn(person, payday) === 'CITIZEN' && (!conversion || p.table === endTable)) hit('SG-CPF01.citizen');
-				if (person.residency === 'SPR' && person.spr_rates === 'FULL' && sprYear(person.spr_granted_on!, s.period) < 3) hit('SG-CPF09.full-full');
-				else if (person.spr_granted_on !== undefined && person.citizen_on === undefined && sprYear(person.spr_granted_on, s.period) === 3)
+				if (statusOn(person, payday) === 'CITIZEN' && (!conversion || p.table === endTable))
+					hit('SG-CPF01.citizen');
+				if (
+					person.residency === 'SPR' &&
+					person.spr_rates === 'FULL' &&
+					sprYear(person.spr_granted_on!, s.period) < 3
+				)
+					hit('SG-CPF09.full-full');
+				else if (
+					person.spr_granted_on !== undefined &&
+					person.citizen_on === undefined &&
+					sprYear(person.spr_granted_on, s.period) === 3
+				)
 					hit('SG-CPF01.spr-third-year');
 			} else {
-				hit(p.table === 'T2' || p.table === 'T3' ? 'SG-CPF09.graduated' : 'SG-CPF09.full-graduated');
+				hit(
+					p.table === 'T2' || p.table === 'T3' ? 'SG-CPF09.graduated' : 'SG-CPF09.full-graduated'
+				);
 				if (year === 2027) hit('SG-CPF31.spr-tables');
 			}
 			if (tw > 50 && p.table === 'T1' && (group > 0 || year === 2027)) {
@@ -864,20 +940,39 @@ export function computePayslip(s: Scenario): Payslip {
 		levy = sdl(sdlWages);
 		hit('SG-SDL01.singapore-service');
 		hit(sdlWages < 800 ? 'SG-SDL02.minimum' : sdlWages <= 4500 ? 'SG-SDL02.rate' : 'SG-SDL02.cap');
-		if (sdlWages >= 800 && Math.abs(pct(Math.min(sdlWages, 4500), 0.25) * 100 - Math.round(pct(Math.min(sdlWages, 4500), 0.25) * 100)) > EPS)
+		if (
+			sdlWages >= 800 &&
+			Math.abs(
+				pct(Math.min(sdlWages, 4500), 0.25) * 100 -
+					Math.round(pct(Math.min(sdlWages, 4500), 0.25) * 100)
+			) > EPS
+		)
 			hit('SG-SDL13');
 		if (e.household_role) hit('SG-SDL01.company-household-role');
 	}
-	charges.push({ code: 'SDL', employee: 0, employer: levy, base: levy > 0 ? cents(Math.min(sdlWages, 4500)) : 0 });
+	charges.push({
+		code: 'SDL',
+		employee: 0,
+		employer: levy,
+		base: levy > 0 ? cents(Math.min(sdlWages, 4500)) : 0
+	});
 
 	// Funds on the month's total CPF wages (OW + AW, uncapped) [Rules Schedule Part 2], on the status at the month's end
 	// (SG-CPF34.shg-funds); nothing without wages. A fund instruction replaces the rung (CDAC r.8, SINDA r.8(2)).
 	const fundWages = cents(ow + aw);
 	if (fundWages > 0)
 		for (const f of funds(person)) {
-			const instructed = person.shg_instruction?.fund === f ? person.shg_instruction.amount : undefined;
-			charges.push({ code: f, employee: instructed ?? fundAmount(f, fundWages), employer: 0, base: fundWages });
-			hit(instructed !== undefined ? `SG-SHG03.${f.toLowerCase()}-instruction` : fundRow(f, fundWages));
+			const instructed =
+				person.shg_instruction?.fund === f ? person.shg_instruction.amount : undefined;
+			charges.push({
+				code: f,
+				employee: instructed ?? fundAmount(f, fundWages),
+				employer: 0,
+				base: fundWages
+			});
+			hit(
+				instructed !== undefined ? `SG-SHG03.${f.toLowerCase()}-instruction` : fundRow(f, fundWages)
+			);
 			if (conversion) hit('SG-CPF34.shg-funds');
 			if (f === 'MBMF' && person.residency === 'FOREIGNER') hit('SG-SHG02.foreign-muslim');
 			if (f === 'SINDA' && person.residency === 'FOREIGNER') hit('SG-SHG04(b)');
@@ -891,8 +986,14 @@ export function computePayslip(s: Scenario): Payslip {
 			const firstIndian = indianCommunity(person.race);
 			const secondIndian = indianCommunity(person.second_race);
 			if (firstIndian && CHINESE_DESCENT.has(person.second_race))
-				hit('SG-SHG01.indian-chinese', person.race === 'INDIAN' ? 'SG-SHG04(c).indian-first-cdac' : 'SG-SHG04(c).other-first-cdac');
-			if (CHINESE_DESCENT.has(person.race) && secondIndian) hit('SG-SHG01.chinese-indian', 'SG-SHG04(c).chinese-first-sinda');
+				hit(
+					'SG-SHG01.indian-chinese',
+					person.race === 'INDIAN'
+						? 'SG-SHG04(c).indian-first-cdac'
+						: 'SG-SHG04(c).other-first-cdac'
+				);
+			if (CHINESE_DESCENT.has(person.race) && secondIndian)
+				hit('SG-SHG01.chinese-indian', 'SG-SHG04(c).chinese-first-sinda');
 			if (firstIndian && secondIndian) hit('SG-SHG04(c).dual-sinda-refused');
 		}
 	}
@@ -919,7 +1020,12 @@ export function computePayslip(s: Scenario): Payslip {
 	const totalDeductions = cents(statutoryEmployee + damage);
 	const employerCost = cents(gross + charges.reduce((a, c) => a + c.employer, 0));
 	const net = cents(gross - totalDeductions);
-	const lines: Record<string, number> = { gross, net, total_deductions: totalDeductions, employer_cost: employerCost };
+	const lines: Record<string, number> = {
+		gross,
+		net,
+		total_deductions: totalDeductions,
+		employer_cost: employerCost
+	};
 	for (const c of charges) {
 		if (c.employee !== 0) lines[`${c.code}.employee`] = c.employee;
 		if (c.employer !== 0) lines[`${c.code}.employer`] = c.employer;

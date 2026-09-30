@@ -56,9 +56,11 @@ import {
 import { nightAddsFor, priceWorkDay, workDayHolds, type WorkBandDay } from './work-bands.js';
 import {
 	absenceDayRate,
+	contractClasses,
 	ordinaryDayWage,
 	ordinaryHourlyRate,
 	ordinaryDivisorDays,
+	statedOrdinaryRate,
 	type RateTerms
 } from '../../lib/payroll/run/ordinary-rate.js';
 import { prorationSegment } from '../../lib/payroll/run/proration.js';
@@ -84,7 +86,7 @@ import {
 } from '../../lib/payroll/run/validate.js';
 import { leaveCoverage, unpaidLeaveDays } from '../leave/payroll.js';
 import { activeTimeOff } from '../leave/activity.js';
-import { previousWagePeriodOrdinaryRate } from './reference-wages.js';
+import { previousWagePeriodOrdinaryRate } from './history.js';
 import { describeVersion, settingsInForce } from '../jurisdiction_settings.js';
 import { resolveFactValues } from '../declared-facts.js';
 import type { FactKey } from '../datatypes/fact_keys.js';
@@ -880,7 +882,14 @@ function workContext(
 					? ''
 					: new Date(midnight + clockMinutes(shift.start_time) * 60_000).toISOString()
 		};
-		return { context, engine: runtimeExpressionEngine({ runHoursBeforeRest }) };
+		// `span(a, b).working_days()` and its kin read the person's resolved days (E3).
+		const calendar = (on: string) => {
+			const resolved = schedule.get(on);
+			return resolved == null
+				? undefined
+				: { kind: resolved.dayType, facts: workDayByDate.get(on)?.facts ?? {} };
+		};
+		return { context, engine: runtimeExpressionEngine({ runHoursBeforeRest, calendar }) };
 	};
 	const dayRules = configuration.work.day_rules ?? [];
 	if (dayRules.length > 0) {
@@ -1006,24 +1015,44 @@ function workContext(
 		person: subject,
 		employeeNumber: bundle.employment.employee_number
 	});
-	// The days a month a daily wage is taken to before the divisor prices its hour, where stated.
-	const dailyMonthRule = (configuration.work.daily_month_days ?? '').trim();
-	const dailyMonthDays = (person: PersonContext) =>
-		dailyMonthRule === '' ? undefined : evaluatePersonNumber(dailyMonthRule, person);
+	/** `contract.classes` for `work_rules.ordinary_rate`: a terms row's recurring pay items. */
+	const classesOf = (term: EmploymentBundle['terms'][number]) =>
+		contractClasses(
+			listedAllowances(term).flatMap((listed) => {
+				const component = contractAllowanceClass(configuration, listed.catalogue_id);
+				return component == null || component.destination !== 'PAY' || component.direction !== 'ADD'
+					? []
+					: [
+							{
+								code: component.code,
+								counts_toward: component.counts_toward,
+								amount: listed.amount
+							}
+						];
+			})
+		);
 	const closingConversion = { work: configuration.work, person: subject };
-	const hourlyRate = ordinaryHourlyRate(
-		rateTerms,
-		divisorDays,
-		dailyMonthDays(subject),
-		closingConversion
+	const closingStated = statedOrdinaryRate(
+		configuration.work,
+		subject,
+		classesOf(closingTerms),
+		bundle.employment.employee_number
 	);
-	const dayWage = ordinaryDayWage(rateTerms, divisorDays, closingConversion);
+	const hourlyRate =
+		closingStated?.hour ?? ordinaryHourlyRate(rateTerms, divisorDays, closingConversion);
+	const dayWage = closingStated?.day ?? ordinaryDayWage(rateTerms, divisorDays, closingConversion);
 	// Resolve salary, allowances and hours on the day worked, including salary changes inside a month.
 	const ratesByDate = new Map<
 		string,
 		{ ordinaryHour: number; dayWage: number; person: PersonContext }
 	>();
 	/** The person a terms row prices on `date`: its allowances and the week its pattern measures. */
+	// A day worked away from the terms' worksite reads its own (`person.worksite.*` on the day).
+	const worksiteOnDay = new Map(
+		bundle.workDays.flatMap((day) =>
+			day.worksite_id == null ? [] : [[dateKey(day.work_date), String(day.worksite_id)] as const]
+		)
+	);
 	const personInputOn = (term: EmploymentBundle['terms'][number], date: IsoDate) => {
 		const month = monthBounds(monthKey(date));
 		const days = termsDaysPerWeek(term, configuration);
@@ -1052,6 +1081,7 @@ function workContext(
 				),
 				children: bundle.children,
 				company: configuration.company,
+				worksiteId: worksiteOnDay.get(date),
 				week: {
 					ordinary_hours_per_week:
 						term.ordinary_hours_per_week ?? workload.average_weekly_paid_minutes / 60,
@@ -1093,8 +1123,15 @@ function workContext(
 		// divisor just evaluated (`terms.monthly_basic`, `terms.ordinary_day`), as documented.
 		const person = personContext({ ...personInput, week: rateWeek, divisorDays: divisor });
 		const conversion = { work: configuration.work, person };
-		let ordinaryHour = ordinaryHourlyRate(datedTerms, divisor, dailyMonthDays(person), conversion);
-		let dayWage = ordinaryDayWage(datedTerms, divisor, conversion);
+		// The version's stated premium base (`work_rules.ordinary_rate`), else the divisor's.
+		const stated = statedOrdinaryRate(
+			(configuration.onDay?.(date) ?? configuration).work,
+			person,
+			classesOf(term),
+			bundle.employment.employee_number
+		);
+		let ordinaryHour = stated?.hour ?? ordinaryHourlyRate(datedTerms, divisor, conversion);
+		let dayWage = stated?.day ?? ordinaryDayWage(datedTerms, divisor, conversion);
 		// A verified dated wage record replaces the current contract's reconstruction where the
 		// version says so (MY s.60I(1C): the preceding wage period's earnings over its worked days).
 		// A latest-month normal-wage reference is the leave cash-out's (TW 施行細則 §24-1) alone: the
@@ -1562,11 +1599,18 @@ function workAttendance(
 	// The limits that govern this person: a conditional one (`limits[].when`) applies only where
 	// its predicate holds over them.
 	const limits = applicableLimits(configuration.limits, subject);
+	// A day at a routed worksite prices on that overlay's work rules (E8); the limits stay the period's.
+	const workOn = (date: IsoDate): Configuration['work'] => ({
+		...(configuration.onDay?.(date) ?? configuration).work,
+		limits
+	});
 	// A weekly or daily normal-hours limit prices nothing here: hours beyond it pay only as the
 	// day's planned entries (owner's rule, 2026-09-23). Clock time never pays.
 	for (const { entry, workDate } of clockedDays) {
 		const day = schedule.get(workDate);
 		if (!day) continue;
+		// The day's own rules: a routed worksite's overlay states its breaks and night window (E8).
+		const rulesOn = configuration.onDay?.(workDate) ?? configuration;
 		// Attendance is priced as it happened: the break rule belongs to the schedule gate
 		// (`work_rules.breaks`), not to the money.
 		// The break a normal day provides comes from the work pattern; where the statute owes a longer
@@ -1576,12 +1620,12 @@ function workAttendance(
 			break_minutes: providedBreakMinutes({
 				intervals: entry.worked_intervals,
 				shiftMinutes: day.shift?.break_minutes ?? 0,
-				breaks: configuration.breaks,
+				breaks: rulesOn.breaks,
 				person: subject,
 				nightHours: nightHoursFor(
 					entry,
 					day,
-					configuration.nightPremium,
+					rulesOn.nightPremium,
 					offsetMinutesFor(configuration.jurisdiction.payroll.timezone, workDate)
 				)
 			})
@@ -1590,9 +1634,9 @@ function workAttendance(
 		const daily = deriveDailyOvertime(
 			clocked,
 			day,
-			configuration.breaks,
+			rulesOn.breaks,
 			offset,
-			configuration.nightPremium,
+			rulesOn.nightPremium,
 			subject
 		);
 		const worked = daily?.totalWorkHours ?? dailyWorkedHours(clocked, day, offset);
@@ -1644,12 +1688,12 @@ function workAttendance(
 					: null
 				: daily;
 		const nightHours =
-			configuration.nightPremium == null
+			rulesOn.nightPremium == null
 				? 0
 				: (() => {
 						const night = nightWindowHours(
 							clocked,
-							configuration.nightPremium,
+							rulesOn.nightPremium,
 							day.dayType === 'ORDINARY' ? day.shift : null,
 							offset
 						);
@@ -1867,13 +1911,18 @@ function workAttendance(
 				});
 
 	// ── the night premium: the regime's window, priced per day on this run's attendance ────────
-	const nightPremium = configuration.nightPremium ?? null;
+	// Priced per day on that day's rules: a routed worksite's overlay states its own night window (E8).
+	const premiumOn = (date: IsoDate) =>
+		(configuration.onDay?.(date) ?? configuration).nightPremium ?? null;
 	const nightDays =
-		nightPremium == null
+		configuration.nightPremium == null && configuration.onDay == null
 			? []
 			: attendedDays.flatMap((entry) => {
 					const date = requiredDateKey(entry.work_date, 'work_days.work_date');
 					if (date < overtimeAttendance.start || date > overtimeAttendance.end) return [];
+					const nightPremium = premiumOn(date);
+					if (nightPremium == null) return [];
+					const dayBreaks = (configuration.onDay?.(date) ?? configuration).breaks;
 					const day = schedule.get(date);
 					const priced = day;
 					const bandDay = pricedBandDays.find((row) => row.workDayId === entry.id);
@@ -1884,7 +1933,7 @@ function workAttendance(
 						break_minutes: providedBreakMinutes({
 							intervals: entry.worked_intervals,
 							shiftMinutes: priced?.shift?.break_minutes ?? 0,
-							breaks: configuration.breaks,
+							breaks: dayBreaks,
 							person: subject,
 							nightHours: nightHoursFor(entry, priced, nightPremium, offset)
 						})
@@ -1947,7 +1996,7 @@ function workAttendance(
 										: 0
 								}
 							: nightAddsFor({
-									work: { ...configuration.work, limits },
+									work: workOn(date),
 									premium: nightPremium,
 									person: ratesOn(date).person,
 									day: addDay,
@@ -1959,13 +2008,14 @@ function workAttendance(
 							ordinary: night.ordinary,
 							overtime,
 							adds,
-							rate: ratesOn(date).ordinaryHour
+							rate: ratesOn(date).ordinaryHour,
+							premium: nightPremium
 						}
 					];
 				});
 	const nightShiftHours = nightDays.reduce((total, day) => total + day.ordinary + day.overtime, 0);
 	const bandRows = measureWorkBands({
-		work: { ...configuration.work, limits },
+		workOn,
 		personOn: (date) => ratesOn(date).person,
 		days: pricedBandDays,
 		ratesOn,
@@ -1999,9 +2049,14 @@ function workAttendance(
 									break_minutes: providedBreakMinutes({
 										intervals,
 										shiftMinutes: day.shift.break_minutes,
-										breaks: configuration.breaks,
+										breaks: (configuration.onDay?.(date) ?? configuration).breaks,
 										person: subject,
-										nightHours: nightHoursFor(workedDay, day, configuration.nightPremium, offset)
+										nightHours: nightHoursFor(
+											workedDay,
+											day,
+											(configuration.onDay?.(date) ?? configuration).nightPremium,
+											offset
+										)
 									})
 								},
 								day,
@@ -2027,7 +2082,7 @@ function workAttendance(
 				factKeys: (workedDay as { readonly fact_keys?: readonly string[] } | undefined)?.fact_keys
 			};
 			const priced = priceWorkDay({
-				work: { ...configuration.work, limits },
+				work: workOn(date),
 				person: ratesOn(date).person,
 				day: bandDay,
 				rates: ratesOn(date),
@@ -2057,7 +2112,7 @@ function workAttendance(
 		if (day.timeOffInLieu !== true) return [];
 		const price = (priced: WorkBandDay) =>
 			priceWorkDay({
-				work: { ...configuration.work, limits },
+				work: workOn(day.date),
 				person: ratesOn(day.date).person,
 				day: priced,
 				rates: ratesOn(day.date)
@@ -2156,7 +2211,7 @@ function workAttendance(
 	const adjustments = [
 		...bandRows,
 		...measureWorkBands({
-			work: { ...configuration.work, limits },
+			workOn,
 			personOn: (date) => ratesOn(date).person,
 			days: normalBandDays,
 			ratesOn,
@@ -2164,15 +2219,16 @@ function workAttendance(
 			currency: options.work.currency,
 			normalDay: true
 		}),
-		...(nightPremium == null
-			? []
-			: measureNightPremium({
-					premium: nightPremium,
-					days: nightDays,
-					catalogueComponents: configuration.catalogueComponents,
-					subject,
-					currency: options.work.currency
-				})),
+		// Each night premium prices the days its own rules govern.
+		...[...Map.groupBy(nightDays, (day) => day.premium)].flatMap(([premium, days]) =>
+			measureNightPremium({
+				premium,
+				days,
+				catalogueComponents: configuration.catalogueComponents,
+				subject,
+				currency: options.work.currency
+			})
+		),
 		...absentAdjustments
 	];
 	const lockSpan = {
@@ -3031,7 +3087,7 @@ function measureNightPremium(options: {
  * line at the band's own award.
  */
 function measureWorkBands(options: {
-	readonly work: Configuration['work'];
+	readonly workOn: (date: IsoDate) => Configuration['work'];
 	readonly personOn: (date: IsoDate) => PersonContext;
 	readonly days: readonly WorkBandDay[];
 	readonly ratesOn: (date: IsoDate) => { readonly ordinaryHour: number; readonly dayWage: number };
@@ -3048,7 +3104,7 @@ function measureWorkBands(options: {
 	const rows: MeasuredAdjustment[] = [];
 	for (const day of options.days) {
 		for (const row of priceWorkDay({
-			work: options.work,
+			work: options.workOn(day.date),
 			person: options.personOn(day.date),
 			day,
 			rates: options.ratesOn(day.date),
@@ -3264,7 +3320,9 @@ export function validateWorkInputs(options: {
 						work_date: day.work_date,
 						shift_definition_id: day.shift_definition_id
 					})),
-					holidayDates: new Set(atWorksite(configuration, bundle.termsHistory).holidays.keys())
+					holidayDates: new Set(
+						atWorksite(configuration, bundle.termsHistory, bundle.workDays).holidays.keys()
+					)
 				})),
 			...rosteredWorkCodeMaps(
 				[...configuration.shiftById].map(([id, code]) => ({ id, variant: code.variant }))

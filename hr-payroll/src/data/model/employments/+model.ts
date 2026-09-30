@@ -4,7 +4,7 @@ export default model({
 	description:
 		'One employment contract: one person, one legal entity and one uninterrupted stint. The first linked input permanently seals it; departure closes its range once. Rehires create new contracts.',
 	icon: 'lucide:briefcase',
-	label: ['employee_number', 'contract_number'],
+	label: 'employee_number',
 	fields: {
 		employee_number: { kind: 'text' },
 		/** The stint's rolling number for this person at this entity: 1 for the first contract, 2 for the rehire. */
@@ -14,22 +14,11 @@ export default model({
 		effective_range: { kind: 'period', of: 'date' },
 		/** Months worked for earlier employers before this stint; annual leave counts them (CN 企业职工带薪年休假实施办法 art.4). */
 		prior_service_months: { kind: 'int', min: 0, optional: true },
-		/** Why the stint ended; every separation payment turns on it. */
-		exit_reason: {
-			kind: 'enum',
-			values: [
-				'RESIGNATION',
-				'DISMISSAL',
-				'REDUNDANCY',
-				'RETRENCHMENT',
-				'UNILATERAL',
-				'RETIREMENT',
-				'END_OF_CONTRACT',
-				'MUTUAL',
-				'DEATH'
-			],
-			optional: true
-		},
+		/**
+		 * Why the stint ended: a `TERMINATION_GROUND` code (`reference_rows`) of the version governing the last
+		 * working day (`employment.exit_ground`); every separation payment turns on it.
+		 */
+		exit_ground: { kind: 'text', optional: true },
 		/** Jurisdiction-declared facts for this departure, governed by its last working day. */
 		exit_facts: { kind: 'custom', of: 'entity_facts', optional: true },
 		comments: { kind: 'text', optional: true },

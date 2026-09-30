@@ -70,7 +70,7 @@ type Worker = {
 	wage: number;
 	hire?: string;
 	exit?: string;
-	exit_reason?: string;
+	exit_ground?: string;
 	exit_facts?: Row;
 	/** Dated contract rates, for a mid-month change; defaults to one row at `wage` for the whole stint. */
 	rates?: readonly { wage: number; from: string; to: string | null }[];
@@ -131,7 +131,7 @@ const worker = (w: Worker): ProbeInput[] => {
 				company_id: '@company',
 				employee_number: `P-ID-${w.ref}`,
 				effective_range: { from: hire, to: w.exit ?? null },
-				...(w.exit_reason == null ? {} : { exit_reason: w.exit_reason }),
+				...(w.exit_ground == null ? {} : { exit_ground: w.exit_ground }),
 				...(w.exit_facts == null ? {} : { exit_facts: w.exit_facts })
 			}
 		},
@@ -1392,7 +1392,7 @@ const cases: ProbeCase[] = [
 					wage: 10_000_000,
 					hire: '2026-01-05',
 					exit: '2026-01-23',
-					exit_reason: reason,
+					exit_ground: reason,
 					exit_facts: departure(cause, { separation_wage_basis: 'MONTHLY' })
 				}),
 				adhoc(ref, 'PESANGON', '2026-01-23')
@@ -1402,7 +1402,7 @@ const cases: ProbeCase[] = [
 				wage: 10_000_000,
 				hire: '2026-01-05',
 				exit: '2026-01-23',
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: departure('VOLUNTARY_RESIGNATION', {
 					separation_pay_amount: 2_000_000,
 					separation_pay_reference: 'PKB-PROBE-UANG-PISAH'
@@ -1461,7 +1461,7 @@ const cases: ProbeCase[] = [
 					wage,
 					hire: '2026-01-05',
 					exit: '2026-01-23',
-					exit_reason: 'REDUNDANCY',
+					exit_ground: 'REDUNDANCY',
 					exit_facts: departure('EFFICIENCY_PREVENT_LOSS', { separation_wage_basis: 'MONTHLY' })
 				}),
 				adhoc(ref, 'PESANGON', '2026-01-23')
@@ -1529,7 +1529,7 @@ const cases: ProbeCase[] = [
 				wage: 600_000_000,
 				hire: '2026-01-05',
 				exit: '2026-01-23',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: departure('EFFICIENCY_PREVENT_LOSS', { separation_wage_basis: 'MONTHLY' })
 			}),
 			adhoc('zainal', 'PESANGON', '2026-01-23')
@@ -1576,7 +1576,7 @@ const cases: ProbeCase[] = [
 				tax: 'NON_RESIDENT',
 				hire: '2026-01-05',
 				exit: '2026-01-23',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: departure('EFFICIENCY_PREVENT_LOSS', { separation_wage_basis: 'MONTHLY' })
 			}),
 			adhoc('zaki', 'PESANGON', '2026-01-23')
@@ -1622,7 +1622,7 @@ const cases: ProbeCase[] = [
 				type: 'CONTRACT',
 				hire: '2025-08-01',
 				exit: '2026-01-31',
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				exit_facts: departure(null)
 			}),
 			adhoc('arif', 'PKWT_COMPENSATION', '2026-01-31')
@@ -1838,9 +1838,11 @@ const cases: ProbeCase[] = [
 				'UU 13/2003 art.93(4)(a) as amended: marriage, three days paid (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)',
 				'MALE',
 				leave('x', 'MARRIAGE_LEAVE', '2026-02-09', '2026-02-11', {
-					event_kind: 'MARRIAGE',
-					event_relationship: 'SELF',
-					event_date: '2026-02-09'
+					facts: {
+						event_kind: 'MARRIAGE',
+						event_relationship: 'SELF',
+						event_date: '2026-02-09'
+					}
 				}),
 				'2026-02'
 			],
@@ -1863,8 +1865,10 @@ const cases: ProbeCase[] = [
 				'UU 13/2003 art.93(2)(e): the wage is paid while the worker performs a duty the religion commands (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
 				'MALE',
 				leave('x', 'RELIGIOUS_DUTY_LEAVE', '2026-02-02', '2026-02-06', {
-					event_kind: 'RELIGIOUS_DUTY',
-					event_date: '2026-02-02'
+					facts: {
+						event_kind: 'RELIGIOUS_DUTY',
+						event_date: '2026-02-02'
+					}
 				}),
 				'2026-02'
 			],
@@ -1874,9 +1878,11 @@ const cases: ProbeCase[] = [
 				'UU 13/2003 arts.93(2)(c), 93(4)(e): the wife gives birth or miscarries, two days paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
 				'MALE',
 				leave('x', 'PATERNITY_LEAVE', '2026-02-18', '2026-02-19', {
-					event_kind: 'BIRTH',
-					event_relationship: 'CHILD',
-					event_date: '2026-02-18'
+					facts: {
+						event_kind: 'BIRTH',
+						event_relationship: 'CHILD',
+						event_date: '2026-02-18'
+					}
 				}),
 				'2026-02'
 			],
@@ -1886,9 +1892,11 @@ const cases: ProbeCase[] = [
 				'UU 13/2003 arts.93(2)(c), 93(4)(b): the worker marries off a child, two days paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
 				'MALE',
 				leave('x', 'CHILD_MARRIAGE_LEAVE', '2026-02-23', '2026-02-24', {
-					event_kind: 'MARRIAGE',
-					event_relationship: 'CHILD',
-					event_date: '2026-02-23'
+					facts: {
+						event_kind: 'MARRIAGE',
+						event_relationship: 'CHILD',
+						event_date: '2026-02-23'
+					}
 				}),
 				'2026-02'
 			],
@@ -1898,9 +1906,11 @@ const cases: ProbeCase[] = [
 				'UU 13/2003 arts.93(2)(c), 93(4)(c): the worker has a child circumcised, two days paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
 				'MALE',
 				leave('x', 'CHILD_CIRCUMCISION_LEAVE', '2026-02-25', '2026-02-26', {
-					event_kind: 'CIRCUMCISION',
-					event_relationship: 'CHILD',
-					event_date: '2026-02-25'
+					facts: {
+						event_kind: 'CIRCUMCISION',
+						event_relationship: 'CHILD',
+						event_date: '2026-02-25'
+					}
 				}),
 				'2026-02'
 			],
@@ -1910,9 +1920,11 @@ const cases: ProbeCase[] = [
 				'UU 13/2003 arts.93(2)(c), 93(4)(d): the worker has a child baptised, two days paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
 				'MALE',
 				leave('x', 'CHILD_BAPTISM_LEAVE', '2026-02-12', '2026-02-13', {
-					event_kind: 'BAPTISM',
-					event_relationship: 'CHILD',
-					event_date: '2026-02-12'
+					facts: {
+						event_kind: 'BAPTISM',
+						event_relationship: 'CHILD',
+						event_date: '2026-02-12'
+					}
 				}),
 				'2026-02'
 			],
@@ -1922,9 +1934,11 @@ const cases: ProbeCase[] = [
 				'UU 13/2003 arts.93(2)(c), 93(4)(f): a spouse, parent, parent-in-law, child or child-in-law dies, two days paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
 				'MALE',
 				leave('x', 'BEREAVEMENT_LEAVE', '2026-02-05', '2026-02-06', {
-					event_kind: 'DEATH',
-					event_relationship: 'PARENT',
-					event_date: '2026-02-05'
+					facts: {
+						event_kind: 'DEATH',
+						event_relationship: 'PARENT',
+						event_date: '2026-02-05'
+					}
 				}),
 				'2026-02'
 			],
@@ -1934,9 +1948,11 @@ const cases: ProbeCase[] = [
 				'UU 13/2003 arts.93(2)(c), 93(4)(g): another member of the household dies, one day paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
 				'MALE',
 				leave('x', 'BEREAVEMENT_HOUSEHOLD_LEAVE', '2026-02-20', '2026-02-20', {
-					event_kind: 'DEATH',
-					event_relationship: 'HOUSEHOLD',
-					event_date: '2026-02-20'
+					facts: {
+						event_kind: 'DEATH',
+						event_relationship: 'HOUSEHOLD',
+						event_date: '2026-02-20'
+					}
 				}),
 				'2026-02'
 			],
@@ -1950,8 +1966,10 @@ const cases: ProbeCase[] = [
 				// its own entry (as ID-126-1).
 				{
 					...leave('x', 'MISCARRIAGE_LEAVE', '2026-02-02', '2026-02-28', {
-						event_kind: 'MISCARRIAGE',
-						event_date: '2026-02-02'
+						facts: {
+							event_kind: 'MISCARRIAGE',
+							event_date: '2026-02-02'
+						}
 					}),
 					files: { certificate_file: 'miscarriage-certificate.pdf' }
 				},
@@ -1963,8 +1981,10 @@ const cases: ProbeCase[] = [
 				'UU 4/2024 arts.4(3)(a), 5(2): maternity leave at least three months, full wage for the first four months (https://jdih.kemnaker.go.id/asset/data_puu/2024uu004.pdf)',
 				'FEMALE',
 				leave('x', 'MATERNITY_LEAVE', '2026-02-02', '2026-02-28', {
-					event_kind: 'BIRTH',
-					event_date: '2026-02-02'
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2026-02-02'
+					}
 				}),
 				'2026-02'
 			],
@@ -2137,7 +2157,9 @@ const cases: ProbeCase[] = [
 			...worker({ ref: 'vet0', wage: 10_000_000, hire: VETERAN_HIRE })
 		],
 		period: '2026-02',
-		warnings: ['WAGE_CONTRACT_RULE: P-ID-vet0: record the dated company wage structure.*paid without the grade check'],
+		warnings: [
+			'WAGE_CONTRACT_RULE: P-ID-vet0: record the dated company wage structure.*paid without the grade check'
+		],
 		expected: [{ employment: 'vet0_job', lines: { ...TEN_MILLION, BASIC: 10_000_000 } }]
 	},
 	{
@@ -2313,7 +2335,7 @@ const cases: ProbeCase[] = [
 					wage: 10_000_000,
 					hire: '2026-01-05',
 					exit: '2026-01-23',
-					exit_reason: reason,
+					exit_ground: reason,
 					exit_facts: departure(cause, { separation_wage_basis: 'MONTHLY' })
 				}),
 				adhoc(ref, 'PESANGON', '2026-01-23')
@@ -3278,43 +3300,265 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Jawa Timur/Kabupaten Gresik',
 			[
-				{ ref: 'jt1', worksite: 'Provinsi Jawa Timur/Kabupaten Gresik', sector: '62019', wage: 5_195_401, c: [103_908, 192_230, 51_954, 103_908, 12_469, 15_586, 51_954, 207_816, 13_578] },
-				{ ref: 'jt2', worksite: 'Provinsi Jawa Timur/Kabupaten Sidoarjo', sector: '62019', wage: 5_191_541, c: [103_831, 192_087, 51_915, 103_831, 12_460, 15_575, 51_915, 207_662, 13_568] },
-				{ ref: 'jt3', worksite: 'Provinsi Jawa Timur/Kabupaten Pasuruan', sector: '62019', wage: 5_187_681, c: [103_754, 191_944, 51_877, 103_754, 12_450, 15_563, 51_877, 207_507, 13_558] },
-				{ ref: 'jt4', worksite: 'Provinsi Jawa Timur/Kabupaten Mojokerto', sector: '62019', wage: 5_176_101, c: [103_522, 191_516, 51_761, 103_522, 12_423, 15_528, 51_761, 207_044, 13_528] },
-				{ ref: 'jt5', worksite: 'Provinsi Jawa Timur/Kabupaten Malang', sector: '62019', wage: 3_802_862, c: [76_057, 140_706, 38_029, 76_057, 9_127, 11_409, 38_029, 152_114, 0] },
-				{ ref: 'jt6', worksite: 'Provinsi Jawa Timur/Kota Malang', sector: '62019', wage: 3_736_101, c: [74_722, 138_236, 37_361, 74_722, 8_967, 11_208, 37_361, 149_444, 0] },
-				{ ref: 'jt7', worksite: 'Provinsi Jawa Timur/Kota Batu', sector: '62019', wage: 3_562_484, c: [71_250, 131_812, 35_625, 71_250, 8_550, 10_687, 35_625, 142_499, 0] },
-				{ ref: 'jt8', worksite: 'Provinsi Jawa Timur/Kota Pasuruan', sector: '62019', wage: 3_555_301, c: [71_106, 131_546, 35_553, 71_106, 8_533, 10_666, 35_553, 142_212, 0] },
-				{ ref: 'jt9', worksite: 'Provinsi Jawa Timur/Kabupaten Jombang', sector: '62019', wage: 3_320_770, c: [66_415, 122_868, 33_208, 66_415, 7_970, 9_962, 33_208, 132_831, 0] },
-				{ ref: 'jt10', worksite: 'Provinsi Jawa Timur/Kabupaten Tuban', sector: '62019', wage: 3_229_092, c: [64_582, 119_476, 32_291, 64_582, 7_750, 9_687, 32_291, 129_164, 0] },
-				{ ref: 'jt11', worksite: 'Provinsi Jawa Timur/Kota Mojokerto', sector: '62019', wage: 3_208_556, c: [64_171, 118_717, 32_086, 64_171, 7_701, 9_626, 32_086, 128_342, 0] },
-				{ ref: 'jt12', worksite: 'Provinsi Jawa Timur/Kabupaten Lamongan', sector: '62019', wage: 3_196_328, c: [63_927, 118_264, 31_963, 63_927, 7_671, 9_589, 31_963, 127_853, 0] },
-				{ ref: 'jt13', worksite: 'Provinsi Jawa Timur/Kabupaten Probolinggo', sector: '62019', wage: 3_164_526, c: [63_291, 117_087, 31_645, 63_291, 7_595, 9_494, 31_645, 126_581, 0] },
-				{ ref: 'jt14', worksite: 'Provinsi Jawa Timur/Kota Probolinggo', sector: '62019', wage: 3_045_172, c: [60_903, 112_671, 30_452, 60_903, 7_308, 9_136, 30_452, 121_807, 0] },
-				{ ref: 'jt15', worksite: 'Provinsi Jawa Timur/Kabupaten Jember', sector: '62019', wage: 3_012_197, c: [60_244, 111_451, 30_122, 60_244, 7_229, 9_037, 30_122, 120_488, 0] },
-				{ ref: 'jt16', worksite: 'Provinsi Jawa Timur/Kabupaten Banyuwangi', sector: '62019', wage: 2_989_145, c: [59_783, 110_598, 29_891, 59_783, 7_174, 8_967, 29_891, 119_566, 0] },
-				{ ref: 'jt17', worksite: 'Provinsi Jawa Timur/Kota Kediri', sector: '62019', wage: 2_742_806, c: [54_856, 101_484, 27_428, 54_856, 6_583, 8_228, 27_428, 109_712, 0] },
-				{ ref: 'jt18', worksite: 'Provinsi Jawa Timur/Kabupaten Bojonegoro', sector: '62019', wage: 2_685_983, c: [53_720, 99_381, 26_860, 53_720, 6_446, 8_058, 26_860, 107_439, 0] },
-				{ ref: 'jt19', worksite: 'Provinsi Jawa Timur/Kabupaten Kediri', sector: '62019', wage: 2_651_603, c: [53_032, 98_109, 26_516, 53_032, 6_364, 7_955, 26_516, 106_064, 0] },
-				{ ref: 'jt20', worksite: 'Provinsi Jawa Timur/Kota Blitar', sector: '62019', wage: 2_639_518, c: [52_790, 97_662, 26_395, 52_790, 6_335, 7_919, 26_395, 105_581, 0] },
-				{ ref: 'jt21', worksite: 'Provinsi Jawa Timur/Kabupaten Tulungagung', sector: '62019', wage: 2_628_190, c: [52_564, 97_243, 26_282, 52_564, 6_308, 7_885, 26_282, 105_128, 0] },
-				{ ref: 'jt22', worksite: 'Provinsi Jawa Timur/Kota Madiun', sector: '62019', wage: 2_588_794, c: [51_776, 95_785, 25_888, 51_776, 6_213, 7_766, 25_888, 103_552, 0] },
-				{ ref: 'jt23', worksite: 'Provinsi Jawa Timur/Kabupaten Lumajang', sector: '62019', wage: 2_578_320, c: [51_566, 95_398, 25_783, 51_566, 6_188, 7_735, 25_783, 103_133, 0] },
-				{ ref: 'jt24', worksite: 'Provinsi Jawa Timur/Kabupaten Blitar', sector: '62019', wage: 2_567_744, c: [51_355, 95_007, 25_677, 51_355, 6_163, 7_703, 25_677, 102_710, 0] },
-				{ ref: 'jt25', worksite: 'Provinsi Jawa Timur/Kabupaten Nganjuk', sector: '62019', wage: 2_564_627, c: [51_293, 94_891, 25_646, 51_293, 6_155, 7_694, 25_646, 102_585, 0] },
-				{ ref: 'jt26', worksite: 'Provinsi Jawa Timur/Kabupaten Ngawi', sector: '62019', wage: 2_556_815, c: [51_136, 94_602, 25_568, 51_136, 6_136, 7_670, 25_568, 102_273, 0] },
-				{ ref: 'jt27', worksite: 'Provinsi Jawa Timur/Kabupaten Magetan', sector: '62019', wage: 2_553_866, c: [51_077, 94_493, 25_539, 51_077, 6_129, 7_662, 25_539, 102_155, 0] },
-				{ ref: 'jt28', worksite: 'Provinsi Jawa Timur/Kabupaten Sumenep', sector: '62019', wage: 2_553_688, c: [51_074, 94_486, 25_537, 51_074, 6_129, 7_661, 25_537, 102_148, 0] },
-				{ ref: 'jt29', worksite: 'Provinsi Jawa Timur/Kabupaten Madiun', sector: '62019', wage: 2_553_221, c: [51_064, 94_469, 25_532, 51_064, 6_128, 7_660, 25_532, 102_129, 0] },
-				{ ref: 'jt30', worksite: 'Provinsi Jawa Timur/Kabupaten Bangkalan', sector: '62019', wage: 2_550_274, c: [51_005, 94_360, 25_503, 51_005, 6_121, 7_651, 25_503, 102_011, 0] },
-				{ ref: 'jt31', worksite: 'Provinsi Jawa Timur/Kabupaten Ponorogo', sector: '62019', wage: 2_549_876, c: [50_998, 94_345, 25_499, 50_998, 6_120, 7_650, 25_499, 101_995, 0] },
-				{ ref: 'jt32', worksite: 'Provinsi Jawa Timur/Kabupaten Trenggalek', sector: '62019', wage: 2_530_313, c: [50_606, 93_622, 25_303, 50_606, 6_073, 7_591, 25_303, 101_213, 0] },
-				{ ref: 'jt33', worksite: 'Provinsi Jawa Timur/Kabupaten Pamekasan', sector: '62019', wage: 2_528_004, c: [50_560, 93_536, 25_280, 50_560, 6_067, 7_584, 25_280, 101_120, 0] },
-				{ ref: 'jt34', worksite: 'Provinsi Jawa Timur/Kabupaten Pacitan', sector: '62019', wage: 2_514_892, c: [50_298, 93_051, 25_149, 50_298, 6_036, 7_545, 25_149, 100_596, 0] },
-				{ ref: 'jt35', worksite: 'Provinsi Jawa Timur/Kabupaten Bondowoso', sector: '62019', wage: 2_496_886, c: [49_938, 92_385, 24_969, 49_938, 5_993, 7_491, 24_969, 99_875, 0] },
-				{ ref: 'jt36', worksite: 'Provinsi Jawa Timur/Kabupaten Sampang', sector: '62019', wage: 2_484_443, c: [49_689, 91_924, 24_844, 49_689, 5_963, 7_453, 24_844, 99_378, 0] },
-				{ ref: 'jt37', worksite: 'Provinsi Jawa Timur/Kabupaten Situbondo', sector: '62019', wage: 2_483_962, c: [49_679, 91_907, 24_840, 49_679, 5_962, 7_452, 24_840, 99_358, 0] }
+				{
+					ref: 'jt1',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Gresik',
+					sector: '62019',
+					wage: 5_195_401,
+					c: [103_908, 192_230, 51_954, 103_908, 12_469, 15_586, 51_954, 207_816, 13_578]
+				},
+				{
+					ref: 'jt2',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Sidoarjo',
+					sector: '62019',
+					wage: 5_191_541,
+					c: [103_831, 192_087, 51_915, 103_831, 12_460, 15_575, 51_915, 207_662, 13_568]
+				},
+				{
+					ref: 'jt3',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Pasuruan',
+					sector: '62019',
+					wage: 5_187_681,
+					c: [103_754, 191_944, 51_877, 103_754, 12_450, 15_563, 51_877, 207_507, 13_558]
+				},
+				{
+					ref: 'jt4',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Mojokerto',
+					sector: '62019',
+					wage: 5_176_101,
+					c: [103_522, 191_516, 51_761, 103_522, 12_423, 15_528, 51_761, 207_044, 13_528]
+				},
+				{
+					ref: 'jt5',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Malang',
+					sector: '62019',
+					wage: 3_802_862,
+					c: [76_057, 140_706, 38_029, 76_057, 9_127, 11_409, 38_029, 152_114, 0]
+				},
+				{
+					ref: 'jt6',
+					worksite: 'Provinsi Jawa Timur/Kota Malang',
+					sector: '62019',
+					wage: 3_736_101,
+					c: [74_722, 138_236, 37_361, 74_722, 8_967, 11_208, 37_361, 149_444, 0]
+				},
+				{
+					ref: 'jt7',
+					worksite: 'Provinsi Jawa Timur/Kota Batu',
+					sector: '62019',
+					wage: 3_562_484,
+					c: [71_250, 131_812, 35_625, 71_250, 8_550, 10_687, 35_625, 142_499, 0]
+				},
+				{
+					ref: 'jt8',
+					worksite: 'Provinsi Jawa Timur/Kota Pasuruan',
+					sector: '62019',
+					wage: 3_555_301,
+					c: [71_106, 131_546, 35_553, 71_106, 8_533, 10_666, 35_553, 142_212, 0]
+				},
+				{
+					ref: 'jt9',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Jombang',
+					sector: '62019',
+					wage: 3_320_770,
+					c: [66_415, 122_868, 33_208, 66_415, 7_970, 9_962, 33_208, 132_831, 0]
+				},
+				{
+					ref: 'jt10',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Tuban',
+					sector: '62019',
+					wage: 3_229_092,
+					c: [64_582, 119_476, 32_291, 64_582, 7_750, 9_687, 32_291, 129_164, 0]
+				},
+				{
+					ref: 'jt11',
+					worksite: 'Provinsi Jawa Timur/Kota Mojokerto',
+					sector: '62019',
+					wage: 3_208_556,
+					c: [64_171, 118_717, 32_086, 64_171, 7_701, 9_626, 32_086, 128_342, 0]
+				},
+				{
+					ref: 'jt12',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Lamongan',
+					sector: '62019',
+					wage: 3_196_328,
+					c: [63_927, 118_264, 31_963, 63_927, 7_671, 9_589, 31_963, 127_853, 0]
+				},
+				{
+					ref: 'jt13',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Probolinggo',
+					sector: '62019',
+					wage: 3_164_526,
+					c: [63_291, 117_087, 31_645, 63_291, 7_595, 9_494, 31_645, 126_581, 0]
+				},
+				{
+					ref: 'jt14',
+					worksite: 'Provinsi Jawa Timur/Kota Probolinggo',
+					sector: '62019',
+					wage: 3_045_172,
+					c: [60_903, 112_671, 30_452, 60_903, 7_308, 9_136, 30_452, 121_807, 0]
+				},
+				{
+					ref: 'jt15',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Jember',
+					sector: '62019',
+					wage: 3_012_197,
+					c: [60_244, 111_451, 30_122, 60_244, 7_229, 9_037, 30_122, 120_488, 0]
+				},
+				{
+					ref: 'jt16',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Banyuwangi',
+					sector: '62019',
+					wage: 2_989_145,
+					c: [59_783, 110_598, 29_891, 59_783, 7_174, 8_967, 29_891, 119_566, 0]
+				},
+				{
+					ref: 'jt17',
+					worksite: 'Provinsi Jawa Timur/Kota Kediri',
+					sector: '62019',
+					wage: 2_742_806,
+					c: [54_856, 101_484, 27_428, 54_856, 6_583, 8_228, 27_428, 109_712, 0]
+				},
+				{
+					ref: 'jt18',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Bojonegoro',
+					sector: '62019',
+					wage: 2_685_983,
+					c: [53_720, 99_381, 26_860, 53_720, 6_446, 8_058, 26_860, 107_439, 0]
+				},
+				{
+					ref: 'jt19',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Kediri',
+					sector: '62019',
+					wage: 2_651_603,
+					c: [53_032, 98_109, 26_516, 53_032, 6_364, 7_955, 26_516, 106_064, 0]
+				},
+				{
+					ref: 'jt20',
+					worksite: 'Provinsi Jawa Timur/Kota Blitar',
+					sector: '62019',
+					wage: 2_639_518,
+					c: [52_790, 97_662, 26_395, 52_790, 6_335, 7_919, 26_395, 105_581, 0]
+				},
+				{
+					ref: 'jt21',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Tulungagung',
+					sector: '62019',
+					wage: 2_628_190,
+					c: [52_564, 97_243, 26_282, 52_564, 6_308, 7_885, 26_282, 105_128, 0]
+				},
+				{
+					ref: 'jt22',
+					worksite: 'Provinsi Jawa Timur/Kota Madiun',
+					sector: '62019',
+					wage: 2_588_794,
+					c: [51_776, 95_785, 25_888, 51_776, 6_213, 7_766, 25_888, 103_552, 0]
+				},
+				{
+					ref: 'jt23',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Lumajang',
+					sector: '62019',
+					wage: 2_578_320,
+					c: [51_566, 95_398, 25_783, 51_566, 6_188, 7_735, 25_783, 103_133, 0]
+				},
+				{
+					ref: 'jt24',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Blitar',
+					sector: '62019',
+					wage: 2_567_744,
+					c: [51_355, 95_007, 25_677, 51_355, 6_163, 7_703, 25_677, 102_710, 0]
+				},
+				{
+					ref: 'jt25',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Nganjuk',
+					sector: '62019',
+					wage: 2_564_627,
+					c: [51_293, 94_891, 25_646, 51_293, 6_155, 7_694, 25_646, 102_585, 0]
+				},
+				{
+					ref: 'jt26',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Ngawi',
+					sector: '62019',
+					wage: 2_556_815,
+					c: [51_136, 94_602, 25_568, 51_136, 6_136, 7_670, 25_568, 102_273, 0]
+				},
+				{
+					ref: 'jt27',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Magetan',
+					sector: '62019',
+					wage: 2_553_866,
+					c: [51_077, 94_493, 25_539, 51_077, 6_129, 7_662, 25_539, 102_155, 0]
+				},
+				{
+					ref: 'jt28',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Sumenep',
+					sector: '62019',
+					wage: 2_553_688,
+					c: [51_074, 94_486, 25_537, 51_074, 6_129, 7_661, 25_537, 102_148, 0]
+				},
+				{
+					ref: 'jt29',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Madiun',
+					sector: '62019',
+					wage: 2_553_221,
+					c: [51_064, 94_469, 25_532, 51_064, 6_128, 7_660, 25_532, 102_129, 0]
+				},
+				{
+					ref: 'jt30',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Bangkalan',
+					sector: '62019',
+					wage: 2_550_274,
+					c: [51_005, 94_360, 25_503, 51_005, 6_121, 7_651, 25_503, 102_011, 0]
+				},
+				{
+					ref: 'jt31',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Ponorogo',
+					sector: '62019',
+					wage: 2_549_876,
+					c: [50_998, 94_345, 25_499, 50_998, 6_120, 7_650, 25_499, 101_995, 0]
+				},
+				{
+					ref: 'jt32',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Trenggalek',
+					sector: '62019',
+					wage: 2_530_313,
+					c: [50_606, 93_622, 25_303, 50_606, 6_073, 7_591, 25_303, 101_213, 0]
+				},
+				{
+					ref: 'jt33',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Pamekasan',
+					sector: '62019',
+					wage: 2_528_004,
+					c: [50_560, 93_536, 25_280, 50_560, 6_067, 7_584, 25_280, 101_120, 0]
+				},
+				{
+					ref: 'jt34',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Pacitan',
+					sector: '62019',
+					wage: 2_514_892,
+					c: [50_298, 93_051, 25_149, 50_298, 6_036, 7_545, 25_149, 100_596, 0]
+				},
+				{
+					ref: 'jt35',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Bondowoso',
+					sector: '62019',
+					wage: 2_496_886,
+					c: [49_938, 92_385, 24_969, 49_938, 5_993, 7_491, 24_969, 99_875, 0]
+				},
+				{
+					ref: 'jt36',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Sampang',
+					sector: '62019',
+					wage: 2_484_443,
+					c: [49_689, 91_924, 24_844, 49_689, 5_963, 7_453, 24_844, 99_378, 0]
+				},
+				{
+					ref: 'jt37',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Situbondo',
+					sector: '62019',
+					wage: 2_483_962,
+					c: [49_679, 91_907, 24_840, 49_679, 5_962, 7_452, 24_840, 99_358, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3327,40 +3571,244 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Jawa Tengah/Kabupaten Cilacap',
 			[
-				{ ref: 'jg0', worksite: 'Provinsi Jawa Tengah/Kabupaten Cilacap', sector: '62019', wage: 2_773_184, c: [55_464, 102_608, 27_732, 55_464, 6_656, 8_320, 27_732, 110_927, 0] },
-				{ ref: 'jg1', worksite: 'Provinsi Jawa Tengah/Kabupaten Banyumas', sector: '62019', wage: 2_474_598.99, c: [49_492, 91_560, 24_746, 49_492, 5_939, 7_424, 24_746, 98_984, 0] },
-				{ ref: 'jg2', worksite: 'Provinsi Jawa Tengah/Kabupaten Purbalingga', sector: '62019', wage: 2_474_721.94, c: [49_494, 91_565, 24_747, 49_494, 5_939, 7_424, 24_747, 98_989, 0] },
-				{ ref: 'jg3', worksite: 'Provinsi Jawa Tengah/Kabupaten Banjarnegara', sector: '62019', wage: 2_327_813.08, c: [46_556, 86_129, 23_278, 46_556, 5_587, 6_983, 23_278, 93_113, 0] },
-				{ ref: 'jg4', worksite: 'Provinsi Jawa Tengah/Kabupaten Kebumen', sector: '62019', wage: 2_400_000, c: [48_000, 88_800, 24_000, 48_000, 5_760, 7_200, 24_000, 96_000, 0] },
-				{ ref: 'jg5', worksite: 'Provinsi Jawa Tengah/Kabupaten Purworejo', sector: '62019', wage: 2_401_961.91, c: [48_039, 88_873, 24_020, 48_039, 5_765, 7_206, 24_020, 96_078, 0] },
-				{ ref: 'jg6', worksite: 'Provinsi Jawa Tengah/Kabupaten Wonosobo', sector: '62019', wage: 2_455_038.01, c: [49_101, 90_836, 24_550, 49_101, 5_892, 7_365, 24_550, 98_202, 0] },
-				{ ref: 'jg7', worksite: 'Provinsi Jawa Tengah/Kabupaten Magelang', sector: '62019', wage: 2_607_790, c: [52_156, 96_488, 26_078, 52_156, 6_259, 7_823, 26_078, 104_312, 0] },
-				{ ref: 'jg8', worksite: 'Provinsi Jawa Tengah/Kabupaten Boyolali', sector: '62019', wage: 2_537_949, c: [50_759, 93_904, 25_379, 50_759, 6_091, 7_614, 25_379, 101_518, 0] },
-				{ ref: 'jg9', worksite: 'Provinsi Jawa Tengah/Kabupaten Klaten', sector: '62019', wage: 2_538_691, c: [50_774, 93_932, 25_387, 50_774, 6_093, 7_616, 25_387, 101_548, 0] },
-				{ ref: 'jg10', worksite: 'Provinsi Jawa Tengah/Kabupaten Sukoharjo', sector: '62019', wage: 2_500_000, c: [50_000, 92_500, 25_000, 50_000, 6_000, 7_500, 25_000, 100_000, 0] },
-				{ ref: 'jg11', worksite: 'Provinsi Jawa Tengah/Kabupaten Wonogiri', sector: '62019', wage: 2_335_126, c: [46_703, 86_400, 23_351, 46_703, 5_604, 7_005, 23_351, 93_405, 0] },
-				{ ref: 'jg12', worksite: 'Provinsi Jawa Tengah/Kabupaten Karanganyar', sector: '62019', wage: 2_592_154.06, c: [51_843, 95_910, 25_922, 51_843, 6_221, 7_776, 25_922, 103_686, 0] },
-				{ ref: 'jg13', worksite: 'Provinsi Jawa Tengah/Kabupaten Sragen', sector: '62019', wage: 2_337_700, c: [46_754, 86_495, 23_377, 46_754, 5_610, 7_013, 23_377, 93_508, 0] },
-				{ ref: 'jg14', worksite: 'Provinsi Jawa Tengah/Kabupaten Grobogan', sector: '62019', wage: 2_399_186, c: [47_984, 88_770, 23_992, 47_984, 5_758, 7_198, 23_992, 95_967, 0] },
-				{ ref: 'jg15', worksite: 'Provinsi Jawa Tengah/Kabupaten Blora', sector: '62019', wage: 2_345_695, c: [46_914, 86_791, 23_457, 46_914, 5_630, 7_037, 23_457, 93_828, 0] },
-				{ ref: 'jg16', worksite: 'Provinsi Jawa Tengah/Kabupaten Rembang', sector: '62019', wage: 2_386_305, c: [47_726, 88_293, 23_863, 47_726, 5_727, 7_159, 23_863, 95_452, 0] },
-				{ ref: 'jg17', worksite: 'Provinsi Jawa Tengah/Kabupaten Pati', sector: '62019', wage: 2_485_000, c: [49_700, 91_945, 24_850, 49_700, 5_964, 7_455, 24_850, 99_400, 0] },
-				{ ref: 'jg18', worksite: 'Provinsi Jawa Tengah/Kabupaten Kudus', sector: '62019', wage: 2_818_585, c: [56_372, 104_288, 28_186, 56_372, 6_765, 8_456, 28_186, 112_743, 0] },
-				{ ref: 'jg19', worksite: 'Provinsi Jawa Tengah/Kabupaten Jepara', sector: '62019', wage: 2_756_501, c: [55_130, 101_991, 27_565, 55_130, 6_616, 8_270, 27_565, 110_260, 0] },
-				{ ref: 'jg20', worksite: 'Provinsi Jawa Tengah/Kabupaten Demak', sector: '62019', wage: 3_122_805, c: [62_456, 115_544, 31_228, 62_456, 7_495, 9_368, 31_228, 124_912, 0] },
-				{ ref: 'jg21', worksite: 'Provinsi Jawa Tengah/Kabupaten Semarang', sector: '62019', wage: 2_940_088, c: [58_802, 108_783, 29_401, 58_802, 7_056, 8_820, 29_401, 117_604, 0] },
-				{ ref: 'jg22', worksite: 'Provinsi Jawa Tengah/Kabupaten Temanggung', sector: '62019', wage: 2_397_000, c: [47_940, 88_689, 23_970, 47_940, 5_753, 7_191, 23_970, 95_880, 0] },
-				{ ref: 'jg23', worksite: 'Provinsi Jawa Tengah/Kabupaten Kendal', sector: '62019', wage: 2_992_994, c: [59_860, 110_741, 29_930, 59_860, 7_183, 8_979, 29_930, 119_720, 0] },
-				{ ref: 'jg24', worksite: 'Provinsi Jawa Tengah/Kabupaten Batang', sector: '62019', wage: 2_708_520, c: [54_170, 100_215, 27_085, 54_170, 6_500, 8_126, 27_085, 108_341, 0] },
-				{ ref: 'jg25', worksite: 'Provinsi Jawa Tengah/Kabupaten Pekalongan', sector: '62019', wage: 2_633_700, c: [52_674, 97_447, 26_337, 52_674, 6_321, 7_901, 26_337, 105_348, 0] },
-				{ ref: 'jg26', worksite: 'Provinsi Jawa Tengah/Kabupaten Pemalang', sector: '62019', wage: 2_433_254, c: [48_665, 90_030, 24_333, 48_665, 5_840, 7_300, 24_333, 97_330, 0] },
-				{ ref: 'jg27', worksite: 'Provinsi Jawa Tengah/Kabupaten Tegal', sector: '62019', wage: 2_484_162, c: [49_683, 91_914, 24_842, 49_683, 5_962, 7_452, 24_842, 99_366, 0] },
-				{ ref: 'jg28', worksite: 'Provinsi Jawa Tengah/Kabupaten Brebes', sector: '62019', wage: 2_400_350.47, c: [48_007, 88_813, 24_004, 48_007, 5_761, 7_201, 24_004, 96_014, 0] },
-				{ ref: 'jg29', worksite: 'Provinsi Jawa Tengah/Kota Magelang', sector: '62019', wage: 2_429_285, c: [48_586, 89_884, 24_293, 48_586, 5_830, 7_288, 24_293, 97_171, 0] },
-				{ ref: 'jg30', worksite: 'Provinsi Jawa Tengah/Kota Surakarta', sector: '62019', wage: 2_570_000, c: [51_400, 95_090, 25_700, 51_400, 6_168, 7_710, 25_700, 102_800, 0] },
-				{ ref: 'jg31', worksite: 'Provinsi Jawa Tengah/Kota Salatiga', sector: '62019', wage: 2_698_273.24, c: [53_965, 99_836, 26_983, 53_965, 6_476, 8_095, 26_983, 107_931, 0] },
-				{ ref: 'jg33', worksite: 'Provinsi Jawa Tengah/Kota Pekalongan', sector: '62019', wage: 2_700_926, c: [54_019, 99_934, 27_009, 54_019, 6_482, 8_103, 27_009, 108_037, 0] },
-				{ ref: 'jg34', worksite: 'Provinsi Jawa Tengah/Kota Tegal', sector: '62019', wage: 2_526_510, c: [50_530, 93_481, 25_265, 50_530, 6_064, 7_580, 25_265, 101_060, 0] }
+				{
+					ref: 'jg0',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Cilacap',
+					sector: '62019',
+					wage: 2_773_184,
+					c: [55_464, 102_608, 27_732, 55_464, 6_656, 8_320, 27_732, 110_927, 0]
+				},
+				{
+					ref: 'jg1',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Banyumas',
+					sector: '62019',
+					wage: 2_474_598.99,
+					c: [49_492, 91_560, 24_746, 49_492, 5_939, 7_424, 24_746, 98_984, 0]
+				},
+				{
+					ref: 'jg2',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Purbalingga',
+					sector: '62019',
+					wage: 2_474_721.94,
+					c: [49_494, 91_565, 24_747, 49_494, 5_939, 7_424, 24_747, 98_989, 0]
+				},
+				{
+					ref: 'jg3',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Banjarnegara',
+					sector: '62019',
+					wage: 2_327_813.08,
+					c: [46_556, 86_129, 23_278, 46_556, 5_587, 6_983, 23_278, 93_113, 0]
+				},
+				{
+					ref: 'jg4',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Kebumen',
+					sector: '62019',
+					wage: 2_400_000,
+					c: [48_000, 88_800, 24_000, 48_000, 5_760, 7_200, 24_000, 96_000, 0]
+				},
+				{
+					ref: 'jg5',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Purworejo',
+					sector: '62019',
+					wage: 2_401_961.91,
+					c: [48_039, 88_873, 24_020, 48_039, 5_765, 7_206, 24_020, 96_078, 0]
+				},
+				{
+					ref: 'jg6',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Wonosobo',
+					sector: '62019',
+					wage: 2_455_038.01,
+					c: [49_101, 90_836, 24_550, 49_101, 5_892, 7_365, 24_550, 98_202, 0]
+				},
+				{
+					ref: 'jg7',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Magelang',
+					sector: '62019',
+					wage: 2_607_790,
+					c: [52_156, 96_488, 26_078, 52_156, 6_259, 7_823, 26_078, 104_312, 0]
+				},
+				{
+					ref: 'jg8',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Boyolali',
+					sector: '62019',
+					wage: 2_537_949,
+					c: [50_759, 93_904, 25_379, 50_759, 6_091, 7_614, 25_379, 101_518, 0]
+				},
+				{
+					ref: 'jg9',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Klaten',
+					sector: '62019',
+					wage: 2_538_691,
+					c: [50_774, 93_932, 25_387, 50_774, 6_093, 7_616, 25_387, 101_548, 0]
+				},
+				{
+					ref: 'jg10',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Sukoharjo',
+					sector: '62019',
+					wage: 2_500_000,
+					c: [50_000, 92_500, 25_000, 50_000, 6_000, 7_500, 25_000, 100_000, 0]
+				},
+				{
+					ref: 'jg11',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Wonogiri',
+					sector: '62019',
+					wage: 2_335_126,
+					c: [46_703, 86_400, 23_351, 46_703, 5_604, 7_005, 23_351, 93_405, 0]
+				},
+				{
+					ref: 'jg12',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Karanganyar',
+					sector: '62019',
+					wage: 2_592_154.06,
+					c: [51_843, 95_910, 25_922, 51_843, 6_221, 7_776, 25_922, 103_686, 0]
+				},
+				{
+					ref: 'jg13',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Sragen',
+					sector: '62019',
+					wage: 2_337_700,
+					c: [46_754, 86_495, 23_377, 46_754, 5_610, 7_013, 23_377, 93_508, 0]
+				},
+				{
+					ref: 'jg14',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Grobogan',
+					sector: '62019',
+					wage: 2_399_186,
+					c: [47_984, 88_770, 23_992, 47_984, 5_758, 7_198, 23_992, 95_967, 0]
+				},
+				{
+					ref: 'jg15',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Blora',
+					sector: '62019',
+					wage: 2_345_695,
+					c: [46_914, 86_791, 23_457, 46_914, 5_630, 7_037, 23_457, 93_828, 0]
+				},
+				{
+					ref: 'jg16',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Rembang',
+					sector: '62019',
+					wage: 2_386_305,
+					c: [47_726, 88_293, 23_863, 47_726, 5_727, 7_159, 23_863, 95_452, 0]
+				},
+				{
+					ref: 'jg17',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Pati',
+					sector: '62019',
+					wage: 2_485_000,
+					c: [49_700, 91_945, 24_850, 49_700, 5_964, 7_455, 24_850, 99_400, 0]
+				},
+				{
+					ref: 'jg18',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Kudus',
+					sector: '62019',
+					wage: 2_818_585,
+					c: [56_372, 104_288, 28_186, 56_372, 6_765, 8_456, 28_186, 112_743, 0]
+				},
+				{
+					ref: 'jg19',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Jepara',
+					sector: '62019',
+					wage: 2_756_501,
+					c: [55_130, 101_991, 27_565, 55_130, 6_616, 8_270, 27_565, 110_260, 0]
+				},
+				{
+					ref: 'jg20',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Demak',
+					sector: '62019',
+					wage: 3_122_805,
+					c: [62_456, 115_544, 31_228, 62_456, 7_495, 9_368, 31_228, 124_912, 0]
+				},
+				{
+					ref: 'jg21',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Semarang',
+					sector: '62019',
+					wage: 2_940_088,
+					c: [58_802, 108_783, 29_401, 58_802, 7_056, 8_820, 29_401, 117_604, 0]
+				},
+				{
+					ref: 'jg22',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Temanggung',
+					sector: '62019',
+					wage: 2_397_000,
+					c: [47_940, 88_689, 23_970, 47_940, 5_753, 7_191, 23_970, 95_880, 0]
+				},
+				{
+					ref: 'jg23',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Kendal',
+					sector: '62019',
+					wage: 2_992_994,
+					c: [59_860, 110_741, 29_930, 59_860, 7_183, 8_979, 29_930, 119_720, 0]
+				},
+				{
+					ref: 'jg24',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Batang',
+					sector: '62019',
+					wage: 2_708_520,
+					c: [54_170, 100_215, 27_085, 54_170, 6_500, 8_126, 27_085, 108_341, 0]
+				},
+				{
+					ref: 'jg25',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Pekalongan',
+					sector: '62019',
+					wage: 2_633_700,
+					c: [52_674, 97_447, 26_337, 52_674, 6_321, 7_901, 26_337, 105_348, 0]
+				},
+				{
+					ref: 'jg26',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Pemalang',
+					sector: '62019',
+					wage: 2_433_254,
+					c: [48_665, 90_030, 24_333, 48_665, 5_840, 7_300, 24_333, 97_330, 0]
+				},
+				{
+					ref: 'jg27',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Tegal',
+					sector: '62019',
+					wage: 2_484_162,
+					c: [49_683, 91_914, 24_842, 49_683, 5_962, 7_452, 24_842, 99_366, 0]
+				},
+				{
+					ref: 'jg28',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Brebes',
+					sector: '62019',
+					wage: 2_400_350.47,
+					c: [48_007, 88_813, 24_004, 48_007, 5_761, 7_201, 24_004, 96_014, 0]
+				},
+				{
+					ref: 'jg29',
+					worksite: 'Provinsi Jawa Tengah/Kota Magelang',
+					sector: '62019',
+					wage: 2_429_285,
+					c: [48_586, 89_884, 24_293, 48_586, 5_830, 7_288, 24_293, 97_171, 0]
+				},
+				{
+					ref: 'jg30',
+					worksite: 'Provinsi Jawa Tengah/Kota Surakarta',
+					sector: '62019',
+					wage: 2_570_000,
+					c: [51_400, 95_090, 25_700, 51_400, 6_168, 7_710, 25_700, 102_800, 0]
+				},
+				{
+					ref: 'jg31',
+					worksite: 'Provinsi Jawa Tengah/Kota Salatiga',
+					sector: '62019',
+					wage: 2_698_273.24,
+					c: [53_965, 99_836, 26_983, 53_965, 6_476, 8_095, 26_983, 107_931, 0]
+				},
+				{
+					ref: 'jg33',
+					worksite: 'Provinsi Jawa Tengah/Kota Pekalongan',
+					sector: '62019',
+					wage: 2_700_926,
+					c: [54_019, 99_934, 27_009, 54_019, 6_482, 8_103, 27_009, 108_037, 0]
+				},
+				{
+					ref: 'jg34',
+					worksite: 'Provinsi Jawa Tengah/Kota Tegal',
+					sector: '62019',
+					wage: 2_526_510,
+					c: [50_530, 93_481, 25_265, 50_530, 6_064, 7_580, 25_265, 101_060, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3373,41 +3821,251 @@ function floorCases(): ProbeCase[] {
 			'2025-12',
 			'Provinsi Jawa Tengah/Kabupaten Cilacap',
 			[
-				{ ref: 'jg0', worksite: 'Provinsi Jawa Tengah/Kabupaten Cilacap', sector: '62019', wage: 2_640_248, c: [52_805, 97_689, 26_402, 52_805, 6_337, 7_921, 26_402, 105_610, 0] },
-				{ ref: 'jg1', worksite: 'Provinsi Jawa Tengah/Kabupaten Banyumas', sector: '62019', wage: 2_338_410, c: [46_768, 86_521, 23_384, 46_768, 5_612, 7_015, 23_384, 93_536, 0] },
-				{ ref: 'jg2', worksite: 'Provinsi Jawa Tengah/Kabupaten Purbalingga', sector: '62019', wage: 2_338_283.12, c: [46_766, 86_516, 23_383, 46_766, 5_612, 7_015, 23_383, 93_531, 0] },
-				{ ref: 'jg3', worksite: 'Provinsi Jawa Tengah/Kabupaten Banjarnegara', sector: '62019', wage: 2_170_475.32, c: [43_410, 80_308, 21_705, 43_410, 5_209, 6_511, 21_705, 86_819, 0] },
-				{ ref: 'jg4', worksite: 'Provinsi Jawa Tengah/Kabupaten Kebumen', sector: '62019', wage: 2_259_873.55, c: [45_197, 83_615, 22_599, 45_197, 5_424, 6_780, 22_599, 90_395, 0] },
-				{ ref: 'jg5', worksite: 'Provinsi Jawa Tengah/Kabupaten Purworejo', sector: '62019', wage: 2_265_937.67, c: [45_319, 83_840, 22_659, 45_319, 5_438, 6_798, 22_659, 90_638, 0] },
-				{ ref: 'jg6', worksite: 'Provinsi Jawa Tengah/Kabupaten Wonosobo', sector: '62019', wage: 2_299_521.38, c: [45_990, 85_082, 22_995, 45_990, 5_519, 6_899, 22_995, 91_981, 0] },
-				{ ref: 'jg7', worksite: 'Provinsi Jawa Tengah/Kabupaten Magelang', sector: '62019', wage: 2_467_488, c: [49_350, 91_297, 24_675, 49_350, 5_922, 7_402, 24_675, 98_700, 0] },
-				{ ref: 'jg8', worksite: 'Provinsi Jawa Tengah/Kabupaten Boyolali', sector: '62019', wage: 2_396_598, c: [47_932, 88_674, 23_966, 47_932, 5_752, 7_190, 23_966, 95_864, 0] },
-				{ ref: 'jg9', worksite: 'Provinsi Jawa Tengah/Kabupaten Klaten', sector: '62019', wage: 2_389_872.78, c: [47_797, 88_425, 23_899, 47_797, 5_736, 7_170, 23_899, 95_595, 0] },
-				{ ref: 'jg10', worksite: 'Provinsi Jawa Tengah/Kabupaten Sukoharjo', sector: '62019', wage: 2_359_488, c: [47_190, 87_301, 23_595, 47_190, 5_663, 7_078, 23_595, 94_380, 0] },
-				{ ref: 'jg11', worksite: 'Provinsi Jawa Tengah/Kabupaten Wonogiri', sector: '62019', wage: 2_180_587.50, c: [43_612, 80_682, 21_806, 43_612, 5_233, 6_542, 21_806, 87_224, 0] },
-				{ ref: 'jg12', worksite: 'Provinsi Jawa Tengah/Kabupaten Karanganyar', sector: '62019', wage: 2_437_110, c: [48_742, 90_173, 24_371, 48_742, 5_849, 7_311, 24_371, 97_484, 0] },
-				{ ref: 'jg13', worksite: 'Provinsi Jawa Tengah/Kabupaten Sragen', sector: '62019', wage: 2_182_200, c: [43_644, 80_741, 21_822, 43_644, 5_237, 6_547, 21_822, 87_288, 0] },
-				{ ref: 'jg14', worksite: 'Provinsi Jawa Tengah/Kabupaten Grobogan', sector: '62019', wage: 2_254_090, c: [45_082, 83_401, 22_541, 45_082, 5_410, 6_762, 22_541, 90_164, 0] },
-				{ ref: 'jg15', worksite: 'Provinsi Jawa Tengah/Kabupaten Blora', sector: '62019', wage: 2_238_430.85, c: [44_769, 82_822, 22_384, 44_769, 5_372, 6_715, 22_384, 89_537, 0] },
-				{ ref: 'jg16', worksite: 'Provinsi Jawa Tengah/Kabupaten Rembang', sector: '62019', wage: 2_236_168.78, c: [44_723, 82_738, 22_362, 44_723, 5_367, 6_709, 22_362, 89_447, 0] },
-				{ ref: 'jg17', worksite: 'Provinsi Jawa Tengah/Kabupaten Pati', sector: '62019', wage: 2_332_350, c: [46_647, 86_297, 23_324, 46_647, 5_598, 6_997, 23_324, 93_294, 0] },
-				{ ref: 'jg18', worksite: 'Provinsi Jawa Tengah/Kabupaten Kudus', sector: '62019', wage: 2_680_485.72, c: [53_610, 99_178, 26_805, 53_610, 6_433, 8_041, 26_805, 107_219, 0] },
-				{ ref: 'jg19', worksite: 'Provinsi Jawa Tengah/Kabupaten Jepara', sector: '62019', wage: 2_610_224, c: [52_204, 96_578, 26_102, 52_204, 6_265, 7_831, 26_102, 104_409, 0] },
-				{ ref: 'jg20', worksite: 'Provinsi Jawa Tengah/Kabupaten Demak', sector: '62019', wage: 2_940_716, c: [58_814, 108_806, 29_407, 58_814, 7_058, 8_822, 29_407, 117_629, 0] },
-				{ ref: 'jg21', worksite: 'Provinsi Jawa Tengah/Kabupaten Semarang', sector: '62019', wage: 2_750_136, c: [55_003, 101_755, 27_501, 55_003, 6_600, 8_250, 27_501, 110_005, 0] },
-				{ ref: 'jg22', worksite: 'Provinsi Jawa Tengah/Kabupaten Temanggung', sector: '62019', wage: 2_246_850, c: [44_937, 83_133, 22_469, 44_937, 5_392, 6_741, 22_469, 89_874, 0] },
-				{ ref: 'jg23', worksite: 'Provinsi Jawa Tengah/Kabupaten Kendal', sector: '62019', wage: 2_783_455.25, c: [55_669, 102_988, 27_835, 55_669, 6_680, 8_350, 27_835, 111_338, 0] },
-				{ ref: 'jg24', worksite: 'Provinsi Jawa Tengah/Kabupaten Batang', sector: '62019', wage: 2_534_383, c: [50_688, 93_772, 25_344, 50_688, 6_083, 7_603, 25_344, 101_375, 0] },
-				{ ref: 'jg25', worksite: 'Provinsi Jawa Tengah/Kabupaten Pekalongan', sector: '62019', wage: 2_486_653.59, c: [49_733, 92_006, 24_867, 49_733, 5_968, 7_460, 24_867, 99_466, 0] },
-				{ ref: 'jg26', worksite: 'Provinsi Jawa Tengah/Kabupaten Pemalang', sector: '62019', wage: 2_296_140, c: [45_923, 84_957, 22_961, 45_923, 5_511, 6_888, 22_961, 91_846, 0] },
-				{ ref: 'jg27', worksite: 'Provinsi Jawa Tengah/Kabupaten Tegal', sector: '62019', wage: 2_333_586.46, c: [46_672, 86_343, 23_336, 46_672, 5_601, 7_001, 23_336, 93_343, 0] },
-				{ ref: 'jg28', worksite: 'Provinsi Jawa Tengah/Kabupaten Brebes', sector: '62019', wage: 2_239_801.50, c: [44_796, 82_873, 22_398, 44_796, 5_376, 6_719, 22_398, 89_592, 0] },
-				{ ref: 'jg29', worksite: 'Provinsi Jawa Tengah/Kota Magelang', sector: '62019', wage: 2_281_230, c: [45_625, 84_406, 22_812, 45_625, 5_475, 6_844, 22_812, 91_249, 0] },
-				{ ref: 'jg30', worksite: 'Provinsi Jawa Tengah/Kota Surakarta', sector: '62019', wage: 2_416_560, c: [48_331, 89_413, 24_166, 48_331, 5_800, 7_250, 24_166, 96_662, 0] },
-				{ ref: 'jg31', worksite: 'Provinsi Jawa Tengah/Kota Salatiga', sector: '62019', wage: 2_533_583, c: [50_672, 93_743, 25_336, 50_672, 6_081, 7_601, 25_336, 101_343, 0] },
-				{ ref: 'jg32', worksite: 'Provinsi Jawa Tengah/Kota Semarang', sector: '62019', wage: 3_454_827, c: [69_097, 127_829, 34_548, 69_097, 8_292, 10_364, 34_548, 138_193, 0] },
-				{ ref: 'jg33', worksite: 'Provinsi Jawa Tengah/Kota Pekalongan', sector: '62019', wage: 2_545_138, c: [50_903, 94_170, 25_451, 50_903, 6_108, 7_635, 25_451, 101_806, 0] },
-				{ ref: 'jg34', worksite: 'Provinsi Jawa Tengah/Kota Tegal', sector: '62019', wage: 2_376_683.82, c: [47_534, 87_937, 23_767, 47_534, 5_704, 7_130, 23_767, 95_067, 0] }
+				{
+					ref: 'jg0',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Cilacap',
+					sector: '62019',
+					wage: 2_640_248,
+					c: [52_805, 97_689, 26_402, 52_805, 6_337, 7_921, 26_402, 105_610, 0]
+				},
+				{
+					ref: 'jg1',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Banyumas',
+					sector: '62019',
+					wage: 2_338_410,
+					c: [46_768, 86_521, 23_384, 46_768, 5_612, 7_015, 23_384, 93_536, 0]
+				},
+				{
+					ref: 'jg2',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Purbalingga',
+					sector: '62019',
+					wage: 2_338_283.12,
+					c: [46_766, 86_516, 23_383, 46_766, 5_612, 7_015, 23_383, 93_531, 0]
+				},
+				{
+					ref: 'jg3',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Banjarnegara',
+					sector: '62019',
+					wage: 2_170_475.32,
+					c: [43_410, 80_308, 21_705, 43_410, 5_209, 6_511, 21_705, 86_819, 0]
+				},
+				{
+					ref: 'jg4',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Kebumen',
+					sector: '62019',
+					wage: 2_259_873.55,
+					c: [45_197, 83_615, 22_599, 45_197, 5_424, 6_780, 22_599, 90_395, 0]
+				},
+				{
+					ref: 'jg5',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Purworejo',
+					sector: '62019',
+					wage: 2_265_937.67,
+					c: [45_319, 83_840, 22_659, 45_319, 5_438, 6_798, 22_659, 90_638, 0]
+				},
+				{
+					ref: 'jg6',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Wonosobo',
+					sector: '62019',
+					wage: 2_299_521.38,
+					c: [45_990, 85_082, 22_995, 45_990, 5_519, 6_899, 22_995, 91_981, 0]
+				},
+				{
+					ref: 'jg7',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Magelang',
+					sector: '62019',
+					wage: 2_467_488,
+					c: [49_350, 91_297, 24_675, 49_350, 5_922, 7_402, 24_675, 98_700, 0]
+				},
+				{
+					ref: 'jg8',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Boyolali',
+					sector: '62019',
+					wage: 2_396_598,
+					c: [47_932, 88_674, 23_966, 47_932, 5_752, 7_190, 23_966, 95_864, 0]
+				},
+				{
+					ref: 'jg9',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Klaten',
+					sector: '62019',
+					wage: 2_389_872.78,
+					c: [47_797, 88_425, 23_899, 47_797, 5_736, 7_170, 23_899, 95_595, 0]
+				},
+				{
+					ref: 'jg10',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Sukoharjo',
+					sector: '62019',
+					wage: 2_359_488,
+					c: [47_190, 87_301, 23_595, 47_190, 5_663, 7_078, 23_595, 94_380, 0]
+				},
+				{
+					ref: 'jg11',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Wonogiri',
+					sector: '62019',
+					wage: 2_180_587.5,
+					c: [43_612, 80_682, 21_806, 43_612, 5_233, 6_542, 21_806, 87_224, 0]
+				},
+				{
+					ref: 'jg12',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Karanganyar',
+					sector: '62019',
+					wage: 2_437_110,
+					c: [48_742, 90_173, 24_371, 48_742, 5_849, 7_311, 24_371, 97_484, 0]
+				},
+				{
+					ref: 'jg13',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Sragen',
+					sector: '62019',
+					wage: 2_182_200,
+					c: [43_644, 80_741, 21_822, 43_644, 5_237, 6_547, 21_822, 87_288, 0]
+				},
+				{
+					ref: 'jg14',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Grobogan',
+					sector: '62019',
+					wage: 2_254_090,
+					c: [45_082, 83_401, 22_541, 45_082, 5_410, 6_762, 22_541, 90_164, 0]
+				},
+				{
+					ref: 'jg15',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Blora',
+					sector: '62019',
+					wage: 2_238_430.85,
+					c: [44_769, 82_822, 22_384, 44_769, 5_372, 6_715, 22_384, 89_537, 0]
+				},
+				{
+					ref: 'jg16',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Rembang',
+					sector: '62019',
+					wage: 2_236_168.78,
+					c: [44_723, 82_738, 22_362, 44_723, 5_367, 6_709, 22_362, 89_447, 0]
+				},
+				{
+					ref: 'jg17',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Pati',
+					sector: '62019',
+					wage: 2_332_350,
+					c: [46_647, 86_297, 23_324, 46_647, 5_598, 6_997, 23_324, 93_294, 0]
+				},
+				{
+					ref: 'jg18',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Kudus',
+					sector: '62019',
+					wage: 2_680_485.72,
+					c: [53_610, 99_178, 26_805, 53_610, 6_433, 8_041, 26_805, 107_219, 0]
+				},
+				{
+					ref: 'jg19',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Jepara',
+					sector: '62019',
+					wage: 2_610_224,
+					c: [52_204, 96_578, 26_102, 52_204, 6_265, 7_831, 26_102, 104_409, 0]
+				},
+				{
+					ref: 'jg20',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Demak',
+					sector: '62019',
+					wage: 2_940_716,
+					c: [58_814, 108_806, 29_407, 58_814, 7_058, 8_822, 29_407, 117_629, 0]
+				},
+				{
+					ref: 'jg21',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Semarang',
+					sector: '62019',
+					wage: 2_750_136,
+					c: [55_003, 101_755, 27_501, 55_003, 6_600, 8_250, 27_501, 110_005, 0]
+				},
+				{
+					ref: 'jg22',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Temanggung',
+					sector: '62019',
+					wage: 2_246_850,
+					c: [44_937, 83_133, 22_469, 44_937, 5_392, 6_741, 22_469, 89_874, 0]
+				},
+				{
+					ref: 'jg23',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Kendal',
+					sector: '62019',
+					wage: 2_783_455.25,
+					c: [55_669, 102_988, 27_835, 55_669, 6_680, 8_350, 27_835, 111_338, 0]
+				},
+				{
+					ref: 'jg24',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Batang',
+					sector: '62019',
+					wage: 2_534_383,
+					c: [50_688, 93_772, 25_344, 50_688, 6_083, 7_603, 25_344, 101_375, 0]
+				},
+				{
+					ref: 'jg25',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Pekalongan',
+					sector: '62019',
+					wage: 2_486_653.59,
+					c: [49_733, 92_006, 24_867, 49_733, 5_968, 7_460, 24_867, 99_466, 0]
+				},
+				{
+					ref: 'jg26',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Pemalang',
+					sector: '62019',
+					wage: 2_296_140,
+					c: [45_923, 84_957, 22_961, 45_923, 5_511, 6_888, 22_961, 91_846, 0]
+				},
+				{
+					ref: 'jg27',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Tegal',
+					sector: '62019',
+					wage: 2_333_586.46,
+					c: [46_672, 86_343, 23_336, 46_672, 5_601, 7_001, 23_336, 93_343, 0]
+				},
+				{
+					ref: 'jg28',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Brebes',
+					sector: '62019',
+					wage: 2_239_801.5,
+					c: [44_796, 82_873, 22_398, 44_796, 5_376, 6_719, 22_398, 89_592, 0]
+				},
+				{
+					ref: 'jg29',
+					worksite: 'Provinsi Jawa Tengah/Kota Magelang',
+					sector: '62019',
+					wage: 2_281_230,
+					c: [45_625, 84_406, 22_812, 45_625, 5_475, 6_844, 22_812, 91_249, 0]
+				},
+				{
+					ref: 'jg30',
+					worksite: 'Provinsi Jawa Tengah/Kota Surakarta',
+					sector: '62019',
+					wage: 2_416_560,
+					c: [48_331, 89_413, 24_166, 48_331, 5_800, 7_250, 24_166, 96_662, 0]
+				},
+				{
+					ref: 'jg31',
+					worksite: 'Provinsi Jawa Tengah/Kota Salatiga',
+					sector: '62019',
+					wage: 2_533_583,
+					c: [50_672, 93_743, 25_336, 50_672, 6_081, 7_601, 25_336, 101_343, 0]
+				},
+				{
+					ref: 'jg32',
+					worksite: 'Provinsi Jawa Tengah/Kota Semarang',
+					sector: '62019',
+					wage: 3_454_827,
+					c: [69_097, 127_829, 34_548, 69_097, 8_292, 10_364, 34_548, 138_193, 0]
+				},
+				{
+					ref: 'jg33',
+					worksite: 'Provinsi Jawa Tengah/Kota Pekalongan',
+					sector: '62019',
+					wage: 2_545_138,
+					c: [50_903, 94_170, 25_451, 50_903, 6_108, 7_635, 25_451, 101_806, 0]
+				},
+				{
+					ref: 'jg34',
+					worksite: 'Provinsi Jawa Tengah/Kota Tegal',
+					sector: '62019',
+					wage: 2_376_683.82,
+					c: [47_534, 87_937, 23_767, 47_534, 5_704, 7_130, 23_767, 95_067, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3420,13 +4078,55 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Banten/Kabupaten Pandeglang',
 			[
-				{ ref: 'bt0', worksite: 'Provinsi Banten/Kabupaten Pandeglang', sector: '62019', wage: 3_360_078.06, c: [67_202, 124_323, 33_601, 67_202, 8_064, 10_080, 33_601, 134_403, 0] },
-				{ ref: 'bt1', worksite: 'Provinsi Banten/Kabupaten Lebak', sector: '62019', wage: 3_330_010.62, c: [66_600, 123_210, 33_300, 66_600, 7_992, 9_990, 33_300, 133_200, 0] },
-				{ ref: 'bt2', worksite: 'Provinsi Banten/Kabupaten Tangerang', sector: '62019', wage: 5_210_377, c: [104_208, 192_784, 52_104, 104_208, 12_505, 15_631, 52_104, 208_415, 13_617] },
-				{ ref: 'bt3', worksite: 'Provinsi Banten/Kabupaten Serang', sector: '62019', wage: 5_178_521.19, c: [103_570, 191_605, 51_785, 103_570, 12_428, 15_536, 51_785, 207_141, 13_534] },
-				{ ref: 'bt4', worksite: 'Provinsi Banten/Kota Tangerang', sector: '62019', wage: 5_399_405.69, c: [107_988, 199_778, 53_994, 107_988, 12_959, 16_198, 53_994, 215_976, 14_111] },
-				{ ref: 'bt5', worksite: 'Provinsi Banten/Kota Cilegon', sector: '62019', wage: 5_469_922.59, c: [109_398, 202_387, 54_699, 109_398, 13_128, 16_410, 54_699, 218_797, 28_591] },
-				{ ref: 'bt6', worksite: 'Provinsi Banten/Kota Serang', sector: '62019', wage: 4_665_927.94, c: [93_319, 172_639, 46_659, 93_319, 11_198, 13_998, 46_659, 186_637, 0] }
+				{
+					ref: 'bt0',
+					worksite: 'Provinsi Banten/Kabupaten Pandeglang',
+					sector: '62019',
+					wage: 3_360_078.06,
+					c: [67_202, 124_323, 33_601, 67_202, 8_064, 10_080, 33_601, 134_403, 0]
+				},
+				{
+					ref: 'bt1',
+					worksite: 'Provinsi Banten/Kabupaten Lebak',
+					sector: '62019',
+					wage: 3_330_010.62,
+					c: [66_600, 123_210, 33_300, 66_600, 7_992, 9_990, 33_300, 133_200, 0]
+				},
+				{
+					ref: 'bt2',
+					worksite: 'Provinsi Banten/Kabupaten Tangerang',
+					sector: '62019',
+					wage: 5_210_377,
+					c: [104_208, 192_784, 52_104, 104_208, 12_505, 15_631, 52_104, 208_415, 13_617]
+				},
+				{
+					ref: 'bt3',
+					worksite: 'Provinsi Banten/Kabupaten Serang',
+					sector: '62019',
+					wage: 5_178_521.19,
+					c: [103_570, 191_605, 51_785, 103_570, 12_428, 15_536, 51_785, 207_141, 13_534]
+				},
+				{
+					ref: 'bt4',
+					worksite: 'Provinsi Banten/Kota Tangerang',
+					sector: '62019',
+					wage: 5_399_405.69,
+					c: [107_988, 199_778, 53_994, 107_988, 12_959, 16_198, 53_994, 215_976, 14_111]
+				},
+				{
+					ref: 'bt5',
+					worksite: 'Provinsi Banten/Kota Cilegon',
+					sector: '62019',
+					wage: 5_469_922.59,
+					c: [109_398, 202_387, 54_699, 109_398, 13_128, 16_410, 54_699, 218_797, 28_591]
+				},
+				{
+					ref: 'bt6',
+					worksite: 'Provinsi Banten/Kota Serang',
+					sector: '62019',
+					wage: 4_665_927.94,
+					c: [93_319, 172_639, 46_659, 93_319, 11_198, 13_998, 46_659, 186_637, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3439,10 +4139,34 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Lampung/Kota Metro',
 			[
-				{ ref: 'lp1', worksite: 'Provinsi Lampung/Kota Metro', sector: '62019', wage: 3_050_498, c: [61_010, 112_868, 30_505, 61_010, 7_321, 9_151, 30_505, 122_020, 0] },
-				{ ref: 'lp2', worksite: 'Provinsi Lampung/Kabupaten Lampung Selatan', sector: '62019', wage: 3_219_609, c: [64_392, 119_126, 32_196, 64_392, 7_727, 9_659, 32_196, 128_784, 0] },
-				{ ref: 'lp3', worksite: 'Provinsi Lampung/Kabupaten Way Kanan', sector: '62019', wage: 3_215_764, c: [64_315, 118_983, 32_158, 64_315, 7_718, 9_647, 32_158, 128_631, 0] },
-				{ ref: 'lp4', worksite: 'Provinsi Lampung/Kabupaten Mesuji', sector: '62019', wage: 3_227_333, c: [64_547, 119_411, 32_273, 64_547, 7_746, 9_682, 32_273, 129_093, 0] }
+				{
+					ref: 'lp1',
+					worksite: 'Provinsi Lampung/Kota Metro',
+					sector: '62019',
+					wage: 3_050_498,
+					c: [61_010, 112_868, 30_505, 61_010, 7_321, 9_151, 30_505, 122_020, 0]
+				},
+				{
+					ref: 'lp2',
+					worksite: 'Provinsi Lampung/Kabupaten Lampung Selatan',
+					sector: '62019',
+					wage: 3_219_609,
+					c: [64_392, 119_126, 32_196, 64_392, 7_727, 9_659, 32_196, 128_784, 0]
+				},
+				{
+					ref: 'lp3',
+					worksite: 'Provinsi Lampung/Kabupaten Way Kanan',
+					sector: '62019',
+					wage: 3_215_764,
+					c: [64_315, 118_983, 32_158, 64_315, 7_718, 9_647, 32_158, 128_631, 0]
+				},
+				{
+					ref: 'lp4',
+					worksite: 'Provinsi Lampung/Kabupaten Mesuji',
+					sector: '62019',
+					wage: 3_227_333,
+					c: [64_547, 119_411, 32_273, 64_547, 7_746, 9_682, 32_273, 129_093, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3455,21 +4179,111 @@ function floorCases(): ProbeCase[] {
 			'2025-12',
 			'Provinsi Lampung/Kota Bandar Lampung',
 			[
-				{ ref: 'lp0', worksite: 'Provinsi Lampung/Kota Bandar Lampung', sector: '62019', wage: 3_305_367, c: [66_107, 122_299, 33_054, 66_107, 7_933, 9_916, 33_054, 132_215, 0] },
-				{ ref: 'lp1', worksite: 'Provinsi Lampung/Kota Metro', sector: '62019', wage: 2_903_301, c: [58_066, 107_422, 29_033, 58_066, 6_968, 8_710, 29_033, 116_132, 0] },
-				{ ref: 'lp2', worksite: 'Provinsi Lampung/Kabupaten Lampung Selatan', sector: '62019', wage: 3_076_990, c: [61_540, 113_849, 30_770, 61_540, 7_385, 9_231, 30_770, 123_080, 0] },
-				{ ref: 'lp3', worksite: 'Provinsi Lampung/Kabupaten Way Kanan', sector: '62019', wage: 3_072_655, c: [61_453, 113_688, 30_727, 61_453, 7_374, 9_218, 30_727, 122_906, 0] },
-				{ ref: 'lp4', worksite: 'Provinsi Lampung/Kabupaten Mesuji', sector: '62019', wage: 3_092_026, c: [61_841, 114_405, 30_920, 61_841, 7_421, 9_276, 30_920, 123_681, 0] },
-				{ ref: 'lp5', worksite: 'Provinsi Lampung/Kabupaten Pesawaran', sector: '62019', wage: 2_893_070, c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0] },
-				{ ref: 'lp6', worksite: 'Provinsi Lampung/Kabupaten Pringsewu', sector: '62019', wage: 2_893_070, c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0] },
-				{ ref: 'lp7', worksite: 'Provinsi Lampung/Kabupaten Tulang Bawang', sector: '62019', wage: 2_893_070, c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0] },
-				{ ref: 'lp8', worksite: 'Provinsi Lampung/Kabupaten Tulang Bawang Barat', sector: '62019', wage: 2_893_070, c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0] },
-				{ ref: 'lp9', worksite: 'Provinsi Lampung/Kabupaten Pesisir Barat', sector: '62019', wage: 2_893_070, c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0] },
-				{ ref: 'lp10', worksite: 'Provinsi Lampung/Kabupaten Lampung Tengah', sector: '62019', wage: 2_893_070, c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0] },
-				{ ref: 'lp11', worksite: 'Provinsi Lampung/Kabupaten Lampung Timur', sector: '62019', wage: 2_893_070, c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0] },
-				{ ref: 'lp12', worksite: 'Provinsi Lampung/Kabupaten Lampung Utara', sector: '62019', wage: 2_893_070, c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0] },
-				{ ref: 'lp13', worksite: 'Provinsi Lampung/Kabupaten Tanggamus', sector: '62019', wage: 2_893_070, c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0] },
-				{ ref: 'lp14', worksite: 'Provinsi Lampung/Kabupaten Lampung Barat', sector: '62019', wage: 2_893_070, c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0] }
+				{
+					ref: 'lp0',
+					worksite: 'Provinsi Lampung/Kota Bandar Lampung',
+					sector: '62019',
+					wage: 3_305_367,
+					c: [66_107, 122_299, 33_054, 66_107, 7_933, 9_916, 33_054, 132_215, 0]
+				},
+				{
+					ref: 'lp1',
+					worksite: 'Provinsi Lampung/Kota Metro',
+					sector: '62019',
+					wage: 2_903_301,
+					c: [58_066, 107_422, 29_033, 58_066, 6_968, 8_710, 29_033, 116_132, 0]
+				},
+				{
+					ref: 'lp2',
+					worksite: 'Provinsi Lampung/Kabupaten Lampung Selatan',
+					sector: '62019',
+					wage: 3_076_990,
+					c: [61_540, 113_849, 30_770, 61_540, 7_385, 9_231, 30_770, 123_080, 0]
+				},
+				{
+					ref: 'lp3',
+					worksite: 'Provinsi Lampung/Kabupaten Way Kanan',
+					sector: '62019',
+					wage: 3_072_655,
+					c: [61_453, 113_688, 30_727, 61_453, 7_374, 9_218, 30_727, 122_906, 0]
+				},
+				{
+					ref: 'lp4',
+					worksite: 'Provinsi Lampung/Kabupaten Mesuji',
+					sector: '62019',
+					wage: 3_092_026,
+					c: [61_841, 114_405, 30_920, 61_841, 7_421, 9_276, 30_920, 123_681, 0]
+				},
+				{
+					ref: 'lp5',
+					worksite: 'Provinsi Lampung/Kabupaten Pesawaran',
+					sector: '62019',
+					wage: 2_893_070,
+					c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0]
+				},
+				{
+					ref: 'lp6',
+					worksite: 'Provinsi Lampung/Kabupaten Pringsewu',
+					sector: '62019',
+					wage: 2_893_070,
+					c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0]
+				},
+				{
+					ref: 'lp7',
+					worksite: 'Provinsi Lampung/Kabupaten Tulang Bawang',
+					sector: '62019',
+					wage: 2_893_070,
+					c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0]
+				},
+				{
+					ref: 'lp8',
+					worksite: 'Provinsi Lampung/Kabupaten Tulang Bawang Barat',
+					sector: '62019',
+					wage: 2_893_070,
+					c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0]
+				},
+				{
+					ref: 'lp9',
+					worksite: 'Provinsi Lampung/Kabupaten Pesisir Barat',
+					sector: '62019',
+					wage: 2_893_070,
+					c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0]
+				},
+				{
+					ref: 'lp10',
+					worksite: 'Provinsi Lampung/Kabupaten Lampung Tengah',
+					sector: '62019',
+					wage: 2_893_070,
+					c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0]
+				},
+				{
+					ref: 'lp11',
+					worksite: 'Provinsi Lampung/Kabupaten Lampung Timur',
+					sector: '62019',
+					wage: 2_893_070,
+					c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0]
+				},
+				{
+					ref: 'lp12',
+					worksite: 'Provinsi Lampung/Kabupaten Lampung Utara',
+					sector: '62019',
+					wage: 2_893_070,
+					c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0]
+				},
+				{
+					ref: 'lp13',
+					worksite: 'Provinsi Lampung/Kabupaten Tanggamus',
+					sector: '62019',
+					wage: 2_893_070,
+					c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0]
+				},
+				{
+					ref: 'lp14',
+					worksite: 'Provinsi Lampung/Kabupaten Lampung Barat',
+					sector: '62019',
+					wage: 2_893_070,
+					c: [57_861, 107_044, 28_931, 57_861, 6_943, 8_679, 28_931, 115_723, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3482,9 +4296,27 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi DI Yogyakarta/Kabupaten Sleman',
 			[
-				{ ref: 'dy1', worksite: 'Provinsi DI Yogyakarta/Kabupaten Kulon Progo', sector: '62019', wage: 2_504_520, c: [50_090, 92_667, 25_045, 50_090, 6_011, 7_514, 25_045, 100_181, 0] },
-				{ ref: 'dy2', worksite: 'Provinsi DI Yogyakarta/Kabupaten Bantul', sector: '62019', wage: 2_509_001, c: [50_180, 92_833, 25_090, 50_180, 6_022, 7_527, 25_090, 100_360, 0] },
-				{ ref: 'dy3', worksite: 'Provinsi DI Yogyakarta/Kabupaten Sleman', sector: '62019', wage: 2_624_387, c: [52_488, 97_102, 26_244, 52_488, 6_299, 7_873, 26_244, 104_975, 0] }
+				{
+					ref: 'dy1',
+					worksite: 'Provinsi DI Yogyakarta/Kabupaten Kulon Progo',
+					sector: '62019',
+					wage: 2_504_520,
+					c: [50_090, 92_667, 25_045, 50_090, 6_011, 7_514, 25_045, 100_181, 0]
+				},
+				{
+					ref: 'dy2',
+					worksite: 'Provinsi DI Yogyakarta/Kabupaten Bantul',
+					sector: '62019',
+					wage: 2_509_001,
+					c: [50_180, 92_833, 25_090, 50_180, 6_022, 7_527, 25_090, 100_360, 0]
+				},
+				{
+					ref: 'dy3',
+					worksite: 'Provinsi DI Yogyakarta/Kabupaten Sleman',
+					sector: '62019',
+					wage: 2_624_387,
+					c: [52_488, 97_102, 26_244, 52_488, 6_299, 7_873, 26_244, 104_975, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3497,11 +4329,41 @@ function floorCases(): ProbeCase[] {
 			'2025-12',
 			'Provinsi DI Yogyakarta/Kota Yogyakarta',
 			[
-				{ ref: 'dy0', worksite: 'Provinsi DI Yogyakarta/Kabupaten Gunungkidul', sector: '62019', wage: 2_330_263.67, c: [46_605, 86_220, 23_303, 46_605, 5_593, 6_991, 23_303, 93_211, 0] },
-				{ ref: 'dy1', worksite: 'Provinsi DI Yogyakarta/Kabupaten Kulon Progo', sector: '62019', wage: 2_351_239.85, c: [47_025, 86_996, 23_512, 47_025, 5_643, 7_054, 23_512, 94_050, 0] },
-				{ ref: 'dy2', worksite: 'Provinsi DI Yogyakarta/Kabupaten Bantul', sector: '62019', wage: 2_360_533, c: [47_211, 87_340, 23_605, 47_211, 5_665, 7_082, 23_605, 94_421, 0] },
-				{ ref: 'dy3', worksite: 'Provinsi DI Yogyakarta/Kabupaten Sleman', sector: '62019', wage: 2_466_514.86, c: [49_330, 91_261, 24_665, 49_330, 5_920, 7_400, 24_665, 98_661, 0] },
-				{ ref: 'dy4', worksite: 'Provinsi DI Yogyakarta/Kota Yogyakarta', sector: '62019', wage: 2_655_041.81, c: [53_101, 98_237, 26_550, 53_101, 6_372, 7_965, 26_550, 106_202, 0] }
+				{
+					ref: 'dy0',
+					worksite: 'Provinsi DI Yogyakarta/Kabupaten Gunungkidul',
+					sector: '62019',
+					wage: 2_330_263.67,
+					c: [46_605, 86_220, 23_303, 46_605, 5_593, 6_991, 23_303, 93_211, 0]
+				},
+				{
+					ref: 'dy1',
+					worksite: 'Provinsi DI Yogyakarta/Kabupaten Kulon Progo',
+					sector: '62019',
+					wage: 2_351_239.85,
+					c: [47_025, 86_996, 23_512, 47_025, 5_643, 7_054, 23_512, 94_050, 0]
+				},
+				{
+					ref: 'dy2',
+					worksite: 'Provinsi DI Yogyakarta/Kabupaten Bantul',
+					sector: '62019',
+					wage: 2_360_533,
+					c: [47_211, 87_340, 23_605, 47_211, 5_665, 7_082, 23_605, 94_421, 0]
+				},
+				{
+					ref: 'dy3',
+					worksite: 'Provinsi DI Yogyakarta/Kabupaten Sleman',
+					sector: '62019',
+					wage: 2_466_514.86,
+					c: [49_330, 91_261, 24_665, 49_330, 5_920, 7_400, 24_665, 98_661, 0]
+				},
+				{
+					ref: 'dy4',
+					worksite: 'Provinsi DI Yogyakarta/Kota Yogyakarta',
+					sector: '62019',
+					wage: 2_655_041.81,
+					c: [53_101, 98_237, 26_550, 53_101, 6_372, 7_965, 26_550, 106_202, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3514,20 +4376,104 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Kalimantan Barat/Kota Pontianak',
 			[
-				{ ref: 'kb0', worksite: 'Provinsi Kalimantan Barat/Kota Pontianak', sector: '62019', wage: 3_205_220, c: [64_104, 118_593, 32_052, 64_104, 7_693, 9_616, 32_052, 128_209, 0] },
-				{ ref: 'kb1', worksite: 'Provinsi Kalimantan Barat/Kabupaten Kubu Raya', sector: '62019', wage: 3_100_000, c: [62_000, 114_700, 31_000, 62_000, 7_440, 9_300, 31_000, 124_000, 0] },
-				{ ref: 'kb2', worksite: 'Provinsi Kalimantan Barat/Kabupaten Mempawah', sector: '62019', wage: 3_220_801, c: [64_416, 119_170, 32_208, 64_416, 7_730, 9_662, 32_208, 128_832, 0] },
-				{ ref: 'kb3', worksite: 'Provinsi Kalimantan Barat/Kota Singkawang', sector: '62019', wage: 3_247_387, c: [64_948, 120_153, 32_474, 64_948, 7_794, 9_742, 32_474, 129_895, 0] },
-				{ ref: 'kb4', worksite: 'Provinsi Kalimantan Barat/Kabupaten Sambas', sector: '62019', wage: 3_202_663, c: [64_053, 118_499, 32_027, 64_053, 7_686, 9_608, 32_027, 128_107, 0] },
-				{ ref: 'kb5', worksite: 'Provinsi Kalimantan Barat/Kabupaten Bengkayang', sector: '62019', wage: 3_252_580, c: [65_052, 120_345, 32_526, 65_052, 7_806, 9_758, 32_526, 130_103, 0] },
-				{ ref: 'kb6', worksite: 'Provinsi Kalimantan Barat/Kabupaten Landak', sector: '62019', wage: 3_211_256, c: [64_225, 118_816, 32_113, 64_225, 7_707, 9_634, 32_113, 128_450, 0] },
-				{ ref: 'kb7', worksite: 'Provinsi Kalimantan Barat/Kabupaten Sanggau', sector: '62019', wage: 3_121_747, c: [62_435, 115_505, 31_217, 62_435, 7_492, 9_365, 31_217, 124_870, 0] },
-				{ ref: 'kb8', worksite: 'Provinsi Kalimantan Barat/Kabupaten Melawi', sector: '62019', wage: 3_109_431, c: [62_189, 115_049, 31_094, 62_189, 7_463, 9_328, 31_094, 124_377, 0] },
-				{ ref: 'kb9', worksite: 'Provinsi Kalimantan Barat/Kabupaten Sintang', sector: '62019', wage: 3_187_965, c: [63_759, 117_955, 31_880, 63_759, 7_651, 9_564, 31_880, 127_519, 0] },
-				{ ref: 'kb10', worksite: 'Provinsi Kalimantan Barat/Kabupaten Kapuas Hulu', sector: '62019', wage: 3_106_259, c: [62_125, 114_932, 31_063, 62_125, 7_455, 9_319, 31_063, 124_250, 0] },
-				{ ref: 'kb11', worksite: 'Provinsi Kalimantan Barat/Kabupaten Ketapang', sector: '62019', wage: 3_561_801, c: [71_236, 131_787, 35_618, 71_236, 8_548, 10_685, 35_618, 142_472, 0] },
-				{ ref: 'kb12', worksite: 'Provinsi Kalimantan Barat/Kabupaten Kayong Utara', sector: '62019', wage: 3_370_586, c: [67_412, 124_712, 33_706, 67_412, 8_089, 10_112, 33_706, 134_823, 0] },
-				{ ref: 'kb13', worksite: 'Provinsi Kalimantan Barat/Kabupaten Sekadau', sector: '62019', wage: 3_054_552, c: [61_091, 113_018, 30_546, 61_091, 7_331, 9_164, 30_546, 122_182, 0] }
+				{
+					ref: 'kb0',
+					worksite: 'Provinsi Kalimantan Barat/Kota Pontianak',
+					sector: '62019',
+					wage: 3_205_220,
+					c: [64_104, 118_593, 32_052, 64_104, 7_693, 9_616, 32_052, 128_209, 0]
+				},
+				{
+					ref: 'kb1',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Kubu Raya',
+					sector: '62019',
+					wage: 3_100_000,
+					c: [62_000, 114_700, 31_000, 62_000, 7_440, 9_300, 31_000, 124_000, 0]
+				},
+				{
+					ref: 'kb2',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Mempawah',
+					sector: '62019',
+					wage: 3_220_801,
+					c: [64_416, 119_170, 32_208, 64_416, 7_730, 9_662, 32_208, 128_832, 0]
+				},
+				{
+					ref: 'kb3',
+					worksite: 'Provinsi Kalimantan Barat/Kota Singkawang',
+					sector: '62019',
+					wage: 3_247_387,
+					c: [64_948, 120_153, 32_474, 64_948, 7_794, 9_742, 32_474, 129_895, 0]
+				},
+				{
+					ref: 'kb4',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Sambas',
+					sector: '62019',
+					wage: 3_202_663,
+					c: [64_053, 118_499, 32_027, 64_053, 7_686, 9_608, 32_027, 128_107, 0]
+				},
+				{
+					ref: 'kb5',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Bengkayang',
+					sector: '62019',
+					wage: 3_252_580,
+					c: [65_052, 120_345, 32_526, 65_052, 7_806, 9_758, 32_526, 130_103, 0]
+				},
+				{
+					ref: 'kb6',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Landak',
+					sector: '62019',
+					wage: 3_211_256,
+					c: [64_225, 118_816, 32_113, 64_225, 7_707, 9_634, 32_113, 128_450, 0]
+				},
+				{
+					ref: 'kb7',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Sanggau',
+					sector: '62019',
+					wage: 3_121_747,
+					c: [62_435, 115_505, 31_217, 62_435, 7_492, 9_365, 31_217, 124_870, 0]
+				},
+				{
+					ref: 'kb8',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Melawi',
+					sector: '62019',
+					wage: 3_109_431,
+					c: [62_189, 115_049, 31_094, 62_189, 7_463, 9_328, 31_094, 124_377, 0]
+				},
+				{
+					ref: 'kb9',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Sintang',
+					sector: '62019',
+					wage: 3_187_965,
+					c: [63_759, 117_955, 31_880, 63_759, 7_651, 9_564, 31_880, 127_519, 0]
+				},
+				{
+					ref: 'kb10',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Kapuas Hulu',
+					sector: '62019',
+					wage: 3_106_259,
+					c: [62_125, 114_932, 31_063, 62_125, 7_455, 9_319, 31_063, 124_250, 0]
+				},
+				{
+					ref: 'kb11',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Ketapang',
+					sector: '62019',
+					wage: 3_561_801,
+					c: [71_236, 131_787, 35_618, 71_236, 8_548, 10_685, 35_618, 142_472, 0]
+				},
+				{
+					ref: 'kb12',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Kayong Utara',
+					sector: '62019',
+					wage: 3_370_586,
+					c: [67_412, 124_712, 33_706, 67_412, 8_089, 10_112, 33_706, 134_823, 0]
+				},
+				{
+					ref: 'kb13',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Sekadau',
+					sector: '62019',
+					wage: 3_054_552,
+					c: [61_091, 113_018, 30_546, 61_091, 7_331, 9_164, 30_546, 122_182, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3541,8 +4487,20 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Kalimantan Barat/Kabupaten Sekadau',
 			[
-				{ ref: 'umspsek', worksite: 'Provinsi Kalimantan Barat/Kabupaten Sekadau', sector: '01262', wage: 3_062_552, c: [61_251, 113_314, 30_626, 61_251, 7_350, 9_188, 30_626, 122_502, 0] },
-				{ ref: 'umsppnk', worksite: 'Provinsi Kalimantan Barat/Kota Pontianak', sector: '01262', wage: 3_205_220, c: [64_104, 118_593, 32_052, 64_104, 7_693, 9_616, 32_052, 128_209, 0] }
+				{
+					ref: 'umspsek',
+					worksite: 'Provinsi Kalimantan Barat/Kabupaten Sekadau',
+					sector: '01262',
+					wage: 3_062_552,
+					c: [61_251, 113_314, 30_626, 61_251, 7_350, 9_188, 30_626, 122_502, 0]
+				},
+				{
+					ref: 'umsppnk',
+					worksite: 'Provinsi Kalimantan Barat/Kota Pontianak',
+					sector: '01262',
+					wage: 3_205_220,
+					c: [64_104, 118_593, 32_052, 64_104, 7_693, 9_616, 32_052, 128_209, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3556,8 +4514,20 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Jawa Timur/Kabupaten Situbondo',
 			[
-				{ ref: 'umspsit', worksite: 'Provinsi Jawa Timur/Kabupaten Situbondo', sector: '52107', wage: 2_571_426.91, c: [51_429, 95_143, 25_714, 51_429, 6_171, 7_714, 25_714, 102_857, 0] },
-				{ ref: 'umspmad', worksite: 'Provinsi Jawa Timur/Kota Madiun', sector: '52107', wage: 2_588_794, c: [51_776, 95_785, 25_888, 51_776, 6_213, 7_766, 25_888, 103_552, 0] }
+				{
+					ref: 'umspsit',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Situbondo',
+					sector: '52107',
+					wage: 2_571_426.91,
+					c: [51_429, 95_143, 25_714, 51_429, 6_171, 7_714, 25_714, 102_857, 0]
+				},
+				{
+					ref: 'umspmad',
+					worksite: 'Provinsi Jawa Timur/Kota Madiun',
+					sector: '52107',
+					wage: 2_588_794,
+					c: [51_776, 95_785, 25_888, 51_776, 6_213, 7_766, 25_888, 103_552, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3571,14 +4541,62 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi DKI Jakarta',
 			[
-				{ ref: 'dk0', worksite: 'Provinsi DKI Jakarta', sector: '24201', wage: 5_741_201, c: [114_824, 212_424, 57_412, 114_824, 13_779, 17_224, 57_412, 229_648, 45_014] },
-				{ ref: 'dk1', worksite: 'Provinsi DKI Jakarta', sector: '20118', wage: 5_844_336, c: [116_887, 216_240, 58_443, 116_887, 14_026, 17_533, 58_443, 233_773, 45_823] },
-				{ ref: 'dk2', worksite: 'Provinsi DKI Jakarta', sector: '24101', wage: 5_744_066, c: [114_881, 212_530, 57_441, 114_881, 13_786, 17_232, 57_441, 229_763, 45_036] },
-				{ ref: 'dk3', worksite: 'Provinsi DKI Jakarta', sector: '27201', wage: 5_759_723, c: [115_194, 213_110, 57_597, 115_194, 13_823, 17_279, 57_597, 230_389, 45_159] },
-				{ ref: 'dk4', worksite: 'Provinsi DKI Jakarta', sector: '32202', wage: 5_759_015, c: [115_180, 213_084, 57_590, 115_180, 13_822, 17_277, 57_590, 230_361, 45_154] },
-				{ ref: 'dk5', worksite: 'Provinsi DKI Jakarta', sector: '27111', wage: 5_812_808, c: [116_256, 215_074, 58_128, 116_256, 13_951, 17_438, 58_128, 232_512, 45_575] },
-				{ ref: 'dk6', worksite: 'Provinsi DKI Jakarta', sector: '33151', wage: 5_741_336, c: [114_827, 212_429, 57_413, 114_827, 13_779, 17_224, 57_413, 229_653, 45_015] },
-				{ ref: 'dk7', worksite: 'Provinsi DKI Jakarta', sector: '58200', wage: 5_754_720, c: [115_094, 212_925, 57_547, 115_094, 13_811, 17_264, 57_547, 230_189, 45_120] }
+				{
+					ref: 'dk0',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '24201',
+					wage: 5_741_201,
+					c: [114_824, 212_424, 57_412, 114_824, 13_779, 17_224, 57_412, 229_648, 45_014]
+				},
+				{
+					ref: 'dk1',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '20118',
+					wage: 5_844_336,
+					c: [116_887, 216_240, 58_443, 116_887, 14_026, 17_533, 58_443, 233_773, 45_823]
+				},
+				{
+					ref: 'dk2',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '24101',
+					wage: 5_744_066,
+					c: [114_881, 212_530, 57_441, 114_881, 13_786, 17_232, 57_441, 229_763, 45_036]
+				},
+				{
+					ref: 'dk3',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '27201',
+					wage: 5_759_723,
+					c: [115_194, 213_110, 57_597, 115_194, 13_823, 17_279, 57_597, 230_389, 45_159]
+				},
+				{
+					ref: 'dk4',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '32202',
+					wage: 5_759_015,
+					c: [115_180, 213_084, 57_590, 115_180, 13_822, 17_277, 57_590, 230_361, 45_154]
+				},
+				{
+					ref: 'dk5',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '27111',
+					wage: 5_812_808,
+					c: [116_256, 215_074, 58_128, 116_256, 13_951, 17_438, 58_128, 232_512, 45_575]
+				},
+				{
+					ref: 'dk6',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '33151',
+					wage: 5_741_336,
+					c: [114_827, 212_429, 57_413, 114_827, 13_779, 17_224, 57_413, 229_653, 45_015]
+				},
+				{
+					ref: 'dk7',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '58200',
+					wage: 5_754_720,
+					c: [115_094, 212_925, 57_547, 115_094, 13_811, 17_264, 57_547, 230_189, 45_120]
+				}
 			]
 		),
 		floorCase(
@@ -3591,8 +4609,20 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi DKI Jakarta',
 			[
-				{ ref: 'dkx', worksite: 'Provinsi DKI Jakarta', sector: '14111', wage: 5_831_497, c: [116_630, 215_765, 58_315, 116_630, 13_996, 17_494, 58_315, 233_260, 45_722] },
-				{ ref: 'dkh', worksite: 'Provinsi DKI Jakarta', sector: '55110', wage: 5_803_839, c: [116_077, 214_742, 58_038, 116_077, 13_929, 17_412, 58_038, 232_154, 45_505] }
+				{
+					ref: 'dkx',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '14111',
+					wage: 5_831_497,
+					c: [116_630, 215_765, 58_315, 116_630, 13_996, 17_494, 58_315, 233_260, 45_722]
+				},
+				{
+					ref: 'dkh',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '55110',
+					wage: 5_803_839,
+					c: [116_077, 214_742, 58_038, 116_077, 13_929, 17_412, 58_038, 232_154, 45_505]
+				}
 			],
 			{ umsp_export_oriented: true, umsp_hotel_star: 4 }
 		),
@@ -3606,7 +4636,13 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Jawa Barat/Kabupaten Bekasi',
 			[
-				{ ref: 'kbks', worksite: 'Provinsi Jawa Barat/Kabupaten Bekasi', sector: '62019', wage: 5_938_885, c: [118_778, 219_739, 59_389, 118_778, 14_253, 17_817, 59_389, 237_555, 46_564] }
+				{
+					ref: 'kbks',
+					worksite: 'Provinsi Jawa Barat/Kabupaten Bekasi',
+					sector: '62019',
+					wage: 5_938_885,
+					c: [118_778, 219_739, 59_389, 118_778, 14_253, 17_817, 59_389, 237_555, 46_564]
+				}
 			]
 		),
 		below(
@@ -3635,11 +4671,41 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi DKI Jakarta',
 			[
-				{ ref: 'dk8', worksite: 'Provinsi DKI Jakarta', sector: '21012', wage: 5_741_201, c: [114_824, 212_424, 57_412, 114_824, 13_779, 17_224, 57_412, 229_648, 45_014] },
-				{ ref: 'dk9', worksite: 'Provinsi DKI Jakarta', sector: '64121', wage: 5_872_985, c: [117_460, 217_300, 58_730, 117_460, 14_095, 17_619, 58_730, 234_919, 46_047] },
-				{ ref: 'dka', worksite: 'Provinsi DKI Jakarta', sector: '15201', wage: 5_872_985, c: [117_460, 217_300, 58_730, 117_460, 14_095, 17_619, 58_730, 234_919, 46_047] },
-				{ ref: 'dkb', worksite: 'Provinsi DKI Jakarta', sector: '29200', wage: 5_904_114, c: [118_082, 218_452, 59_041, 118_082, 14_170, 17_712, 59_041, 236_165, 46_291] },
-				{ ref: 'dkc', worksite: 'Provinsi DKI Jakarta', sector: '30911', wage: 5_943_938, c: [118_879, 219_926, 59_439, 118_879, 14_265, 17_832, 59_439, 237_758, 46_603] }
+				{
+					ref: 'dk8',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '21012',
+					wage: 5_741_201,
+					c: [114_824, 212_424, 57_412, 114_824, 13_779, 17_224, 57_412, 229_648, 45_014]
+				},
+				{
+					ref: 'dk9',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '64121',
+					wage: 5_872_985,
+					c: [117_460, 217_300, 58_730, 117_460, 14_095, 17_619, 58_730, 234_919, 46_047]
+				},
+				{
+					ref: 'dka',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '15201',
+					wage: 5_872_985,
+					c: [117_460, 217_300, 58_730, 117_460, 14_095, 17_619, 58_730, 234_919, 46_047]
+				},
+				{
+					ref: 'dkb',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '29200',
+					wage: 5_904_114,
+					c: [118_082, 218_452, 59_041, 118_082, 14_170, 17_712, 59_041, 236_165, 46_291]
+				},
+				{
+					ref: 'dkc',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '30911',
+					wage: 5_943_938,
+					c: [118_879, 219_926, 59_439, 118_879, 14_265, 17_832, 59_439, 237_758, 46_603]
+				}
 			],
 			{ umsp_assets_over_1_trillion: true, umsp_export_oriented: true, umsp_astra_group: true }
 		),
@@ -3654,8 +4720,20 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi DKI Jakarta',
 			[
-				{ ref: 'dkf1', worksite: 'Provinsi DKI Jakarta', sector: '21012', wage: 5_729_876, c: [114_598, 212_005, 57_299, 114_598, 13_752, 17_190, 57_299, 229_195, 44_925] },
-				{ ref: 'dkf2', worksite: 'Provinsi DKI Jakarta', sector: '29200', wage: 5_729_876, c: [114_598, 212_005, 57_299, 114_598, 13_752, 17_190, 57_299, 229_195, 44_925] }
+				{
+					ref: 'dkf1',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '21012',
+					wage: 5_729_876,
+					c: [114_598, 212_005, 57_299, 114_598, 13_752, 17_190, 57_299, 229_195, 44_925]
+				},
+				{
+					ref: 'dkf2',
+					worksite: 'Provinsi DKI Jakarta',
+					sector: '29200',
+					wage: 5_729_876,
+					c: [114_598, 212_005, 57_299, 114_598, 13_752, 17_190, 57_299, 229_195, 44_925]
+				}
 			],
 			{ umsp_assets_over_1_trillion: false, umsp_export_oriented: false, umsp_astra_group: false }
 		),
@@ -3670,15 +4748,69 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Jawa Timur/Kabupaten Sidoarjo',
 			[
-				{ ref: 'sda', worksite: 'Provinsi Jawa Timur/Kabupaten Sidoarjo', sector: '46691', wage: 5_344_782, c: [106_896, 197_757, 53_448, 106_896, 12_827, 16_034, 53_448, 213_791, 13_969] },
-				{ ref: 'grs', worksite: 'Provinsi Jawa Timur/Kabupaten Gresik', sector: '55112', wage: 5_348_757, c: [106_975, 197_904, 53_488, 106_975, 12_837, 16_046, 53_488, 213_950, 13_979] },
-				{ ref: 'psr', worksite: 'Provinsi Jawa Timur/Kabupaten Pasuruan', sector: '10520', wage: 5_340_808, c: [106_816, 197_610, 53_408, 106_816, 12_818, 16_022, 53_408, 213_632, 13_958] },
-				{ ref: 'mjk', worksite: 'Provinsi Jawa Timur/Kabupaten Mojokerto', sector: '32202', wage: 5_328_887, c: [106_578, 197_169, 53_289, 106_578, 12_789, 15_987, 53_289, 213_155, 13_927] },
-				{ ref: 'tbn', worksite: 'Provinsi Jawa Timur/Kabupaten Tuban', sector: '23941', wage: 3_380_572, c: [67_611, 125_081, 33_806, 67_611, 8_113, 10_142, 33_806, 135_223, 0] },
-				{ ref: 'mdn', worksite: 'Provinsi Jawa Timur/Kabupaten Madiun', sector: '30200', wage: 2_686_460, c: [53_729, 99_399, 26_865, 53_729, 6_448, 8_059, 26_865, 107_458, 0] },
-				{ ref: 'mlg', worksite: 'Provinsi Jawa Timur/Kabupaten Malang', sector: '21012', wage: 3_938_160, c: [78_763, 145_712, 39_382, 78_763, 9_452, 11_814, 39_382, 157_526, 0] },
-				{ ref: 'bkl', worksite: 'Provinsi Jawa Timur/Kabupaten Bangkalan', sector: '30111', wage: 2_670_819, c: [53_416, 98_820, 26_708, 53_416, 6_410, 8_012, 26_708, 106_833, 0] },
-				{ ref: 'pbl', worksite: 'Provinsi Jawa Timur/Kabupaten Probolinggo', sector: '35111', wage: 3_317_559, c: [66_351, 122_750, 33_176, 66_351, 7_962, 9_953, 33_176, 132_702, 0] }
+				{
+					ref: 'sda',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Sidoarjo',
+					sector: '46691',
+					wage: 5_344_782,
+					c: [106_896, 197_757, 53_448, 106_896, 12_827, 16_034, 53_448, 213_791, 13_969]
+				},
+				{
+					ref: 'grs',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Gresik',
+					sector: '55112',
+					wage: 5_348_757,
+					c: [106_975, 197_904, 53_488, 106_975, 12_837, 16_046, 53_488, 213_950, 13_979]
+				},
+				{
+					ref: 'psr',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Pasuruan',
+					sector: '10520',
+					wage: 5_340_808,
+					c: [106_816, 197_610, 53_408, 106_816, 12_818, 16_022, 53_408, 213_632, 13_958]
+				},
+				{
+					ref: 'mjk',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Mojokerto',
+					sector: '32202',
+					wage: 5_328_887,
+					c: [106_578, 197_169, 53_289, 106_578, 12_789, 15_987, 53_289, 213_155, 13_927]
+				},
+				{
+					ref: 'tbn',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Tuban',
+					sector: '23941',
+					wage: 3_380_572,
+					c: [67_611, 125_081, 33_806, 67_611, 8_113, 10_142, 33_806, 135_223, 0]
+				},
+				{
+					ref: 'mdn',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Madiun',
+					sector: '30200',
+					wage: 2_686_460,
+					c: [53_729, 99_399, 26_865, 53_729, 6_448, 8_059, 26_865, 107_458, 0]
+				},
+				{
+					ref: 'mlg',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Malang',
+					sector: '21012',
+					wage: 3_938_160,
+					c: [78_763, 145_712, 39_382, 78_763, 9_452, 11_814, 39_382, 157_526, 0]
+				},
+				{
+					ref: 'bkl',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Bangkalan',
+					sector: '30111',
+					wage: 2_670_819,
+					c: [53_416, 98_820, 26_708, 53_416, 6_410, 8_012, 26_708, 106_833, 0]
+				},
+				{
+					ref: 'pbl',
+					worksite: 'Provinsi Jawa Timur/Kabupaten Probolinggo',
+					sector: '35111',
+					wage: 3_317_559,
+					c: [66_351, 122_750, 33_176, 66_351, 7_962, 9_953, 33_176, 132_702, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3691,14 +4823,62 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Jawa Tengah/Kabupaten Demak',
 			[
-				{ ref: 'clp', worksite: 'Provinsi Jawa Tengah/Kabupaten Cilacap', sector: '35111', wage: 2_800_916, c: [56_018, 103_634, 28_009, 56_018, 6_722, 8_403, 28_009, 112_037, 0] },
-				{ ref: 'dmk', worksite: 'Provinsi Jawa Tengah/Kabupaten Demak', sector: '25920', wage: 3_137_685, c: [62_754, 116_094, 31_377, 62_754, 7_530, 9_413, 31_377, 125_507, 0] },
-				{ ref: 'smgk', worksite: 'Provinsi Jawa Tengah/Kabupaten Semarang', sector: '08109', wage: 2_955_088, c: [59_102, 109_338, 29_551, 59_102, 7_092, 8_865, 29_551, 118_204, 0] },
-				{ ref: 'smgk2', worksite: 'Provinsi Jawa Tengah/Kabupaten Semarang', sector: '46610', wage: 2_950_088, c: [59_002, 109_153, 29_501, 59_002, 7_080, 8_850, 29_501, 118_004, 0] },
-				{ ref: 'smg3', worksite: 'Provinsi Jawa Tengah/Kota Semarang', sector: '15201', wage: 3_707_534, c: [74_151, 137_179, 37_075, 74_151, 8_898, 11_123, 37_075, 148_301, 0] },
-				{ ref: 'smg4', worksite: 'Provinsi Jawa Tengah/Kota Semarang', sector: '22220', wage: 3_703_651, c: [74_073, 137_035, 37_037, 74_073, 8_889, 11_111, 37_037, 148_146, 0] },
-				{ ref: 'tgl', worksite: 'Provinsi Jawa Tengah/Kabupaten Tegal', sector: '15201', wage: 2_495_993, c: [49_920, 92_352, 24_960, 49_920, 5_990, 7_488, 24_960, 99_840, 0] },
-				{ ref: 'tgl2', worksite: 'Provinsi Jawa Tengah/Kabupaten Tegal', sector: '31009', wage: 2_490_077, c: [49_802, 92_133, 24_901, 49_802, 5_976, 7_470, 24_901, 99_603, 0] }
+				{
+					ref: 'clp',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Cilacap',
+					sector: '35111',
+					wage: 2_800_916,
+					c: [56_018, 103_634, 28_009, 56_018, 6_722, 8_403, 28_009, 112_037, 0]
+				},
+				{
+					ref: 'dmk',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Demak',
+					sector: '25920',
+					wage: 3_137_685,
+					c: [62_754, 116_094, 31_377, 62_754, 7_530, 9_413, 31_377, 125_507, 0]
+				},
+				{
+					ref: 'smgk',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Semarang',
+					sector: '08109',
+					wage: 2_955_088,
+					c: [59_102, 109_338, 29_551, 59_102, 7_092, 8_865, 29_551, 118_204, 0]
+				},
+				{
+					ref: 'smgk2',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Semarang',
+					sector: '46610',
+					wage: 2_950_088,
+					c: [59_002, 109_153, 29_501, 59_002, 7_080, 8_850, 29_501, 118_004, 0]
+				},
+				{
+					ref: 'smg3',
+					worksite: 'Provinsi Jawa Tengah/Kota Semarang',
+					sector: '15201',
+					wage: 3_707_534,
+					c: [74_151, 137_179, 37_075, 74_151, 8_898, 11_123, 37_075, 148_301, 0]
+				},
+				{
+					ref: 'smg4',
+					worksite: 'Provinsi Jawa Tengah/Kota Semarang',
+					sector: '22220',
+					wage: 3_703_651,
+					c: [74_073, 137_035, 37_037, 74_073, 8_889, 11_111, 37_037, 148_146, 0]
+				},
+				{
+					ref: 'tgl',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Tegal',
+					sector: '15201',
+					wage: 2_495_993,
+					c: [49_920, 92_352, 24_960, 49_920, 5_990, 7_488, 24_960, 99_840, 0]
+				},
+				{
+					ref: 'tgl2',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Tegal',
+					sector: '31009',
+					wage: 2_490_077,
+					c: [49_802, 92_133, 24_901, 49_802, 5_976, 7_470, 24_901, 99_603, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3711,12 +4891,48 @@ function floorCases(): ProbeCase[] {
 			'2026-02',
 			'Provinsi Banten/Kabupaten Serang',
 			[
-				{ ref: 'srg1', worksite: 'Provinsi Banten/Kabupaten Serang', sector: '20111', wage: 5_345_521.19, c: [106_910, 197_784, 53_455, 106_910, 12_829, 16_037, 53_455, 213_821, 13_971] },
-				{ ref: 'srg2', worksite: 'Provinsi Banten/Kabupaten Serang', sector: '10130', wage: 5_290_521.19, c: [105_810, 195_749, 52_905, 105_810, 12_697, 15_872, 52_905, 211_621, 13_827] },
-				{ ref: 'clg2', worksite: 'Provinsi Banten/Kota Cilegon', sector: '10415', wage: 5_566_663.21, c: [111_333, 205_967, 55_667, 111_333, 13_360, 16_700, 55_667, 222_667, 29_097] },
-				{ ref: 'clg3', worksite: 'Provinsi Banten/Kota Cilegon', sector: '68130', wage: 5_499_553.85, c: [109_991, 203_483, 54_996, 109_991, 13_199, 16_499, 54_996, 219_982, 28_746] },
-				{ ref: 'tgs1', worksite: 'Provinsi Banten/Kota Tangerang Selatan', sector: '46631', wage: 5_297_813, c: [105_956, 196_019, 52_978, 105_956, 12_715, 15_893, 52_978, 211_913, 13_846] },
-				{ ref: 'tgs2', worksite: 'Provinsi Banten/Kota Tangerang Selatan', sector: '47111', wage: 5_272_842, c: [105_457, 195_095, 52_728, 105_457, 12_655, 15_819, 52_728, 210_914, 13_781] }
+				{
+					ref: 'srg1',
+					worksite: 'Provinsi Banten/Kabupaten Serang',
+					sector: '20111',
+					wage: 5_345_521.19,
+					c: [106_910, 197_784, 53_455, 106_910, 12_829, 16_037, 53_455, 213_821, 13_971]
+				},
+				{
+					ref: 'srg2',
+					worksite: 'Provinsi Banten/Kabupaten Serang',
+					sector: '10130',
+					wage: 5_290_521.19,
+					c: [105_810, 195_749, 52_905, 105_810, 12_697, 15_872, 52_905, 211_621, 13_827]
+				},
+				{
+					ref: 'clg2',
+					worksite: 'Provinsi Banten/Kota Cilegon',
+					sector: '10415',
+					wage: 5_566_663.21,
+					c: [111_333, 205_967, 55_667, 111_333, 13_360, 16_700, 55_667, 222_667, 29_097]
+				},
+				{
+					ref: 'clg3',
+					worksite: 'Provinsi Banten/Kota Cilegon',
+					sector: '68130',
+					wage: 5_499_553.85,
+					c: [109_991, 203_483, 54_996, 109_991, 13_199, 16_499, 54_996, 219_982, 28_746]
+				},
+				{
+					ref: 'tgs1',
+					worksite: 'Provinsi Banten/Kota Tangerang Selatan',
+					sector: '46631',
+					wage: 5_297_813,
+					c: [105_956, 196_019, 52_978, 105_956, 12_715, 15_893, 52_978, 211_913, 13_846]
+				},
+				{
+					ref: 'tgs2',
+					worksite: 'Provinsi Banten/Kota Tangerang Selatan',
+					sector: '47111',
+					wage: 5_272_842,
+					c: [105_457, 195_095, 52_728, 105_457, 12_655, 15_819, 52_728, 210_914, 13_781]
+				}
 			]
 		),
 		floorCase(
@@ -3729,10 +4945,34 @@ function floorCases(): ProbeCase[] {
 			'2025-12',
 			'Provinsi Bali/Kabupaten Jembrana',
 			[
-				{ ref: 'jbr', worksite: 'Provinsi Bali/Kabupaten Jembrana', sector: '62019', wage: 2_996_561, c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0] },
-				{ ref: 'kas', worksite: 'Provinsi Bali/Kabupaten Karangasem', sector: '62019', wage: 2_996_561, c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0] },
-				{ ref: 'klk', worksite: 'Provinsi Bali/Kabupaten Klungkung', sector: '62019', wage: 2_996_561, c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0] },
-				{ ref: 'bgl25', worksite: 'Provinsi Bali/Kabupaten Bangli', sector: '62019', wage: 2_996_561, c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0] }
+				{
+					ref: 'jbr',
+					worksite: 'Provinsi Bali/Kabupaten Jembrana',
+					sector: '62019',
+					wage: 2_996_561,
+					c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0]
+				},
+				{
+					ref: 'kas',
+					worksite: 'Provinsi Bali/Kabupaten Karangasem',
+					sector: '62019',
+					wage: 2_996_561,
+					c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0]
+				},
+				{
+					ref: 'klk',
+					worksite: 'Provinsi Bali/Kabupaten Klungkung',
+					sector: '62019',
+					wage: 2_996_561,
+					c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0]
+				},
+				{
+					ref: 'bgl25',
+					worksite: 'Provinsi Bali/Kabupaten Bangli',
+					sector: '62019',
+					wage: 2_996_561,
+					c: [59_931, 110_873, 29_966, 59_931, 7_192, 8_990, 29_966, 119_862, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3746,10 +4986,34 @@ function floorCases(): ProbeCase[] {
 			'2025-12',
 			'Provinsi Bali/Kabupaten Klungkung',
 			[
-				{ ref: 'klk2', worksite: 'Provinsi Bali/Kabupaten Klungkung', sector: '55130', wage: 3_052_834, c: [61_057, 112_955, 30_528, 61_057, 7_327, 9_159, 30_528, 122_113, 0] },
-				{ ref: 'kas2', worksite: 'Provinsi Bali/Kabupaten Karangasem', sector: '55900', wage: 3_052_834, c: [61_057, 112_955, 30_528, 61_057, 7_327, 9_159, 30_528, 122_113, 0] },
-				{ ref: 'jbr2', worksite: 'Provinsi Bali/Kabupaten Jembrana', sector: '56301', wage: 3_052_834, c: [61_057, 112_955, 30_528, 61_057, 7_327, 9_159, 30_528, 122_113, 0] },
-				{ ref: 'dps2', worksite: 'Provinsi Bali/Kota Denpasar', sector: '56101', wage: 3_298_116.5, c: [65_962, 122_030, 32_981, 65_962, 7_915, 9_894, 32_981, 131_925, 0] }
+				{
+					ref: 'klk2',
+					worksite: 'Provinsi Bali/Kabupaten Klungkung',
+					sector: '55130',
+					wage: 3_052_834,
+					c: [61_057, 112_955, 30_528, 61_057, 7_327, 9_159, 30_528, 122_113, 0]
+				},
+				{
+					ref: 'kas2',
+					worksite: 'Provinsi Bali/Kabupaten Karangasem',
+					sector: '55900',
+					wage: 3_052_834,
+					c: [61_057, 112_955, 30_528, 61_057, 7_327, 9_159, 30_528, 122_113, 0]
+				},
+				{
+					ref: 'jbr2',
+					worksite: 'Provinsi Bali/Kabupaten Jembrana',
+					sector: '56301',
+					wage: 3_052_834,
+					c: [61_057, 112_955, 30_528, 61_057, 7_327, 9_159, 30_528, 122_113, 0]
+				},
+				{
+					ref: 'dps2',
+					worksite: 'Provinsi Bali/Kota Denpasar',
+					sector: '56101',
+					wage: 3_298_116.5,
+					c: [65_962, 122_030, 32_981, 65_962, 7_915, 9_894, 32_981, 131_925, 0]
+				}
 			]
 		),
 		floorCase(
@@ -3763,8 +5027,20 @@ function floorCases(): ProbeCase[] {
 			'2026-01',
 			'Provinsi Bali/Kabupaten Badung',
 			[
-				{ ref: 'bdg4j', worksite: 'Provinsi Bali/Kabupaten Badung', sector: '55110', wage: 3_828_912.6, c: [76_578, 141_670, 38_289, 76_578, 9_189, 11_487, 38_289, 153_157, 0] },
-				{ ref: 'bgl4j', worksite: 'Provinsi Bali/Kabupaten Bangli', sector: '55110', wage: 3_267_693, c: [65_354, 120_905, 32_677, 65_354, 7_842, 9_803, 32_677, 130_708, 0] }
+				{
+					ref: 'bdg4j',
+					worksite: 'Provinsi Bali/Kabupaten Badung',
+					sector: '55110',
+					wage: 3_828_912.6,
+					c: [76_578, 141_670, 38_289, 76_578, 9_189, 11_487, 38_289, 153_157, 0]
+				},
+				{
+					ref: 'bgl4j',
+					worksite: 'Provinsi Bali/Kabupaten Bangli',
+					sector: '55110',
+					wage: 3_267_693,
+					c: [65_354, 120_905, 32_677, 65_354, 7_842, 9_803, 32_677, 130_708, 0]
+				}
 			],
 			{ umsp_hotel_star: 4 }
 		),
@@ -3778,7 +5054,13 @@ function floorCases(): ProbeCase[] {
 			'2025-12',
 			'Provinsi Jawa Tengah/Kabupaten Jepara',
 			[
-				{ ref: 'jpr', worksite: 'Provinsi Jawa Tengah/Kabupaten Jepara', sector: '29300', wage: 2_701_582, c: [54_032, 99_959, 27_016, 54_032, 6_484, 8_105, 27_016, 108_063, 0] }
+				{
+					ref: 'jpr',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Jepara',
+					sector: '29300',
+					wage: 2_701_582,
+					c: [54_032, 99_959, 27_016, 54_032, 6_484, 8_105, 27_016, 108_063, 0]
+				}
 			],
 			{ umsp_large_business: true }
 		),
@@ -3792,10 +5074,16 @@ function floorCases(): ProbeCase[] {
 			'2025-12',
 			'Provinsi Jawa Tengah/Kabupaten Jepara',
 			[
-				{ ref: 'jpr2', worksite: 'Provinsi Jawa Tengah/Kabupaten Jepara', sector: '29300', wage: 2_610_224, c: [52_204, 96_578, 26_102, 52_204, 6_265, 7_831, 26_102, 104_409, 0] }
+				{
+					ref: 'jpr2',
+					worksite: 'Provinsi Jawa Tengah/Kabupaten Jepara',
+					sector: '29300',
+					wage: 2_610_224,
+					c: [52_204, 96_578, 26_102, 52_204, 6_265, 7_831, 26_102, 104_409, 0]
+				}
 			],
 			{ umsp_large_business: false }
-		),
+		)
 	].map((probe) =>
 		probe.id === 'ID-36-1'
 			? {
@@ -3938,41 +5226,42 @@ const round10: ProbeCase[] = [
 			['ID-69-1', '1995-05-10', true],
 			['ID-69-2', '1970-06-15', false]
 		] as const
-	).map(
-		([id, dob, refusedRun]): ProbeCase => ({
-			id,
-			profile: 'ID',
-			description: refusedRun
-				? 'A citizen aged 30 recorded NOT_REGISTERED for JKP, February 2026: JKP participation is required for an Indonesian worker under 54, so the run is refused rather than treating the worker as exempt.'
-				: 'A citizen aged 55 (born 15 June 1970) recorded NOT_REGISTERED for JKP, February 2026: a worker already 54 at first registration is outside JKP, so the run commits on the ID-14-1 figures.',
-			citation: [
-				'PP 37/2021 art.4 as amended by PP 6/2025 art.I(1): JKP covers an Indonesian worker under 54 at registration (https://jdih.kemnaker.go.id/asset/data_puu/2025pp006.pdf)',
-				'JKP has no payslip charge beyond the full JKK bill: PP 6/2025 art.I(2) (tracker ID-18)',
-				...(refusedRun ? [] : [SRC.TER, 'ID-14-1 figures: net 9,338,650'])
-			],
-			company: company(),
-			inputs: [
-				...week('2025-06-02'),
-				...worker({ ref: 'jkp', wage: 10_000_000, dob }),
-				{
-					collection: 'employment_statutory_facts',
-					values: {
-						employee_id: '@jkp',
-						statutory_contribution_id: '@law:statutory_contributions:JKP',
-						effective_range: { from: '2025-06-02', to: null },
-						status: { kind: 'NOT_REGISTERED', reason: 'The employer has not registered the worker for JKP' }
+	).map(([id, dob, refusedRun]): ProbeCase => ({
+		id,
+		profile: 'ID',
+		description: refusedRun
+			? 'A citizen aged 30 recorded NOT_REGISTERED for JKP, February 2026: JKP participation is required for an Indonesian worker under 54, so the run is refused rather than treating the worker as exempt.'
+			: 'A citizen aged 55 (born 15 June 1970) recorded NOT_REGISTERED for JKP, February 2026: a worker already 54 at first registration is outside JKP, so the run commits on the ID-14-1 figures.',
+		citation: [
+			'PP 37/2021 art.4 as amended by PP 6/2025 art.I(1): JKP covers an Indonesian worker under 54 at registration (https://jdih.kemnaker.go.id/asset/data_puu/2025pp006.pdf)',
+			'JKP has no payslip charge beyond the full JKK bill: PP 6/2025 art.I(2) (tracker ID-18)',
+			...(refusedRun ? [] : [SRC.TER, 'ID-14-1 figures: net 9,338,650'])
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({ ref: 'jkp', wage: 10_000_000, dob }),
+			{
+				collection: 'employment_statutory_facts',
+				values: {
+					employee_id: '@jkp',
+					statutory_contribution_id: '@law:statutory_contributions:JKP',
+					effective_range: { from: '2025-06-02', to: null },
+					status: {
+						kind: 'NOT_REGISTERED',
+						reason: 'The employer has not registered the worker for JKP'
 					}
 				}
-			],
-			period: '2026-02',
-			...(refusedRun
-				? {
-						refused: 'JKP cannot be marked not registered for an Indonesian worker under 54',
-						expected: []
-					}
-				: { expected: [{ employment: 'jkp_job', lines: TEN_MILLION }] })
-		})
-	),
+			}
+		],
+		period: '2026-02',
+		...(refusedRun
+			? {
+					refused: 'JKP cannot be marked not registered for an Indonesian worker under 54',
+					expected: []
+				}
+			: { expected: [{ employment: 'jkp_job', lines: TEN_MILLION }] })
+	})),
 	{
 		id: 'ID-16-5',
 		profile: 'ID',
@@ -4025,7 +5314,10 @@ const round10: ProbeCase[] = [
 		inputs: [
 			...week('2025-06-02'),
 			...worker({ ref: 'baru', wage: 10_000_000, hire: '2026-02-16', religion: 'ISLAM' }),
-			{ ...adhoc('baru', 'THR', '2026-03-10'), refused: 'THR is not offered to .*: its eligibility rule does not hold' }
+			{
+				...adhoc('baru', 'THR', '2026-03-10'),
+				refused: 'THR is not offered to .*: its eligibility rule does not hold'
+			}
 		],
 		period: '2026-03',
 		expected: [{ employment: 'baru_job', lines: TEN_MILLION }]
@@ -4047,7 +5339,8 @@ const round10: ProbeCase[] = [
 			adhoc('dua', 'THR', '2026-03-10'),
 			{
 				...adhoc('dua', 'THR', '2026-03-12'),
-				refused: 'THR entitlement exceeded for .*: 12000000(\\.00)? requested against 6000000(\\.00)? allowed'
+				refused:
+					'THR entitlement exceeded for .*: 12000000(\\.00)? requested against 6000000(\\.00)? allowed'
 			}
 		],
 		period: '2026-03',
@@ -4132,7 +5425,7 @@ const round10: ProbeCase[] = [
 				wage: 10_000_000,
 				hire: '2026-01-05',
 				exit: '2026-01-23',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: departure('EFFICIENCY_PREVENT_LOSS', {
 					separation_wage_basis: 'MONTHLY',
 					micro_small_enterprise: true,
@@ -4198,7 +5491,9 @@ const round10: ProbeCase[] = [
 			{
 				employment: 'dtp1_job',
 				lines: Object.fromEntries(
-					Object.entries({ ...TEN_MILLION, net: 9_600_000 }).filter(([key]) => key !== 'PPH21.employee')
+					Object.entries({ ...TEN_MILLION, net: 9_600_000 }).filter(
+						([key]) => key !== 'PPH21.employee'
+					)
 				)
 			},
 			{ employment: 'dtp2_job', lines: { ...TEN_MILLION, gross: 10_000_001, net: 9_338_651 } }
@@ -4217,7 +5512,10 @@ const round10: ProbeCase[] = [
 		company: company(),
 		inputs: [
 			...week('2025-06-02'),
-			...outsider('katering', 20_000_000, { recipient_class: 'NON_EMPLOYEE', service_kind: 'CATERING' }),
+			...outsider('katering', 20_000_000, {
+				recipient_class: 'NON_EMPLOYEE',
+				service_kind: 'CATERING'
+			}),
 			...outsider('tanpanpwp', 20_000_000, {
 				recipient_class: 'NON_EMPLOYEE',
 				service_kind: 'OTHER',
@@ -4382,8 +5680,14 @@ const round11: ProbeCase[] = [
 		inputs: [
 			...sixDayWeek('2025-06-02'),
 			...worker({ ref: 'enam', wage: 8_650_000 }),
-			ordered(punch('enam', '2026-02-02', ['08:00', '12:00'], ['13:00', '16:00'], ['16:30', '19:30']), 3),
-			ordered(punch('enam', '2026-02-08', ['08:00', '12:00'], ['12:30', '16:30'], ['17:00', '20:00']), 11)
+			ordered(
+				punch('enam', '2026-02-02', ['08:00', '12:00'], ['13:00', '16:00'], ['16:30', '19:30']),
+				3
+			),
+			ordered(
+				punch('enam', '2026-02-08', ['08:00', '12:00'], ['12:30', '16:30'], ['17:00', '20:00']),
+				11
+			)
 		],
 		period: '2026-02',
 		expected: [
@@ -4416,14 +5720,29 @@ const round11: ProbeCase[] = [
 			...worker({ ref: 'lembur', wage: 8_650_000 }),
 			{
 				...ordered(
-					punch('lembur', '2026-02-02', ['09:00', '12:00'], ['12:30', '16:30'], ['17:00', '21:00'], ['21:30', '23:30']),
+					punch(
+						'lembur',
+						'2026-02-02',
+						['09:00', '12:00'],
+						['12:30', '16:30'],
+						['17:00', '21:00'],
+						['21:30', '23:30']
+					),
 					5
 				),
-				refused: 'Overtime for .* is refused: .*Approved overtime may not exceed the statutory limit'
+				refused:
+					'Overtime for .* is refused: .*Approved overtime may not exceed the statutory limit'
 			},
 			(() => {
 				const day = ordered(
-					punch('lembur', '2026-02-02', ['09:00', '12:00'], ['12:30', '16:30'], ['17:00', '21:00'], ['21:30', '23:30']),
+					punch(
+						'lembur',
+						'2026-02-02',
+						['09:00', '12:00'],
+						['12:30', '16:30'],
+						['17:00', '21:00'],
+						['21:30', '23:30']
+					),
 					4
 				);
 				return { ...day, values: { ...day.values, incentive_hours: 1 } };
@@ -4518,7 +5837,10 @@ const round11: ProbeCase[] = [
 			'December is the joiner’s last tax period: 10,000,000 + 12,000 + 30,000 + 400,000 = 10,442,000 − biaya jabatan 500,000 (one month) − JHT 200,000 − JP 100,000 − PTKP 54,000,000 < 0 → PPh 21 0; net 10,000,000 − 200,000 − 100,000 − 100,000 = 9,600,000'
 		],
 		company: company({ facts: { jkk_padat_karya: true } }),
-		inputs: [...week('2025-06-02'), ...worker({ ref: 'padat25', wage: 10_000_000, hire: '2025-12-01' })],
+		inputs: [
+			...week('2025-06-02'),
+			...worker({ ref: 'padat25', wage: 10_000_000, hire: '2025-12-01' })
+		],
 		period: '2025-12',
 		expected: [
 			{
@@ -4542,41 +5864,44 @@ const round11: ProbeCase[] = [
 			['ID-69-3', '1971-06-15', false],
 			['ID-69-4', '1972-06-15', true]
 		] as const
-	).map(
-		([id, dob, refusedRun]): ProbeCase => ({
-			id,
-			profile: 'ID',
-			description: refusedRun
-				? 'A citizen aged 53 (born 15 June 1972) recorded NOT_REGISTERED for JKP, February 2026: still under 54, so JKP participation is required and the run is refused.'
-				: 'A citizen aged exactly 54 (born 15 June 1971) recorded NOT_REGISTERED for JKP, February 2026: a worker who has reached 54 is outside JKP, so the run commits on the ID-14-1 figures.',
-			citation: [
-				'PP 37/2021 art.4 as amended by PP 6/2025 art.I(1): JKP covers an Indonesian worker “belum mencapai usia 54 (lima puluh empat) tahun” at registration (https://jdih.kemnaker.go.id/asset/data_puu/2025pp006.pdf)',
-				'JKP has no payslip charge beyond the full JKK bill: PP 6/2025 art.I(2) (tracker ID-18)',
-				...(refusedRun ? [] : [SRC.TER, 'ID-14-1 figures (JP applies below pension age 59): net 9,338,650'])
-			],
-			company: company(),
-			inputs: [
-				...week('2025-06-02'),
-				...worker({ ref: 'jkp54', wage: 10_000_000, dob }),
-				{
-					collection: 'employment_statutory_facts',
-					values: {
-						employee_id: '@jkp54',
-						statutory_contribution_id: '@law:statutory_contributions:JKP',
-						effective_range: { from: '2025-06-02', to: null },
-						status: { kind: 'NOT_REGISTERED', reason: 'The employer has not registered the worker for JKP' }
+	).map(([id, dob, refusedRun]): ProbeCase => ({
+		id,
+		profile: 'ID',
+		description: refusedRun
+			? 'A citizen aged 53 (born 15 June 1972) recorded NOT_REGISTERED for JKP, February 2026: still under 54, so JKP participation is required and the run is refused.'
+			: 'A citizen aged exactly 54 (born 15 June 1971) recorded NOT_REGISTERED for JKP, February 2026: a worker who has reached 54 is outside JKP, so the run commits on the ID-14-1 figures.',
+		citation: [
+			'PP 37/2021 art.4 as amended by PP 6/2025 art.I(1): JKP covers an Indonesian worker “belum mencapai usia 54 (lima puluh empat) tahun” at registration (https://jdih.kemnaker.go.id/asset/data_puu/2025pp006.pdf)',
+			'JKP has no payslip charge beyond the full JKK bill: PP 6/2025 art.I(2) (tracker ID-18)',
+			...(refusedRun
+				? []
+				: [SRC.TER, 'ID-14-1 figures (JP applies below pension age 59): net 9,338,650'])
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({ ref: 'jkp54', wage: 10_000_000, dob }),
+			{
+				collection: 'employment_statutory_facts',
+				values: {
+					employee_id: '@jkp54',
+					statutory_contribution_id: '@law:statutory_contributions:JKP',
+					effective_range: { from: '2025-06-02', to: null },
+					status: {
+						kind: 'NOT_REGISTERED',
+						reason: 'The employer has not registered the worker for JKP'
 					}
 				}
-			],
-			period: '2026-02',
-			...(refusedRun
-				? {
-						refused: 'JKP cannot be marked not registered for an Indonesian worker under 54',
-						expected: []
-					}
-				: { expected: [{ employment: 'jkp54_job', lines: TEN_MILLION }] })
-		})
-	),
+			}
+		],
+		period: '2026-02',
+		...(refusedRun
+			? {
+					refused: 'JKP cannot be marked not registered for an Indonesian worker under 54',
+					expected: []
+				}
+			: { expected: [{ employment: 'jkp54_job', lines: TEN_MILLION }] })
+	})),
 	...(
 		[
 			['ID-175-2', 'with no prior-work review on file', null, false],
@@ -4593,19 +5918,17 @@ const round11: ProbeCase[] = [
 				true
 			]
 		] as const
-	).map(
-		([id, what, facts, evidence]): ProbeCase => ({
-			id,
-			profile: 'ID',
-			description: `The ID-175-1 foreign worker (five-month PKWT from 1 February 2026, non-resident, Rp20,000,000) ${what}: the short contract alone does not exclude Kesehatan, so the run is refused.`,
-			citation: [KES_FOREIGN],
-			company: company(),
-			inputs: [...week('2025-06-02'), ...shortForeigner(`asing${id.slice(-1)}`, facts, evidence)],
-			period: '2026-02',
-			refused: KES_FOREIGN_REFUSAL,
-			expected: []
-		})
-	),
+	).map(([id, what, facts, evidence]): ProbeCase => ({
+		id,
+		profile: 'ID',
+		description: `The ID-175-1 foreign worker (five-month PKWT from 1 February 2026, non-resident, Rp20,000,000) ${what}: the short contract alone does not exclude Kesehatan, so the run is refused.`,
+		citation: [KES_FOREIGN],
+		company: company(),
+		inputs: [...week('2025-06-02'), ...shortForeigner(`asing${id.slice(-1)}`, facts, evidence)],
+		period: '2026-02',
+		refused: KES_FOREIGN_REFUSAL,
+		expected: []
+	})),
 	{
 		id: 'ID-13-4',
 		profile: 'ID',
@@ -4630,7 +5953,7 @@ const round11: ProbeCase[] = [
 				hire: '2025-12-01',
 				exit: '2026-01-30',
 				religion: 'KONGHUCU',
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: departure('VOLUNTARY_RESIGNATION', {
 					thr_holiday_date: '2026-02-17',
 					separation_pay_amount: 2_000_000,
@@ -4646,7 +5969,7 @@ const round11: ProbeCase[] = [
 				hire: '2025-12-01',
 				exit: '2026-01-30',
 				religion: 'KONGHUCU',
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				exit_facts: departure(null, { thr_holiday_date: '2026-02-17' })
 			}),
 			{
@@ -4698,21 +6021,19 @@ const round11: ProbeCase[] = [
 					['2026-03-21', 'Idul Fitri 1447 H', 'SKB 2026 (probe)'],
 					['2026-12-22', 'Idul Fitri (synthetic second occurrence)', 'synthetic (probe)']
 				] as const
-			).map(
-				([date, name, source]): ProbeInput => ({
-					collection: 'jurisdiction_holidays',
-					values: {
-						company_id: '@company',
-						date,
-						name,
-						kind: 'PUBLIC_HOLIDAY',
-						given_to: 'EVERYONE',
-						religion: 'ISLAM',
-						source,
-						published_at: '2026-01-02T00:00:00.000Z'
-					}
-				})
-			),
+			).map(([date, name, source]): ProbeInput => ({
+				collection: 'jurisdiction_holidays',
+				values: {
+					company_id: '@company',
+					date,
+					name,
+					kind: 'PUBLIC_HOLIDAY',
+					given_to: 'EVERYONE',
+					religion: 'ISLAM',
+					source,
+					published_at: '2026-01-02T00:00:00.000Z'
+				}
+			})),
 			...worker({ ref: 'fitri2', wage: 12_000_000, hire: '2025-09-01', religion: 'ISLAM' }),
 			adhoc('fitri2', 'THR', '2026-03-10'),
 			adhoc('fitri2', 'THR', '2026-03-11'),
@@ -4743,67 +6064,65 @@ const round11: ProbeCase[] = [
 			['ID-06-4', 9_000_000, true],
 			['ID-06-5', 3_000_000, false]
 		] as const
-	).map(
-		([id, deduction, refusedRun]): ProbeCase => ({
-			id,
-			profile: 'ID',
-			description: refusedRun
-				? 'The ID-28-1 leaver (hired 5 January 2026, Rp10,000,000, let go on 23 January for efficiency to prevent loss) with a Rp9,000,000 art.63 deduction from the final pay: above half of the final payment however it is read (half of the whole 16,129,032.26 is 8,064,516.13; half of the wage 3,064,516.13), so the run is refused.'
-				: 'The same leaver with a Rp3,000,000 art.63 deduction from the final pay: within half of the final wage payment (3,064,516.13), so it is taken and the pesangon is paid.',
-			citation: [
-				'PP 36/2021 art.65: the art.63(1) deductions total at most 50% of each wage payment, the final one included (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf; tracker ID-06)',
-				...(refusedRun
-					? []
-					: [
-							SRC.PESANGON,
-							SRC.PRORATE,
-							SRC.LAST,
-							'ID-28-1 figures: net 15,806,452.26 − 3,000,000 = 12,806,452.26'
-						])
-			],
-			company: company(),
-			inputs: [
-				...week('2025-06-02'),
-				...worker({
-					ref: 'akhir',
-					wage: 10_000_000,
-					hire: '2026-01-05',
-					exit: '2026-01-23',
-					exit_reason: 'REDUNDANCY',
-					exit_facts: departure('EFFICIENCY_PREVENT_LOSS', { separation_wage_basis: 'MONTHLY' })
-				}),
-				adhoc('akhir', 'PESANGON', '2026-01-23'),
-				adhoc('akhir', 'DEDUCTION', '2026-01-20', deduction)
-			],
-			period: '2026-01',
+	).map(([id, deduction, refusedRun]): ProbeCase => ({
+		id,
+		profile: 'ID',
+		description: refusedRun
+			? 'The ID-28-1 leaver (hired 5 January 2026, Rp10,000,000, let go on 23 January for efficiency to prevent loss) with a Rp9,000,000 art.63 deduction from the final pay: above half of the final payment however it is read (half of the whole 16,129,032.26 is 8,064,516.13; half of the wage 3,064,516.13), so the run is refused.'
+			: 'The same leaver with a Rp3,000,000 art.63 deduction from the final pay: within half of the final wage payment (3,064,516.13), so it is taken and the pesangon is paid.',
+		citation: [
+			'PP 36/2021 art.65: the art.63(1) deductions total at most 50% of each wage payment, the final one included (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf; tracker ID-06)',
 			...(refusedRun
-				? {
-						refused: 'DEDUCTION_CEILING_EXCEEDED: P-ID-akhir: deductions exceed the lawful ceiling',
-						expected: []
-					}
-				: {
-						expected: [
-							{
-								employment: 'akhir_job',
-								lines: {
-									PESANGON: 10_000_000,
-									DEDUCTION: 3_000_000,
-									net: 12_806_452.26,
-									BASIC: 6_129_032.26,
-									'JHT.employee': 200_000,
-									'JHT.employer': 370_000,
-									'JP.employee': 61_290,
-									'JP.employer': 122_581,
-									'JKK.employer': 24_000,
-									'JKM.employer': 30_000,
-									'KESEHATAN.employee': 61_290,
-									'KESEHATAN.employer': 245_161
-								}
+				? []
+				: [
+						SRC.PESANGON,
+						SRC.PRORATE,
+						SRC.LAST,
+						'ID-28-1 figures: net 15,806,452.26 − 3,000,000 = 12,806,452.26'
+					])
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({
+				ref: 'akhir',
+				wage: 10_000_000,
+				hire: '2026-01-05',
+				exit: '2026-01-23',
+				exit_ground: 'REDUNDANCY',
+				exit_facts: departure('EFFICIENCY_PREVENT_LOSS', { separation_wage_basis: 'MONTHLY' })
+			}),
+			adhoc('akhir', 'PESANGON', '2026-01-23'),
+			adhoc('akhir', 'DEDUCTION', '2026-01-20', deduction)
+		],
+		period: '2026-01',
+		...(refusedRun
+			? {
+					refused: 'DEDUCTION_CEILING_EXCEEDED: P-ID-akhir: deductions exceed the lawful ceiling',
+					expected: []
+				}
+			: {
+					expected: [
+						{
+							employment: 'akhir_job',
+							lines: {
+								PESANGON: 10_000_000,
+								DEDUCTION: 3_000_000,
+								net: 12_806_452.26,
+								BASIC: 6_129_032.26,
+								'JHT.employee': 200_000,
+								'JHT.employer': 370_000,
+								'JP.employee': 61_290,
+								'JP.employer': 122_581,
+								'JKK.employer': 24_000,
+								'JKM.employer': 30_000,
+								'KESEHATAN.employee': 61_290,
+								'KESEHATAN.employer': 245_161
 							}
-						]
-					})
-		})
-	),
+						}
+					]
+				})
+	})),
 	unresolved(
 		'ID-99-5',
 		'A workplace recorded as "Provinsi Bali/Kota Singaraja" (Singaraja is a town in Kabupaten Buleleng, not a city or regency with a wage decision), February 2026: an unrecognised locality never inherits the provincial UMP, so the run is refused.',

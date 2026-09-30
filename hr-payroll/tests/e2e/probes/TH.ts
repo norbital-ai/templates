@@ -98,7 +98,7 @@ type Person = {
 	wage: number;
 	hire?: string;
 	exit?: string;
-	exit_reason?: string;
+	exit_ground?: string;
 	exit_facts?: Row;
 	dob?: string;
 	gender?: 'MALE' | 'FEMALE';
@@ -155,7 +155,7 @@ const person = (p: Person): ProbeInput[] => {
 				company_id: '@company',
 				employee_number: `P-TH-${p.ref}`,
 				effective_range: { from: hire, to: p.exit ?? null },
-				...(p.exit_reason == null ? {} : { exit_reason: p.exit_reason }),
+				...(p.exit_ground == null ? {} : { exit_ground: p.exit_ground }),
 				...(p.exit_facts == null ? {} : { exit_facts: p.exit_facts })
 			}
 		},
@@ -797,8 +797,10 @@ register(
 				] as const
 			).map(([from, to]) =>
 				timeOff('malee', 'MATERNITY_LEAVE', from, to, {
-					event_kind: 'BIRTH',
-					event_date: '2026-01-15'
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2026-01-15'
+					}
 				})
 			)
 		],
@@ -821,9 +823,11 @@ register(
 		inputs: [
 			...person({ ref: 'arthit', wage: 30_000 }),
 			timeOff('arthit', 'CHILD_BIRTH_LEAVE', '2026-02-09', '2026-02-13', {
-				event_kind: 'BIRTH',
-				event_relationship: 'SPOUSE',
-				event_date: '2026-02-06'
+				facts: {
+					event_kind: 'BIRTH',
+					event_relationship: 'SPOUSE',
+					event_date: '2026-02-06'
+				}
 			})
 		],
 		period: '2026-02',
@@ -1655,7 +1659,7 @@ register(
 				wage: 150_000,
 				hire: '2006-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: SERVED
 			}),
 			adhoc('sev20', 'SEVERANCE_PAY', 0, EXIT)
@@ -1692,7 +1696,7 @@ register(
 				dob: '1966-01-10',
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RETIREMENT'
+				exit_ground: 'RETIREMENT'
 			}),
 			adhoc('retire', 'SEVERANCE_PAY', 0, EXIT)
 		],
@@ -1819,7 +1823,7 @@ register(
 				wage: 60_000,
 				hire: '2015-01-01',
 				exit: '2026-03-15',
-				exit_reason: 'RETRENCHMENT'
+				exit_ground: 'RETRENCHMENT'
 			}),
 			encashOnExit('leaver', '2026-03-15', 1),
 			adhoc('leaver', 'SEVERANCE_PAY', 0, '2026-03-15'),
@@ -1859,7 +1863,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: SERVED
 			}),
 			encashOnExit('encash', EXIT, 1),
@@ -1905,7 +1909,7 @@ register(
 				wage: 30_000,
 				hire,
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: SERVED
 			}),
 			adhoc(ref, 'SEVERANCE_PAY', 0, EXIT)
@@ -1948,7 +1952,7 @@ register(
 				wage: 30_000,
 				hire: '2020-04-01',
 				exit: EXIT,
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				exit_facts: { fixed_term_project_exempt: false }
 			}),
 			adhoc('expiry', 'SEVERANCE_PAY', 0, EXIT)
@@ -1983,7 +1987,7 @@ register(
 				wage: 30_000,
 				hire: '2025-12-03',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: SERVED
 			}),
 			...person({
@@ -1991,7 +1995,7 @@ register(
 				wage: 30_000,
 				hire: '2024-04-01',
 				exit: EXIT,
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				exit_facts: { fixed_term_project_exempt: true }
 			})
 		],
@@ -2016,7 +2020,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT'
+				exit_ground: 'RETRENCHMENT'
 			}),
 			adhoc('lieu', 'SEVERANCE_PAY', 0, EXIT),
 			adhoc('lieu', 'NOTICE_IN_LIEU', 0, EXIT)
@@ -2052,7 +2056,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'DISMISSAL',
+				exit_ground: 'DISMISSAL',
 				exit_facts: { ...SERVED, dismissed_for_cause: true }
 			}),
 			...person({
@@ -2060,7 +2064,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'DISMISSAL',
+				exit_ground: 'DISMISSAL',
 				exit_facts: { ...SERVED, dismissed_for_cause: false }
 			}),
 			adhoc('nocause', 'SEVERANCE_PAY', 0, EXIT)
@@ -2096,7 +2100,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: { relocation_objection: true }
 			}),
 			...person({
@@ -2104,7 +2108,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: { relocation_objection: true, relocation_notice_posted: true }
 			}),
 			adhoc('reloc', 'SEVERANCE_PAY', 0, EXIT),
@@ -2154,7 +2158,7 @@ register(
 				wage: 30_000,
 				hire: '2016-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: { technology_restructuring: true }
 			}),
 			...person({
@@ -2163,7 +2167,7 @@ register(
 				dob: '1970-03-01',
 				hire: '1996-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: { technology_restructuring: true }
 			}),
 			adhoc('tech10', 'SEVERANCE_PAY', 0, EXIT),
@@ -2258,7 +2262,7 @@ register(
 			`${SSA}: 9,677.42 × 5% = 483.87 → 484. ${P96}: nil.`,
 			'Net 9,677.42 − 484 = 9,193.42.'
 		],
-		inputs: person({ ref: 'resign', wage: 30_000, exit: '2026-03-10', exit_reason: 'RESIGNATION' }),
+		inputs: person({ ref: 'resign', wage: 30_000, exit: '2026-03-10', exit_ground: 'RESIGNATION' }),
 		period: '2026-03',
 		expected: [
 			{
@@ -2884,8 +2888,10 @@ register(
 			...person({ ref: 'carer', wage: 30_000, gender: 'FEMALE' }),
 			{
 				...timeOff('carer', 'CHILD_CARE_LEAVE', '2026-02-09', '2026-02-13', {
-					event_kind: 'BIRTH',
-					event_date: '2025-12-20'
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2025-12-20'
+					}
 				}),
 				files: CERT
 			}
@@ -2917,8 +2923,10 @@ register(
 			...person({ ref: 'carer16', wage: 30_000, gender: 'FEMALE' }),
 			{
 				...timeOff('carer16', 'CHILD_CARE_LEAVE', '2026-02-02', '2026-02-23', {
-					event_kind: 'BIRTH',
-					event_date: '2025-12-20'
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2025-12-20'
+					}
 				}),
 				files: CERT,
 				refused:
@@ -2940,9 +2948,11 @@ register(
 			...person({ ref: 'arthit16', wage: 30_000 }),
 			{
 				...timeOff('arthit16', 'CHILD_BIRTH_LEAVE', '2026-02-09', '2026-03-02', {
-					event_kind: 'BIRTH',
-					event_relationship: 'SPOUSE',
-					event_date: '2026-02-06'
+					facts: {
+						event_kind: 'BIRTH',
+						event_relationship: 'SPOUSE',
+						event_date: '2026-02-06'
+					}
 				}),
 				refused:
 					'CHILD_BIRTH_LEAVE grants 15 days for this event; 0 are already taken and this would add 16\\.'
@@ -3209,7 +3219,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: SERVED
 			}),
 			adhoc('served', 'SEVERANCE_PAY', 0, EXIT),
@@ -3245,7 +3255,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: { notice_given_on: '2026-03-01' }
 			}),
 			adhoc('late', 'SEVERANCE_PAY', 0, EXIT),
@@ -3276,7 +3286,7 @@ register(
 			`${SSA}; ${P96}: the THB30,000 figures above.`
 		],
 		inputs: [
-			...person({ ref: 'quits', wage: 30_000, exit: EXIT, exit_reason: 'RESIGNATION' }),
+			...person({ ref: 'quits', wage: 30_000, exit: EXIT, exit_ground: 'RESIGNATION' }),
 			{ ...adhoc('quits', 'NOTICE_IN_LIEU', 0, EXIT), refused: NOT_OFFERED('NOTICE_IN_LIEU') }
 		],
 		period: '2026-03',
@@ -3297,7 +3307,7 @@ register(
 				wage: 30_000,
 				hire: '2016-04-01',
 				exit: EXIT,
-				exit_reason: 'RETRENCHMENT',
+				exit_ground: 'RETRENCHMENT',
 				exit_facts: { technology_restructuring: true, technology_notice_60_days: true }
 			}),
 			adhoc('tech60', 'SEVERANCE_PAY', 0, EXIT),
@@ -3491,7 +3501,7 @@ register(
 					wage: 30_000,
 					hire,
 					exit: EXIT,
-					exit_reason: 'RETRENCHMENT',
+					exit_ground: 'RETRENCHMENT',
 					exit_facts: { technology_restructuring: true, technology_notice_60_days: true }
 				}),
 				adhoc(ref, 'SEVERANCE_PAY', 0, EXIT)
@@ -3546,7 +3556,7 @@ register(
 					dob: '1966-01-10',
 					hire,
 					exit: EXIT,
-					exit_reason: 'RETIREMENT'
+					exit_ground: 'RETIREMENT'
 				}),
 				adhoc(ref, 'SEVERANCE_PAY', 0, EXIT)
 			])
@@ -3595,7 +3605,7 @@ register(
 				wage: 30_000,
 				hire: '2023-04-01',
 				exit: '2026-03-16',
-				exit_reason: 'DISMISSAL',
+				exit_ground: 'DISMISSAL',
 				exit_facts: { dismissed_for_cause: true }
 			}),
 			{
@@ -3670,8 +3680,10 @@ register(
 			...person({ ref: 'cross', wage: 30_000, gender: 'FEMALE' }),
 			{
 				...timeOff('cross', 'MATERNITY_LEAVE', '2025-12-01', '2025-12-10', {
-					event_kind: 'BIRTH',
-					event_date: '2025-12-01'
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2025-12-01'
+					}
 				}),
 				refused: 'MATERNITY_LEAVE across 2025-12-07 requires transition review\\.'
 			}
@@ -4368,8 +4380,10 @@ register(
 				}
 			}),
 			timeOff('mdaily', 'MATERNITY_LEAVE', '2026-02-02', '2026-02-28', {
-				event_kind: 'BIRTH',
-				event_date: '2026-02-01'
+				facts: {
+					event_kind: 'BIRTH',
+					event_date: '2026-02-01'
+				}
 			})
 		],
 		period: '2026-02',
@@ -4398,7 +4412,7 @@ register(
 		],
 		inputs: [
 			...person({ ref: 'course', wage: 30_000 }),
-			timeOff('course', 'TRAINING_LEAVE', '2026-02-10', '2026-02-11', { agreed_pay_fraction: 0 })
+			timeOff('course', 'TRAINING_LEAVE', '2026-02-10', '2026-02-11', {})
 		],
 		period: '2026-02',
 		expected: [

@@ -196,7 +196,7 @@ test('an ad hoc request is a claim in another family: a band-priced class takes 
 	const separation = {
 		code: 'TERMINATION_BENEFIT',
 		evidence: 'NONE',
-		eligibility: 'employment.exit_reason == "REDUNDANCY"',
+		eligibility: 'employment.exit_ground == "REDUNDANCY"',
 		bands: [{ when: '', amount: 'person.terms.monthly_wage', limit: null }]
 	};
 	await assert.rejects(attempt(adhocRequests, separation, ADHOC), /eligibility rule does not hold/);
@@ -205,7 +205,7 @@ test('an ad hoc request is a claim in another family: a band-priced class takes 
 		world.employments.find((row) => row.id === EMPLOYMENT_ID)!,
 		{
 			effective_range: { start: '2021-06-01', end: '2026-04-30' },
-			exit_reason: 'REDUNDANCY'
+			exit_ground: 'REDUNDANCY'
 		}
 	);
 	assert.equal(

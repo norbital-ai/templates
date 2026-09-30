@@ -47,8 +47,8 @@ const scheme = (id: string, settingsId: string, code: string) => ({
 	rules: [
 		{
 			when: 'base >= 0.0',
-			employee: 'round_cent(base * 10.0 / 100.0)',
-			employer: 'round_cent(base * 10.0 / 100.0)'
+			employee: 'round(base * 10.0 / 100.0, 0.01, "HALF_UP")',
+			employer: 'round(base * 10.0 / 100.0, 0.01, "HALF_UP")'
 		}
 	],
 	// Every work line, no catalogue row: a loan recovery feeds no base.

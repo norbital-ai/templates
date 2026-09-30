@@ -89,7 +89,7 @@ test('SG IR21: a foreign leaver cannot be marked paid before an asynchronous cle
 				company_id: 'co-1',
 				employee_id: 'person-sg',
 				effective_range: { start: '2025-01-01', end: '2026-01-31' },
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: { notice_served: true, clearance_awareness_on: '2026-01-01' }
 			}
 		],

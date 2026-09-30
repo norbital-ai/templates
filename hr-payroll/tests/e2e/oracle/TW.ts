@@ -64,8 +64,10 @@
  * Pure TypeScript; nothing is imported from src.
  */
 
-export type Citizenship = 'ROC' | 'FOREIGN_PR' | 'FOREIGN_PROFESSIONAL' | 'FOREIGN_SPOUSE' | 'MIGRANT_WORKER';
-export type ExitCause = 'RESIGNATION' | 'DISMISSAL_S12' | 'LAYOFF_S11' | 'WORKER_S14' | 'RETIREMENT';
+export type Citizenship =
+	'ROC' | 'FOREIGN_PR' | 'FOREIGN_PROFESSIONAL' | 'FOREIGN_SPOUSE' | 'MIGRANT_WORKER';
+export type ExitCause =
+	'RESIGNATION' | 'DISMISSAL_S12' | 'LAYOFF_S11' | 'WORKER_S14' | 'RETIREMENT';
 export type Pay =
 	| { basis: 'MONTHLY'; monthly: number; raise: null | { from: string; monthly: number } }
 	| { basis: 'HOURLY'; hourly: number; hours: number };
@@ -109,7 +111,11 @@ export type Scenario = {
 		taxDependants: number;
 		taxMethod: 'TABLE' | 'FLAT5';
 		pension:
-			| { system: 'NEW'; voluntaryRate: number; rateChange?: { from: string; voluntaryRate: number } }
+			| {
+					system: 'NEW';
+					voluntaryRate: number;
+					rateChange?: { from: string; voluntaryRate: number };
+			  }
 			| { system: 'OLD_RETAINED'; reserveRate: number };
 		disability: null | 'MILD' | 'MODERATE' | 'SEVERE';
 		/** the disability level of each registered NHI dependant (null = none), in dependant order */
@@ -189,7 +195,8 @@ export const addMonths = (d: string, n: number) => {
 	const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
 	return `${y}-${String(m).padStart(2, '0')}-${String(Math.min(+d.slice(8, 10), last)).padStart(2, '0')}`;
 };
-export const daysIn = (period: string) => new Date(Date.UTC(+period.slice(0, 4), +period.slice(5, 7), 0)).getUTCDate();
+export const daysIn = (period: string) =>
+	new Date(Date.UTC(+period.slice(0, 4), +period.slice(5, 7), 0)).getUTCDate();
 export const monthEnd = (period: string) => `${period}-${String(daysIn(period)).padStart(2, '0')}`;
 const span = (a: string, b: string) => (D(b) - D(a)) / DAY + 1;
 export const ageOn = (birth: string, on: string) =>
@@ -216,16 +223,54 @@ type Law = {
 	retireExempt: number;
 };
 const LI_TOP = [30300, 31800, 33300, 34800, 36300, 38200, 40100, 42000, 43900, 45800];
-const PT = [11100, 12540, 13500, 15840, 16500, 17280, 17880, 19047, 20008, 21009, 22000, 23100, 24000, 25250, 26400, 27600];
+const PT = [
+	11100, 12540, 13500, 15840, 16500, 17280, 17880, 19047, 20008, 21009, 22000, 23100, 24000, 25250,
+	26400, 27600
+];
 const OCC_TOP = [...LI_TOP, 48200, 50600, 53000, 55400, 57800, 60800, 63800, 66800, 69800, 72800];
 const PEN_LOW = [1500, 3000, 4500, 6000, 7500, 8700, 9900, ...PT];
 const PEN_TOP = [
-	...OCC_TOP, 76500, 80200, 83900, 87600, 92100, 96600, 101100, 105600, 110100, 115500, 120900, 126300, 131700,
-	137100, 142500, 147900, 150000
+	...OCC_TOP,
+	76500,
+	80200,
+	83900,
+	87600,
+	92100,
+	96600,
+	101100,
+	105600,
+	110100,
+	115500,
+	120900,
+	126300,
+	131700,
+	137100,
+	142500,
+	147900,
+	150000
 ];
 const NHI_TOP = [
-	...PEN_TOP, 156400, 162800, 169200, 175600, 182000, 189500, 197000, 204500, 212000, 219500, 228200, 236900, 245600,
-	254300, 263000, 273000, 283000, 293000, 303000, 313000
+	...PEN_TOP,
+	156400,
+	162800,
+	169200,
+	175600,
+	182000,
+	189500,
+	197000,
+	204500,
+	212000,
+	219500,
+	228200,
+	236900,
+	245600,
+	254300,
+	263000,
+	273000,
+	283000,
+	293000,
+	303000,
+	313000
 ];
 /** 速算公式: [band top, rate, 累進差額] (the difference follows from the band edges). */
 const bands = (edges: number[]): [number, number, number][] => {
@@ -248,7 +293,12 @@ const LAW: Record<string, Law> = {
 		pensionGrades: [...PEN_LOW, 28590, 29500, ...PEN_TOP],
 		nhiGrades: [29500, ...NHI_TOP],
 		// 115年度: 610,000 / 1,380,000 / 2,770,000 / 5,190,000 → 0 / 42,700 / 153,100 / 430,100 / 949,100
-		tax: { exemption: 101000, standard: 272000, salary: 227000, bands: bands([610000, 1380000, 2770000, 5190000]) },
+		tax: {
+			exemption: 101000,
+			standard: 272000,
+			salary: 227000,
+			bands: bands([610000, 1380000, 2770000, 5190000])
+		},
 		retireExempt: 206000
 	},
 	'2025': {
@@ -260,7 +310,12 @@ const LAW: Record<string, Law> = {
 		pensionGrades: [...PEN_LOW, 28590, 28800, ...PEN_TOP],
 		nhiGrades: [28590, 28800, ...NHI_TOP],
 		// 114年度: 97,000 exemption, 262,000 married standard, 218,000 salary; 590k / 1.33M / 2.66M / 4.98M
-		tax: { exemption: 97000, standard: 262000, salary: 218000, bands: bands([590000, 1330000, 2660000, 4980000]) },
+		tax: {
+			exemption: 97000,
+			standard: 262000,
+			salary: 218000,
+			bands: bands([590000, 1330000, 2660000, 4980000])
+		},
 		retireExempt: 198000
 	}
 };
@@ -310,7 +365,8 @@ const insuredDays = (period: string, from: string | null, to: string | null, pen
 	const last = monthEnd(period);
 	const s = from !== null && from > first ? +from.slice(8, 10) : 1;
 	const eDate = to !== null && to < last ? to : last;
-	if (s > +eDate.slice(8, 10) || (from !== null && from > last) || (to !== null && to < first)) return 0;
+	if (s > +eDate.slice(8, 10) || (from !== null && from > last) || (to !== null && to < first))
+		return 0;
 	const leaves = to !== null && to <= last; // an exit (or cover ending) this month
 	if (s === 1 && eDate === last && (!leaves || pension)) return 30;
 	const e = pension && eDate === last ? 30 : Math.min(+eDate.slice(8, 10), 30);
@@ -335,7 +391,10 @@ export function computePayslip(sc: Scenario): Payslip {
 
 	// --- wages ---
 	// MWA art. 5 / PTG: the floor for the worker's schedule replaces a lower agreed wage.
-	const floorMonthly = e.partTimeWeeklyHours === null ? law.mwMonthly : r2((law.mwMonthly * e.partTimeWeeklyHours) / 40);
+	const floorMonthly =
+		e.partTimeWeeklyHours === null
+			? law.mwMonthly
+			: r2((law.mwMonthly * e.partTimeWeeklyHours) / 40);
 	let monthlyRate = 0; // the month's normal monthly wage (for ÷ 30 day rates)
 	let insuredWage: number;
 	const parental = sc.leave.parentalWholeMonth;
@@ -389,7 +448,10 @@ export function computePayslip(sc: Scenario): Payslip {
 	// period's first day). Paternity/prenatal days (GEEA art. 15) and 公傷病假 (LSA art. 59(2)) are paid whole.
 	if (sc.leave.maternityDays > 0 && addMonths(e.hireDate, 6) > first)
 		// DEFAULT: half the day wage a day, never more than half the month's pay (a whole month is half the wage)
-		earn('MATERNITY_LEAVE', -Math.min((day / 2) * sc.leave.maternityDays, (lines.BASIC?.amount ?? 0) / 2));
+		earn(
+			'MATERNITY_LEAVE',
+			-Math.min((day / 2) * sc.leave.maternityDays, (lines.BASIC?.amount ?? 0) / 2)
+		);
 	// LSA art. 59(1): medical costs with receipts, outside every wage, insured and tax base (TW-EXIT-05-2)
 	earn('OCC_INJURY_MEDICAL', sc.occInjuryMedical);
 	// LSA art. 24(1): weekday overtime, first two hours +⅓, the next two +⅔
@@ -400,7 +462,10 @@ export function computePayslip(sc: Scenario): Payslip {
 	earn('OT_REST_DAY', sc.time.restDayWork.reduce((s, h) => s + tiers(h), 0) * hour);
 	// LSA art. 39: holiday work pays the day again (DEFAULT: one day's wage however few of the 8 hours; hours past
 	// 8 at the art. 24(1) tiers)
-	earn('HOLIDAY_WORK', sc.time.holidayWork.reduce((s, h) => s + day + tiers(Math.max(0, h - 8)) * hour, 0));
+	earn(
+		'HOLIDAY_WORK',
+		sc.time.holidayWork.reduce((s, h) => s + day + tiers(Math.max(0, h - 8)) * hour, 0)
+	);
 	// LSA art. 40: an emergency 例假 day pays one further day's wage (TW-HOURS-02)
 	earn('REST_DAY_EMERGENCY', sc.time.restDayEmergencyDays * day);
 	earn('BONUS', sc.bonus.amount);
@@ -415,7 +480,19 @@ export function computePayslip(sc: Scenario): Payslip {
 		// at the last normal month's wage ÷ 30
 		const y = svc.years;
 		const ent =
-			svc.totalMonths < 6 ? 0 : y < 1 ? 3 : y < 2 ? 7 : y < 3 ? 10 : y < 5 ? 14 : y < 10 ? 15 : Math.min(30, 15 + (y - 9));
+			svc.totalMonths < 6
+				? 0
+				: y < 1
+					? 3
+					: y < 2
+						? 7
+						: y < 3
+							? 10
+							: y < 5
+								? 14
+								: y < 10
+									? 15
+									: Math.min(30, 15 + (y - 9));
 		earn('ANNUAL_LEAVE_PAYOUT', Math.max(0, ent - x.annualLeaveTaken) * day);
 		// LSA arts. 16, 11: notice 10 / 20 / 30 days by service; pay in lieu of the days not given (not for 12/14/15).
 		// DEFAULT (TW-EXIT-01-1): the higher of the normal day wage and the average wage ÷ 30.
@@ -463,12 +540,19 @@ export function computePayslip(sc: Scenario): Payslip {
 		e.citizenship === 'ROC' || e.citizenship === 'FOREIGN_SPOUSE' || e.citizenship === 'FOREIGN_PR'
 			? start
 			: e.prGrantedOn !== null && e.prGrantedOn <= end
-				? (e.prGrantedOn > start ? e.prGrantedOn : start)
+				? e.prGrantedOn > start
+					? e.prGrantedOn
+					: start
 				: null;
 	const eiTo = turns65 <= end ? addDays(turns65, -1) : end; // EI65: out from the 65th birthday
 	// LPA art. 7: nationals, foreign spouses, PR holders; Foreign Professionals Act art. 24 (2026): professionals
 	const pensionOn = covered && e.pension.system === 'NEW' && !migrant;
-	const liGrade = grade(!e.shortTermHire && (e.partTimeWeeklyHours !== null || e.pay.basis === 'HOURLY') ? [...law.partTimeGrades, ...law.liGrades] : law.liGrades, e.declaredWage ?? insuredWage);
+	const liGrade = grade(
+		!e.shortTermHire && (e.partTimeWeeklyHours !== null || e.pay.basis === 'HOURLY')
+			? [...law.partTimeGrades, ...law.liGrades]
+			: law.liGrades,
+		e.declaredWage ?? insuredWage
+	);
 	const occGrade = grade(law.occGrades, e.declaredWage ?? insuredWage);
 	const penGrade = grade(law.pensionGrades, e.declaredWage ?? insuredWage);
 	const nhiGrade = grade(law.nhiGrades, e.declaredWage ?? insuredWage);
@@ -497,18 +581,31 @@ export function computePayslip(sc: Scenario): Payslip {
 		const u = (penGrade * penDays) / 30;
 		// PEN-12 (BLI 0017612): a filed rate change takes effect on the first of the next month
 		const p = e.pension.system === 'NEW' ? e.pension : null;
-		const rate = p === null ? 0 : p.rateChange && p.rateChange.from <= first ? p.rateChange.voluntaryRate : p.voluntaryRate;
+		const rate =
+			p === null
+				? 0
+				: p.rateChange && p.rateChange.from <= first
+					? p.rateChange.voluntaryRate
+					: p.voluntaryRate;
 		const voluntary = r0(u * rate);
 		charge('LABOR_PENSION', voluntary, r0(u * EMPLOYER_PENSION), penGrade);
 	}
 	// LSA art. 56(1): the old-system reserve, 2–15% of the month's wages (TW-EXIT-03, TW-TAX-06-2 with the allowance)
 	if (covered && e.pension.system === 'OLD_RETAINED') {
-		const wages = ['BASIC', 'MEAL_ALLOWANCE', 'PERSONAL_LEAVE', 'SICK_LEAVE', 'MENSTRUAL_LEAVE', 'MATERNITY_LEAVE'].reduce((s, c) => s + (lines[c]?.amount ?? 0), 0);
+		const wages = [
+			'BASIC',
+			'MEAL_ALLOWANCE',
+			'PERSONAL_LEAVE',
+			'SICK_LEAVE',
+			'MENSTRUAL_LEAVE',
+			'MATERNITY_LEAVE'
+		].reduce((s, c) => s + (lines[c]?.amount ?? 0), 0);
 		charge('LABOR_PENSION_RESERVE', 0, r0(wages * e.pension.reserveRate), wages);
 	}
 	// NHI: the unit covering the worker at month end pays the month (a withdrawal month pays none)
 	// NHIA part-time Q&A cp-2981: every workday (any hours) or at least 12 hours a week is enrolled by the employer
-	const nhiEnrolled = e.partTimeWeeklyHours === null || e.partTimeWeeklyHours >= 12 || e.worksEveryWorkday;
+	const nhiEnrolled =
+		e.partTimeWeeklyHours === null || e.partTimeWeeklyHours >= 12 || e.worksEveryWorkday;
 	if (covered && nhiEnrolled && end === last) {
 		const own = r0(nhiGrade * NHI_RATE * 0.3);
 		const ownPaid = own - r0(own * sub);
@@ -518,7 +615,12 @@ export function computePayslip(sc: Scenario): Payslip {
 			const d = e.dependantDisability[i] ?? null;
 			deps += own - (d === null ? 0 : r0(own * SUBSIDY[d]));
 		}
-		charge('NHI', ownPaid + deps, r0(nhiGrade * NHI_RATE * 0.6 * (1 + NHI_AVG_DEPENDANTS)), nhiGrade);
+		charge(
+			'NHI',
+			ownPaid + deps,
+			r0(nhiGrade * NHI_RATE * 0.6 * (1 + NHI_AVG_DEPENDANTS)),
+			nhiGrade
+		);
 	}
 	// SUPP art. 31: the bonus above four insured amounts, cumulative in the year
 	if (sc.bonus.amount > 0 && nhiEnrolled) {
@@ -530,7 +632,14 @@ export function computePayslip(sc: Scenario): Payslip {
 	// --- tax ---
 	// ANNUAL_LEAVE_PAYOUT is 不休假加班費, outside 薪資所得 within the §38 days (MOF-portal 高雄國稅局 2019-12-30 release,
 	// 台財稅第16713號; TW-LEAVE-01); notice pay is 退職所得 on SEVERANCE_PAY (TW-EXIT-01)
-	const salaryItems = ['BASIC', 'MEAL_ALLOWANCE', 'PERSONAL_LEAVE', 'SICK_LEAVE', 'MENSTRUAL_LEAVE', 'MATERNITY_LEAVE'];
+	const salaryItems = [
+		'BASIC',
+		'MEAL_ALLOWANCE',
+		'PERSONAL_LEAVE',
+		'SICK_LEAVE',
+		'MENSTRUAL_LEAVE',
+		'MATERNITY_LEAVE'
+	];
 	const amt = (c: string) => lines[c]?.amount ?? 0;
 	const mealExempt = Math.min(amt('MEAL_ALLOWANCE'), 3000); // MEAL
 	const voluntary = lines.LABOR_PENSION?.employee ?? 0; // LPA art. 14(3)
@@ -548,7 +657,8 @@ export function computePayslip(sc: Scenario): Payslip {
 				: tableTax(law, regular, e.taxDependants);
 		if (t > 0) charge('INCOME_TAX', t, 0, r2(regular));
 		// SWR art. 7: non-monthly salary 5%, none below the table start
-		if (sc.bonus.amount >= tableStart(law)) charge('INCOME_TAX_BONUS', f0(sc.bonus.amount * 0.05), 0, sc.bonus.amount);
+		if (sc.bonus.amount >= tableStart(law))
+			charge('INCOME_TAX_BONUS', f0(sc.bonus.amount * 0.05), 0, sc.bonus.amount);
 	} else {
 		// WRS art. 3(2): 18%, or 6% when the month's salary total is ≤ 1.5 × the monthly minimum wage
 		const total = regular + sc.bonus.amount;
@@ -558,7 +668,9 @@ export function computePayslip(sc: Scenario): Payslip {
 	if (exitLump > 0) {
 		// RET / WRS arts. 2(9), 3(11): withheld on the payment less the 定額免稅 (years with the half-year rule)
 		const svc = service(e.hireDate, x!.date);
-		const years = retireYears || svc.years + (svc.months === 0 && svc.days === 0 ? 0 : svc.months < 6 ? 0.5 : 1);
+		const years =
+			retireYears ||
+			svc.years + (svc.months === 0 && svc.days === 0 ? 0 : svc.months < 6 ? 0.5 : 1);
 		const over = exitLump - law.retireExempt * years;
 		if (over > 0) {
 			const t = f0(over * (e.taxResident ? 0.06 : 0.18));
@@ -595,7 +707,13 @@ export function computePayslip(sc: Scenario): Payslip {
 	// where the worker is LI-insured and every paid item is plain salary (DEFAULT: the art. 34 payroll is the month's
 	// salary income).
 	let companyLines: Payslip['companyLines'] = null;
-	const plain = ot === 0 && amt('ANNUAL_LEAVE_PAYOUT') === 0 && amt('OCC_INJURY_MEDICAL') === 0 && amt('OT_REST_DAY') === 0 && amt('HOLIDAY_WORK') === 0 && amt('REST_DAY_EMERGENCY') === 0;
+	const plain =
+		ot === 0 &&
+		amt('ANNUAL_LEAVE_PAYOUT') === 0 &&
+		amt('OCC_INJURY_MEDICAL') === 0 &&
+		amt('OT_REST_DAY') === 0 &&
+		amt('HOLIDAY_WORK') === 0 &&
+		amt('REST_DAY_EMERGENCY') === 0;
 	if (liOn && plain && exitLump === 0 && e.mealAllowance === 0) {
 		const payroll = regular + voluntary + sc.bonus.amount;
 		const insured = covered && nhiEnrolled && end === last ? nhiGrade : 0;

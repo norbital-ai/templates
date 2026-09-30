@@ -330,9 +330,11 @@ type RepaymentProgress = {
  */
 export function repaymentProgress(
 	repayments: readonly { readonly amount_due?: unknown }[],
-	recoveredAmount: number
+	recoveredAmount: number,
+	/** A rule-recovered order's principal: its rows are what was withheld, not a plan that sums to it. */
+	orderPrincipal?: number
 ): RepaymentProgress | null {
-	const principal = loanScheduleTotal(repayments);
+	const principal = orderPrincipal ?? loanScheduleTotal(repayments);
 	if (!Number.isFinite(principal) || principal < 0) return null;
 	const outstandingAmount = Math.max(0, principal - recoveredAmount);
 	let covered = 0;

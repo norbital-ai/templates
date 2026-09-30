@@ -216,10 +216,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -299,14 +298,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -805,6 +804,14 @@
 				"owner": "Management / designation decision",
 				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -1025,10 +1032,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -1107,14 +1113,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -1614,6 +1620,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -1833,10 +1847,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -1915,14 +1928,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -2422,6 +2435,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -2641,10 +2662,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -2727,14 +2747,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -3234,6 +3254,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -3453,10 +3481,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -3537,14 +3564,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -4044,6 +4071,14 @@
 				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -4263,10 +4298,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -4346,14 +4380,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -4853,6 +4887,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -5072,10 +5114,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -5155,14 +5196,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -5662,6 +5703,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -5881,10 +5930,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -5968,14 +6016,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -6474,6 +6522,14 @@
 				"owner": "Management / designation decision or service contract",
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -6695,10 +6751,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -6779,14 +6834,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -7286,6 +7341,14 @@
 				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -7506,10 +7569,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -7589,14 +7651,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -8096,6 +8158,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -8316,10 +8386,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -8399,14 +8468,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -8906,6 +8975,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -9126,10 +9203,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -9213,14 +9289,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -9719,6 +9795,14 @@
 				"owner": "Management / designation decision or service contract",
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -9946,10 +10030,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -10029,14 +10112,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -10536,6 +10619,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -10762,10 +10853,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -10845,14 +10935,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -11352,6 +11442,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -11578,10 +11676,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -11665,14 +11762,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -12172,6 +12269,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -12393,10 +12498,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -12477,14 +12581,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -12983,6 +13087,14 @@
 				"owner": "Management / designation decision",
 				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -13211,10 +13323,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -13294,14 +13405,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -13801,6 +13912,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -14028,10 +14147,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -14111,14 +14229,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -14618,6 +14736,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -14845,10 +14971,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -14932,14 +15057,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -15439,6 +15564,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -15661,10 +15794,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -15754,14 +15886,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -16261,6 +16393,14 @@
 				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -16489,10 +16629,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -16581,14 +16720,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -17088,6 +17227,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -17316,10 +17463,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -17425,14 +17571,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -17932,6 +18078,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -18160,10 +18314,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -18279,14 +18432,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -18785,6 +18938,14 @@
 				"owner": "Management / designation decision or service contract",
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	}

@@ -616,7 +616,7 @@ register(
 				hf: { contribution_base: 43500, first_ever_account: false },
 				employment: {
 					prior_service_months: 120,
-					exit_reason: 'MUTUAL',
+					exit_ground: 'MUTUAL',
 					exit_facts: { lcl_termination_ground: 'ART_36_EMPLOYER' }
 				}
 			}),
@@ -934,8 +934,10 @@ register(
 					reference: 'ML-2026-01',
 					from_date: '2026-01-19',
 					to_date: '2026-01-28',
-					event_kind: 'MARRIAGE',
-					event_date: '2026-01-17',
+					facts: {
+						event_kind: 'MARRIAGE',
+						event_date: '2026-01-17'
+					},
 					reason: 'Marriage'
 				}
 			}
@@ -1271,7 +1273,7 @@ register(
 					si: 22000,
 					hf: { contribution_base: 22000 },
 					employment: {
-						exit_reason: 'RESIGNATION',
+						exit_ground: 'RESIGNATION',
 						exit_facts: { lcl_termination_ground: 'ART_37' }
 					}
 				})
@@ -1452,8 +1454,10 @@ register(
 			catalogue_id: '@law:leave_catalogue:PATERNITY_LEAVE',
 			from_date: '2026-01-12',
 			to_date: '2026-01-16',
-			event_kind: 'BIRTH',
-			event_date: '2026-01-09'
+			facts: {
+				event_kind: 'BIRTH',
+				event_date: '2026-01-09'
+			}
 		}
 	),
 	paidLeaveJan(
@@ -1483,9 +1487,11 @@ register(
 			catalogue_id: '@law:leave_catalogue:FUNERAL_LEAVE',
 			from_date: '2026-01-19',
 			to_date: '2026-01-21',
-			event_kind: 'DEATH',
-			event_relationship: 'PARENT_IN_LAW',
-			event_date: '2026-01-17'
+			facts: {
+				event_kind: 'DEATH',
+				event_relationship: 'PARENT_IN_LAW',
+				event_date: '2026-01-17'
+			}
 		}
 	),
 	paidLeaveJan(
@@ -1497,8 +1503,10 @@ register(
 			catalogue_id: '@law:leave_catalogue:FAMILY_PLANNING_PROCEDURE_LEAVE',
 			from_date: '2026-01-13',
 			to_date: '2026-01-14',
-			event_kind: 'IUD_INSERTION',
-			event_date: '2026-01-13'
+			facts: {
+				event_kind: 'IUD_INSERTION',
+				event_date: '2026-01-13'
+			}
 		},
 		{ certificate_file: 'iud-certificate.pdf' }
 	),
@@ -1534,8 +1542,10 @@ register(
 					reference: 'ML-2026-08',
 					from_date: '2026-08-03',
 					to_date: '2027-01-07',
-					event_kind: 'BIRTH',
-					event_date: '2026-08-03',
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2026-08-03'
+					},
 					reason: 'Maternity leave (产假及生育假)'
 				}
 			},
@@ -1666,7 +1676,7 @@ register(
 					si: wage,
 					hf: { contribution_base: wage, first_ever_account: false },
 					employment: {
-						exit_reason: 'MUTUAL',
+						exit_ground: 'MUTUAL',
 						exit_facts: {
 							lcl_termination_ground: 'ART_36_EMPLOYER',
 							lcl10_transferred_service_months: carried
@@ -1731,7 +1741,7 @@ register(
 				si: 50000,
 				hf: { contribution_base: 50000, first_ever_account: false },
 				employment: {
-					exit_reason: 'MUTUAL',
+					exit_ground: 'MUTUAL',
 					exit_facts: { lcl_termination_ground: 'ART_36_EMPLOYER' }
 				}
 			}),
@@ -2053,8 +2063,10 @@ register(
 					reference: 'ML-2026-06',
 					from_date: '2026-06-01',
 					to_date: '2026-06-30',
-					event_kind: 'BIRTH',
-					event_date: '2026-06-01',
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2026-06-01'
+					},
 					reason: 'Maternity leave (产假及生育假), June share'
 				}
 			},
@@ -2104,8 +2116,14 @@ register(
 			}),
 			bonus('gu', 'ONE_CHILD_SUBSIDY', 100, '2026-01-10'),
 			bonus('gu', 'CHILDCARE_SUBSIDY', 200, '2026-01-10'),
-			{ ...bonus('gu', 'TRAVEL_ALLOWANCE', 300, '2026-01-10'), files: { evidence_file: 'trip-record.pdf' } },
-			{ ...bonus('gu', 'MISSED_MEAL_SUBSIDY', 50, '2026-01-10'), files: { evidence_file: 'meal-record.pdf' } }
+			{
+				...bonus('gu', 'TRAVEL_ALLOWANCE', 300, '2026-01-10'),
+				files: { evidence_file: 'trip-record.pdf' }
+			},
+			{
+				...bonus('gu', 'MISSED_MEAL_SUBSIDY', 50, '2026-01-10'),
+				files: { evidence_file: 'meal-record.pdf' }
+			}
 		],
 		period: '2026-01',
 		expected: [
@@ -2149,7 +2167,7 @@ register(
 				si: 50000,
 				hf: { contribution_base: 50000, first_ever_account: false },
 				employment: {
-					exit_reason: 'DISMISSAL',
+					exit_ground: 'DISMISSAL',
 					exit_facts: {
 						lcl_termination_ground: 'ART_87',
 						renewal_offer_refused: false,
@@ -2317,7 +2335,7 @@ register(
 				to: '2026-02-28',
 				terms: { employment_type: 'CONTRACT', facts: { probation_end: '2026-01-31' } },
 				employment: {
-					exit_reason: 'END_OF_CONTRACT',
+					exit_ground: 'END_OF_CONTRACT',
 					exit_facts: { lcl_termination_ground: 'ART_44_1', renewal_offer_refused: true }
 				}
 			}),
@@ -2392,7 +2410,7 @@ register(
 					to: '2026-06-30',
 					terms: { employment_type: 'CONTRACT' },
 					employment: {
-						exit_reason: 'END_OF_CONTRACT',
+						exit_ground: 'END_OF_CONTRACT',
 						exit_facts: {
 							lcl_termination_ground: 'ART_44_1',
 							renewal_offer_refused: refusedRenewal
@@ -2403,7 +2421,7 @@ register(
 			...tenK('dis', 'Kang Ning', '2026-01-01', {
 				to: '2026-06-30',
 				employment: {
-					exit_reason: 'DISMISSAL',
+					exit_ground: 'DISMISSAL',
 					exit_facts: { lcl_termination_ground: 'ART_40', notice_days_given: 0 }
 				}
 			}),
@@ -2546,7 +2564,7 @@ register(
 				hf: { contribution_base: 43500, first_ever_account: false },
 				employment: {
 					prior_service_months: 240,
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					exit_facts: { lcl_termination_ground: 'ART_37' }
 				}
 			}),
@@ -2622,7 +2640,9 @@ register(
 					employment_id: '@tang_job',
 					work_date: '2026-01-01',
 					shift_definition_id: '@office',
-					worked_intervals: [{ start: '2026-01-01T01:00:00.000Z', end: '2026-01-01T04:00:00.000Z' }],
+					worked_intervals: [
+						{ start: '2026-01-01T01:00:00.000Z', end: '2026-01-01T04:00:00.000Z' }
+					],
 					approved_overtime_hours: 3,
 					time_off_in_lieu: true
 				}
@@ -2779,8 +2799,10 @@ const procedureJan = (
 			reason: reference,
 			from_date: from,
 			to_date: to,
-			event_kind: kind,
-			event_date: from
+			facts: {
+				event_kind: kind,
+				event_date: from
+			}
 		},
 		files: { certificate_file: `${reference}.pdf` }
 	});

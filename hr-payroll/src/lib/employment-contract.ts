@@ -207,27 +207,30 @@ export function serviceStart(employment: { readonly effective_range: StoredRange
  */
 export function stint(
 	employment: {
+		readonly id?: string | undefined;
 		readonly effective_range: StoredRange | null;
-		readonly exit_reason?: string | null | undefined;
+		readonly exit_ground?: string | null | undefined;
 		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
 		readonly prior_service_months?: number | null | undefined;
 	},
 	declared: readonly FactKey[]
 ): {
+	id: string | undefined;
 	service_start: string;
 	prior_service_months: number;
 	exit_date: string | null;
-	exit_reason: string | null;
+	exit_ground: string | null;
 	exit_facts: Readonly<Record<string, string | number | boolean>>;
 	exit_fact_keys: readonly string[];
 } {
 	const end = employment.effective_range?.end;
 	const recorded = scalarFacts(employment.exit_facts);
 	return {
+		id: employment.id,
 		service_start: serviceStart(employment),
 		prior_service_months: employment.prior_service_months ?? 0,
 		exit_date: end == null ? null : dateKey(end),
-		exit_reason: employment.exit_reason ?? null,
+		exit_ground: employment.exit_ground ?? null,
 		exit_facts: { ...recorded, ...resolveFactValues(declared, recorded, 'Departure', false) },
 		exit_fact_keys: Object.keys(recorded)
 	};

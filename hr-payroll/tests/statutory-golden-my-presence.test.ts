@@ -4,7 +4,12 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assessStatutory, buildStatutory, chargeOf, expectStatutory } from './fixtures/statutory-world.ts';
+import {
+	assessStatutory,
+	buildStatutory,
+	chargeOf,
+	expectStatutory
+} from './fixtures/statutory-world.ts';
 import type { PayrollWorld } from './fixtures/memory-payroll-api.ts';
 import { isEligible, personContext } from '../src/lib/payroll/run/eligibility.ts';
 
@@ -239,11 +244,7 @@ for (const code of ['MY'] as const)
 			{
 				code,
 				period: '2026-03',
-				people: [
-					foreigner('P3'),
-					foreigner('P2'),
-					{ ...foreigner('R'), tax_residency: 'RESIDENT' }
-				]
+				people: [foreigner('P3'), foreigner('P2'), { ...foreigner('R'), tax_residency: 'RESIDENT' }]
 			},
 			(world: PayrollWorld) => {
 				Object.assign(world, {

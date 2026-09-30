@@ -279,7 +279,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -383,6 +383,14 @@
 				"owner": "Payroll",
 				"authority": "云南税务公告〔2023〕5号 https://ylbz.yn.gov.cn/index.php?c=show&id=3576",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -684,7 +692,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -788,6 +796,14 @@
 				"owner": "Payroll",
 				"authority": "云南税务公告〔2023〕5号 https://ylbz.yn.gov.cn/index.php?c=show&id=3576",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -1089,7 +1105,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -1193,6 +1209,14 @@
 				"owner": "Payroll",
 				"authority": "云南税务公告〔2023〕5号 https://ylbz.yn.gov.cn/index.php?c=show&id=3576",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	}

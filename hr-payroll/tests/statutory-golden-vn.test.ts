@@ -15,7 +15,7 @@
  * year-end finalisation (Gap #38) is a separate reckoning the seed does not carry.
  *
  * Every contribution and withholding is a whole đồng: the currency has no minor unit, VSS bills and
- * the tax return (Circular 80/2021/TT-BTC) carry whole đồng, so each rule rounds with `round_unit`.
+ * the tax return (Circular 80/2021/TT-BTC) carry whole đồng, so each rule rounds with `round(x, 1, 'HALF_UP')`.
  * The engine's own money — the prorated base, an overtime line, gross and net — is still kept to
  * two decimals (`cents()` in `rounding.ts` is currency-blind); the goldens below pin that too.
  */
@@ -96,7 +96,7 @@ test('Vietnam — short contracts do not replace non-resident withholding with t
 				tax_residency: 'NON_RESIDENT',
 				hire_date: '2026-06-01',
 				exit_date: '2026-07-31',
-				exit_reason: 'END_OF_CONTRACT'
+				exit_ground: 'END_OF_CONTRACT'
 			}
 		]
 	});
@@ -1416,9 +1416,11 @@ test('Vietnam — a month on sickness benefit carries no union dues; a paternity
 					leave_code: code,
 					reference: 'BENEFIT-1',
 					certificate_file: code === 'PATERNITY_LEAVE' ? 'BIRTH-CERTIFICATE' : null,
-					event_kind: code === 'PATERNITY_LEAVE' ? 'MULTIPLE_BIRTH_SURGERY' : null,
-					event_relationship: code === 'PATERNITY_LEAVE' ? 'WIFE' : null,
-					event_date: code === 'PATERNITY_LEAVE' ? '2026-07-01' : null,
+					facts: {
+						event_kind: code === 'PATERNITY_LEAVE' ? 'MULTIPLE_BIRTH_SURGERY' : null,
+						event_relationship: code === 'PATERNITY_LEAVE' ? 'WIFE' : null,
+						event_date: code === 'PATERNITY_LEAVE' ? '2026-07-01' : null
+					},
 					from_date: days[0]!,
 					to_date: days.at(-1)!,
 					half_day_start: false,
@@ -1499,10 +1501,12 @@ test('Vietnam — a preexisting July paternity entry without the wife’s child 
 					leave_code: 'PATERNITY_LEAVE',
 					reference: 'OLDER-APPROVED-BIRTH',
 					certificate_file: certificate ? 'BIRTH-CERTIFICATE' : null,
-					event_kind: 'BIRTH',
-					event_relationship: relationship,
-					event_date: '2026-07-01',
-					event_wife_prior_living_biological_children: wifePrior,
+					facts: {
+						event_kind: 'BIRTH',
+						event_relationship: relationship,
+						event_date: '2026-07-01',
+						event_wife_prior_living_biological_children: wifePrior
+					},
 					from_date: '2026-07-01',
 					to_date: '2026-07-01',
 					half_day_start: false,
@@ -1668,7 +1672,7 @@ test('Vietnam — a contract under three months is withheld 10% flat from 5,000,
 				citizenship: 'CITIZEN',
 				hire_date: '2026-01-01',
 				exit_date: '2026-02-28',
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				registrations: {
 					PIT: {
 						kind: 'REGISTERED',
@@ -1692,7 +1696,7 @@ test('Vietnam — a contract under three months is withheld 10% flat from 5,000,
 				citizenship: 'CITIZEN',
 				hire_date: '2026-01-01',
 				exit_date: '2026-02-28',
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				registrations: {
 					PIT: {
 						kind: 'REGISTERED',
@@ -1716,7 +1720,7 @@ test('Vietnam — a contract under three months is withheld 10% flat from 5,000,
 				citizenship: 'CITIZEN',
 				hire_date: '2026-01-01',
 				exit_date: '2026-02-28',
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				registrations: {
 					PIT: {
 						kind: 'REGISTERED',
@@ -1740,7 +1744,7 @@ test('Vietnam — a contract under three months is withheld 10% flat from 5,000,
 				citizenship: 'CITIZEN',
 				hire_date: '2026-01-01',
 				exit_date: '2026-03-31',
-				exit_reason: 'END_OF_CONTRACT'
+				exit_ground: 'END_OF_CONTRACT'
 			}
 		]
 	});
@@ -1767,7 +1771,7 @@ test('Vietnam — the 2,000,000 short-contract threshold holds through December 
 				citizenship: 'CITIZEN',
 				hire_date: '2025-11-01',
 				exit_date: '2025-12-31',
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				registrations: {
 					PIT: {
 						kind: 'REGISTERED',
@@ -1804,7 +1808,7 @@ test('Vietnam — a foreigner is insured on a contract of twelve months or more 
 					citizenship: 'FOREIGNER',
 					hire_date: '2026-01-01',
 					exit_date: '2026-06-30',
-					exit_reason: 'END_OF_CONTRACT'
+					exit_ground: 'END_OF_CONTRACT'
 				},
 				{
 					key: 'VN-F-12M',
@@ -1812,7 +1816,7 @@ test('Vietnam — a foreigner is insured on a contract of twelve months or more 
 					citizenship: 'FOREIGNER',
 					hire_date: '2026-01-01',
 					exit_date: '2026-12-31',
-					exit_reason: 'END_OF_CONTRACT'
+					exit_ground: 'END_OF_CONTRACT'
 				},
 				// A working pensioner, recorded outside SI: nothing to the fund, 17.5% + 1% to them (HI
 				// is the SI agency's, HI Law art.13(5)(d)).
@@ -1872,7 +1876,8 @@ test('Vietnam — a foreigner is insured on a contract of twelve months or more 
 });
 
 test('Vietnam — a pensioner, a transferee and a foreigner hired at retirement age are outside insurance and owed the employer’s rate (Law 41/2024 art.2(2), 2(7); Labour Code art.168(3))', () => {
-	// 2026 retirement age (Decree 135/2020 art.4): 61 years 6 months for a man, 57 for a woman.
+	// Retirement age (Decree 135/2020 art.4, Annex I) by month of birth: a man born October 1963 –
+	// September 1964 retires at 61 years 3 months, one born October 1964 – June 1965 at 61 years 6.
 	const version = settingsVersions('VN').find((v) =>
 		String(v.effective_range.start).startsWith('2026-01')
 	)!;
@@ -1889,22 +1894,24 @@ test('Vietnam — a pensioner, a transferee and a foreigner hired at retirement 
 					citizenship: 'FOREIGNER',
 					pass_type: 'INTRA_COMPANY_TRANSFER'
 				},
-				// A man born 1 May 1964 hired on 1 January 2026 is 61 years 8 months — past 61 years 6.
+				// A man born 1 May 1964 hired on 1 January 2026 is 61 years 8 months — past his 61 years 3.
 				{
 					key: 'VN-F-RETIRED',
 					wage: 20_000_000,
 					citizenship: 'FOREIGNER',
+					pass_type: 'WORK_PERMIT',
 					gender: 'MALE',
 					birth_date: '1964-05-01',
 					hire_date: '2026-01-01'
 				},
-				// Born 1 September 1964: 61 years 4 months — under it, insured.
+				// Born 1 December 1964: 61 years 1 month at hire — under his 61 years 6, insured.
 				{
 					key: 'VN-F-NOT-YET',
 					wage: 20_000_000,
 					citizenship: 'FOREIGNER',
+					pass_type: 'WORK_PERMIT',
 					gender: 'MALE',
-					birth_date: '1964-09-01',
+					birth_date: '1964-12-01',
 					hire_date: '2026-01-01'
 				}
 			]
@@ -2105,7 +2112,7 @@ test('Vietnam — a mid-month leaver: final pay on working days, unused leave at
 					citizenship: 'CITIZEN',
 					tax_residency: 'RESIDENT',
 					exit_date: '2026-04-15',
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					registrations: {
 						PIT: {
 							kind: 'REGISTERED',
@@ -2127,7 +2134,7 @@ test('Vietnam — a mid-month leaver: final pay on working days, unused leave at
 					citizenship: 'CITIZEN',
 					tax_residency: 'NON_RESIDENT',
 					exit_date: '2026-04-15',
-					exit_reason: 'RESIGNATION'
+					exit_ground: 'RESIGNATION'
 				}
 			]
 		},
@@ -2488,7 +2495,7 @@ test('Vietnam — a citizen past retirement age is still insured; one qualified 
  * covered by UI. Each is on 60,000,000 for the whole of the six months before leaving.
  */
 const separation = (
-	people: readonly { key: string; exit_date: string; exit_reason: string; pit_gross?: number }[],
+	people: readonly { key: string; exit_date: string; exit_ground: string; pit_gross?: number }[],
 	claims: readonly (readonly [string, string])[],
 	{
 		period = '2026-09',
@@ -2593,16 +2600,16 @@ test('Vietnam — severance and job-loss pay the uncovered service on the six-mo
 			{
 				key: 'VN-SEV',
 				exit_date: '2026-09-15',
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				pit_gross: 30_000_000
 			},
 			{
 				key: 'VN-JOBLOSS',
 				exit_date: '2026-09-15',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				pit_gross: 30_000_000
 			},
-			{ key: 'VN-LATE', exit_date: '2026-09-09', exit_reason: 'RESIGNATION', pit_gross: 19_090_909 }
+			{ key: 'VN-LATE', exit_date: '2026-09-09', exit_ground: 'RESIGNATION', pit_gross: 19_090_909 }
 		],
 		[
 			['VN-SEV', 'SEVERANCE_ALLOWANCE'],
@@ -2645,7 +2652,7 @@ test('Vietnam — a month-end leaver counts the exit month under UI too (Labour 
 	// 2.5 years. Labour Code art.46(1),(3): 0.5 x 60,000,000 x 2.5 = 75,000,000 (not 31 months ->
 	// 3 years -> 90,000,000).
 	const { slips } = separation(
-		[{ key: 'VN-SEV', exit_date: '2026-09-30', exit_reason: 'END_OF_CONTRACT' }],
+		[{ key: 'VN-SEV', exit_date: '2026-09-30', exit_ground: 'END_OF_CONTRACT' }],
 		[['VN-SEV', 'SEVERANCE_ALLOWANCE']]
 	);
 	assert.equal(
@@ -2756,7 +2763,7 @@ test('Vietnam — a non-resident’s severance is outside PIT in June 2026 (Circ
 	// leaves out "trợ cấp thôi việc, trợ cấp mất việc làm" under the Labour Code. 20% × 30,000,000
 	// = 6,000,000, nothing on the 75,000,000.
 	const june = separation(
-		[{ key: 'VN-NR-SEV', exit_date: '2026-06-15', exit_reason: 'END_OF_CONTRACT' }],
+		[{ key: 'VN-NR-SEV', exit_date: '2026-06-15', exit_ground: 'END_OF_CONTRACT' }],
 		[['VN-NR-SEV', 'SEVERANCE_ALLOWANCE']],
 		{ period: '2026-06', tax_residency: 'NON_RESIDENT' }
 	).slips.get('VN-NR-SEV')!;
@@ -2773,7 +2780,7 @@ test('Vietnam — a non-resident’s severance is outside PIT in June 2026 (Circ
 	// 2006 – 15 July 2026 less UI = 30 months → 2.5 years: 0.5 × 46,000,000 × 2.5 = 57,500,000.
 	// PIT 20% × 22,000,000 = 4,400,000.
 	const july = separation(
-		[{ key: 'VN-NR-SEV', exit_date: '2026-07-15', exit_reason: 'END_OF_CONTRACT' }],
+		[{ key: 'VN-NR-SEV', exit_date: '2026-07-15', exit_ground: 'END_OF_CONTRACT' }],
 		[['VN-NR-SEV', 'SEVERANCE_ALLOWANCE']],
 		{ period: '2026-07', wage: 46_000_000, tax_residency: 'NON_RESIDENT' }
 	).slips.get('VN-NR-SEV')!;
@@ -2924,8 +2931,10 @@ test('Vietnam — a work stoppage pays by its cause: full wage, nothing, or the 
 					half_day_end: false,
 					days: dates.length,
 					effective_on: from,
-					event_date: event,
-					agreed_pay_fraction: agreed,
+					facts: {
+						event_date: event,
+						agreed_pay_fraction: agreed
+					},
 					reason: 'Labour Code art.99',
 					allocations: [],
 					charges: dates.map((date) => ({
@@ -3055,7 +3064,7 @@ test('Vietnam — an open-ended contract uses progressive withholding while acti
 							citizenship: 'CITIZEN',
 							hire_date: '2026-08-01',
 							exit_date: '2026-09-18',
-							exit_reason: 'RESIGNATION',
+							exit_ground: 'RESIGNATION',
 							...(period === '2026-09'
 								? {
 										registrations: {
@@ -3106,7 +3115,7 @@ test('Vietnam — a foreigner on an open-ended contract who resigns stays insure
 						gender: 'MALE',
 						hire_date: '2026-04-01',
 						exit_date: '2026-09-18',
-						exit_reason: 'RESIGNATION',
+						exit_ground: 'RESIGNATION',
 						...(period === '2026-09'
 							? {
 									registrations: {
@@ -3153,7 +3162,7 @@ test('Vietnam — a fixed-term contract under one full month is outside SI, HI a
 		citizenship: 'CITIZEN',
 		hire_date: '2026-09-01',
 		exit_date: '2026-09-21',
-		exit_reason: 'END_OF_CONTRACT',
+		exit_ground: 'END_OF_CONTRACT',
 		registrations: {
 			PIT: {
 				kind: 'REGISTERED',
@@ -3260,7 +3269,7 @@ test('Vietnam — through December 2025 a short fixed-term contract is outside S
 				citizenship: 'CITIZEN',
 				hire_date: '2025-12-01',
 				exit_date: '2025-12-21',
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				registrations: {
 					PIT: {
 						kind: 'REGISTERED',

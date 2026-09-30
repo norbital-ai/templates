@@ -42,7 +42,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
+					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\" && !(person.employment.classification in [\"OVERTIME_AT_HOURLY_RATE\", \"COMMISSION_SALES\"])",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -415,10 +415,9 @@
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 3,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
 					"days": 3,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
@@ -440,9 +439,21 @@
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
-					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+					{
+						"codes": ["UNION_DUES"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["COOPERATIVE_DEDUCTION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["DAMAGE_COMPENSATION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					}
 				],
 				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
 			}
@@ -492,14 +503,14 @@
 				"type": "boolean",
 				"label": "Dismissed for a s.119 cause stated in the notice",
 				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
-				"required_when": "employment.exit_reason == \"DISMISSAL\""
+				"required_when": "employment.exit_ground == \"DISMISSAL\""
 			},
 			{
 				"key": "fixed_term_project_exempt",
 				"type": "boolean",
 				"label": "Fixed-term project, occasional or seasonal work finished within two years",
 				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
-				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+				"required_when": "employment.exit_ground == \"END_OF_CONTRACT\""
 			},
 			{
 				"key": "relocation_objection",
@@ -651,6 +662,14 @@
 				"owner": "HR / Payroll",
 				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); register TH-EXIT-01–07.",
 				"status": "PARTIAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -697,7 +716,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
+					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\" && !(person.employment.classification in [\"OVERTIME_AT_HOURLY_RATE\", \"COMMISSION_SALES\"])",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -1070,10 +1089,9 @@
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 3,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
 					"days": 3,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
@@ -1095,9 +1113,21 @@
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
-					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+					{
+						"codes": ["UNION_DUES"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["COOPERATIVE_DEDUCTION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["DAMAGE_COMPENSATION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					}
 				],
 				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
 			}
@@ -1147,14 +1177,14 @@
 				"type": "boolean",
 				"label": "Dismissed for a s.119 cause stated in the notice",
 				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
-				"required_when": "employment.exit_reason == \"DISMISSAL\""
+				"required_when": "employment.exit_ground == \"DISMISSAL\""
 			},
 			{
 				"key": "fixed_term_project_exempt",
 				"type": "boolean",
 				"label": "Fixed-term project, occasional or seasonal work finished within two years",
 				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
-				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+				"required_when": "employment.exit_ground == \"END_OF_CONTRACT\""
 			},
 			{
 				"key": "relocation_objection",
@@ -1306,6 +1336,14 @@
 				"owner": "HR / Payroll",
 				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); register TH-EXIT-01–07.",
 				"status": "PARTIAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -1352,7 +1390,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
+					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\" && !(person.employment.classification in [\"OVERTIME_AT_HOURLY_RATE\", \"COMMISSION_SALES\"])",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -1725,10 +1763,9 @@
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 3,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
 					"days": 3,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
@@ -1750,9 +1787,21 @@
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
-					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+					{
+						"codes": ["UNION_DUES"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["COOPERATIVE_DEDUCTION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["DAMAGE_COMPENSATION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					}
 				],
 				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
 			}
@@ -1802,14 +1851,14 @@
 				"type": "boolean",
 				"label": "Dismissed for a s.119 cause stated in the notice",
 				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
-				"required_when": "employment.exit_reason == \"DISMISSAL\""
+				"required_when": "employment.exit_ground == \"DISMISSAL\""
 			},
 			{
 				"key": "fixed_term_project_exempt",
 				"type": "boolean",
 				"label": "Fixed-term project, occasional or seasonal work finished within two years",
 				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
-				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+				"required_when": "employment.exit_ground == \"END_OF_CONTRACT\""
 			},
 			{
 				"key": "relocation_objection",
@@ -1961,6 +2010,14 @@
 				"owner": "HR / Payroll",
 				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); register TH-EXIT-01–07.",
 				"status": "PARTIAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -2007,7 +2064,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
+					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\" && !(person.employment.classification in [\"OVERTIME_AT_HOURLY_RATE\", \"COMMISSION_SALES\"])",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -2380,10 +2437,9 @@
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 3,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
 					"days": 3,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
@@ -2405,9 +2461,21 @@
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
-					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+					{
+						"codes": ["UNION_DUES"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["COOPERATIVE_DEDUCTION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["DAMAGE_COMPENSATION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					}
 				],
 				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
 			}
@@ -2449,14 +2517,14 @@
 				"type": "boolean",
 				"label": "Dismissed for a s.119 cause stated in the notice",
 				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
-				"required_when": "employment.exit_reason == \"DISMISSAL\""
+				"required_when": "employment.exit_ground == \"DISMISSAL\""
 			},
 			{
 				"key": "fixed_term_project_exempt",
 				"type": "boolean",
 				"label": "Fixed-term project, occasional or seasonal work finished within two years",
 				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
-				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+				"required_when": "employment.exit_ground == \"END_OF_CONTRACT\""
 			},
 			{
 				"key": "relocation_objection",
@@ -2608,6 +2676,14 @@
 				"owner": "HR / Payroll",
 				"authority": "Labour Protection Act ss.17, 67, 70, 118–122 (https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09); register TH-EXIT-01–07.",
 				"status": "PARTIAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -2654,7 +2730,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
+					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\" && !(person.employment.classification in [\"OVERTIME_AT_HOURLY_RATE\", \"COMMISSION_SALES\"])",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -3027,10 +3103,9 @@
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 3,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
 					"days": 3,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
@@ -3052,9 +3127,21 @@
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
-					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+					{
+						"codes": ["UNION_DUES"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["COOPERATIVE_DEDUCTION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["DAMAGE_COMPENSATION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					}
 				],
 				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
 			}
@@ -3101,14 +3188,14 @@
 				"type": "boolean",
 				"label": "Dismissed for a s.119 cause stated in the notice",
 				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
-				"required_when": "employment.exit_reason == \"DISMISSAL\""
+				"required_when": "employment.exit_ground == \"DISMISSAL\""
 			},
 			{
 				"key": "fixed_term_project_exempt",
 				"type": "boolean",
 				"label": "Fixed-term project, occasional or seasonal work finished within two years",
 				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
-				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+				"required_when": "employment.exit_ground == \"END_OF_CONTRACT\""
 			},
 			{
 				"key": "relocation_objection",
@@ -3269,6 +3356,14 @@
 				"owner": "Payroll / Employee Welfare Fund",
 				"authority": "Labour Protection Act ss.130–131; commencement decree (https://ratchakitcha.soc.go.th/documents/84794.pdf); rate regulation (https://ratchakitcha.soc.go.th/documents/86102.pdf); register TH-EWF-01–03.",
 				"status": "PARTIAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -3315,7 +3410,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
+					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\" && !(person.employment.classification in [\"OVERTIME_AT_HOURLY_RATE\", \"COMMISSION_SALES\"])",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -3688,10 +3783,9 @@
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 3,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
 					"days": 3,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
@@ -3713,9 +3807,21 @@
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
-					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+					{
+						"codes": ["UNION_DUES"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["COOPERATIVE_DEDUCTION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["DAMAGE_COMPENSATION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					}
 				],
 				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
 			}
@@ -3762,14 +3868,14 @@
 				"type": "boolean",
 				"label": "Dismissed for a s.119 cause stated in the notice",
 				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
-				"required_when": "employment.exit_reason == \"DISMISSAL\""
+				"required_when": "employment.exit_ground == \"DISMISSAL\""
 			},
 			{
 				"key": "fixed_term_project_exempt",
 				"type": "boolean",
 				"label": "Fixed-term project, occasional or seasonal work finished within two years",
 				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
-				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+				"required_when": "employment.exit_ground == \"END_OF_CONTRACT\""
 			},
 			{
 				"key": "relocation_objection",
@@ -3930,6 +4036,14 @@
 				"owner": "Payroll / Employee Welfare Fund",
 				"authority": "Labour Protection Act ss.130–131; commencement decree (https://ratchakitcha.soc.go.th/documents/84794.pdf); rate regulation (https://ratchakitcha.soc.go.th/documents/86102.pdf); register TH-EWF-01–03.",
 				"status": "PARTIAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -3976,7 +4090,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
+					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\" && !(person.employment.classification in [\"OVERTIME_AT_HOURLY_RATE\", \"COMMISSION_SALES\"])",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -4349,10 +4463,9 @@
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 3,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
 					"days": 3,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
@@ -4374,9 +4487,21 @@
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
-					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+					{
+						"codes": ["UNION_DUES"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["COOPERATIVE_DEDUCTION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["DAMAGE_COMPENSATION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					}
 				],
 				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
 			}
@@ -4423,14 +4548,14 @@
 				"type": "boolean",
 				"label": "Dismissed for a s.119 cause stated in the notice",
 				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
-				"required_when": "employment.exit_reason == \"DISMISSAL\""
+				"required_when": "employment.exit_ground == \"DISMISSAL\""
 			},
 			{
 				"key": "fixed_term_project_exempt",
 				"type": "boolean",
 				"label": "Fixed-term project, occasional or seasonal work finished within two years",
 				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
-				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+				"required_when": "employment.exit_ground == \"END_OF_CONTRACT\""
 			},
 			{
 				"key": "relocation_objection",
@@ -4591,6 +4716,14 @@
 				"owner": "Payroll / Employee Welfare Fund",
 				"authority": "Labour Protection Act ss.130–131; commencement decree (https://ratchakitcha.soc.go.th/documents/84794.pdf); rate regulation (https://ratchakitcha.soc.go.th/documents/86102.pdf); register TH-EWF-01–03.",
 				"status": "PARTIAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -4637,7 +4770,7 @@
 				},
 				{
 					"label": "OT-1.5X",
-					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
+					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\" && !(person.employment.classification in [\"OVERTIME_AT_HOURLY_RATE\", \"COMMISSION_SALES\"])",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * ordinary_hour * 1.5"
 				},
@@ -5010,10 +5143,9 @@
 			"timezone": "Asia/Bangkok",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
-			"final_pay_due_days": 3,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
+					"when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"]",
 					"days": 3,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Protection Act s.70 para.2: where the employer terminates, wages and other money owed on termination are paid within three days of the termination."
@@ -5035,9 +5167,21 @@
 				"final_pay_exempt": false,
 				"basis_exempt_codes": ["BONUS", "SEVERANCE_PAY", "NOTICE_IN_LIEU"],
 				"group_limits": [
-					{ "codes": ["UNION_DUES"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["COOPERATIVE_DEDUCTION"], "share": 0.1, "assessment_period": "PAY_PERIOD" },
-					{ "codes": ["DAMAGE_COMPENSATION"], "share": 0.1, "assessment_period": "PAY_PERIOD" }
+					{
+						"codes": ["UNION_DUES"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["COOPERATIVE_DEDUCTION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					},
+					{
+						"codes": ["DAMAGE_COMPENSATION"],
+						"share": 0.1,
+						"assessment_period": "PAY_PERIOD"
+					}
 				],
 				"authority": "Labour Protection Act s.76 (as amended by No.2 B.E.2551; Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09; register TH-DEDUCT-01): no deduction from wages, overtime, holiday pay or holiday overtime except (1) income tax and other payments provided by law, (2) labour-union dues, (3) savings-cooperative debts or debts for the employee's sole benefit with prior consent, (4) a s.10 deposit or compensation for wilful or grossly negligent damage with prior consent, (5) provident-fund contributions; each of (2)–(5) at most 10% and together at most one-fifth of the money due at payment under s.70, unless the employee consents in advance (s.77: in writing). Base: the payslip's wages less the non-s.70 lines (bonus, severance, pay in lieu of notice). Item (1) (SLF_DEDUCTION) and a consented excess (CONSENTED_DEDUCTION) are outside both limits; statutory tax and social security do not count. Owner rule 2026-09-30: s.76 states no exception for the final payment, so the final payslip is held to it too."
 			}
@@ -5084,14 +5228,14 @@
 				"type": "boolean",
 				"label": "Dismissed for a s.119 cause stated in the notice",
 				"description": "Labour Protection Act s.119: no severance where the dismissal is for dishonesty or an intentional crime against the employer, wilful damage, serious negligence, a breach after a valid written warning, three consecutive working days’ absence without reason, or final imprisonment — and the cause was stated in the notice. s.67 then pays only carried-forward annual leave.",
-				"required_when": "employment.exit_reason == \"DISMISSAL\""
+				"required_when": "employment.exit_ground == \"DISMISSAL\""
 			},
 			{
 				"key": "fixed_term_project_exempt",
 				"type": "boolean",
 				"label": "Fixed-term project, occasional or seasonal work finished within two years",
 				"description": "Labour Protection Act s.118 paras 3–4: severance is not owed at the end of a written fixed-term contract for a special project outside the employer’s normal business, or for occasional or seasonal work, finished within two years. Every other contract expiry is a termination (s.118 para 2).",
-				"required_when": "employment.exit_reason == \"END_OF_CONTRACT\""
+				"required_when": "employment.exit_ground == \"END_OF_CONTRACT\""
 			},
 			{
 				"key": "relocation_objection",
@@ -5252,6 +5396,14 @@
 				"owner": "Payroll / Employee Welfare Fund",
 				"authority": "Labour Protection Act ss.130–131; commencement decree (https://ratchakitcha.soc.go.th/documents/84794.pdf); rate regulation (https://ratchakitcha.soc.go.th/documents/86102.pdf); register TH-EWF-01–03.",
 				"status": "PARTIAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	}

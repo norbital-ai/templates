@@ -14,6 +14,7 @@ import { periodGrammarFault, resolveWindow } from '../../lib/payroll/run/period.
 import { decodeNumber } from '../../lib/wire.js';
 import { dateKey } from '../../lib/iso-day.js';
 import { coversDate } from './run/effective.js';
+import { historyReachDays } from '../expressions/functions/history.js';
 
 type PayrollCollection =
 	| 'companies'
@@ -50,6 +51,16 @@ type PayrollCollection =
  */
 export type PayrollWorld = { readonly [C in PayrollCollection]: readonly WorkspaceRow<C>[] } & {
 	readonly fact_evidence?: readonly WorkspaceRow<'fact_evidence'>[];
+	/** The company's worksite revisions (`worksite.*`); absent is none recorded. */
+	readonly worksites?: readonly WorkspaceRow<'worksites'>[];
+	/** The people's dated fact revisions (`employee.facts.*`); absent is none recorded. */
+	readonly person_facts?: readonly WorkspaceRow<'person_facts'>[];
+	/** The people's history outside this payroll (`history.external`); absent is none recorded. */
+	readonly employment_history?: readonly WorkspaceRow<'employment_history'>[];
+	/** The lineage versions' table rows (`table()`, `band()`, `bands()`); absent is none. */
+	readonly reference_rows?: readonly WorkspaceRow<'reference_rows'>[];
+	/** The first day `work_days` covers: `history.days(window)` refuses a window before it. */
+	readonly work_days_from?: string;
 };
 
 /** The largest page the run reads of one collection; a run that reaches it refuses rather than lie. */
@@ -228,7 +239,11 @@ async function wave2(
 		leave_entries,
 		loans,
 		loan_repayments,
-		payslips
+		payslips,
+		worksites,
+		person_facts,
+		employment_history,
+		reference_rows
 	] = await Promise.all([
 		readAll<WorkspaceRow<'employees'>>(db, 'employees', { id: { in: employeeIds }, ...APPROVED }),
 		readAll<WorkspaceRow<'employment_terms'>>(db, 'employment_terms', people),
@@ -303,7 +318,20 @@ async function wave2(
 		readAll<WorkspaceRow<'loan_repayments'>>(db, 'loan_repayments', {
 			employment_id: { in: employmentIds }
 		}),
-		readAll<WorkspaceRow<'payslips'>>(db, 'payslips', { employment_id: { in: employmentIds } })
+		readAll<WorkspaceRow<'payslips'>>(db, 'payslips', { employment_id: { in: employmentIds } }),
+		readAll<WorkspaceRow<'worksites'>>(db, 'worksites', {
+			company_id: { eq: companyId },
+			...APPROVED
+		}),
+		readAll<WorkspaceRow<'person_facts'>>(db, 'person_facts', {
+			employee_id: { in: employeeIds },
+			...APPROVED
+		}),
+		readAll<WorkspaceRow<'employment_history'>>(db, 'employment_history', {
+			employee_id: { in: employeeIds },
+			...APPROVED
+		}),
+		readAll<WorkspaceRow<'reference_rows'>>(db, 'reference_rows', under)
 	]);
 	// A piece leaver's history (`results_pay.piece_history_weeks`; TH s.118 reads up to 400 last
 	// piece-workdays, so 400 weeks at one workday a week). Sparse work beyond that horizon refuses
@@ -338,7 +366,19 @@ async function wave2(
 				...(version.work_day_facts ?? [])
 			].some((field) => field.evidence != null)
 	);
-	const [earlierPieceDays, earlierPieceRosters, fact_evidence] = await Promise.all([
+	// E4: the version's literal history windows size the earlier work days (`history.days`).
+	const reach = historyReachDays(
+		[
+			governing,
+			...statutory_contributions,
+			...leave_catalogue,
+			...claim_catalogue,
+			...adhoc_catalogue,
+			...allowance_catalogue
+		].map((row) => JSON.stringify(row ?? null))
+	);
+	const historyFrom = addDays(spanFrom, -reach);
+	const [earlierPieceDays, earlierPieceRosters, fact_evidence, earlierDays] = await Promise.all([
 		readAll<WorkspaceRow<'work_days'>>(
 			db,
 			'work_days',
@@ -363,8 +403,22 @@ async function wave2(
 					],
 					...APPROVED
 				})
+			: [],
+		reach > 0
+			? readAll<WorkspaceRow<'work_days'>>(
+					db,
+					'work_days',
+					{ ...people, work_date: { gte: historyFrom, lt: spanFrom } },
+					1000
+				)
 			: []
 	]);
+	const pieceIdSet = new Set(earlierPieceDays.map((row) => row.id));
+	const earlier = [...earlierPieceDays, ...earlierDays.filter((row) => !pieceIdSet.has(row.id))];
+	const work_days_from = [
+		reach > 0 ? historyFrom : spanFrom,
+		...(pieceIds.length > 0 ? [pieceHistoryFrom] : [])
+	].toSorted()[0]!;
 	return {
 		...first,
 		jurisdiction_settings: [...first.jurisdiction_settings, ...foreignSettings],
@@ -380,13 +434,18 @@ async function wave2(
 		allowance_catalogue: complete(allowance_catalogue, 'allowance catalogue'),
 		loan_catalogue: complete(loan_catalogue, 'loan catalogue'),
 		jurisdiction_holidays: complete(jurisdiction_holidays, 'published holidays'),
-		work_days: complete([...earlierPieceDays, ...work_days], 'work days'),
+		work_days: complete([...earlier, ...work_days], 'work days'),
+		work_days_from,
 		rosters: complete([...earlierPieceRosters, ...rosters], 'rosters'),
 		leave_entries: complete(leave_entries, 'leave entries'),
 		loans: complete(loans, 'loans'),
 		loan_repayments: complete(loan_repayments, 'loan repayments'),
 		payslips: complete(payslips, 'payslips'),
-		fact_evidence: complete(fact_evidence, 'fact evidence')
+		fact_evidence: complete(fact_evidence, 'fact evidence'),
+		worksites: complete(worksites, 'worksites'),
+		person_facts: complete(person_facts, 'person facts'),
+		employment_history: complete(employment_history, 'employment history'),
+		reference_rows: complete(reference_rows, 'reference rows')
 	};
 }
 

@@ -14,7 +14,7 @@ const contract = (from, to) => ({
 	company_id: 'entity',
 	employee_number: 'E1',
 	effective_range: { from, to },
-	exit_reason: null,
+	exit_ground: null,
 	exit_facts: null,
 	comments: null
 });
@@ -26,7 +26,7 @@ const leave = (row, to, over = {}) =>
 		[
 			{
 				effective_range: { from: row.effective_range.from, to },
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				...over
 			}
 		],

@@ -95,7 +95,7 @@ test('Taiwan — a last-day February exit completes the pension month but LI cha
 				citizenship: 'CITIZEN',
 				hire_date: '2020-01-01',
 				exit_date: '2026-02-28',
-				exit_reason: 'RESIGNATION'
+				exit_ground: 'RESIGNATION'
 			}
 		]
 	});
@@ -2039,7 +2039,7 @@ test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on th
 		citizenship: 'CITIZEN',
 		hire_date: hire,
 		exit_date: exit,
-		exit_reason: 'REDUNDANCY',
+		exit_ground: 'REDUNDANCY',
 		...(residency != null ? { tax_residency: residency } : {})
 	});
 	// The off-boarding asks for the class; the band prices it from the wage, and `SEVERANCE_TAX`
@@ -2251,7 +2251,7 @@ test('Taiwan — a mid-month leaver: final pay, unused 特別休假 paid out, fi
 					citizenship: 'CITIZEN',
 					hire_date: '2020-01-01',
 					exit_date: '2026-01-15',
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					registrations: {
 						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 					}
@@ -2474,7 +2474,7 @@ test('Taiwan — 資遣費: the new system caps at six months and retained old-s
 				citizenship: 'CITIZEN',
 				hire_date: person.hire,
 				exit_date: '2026-01-31',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				...('old' in person ? { registrations: { LABOR_PENSION: RETAINED_OLD_PENSION } } : {})
 			}))
 		},
@@ -2585,7 +2585,7 @@ test('Taiwan — 舊制退休金: 45-base cap, half-year rounding and job-caused
 				citizenship: 'CITIZEN',
 				hire_date: person.hire,
 				exit_date: '2026-01-31',
-				exit_reason: 'RETIREMENT',
+				exit_ground: 'RETIREMENT',
 				...('old' in person ? { registrations: { LABOR_PENSION: RETAINED_OLD_PENSION } } : {})
 			}))
 		},
@@ -2736,7 +2736,7 @@ test('Taiwan — §16 notice by cause and service: 10 / 20 / 30 days on §11, th
 				citizenship: 'CITIZEN',
 				hire_date: person.hire,
 				exit_date: '2026-01-31',
-				exit_reason: person.reason
+				exit_ground: person.reason
 			}))
 		},
 		(world) => {
@@ -2804,7 +2804,7 @@ test('Taiwan — §13: no §11 or §20 termination inside the §59 medical perio
 						citizenship: 'CITIZEN',
 						hire_date: '2023-02-01',
 						exit_date: '2026-01-31',
-						exit_reason: reason
+						exit_ground: reason
 					}
 				]
 			},
@@ -3314,7 +3314,7 @@ test('Taiwan — a leaver: final wages are due on the last day (勞基法施行�
 				citizenship: 'CITIZEN',
 				hire_date: '2020-01-01',
 				exit_date: '2026-01-15',
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				registrations: {
 					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 				}
@@ -3766,7 +3766,7 @@ test('Taiwan — §59(2) proviso: forty months of 平均工資 at once; §59(3) 
 				(r) => r.code === `OCC_DISABILITY_G${String(index + 1).padStart(2, '0')}`
 			)!;
 			assert.ok(
-				row.bands[0]!.amount.startsWith(`round_unit(${day}.0 * `),
+				row.bands[0]!.amount.startsWith(`round(${day}.0 * `),
 				`${version.id} G${index + 1}`
 			);
 		});
@@ -3800,7 +3800,7 @@ test('Taiwan — §59(4) an occupational death: five months’ funeral costs and
 				citizenship: 'CITIZEN',
 				hire_date: '2020-01-01',
 				exit_date: '2026-04-15',
-				exit_reason: 'DEATH'
+				exit_ground: 'DEATH'
 			}))
 		},
 		(world) => {
@@ -3831,13 +3831,13 @@ test('Taiwan — §16(2) paid job-search leave follows the notice ground: §11, 
 	// 前項預告後，為另謀工作得於工作時間請假外出…請假期間之工資照給. §16(1) is the notice of a §11 or §13-proviso
 	// termination; §20 applies §16. A redundancy with no ground stated is read as §11 (as SEVERANCE_PAY
 	// reads it); a §14 resignation, a §12 dismissal (OTHER) or an unexited worker gets none.
-	const person = (exit_reason: string, facts: Record<string, string> = {}, exit = '2026-06-30') =>
+	const person = (exit_ground: string, facts: Record<string, string> = {}, exit = '2026-06-30') =>
 		personContext({
 			employee: null,
 			employment: {
 				service_start: '2020-01-01',
 				exit_date: exit,
-				exit_reason,
+				exit_ground,
 				exit_facts: { notice_days_given: 30, ...facts }
 			},
 			terms: null,
@@ -3877,7 +3877,7 @@ test('Taiwan — §16(2) job-search leave is capped at two working days a week a
 	context.employments[0] = {
 		...context.employments[0]!,
 		effective_range: { start: '2020-01-01', end: '2026-06-30' },
-		exit_reason: 'REDUNDANCY',
+		exit_ground: 'REDUNDANCY',
 		exit_facts: { lsa_termination_ground: 'ARTICLE_11', notice_days_given: 30 }
 	};
 	const seeded = leaveCatalogue('TW').find((r) => r.code === 'JOB_SEARCH_LEAVE')!;
@@ -3931,7 +3931,7 @@ test('Taiwan — §16(2) job-search leave is capped at two working days a week a
 			employment: {
 				service_start: start,
 				exit_date: '2026-06-30',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: facts
 			},
 			terms: null,
@@ -3961,7 +3961,7 @@ test('Taiwan — §16(2) job-search leave is capped at two working days a week a
 	unnoticed.employments[0] = {
 		...unnoticed.employments[0]!,
 		effective_range: { start: '2020-01-01', end: '2026-06-30' },
-		exit_reason: 'REDUNDANCY',
+		exit_ground: 'REDUNDANCY',
 		exit_facts: { lsa_termination_ground: 'ARTICLE_11' }
 	};
 	unnoticed.catalogues.push({ ...seeded, id: leaveId(90), settings_id: leaveId(6) } as never);

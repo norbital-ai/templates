@@ -513,6 +513,15 @@ export function payrollReportXlsx(sheets: readonly WorkbookSheet[]) {
 	return xlsxBytes((excel) => buildPayrollWorkbook(excel, sheets));
 }
 
+/** A declared return's records as one plain sheet, cell for cell. */
+export function tableXlsx(name: string, table: readonly (readonly (string | number)[])[]) {
+	return xlsxBytes((excel) => {
+		const workbook = new excel.Workbook();
+		workbook.addWorksheet(name.slice(0, 31)).addRows(table.map((row) => [...row]));
+		return workbook;
+	});
+}
+
 type Excel = typeof import('exceljs/dist/exceljs.bare.min.js').default;
 
 /**

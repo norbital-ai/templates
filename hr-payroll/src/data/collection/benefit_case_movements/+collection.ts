@@ -114,7 +114,7 @@ movements.transform(async (inputs, { existing, db, refuse }) => {
 						months.filter(
 							(month) =>
 								month.employee_id === caseRow.employee_id &&
-								month.scheme_code === type.credit_scheme
+								month.scheme_code === type.credits?.scheme
 						),
 						activePlan.candidate_window_from,
 						activePlan.candidate_window_through

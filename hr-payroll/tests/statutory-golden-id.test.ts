@@ -1201,7 +1201,7 @@ test('Indonesia — efficiency or closure because of losses is half the pesangon
 		wage: 10_000_000,
 		hire_date: '2021-12-15',
 		exit_date: '2026-01-31',
-		exit_reason: reason
+		exit_ground: reason
 	});
 	const { slips } = buildStatutory(
 		{
@@ -1635,7 +1635,7 @@ test('Indonesia — a resigner on 15 June: final pay, untaken leave as UPH, and 
 				wage: 10_000_000,
 				hire_date: '2021-01-04',
 				exit_date: '2026-06-15',
-				exit_reason: 'RESIGNATION'
+				exit_ground: 'RESIGNATION'
 			}
 		]),
 		(world) => {
@@ -1758,7 +1758,7 @@ test('Indonesia — final pay falls due on the agreed payday of the exit period 
 					wage: 10_000_000,
 					hire_date: '2021-01-04',
 					exit_date: '2026-06-15',
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					pay_frequency: payFrequency
 				}
 			]),
@@ -2043,14 +2043,14 @@ test('Indonesia — PP 68/2009 art.4: the 15% and 25% severance bands', () => {
 				wage: 50_000_000,
 				hire_date: '2016-01-04',
 				exit_date: '2026-01-31',
-				exit_reason: 'REDUNDANCY'
+				exit_ground: 'REDUNDANCY'
 			},
 			{
 				key: 'ID-SEV-20M',
 				wage: 20_000_000,
 				hire_date: '2016-01-04',
 				exit_date: '2026-01-31',
-				exit_reason: 'REDUNDANCY'
+				exit_ground: 'REDUNDANCY'
 			}
 		]),
 		(world) => {
@@ -2083,7 +2083,7 @@ test('Indonesia — PP 68/2009 art.2(2): a later severance payment in the same y
 					wage: 10_000_000,
 					hire_date: '2021-12-15',
 					exit_date: '2026-03-31',
-					exit_reason: 'REDUNDANCY'
+					exit_ground: 'REDUNDANCY'
 				}
 			]),
 			(world) => {
@@ -2134,7 +2134,7 @@ test('Indonesia — PP 68/2009 art.2(2): a part paid in the next calendar year j
 				wage: 10_000_000,
 				hire_date: '2021-12-15',
 				exit_date: '2026-01-31',
-				exit_reason: 'REDUNDANCY'
+				exit_ground: 'REDUNDANCY'
 			}
 		]),
 		(world) => {
@@ -2188,7 +2188,7 @@ test('Indonesia — PP 68/2009 art.6: a part paid in the third calendar year is 
 					wage: 25_000_000,
 					hire_date: '2021-11-01',
 					exit_date: '2025-12-31',
-					exit_reason: 'REDUNDANCY',
+					exit_ground: 'REDUNDANCY',
 					registrations: {
 						PPH21_FINAL_SEVERANCE: { kind: 'REGISTERED', elections: { no_tax_id: noTaxId } }
 					}
@@ -2247,7 +2247,7 @@ test('Indonesia — a non-resident’s severance is PPh 26 at 20% of gross, not 
 				wage: 30_000_000,
 				hire_date: '2021-01-04',
 				exit_date: '2026-04-30',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				tax_residency: 'NON_RESIDENT',
 				citizenship: 'FOREIGNER'
 			}
@@ -2430,7 +2430,7 @@ test('Indonesia — PKWT profile: the art.15 compensation at the end of a one-ye
 				employment_type: 'CONTRACT',
 				hire_date: '2025-07-01',
 				exit_date: '2026-06-30',
-				exit_reason: 'CONTRACT_END'
+				exit_ground: 'CONTRACT_END'
 			},
 			{
 				key: 'ID-PKWT-TKA',
@@ -2439,7 +2439,7 @@ test('Indonesia — PKWT profile: the art.15 compensation at the end of a one-ye
 				citizenship: 'FOREIGNER',
 				hire_date: '2025-07-01',
 				exit_date: '2026-06-30',
-				exit_reason: 'CONTRACT_END'
+				exit_ground: 'CONTRACT_END'
 			}
 		]),
 		(world) => {
@@ -2809,7 +2809,7 @@ test('Indonesia — piece-rate BPJS uses three paid months, or twelve for weathe
 	}
 });
 
-test('Indonesia — the piece-rate trailing windows are the version\'s payroll.trailing_wage_{short,long}_months (ID-62; LIT-4)', () => {
+test("Indonesia — the piece-rate trailing windows are the version's payroll.trailing_wage_{short,long}_months (ID-62; LIT-4)", () => {
 	// Same history as above: Feb–Oct 2025 4,000,000, Nov 5,000,000, Dec 6,000,000, Jan 2026 7,000,000.
 	const months = Object.fromEntries(
 		Array.from({ length: 9 }, (_, index) => [

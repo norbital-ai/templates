@@ -62,7 +62,8 @@ export type Expected = {
 // ---------------------------------------------------------------------------------------------- arithmetic
 const r2 = (x: number) => Math.round((x + Number.EPSILON) * 100) / 100;
 /** [MTD] E(1): calculations are limited to two decimals, later figures omitted. */
-const trunc2 = (x: number) => (x < 0 ? -Math.floor(-x * 100 + 1e-7) / 100 : Math.floor(x * 100 + 1e-7) / 100);
+const trunc2 = (x: number) =>
+	x < 0 ? -Math.floor(-x * 100 + 1e-7) / 100 : Math.floor(x * 100 + 1e-7) / 100;
 /** [MTD] E(2): round up to the next five sen. */
 const up5 = (x: number) => (Math.ceil(Math.round(x * 100) / 5 - 1e-9) * 5) / 100;
 const cents = (x: number) => Math.round(x * 100);
@@ -128,47 +129,163 @@ function epf(s: Scenario, age: number, wage: number, wageExBonus: number): Epf {
 	const lowBand = cents(wageExBonus) <= 500000;
 	if (age < 60) {
 		const code = cz === 'CITIZEN' ? 'EPF' : 'EPF_PR';
-		return { code, employee: epfShare(w, 1100), employer: epfShare(w, lowBand ? 1300 : 1200), part: 'A' };
+		return {
+			code,
+			employee: epfShare(w, 1100),
+			employer: epfShare(w, lowBand ? 1300 : 1200),
+			part: 'A'
+		};
 	}
 	if (cz === 'CITIZEN')
 		// Part E: citizen 60 to under 75, employee nil, employer 4%.
 		return { code: 'EPF', employee: 0, employer: epfShare(w, 400), part: 'E' };
 	// Part C: PR (and pre-1998 noncitizen member) aged 60+: employee 5.5%, employer 6.5% ≤ RM5,000 else 6%
 	// (tracker MY-EPF-TRANS-02, KWSP noncitizen FAQ Q23).
-	return { code: 'EPF_PR', employee: epfShare(w, 550), employer: epfShare(w, lowBand ? 650 : 600), part: 'C' };
+	return {
+		code: 'EPF_PR',
+		employee: epfShare(w, 550),
+		employer: epfShare(w, lowBand ? 650 : 600),
+		part: 'C'
+	};
 }
 
 // ---------------------------------------------------------------------------------------------- SOCSO / SKBBK / EIS
 // [SOCSO] A1788 First Phase Part I, 65 rows, cents: [invalidity employer (3)(A), employment injury employer (3)(B),
 // invalidity employee (4)(A), non-employment injury employee (4)(B)].
 const SOCSO_FIRST: readonly (readonly [number, number, number, number])[] = [
-	[10, 30, 10, 20], [20, 50, 20, 30], [30, 80, 30, 50], [40, 110, 40, 65], [60, 150, 60, 90],
-	[85, 210, 85, 125], [125, 310, 125, 185], [175, 440, 175, 265], [225, 560, 225, 335], [275, 690, 275, 415],
-	[325, 810, 325, 485], [375, 940, 375, 565], [425, 1060, 425, 635], [475, 1190, 475, 715], [525, 1310, 525, 785],
-	[575, 1440, 575, 865], [625, 1560, 625, 935], [675, 1690, 675, 1015], [725, 1810, 725, 1085], [775, 1940, 775, 1165],
-	[825, 2060, 825, 1235], [875, 2190, 875, 1315], [925, 2310, 925, 1385], [975, 2440, 975, 1465], [1025, 2560, 1025, 1535],
-	[1075, 2690, 1075, 1615], [1125, 2810, 1125, 1685], [1175, 2940, 1175, 1765], [1225, 3060, 1225, 1835], [1275, 3190, 1275, 1915],
-	[1325, 3310, 1325, 1985], [1375, 3440, 1375, 2065], [1425, 3560, 1425, 2135], [1475, 3690, 1475, 2215], [1525, 3810, 1525, 2285],
-	[1575, 3940, 1575, 2365], [1625, 4060, 1625, 2435], [1675, 4190, 1675, 2515], [1725, 4310, 1725, 2585], [1775, 4440, 1775, 2665],
-	[1825, 4560, 1825, 2735], [1875, 4690, 1875, 2815], [1925, 4810, 1925, 2885], [1975, 4940, 1975, 2965], [2025, 5060, 2025, 3035],
-	[2075, 5190, 2075, 3115], [2125, 5310, 2125, 3185], [2175, 5440, 2175, 3265], [2225, 5560, 2225, 3335], [2275, 5690, 2275, 3415],
-	[2325, 5810, 2325, 3485], [2375, 5940, 2375, 3565], [2425, 6060, 2425, 3635], [2475, 6190, 2475, 3715], [2525, 6310, 2525, 3785],
-	[2575, 6440, 2575, 3865], [2625, 6560, 2625, 3935], [2675, 6690, 2675, 4015], [2725, 6810, 2725, 4085], [2775, 6940, 2775, 4165],
-	[2825, 7060, 2825, 4235], [2875, 7190, 2875, 4315], [2925, 7310, 2925, 4385], [2975, 7440, 2975, 4465], [2975, 7440, 2975, 4465],
+	[10, 30, 10, 20],
+	[20, 50, 20, 30],
+	[30, 80, 30, 50],
+	[40, 110, 40, 65],
+	[60, 150, 60, 90],
+	[85, 210, 85, 125],
+	[125, 310, 125, 185],
+	[175, 440, 175, 265],
+	[225, 560, 225, 335],
+	[275, 690, 275, 415],
+	[325, 810, 325, 485],
+	[375, 940, 375, 565],
+	[425, 1060, 425, 635],
+	[475, 1190, 475, 715],
+	[525, 1310, 525, 785],
+	[575, 1440, 575, 865],
+	[625, 1560, 625, 935],
+	[675, 1690, 675, 1015],
+	[725, 1810, 725, 1085],
+	[775, 1940, 775, 1165],
+	[825, 2060, 825, 1235],
+	[875, 2190, 875, 1315],
+	[925, 2310, 925, 1385],
+	[975, 2440, 975, 1465],
+	[1025, 2560, 1025, 1535],
+	[1075, 2690, 1075, 1615],
+	[1125, 2810, 1125, 1685],
+	[1175, 2940, 1175, 1765],
+	[1225, 3060, 1225, 1835],
+	[1275, 3190, 1275, 1915],
+	[1325, 3310, 1325, 1985],
+	[1375, 3440, 1375, 2065],
+	[1425, 3560, 1425, 2135],
+	[1475, 3690, 1475, 2215],
+	[1525, 3810, 1525, 2285],
+	[1575, 3940, 1575, 2365],
+	[1625, 4060, 1625, 2435],
+	[1675, 4190, 1675, 2515],
+	[1725, 4310, 1725, 2585],
+	[1775, 4440, 1775, 2665],
+	[1825, 4560, 1825, 2735],
+	[1875, 4690, 1875, 2815],
+	[1925, 4810, 1925, 2885],
+	[1975, 4940, 1975, 2965],
+	[2025, 5060, 2025, 3035],
+	[2075, 5190, 2075, 3115],
+	[2125, 5310, 2125, 3185],
+	[2175, 5440, 2175, 3265],
+	[2225, 5560, 2225, 3335],
+	[2275, 5690, 2275, 3415],
+	[2325, 5810, 2325, 3485],
+	[2375, 5940, 2375, 3565],
+	[2425, 6060, 2425, 3635],
+	[2475, 6190, 2475, 3715],
+	[2525, 6310, 2525, 3785],
+	[2575, 6440, 2575, 3865],
+	[2625, 6560, 2625, 3935],
+	[2675, 6690, 2675, 4015],
+	[2725, 6810, 2725, 4085],
+	[2775, 6940, 2775, 4165],
+	[2825, 7060, 2825, 4235],
+	[2875, 7190, 2875, 4315],
+	[2925, 7310, 2925, 4385],
+	[2975, 7440, 2975, 4465],
+	[2975, 7440, 2975, 4465]
 ];
 // [SOCSO] A1788 First Phase Part IV (second category), cents: [employment injury employer, non-employment injury employee].
 const SOCSO_SECOND: readonly (readonly [number, number])[] = [
-	[30, 20], [50, 30], [80, 50], [110, 65], [150, 90], [210, 125],
-	[310, 185], [440, 265], [560, 335], [690, 415], [810, 485], [940, 565],
-	[1060, 635], [1190, 715], [1310, 785], [1440, 865], [1560, 935], [1690, 1015],
-	[1810, 1085], [1940, 1165], [2060, 1235], [2190, 1315], [2310, 1385], [2440, 1465],
-	[2560, 1535], [2690, 1615], [2810, 1685], [2940, 1765], [3060, 1835], [3190, 1915],
-	[3310, 1985], [3440, 2065], [3560, 2135], [3690, 2215], [3810, 2285], [3940, 2365],
-	[4060, 2435], [4190, 2515], [4310, 2585], [4440, 2665], [4560, 2735], [4690, 2815],
-	[4810, 2885], [4940, 2965], [5060, 3035], [5190, 3115], [5310, 3185], [5440, 3265],
-	[5560, 3335], [5690, 3415], [5810, 3485], [5940, 3565], [6060, 3635], [6190, 3715],
-	[6310, 3785], [6440, 3865], [6560, 3935], [6690, 4015], [6810, 4085], [6940, 4165],
-	[7060, 4235], [7190, 4315], [7310, 4385], [7440, 4465], [7440, 4465],
+	[30, 20],
+	[50, 30],
+	[80, 50],
+	[110, 65],
+	[150, 90],
+	[210, 125],
+	[310, 185],
+	[440, 265],
+	[560, 335],
+	[690, 415],
+	[810, 485],
+	[940, 565],
+	[1060, 635],
+	[1190, 715],
+	[1310, 785],
+	[1440, 865],
+	[1560, 935],
+	[1690, 1015],
+	[1810, 1085],
+	[1940, 1165],
+	[2060, 1235],
+	[2190, 1315],
+	[2310, 1385],
+	[2440, 1465],
+	[2560, 1535],
+	[2690, 1615],
+	[2810, 1685],
+	[2940, 1765],
+	[3060, 1835],
+	[3190, 1915],
+	[3310, 1985],
+	[3440, 2065],
+	[3560, 2135],
+	[3690, 2215],
+	[3810, 2285],
+	[3940, 2365],
+	[4060, 2435],
+	[4190, 2515],
+	[4310, 2585],
+	[4440, 2665],
+	[4560, 2735],
+	[4690, 2815],
+	[4810, 2885],
+	[4940, 2965],
+	[5060, 3035],
+	[5190, 3115],
+	[5310, 3185],
+	[5440, 3265],
+	[5560, 3335],
+	[5690, 3415],
+	[5810, 3485],
+	[5940, 3565],
+	[6060, 3635],
+	[6190, 3715],
+	[6310, 3785],
+	[6440, 3865],
+	[6560, 3935],
+	[6690, 4015],
+	[6810, 4085],
+	[6940, 4165],
+	[7060, 4235],
+	[7190, 4315],
+	[7310, 4385],
+	[7440, 4465],
+	[7440, 4465]
 ];
 /** Row index 0..64 of the 65-row PERKESO wage bands (up to 30, 50, 70, 100, 140, 200, 300, then RM100 to 6,000, above). */
 function perkesoRow(wage: number) {
@@ -197,7 +314,7 @@ const TABLE1: readonly [number, number, number, number][] = [
 	[50_000, 0.11, 1_500, 1_500],
 	[35_000, 0.06, 600, 600],
 	[20_000, 0.03, -250, -650],
-	[5_000, 0.01, -400, -800],
+	[5_000, 0.01, -400, -800]
 ];
 function annualTax(P: number, category: 1 | 2 | 3) {
 	const row = TABLE1.find(([M]) => P > M);
@@ -232,7 +349,8 @@ function residentMtd(o: {
 	// D RM9,000 automatic; S RM4,000 only in category 2; Q RM2,000 × C, C = 0 in category 1 (spec p.10-11, E(14)(i)(a)-(c)).
 	const reliefs = 9000 + (o.category === 2 ? 4000 : 0) + (o.category === 1 ? 0 : 2000 * o.children);
 	// K2 = [RM4,000 − (K + K1 + Kt)] / n or K1, whichever is lower.
-	const k2 = (kt: number) => (n === 0 ? 0 : Math.max(0, Math.min(trunc2((LIMIT - (K + K1 + kt)) / n), K1)));
+	const k2 = (kt: number) =>
+		n === 0 ? 0 : Math.max(0, Math.min(trunc2((LIMIT - (K + K1 + kt)) / n), K1));
 	// Step 1: normal remuneration only; [C] = [(P − M)R + B − (Z + X)] / (n + 1).
 	const P1 = trunc2(sumYK + o.Y1 - K1 + (o.Y1 - k2(0)) * n - reliefs);
 	const raw = Math.max(0, trunc2((annualTax(P1, o.category) - (Z + X)) / (n + 1)));
@@ -248,7 +366,10 @@ function residentMtd(o: {
 	const addRaw = trunc2(trunc2(annualTax(P2, o.category)) - yearNormal - Z);
 	const add = addRaw <= 0 ? 0 : up5(addRaw);
 	const addPaid = add < 10 ? 0 : add; // E(4)(c)
-	const note = mtdN > 0 && mtdN < 10 ? 'Step 1[E] with a sub-RM10 normal MTD is not settled by E(3)-(5)' : null;
+	const note =
+		mtdN > 0 && mtdN < 10
+			? 'Step 1[E] with a sub-RM10 normal MTD is not settled by E(3)-(5)'
+			: null;
 	return { pcb: r2(normalPaid + addPaid), P: P2, note };
 }
 
@@ -258,7 +379,13 @@ function residentMtd(o: {
  * 2.0× on either coded rest day, 2.0× on holiday hours within the normal hours and 3.0× beyond. EA s.7 voids a
  * less favourable term and s.60I(2) forbids a lower rate, so each statutory component is compared separately
  * (tracker MY-EA36 owner default) and the greater is paid. */
-const TERMS = { customerHourDivisor: 26 * 7.5, workdayOt: 1.5, restDay: 2.0, holiday: 2.0, holidayOt: 3.0 };
+const TERMS = {
+	customerHourDivisor: 26 * 7.5,
+	workdayOt: 1.5,
+	restDay: 2.0,
+	holiday: 2.0,
+	holidayOt: 3.0
+};
 const NORMAL_HOURS = 8; // EA s.60A(1)(b), s.60A(3)(c): the contract's usual hours per day (09:00-18:00 less a 60-minute break)
 
 export function computePayslip(s: Scenario): Expected {
@@ -284,7 +411,8 @@ export function computePayslip(s: Scenario): Expected {
 	if (e.rate < floor) {
 		out.refused = {
 			reason: `${e.payBasis.toLowerCase()} rate ${e.rate} is below the RM${floor} minimum wage; paying it is an offence (Act 732 s.43)`,
-			citation: 'Minimum Wages Order 2024 P.U.(A)376 para 2; National Wages Consultative Council Act 2011 s.43'
+			citation:
+				'Minimum Wages Order 2024 P.U.(A)376 para 2; National Wages Consultative Council Act 2011 s.43'
 		};
 		out.branches.push('minimum-wage:below');
 		return out;
@@ -306,7 +434,9 @@ export function computePayslip(s: Scenario): Expected {
 			const nineBefore = Date.UTC(+mat.slice(0, 4), +mat.slice(5, 7) - 1 - 9, +mat.slice(8, 10));
 			const served = Math.round((c - Math.max(day(e.hireDate), nineBefore)) / DAY);
 			const allowance = day(e.hireDate) < c && served >= 90;
-			out.branches.push(allowance ? `s37(2)(c):unabated(${served}d)` : `s37(2)(a):no-allowance(${served}d)`);
+			out.branches.push(
+				allowance ? `s37(2)(c):unabated(${served}d)` : `s37(2)(a):no-allowance(${served}d)`
+			);
 			if (!allowance) for (let i = 0; i < 98; i++) unpaidDays.add(iso(c + i * DAY));
 		}
 		const unpaid = [...unpaidDays].filter((d) => d >= from && d <= to).length;
@@ -320,9 +450,14 @@ export function computePayslip(s: Scenario): Expected {
 			// sen; half-up). Fixed allowances are "wages" (s.2) and prorate with the basic.
 			earn('BASIC', r2((e.rate * eligible) / dim));
 			earn('FIXED_ALLOWANCE', r2((e.fixedAllowance * eligible) / dim));
-			out.branches.push(`s18A:${from > first ? 'a-joiner' : ''}${to < last ? 'b-leaver' : ''}${unpaid ? 'c-unpaid' : ''}`);
+			out.branches.push(
+				`s18A:${from > first ? 'a-joiner' : ''}${to < last ? 'b-leaver' : ''}${unpaid ? 'c-unpaid' : ''}`
+			);
 			if (unpaid && e.rate === 1700)
-				unresolved('EPF', 'EPF Act s.43(1A) floors the contribution at the Third Schedule amount on the "legally determined" monthly minimum wage; whether that minimum is prorated for s.18A(c) unpaid days is not stated (MY-EPF-04)');
+				unresolved(
+					'EPF',
+					'EPF Act s.43(1A) floors the contribution at the Third Schedule amount on the "legally determined" monthly minimum wage; whether that minimum is prorated for s.18A(c) unpaid days is not stated (MY-EPF-04)'
+				);
 		}
 	} else if (e.payBasis === 'DAILY') {
 		earn('BASIC', r2(e.rate * (s.month.daysWorked ?? 0)));
@@ -401,7 +536,10 @@ export function computePayslip(s: Scenario): Expected {
 			taxableTB = Math.max(0, r2(tb - 10000 * Math.floor(serviceMonths / 12)));
 			out.branches.push(`reg6:${tierDays}d×${months}/12`);
 			for (const k of ['SOCSO', 'EIS', 'SKBBK'])
-				unresolved(k, 'Act 4 s.2(24)(d) / Act 800 s.2(d) exclude "gratuity payable on discharge or retirement" and name no termination benefit; no PERKESO text settles it (tracker MY-SR10)');
+				unresolved(
+					k,
+					'Act 4 s.2(24)(d) / Act 800 s.2(d) exclude "gratuity payable on discharge or retirement" and name no termination benefit; no PERKESO text settles it (tracker MY-SR10)'
+				);
 		} else if (tbCause) out.branches.push('reg3:under-12-months');
 		else out.branches.push(`reg4(1):${x.cause}`);
 		// Notice [EA] s.12(2): 4 / 6 / 8 weeks by service on the date notice is given; s.13(1): the party ending
@@ -417,9 +555,14 @@ export function computePayslip(s: Scenario): Expected {
 			}
 			const code = x.cause === 'EMPLOYER_TERMINATION' ? 'NOTICE_INDEMNITY' : 'NOTICE_INDEMNITY_DUE';
 			out.lines[code] = { amount: r2(x.cause === 'EMPLOYER_TERMINATION' ? indemnity : -indemnity) };
-			out.branches.push(`s13(1):${weeks}w-${x.cause === 'EMPLOYER_TERMINATION' ? 'employer-pays' : 'employee-owes'}`);
+			out.branches.push(
+				`s13(1):${weeks}w-${x.cause === 'EMPLOYER_TERMINATION' ? 'employer-pays' : 'employee-owes'}`
+			);
 			for (const k of ['EPF', 'SOCSO', 'EIS', 'SKBBK', 'HRDF', 'PCB'])
-				unresolved(k, 'the scheme treatment of a s.13(1) notice indemnity is not stated in the read texts');
+				unresolved(
+					k,
+					'the scheme treatment of a s.13(1) notice indemnity is not stated in the read texts'
+				);
 		}
 	}
 
@@ -428,7 +571,8 @@ export function computePayslip(s: Scenario): Expected {
 	// ---- contribution bases [BASES]
 	const epfNormal = basicAll + amt('REST_DAY_WORK') + amt('HOLIDAY_WORK'); // Act 452 s.2 excludes overtime, travelling allowance, termination benefits
 	const epfTotal = epfNormal + amt('BONUS') + amt('ENCASHMENT');
-	const perkesoBase = basicAll + amt('OVERTIME') + amt('REST_DAY_WORK') + amt('HOLIDAY_WORK') + amt('ENCASHMENT'); // excludes annual bonus, travel
+	const perkesoBase =
+		basicAll + amt('OVERTIME') + amt('REST_DAY_WORK') + amt('HOLIDAY_WORK') + amt('ENCASHMENT'); // excludes annual bonus, travel
 	const hrdBase = basicAll + amt('ENCASHMENT'); // Act 612 s.2: basic, fixed allowances, leave pay; not overtime, bonus, travel
 
 	const deductions: number[] = [];
@@ -463,10 +607,18 @@ export function computePayslip(s: Scenario): Expected {
 		}
 		// SKBBK (non-employment injury): A1788, First Phase from the June 2026 contribution month, employee-borne,
 		// no age limit, citizens and foreigners alike (P.U.(B)196/2026; tracker MY-SKBBK-01/04).
-		const released = s.employee.skbbkReleased === true && s.employee.citizenship !== 'FOREIGNER' && s.period >= '2026-07';
+		const released =
+			s.employee.skbbkReleased === true &&
+			s.employee.citizenship !== 'FOREIGNER' &&
+			s.period >= '2026-07';
 		if (released) out.branches.push('SKBBK:released');
 		else if (s.period >= '2026-06') {
-			scheme('SKBBK', (second ? SOCSO_SECOND[row]![1] : SOCSO_FIRST[row]![3]) / 100, 0, perkesoBase);
+			scheme(
+				'SKBBK',
+				(second ? SOCSO_SECOND[row]![1] : SOCSO_FIRST[row]![3]) / 100,
+				0,
+				perkesoBase
+			);
 			out.branches.push('SKBBK:first-phase');
 		}
 	}
@@ -474,7 +626,15 @@ export function computePayslip(s: Scenario): Expected {
 	// EIS: Act 800 First Schedule — excluded under 18 or from 60 (para 8); first liable at 57+ (para 9); foreign
 	// employees other than permanent residents (para 10).
 	const eisOut =
-		age < 18 ? 'under-18' : age >= 60 ? 'age-60' : entryAge >= 57 ? 'entry-57' : s.employee.citizenship === 'FOREIGNER' ? 'foreign' : null;
+		age < 18
+			? 'under-18'
+			: age >= 60
+				? 'age-60'
+				: entryAge >= 57
+					? 'entry-57'
+					: s.employee.citizenship === 'FOREIGNER'
+						? 'foreign'
+						: null;
 	if (eisOut === null && perkesoBase > 0) {
 		const share = eisShare(perkesoBase);
 		scheme('EIS', share, share, perkesoBase);
@@ -483,18 +643,31 @@ export function computePayslip(s: Scenario): Expected {
 
 	// PCB
 	const exemptTravel = Math.min(amt('TRAVEL_OFFICIAL'), 6000); // [MTD] E(9)(i): official-duty travel exempt to RM6,000 a year
-	const Y1 = basicAll + amt('OVERTIME') + amt('REST_DAY_WORK') + amt('HOLIDAY_WORK') + amt('TRAVEL_OFFICIAL') - exemptTravel;
+	const Y1 =
+		basicAll +
+		amt('OVERTIME') +
+		amt('REST_DAY_WORK') +
+		amt('HOLIDAY_WORK') +
+		amt('TRAVEL_OFFICIAL') -
+		exemptTravel;
 	const Yt = amt('BONUS') + amt('ENCASHMENT') + taxableTB;
 	const cz = s.employee.citizenship;
 	// [MTD] D(a): 30% for a non-resident or one not known to be resident; its note: resident MTD for a foreign
 	// worker on an employment contract of 182 days or more. Open-ended contract → recorded residency (tracker MY-PCB-06 default).
-	const contractDays = e.contractEnd ? Math.round((day(e.contractEnd) - day(e.hireDate)) / DAY) + 1 : 0;
+	const contractDays = e.contractEnd
+		? Math.round((day(e.contractEnd) - day(e.hireDate)) / DAY) + 1
+		: 0;
 	// [ITA] s.7(1)(a): 182 days in the basis year; s.7(1)(c)(ii): 90 days in the year and ≥ 90 days in 3 of the 4
 	// preceding years. Recorded stays decide at the period end (tracker MY-PCB-06); otherwise the recorded status.
 	const pr = s.employee.presence;
-	const byPresence = pr !== undefined && (pr.ytd >= 182 || (pr.ytd >= 90 && pr.prior.filter((d) => d >= 90).length >= 3));
+	const byPresence =
+		pr !== undefined &&
+		(pr.ytd >= 182 || (pr.ytd >= 90 && pr.prior.filter((d) => d >= 90).length >= 3));
 	if (pr) out.branches.push(`s7(1):${byPresence ? 'resident' : 'not-by-presence'}`);
-	const resident = s.employee.taxResidency === 'RESIDENT' || (cz === 'FOREIGNER' && contractDays >= 182) || byPresence;
+	const resident =
+		s.employee.taxResidency === 'RESIDENT' ||
+		(cz === 'FOREIGNER' && contractDays >= 182) ||
+		byPresence;
 	// [ITA] Sch.6 para 21: a non-resident's employment exercised in Malaysia for ≤ 60 days in the year is exempt;
 	// para 22(a): over 60 days the exemption fails (then Sch.1 para 1A 30%).
 	const sch6 = s.employee.sch6Para21EmploymentDays;
@@ -522,7 +695,11 @@ export function computePayslip(s: Scenario): Expected {
 		pcb = up5(trunc2(0.3 * (Y1 + Yt)));
 		out.branches.push(`PCB:non-resident-30%(${s.employee.taxResidency})`);
 	}
-	if (s.employee.zakat) unresolved('ZAKAT', 'whether zakat is itself a payslip deduction line is outside the MTD rules');
+	if (s.employee.zakat)
+		unresolved(
+			'ZAKAT',
+			'whether zakat is itself a payslip deduction line is outside the MTD rules'
+		);
 	if (pcb > 0) {
 		out.lines.PCB = { employee: pcb, employer: 0, base: r2(Y1 + Yt) };
 		deductions.push(pcb);
@@ -535,11 +712,19 @@ export function computePayslip(s: Scenario): Expected {
 	// register (optional, 0.5%). s.15(4): an optional employer whose count exceeds its limit pays 1%; s.15(5) keeps 1%
 	// to the end of that year after a decrease; s.15(6) restores 0.5% the next year; s.15(7) an increase: 1% at once.
 	const hc = s.company.hrdHeadcount;
-	const hrdClass = hc === undefined || s.company.hrd !== 'COMPULSORY' ? s.company.hrd : hc >= 10 ? 'COMPULSORY' : 'NOT_LIABLE';
+	const hrdClass =
+		hc === undefined || s.company.hrd !== 'COMPULSORY'
+			? s.company.hrd
+			: hc >= 10
+				? 'COMPULSORY'
+				: 'NOT_LIABLE';
 	const optionalHigh = hc !== undefined && (hc >= 10 || s.company.hrdHighRateYear === y);
 	if (hrdClass !== 'NOT_LIABLE' && cz === 'CITIZEN') {
 		if (e.employmentType === 'PART_TIME')
-			unresolved('HRDF', 'part-time exclusion rests on HRD Corp Circular 19/2010 only; no s.19 exemption order found (MY-HRD12 SOURCE-BLOCKED)');
+			unresolved(
+				'HRDF',
+				'part-time exclusion rests on HRD Corp Circular 19/2010 only; no s.19 exemption order found (MY-HRD12 SOURCE-BLOCKED)'
+			);
 		else if (eduExempt) out.branches.push('HRDF:education-exempt-2026');
 		else {
 			const rate = hrdClass === 'COMPULSORY' || optionalHigh ? 0.01 : 0.005;
@@ -563,7 +748,8 @@ export function computePayslip(s: Scenario): Expected {
 	out.lines.net = { amount: r2(gross - totalDeductions) };
 	out.lines.employer_cost = { amount: r2(gross + employerShares.reduce((a, b) => a + b, 0)) };
 	if (out.unresolved.some((u) => ['EPF', 'SOCSO', 'EIS', 'SKBBK', 'PCB'].includes(u.key)))
-		for (const k of ['total_deductions', 'net']) unresolved(k, 'depends on an unresolved employee deduction');
+		for (const k of ['total_deductions', 'net'])
+			unresolved(k, 'depends on an unresolved employee deduction');
 	if (out.unresolved.some((u) => ['EPF', 'SOCSO', 'EIS', 'HRDF'].includes(u.key)))
 		unresolved('employer_cost', 'depends on an unresolved employer share');
 	return out;

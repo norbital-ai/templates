@@ -65,8 +65,14 @@ export function hourlyLeaveBasis(
 			term.comparable_full_time_daily_hours != null)
 	)
 		refuse('An absent full-time comparator cannot also state comparator hours.');
-	const fullWeek = presence === 'ABSENT' ? stated.comparator_weekly_hours : (term.comparable_full_time_weekly_hours ?? 0);
-	const fullDay = presence === 'ABSENT' ? stated.comparator_daily_hours : (term.comparable_full_time_daily_hours ?? 0);
+	const fullWeek =
+		presence === 'ABSENT'
+			? stated.comparator_weekly_hours
+			: (term.comparable_full_time_weekly_hours ?? 0);
+	const fullDay =
+		presence === 'ABSENT'
+			? stated.comparator_daily_hours
+			: (term.comparable_full_time_daily_hours ?? 0);
 	if (!(fullWeek > 0 && fullDay > 0))
 		refuse('Part-time leave needs the similar full-time employee’s daily and weekly hours.');
 	if (fullWeek < stated.part_time_below_hours)

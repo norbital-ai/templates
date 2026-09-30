@@ -15,11 +15,11 @@
 		value: 'WORK' | 'REST' | 'OFF';
 		label: string;
 		description: string;
-	}> = [
-		{ value: 'WORK', label: 'Work shift', description: 'A scheduled clock window' },
-		{ value: 'REST', label: 'Rest day', description: 'Protected weekly rest' },
-		{ value: 'OFF', label: 'Off day', description: 'Another planned non-working day' }
-	];
+	}> = $derived([
+		{ value: 'WORK', label: t('roster.kind_work'), description: t('roster.kind_work_hint') },
+		{ value: 'REST', label: t('roster.rest_day'), description: t('roster.kind_rest_hint') },
+		{ value: 'OFF', label: t('roster.off_day'), description: t('roster.kind_off_hint') }
+	]);
 
 	/** One input step, in stored minutes — 0.5 h. */
 	const STEP_MINUTES = 30;
@@ -29,11 +29,16 @@
 		if (current.kind !== 'WORK')
 			return current.kind === 'REST'
 				? current.statutory === true
-					? 'Statutory rest day'
-					: 'Rest day'
-				: 'Off day';
-		const overnight = current.end_time <= current.start_time ? ' (+1 day)' : '';
-		return `${current.start_time} → ${current.end_time}${overnight} · ${current.break_minutes / 60}h break${current.break_start_time == null ? '' : ` from ${current.break_start_time}`}`;
+					? t('roster.statutory_rest_day')
+					: t('roster.rest_day')
+				: t('roster.off_day');
+		const overnight = current.end_time <= current.start_time ? ` ${t('roster.next_day_mark')}` : '';
+		const hours = current.break_minutes / 60;
+		const pause =
+			current.break_start_time == null
+				? t('roster.break_hours', { hours })
+				: t('roster.break_hours_from', { hours, time: current.break_start_time });
+		return `${current.start_time} → ${current.end_time}${overnight} · ${pause}`;
 	});
 	function emit(value: Value): void {
 		if (view.mode === 'edit') view.onChange(value);
@@ -84,11 +89,11 @@
 	<span class="block truncate" title={summary}>{summary}</span>
 {:else}
 	<Grid gap="sm" minimum="panel">
-		<Labelled label="Kind" class="text-xs" muted>
+		<Labelled label={t('roster.kind')} class="text-xs" muted>
 			<Combobox
 				class="w-64 max-w-full"
 				size="sm"
-				aria-label="Roster code kind"
+				aria-label={t('roster.kind')}
 				options={kindOptions}
 				value={current?.kind ?? null}
 				{disabled}
@@ -128,7 +133,7 @@
 					onchange={(event) => emitBreakHours(event.currentTarget.value, true)}
 				/>
 			</Labelled>
-			<Labelled label="Scheduled break starts" class="text-xs" muted>
+			<Labelled label={t('roster.break_starts')} class="text-xs" muted>
 				<Input
 					class="h-8"
 					type="time"

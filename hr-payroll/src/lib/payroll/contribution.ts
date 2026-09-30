@@ -27,7 +27,6 @@ type FactStanding = {
 	readonly rate_override?: number | null | undefined;
 	readonly since?: string | null | undefined;
 	readonly first_contribution_due_on?: string | null | undefined;
-	readonly instalments?: readonly unknown[] | null | undefined;
 	readonly elections?: Readonly<Record<string, unknown>> | null | undefined;
 	readonly opening?: readonly unknown[] | null | undefined;
 	readonly child_claims?: readonly unknown[] | null | undefined;
@@ -41,7 +40,6 @@ const factStanding = (status: FactStanding | undefined): string =>
 				rate_override: status?.rate_override ?? null,
 				since: status?.since ?? null,
 				first_contribution_due_on: status?.first_contribution_due_on ?? null,
-				instalments: status?.instalments ?? [],
 				elections: status?.elections ?? {},
 				opening: status?.opening ?? [],
 				child_claims: status?.child_claims ?? [],
@@ -167,7 +165,6 @@ export function assessContributions(
 						);
 			const employee = allocate(charge.employee, weights);
 			const employer = allocate(charge.employer, weights);
-			const directed = allocate(charge.directed, weights);
 			const rebate = allocate(charge.rebate ?? 0, weights);
 			const { parts: _parts, ...rest } = charge;
 			for (const [position, contract] of ordered.entries()) {
@@ -179,7 +176,6 @@ export function assessContributions(
 					inputs: part.inputs,
 					employee: employee[position]!,
 					employer: employer[position]!,
-					directed: directed[position]!,
 					rebate: rebate[position]!
 				});
 			}
@@ -251,9 +247,11 @@ import type { MeasuredEmployment } from './family.js';
 import {
 	cumulativeHistory as summarizeHistory,
 	type AssessmentFrequency,
+	type HistoryAccess,
 	type StatutoryHistorySummary,
 	type StatutoryPeriodHistory
-} from './statutory-history.js';
+} from './history.js';
+import type { CompanyAccess } from '../expressions/functions/company.js';
 
 const electionOf = (status: StatutoryFactStatus | undefined, key: string): unknown =>
 	status?.kind === 'REGISTERED' ? (status.elections?.[key] ?? null) : null;
@@ -399,6 +397,8 @@ export function assessCompanyContributions(options: {
 	readonly accumulations: readonly AccumulatedPayslip[];
 	/** Every employment charge of the run: a company levy reads their sums as `produced.<code>`. */
 	readonly charges: readonly ContributionCharge[];
+	/** The entity's employments over the tax year, for `company.*` aggregates; absent refuses a read. */
+	readonly company?: CompanyAccess | undefined;
 }): ContributionCharge[] {
 	const { configuration, gathered, window, period } = options;
 	const companySchemes = configuration.contributions.filter(
@@ -467,7 +467,8 @@ export function assessCompanyContributions(options: {
 		yearToDate,
 		yearEarned,
 		produced: producedSums(options.charges),
-		monthPrior: gathered.companyMonthPrior
+		monthPrior: gathered.companyMonthPrior,
+		companyAccess: options.company
 	});
 }
 
@@ -527,9 +528,7 @@ export function contributionYearToDate(options: {
 			const key = `${employeeId}:${charge.scheme_code}`;
 			const running = totals.get(key) ?? { employee: 0, employer: 0, base: 0, ordinary: 0 };
 			totals.set(key, {
-				// Directed tax instalments settle a separate liability; they are not the
-				// current year's statutory withholding or a contribution eligible for relief.
-				employee: running.employee + charge.employee_amount - (charge.directed_amount ?? 0),
+				employee: running.employee + charge.employee_amount,
 				employer: running.employer + charge.employer_amount,
 				base: running.base + charge.base_amount,
 				ordinary: running.ordinary + (charge.ordinary_amount ?? 0),
@@ -598,7 +597,7 @@ function minimumWageScale(
 }
 
 /**
- * A leaver whose final pay falls due before this run's pay date (`payroll.final_pay_due_days`).
+ * A leaver whose final pay falls due before this run's pay date (`payroll.final_pay_deadlines`).
  * A warning: the run still pays on its date, and the operator reads who is owed sooner.
  */
 export function finalPayIssues(options: {
@@ -606,9 +605,8 @@ export function finalPayIssues(options: {
 	readonly bundles: readonly EmploymentBundle[];
 	readonly payDate: string;
 }): RunIssue[] {
-	const fallback = options.configuration.jurisdiction.payroll.final_pay_due_days;
 	const rules = options.configuration.jurisdiction.payroll.final_pay_deadlines ?? [];
-	if (fallback == null && rules.length === 0) return [];
+	if (rules.length === 0) return [];
 	const issues: RunIssue[] = [];
 	for (const bundle of options.bundles) {
 		const exit = employmentDates(bundle.employment).exit;
@@ -628,8 +626,8 @@ export function finalPayIssues(options: {
 		const rule = rules.find(
 			(candidate) => candidate.when.trim() === '' || isEligible(candidate.when, person)
 		);
-		const due = rule?.days ?? fallback;
-		if (due == null) continue;
+		if (rule == null) continue;
+		const due = rule.days;
 		const deadline =
 			rule?.basis === 'WORKING_DAYS' || rule?.basis === 'NON_REST_HOLIDAY_DAYS'
 				? workingDayDeadline(
@@ -752,7 +750,16 @@ function floorIssues(options: {
 		const segments = versionSegments(options.configuration, bundle.employedDays);
 		for (const segment of segments)
 			issues.push(...dailyFloorIssues(segment.configuration, bundle, segment, measured));
-		for (const { segment, term, against, during, start } of floorTerms(
+		// A shortfall against the same floor in consecutive versions is one span: a version that
+		// changes nothing for this person does not split the warning.
+		const below: {
+			readonly start: string;
+			end: string;
+			readonly termId: string;
+			readonly severity: RunIssue['severity'];
+			readonly message: (during: string) => string;
+		}[] = [];
+		for (const { segment, term, against, during, start, end } of floorTerms(
 			bundle,
 			segments,
 			measured
@@ -843,23 +850,47 @@ function floorIssues(options: {
 				configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
 				['PIECE_RATE', 'TASK_BASIS'].includes(person.terms.statutory_work_category) &&
 				person.terms.monthly_basic <= 0;
+			const message = (span: string) =>
+				`${bundle.employment.employee_number} ${resultsOnly ? 'has payable' : 'is contracted at'} ${payable} ${unit}` +
+				(withheld > 0 ? ` net of ${cents(withheld)} employee ${netOf.join('/')} shares` : '') +
+				', below the ' +
+				`${workplace(configuration, person)} minimum wage of ${stated} the version states${span}. ` +
+				(resultsOnly
+					? 'Record and pay enough results wages for the full calendar month before running payroll.'
+					: blocking
+						? 'Raise the contract terms before running payroll.'
+						: 'The run pays the contract; raise the terms or record why the wage stands.');
+			const last = below.at(-1);
+			if (
+				last != null &&
+				last.termId === term.id &&
+				last.message('') === message('') &&
+				addDays(last.end, 1) === start
+			)
+				last.end = end;
+			else
+				below.push({
+					start,
+					end,
+					termId: term.id,
+					severity: blocking ? 'BLOCKER' : 'WARNING',
+					// a span the whole run covers is named with no dates, as a single segment is
+					message: during === '' ? () => message('') : message
+				});
+		}
+		const employed = bundle.employedDays;
+		for (const span of below)
 			issues.push({
 				code: 'MINIMUM_WAGE_BELOW',
-				severity: blocking ? 'BLOCKER' : 'WARNING',
-				message:
-					`${bundle.employment.employee_number} ${resultsOnly ? 'has payable' : 'is contracted at'} ${payable} ${unit}` +
-					(withheld > 0 ? ` net of ${cents(withheld)} employee ${netOf.join('/')} shares` : '') +
-					', below the ' +
-					`${workplace(configuration, person)} minimum wage of ${stated} the version states${during}. ` +
-					(resultsOnly
-						? 'Record and pay enough results wages for the full calendar month before running payroll.'
-						: blocking
-							? 'Raise the contract terms before running payroll.'
-							: 'The run pays the contract; raise the terms or record why the wage stands.'),
+				severity: span.severity,
+				message: span.message(
+					span.start === employed.start && span.end === employed.end
+						? ''
+						: ` from ${span.start} to ${span.end}`
+				),
 				collection: 'employment_terms',
-				recordId: term.id
+				recordId: span.termId
 			});
-		}
 	}
 	return issues;
 }
@@ -931,7 +962,7 @@ function* floorTerms(
 			if (against == null) continue;
 			const during =
 				segments.length > 1 || datedTerms.length > 1 ? ` from ${start} to ${asOf}` : '';
-			yield { segment, term, against, during, start };
+			yield { segment, term, against, during, start, end: asOf };
 		}
 	}
 }
@@ -2124,6 +2155,10 @@ function contributionAssessment(options: {
 	readonly paidWagesByMonth?: ReadonlyMap<string, number> | undefined;
 	/** What the month's earlier instalments settled and charged, at a semi-monthly or weekly cadence. */
 	readonly monthPrior?: MonthPrior | undefined;
+	/** The person's saved past, for `history.*` in a scheme's expressions; absent refuses a read. */
+	readonly history?: HistoryAccess | undefined;
+	/** The entity's employments over the tax year, for `company.*` aggregates; absent refuses a read. */
+	readonly company?: CompanyAccess | undefined;
 }): ContractAssessment {
 	const { measured, configuration, projection, headcount } = options;
 	const { bundle } = measured;
@@ -2476,8 +2511,8 @@ function contributionAssessment(options: {
 			earnedByMonth: options.earnedByMonth,
 			paidWagesByMonth: options.paidWagesByMonth,
 			trailingWageMonths: {
-				short: configuration.jurisdiction.payroll.trailing_wage_short_months,
-				long: configuration.jurisdiction.payroll.trailing_wage_long_months
+				short: configuration.jurisdiction.payroll.trailing_wage_short_months ?? null,
+				long: configuration.jurisdiction.payroll.trailing_wage_long_months ?? null
 			},
 			monthPrior: options.monthPrior,
 			monthlyContributionDays: measured.monthlyContributionDays,
@@ -2571,7 +2606,9 @@ function contributionAssessment(options: {
 			// insurance base, so SI's `terms.fixed_allowances` leaves it out where PIT's keeps it.
 			fixedAllowancesFor: (scheme) => contractAllowancesOn(bundle, configuration, asOf, scheme),
 			minimumWage,
-			minimumWageApplies: covered
+			minimumWageApplies: covered,
+			historyAccess: options.history,
+			companyAccess: options.company
 		}
 	};
 }

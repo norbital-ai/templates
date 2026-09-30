@@ -81,7 +81,26 @@ const testTitles = new Set(
 const probeDir = new URL('./e2e/probes/', import.meta.url);
 const probeFiles = readdirSync(probeDir).filter((f) => f.endsWith('.ts'));
 const probeSource = sources(probeDir, (f) => probeFiles.includes(f));
-const hasProbe = (id: string) => ["'", '"', '`'].some((q) => probeSource.includes(q + id + q));
+// a case registered per row of a table names its id as a template: `JP-REGION-${jis}-1`
+const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const probeTemplates = [...probeSource.matchAll(/`([\w.-]*)\$\{[^}`]+\}([\w.-]*)`/g)]
+	.filter((m) => m[1] !== '')
+	.map((m) => new RegExp(`^${escape(m[1])}[\\w.]+${escape(m[2])}$`));
+const hasProbe = (id: string) =>
+	["'", '"', '`'].some((q) => probeSource.includes(q + id + q)) ||
+	probeTemplates.some((template) => template.test(id));
+
+/** `golden` is one test title or several joined by `; ` (a title may itself hold `; `). */
+const goldensNamed = (golden: string): boolean =>
+	testTitles.has(golden) ||
+	golden
+		.split('; ')
+		.some(
+			(_, cut, parts) =>
+				cut > 0 &&
+				testTitles.has(parts.slice(0, cut).join('; ')) &&
+				goldensNamed(parts.slice(cut).join('; '))
+		);
 
 test('every jurisdiction tracker keeps the inventory contract', () => {
 	const ids = new Map<string, string>();
@@ -103,7 +122,7 @@ test('every jurisdiction tracker keeps the inventory contract', () => {
 			if (row.status === 'VERIFIED')
 				assert.ok(row.probe && row.verified_at, `${at}: VERIFIED needs probe and verified_at`);
 			if (row.status === 'TESTED') assert.ok(row.golden, `${at}: TESTED needs a golden`);
-			if (row.golden) assert.ok(testTitles.has(row.golden), `${at}: no test titled ${row.golden}`);
+			if (row.golden) assert.ok(goldensNamed(row.golden), `${at}: no test titled ${row.golden}`);
 			if (row.probe && probeFiles.length)
 				for (const id of row.probe.split(/\s*;\s*/))
 					assert.ok(hasProbe(id), `${at}: no probe case ${id}`);

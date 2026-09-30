@@ -91,7 +91,7 @@ const harness = (
 	const employment = {
 		...context.employments[0]!,
 		employee_number: 'E-1',
-		exit_reason: exitReason,
+		exit_ground: exitReason,
 		approval_id: null
 	};
 	const rows: Record<string, readonly unknown[]> = {
@@ -239,7 +239,7 @@ test('off-boarding raises the separation payments the version owes the leaver, o
 		{
 			id: id(95),
 			code: 'TERMINATION_BENEFIT',
-			eligibility: 'employment.exit_reason == "REDUNDANCY" && employment.service_months >= 12'
+			eligibility: 'employment.exit_ground == "REDUNDANCY" && employment.service_months >= 12'
 		},
 		{ id: id(96), code: 'NOTICE_IN_LIEU', eligibility: 'terms.notice_days > 0' }
 	];
@@ -364,7 +364,7 @@ test('Thailand s.67 pays carried annual leave on every exit and only earned curr
 				key: 'dismissed_for_cause',
 				type: 'boolean',
 				label: 's.119 cause',
-				required_when: 'employment.exit_reason == "DISMISSAL"'
+				required_when: 'employment.exit_ground == "DISMISSAL"'
 			}
 		];
 		context.catalogues[0] = { ...annual, id: id(7), settings_id: id(6) };
@@ -414,7 +414,7 @@ test('a due departure missing an owed declaration refuses by the leaver’s name
 			key: 'terminated_without_notice',
 			type: 'boolean',
 			label: 'Left without notice',
-			required_when: 'employment.exit_reason == "RESIGNATION"'
+			required_when: 'employment.exit_ground == "RESIGNATION"'
 		}
 	];
 	const missing = harness(context, 'RESIGNATION');

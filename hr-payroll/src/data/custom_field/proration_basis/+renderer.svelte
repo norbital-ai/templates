@@ -10,21 +10,35 @@
 
 	type Basis = Value['by'];
 
-	const BASIS_OPTIONS: { value: Basis; label: string; description: string }[] = [
-		{ value: 'CALENDAR_DAYS', label: 'Calendar days', description: 'Days in the calendar month' },
-		{ value: 'WORKING_DAYS', label: 'Working days', description: 'Scheduled working days' },
-		{ value: 'FIXED_DAYS', label: 'Fixed days', description: 'A fixed statutory divisor' }
-	];
+	const BASIS_OPTIONS: { value: Basis; label: string; description: string }[] = $derived([
+		{
+			value: 'CALENDAR_DAYS',
+			label: t('proration.calendar_days'),
+			description: t('proration.calendar_days_hint')
+		},
+		{
+			value: 'WORKING_DAYS',
+			label: t('proration.working_days'),
+			description: t('proration.working_days_hint')
+		},
+		{
+			value: 'FIXED_DAYS',
+			label: t('proration.fixed_days'),
+			description: t('proration.fixed_days_hint')
+		}
+	]);
 
 	let { view }: { view: CustomFieldView<Value> } = $props();
 	const disabled = $derived(view.mode === 'edit' ? view.disabled : true);
 	const current = $derived(view.value);
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
-		if (current.by === 'FIXED_DAYS') return `Fixed ${current.days} days`;
+		if (current.by === 'FIXED_DAYS') return t('proration.fixed_n', { days: current.days });
 		if (current.by === 'CALENDAR_DAYS')
-			return current.days == null ? 'Calendar days' : `Calendar days over ${current.days}`;
-		return 'Working days';
+			return current.days == null
+				? t('proration.calendar_days')
+				: t('proration.calendar_over', { days: current.days });
+		return t('proration.working_days');
 	});
 
 	function emit(next: Value | null): void {

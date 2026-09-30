@@ -19,6 +19,7 @@ export default policy({
 	grants: {
 		companies: { read: true, create: true, update: true, delete: true },
 		company_facts: { read: true, create: true, update: true, delete: true },
+		worksites: { read: true, create: true, update: true, delete: true },
 		shift_definitions: { read: true, create: true, update: true, delete: true },
 		shift_patterns: { read: true, create: true, update: true, delete: true },
 		jurisdiction_settings: {
@@ -34,6 +35,7 @@ export default policy({
 		adhoc_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
 		allowance_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
 		loan_catalogue: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
+		reference_rows: { read: true, create: true, update: true, delete: DRAFT_SETTINGS_ROW },
 		jurisdiction_holidays: {
 			read: true,
 			create: true,
@@ -46,6 +48,8 @@ export default policy({
 		employment_terms: { read: true, create: true, update: true, delete: true },
 		fact_evidence: { read: true, create: true, update: true, delete: true },
 		employment_statutory_facts: { read: true, create: true, update: true, delete: true },
+		person_facts: { read: true, create: true, update: true, delete: true },
+		employment_history: { read: true, create: true, update: true, delete: true },
 		contribution_statement_months: { read: true, create: true, update: true },
 		benefit_cases: {
 			read: true,
@@ -81,7 +85,8 @@ export default policy({
 		payable_tranches: { read: true },
 		payment_events: { read: true, create: true },
 		payment_allocations: { read: true },
-		payslip_wage_periods: { read: true }
+		payslip_wage_periods: { read: true },
+		obligation_instances: { read: true }
 	},
 	limits: MEMBER_LIMITS
 });

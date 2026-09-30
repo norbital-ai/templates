@@ -108,7 +108,7 @@ type Person = {
 	nationality?: string;
 	hired: string;
 	left?: string;
-	exit_reason?: string;
+	exit_ground?: string;
 	exit_facts?: Row;
 	wage: number;
 	/** Overrides of the one terms row (residency, tax residency, pass, type, hours, allowances). */
@@ -232,7 +232,7 @@ function personInputs(p: Person): ProbeInput[] {
 				company_id: '@company',
 				employee_number: `P-${p.ref.toUpperCase()}`,
 				effective_range: range,
-				...(p.exit_reason === undefined ? {} : { exit_reason: p.exit_reason }),
+				...(p.exit_ground === undefined ? {} : { exit_ground: p.exit_ground }),
 				...(p.exit_facts === undefined ? {} : { exit_facts: p.exit_facts })
 			}
 		},
@@ -1186,7 +1186,7 @@ register(
 		people: [
 			citizen('tu', 'Tu Chih-wei', 40_000, all(40_100), {
 				left: '2026-02-28',
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: { lsa_termination_ground: 'OTHER' }
 			})
 		],
@@ -1220,7 +1220,7 @@ register(
 			citizen('fang', 'Fang Li-hua', 36_000, all(36_300), {
 				gender: 'FEMALE',
 				left: '2026-02-28',
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: { lsa_termination_ground: 'OTHER' }
 			})
 		],
@@ -1255,7 +1255,7 @@ register(
 			citizen('shih', 'Shih Kai-lun', 36_000, all(36_300), {
 				tax: FIVE,
 				left: '2026-03-20',
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: { lsa_termination_ground: 'OTHER' }
 			})
 		],
@@ -1297,7 +1297,7 @@ register(
 				hired: '2024-01-02',
 				tax: FIVE,
 				left: '2026-03-31',
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: { lsa_termination_ground: 'OTHER' }
 			})
 		],
@@ -1635,7 +1635,7 @@ register(
 				hired: '2023-03-16',
 				tax: FIVE,
 				left: '2026-03-15',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: { ...NOTICE, average_daily_wage: 270_000 / 181, old_system_service_months: 0 }
 			})
 		],
@@ -1684,7 +1684,7 @@ register(
 				hired: '2024-03-16',
 				tax: FIVE,
 				left: '2026-03-15',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: {
 					lsa_termination_ground: 'ARTICLE_11',
 					notice_days_given: 5,
@@ -1730,7 +1730,7 @@ register(
 				hired: '2022-03-16',
 				tax: FIVE,
 				left: '2026-03-15',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: { ...NOTICE, average_daily_wage: 240_000 / 181, old_system_service_months: 0 }
 			})
 		],
@@ -1779,7 +1779,7 @@ register(
 					hired: '2004-03-16',
 					tax: FIVE,
 					left: '2026-03-15',
-					exit_reason: 'REDUNDANCY',
+					exit_ground: 'REDUNDANCY',
 					exit_facts: {
 						...NOTICE,
 						average_daily_wage: 1_800_000 / 181,
@@ -1833,7 +1833,7 @@ register(
 					born: '1966-03-01',
 					hired: '2004-03-01',
 					left: '2026-03-15',
-					exit_reason: 'RETIREMENT',
+					exit_ground: 'RETIREMENT',
 					exit_facts: { average_daily_wage: 270_000 / 181, old_system_service_months: 264.5 },
 					standing: { LABOR_PENSION: OLD_SYSTEM }
 				}
@@ -2633,7 +2633,7 @@ register(
 				hired: '2025-09-16',
 				tax: FIVE,
 				left: '2026-03-15',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: {
 					lsa_termination_ground: 'ARTICLE_11',
 					notice_days_given: 0,
@@ -2679,7 +2679,7 @@ register(
 				hired: '2005-07-01',
 				tax: FIVE,
 				left: '2026-03-15',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: { ...NOTICE, average_daily_wage: 270_000 / 181, old_system_service_months: 0 }
 			})
 		],
@@ -2733,7 +2733,7 @@ register(
 					hired: '2004-03-16',
 					tax: FIVE,
 					left: '2026-03-15',
-					exit_reason: 'REDUNDANCY',
+					exit_ground: 'REDUNDANCY',
 					exit_facts: {
 						...NOTICE,
 						average_daily_wage: 2_700_000 / 181,
@@ -2850,7 +2850,7 @@ register(
 					hired: '2019-01-01',
 					left: '2025-12-31',
 					tax: FIVE,
-					exit_reason: 'REDUNDANCY',
+					exit_ground: 'REDUNDANCY',
 					exit_facts: {
 						...NOTICE,
 						average_daily_wage: 1_000_000 / 30,
@@ -3081,8 +3081,10 @@ register(
 			leave(job('chien'), 'PATERNITY_LEAVE', 'PAT-TW-CHIEN', '2026-03-09', '2026-03-13'),
 			leave(job('ou'), 'PRENATAL_CHECKUP_LEAVE', 'PRE-TW-OU', '2026-03-16', '2026-03-17'),
 			leave(job('lan'), 'MATERNITY_LEAVE', 'MAT-TW-LAN', '2026-03-01', '2026-04-25', {
-				event_kind: 'BIRTH',
-				event_date: '2026-03-01'
+				facts: {
+					event_kind: 'BIRTH',
+					event_date: '2026-03-01'
+				}
 			})
 		],
 		expected: Object.fromEntries(
@@ -3120,13 +3122,13 @@ register(
 				hired: '2022-03-16',
 				tax: FIVE,
 				left: '2026-03-15',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: { ...NOTICE, average_daily_wage: 240_000 / 181, old_system_service_months: 0 }
 			}),
 			citizen('jen', 'Jen Kuan-yu', 40_000, all(40_100), {
 				hired: '2022-03-16',
 				left: '2026-03-15',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: {
 					lsa_termination_ground: 'ARTICLE_11',
 					notice_days_given: 0,
@@ -3191,7 +3193,7 @@ register(
 				hired: '2023-09-16',
 				tax: FIVE,
 				left: '2026-03-15',
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				exit_facts: {
 					lsa_termination_ground: 'ARTICLE_14',
 					notice_days_given: 0,
@@ -3236,7 +3238,7 @@ register(
 				hired: '2004-03-16',
 				tax: FIVE,
 				left: '2026-03-15',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: {
 					...NOTICE,
 					average_daily_wage: 270_000 / 181,
@@ -3285,7 +3287,7 @@ register(
 					born: '1968-01-01',
 					hired: '1994-08-16',
 					left: '2026-03-15',
-					exit_reason: 'RETIREMENT',
+					exit_ground: 'RETIREMENT',
 					exit_facts: {
 						average_daily_wage: 270_000 / 181,
 						old_system_service_months: 379,
@@ -4231,7 +4233,7 @@ register(
 					born: '1981-06-01',
 					hired: '2004-03-16',
 					left: '2026-03-15',
-					exit_reason: 'RETIREMENT',
+					exit_ground: 'RETIREMENT',
 					exit_facts: {
 						average_daily_wage: 270_000 / 181,
 						old_system_service_months: 264,

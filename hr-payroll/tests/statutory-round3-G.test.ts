@@ -72,7 +72,7 @@ for (const code of ['MY'] as const satisfies readonly Lineage[]) {
 						registrations: { EPF_NON_CITIZEN: { kind: 'NOT_REGISTERED' } },
 						hire_date: '2021-01-01',
 						exit_date: '2026-01-31',
-						exit_reason: 'RETRENCHMENT'
+						exit_ground: 'RETRENCHMENT'
 					}
 				]
 			},

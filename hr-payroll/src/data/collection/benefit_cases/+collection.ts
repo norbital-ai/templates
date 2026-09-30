@@ -1,10 +1,15 @@
 import { collection } from '@norbital-ai/bolt';
 import { dateKey, isCalendarDate } from '../../../lib/iso-day.js';
+import { governed } from '../../../lib/jurisdiction_settings.js';
 import { readRange } from '../../../lib/payroll/run/effective.js';
 import {
+	assessCase,
 	calculateBenefitCandidate,
 	caseFactsFault,
 	positiveCents,
+	previousCases,
+	readCaseEarnings,
+	windowCredits,
 	readCaseEvidence,
 	readCaseLineages
 } from '../../../lib/benefit-cases/benefit.js';
@@ -42,6 +47,12 @@ const cases = collection('benefit_cases', {
 			description:
 				'Compare a benefit case with approved leave, paid payslips and dated cash evidence without booking the employer’s refund as employee pay.',
 			input: { case_id: { kind: 'id', of: 'benefit_cases' }, as_of: { kind: 'date' } },
+			output: { kind: 'json' }
+		},
+		assess: {
+			description:
+				'Price every phase of the case from saved inputs — its days, the scheme award, the pay it replaces, what the employer itself owes and what a third party refunds it — and the employer’s outlay and net cost. Nonauthoritative: the scheme’s recorded award governs cash.',
+			input: { case_id: { kind: 'id', of: 'benefit_cases' } },
 			output: { kind: 'json' }
 		},
 		assess_cash_evidence: {
@@ -325,11 +336,12 @@ cases.query('assess_cash_evidence', async (input, ctx) => {
 });
 
 cases.query('credit_candidate', async (input, ctx) => {
-	const { caseRow, type, evidence } = await readCase(ctx, input.case_id);
+	const { caseRow, type, currency, evidence } = await readCase(ctx, input.case_id);
 	if (caseRow.event_kind == null || caseRow.event_on == null)
 		refuse('Record the actual event before estimating an award.');
+	if (type.credits == null) refuse(`${type.case_type} prices no contribution credits.`);
 	const months = await ctx.read('contribution_statement_months', {
-		where: { employee_id: { eq: caseRow.employee_id }, scheme_code: { eq: type.credit_scheme } },
+		where: { employee_id: { eq: caseRow.employee_id }, scheme_code: { eq: type.credits.scheme } },
 		all: true
 	});
 	return {
@@ -337,8 +349,64 @@ cases.query('credit_candidate', async (input, ctx) => {
 			case_type: type,
 			benefit_case: caseRow,
 			evidence,
-			months: months.rows
+			months: months.rows,
+			currency
 		}),
 		status: 'CANDIDATE_NOT_AWARD'
+	};
+});
+
+cases.query('assess', async (input, ctx) => {
+	const { caseRow, type, currency, evidence } = await readCase(ctx, input.case_id);
+	const eventOn = dateKey(caseRow.event_on);
+	if (caseRow.event_kind == null || !isCalendarDate(eventOn))
+		refuse('Record the actual event before assessing the case.');
+	const [terms, earlier, months, earnings] = await Promise.all([
+		readAll<{ readonly effective_range: unknown; readonly base_salary: unknown }>(
+			ctx,
+			'employment_terms',
+			{ employment_id: { eq: caseRow.employment_id }, approval_id: { isNull: true } },
+			undefined,
+			{ effective_range: true, base_salary: true }
+		),
+		readAll<WorkspaceRow<'benefit_cases'>>(
+			ctx,
+			'benefit_cases',
+			{ employee_id: { eq: caseRow.employee_id } },
+			undefined,
+			{ id: true, case_type: true, event_on: true, leave_from: true, leave_through: true }
+		),
+		type.credits == null
+			? null
+			: readAll<Parameters<typeof windowCredits>[3][number]>(ctx, 'contribution_statement_months', {
+					employee_id: { eq: caseRow.employee_id },
+					scheme_code: { eq: type.credits.scheme }
+				}),
+		type.earnings == null
+			? undefined
+			: readCaseEarnings(ctx, caseRow.employment_id, eventOn, type.earnings.months)
+	]);
+	const inForce = terms.find((row) => {
+		const span = governed(row.effective_range);
+		return span != null && span.from <= eventOn && (span.to == null || eventOn <= span.to);
+	});
+	const award = decodeNumber(caseRow.award_amount);
+	return {
+		...assessCase({
+			case_type: type,
+			benefit_case: caseRow,
+			evidence,
+			currency,
+			inputs: {
+				...(months == null
+					? {}
+					: { credits: windowCredits(type, caseRow, evidence, months).credits }),
+				earnings,
+				previous: previousCases(caseRow.id, dateKey(caseRow.leave_from) || eventOn, earlier),
+				award: Number.isFinite(award) ? award : 0,
+				salary: inForce == null ? 0 : decodeNumber(inForce.base_salary) || 0
+			}
+		}),
+		status: caseRow.award_amount == null ? 'ASSESSED_NOT_AWARDED' : 'ASSESSED_WITH_RECORDED_AWARD'
 	};
 });

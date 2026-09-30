@@ -111,9 +111,8 @@ test('PH wage orders — the exact worksites of the I/II/CAR/IV-B/V/XIII extensi
 	floor('2026-02', 'IV-B/Calapan', 'OTHER_NONAGRI', 455);
 	floor('2026-02', 'V/Iriga', 'AGRICULTURE', 435);
 	floor('2026-02', 'XIII/Bayugan', 'AGRICULTURE', 455);
-	// The 1 April–25 September 2026 version spans the 8 April V tranche: it has no V private key, so
-	// the site refuses instead of pricing the superseded rate.
-	assert.throws(() => site('2026-04', 'V/Iriga', 'AGRICULTURE', 435), /No sealed/);
+	// RBV-23 first tranche (effective 8 April 2026): PHP455, sealed as its own version.
+	floor('2026-05', 'V/Iriga', 'AGRICULTURE', 455);
 });
 
 test('PH wage orders — the exact worksites of the VIII/IX/X/XI/XII/VI/VII/III extension pay their sealed floors', () => {
@@ -138,8 +137,9 @@ test('PH wage orders — the exact worksites of the VIII/IX/X/XI/XII/VI/VII/III 
 	floor('2026-02', 'VII/Cebu', 'OTHER_NONAGRI', 540);
 	floor('2026-02', 'Pampanga/San Fernando', 'AGRICULTURE', 540);
 	floor('2026-02', 'Pampanga/San Fernando', 'OTHER_NONAGRI', 570);
-	// The 7 February–31 March version spans the 13 March XI tranche; the 26 September version holds
-	// the announced but not-yet-effective ROVII-27; both refuse the site.
-	assert.throws(() => site('2026-02', 'XI/Davao', 'AGRICULTURE', 505), /No sealed/);
-	assert.throws(() => site('2026-10', 'VII/Cebu', 'OTHER_NONAGRI', 540), /No sealed/);
+	// Each tranche is its own sealed version: RB XI-24 first tranche from 13 March 2026 (agriculture
+	// PHP515), ROVII-27 from 14 October 2026 (Class A PHP582).
+	floor('2026-02', 'XI/Davao', 'AGRICULTURE', 505);
+	floor('2026-04', 'XI/Davao', 'AGRICULTURE', 515);
+	floor('2026-11', 'VII/Cebu', 'OTHER_NONAGRI', 582);
 });

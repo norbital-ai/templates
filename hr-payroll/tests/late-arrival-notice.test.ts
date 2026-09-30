@@ -148,7 +148,8 @@ test("the grace is the company's own policy: thirty minutes moves the reminder f
 		{ name: 'late_arrival_notice', input: {}, at: '2026-09-22T01:00:00.000Z', key: 'late_arrival' }
 	]);
 	assert.equal(
-		(await run({ workDays: [workDay()], now: '2026-09-22T01:00:00.000Z', company })).result.reminded,
+		(await run({ workDays: [workDay()], now: '2026-09-22T01:00:00.000Z', company })).result
+			.reminded,
 		1
 	);
 });

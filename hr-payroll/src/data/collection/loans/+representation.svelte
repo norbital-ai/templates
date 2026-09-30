@@ -9,6 +9,8 @@
 	 *
 	 * The line picker offers only the lines whose eligibility holds for the person today (`EligibleTypes`); the
 	 * transform holds the same rule on the day the agreement opens.
+	 *
+	 * An order with a `recovery_rule` has no schedule to balance: the table lists what payroll withheld.
 	 */
 	import EmploymentField from '../../../lib/ui/EmploymentField.svelte';
 	import { t } from '../../../lib/ui/t.js';
@@ -111,6 +113,7 @@
 		{#snippet children(form)}
 			{@const principal = form.get('principal')}
 			{@const range = form.get('effective_range')}
+			{@const ruled = text(form.get('recovery_rule')).trim() !== ''}
 			<Stack gap="lg">
 				<FormSection
 					first
@@ -153,6 +156,11 @@
 								label={t('component.loan_approval_reference')}
 							/></Column
 						>
+						<Field name="creditor" />
+						<Field name="authority" />
+						<Column span="all"><Field name="recovery_rule" /></Column>
+						<Field name="priority" />
+						<Field name="on_exit" />
 					</Grid>
 				</FormSection>
 
@@ -171,10 +179,10 @@
 						{/if}
 					{/snippet}
 					<Stack gap="sm" data-loan-schedule aria-label={t('component.repayment_schedule')}>
-						{#each seeded ? refusals(form) : [] as refusal (refusal)}
+						{#each seeded && !ruled ? refusals(form) : [] as refusal (refusal)}
 							<p class="text-sm text-destructive" role="status">{refusal}</p>
 						{/each}
-						{#if canGenerateLoanSchedule(principal, range, schedule)}
+						{#if !ruled && canGenerateLoanSchedule(principal, range, schedule)}
 							<Inline gap="sm" align="center">
 								<Button
 									type="button"

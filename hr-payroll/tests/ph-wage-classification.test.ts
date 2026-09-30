@@ -243,11 +243,8 @@ test('PH wage order: every active version has sourced IV-A agriculture rates and
 		assert.equal(wages.by_region['IV-A-AGRI-COMPONENT-1ST'], 13_693.75);
 		assert.equal(wages.by_region['IV-A-AGRI-RECLASSIFIED-1ST'], afterApril ? 13_693.75 : 12_650.42);
 		assert.equal(wages.by_region['IV-A-AGRI-2ND-5TH'], afterApril ? 13_250.33 : 12_650.42);
-		// 542 classes, plus the Cotabato City domestic class where the version seals the BARMM domestic floor.
-		assert.equal(
-			wages.classified_by_worksite?.rows.length,
-			wages.by_employment_type?.['DOMESTIC']?.['BARMM'] == null ? 542 : 543
-		);
+		// The same 568 exact classes on every version (a class whose order is not yet sealed refuses by name).
+		assert.equal(wages.classified_by_worksite?.rows.length, 568);
 		// A reduced (non-NCR, non-IV-A) non-domestic class needs its municipality and sector sources.
 		for (const row of wages.classified_by_worksite?.rows ?? [])
 			assert.deepEqual(

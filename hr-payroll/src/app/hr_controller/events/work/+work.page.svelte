@@ -18,7 +18,7 @@
 	import { PlainDate } from '@norbital-ai/std/date';
 	import { toast, Toaster } from 'svelte-sonner';
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
-	import { Alert, CustomView, Sheet, type ToolbarItem } from '@norbital-ai/ui';
+	import { Alert, CustomView, EmptyState, Sheet, type ToolbarItem } from '@norbital-ai/ui';
 	import { openRecord, RecordShell } from '@norbital-ai/ui';
 	import { addDays, monthBounds, periodMonth } from '../../../../lib/payroll/run/dates.js';
 	import { resolveWindow } from '../../../../lib/payroll/run/period.js';
@@ -552,8 +552,8 @@
 <Toaster />
 <AppShell
 	icon="lucide:calendar-clock"
-	title="Work"
-	description="Plan the monthly roster on a calendar, publish it against the statutory rules, and manage the shifts a day is worked on and the patterns a week is shaped by"
+	title={t('app.work.title')}
+	description={t('app.work.description')}
 >
 	{#snippet actions()}<CompanyScope {scope} />{/snippet}
 	<ScopeGate {scope} empty={t('app.scheduling.empty_board')}>
@@ -584,21 +584,23 @@
 							</Alert.Description>
 						</Alert.Root>
 					{:else if !loading && people.length > 0 && boardPeople.length === 0}
-						<p class="text-sm text-muted-foreground">
-							{unresolvedOnly
+						<EmptyState
+							variant="inset"
+							title={unresolvedOnly
 								? t('app.scheduling.no_unresolved_clock_outs', { month: period })
 								: t('app.scheduling.no_matches')}
-						</p>
+						/>
 					{:else if !loading && people.length === 0}
-						<p class="text-sm text-muted-foreground">
-							{emptyReason === 'NONE'
+						<EmptyState
+							variant="inset"
+							title={emptyReason === 'NONE'
 								? t('app.scheduling.no_company_employments')
 								: emptyReason === 'ENDED'
 									? t('app.scheduling.employments_ended_before', { month: period })
 									: emptyReason === 'NOT_STARTED'
 										? t('app.scheduling.employments_start_after', { month: period })
 										: t('app.scheduling.employments_outside_month', { month: period })}
-						</p>
+						/>
 					{:else}
 						<RosterMonthBoard
 							month={period}

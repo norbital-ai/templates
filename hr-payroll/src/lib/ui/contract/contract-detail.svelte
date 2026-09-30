@@ -116,7 +116,7 @@
 				>
 				<Field name="prior_service_months" label={t('component.prior_service_months')} />
 				<!-- Why the stint ended; the separation catalogue bands read it. Blank while in service. -->
-				<Column span="all"><Field name="exit_reason" label={t('component.exit_reason')} /></Column>
+				<Column span="all"><Field name="exit_ground" label={t('component.exit_ground')} /></Column>
 				<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>
 				{#if lastDay != null}
 					<Column span="all">

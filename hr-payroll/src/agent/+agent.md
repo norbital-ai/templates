@@ -38,7 +38,7 @@ What they ask of you:
 - **A contract change** (pay, pattern, residency, role): close the current `employment_terms`
   row's period and create its successor within the same employment. Terms that supplied consumed
   history are never rewritten or deleted.
-- **A departure:** `employments.update` with the end of `effective_range`, `exit_reason` and
+- **A departure:** `employments.update` with the end of `effective_range`, `exit_ground` (a `TERMINATION_GROUND` code) and
   `exit_facts`. `automation.leave_encashment_on_exit` then submits the encashment and separation
   requests for approval; do not raise them yourself.
 - **A loan and its schedule:** one `loans.create` with every repayment under
@@ -67,8 +67,8 @@ What they ask of you:
 - **Tax-clearance remittances:** `payment_holds.tax_clearance_remittance_status` for an entity as of a day.
 - **Turnover** is employments ending in a month over the month's average headcount (the People
   page's chart). A leaver is an `employments` row whose `effective_range` ends in that month;
-  `exit_reason` says why. Answer with one `aggregate` over `employments` filtered by the month and
-  grouped by `company_id` and `exit_reason`, then compare the neighbouring months the same way —
+  `exit_ground` says why. Answer with one `aggregate` over `employments` filtered by the month and
+  grouped by `company_id` and `exit_ground`, then compare the neighbouring months the same way —
   never by reading people one by one.
 
 ## What the collections mean

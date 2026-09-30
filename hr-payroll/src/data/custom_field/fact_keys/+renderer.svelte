@@ -26,7 +26,7 @@
 	let { view }: { view: CustomFieldView<Value> } = $props();
 	const disabled = $derived(view.mode === 'edit' ? view.disabled : true);
 	const rows = $derived<Value>(view.value ?? []);
-	const types = ['boolean', 'number', 'string', 'date', 'instant'] as const;
+	const types = ['boolean', 'number', 'string', 'date', 'instant', 'code'] as const;
 	const evidenceKinds = $derived([
 		{ value: 'REFERENCE', label: t('fact_keys.evidence_reference') },
 		{ value: 'FILE', label: t('fact_keys.evidence_file') },
@@ -306,6 +306,33 @@
 										/>{t('fact_keys.integer')}</Inline
 									></label
 								>
+							{:else if row.type === 'code'}
+								<Labelled label={t('fact_keys.table')}>
+									<Input
+										{disabled}
+										value={row.table ?? ''}
+										oninput={(event) =>
+											edit(index, {
+												table:
+													event.currentTarget.value.trim() === ''
+														? undefined
+														: event.currentTarget.value.trim()
+											})}
+									/>
+								</Labelled>
+								<Labelled label={t('fact_keys.parent_fact')}>
+									<Input
+										{disabled}
+										value={row.parent_fact ?? ''}
+										oninput={(event) =>
+											edit(index, {
+												parent_fact:
+													event.currentTarget.value.trim() === ''
+														? undefined
+														: event.currentTarget.value.trim()
+											})}
+									/>
+								</Labelled>
 							{:else if row.type === 'string'}
 								<Labelled label={t('fact_keys.min_length')}>
 									<Input

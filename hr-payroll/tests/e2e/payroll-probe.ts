@@ -44,13 +44,31 @@
  *   - `warnings: ['<pattern>', …]` pins the run's warnings: each pattern matches a line of the saved run's
  *     `warnings`, and every line is matched by one;
  *   - `company` expectations are `companyLines`: the run's COMPANY-assessed charges (`company_charges`), keyed and
- *     judged as payslip statutory keys (a non-zero charge the case does not list fails).
+ *     judged as payslip statutory keys (a non-zero charge the case does not list fails);
+ *   - an input's `target: '@<ref>'` makes it a `<collection>.update` of that row (`values` is the change), so a
+ *     refused exit or terms change is a `refused` update.
+ *
+ * Several periods (capability plan H1): `history` runs before the event run, in order. Each step creates its own
+ * `inputs`, runs its period, pays every slip of it (`PAID` at the run's pay date; `paid: false` leaves them unpaid)
+ * and may pin its slips with `expected`. `event` inputs are created after the history, before the event run. Runs
+ * are refs: `'@run:<period>'` for a history run, `'@run'` for the event run.
+ *
+ * Beyond the payslip (owner decision 2026-09-30: a saved refusal, duty instance or generated file counts as the
+ * production-path oracle), checked after the event run or its refusal:
+ *   - `saved: [{ collection, where, rows }]`: the rows of `collection` matching `where` (field → value, refs
+ *     resolved) are exactly `rows`, each compared on the fields it lists (a dotted key reads a nested field; numbers
+ *     to the cent). An obligation instance's `due_on` and `amount_due` are pinned this way;
+ *   - `files: [{ from, name, text | sha256 }]`: a generated file, from an automation's result
+ *     (`from: { automation, input }`, started through `/act` and awaited) or from a saved row's file field
+ *     (`from: { collection, where, field }`); the first file whose name matches `name` (a RegExp source) must equal
+ *     `text` byte for byte as UTF-8, or hash to `sha256`.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
 import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { start, type RunningServer } from '@norbital-ai/bolt-server';
+import { fileDifferences, fileRefs, savedDifferences } from './probe-oracle.ts';
 
 type Json = null | boolean | number | string | readonly Json[] | { readonly [k: string]: Json };
 export type Row = { readonly [field: string]: Json };
@@ -60,8 +78,28 @@ export type ProbeInput = {
 	values: Row;
 	/** field → fixture file name, uploaded and set as the field's FileRef */
 	files?: { readonly [field: string]: string };
-	/** RegExp source the refusal must match; the create must be refused */
+	/** RegExp source the refusal must match; the write must be refused */
 	refused?: string;
+	/** `'@<ref>'`: update that row with `values` instead of creating one */
+	target?: string;
+};
+export type ProbeHistoryRun = {
+	period: string;
+	inputs?: readonly ProbeInput[];
+	/** false leaves the run's slips unpaid */
+	paid?: boolean;
+	expected?: readonly ProbeExpectation[];
+};
+/** The saved rows of `collection` matching `where`: exactly `rows`, each compared on the fields it lists. */
+export type SavedExpectation = { collection: string; where: Row; rows: readonly Row[] };
+export type FileExpectation = {
+	from: { automation: string; input: Row } | { collection: string; where: Row; field: string };
+	/** RegExp source matched against the file's name */
+	name: string;
+	/** the file's exact UTF-8 content */
+	text?: string;
+	/** hex SHA-256 of the file's bytes */
+	sha256?: string;
 };
 export type ProbeExpectation = { employment: string; lines: { readonly [key: string]: number } };
 export type ProbeCase = {
@@ -79,6 +117,12 @@ export type ProbeCase = {
 	warnings?: readonly string[];
 	/** The run's COMPANY-assessed charges, `<scheme>.employee` / `<scheme>.employer` */
 	companyLines?: { readonly [key: string]: number };
+	/** Runs saved (and paid) before the event run, in order */
+	history?: readonly ProbeHistoryRun[];
+	/** Inputs created after the history runs, before the event run */
+	event?: readonly ProbeInput[];
+	saved?: readonly SavedExpectation[];
+	files?: readonly FileExpectation[];
 };
 
 export const PROFILES = [
@@ -253,11 +297,39 @@ export async function boot(root = process.cwd()) {
 			throw new Error(`read ${collection} failed: ${JSON.stringify(body)}`);
 		return answer.rows.map(plain) as Row[];
 	};
+	/** A stored file's bytes, as `GET /__bolt/files/<id>` serves them. */
+	const download = async (id: string) => {
+		const response = await fetch(`${server.url}/__bolt/files/${encodeURIComponent(id)}`, {
+			headers: { cookie }
+		});
+		if (!response.ok) throw new Error(`download of file ${id} refused: ${response.status}`);
+		return new Uint8Array(await response.arrayBuffer());
+	};
+	/** An automation started through `/act` (`start`) and awaited: its finished run view. */
+	const run = async (automation: string, input: Row) => {
+		const id = randomUUID();
+		await act('start', { automation, input, id });
+		// ponytail: polls the shell's run view; a live subscription if probes ever wait long
+		for (const deadline = Date.now() + 90_000; Date.now() < deadline;) {
+			const response = await fetch(`${server.url}/__bolt/shell/runs?id=${id}`, {
+				headers: { cookie }
+			});
+			const view = ((await response.json()) as { value?: Row }).value;
+			const status = String(view?.status ?? '');
+			if (['succeeded', 'failed', 'stopped', 'skipped'].includes(status)) {
+				if (status !== 'succeeded')
+					throw new Error(`${automation} run ${status}: ${JSON.stringify(view?.error)}`);
+				return plain(view as Json) as Row;
+			}
+			await new Promise((resolve) => setTimeout(resolve, 250));
+		}
+		throw new Error(`${automation} run ${id} did not finish within 90 s`);
+	};
 	const close = async () => {
 		await server.close();
 		rmSync(scratch, { recursive: true, force: true });
 	};
-	return { act, attempt, upload, read, close };
+	return { act, attempt, upload, read, download, run, close };
 }
 type Outcome = { kind: string; code?: string; rule?: string; message?: string; records?: Row[] };
 /** A refusal as the text a case's pattern reads: `<code> <rule> <message>`. */
@@ -358,12 +430,70 @@ export async function runCase(host: Host, probe: ProbeCase) {
 			);
 		return v;
 	};
+	const callable = (input: ProbeInput) =>
+		`${input.collection}.${input.target === undefined ? 'create' : 'update'}`;
+	/** A create's values, or an update's `{ target, set }`, refs resolved. */
+	const payload = async (input: ProbeInput, values: Row) =>
+		(input.target === undefined
+			? await resolve(values)
+			: { target: await resolve(input.target), set: await resolve(values) }) as Row;
+	const results: { employment: string; actual: unknown; differences: string[] }[] = [];
 	const create = async (collection: string, values: Row, ref?: string) => {
 		const records = await host.act(`${collection}.create`, (await resolve(values)) as Row);
 		const row = records.find((r) => r.collection === collection);
 		if (ref !== undefined) ids.set(ref, row!.id as string);
 	};
-	const results: { employment: string; actual: unknown; differences: string[] }[] = [];
+	/** Each input written in order; a `refused` one is attempted and judged, and the case goes on without it. */
+	const apply = async (inputs: readonly ProbeInput[], label: string) => {
+		for (const [n, input] of inputs.entries()) {
+			const values: Record<string, Json> = { ...input.values };
+			for (const [field, name] of Object.entries(input.files ?? {}))
+				values[field] = await host.upload(input.collection, field, name);
+			if (input.refused === undefined) {
+				const records = await host.act(callable(input), await payload(input, values));
+				const row = records.find((r) => r.collection === input.collection);
+				if (input.ref !== undefined && input.target === undefined)
+					ids.set(input.ref, row!.id as string);
+				continue;
+			}
+			const { outcome } = await host.attempt(callable(input), await payload(input, values));
+			const text = refusalText(outcome);
+			results.push({
+				employment: `${label} input ${n} (${callable(input)})`,
+				actual: outcome,
+				differences:
+					text !== null && new RegExp(input.refused).test(text)
+						? []
+						: [`expected a refusal matching /${input.refused}/, got ${text ?? 'a commit'}`]
+			});
+		}
+	};
+	const SLIP_FIELDS = Object.fromEntries(
+		[
+			'employment_id',
+			'gross',
+			'net',
+			'total_deductions',
+			'employer_cost',
+			'base',
+			'adjustments',
+			'statutory'
+		].map((f) => [f, true])
+	);
+	const judgeSlips = (slips: readonly Row[], expected: readonly ProbeExpectation[], label = '') =>
+		expected.map((expectation) => {
+			const employment = ids.get(expectation.employment);
+			const slip = slips.find((s) => s.employment_id === employment);
+			if (slip === undefined)
+				throw new Error(`${probe.id}: no saved ${label}payslip for ${expectation.employment}`);
+			const actual = lines(slip);
+			return {
+				employment: `${label}${expectation.employment}`,
+				actual,
+				differences: differences(expectation.lines, actual)
+			};
+		});
+
 	await create(
 		'companies',
 		{
@@ -376,28 +506,37 @@ export async function runCase(host: Host, probe: ProbeCase) {
 		},
 		'company'
 	);
-	for (const [n, input] of probe.inputs.entries()) {
-		const values: Record<string, Json> = { ...input.values };
-		for (const [field, name] of Object.entries(input.files ?? {}))
-			values[field] = await host.upload(input.collection, field, name);
-		if (input.refused === undefined) {
-			await create(input.collection, values, input.ref);
-			continue;
-		}
-		const { outcome } = await host.attempt(
-			`${input.collection}.create`,
-			(await resolve(values)) as Row
-		);
-		const text = refusalText(outcome);
-		results.push({
-			employment: `input ${n} (${input.collection})`,
-			actual: outcome,
-			differences:
-				text !== null && new RegExp(input.refused).test(text)
-					? []
-					: [`expected a refusal matching /${input.refused}/, got ${text ?? 'a commit'}`]
+	await apply(probe.inputs, 'case');
+	for (const step of probe.history ?? []) {
+		await apply(step.inputs ?? [], step.period);
+		const [saved] = await host
+			.act('payroll_runs.create', {
+				company_id: ids.get('company')!,
+				period: step.period
+			})
+			.then((records) => records.filter((r) => r.collection === 'payroll_runs'));
+		const runId = saved!.id as string;
+		ids.set(`run:${step.period}`, runId);
+		const slips = await host.read('payslips', {
+			where: { payroll_run_id: { eq: runId } },
+			select: { id: true, ...SLIP_FIELDS }
 		});
+		if (step.paid !== false) {
+			const [run] = await host.read('payroll_runs', {
+				where: { id: { eq: runId } },
+				select: { pay_date: true }
+			});
+			const paid_at = `${String(run!.pay_date)}T00:00:00.000Z`;
+			for (const slip of slips)
+				await host.act('payslips.update', {
+					target: slip.id as string,
+					set: { status: 'PAID', paid_at }
+				});
+		}
+		results.push(...judgeSlips(slips, step.expected ?? [], `${step.period} `));
 	}
+	await apply(probe.event ?? [], 'event');
+
 	const runInput = { company_id: ids.get('company')!, period: probe.period };
 	if (probe.refused !== undefined) {
 		const { outcome } = await host.attempt('payroll_runs.create', runInput);
@@ -410,73 +549,84 @@ export async function runCase(host: Host, probe: ProbeCase) {
 					? []
 					: [`expected the run refused matching /${probe.refused}/, got ${text ?? 'a commit'}`]
 		});
-		return results;
-	}
-	const run = await host.act('payroll_runs.create', runInput);
-	const runId = run.find((r) => r.collection === 'payroll_runs')!.id as string;
-	if (probe.warnings !== undefined || probe.companyLines !== undefined) {
-		const [saved] = await host.read('payroll_runs', {
-			where: { id: { eq: runId } },
-			select: { warnings: true, company_charges: true }
+	} else {
+		const run = await host.act('payroll_runs.create', runInput);
+		const runId = run.find((r) => r.collection === 'payroll_runs')!.id as string;
+		ids.set('run', runId);
+		if (probe.warnings !== undefined || probe.companyLines !== undefined) {
+			const [saved] = await host.read('payroll_runs', {
+				where: { id: { eq: runId } },
+				select: { warnings: true, company_charges: true }
+			});
+			if (probe.warnings !== undefined) {
+				const saw = String(saved?.warnings ?? '')
+					.split('\n')
+					.filter((line) => line.trim() !== '');
+				const patterns = probe.warnings.map((p) => new RegExp(p));
+				results.push({
+					employment: 'warnings',
+					actual: saw,
+					differences: [
+						...patterns
+							.filter((p) => !saw.some((line) => p.test(line)))
+							.map((p) => `no warning matches /${p.source}/`),
+						...saw
+							.filter((line) => !patterns.some((p) => p.test(line)))
+							.map((line) => `unexpected warning: ${line}`)
+					]
+				});
+			}
+			if (probe.companyLines !== undefined) {
+				const actual = lines({ statutory: saved?.company_charges ?? [] });
+				const charges = Object.fromEntries(
+					Object.entries(actual).filter(([key]) => /\.(employee|employer)$/.test(key))
+				);
+				results.push({
+					employment: 'company',
+					actual: charges,
+					differences: differences(probe.companyLines, charges)
+				});
+			}
+		}
+		const slips = await host.read('payslips', {
+			where: { payroll_run_id: { eq: runId } },
+			select: SLIP_FIELDS
 		});
-		if (probe.warnings !== undefined) {
-			const saw = String(saved?.warnings ?? '')
-				.split('\n')
-				.filter((line) => line.trim() !== '');
-			const patterns = probe.warnings.map((p) => new RegExp(p));
-			results.push({
-				employment: 'warnings',
-				actual: saw,
-				differences: [
-					...patterns
-						.filter((p) => !saw.some((line) => p.test(line)))
-						.map((p) => `no warning matches /${p.source}/`),
-					...saw
-						.filter((line) => !patterns.some((p) => p.test(line)))
-						.map((line) => `unexpected warning: ${line}`)
-				]
-			});
-		}
-		if (probe.companyLines !== undefined) {
-			const actual = lines({ statutory: saved?.company_charges ?? [] });
-			const charges = Object.fromEntries(
-				Object.entries(actual).filter(([key]) => /\.(employee|employer)$/.test(key))
-			);
-			results.push({
-				employment: 'company',
-				actual: charges,
-				differences: differences(probe.companyLines, charges)
-			});
-		}
+		results.push(...judgeSlips(slips, probe.expected));
 	}
-	const slips = await host.read('payslips', {
-		where: { payroll_run_id: { eq: runId } },
-		select: Object.fromEntries(
-			[
-				'employment_id',
-				'gross',
-				'net',
-				'total_deductions',
-				'employer_cost',
-				'base',
-				'adjustments',
-				'statutory'
-			].map((f) => [f, true])
-		)
-	});
-	return [
-		...results,
-		...probe.expected.map((expectation) => {
-			const employment = ids.get(expectation.employment);
-			const slip = slips.find((s) => s.employment_id === employment);
-			if (slip === undefined)
-				throw new Error(`${probe.id}: no saved payslip for ${expectation.employment}`);
-			const actual = lines(slip);
-			return {
-				employment: expectation.employment,
-				actual,
-				differences: differences(expectation.lines, actual)
-			};
-		})
-	];
+
+	/** `where` as the read's filter: each field equal to its resolved value. */
+	const filter = async (where: Row) =>
+		Object.fromEntries(
+			await Promise.all(
+				Object.entries(where).map(async ([k, v]) => [k, { eq: await resolve(v) }] as const)
+			)
+		) as Row;
+	for (const want of probe.saved ?? []) {
+		const actual = await host.read(want.collection, { where: await filter(want.where) });
+		results.push({
+			employment: `saved ${want.collection}`,
+			actual,
+			differences: savedDifferences(want.rows, actual)
+		});
+	}
+	for (const want of probe.files ?? []) {
+		const from = want.from;
+		const holder =
+			'automation' in from
+				? ((await host.run(from.automation, (await resolve(from.input)) as Row)).result ?? null)
+				: (await host.read(from.collection, { where: await filter(from.where) })).map(
+						(row) => row[from.field] ?? null
+					);
+		const file = fileRefs(holder).find((ref) => new RegExp(want.name).test(ref.name));
+		results.push({
+			employment: `file ${want.name}`,
+			actual: file ?? fileRefs(holder).map((ref) => ref.name),
+			differences:
+				file === undefined
+					? [`no generated file is named /${want.name}/`]
+					: fileDifferences(want, await host.download(file.id))
+		});
+	}
+	return results;
 }

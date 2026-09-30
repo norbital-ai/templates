@@ -36,6 +36,8 @@
 		type LeaveEntryActivity
 	} from '../../leave/activity-fields.js';
 	import { timeOffRangeOf } from '../../leave/activity.js';
+	import DeclaredFactsField from '../declared-facts-field.svelte';
+	import type { FactKey } from '../../datatypes/fact_keys.js';
 	import * as Predicate from 'effect/Predicate';
 
 	type Props = {
@@ -131,7 +133,8 @@
 							unit: true,
 							is_npl: true,
 							entitlement: true,
-							pay_fraction: true
+							pay_fraction: true,
+							event_facts: true
 						})
 					)
 				)
@@ -360,62 +363,21 @@
 				/>
 			</Labelled>
 		{/if}
-		{#if catalogue?.entitlement?.availability === 'PER_EVENT'}
-			<!-- A grant per event: what happened, to whom, which child, when — the bands read these. -->
-			<Labelled label={t('leave.event_kind')} class="text-sm font-medium">
-				<Input
-					value={fields.event_kind ?? ''}
-					{disabled}
-					placeholder="BIRTH"
-					oninput={(event) =>
-						emit({ event_kind: event.currentTarget.value.trim().toUpperCase() || null })}
-				/>
-			</Labelled>
-			<Labelled label={t('leave.event_relationship')} class="text-sm font-medium">
-				<Input
-					value={fields.event_relationship ?? ''}
-					{disabled}
-					placeholder="SPOUSE"
-					oninput={(event) =>
-						emit({ event_relationship: event.currentTarget.value.trim().toUpperCase() || null })}
-				/>
-			</Labelled>
-			<Labelled label={t('leave.event_child_index')} class="text-sm font-medium">
-				<Input
-					type="number"
-					step="1"
-					min="1"
-					value={fields.event_child_index ?? ''}
-					{disabled}
-					oninput={(event) =>
-						emit({ event_child_index: numberFrom(event.currentTarget.value, 0) || null })}
-				/>
-			</Labelled>
-			{@render dateField(t('leave.event_date'), fields.event_date ?? '', (event_date) => {
-				emit({ event_date: event_date || null });
-			})}
-		{/if}
-		{#if catalogue?.pay_fraction?.includes('leave.agreed_fraction')}
-			<!-- Pay the parties agreed (VN art.99 stoppage); the event date joins one stoppage's entries. -->
-			<Labelled label={t('leave.agreed_pay_fraction')} class="text-sm font-medium">
-				<Input
-					type="number"
-					step="0.01"
-					min="0"
-					max="1"
-					value={fields.agreed_pay_fraction ?? ''}
-					{disabled}
-					oninput={(event) => {
-						const value = event.currentTarget.value;
-						emit({ agreed_pay_fraction: value === '' ? null : numberFrom(value, 0) });
+		{#if ((catalogue?.event_facts ?? []) as readonly FactKey[]).length > 0}
+			<!-- The event the entry answers to, as its leave row declares it: what, whose, which child, when. -->
+			<Column span="all">
+				<DeclaredFactsField
+					view={{
+						mode: 'edit',
+						name: 'facts',
+						value: (fields.facts ?? {}) as { readonly [key: string]: string | number | boolean },
+						disabled,
+						onChange: (value) => emit({ facts: value ?? {} })
 					}}
+					settingsCode={null}
+					declarations={(catalogue?.event_facts ?? []) as readonly FactKey[]}
 				/>
-			</Labelled>
-			{#if catalogue.entitlement?.availability !== 'PER_EVENT'}
-				{@render dateField(t('leave.event_date'), fields.event_date ?? '', (event_date) => {
-					emit({ event_date: event_date || null });
-				})}
-			{/if}
+			</Column>
 		{/if}
 	{:else}
 		{@render dateField(t('component.effective_date'), fields.effective_on ?? '', (effective_on) => {

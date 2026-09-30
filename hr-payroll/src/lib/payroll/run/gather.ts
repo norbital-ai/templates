@@ -51,27 +51,28 @@ import {
 	cadenceWindow,
 	employmentPayFrequency,
 	paysOn,
+	taxYearBounds,
 	taxYearFirstPeriod,
 	taxYearOf,
 	type PayFrequency,
 	type PayrollWindow
 } from './period.js';
 import type { WorkDayLike } from './overtime.js';
-import type { PersonInput } from './eligibility.js';
+import { DATED, type DatedEmployee, type PersonInput } from './eligibility.js';
+import { personHistory, type HistoryAccess } from '../../../lib/payroll/history.js';
+import type { CompanyAccess } from '../../../lib/expressions/functions/company.js';
 import {
 	employmentDates,
 	resolveEmploymentSettlement,
 	type EmploymentSettlement
 } from './settlement.js';
 import { decodeNumber } from '../../wire.js';
-import type { StatutoryPeriodHistory } from '../../../lib/payroll/statutory-history.js';
-import type {
-	PayslipWageMonth,
-	ReferenceWagePeriod
-} from '../../../lib/payroll/reference-wages.js';
+import type { StatutoryPeriodHistory } from '../../../lib/payroll/history.js';
+import type { PayslipWageMonth, ReferenceWagePeriod } from '../../../lib/payroll/history.js';
 
 type Employment = ResolvedEmployment;
-type Employee = WorkspaceRow<'employees'>;
+/** The run's employee row, with its dated inputs (`withDatedPeople`) and history bound. */
+type Employee = WorkspaceRow<'employees'> & { readonly [DATED]?: DatedEmployee | undefined };
 type EmploymentTerms = WorkspaceRow<'employment_terms'>;
 type StatutoryFact = import('./statutory-facts.js').StatutoryFact;
 
@@ -144,9 +145,13 @@ export type EmploymentBundle = {
 	 * Defers monetary settlement while retaining this period's statutory insurance assessment.
 	 */
 	readonly deferral: EmploymentSettlement['deferral'];
+	/** The person's saved past (`history.*`), built on first read. */
+	readonly history?: HistoryAccess | undefined;
 };
 
 export type GatheredRun = {
+	/** The entity's employments over the tax year (`company.*` aggregates), a leaver before this period included. */
+	readonly company?: CompanyAccess | undefined;
 	/** Everyone the run measures — deferred periods included; `bundle.deferral` tells them apart. */
 	readonly bundles: readonly EmploymentBundle[];
 	/** Active employments in the company at the period end — the HEADCOUNT band selector. */
@@ -257,7 +262,7 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 	const employeeById = new Map(
 		live(world.employees)
 			.filter((row) => candidatePeople.has(row.id))
-			.map((row) => [row.id, row])
+			.map((row): [string, Employee] => [row.id, row])
 	);
 	const company = options.configuration.company;
 	const cadenceByEmployment = new Map<
@@ -322,9 +327,29 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			)
 			.map((row) => row.employee_id)
 	).size;
+	// E7: every employment of the entity touching the tax year, each counted on its own dates.
+	const taxYear = taxYearBounds(period, configuration.jurisdiction.payroll.tax_year_start_month);
+	const people = new Map(live(world.employees).map((row): [string, Employee] => [row.id, row]));
+	const companyAccess: CompanyAccess = {
+		year: { from: taxYear.start, to: taxYear.end },
+		employments: employmentRows.flatMap((row) => {
+			const dates = employmentDates(row);
+			if (dates.hire > taxYear.end || (dates.exit != null && dates.exit < taxYear.start)) return [];
+			const dated = people.get(row.employee_id)?.[DATED];
+			return [
+				{
+					employee_id: row.employee_id,
+					from: dates.hire,
+					to: dates.exit ?? null,
+					facts: (asOf: string) => dated?.facts?.(asOf, row.id).facts ?? {}
+				}
+			];
+		})
+	};
 	const employmentIds = employments.map((row) => row.id);
 	if (employmentIds.length === 0)
 		return {
+			company: companyAccess,
 			bundles: [],
 			headcount,
 			headcountCitizens,
@@ -393,6 +418,36 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 	const { loansByEmployment, repaymentsByLoan } = prepareLoanPayroll({ world, employmentIds });
 	const factsByEmployee = prepareContributionInputs({ world, employeeIds, configuration });
 	const prior = gatherPriorSettlement({ world, configuration, period, employeeIds, companyId });
+	// E4: one lazy history accessor per person, bound on the bundle and on the person's contexts.
+	const historyKeys = {
+		components: new Map(configuration.catalogueComponents.map((row) => [row.code, row])),
+		schemes: configuration.contributions.map((entry) => entry.row.code),
+		leaveCodes: configuration.catalogueLeaves.map((row) => row.code)
+	};
+	const historyByEmployee = new Map<string, HistoryAccess>();
+	const historyOf = (employeeId: string): HistoryAccess => {
+		const known = historyByEmployee.get(employeeId);
+		if (known != null) return known;
+		let built: HistoryAccess | undefined;
+		const get = () =>
+			(built ??= personHistory({
+				world,
+				companyId,
+				employeeId,
+				period,
+				...historyKeys,
+				daysFrom: (world.work_days_from ?? attendanceSpan.start) as IsoDate
+			}));
+		const access: HistoryAccess = {
+			slips: (window) => get().slips(window),
+			days: (window) => get().days(window),
+			leave: (window) => get().leave(window),
+			terms: (window) => get().terms(window),
+			external: (kind, window) => get().external(kind, window)
+		};
+		historyByEmployee.set(employeeId, access);
+		return access;
+	};
 	const bundles: EmploymentBundle[] = [];
 	for (const employment of employments) {
 		const employee = employeeById.get(employment.employee_id);
@@ -411,9 +466,11 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			(fact) => fact.employment_id == null || fact.employment_id === employment.id
 		);
 		const employmentLoans = loansByEmployment.get(employment.id) ?? [];
+		const history = historyOf(employment.employee_id);
 		bundles.push({
 			employment,
-			employee,
+			employee: { ...employee, [DATED]: { ...employee[DATED], history } },
+			history,
 			payFrequency: cadence.payFrequency,
 			window: cadence.window,
 			terms: effectiveWithin(termsByEmployment.get(employment.id) ?? [], paid.start, paid.end),
@@ -463,7 +520,7 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			deferral: settlement.deferral
 		});
 	}
-	return { bundles, headcount, headcountCitizens, ...prior };
+	return { company: companyAccess, bundles, headcount, headcountCitizens, ...prior };
 }
 
 /**
@@ -526,7 +583,7 @@ function gatherPriorSettlement(options: GatherPriorSettlementOptions): PriorSett
 	 * year and could not be rebuilt once January was paid.
 	 */
 	const priorRuns = world.payroll_runs.filter(
-		(run) => run.company_id === options.companyId && run.period < options.period
+		(run) => run.company_id === options.companyId && run.period <= options.period
 	);
 	const monthRuns = priorRuns.filter(
 		(run) => run.period.slice(0, 7) === options.period.slice(0, 7)

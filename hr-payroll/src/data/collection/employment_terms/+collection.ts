@@ -6,6 +6,8 @@ import { dateKey } from '../../../lib/iso-day.js';
 import { governed, periodsOverlap, stableJson } from '../../../lib/jurisdiction_settings.js';
 import { entityFactsFault, sealedLineages } from '../../../lib/entity-facts.js';
 import { VOCABULARY_FIELDS } from '../../../lib/datatypes/payroll_settings.js';
+import { worksiteFault } from '../worksites/lib/in-force.js';
+import { employmentCheckIssues, refuseChecks } from '../../../lib/checks.js';
 
 /** Terms that supplied consumed contract history are retained (the delete guard). */
 const terms = collection('employment_terms', {
@@ -20,6 +22,7 @@ const terms = collection('employment_terms', {
 				'base_salary',
 				'worksite',
 				'worksite_sector',
+				'worksite_id',
 				'allowances',
 				'pay_frequency',
 				'work_classification',
@@ -57,6 +60,7 @@ const terms = collection('employment_terms', {
 				'base_salary',
 				'worksite',
 				'worksite_sector',
+				'worksite_id',
 				'allowances',
 				'pay_frequency',
 				'work_classification',
@@ -169,7 +173,78 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 						select: { code: true, effective_range: true, terms_facts: true, payroll: true }
 					})
 				).rows;
+	// A named worksite belongs to the contract's company and is in force when the terms start.
+	const siteIds = [
+		...new Set(
+			inputs.flatMap((input, index) => {
+				const id = '$delete' in input ? null : { ...existing[index], ...input }.worksite_id;
+				return id == null ? [] : [id];
+			})
+		)
+	];
+	const named =
+		siteIds.length === 0
+			? []
+			: (await db.read('worksites', { where: { id: { in: siteIds } }, all: true })).rows;
+	const [sites, siteCompany] =
+		named.length === 0
+			? [[], new Map<string, unknown>()]
+			: await Promise.all([
+					db
+						.read('worksites', {
+							where: {
+								company_id: { in: [...new Set(named.map((row) => row.company_id))] },
+								code: { in: [...new Set(named.map((row) => row.code))] }
+							},
+							all: true
+						})
+						.then((page) => page.rows),
+					db
+						.read('employments', {
+							where: { id: { in: employmentIds } },
+							select: { id: true, company_id: true },
+							all: true
+						})
+						.then(
+							(page) =>
+								new Map<string, unknown>(page.rows.map((row) => [String(row.id), row.company_id]))
+						)
+				]);
 	const classCodeById = new Map(classes.map((row) => [String(row.id), row.code]));
+	// The version's stored checks at TERMS_CHANGE (E9), per created or revised row, over the batch's rows of its
+	// contract as they will be written; `before.*` reads the stored terms the day before the change.
+	const judged = inputs.flatMap((input, index) =>
+		'$delete' in input ? [] : [{ ...existing[index], ...input } as Record<string, unknown>]
+	);
+	const contracts =
+		judged.length === 0
+			? []
+			: (
+					await db.read('employments', {
+						where: { id: { in: employmentIds } },
+						select: { id: true, employee_id: true, company_id: true, employee_number: true },
+						all: true
+					})
+				).rows;
+	for (const row of judged) {
+		const employment = contracts.find((contract) => contract.id === row.employment_id);
+		const date = dateKey(readRange(row.effective_range)?.start);
+		if (employment == null || date === '') continue;
+		refuseChecks(
+			await employmentCheckIssues(db, {
+				at: 'TERMS_CHANGE',
+				employment: {
+					id: String(employment.id),
+					employee_id: String(employment.employee_id),
+					company_id: String(employment.company_id),
+					employee_number: employment.employee_number
+				},
+				terms: judged.filter((other) => other.employment_id === row.employment_id),
+				date
+			}),
+			(message) => refuse(message)
+		);
+	}
 	return inputs.map((input, index) => {
 		const stored = existing[index];
 		if ('$delete' in input) {
@@ -224,6 +299,15 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 			refuse('Employment terms need an ordered inclusive effective range.', {
 				field: 'effective_range'
 			});
+		if (row.worksite_id != null) {
+			const fault = worksiteFault(
+				sites,
+				row.worksite_id,
+				siteCompany.get(String(employmentId)),
+				dateKey(range!.start)
+			);
+			if (fault != null) refuse(fault, { field: 'worksite_id' });
+		}
 		const fields = coded(input);
 		if (fields.length > 0) {
 			const code = codeByEmployment.get(employmentId) ?? '';

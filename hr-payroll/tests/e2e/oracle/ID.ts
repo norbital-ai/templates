@@ -214,7 +214,9 @@ export const priorPeriods = (s: Pick<Scenario, 'period' | 'employment'>) => {
 };
 /** Every period the probe must run, in order; the expected lines are the last one's. */
 export const periodsToRun = (s: Scenario) => {
-	const last = s.period.endsWith('-12') || (s.employment.exitDate !== null && s.employment.exitDate.startsWith(s.period));
+	const last =
+		s.period.endsWith('-12') ||
+		(s.employment.exitDate !== null && s.employment.exitDate.startsWith(s.period));
 	return last && s.employment.type !== 'NON_EMPLOYEE' ? [...priorPeriods(s), s.period] : [s.period];
 };
 export const ageOn = (birth: string, on: string) => Math.floor(completedMonths(birth, on) / 12);
@@ -260,8 +262,37 @@ const FLOORS: Record<Workplace, [string, string, number][]> = {
 const line = (amount: number, ...codes: string[]) => codes.map((c) => [c, amount] as const);
 export const DKI_UMSP_2026: Record<string, number> = Object.fromEntries([
 	...line(5_741_201, '10437', '10213', '10520', '10616', '10740', '24201', '25992', '42205'),
-	...line(5_743_449, '10734', '10801', '10802', '11040', '22220', '24103', '28130', '33121', '43211', '65111', '66420', '49432', '52291', '52109'),
-	...line(5_844_336, '20118', '20119', '20114', '20231', '20291', '20221', '22230', '23129', '23111', '23112', '23953'),
+	...line(
+		5_743_449,
+		'10734',
+		'10801',
+		'10802',
+		'11040',
+		'22220',
+		'24103',
+		'28130',
+		'33121',
+		'43211',
+		'65111',
+		'66420',
+		'49432',
+		'52291',
+		'52109'
+	),
+	...line(
+		5_844_336,
+		'20118',
+		'20119',
+		'20114',
+		'20231',
+		'20291',
+		'20221',
+		'22230',
+		'23129',
+		'23111',
+		'23112',
+		'23953'
+	),
 	...line(5_744_066, '24101', '24310', '25991', '25940'),
 	...line(5_759_723, '27201'),
 	...line(5_759_015, '32202'),
@@ -615,10 +646,16 @@ export function computePayslip(s: Scenario): Payslip {
 	const sector2026 =
 		co.workplace === 'DKI' && first >= '2026-01-01'
 			? (DKI_UMSP_2026[co.kbli] ??
-				DKI_UMSP_2026_CONDITIONAL.find(([k, c]) => k === co.kbli && co.umspConditions.includes(c))?.[2])
+				DKI_UMSP_2026_CONDITIONAL.find(
+					([k, c]) => k === co.kbli && co.umspConditions.includes(c)
+				)?.[2])
 			: undefined;
 	const strict = STRICT.find(([w, a, b]) => w === co.workplace && between(first, a, b));
-	if (strict !== undefined && sector2026 === undefined && !(strict[3] && co.kbli === ATTESTED_ORDINARY))
+	if (
+		strict !== undefined &&
+		sector2026 === undefined &&
+		!(strict[3] && co.kbli === ATTESTED_ORDINARY)
+	)
 		return refuse(`ID-173: KBLI ${co.kbli} unmatched at the strict sector place ${co.workplace}`);
 	let floor = floorOn(co.workplace, first);
 	if (sector2026 !== undefined && serviceMonths < 12) floor = Math.max(floor, sector2026); // KETIGA
@@ -776,16 +813,28 @@ export function computePayslip(s: Scenario): Payslip {
 					...s,
 					period: p,
 					employment: { ...em, exitDate: null, exitCause: null, raise: null },
-					inputs: { ...inp, unpaidDates: [], overtime: [], thrHolidayDate: null, bonus: 0, wageDeduction: 0, uangPisah: 0, reducedPay: null }
+					inputs: {
+						...inp,
+						unpaidDates: [],
+						overtime: [],
+						thrHolidayDate: null,
+						bonus: 0,
+						wageDeduction: 0,
+						uangPisah: 0,
+						reducedPay: null
+					}
 				})
 			);
 			const blocked = prior.find((p) => p.refused !== null);
 			if (blocked !== undefined) return refuse(`an earlier month of the year: ${blocked.refused}`);
-			const yearGross = r2(prior.reduce((a, p) => a + (p.statutory.PPH21?.base ?? 0), 0) + taxGross);
+			const yearGross = r2(
+				prior.reduce((a, p) => a + (p.statutory.PPH21?.base ?? 0), 0) + taxGross
+			);
 			const months = prior.length + 1;
 			// art 10(2): 5%, at most Rp6,000,000 a year or Rp500,000 a month (500,000 × the months of the year worked)
 			const biayaJabatan = Math.min(0.05 * yearGross, 500_000 * months);
-			const own = (c: string, list: Payslip[]) => list.reduce((a, p) => a + (p.statutory[c]?.employee ?? 0), 0);
+			const own = (c: string, list: Payslip[]) =>
+				list.reduce((a, p) => a + (p.statutory[c]?.employee ?? 0), 0);
 			const neto =
 				yearGross -
 				biayaJabatan -
@@ -805,14 +854,16 @@ export function computePayslip(s: Scenario): Payslip {
 			const yearTax = art17(pkp) * (part ? months / 12 : 1);
 			// ponytail: a year that over-withheld yields a negative figure here; the refund is ID-21's open branch.
 			tax = r0(yearTax * (ee.hasTaxId ? 1 : 1.2)) - withheld;
-			notes.push(`last period: ${months} month(s), neto ${r2(neto)}, PKP ${pkp}, TER withheld ${withheld}`);
+			notes.push(
+				`last period: ${months} month(s), neto ${r2(neto)}, PKP ${pkp}, TER withheld ${withheld}`
+			);
 		} else {
 			tax = r0(((taxGross * terRateBp(ee.ptkp, taxGross)) / 10_000) * (ee.hasTaxId ? 1 : 1.2));
 		}
 		taxDue = tax;
 		// PMK 105/2025 arts 2–4 (signed text read 2026-09-30): at an annex-KLU employer, a permanent employee with an
-	// NPWP/NIK whose fixed regular gross — salary and fixed allowances, art 4(4)(a) — is "tidak lebih dari"
-	// Rp10,000,000 has all 2026 PPh 21 borne by government (art 2(2)); severance stays final-taxed (art 4(6)).
+		// NPWP/NIK whose fixed regular gross — salary and fixed allowances, art 4(4)(a) — is "tidak lebih dari"
+		// Rp10,000,000 has all 2026 PPh 21 borne by government (art 2(2)); severance stays final-taxed (art 4(6)).
 		const dtp = co.dtpKlu && ee.hasTaxId && s.period.startsWith('2026-') && monthly <= 10_000_000;
 		if (dtp) notes.push(`PPh 21 ${tax} borne by government (DTP), paid in cash`);
 		statutory.PPH21 = { employee: dtp ? 0 : tax, employer: 0, base: taxGross };

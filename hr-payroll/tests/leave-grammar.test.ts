@@ -76,8 +76,10 @@ test('calendar-day leave charges holidays and rest days inside its full span', (
 		{
 			...submission(timeOff('2026-03-06', '2026-03-09'), 'CAL-MAT'),
 			catalogue_id: id(21),
-			event_kind: 'BIRTH',
-			event_date: '2026-03-06'
+			facts: {
+				event_kind: 'BIRTH',
+				event_date: '2026-03-06'
+			}
 		},
 		id(22)
 	);
@@ -114,8 +116,10 @@ test('calendar-day leave charges unrostered days without inventing a shift', () 
 		{
 			...submission(timeOff('2026-03-06', '2026-03-09'), 'CAL-UNROSTERED'),
 			catalogue_id: id(21),
-			event_kind: 'BIRTH',
-			event_date: '2026-03-06'
+			facts: {
+				event_kind: 'BIRTH',
+				event_date: '2026-03-06'
+			}
 		},
 		id(22)
 	);
@@ -146,8 +150,10 @@ test('calendar-day leave refuses a half-day before approval', () => {
 				{
 					...submission({ ...timeOff('2026-03-02'), half_day_start: true }, 'CAL-HALF'),
 					catalogue_id: id(21),
-					event_kind: 'BIRTH',
-					event_date: '2026-03-02'
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2026-03-02'
+					}
 				},
 				id(22)
 			)
@@ -161,8 +167,10 @@ test('calendar-day leave refuses a half-day before approval', () => {
 				{
 					...submission({ ...timeOff('2026-03-02', '2026-03-03'), half_day_end: true }, 'CAL-END'),
 					catalogue_id: id(21),
-					event_kind: 'BIRTH',
-					event_date: '2026-03-02'
+					facts: {
+						event_kind: 'BIRTH',
+						event_date: '2026-03-02'
+					}
 				},
 				id(23)
 			)
@@ -189,8 +197,10 @@ test('a calendar maternity event split across entries cannot settle with missing
 		{
 			...submission(timeOff('2026-03-06'), 'CAL-FRI'),
 			catalogue_id: id(21),
-			event_kind: 'BIRTH',
-			event_date: '2026-03-06'
+			facts: {
+				event_kind: 'BIRTH',
+				event_date: '2026-03-06'
+			}
 		},
 		id(22)
 	);
@@ -226,8 +236,10 @@ test('a calendar maternity event split across entries cannot settle with missing
 		{
 			...submission(timeOff('2026-03-09'), 'CAL-MON'),
 			catalogue_id: id(21),
-			event_kind: 'BIRTH',
-			event_date: '2026-03-06'
+			facts: {
+				event_kind: 'BIRTH',
+				event_date: '2026-03-06'
+			}
 		},
 		id(23)
 	);
@@ -279,7 +291,7 @@ test('a PER_EVENT row with transition_review_on refuses one event charged on bot
 	});
 	const event = (from: string, to: string, reference: string) => ({
 		...submission(
-			{ ...timeOff(from, to), event_kind: 'BIRTH', event_date: '2026-03-02' },
+			{ ...timeOff(from, to), facts: { event_kind: 'BIRTH', event_date: '2026-03-02' } },
 			reference
 		),
 		catalogue_id: id(20)
@@ -310,9 +322,11 @@ test('a PER_EVENT row grants its band per event, reads the event, and stops at t
 	});
 	const birth = (from: string, to: string, extra: Record<string, unknown> = {}) => ({
 		...timeOff(from, to),
-		event_kind: 'BIRTH',
-		event_date: from,
-		...extra
+		facts: {
+			event_kind: 'BIRTH',
+			event_date: from,
+			...extra
+		}
 	});
 	assert.match(
 		refusalOf(() =>
@@ -333,7 +347,7 @@ test('a PER_EVENT row grants its band per event, reads the event, and stops at t
 		id(30)
 	);
 	assert.equal(plan.days, 5);
-	assert.equal(plan.event_kind, 'BIRTH');
+	assert.equal(plan.facts?.event_kind, 'BIRTH');
 	// No annual pool: a per-event entry allocates nothing.
 	assert.deepEqual(plan.allocations, []);
 	// Six days for a single birth is over the band.
@@ -573,8 +587,10 @@ test('a lifetime cap in days counts every leave year and the person’s other em
 					...submission(
 						{
 							...timeOff('2026-06-01', '2026-06-02'),
-							event_kind: 'BIRTH',
-							event_date: '2026-06-01'
+							facts: {
+								event_kind: 'BIRTH',
+								event_date: '2026-06-01'
+							}
 						},
 						'P1'
 					),
@@ -811,7 +827,9 @@ test('an entitlement band may be a number over the person: a seniority ladder wi
 			availability: 'UPFRONT',
 			proration: 'NONE',
 			year_start_month: 1,
-			bands: [{ eligibility: '', days: '12.0 + floor_unit(employment.service_months / 60.0)' }]
+			bands: [
+				{ eligibility: '', days: '12.0 + round(employment.service_months / 60.0, 1, "DOWN")' }
+			]
 		}
 	});
 	context.employments[0]!.effective_range = { start: '2010-01-01', end: null };
@@ -910,10 +928,12 @@ test('a part-paid row deducts the unpaid share, a fund-paid row the whole day, a
 		available_from: null,
 		expires_on: null,
 		reason: null,
-		event_kind: null,
-		event_relationship: null,
-		event_child_index: null,
-		event_date: null,
+		facts: {
+			event_kind: null,
+			event_relationship: null,
+			event_child_index: null,
+			event_date: null
+		},
 		charges: dates.map((date) => ({
 			date,
 			days: 1,
@@ -995,14 +1015,17 @@ test('a per-event entry saved without its event date is named, and repairs by re
 		}
 	});
 	const birth = (from: string, to: string, reference: string) => ({
-		...submission({ ...timeOff(from, to), event_kind: 'BIRTH', event_date: from }, reference),
+		...submission(
+			{ ...timeOff(from, to), facts: { event_kind: 'BIRTH', event_date: from } },
+			reference
+		),
 		catalogue_id: id(20)
 	});
 	assert.match(
 		refusalOf(() =>
 			planLeaveActivity(
 				context,
-				{ ...birth('2026-03-02', '2026-03-02', 'NO-DATE'), event_date: null },
+				{ ...birth('2026-03-02', '2026-03-02', 'NO-DATE'), facts: { event_kind: 'BIRTH' } },
 				id(39)
 			)
 		),
@@ -1016,8 +1039,10 @@ test('a per-event entry saved without its event date is named, and repairs by re
 			...plan,
 			id: id(number),
 			approval_id: null,
-			event_kind: null,
-			event_date: null,
+			facts: {
+				event_kind: null,
+				event_date: null
+			},
 			allocations: plan.charges.map((charge) => ({
 				window: { start: '2026-01-01', end: '2026-12-31' },
 				date: charge.date,
@@ -1086,6 +1111,6 @@ test('a per-event entry saved without its event date is named, and repairs by re
 		id(43)
 	);
 	assert.equal(replacement.days, 2);
-	assert.equal(replacement.event_date, '2026-03-02');
+	assert.equal(replacement.facts?.event_date, '2026-03-02');
 	assert.deepEqual(replacement.allocations, []);
 });

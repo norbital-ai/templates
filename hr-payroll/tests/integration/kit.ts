@@ -36,7 +36,7 @@ export async function recordNihonBirthDates(t: Awaited<ReturnType<typeof workspa
 		['0962001f-ec98-4e28-a243-10948e062eaa', '2026-01-12']
 	] as const)
 		await t.db.write({
-			text: 'UPDATE leave_entries SET event_kind = $1, event_date = $2 WHERE id = $3',
+			text: "UPDATE leave_entries SET facts = coalesce(facts, '{}'::jsonb) || jsonb_build_object('event_kind', $1::text, 'event_date', $2::text) WHERE id = $3",
 			params: ['BIRTH', date, id]
 		});
 }

@@ -95,6 +95,118 @@ export function settingsInForce<V extends SettingsVersionLike>(
 	return covering[0] ?? null;
 }
 
+/**
+ * A locality overlay a base version routes to (`jurisdiction_settings.overlays`): on a day `when`
+ * holds, the overlay lineage's version in force replaces the listed `work_rules` parts, its leave
+ * rows by code and its tables by name. Schemes never move: they stay with the base.
+ */
+export type LineageOverlay = {
+	readonly lineage: string;
+	readonly when: string;
+	readonly work_rules: readonly string[];
+	readonly authority: string;
+};
+
+/** The overlay governing a day and the declaration that routed it. */
+export type OverlayHit<V> = { readonly declaration: LineageOverlay; readonly version: V };
+
+/**
+ * The overlay version governing `day`, or null where no declaration's `when` holds (the base
+ * governs). A day two declarations claim, or routed to a lineage with no version in force, throws:
+ * pricing it at the base would apply law the overlay replaces.
+ */
+export function overlayInForce<V extends SettingsVersionLike>(
+	overlays: readonly LineageOverlay[],
+	versions: readonly V[],
+	day: string,
+	holds: (when: string) => boolean
+): OverlayHit<V> | null {
+	const routed = overlays.filter((overlay) => holds(overlay.when));
+	if (routed.length === 0) return null;
+	if (routed.length > 1)
+		throw new Error(
+			`Overlays ${routed.map((overlay) => overlay.lineage).join(', ')} both claim ${day}. Narrow their conditions so one governs.`
+		);
+	const declaration = routed[0]!;
+	const version = settingsInForce(versions, declaration.lineage, day);
+	if (version == null)
+		throw new Error(
+			`${day} is routed to overlay ${declaration.lineage}, which has no sealed version covering it. Seal one before payroll.`
+		);
+	return { declaration, version };
+}
+
+/** A version's tables with the overlay's replacing those of the same name. */
+export function overlayTables<T extends { readonly name: string }>(
+	base: readonly T[],
+	overlay: readonly T[]
+): T[] {
+	const replaced = new Set(overlay.map((table) => table.name));
+	return [...base.filter((table) => !replaced.has(table.name)), ...overlay];
+}
+
+/**
+ * The base version as an overlay day reads it: the declared `work_rules` parts and the tables the
+ * overlay states replace the base's. Everything else, the id included, stays the base's, so the
+ * schemes and catalogues keyed to it keep governing.
+ */
+export function composeOverlay<
+	V extends { readonly work_rules: unknown; readonly tables?: unknown; readonly checks?: unknown }
+>(base: V, hit: OverlayHit<V>): V {
+	const own = hit.version.work_rules as Readonly<Record<string, unknown>>;
+	return {
+		...base,
+		work_rules: {
+			...(base.work_rules as Readonly<Record<string, unknown>>),
+			...Object.fromEntries(
+				hit.declaration.work_rules.filter((key) => key in own).map((key) => [key, own[key]])
+			)
+		},
+		tables: overlayTables(
+			(base.tables ?? []) as readonly { readonly name: string }[],
+			(hit.version.tables ?? []) as readonly { readonly name: string }[]
+		),
+		// The overlay's checks replace the base's by code (E9).
+		checks: [
+			...((base.checks ?? []) as readonly { readonly code: string }[]).filter(
+				(check) =>
+					!((hit.version.checks ?? []) as readonly { readonly code: string }[]).some(
+						(own) => own.code === check.code
+					)
+			),
+			...((hit.version.checks ?? []) as readonly { readonly code: string }[])
+		]
+	};
+}
+
+/**
+ * Why an overlay version cannot serve a declaration, or null: it must be another lineage, state
+ * every `work_rules` part the declaration replaces, route nowhere itself and own no scheme
+ * (national schemes stay with the base lineage). The seal calls this for both sides.
+ */
+export function overlayFault(
+	baseCode: string,
+	declaration: LineageOverlay,
+	version: {
+		readonly code: string;
+		readonly work_rules: unknown;
+		readonly overlays?: readonly unknown[] | null | undefined;
+	},
+	schemeCodes: readonly string[]
+): string | null {
+	if (declaration.lineage === baseCode) return `${baseCode} cannot overlay itself.`;
+	if (version.code !== declaration.lineage) return null;
+	if (schemeCodes.length > 0)
+		return `Overlay ${version.code} declares schemes ${schemeCodes.join(', ')}; schemes stay with ${baseCode}.`;
+	if ((version.overlays ?? []).length > 0)
+		return `Overlay ${version.code} declares overlays of its own; an overlay does not route further.`;
+	const own = Predicate.isObjectOrArray(version.work_rules) ? version.work_rules : {};
+	const missing = declaration.work_rules.filter((key) => !(key in own));
+	return missing.length === 0
+		? null
+		: `Overlay ${version.code} does not state work_rules.${missing.join(', work_rules.')}, which ${baseCode} says it replaces.`;
+}
+
 /** One line naming a version for a refusal: its name, code and the day it was sealed. */
 export function describeVersion(version: {
 	readonly name?: string | null | undefined;

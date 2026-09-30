@@ -4,7 +4,7 @@ export default model({
 	description:
 		'The allowance catalogue of one jurisdiction settings version: the static classes a contract may carry — code, destination and direction, the bands that price them, the schemes each counts toward. An allowance is assigned on the employment terms with its monthly figure and prorated like basic salary; one-off pay belongs to the ad hoc catalogue. Sealed with its version; the run cites the version it priced against.',
 	icon: 'lucide:calendar-clock',
-	label: ['code', 'name'],
+	label: 'name',
 	fields: {
 		code: { kind: 'text' },
 		name: { kind: 'text', optional: true },

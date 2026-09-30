@@ -2038,7 +2038,7 @@ test('Singapore — a mid-month leaver: s.20A final month, unused leave paid at 
 					citizenship: 'CITIZEN',
 					race: 'CHINESE',
 					exit_date: '2026-03-13',
-					exit_reason: 'RESIGNATION'
+					exit_ground: 'RESIGNATION'
 				}
 			]
 		},
@@ -2349,7 +2349,7 @@ test('Singapore — a leaver’s AW ceiling is reckoned on the actual OW to cess
 						wage: 8000,
 						age: 30,
 						citizenship: 'CITIZEN',
-						...(exit == null ? {} : { exit_date: exit, exit_reason: 'RESIGNATION' })
+						...(exit == null ? {} : { exit_date: exit, exit_ground: 'RESIGNATION' })
 					}
 				]
 			},
@@ -2416,7 +2416,7 @@ test('Singapore — a one-day final month falls to the employer-only CPF band; a
 				citizenship: 'CITIZEN',
 				race: 'CHINESE',
 				exit_date: '2026-03-02',
-				exit_reason: 'RESIGNATION'
+				exit_ground: 'RESIGNATION'
 			},
 			{
 				key: 'SG-NO-DAY',
@@ -2425,7 +2425,7 @@ test('Singapore — a one-day final month falls to the employer-only CPF band; a
 				citizenship: 'CITIZEN',
 				race: 'CHINESE',
 				exit_date: '2026-03-01',
-				exit_reason: 'RESIGNATION'
+				exit_ground: 'RESIGNATION'
 			}
 		]
 	});
@@ -2659,7 +2659,7 @@ test('Singapore — every sealed version: a joiner and a resigning leaver with a
 						race: 'CHINESE',
 						hire_date: '2020-01-01',
 						exit_date: c.exit,
-						exit_reason: 'RESIGNATION'
+						exit_ground: 'RESIGNATION'
 					},
 					{
 						key: 'SG-JOINER',
@@ -2816,7 +2816,7 @@ test('Singapore — a retrenched employee is paid no statutory retrenchment bene
 				race: 'CHINESE',
 				hire_date: '2019-01-01',
 				exit_date: '2026-09-15',
-				exit_reason: 'RETRENCHMENT'
+				exit_ground: 'RETRENCHMENT'
 			}
 		]
 	});

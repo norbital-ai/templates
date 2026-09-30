@@ -65,7 +65,14 @@ const min = (a: string, b: string) => (a < b ? a : b);
 // workdays 4 Jan, 14 Feb, 28 Feb, 9 May, 20 Sep, 10 Oct; 1 Jan, 16–19 Feb (除夕 to 初三, Order 795's four Spring Festival
 // days), 25 Sep are statutory holidays on weekdays; 2 Jan, 20 Feb, 23 Feb are 调休 rest weekdays. May and October 2026 mix
 // 补假 with 调休 in a way the notice does not split day by day, so no span there is priced.
-const WEEKEND_WORKDAYS = new Set(['2026-01-04', '2026-02-14', '2026-02-28', '2026-05-09', '2026-09-20', '2026-10-10']);
+const WEEKEND_WORKDAYS = new Set([
+	'2026-01-04',
+	'2026-02-14',
+	'2026-02-28',
+	'2026-05-09',
+	'2026-09-20',
+	'2026-10-10'
+]);
 const REST_WEEKDAYS = new Set(['2026-01-02', '2026-02-20', '2026-02-23']);
 const isPaidDay = (d: string) => {
 	if (/^2026-(05|10)-/.test(d)) throw new Error(`no day-level 2026 schedule priced for ${d}`);
@@ -84,12 +91,21 @@ export const paidDays = (from: string, to: string) => {
 // specified allowances (最低工资规定 art.12, CN-N50.excluded-components), so it is tested on the contract wage for
 // normal hours (CN-N50.floor-test). Hourly floors bind non-full-time work (LCL art.72, CN-N27.hourly-minimum).
 const MIN_WAGE = [
-	{ from: '2025-10-01', monthly: { I: 2170, II: 2020, III: 1870 }, hourly: { I: 21, II: 20, III: 19 } },
-	{ from: '2026-09-01', monthly: { I: 2270, II: 2120, III: 1970 }, hourly: { I: 22, II: 21, III: 20 } }
+	{
+		from: '2025-10-01',
+		monthly: { I: 2170, II: 2020, III: 1870 },
+		hourly: { I: 21, II: 20, III: 19 }
+	},
+	{
+		from: '2026-09-01',
+		monthly: { I: 2270, II: 2120, III: 1970 },
+		hourly: { I: 22, II: 21, III: 20 }
+	}
 ] as const;
 export const minimumWage = (day: string, region: Region) => {
 	const row = [...MIN_WAGE].reverse().find((r) => r.from <= day);
-	if (row === undefined) throw new Error(`no Kunming minimum wage sourced before 2025-10-01 (${day})`);
+	if (row === undefined)
+		throw new Error(`no Kunming minimum wage sourced before 2025-10-01 (${day})`);
 	return { monthly: row.monthly[region], hourly: row.hourly[region] };
 };
 /** LCL Implementing Regulation art.14 (CN-X-WORKSITE.performance-place-standard): the performance place's standard;
@@ -99,7 +115,10 @@ const floorOn = (s: Scenario, day: string) => {
 	const agreed = s.employment.agreedRegion;
 	if (agreed === undefined) return own;
 	const higher = minimumWage(day, agreed);
-	return { monthly: Math.max(own.monthly, higher.monthly), hourly: Math.max(own.hourly, higher.hourly) };
+	return {
+		monthly: Math.max(own.monthly, higher.monthly),
+		hourly: Math.max(own.hourly, higher.hourly)
+	};
 };
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -124,7 +143,9 @@ const RATE = {
 	MATERNITY: { employer: 0.009, employee: 0 }
 } as const;
 const unemploymentRates = (day: string, s: Scenario) =>
-	day < '2026-01-01' || day >= '2026-09-01' ? { employer: 0.007, employee: 0.003 } : s.facts.unemploymentRates;
+	day < '2026-01-01' || day >= '2026-09-01'
+		? { employer: 0.007, employee: 0.003 }
+		: s.facts.unemploymentRates;
 
 // Housing fund — CN-KM05 / CN-KM20 / CN-N08. Cap 32,470 for 2025 (CN-KM05.ceiling-2025); 32,543 for 2026, retroactive
 // to 1 January (CN-KM05.ceiling-2026). Floors 2,170 / 2,020 / 1,870 from October 2025, 2,270 / 2,120 / 1,970 from
@@ -132,7 +153,9 @@ const unemploymentRates = (day: string, s: Scenario) =>
 // floor binds every account — the 4 Jan 2026 interim notice already applies its floor to all contributors.
 export const fundBounds = (day: string, region: Region): [number, number] => {
 	const cap = day < '2026-01-01' ? 32470 : 32543;
-	const floor = (day < '2026-09-01' ? { I: 2170, II: 2020, III: 1870 } : { I: 2270, II: 2120, III: 1970 })[region];
+	const floor = (
+		day < '2026-09-01' ? { I: 2170, II: 2020, III: 1870 } : { I: 2270, II: 2120, III: 1970 }
+	)[region];
 	return [floor, cap];
 };
 const clamp = (x: number, [lo, hi]: [number, number]) => Math.min(Math.max(x, lo), hi);
@@ -175,9 +198,11 @@ function specialMonthly(s: Scenario, period: string): number | string {
 	const d = s.tax.special;
 	if (d === undefined) return s.tax.specialDeductionsMonthly ?? 0;
 	if (d.from !== undefined && period < d.from) return 0;
-	if (d.rent && d.loanInterest) return 'housing rent and housing-loan interest in one year (国发〔2018〕41号, CN-N54.rent-or-loan)';
+	if (d.rent && d.loanInterest)
+		return 'housing rent and housing-loan interest in one year (国发〔2018〕41号, CN-N54.rent-or-loan)';
 	if ((d.elderlyShare ?? 0) > 1500) return 'a non-only child’s elderly-support share above 1,500';
-	let m = (d.children ?? 0) * 2000 * (d.childShare ?? 1) + (d.infants ?? 0) * 2000 * (d.childShare ?? 1);
+	let m =
+		(d.children ?? 0) * 2000 * (d.childShare ?? 1) + (d.infants ?? 0) * 2000 * (d.childShare ?? 1);
 	m += d.elderlyOnlyChild ? 3000 : (d.elderlyShare ?? 0);
 	if (d.continuingEducation === 'DEGREE') m += 400;
 	if (d.continuingEducation === 'CERTIFICATE' && period === s.period) m += 3600;
@@ -228,8 +253,14 @@ function basicPay(s: Scenario, period: string, monthly: (day: string) => number)
 	if (from === monthStart(period) && to === monthEnd(period) && !riseInside) return monthly(to);
 	const all = paidDays(monthStart(period), monthEnd(period));
 	const worked = paidDays(from, to);
-	const segments: [string, string][] = riseInside ? [[from, addDays(rise!, -1)], [rise!, to]] : [[from, to]];
-	if (worked === all) return segments.reduce((sum, [a, b]) => sum + (monthly(a) * paidDays(a, b)) / all, 0);
+	const segments: [string, string][] = riseInside
+		? [
+				[from, addDays(rise!, -1)],
+				[rise!, to]
+			]
+		: [[from, to]];
+	if (worked === all)
+		return segments.reduce((sum, [a, b]) => sum + (monthly(a) * paidDays(a, b)) / all, 0);
 	const pay = segments.reduce((sum, [a, b]) => sum + (monthly(a) / 21.75) * paidDays(a, b), 0);
 	return Math.min(pay, monthly(to));
 }
@@ -251,16 +282,18 @@ function leaveGrant(leave: NonNullable<Scenario['time']['leave']>): number | und
 			return (leave.childrenUnder3 ?? 0) >= 2 ? 15 : (leave.childrenUnder3 ?? 0) === 1 ? 10 : 0;
 		// CN-KM31.*: Yunnan regulation art.19
 		case 'FAMILY_PLANNING_PROCEDURE_LEAVE':
-			return ({
-				IUD_INSERTION: 7,
-				IUD_REMOVAL: 7,
-				TUBAL_LIGATION: 30,
-				VASECTOMY: 15,
-				TUBAL_REVERSAL: 30,
-				VAS_REVERSAL: 15,
-				REMEDIAL_UNDER_4_MONTHS: 15,
-				REMEDIAL_4_MONTHS_OR_MORE: 42
-			} as Record<string, number>)[leave.procedure ?? 'IUD_INSERTION'];
+			return (
+				{
+					IUD_INSERTION: 7,
+					IUD_REMOVAL: 7,
+					TUBAL_LIGATION: 30,
+					VASECTOMY: 15,
+					TUBAL_REVERSAL: 30,
+					VAS_REVERSAL: 15,
+					REMEDIAL_UNDER_4_MONTHS: 15,
+					REMEDIAL_4_MONTHS_OR_MORE: 42
+				} as Record<string, number>
+			)[leave.procedure ?? 'IUD_INSERTION'];
 		// CN-N20.maternity-98-days / difficult-birth-15 / additional-infant-15 / miscarriage, CN-KM12.maternity-and-
 		// partner-days (98 + Yunnan 60 = 158); miscarriage under 4 months 15, at 4 months 42 (national art.7); DEFAULT at
 		// 7 months or more the full leave (the Kunming fund days, CN-KM32.fund-benefits)
@@ -299,9 +332,19 @@ function average12(s: Scenario, history: Map<string, number>, exitPeriod: string
 }
 
 const POST_TAX = new Set(['LOSS_RECOVERY', 'COURT_ORDERED_SUPPORT']);
-const UNTAXED_SUBSIDY = new Set(['ONE_CHILD_SUBSIDY', 'CHILDCARE_SUBSIDY', 'TRAVEL_ALLOWANCE', 'MISSED_MEAL_SUBSIDY']);
+const UNTAXED_SUBSIDY = new Set([
+	'ONE_CHILD_SUBSIDY',
+	'CHILDCARE_SUBSIDY',
+	'TRAVEL_ALLOWANCE',
+	'MISSED_MEAL_SUBSIDY'
+]);
 
-function month(s: Scenario, period: string, final: boolean, history = new Map<string, number>()): Month {
+function month(
+	s: Scenario,
+	period: string,
+	final: boolean,
+	history = new Map<string, number>()
+): Month {
 	const first = monthStart(period);
 	const last = monthEnd(period);
 	const lines: Record<string, number> = {};
@@ -327,9 +370,14 @@ function month(s: Scenario, period: string, final: boolean, history = new Map<st
 	const floor = floorOn(s, onDay);
 	if (pt !== undefined) {
 		if (pt.hourlyRate < floor.hourly)
-			return refusal('run', `hourly wage ${pt.hourlyRate} below the hourly minimum ${floor.hourly}`);
+			return refusal(
+				'run',
+				`hourly wage ${pt.hourlyRate} below the hourly minimum ${floor.hourly}`
+			);
 	} else if (probation === undefined) {
-		for (const day of [onDay, s.employment.raise?.from].filter((d): d is string => d !== undefined && d <= last)) {
+		for (const day of [onDay, s.employment.raise?.from].filter(
+			(d): d is string => d !== undefined && d <= last
+		)) {
 			const need = floorOn(s, max(day, first)).monthly;
 			if (contractWageOn(s, day) < need)
 				return refusal('run', `monthly wage ${contractWageOn(s, day)} below the minimum ${need}`);
@@ -378,7 +426,10 @@ function month(s: Scenario, period: string, final: boolean, history = new Map<st
 		if (leave !== undefined) {
 			const grant = leaveGrant(leave);
 			if (grant !== undefined && leave.calendarDays > grant)
-				return refusal('input', `${leave.code}: ${leave.calendarDays} calendar days exceed the ${grant} granted`);
+				return refusal(
+					'input',
+					`${leave.code}: ${leave.calendarDays} calendar days exceed the ${grant} granted`
+				);
 		}
 		// Maternity — CN-KM32.allowance-offset-top-up: the fund allowance (employer prior-year average ÷ 30 × leave days,
 		// an agency determination, declared) paid to the worker comes off the leave wage; the employer tops up to the
@@ -399,17 +450,26 @@ function month(s: Scenario, period: string, final: boolean, history = new Map<st
 	}
 
 	// --- bonus (CN-N53.annual-bonus: contractual; paid, it is wages)
-	if (s.pay.priorBonus !== undefined && s.pay.priorBonus.period === period) add('BONUS', s.pay.priorBonus.amount);
+	if (s.pay.priorBonus !== undefined && s.pay.priorBonus.period === period)
+		add('BONUS', s.pay.priorBonus.amount);
 	const bonus = final ? s.pay.bonus : undefined;
 	if (bonus !== undefined) {
-		if (bonus.kind === 'BONUS') add('BONUS', bonus.amount); // CN-N10.ordinary-bonus-joins-wage
+		if (bonus.kind === 'BONUS')
+			add('BONUS', bonus.amount); // CN-N10.ordinary-bonus-joins-wage
 		else {
 			// CN-N10.once-per-year, CN-KM-A1.once-per-year
-			if (bonus.usedThisYear) return refusal('run', `${bonus.kind} already used this calendar year`);
+			if (bonus.usedThisYear)
+				return refusal('run', `${bonus.kind} already used this calendar year`);
 			if (bonus.kind === 'ANNUAL_BONUS_SEPARATE' && !s.employee.taxResident)
-				return refusal('run', 'the separate annual-bonus method is a resident election (MOF/STA 2023 No.30)');
+				return refusal(
+					'run',
+					'the separate annual-bonus method is a resident election (MOF/STA 2023 No.30)'
+				);
 			if (bonus.kind === 'MULTI_MONTH_NONRESIDENT' && s.employee.taxResident)
-				return refusal('run', 'the multi-month bonus spread is a non-resident method (MOF/STA 2019 No.35)');
+				return refusal(
+					'run',
+					'the multi-month bonus spread is a non-resident method (MOF/STA 2019 No.35)'
+				);
 			// both separate methods sit on the ANNUAL_BONUS_SEPARATE class (CN-KM-A1 config_path); in the average, not IIT
 			add('ANNUAL_BONUS_SEPARATE', bonus.amount, false);
 		}
@@ -446,7 +506,14 @@ function month(s: Scenario, period: string, final: boolean, history = new Map<st
 		if (c?.probation !== undefined) {
 			const p = c.probation;
 			const term = p.termMonths;
-			const allowed = p.partTime || (term !== null && term < 3) ? 0 : term === null || term >= 36 ? 6 : term >= 12 ? 2 : 1;
+			const allowed =
+				p.partTime || (term !== null && term < 3)
+					? 0
+					: term === null || term >= 36
+						? 6
+						: term >= 12
+							? 2
+							: 1;
 			const excess = Math.max(0, p.servedMonths - allowed);
 			if (excess > 0) add('PROBATION_EXCESS_DAMAGES', wage * excess, true, false);
 		}
@@ -496,7 +563,8 @@ function month(s: Scenario, period: string, final: boolean, history = new Map<st
 	const rate = s.facts.fundRate;
 	if (employed && pt === undefined && !retired && rate !== null) {
 		// CN-KM21.eligibility-and-approvals: below 5% only by approval; CN-KM05.rate-5-12, CN-KM20.uniform-unit-rate
-		if (rate < 0.05) return refusal('input', `fund rate ${rate} below 5% needs fund-centre approval`);
+		if (rate < 0.05)
+			return refusal('input', `fund rate ${rate} below 5% needs fund-centre approval`);
 		if (rate > 0.12) return refusal('input', `fund rate ${rate} above the 12% maximum`);
 		const hireMonth = s.employment.hireDate.slice(0, 7);
 		// CN-KM20.first-ever-joining-month / first-ever-second-month (CN-N08.first-ever-second-month): nothing in the
@@ -523,7 +591,11 @@ function month(s: Scenario, period: string, final: boolean, history = new Map<st
 		const exitDay = s.employment.exitDate!;
 		const avg = average12(s, history, period);
 		if (pt === undefined) {
-			const due = severanceDue(s, avg, history.get(addMonths(period, -1)) ?? s.employment.monthlyWage);
+			const due = severanceDue(
+				s,
+				avg,
+				history.get(addMonths(period, -1)) ?? s.employment.monthlyWage
+			);
 			if (due > 0) add('SEVERANCE_PAY', due, false, false);
 		}
 		// Annual-leave cash on exit (CN-N05.*, CN-N06.unused-on-exit-300, CN-N18.exit-entitlement, CN-N06.no-clawback,
@@ -537,20 +609,26 @@ function month(s: Scenario, period: string, final: boolean, history = new Map<st
 			const service = prior + monthsBetween(s.employment.hireDate, exitDay);
 			if (service >= 12) {
 				const full = service >= 240 ? 15 : service >= 120 ? 10 : 5;
-				const qualified = prior >= 12 ? s.employment.hireDate : addMonthsToDate(s.employment.hireDate, 12 - prior);
+				const qualified =
+					prior >= 12 ? s.employment.hireDate : addMonthsToDate(s.employment.hireDate, 12 - prior);
 				const yearStart = max(`${exitDay.slice(0, 4)}-01-01`, qualified);
 				const days = (ms(exitDay) - ms(yearStart)) / 86_400_000 + 1;
-				const owed = Math.max(0, Math.floor((days / 365) * full + 1e-9) - (e.leaveTakenThisYear ?? 0));
+				const owed = Math.max(
+					0,
+					Math.floor((days / 365) * full + 1e-9) - (e.leaveTakenThisYear ?? 0)
+				);
 				if (owed > 0) add('LEAVE_ENCASHMENT', fen(owed * (avg / 21.75) * 2), true, false);
 			}
 		}
 		// Retirement lump sums (CN-N39.early-retirement, CN-N39.internal-retirement): taxed apart below.
-		if (s.pay.earlyRetirement) add('EARLY_RETIREMENT_SUBSIDY', s.pay.earlyRetirement.amount, false, false);
+		if (s.pay.earlyRetirement)
+			add('EARLY_RETIREMENT_SUBSIDY', s.pay.earlyRetirement.amount, false, false);
 		// Final pay within five working days after the end — 昆明市工资支付条例 art.13 (CN-KM-WP06.five-working-days); the
 		// run pays on the period's last day (DEFAULT), so a deadline before it is reported.
 		if (addWorkingDays(exitDay, 5) < last) warnings.push('final pay|five working days');
 	}
-	if (final && s.pay.internalRetirement) add('INTERNAL_RETIREMENT_SUBSIDY', s.pay.internalRetirement.amount, false, false);
+	if (final && s.pay.internalRetirement)
+		add('INTERNAL_RETIREMENT_SUBSIDY', s.pay.internalRetirement.amount, false, false);
 	return { lines, bases, wageIncome, averageWage, employeeShares, warnings, unpriced };
 }
 
@@ -626,12 +704,19 @@ export function severanceDue(s: Scenario, average: number, previousMonth: number
 	return fen(due);
 }
 /** true when days remain after the whole months of [from, to] */
-const remainderDays = (from: string, to: string, whole: number) => addMonthsToDate(from, whole) <= to;
+const remainderDays = (from: string, to: string, whole: number) =>
+	addMonthsToDate(from, whole) <= to;
 
 // ---------------------------------------------------------------------------------------------------------------
 /** The expected payslip for the scenario's `period`, having run every month from `runsFrom` (cumulative IIT). */
 export function computePayslip(s: Scenario): Payslip {
-	const none = (refused: Payslip['refused']): Payslip => ({ refused, lines: {}, bases: {}, warnings: [], unpriced: [] });
+	const none = (refused: Payslip['refused']): Payslip => ({
+		refused,
+		lines: {},
+		bases: {},
+		warnings: [],
+		unpriced: []
+	});
 	// 禁止使用童工规定 arts.2, 4 (CN-N29.under-16-ban): no one under 16 may be recruited.
 	if (ageOn(s.employee.birthDate, s.employment.hireDate) < 16)
 		return none({ stage: 'input', reason: 'under 16 (child labour prohibited)' });
@@ -668,7 +753,11 @@ export function computePayslip(s: Scenario): Payslip {
 			const monthNo = Number(p.slice(5, 7));
 			// Basic deduction 5,000 × months at this unit this year; STA 2020 No.13 (CN-N44.first-wage-mid-year) first wage
 			// income this year → 5,000 × months from January; STA 2020 No.19 (CN-N11) election → 60,000 from January.
-			const basic = s.tax.basic60kElection ? 60000 : s.tax.firstIncomeThisYear ? 5000 * monthNo : 5000 * monthsEmployed;
+			const basic = s.tax.basic60kElection
+				? 60000
+				: s.tax.firstIncomeThisYear
+					? 5000 * monthNo
+					: 5000 * monthsEmployed;
 			const taxable = fen(cumIncome - cumShares - basic - cumSpecial - cumPension - cumOther);
 			const cumTax = fen(onTable(ANNUAL, taxable));
 			iit = Math.max(0, fen(cumTax - cumWithheld));
@@ -709,7 +798,9 @@ export function computePayslip(s: Scenario): Payslip {
 	// 164号 item 5(2) (CN-N39.early-retirement): (lump ÷ years to statutory age − 60,000) on the annual table × years.
 	const early = s.pay.earlyRetirement;
 	if (early !== undefined) {
-		const tax = fen(onTable(ANNUAL, early.amount / early.yearsToStatutoryAge - 60000) * early.yearsToStatutoryAge);
+		const tax = fen(
+			onTable(ANNUAL, early.amount / early.yearsToStatutoryAge - 60000) * early.yearsToStatutoryAge
+		);
 		if (tax > 0) m.lines['IIT_EARLY_RETIREMENT.employee'] = tax;
 	}
 	// 164号 item 5(3) with 国税发〔1999〕58号 art.1 (CN-N39.internal-retirement): lump ÷ months to statutory age + the month's
@@ -718,7 +809,10 @@ export function computePayslip(s: Scenario): Payslip {
 	// the same method's tax on the wage alone.
 	const internal = s.pay.internalRetirement;
 	if (internal !== undefined) {
-		const [, rate, qd] = band(MONTHLY, internal.amount / internal.monthsToStatutoryAge + wageThisMonth - 5000);
+		const [, rate, qd] = band(
+			MONTHLY,
+			internal.amount / internal.monthsToStatutoryAge + wageThisMonth - 5000
+		);
 		const total = Math.max(0, (wageThisMonth + internal.amount - 5000) * rate - qd);
 		const tax = fen(total - onTable(MONTHLY, wageThisMonth - 5000));
 		if (tax > 0) m.lines['IIT_INTERNAL_RETIREMENT.employee'] = tax;
@@ -744,7 +838,12 @@ export function computePayslip(s: Scenario): Payslip {
 	m.lines.gross = gross;
 	m.lines.total_deductions = deductions;
 	m.lines.net = fen(gross - deductions);
-	return { lines: m.lines, bases: m.bases, warnings: m.warnings, unpriced: [...new Set(m.unpriced)] };
+	return {
+		lines: m.lines,
+		bases: m.bases,
+		warnings: m.warnings,
+		unpriced: [...new Set(m.unpriced)]
+	};
 }
 
 export const ageOn = (birth: string, day: string) => {

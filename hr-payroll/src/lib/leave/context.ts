@@ -56,7 +56,7 @@ export type LeaveContext = {
 		readonly employee_id: string;
 		readonly company_id: string;
 		readonly effective_range: StoredRange | null;
-		readonly exit_reason?: string | null | undefined;
+		readonly exit_ground?: string | null | undefined;
 		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
 		readonly prior_service_months?: number | null | undefined;
 	}[];
@@ -177,6 +177,8 @@ export type LeaveContext = {
 		readonly paid_by: 'EMPLOYER' | 'FUND';
 		readonly consumes_code: string | null;
 		readonly unit: 'DAY' | 'HOUR';
+		/** The event or state inputs an entry of this row records (`leave.facts.<key>`). */
+		readonly event_facts?: readonly FactKey[] | null;
 	}[];
 	holidays: HolidayRow[];
 	workDays: {
@@ -298,7 +300,7 @@ export async function readLeaveContext(
 			company_id: row.company_id,
 			effective_range: row.effective_range
 		}),
-		exit_reason: row.exit_reason ?? null,
+		exit_ground: row.exit_ground ?? null,
 		exit_facts: row.exit_facts ?? null,
 		prior_service_months: row.prior_service_months ?? null
 	}));
@@ -619,7 +621,7 @@ export function personAt(
 			service_start: range == null ? '' : dateKey(range.start),
 			prior_service_months: employment.prior_service_months ?? 0,
 			exit_date: range?.end == null ? null : dateKey(range.end),
-			exit_reason: employment.exit_reason ?? null,
+			exit_ground: employment.exit_ground ?? null,
 			exit_facts: employment.exit_facts ?? {},
 			absent_days_12m: (context.absences ?? []).filter(
 				(row) =>
@@ -779,7 +781,7 @@ export function leaveRules(
 	 */
 	// Keyed by the facts themselves: a context is mutated in place by callers that amend terms or
 	// a person between queries, so identity alone would serve a stale reading. The employment's
-	// exit reason and exit facts are part of the person, so they are part of the key.
+	// exit ground and exit facts are part of the person, so they are part of the key.
 	const people = personCache(
 		context,
 		JSON.stringify([
@@ -788,7 +790,7 @@ export function leaveRules(
 			company.id,
 			hire,
 			exit,
-			context.employments.find((row) => row.id === employmentId)?.exit_reason ?? null,
+			context.employments.find((row) => row.id === employmentId)?.exit_ground ?? null,
 			context.employments.find((row) => row.id === employmentId)?.exit_facts ?? {},
 			context.facts ?? [],
 			context.absences ?? [],

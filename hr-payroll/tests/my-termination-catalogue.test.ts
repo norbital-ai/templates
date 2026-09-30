@@ -33,7 +33,7 @@ for (const lineage of ['MY']) {
 					employment: {
 						type: example.type,
 						service_months: 24,
-						exit_reason: 'REDUNDANCY'
+						exit_ground: 'REDUNDANCY'
 					},
 					terms: {
 						statutory_wages: example.wages,

@@ -519,7 +519,8 @@ function measureMoneyEntry(options: MeasureComponentOptions): Measurement | null
 						return {
 							work_pattern: pattern?.pattern ?? null,
 							pattern_anchor: patternAnchor(pattern),
-							normal_daily_hours: 8
+							// only which days are rostered workdays is read here, never their hours
+							normal_daily_hours: 0
 						};
 					},
 					workDays: options.bundle.pieceWorkDays,

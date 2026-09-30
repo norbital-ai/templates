@@ -1,3 +1,8 @@
+<script lang="ts" module>
+	/** The settings page's version picker: a clone switches the page to the new draft (absent elsewhere). */
+	export const CHOOSE_SETTINGS_VERSION = Symbol('hr.settings.choose-version');
+</script>
+
 <script lang="ts">
 	/**
 	 * The life of a settings version, as the controller drives it: a new draft cloned from the
@@ -8,16 +13,16 @@
 	 * One batch, because the collection reads the batch to see the predecessor ended — two writes
 	 * would leave a shortened predecessor and an unsealed draft if the seal refused.
 	 */
-	import { t } from '../../../lib/ui/t.js';
+	import { t } from './t.js';
 	import { bolt } from '$bolt';
 	import Icon from '@iconify/svelte';
 	import { toast } from 'svelte-sonner';
 	import { Inline, Stack } from '@norbital-ai/ui/layout';
 	import type { ActInput, Callable, DatePeriod, Id } from '@norbital-ai/bolt';
 	import { Button, DateInput, Dialog, Input } from '@norbital-ai/ui';
-	import { sealNeighbours, sealWrites } from '../../../lib/settings_version_seal.js';
+	import { sealNeighbours, sealWrites } from '../settings_version_seal.js';
 	import { Instant, PlainDate } from '@norbital-ai/std/date';
-	import { todayKey } from '../../../lib/ui/calendar.js';
+	import { todayKey } from './calendar.js';
 
 	type Version = {
 		readonly id: Id<'jurisdiction_settings'>;
@@ -36,7 +41,7 @@
 		/** Every version of the lineage, newest first. */
 		readonly lineage: readonly Version[];
 		/** The page shows the version named, after a clone. */
-		readonly onChosen: (versionId: Id<'jurisdiction_settings'>) => void;
+		readonly onChosen?: (versionId: Id<'jurisdiction_settings'>) => void;
 	} = $props();
 
 	const sealed = $derived(version.sealed_at != null);
@@ -71,9 +76,8 @@
 </script>
 
 <!--
-	The controls themselves live in the app header (AppHeaderActions), not in the tab body:
-	a version's life is the page's, not one tab's, and the General tab already reads as the
-	record. The dialogs stay here and portal from wherever this component is mounted.
+	The controls are the version record's own actions (its RecordShell header). The dialogs stay
+	here and portal from wherever this component is mounted.
 -->
 {#if !voided}
 	<Button variant="outline" size="sm" disabled={busy} onclick={() => (newOpen = true)}>
@@ -111,7 +115,10 @@
 				<Input
 					value={newName}
 					oninput={(event) => (newName = event.currentTarget.value)}
-					placeholder={`${version.code} from ${newStart ?? ''}`}
+					placeholder={t('settings_version.name_placeholder', {
+						code: version.code,
+						date: newStart ?? ''
+					})}
 				/>
 			</label>
 			<Inline justify="end" gap="sm">
@@ -129,7 +136,7 @@
 							},
 							t('settings_version.cloned')
 						);
-						if (outcome.kind === 'committed') onChosen(outcome.output);
+						if (outcome.kind === 'committed') onChosen?.(outcome.output);
 					}}>{t('settings_version.new')}</Button
 				>
 			</Inline>

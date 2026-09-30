@@ -371,7 +371,7 @@ test('MY — final wages are due on the last day unless the employee left withou
 	].map((row) => ({
 		...row,
 		wage: 3000,
-		exit_reason: 'RESIGNATION',
+		exit_ground: 'RESIGNATION',
 		citizenship: 'CITIZEN',
 		registrations: LOCAL
 	}));

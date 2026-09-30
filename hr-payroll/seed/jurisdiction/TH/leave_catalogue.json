@@ -11,7 +11,7 @@
 			"year_start_month": 1,
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
-			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_on_exit_when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
 			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
@@ -134,7 +134,43 @@
 		"pay_fraction": "leave.day_index > 45 ? 0.0 : 1.0",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "ecebfa22-9d5c-5321-ac36-77e182882e76",
@@ -170,10 +206,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "leave.agreed_fraction",
+		"pay_fraction": "leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "449f6146-d10c-5de6-9429-cc5d1300ca52",
@@ -190,10 +271,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "13b379c2-317c-5d76-b8dc-dcd0f8961221",
@@ -207,7 +333,7 @@
 			"year_start_month": 1,
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
-			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_on_exit_when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
 			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
@@ -330,7 +456,43 @@
 		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "e4fdd489-131a-5ec0-acd3-8a8ce383ecb3",
@@ -366,10 +528,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "leave.agreed_fraction",
+		"pay_fraction": "leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "b269b195-4876-5363-a060-9a08179a490f",
@@ -386,10 +593,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "07a23b8f-3bec-51ea-929e-5f092232c668",
@@ -413,7 +665,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "971ddba2-45f5-54fa-8c0c-6bb87e35f9e1",
@@ -438,7 +726,43 @@
 		"pay_fraction": "0.5",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "e837e29b-c205-5b30-92b7-3fc3413677be",
@@ -452,7 +776,7 @@
 			"year_start_month": 1,
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
-			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_on_exit_when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
 			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
@@ -575,7 +899,43 @@
 		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "19ccfabd-4dac-5d03-bba9-d4f9049ffdba",
@@ -611,10 +971,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "leave.agreed_fraction",
+		"pay_fraction": "leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "9ea0e08e-1eda-5490-820c-6741bec4cc6d",
@@ -631,10 +1036,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "821941be-248e-5332-a184-7e1f18088489",
@@ -658,7 +1108,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "a6ecde90-54b7-5087-9b43-06bc3393e306",
@@ -683,7 +1169,43 @@
 		"pay_fraction": "0.5",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "c05f841d-cbc3-5892-bc52-260d217bdd27",
@@ -697,7 +1219,7 @@
 			"year_start_month": 1,
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
-			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_on_exit_when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
 			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
@@ -820,7 +1342,43 @@
 		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "af0f9dc1-7bc2-5ddb-821d-5ae07f9f62de",
@@ -856,10 +1414,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "leave.agreed_fraction",
+		"pay_fraction": "leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "d1ff2a5d-b014-535d-81e2-98006d9757d6",
@@ -876,10 +1479,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "86aa1610-33c1-5765-96bd-4d9c9214b8a0",
@@ -903,7 +1551,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "32762b31-4b74-5953-8f97-8922b869d38a",
@@ -928,7 +1612,43 @@
 		"pay_fraction": "0.5",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "cf32b810-5f85-5743-8e25-6195dd106ed9",
@@ -942,7 +1662,7 @@
 			"year_start_month": 1,
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
-			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_on_exit_when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
 			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
@@ -1065,7 +1785,43 @@
 		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "7a01fb51-e1cc-5e55-b1c4-5be8bb42b9fc",
@@ -1101,10 +1857,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "leave.agreed_fraction",
+		"pay_fraction": "leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "dfc0dc3c-f8bd-50be-9fa9-6abb3dade2b3",
@@ -1121,10 +1922,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "87a3115a-0182-5a27-9915-a4c76245c3d6",
@@ -1148,7 +1994,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "07adeaf7-bc18-557b-9837-ace3b7184e88",
@@ -1173,7 +2055,43 @@
 		"pay_fraction": "0.5",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "a259d4e3-8fab-5319-a734-22202c96de7f",
@@ -1187,7 +2105,7 @@
 			"year_start_month": 1,
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
-			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_on_exit_when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
 			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
@@ -1214,7 +2132,7 @@
 			"year_start_month": 1,
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
-			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_on_exit_when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
 			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
@@ -1420,7 +2338,43 @@
 		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "cccaba37-7ed1-587f-8984-896b0ea56df4",
@@ -1447,7 +2401,43 @@
 		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "301cd77d-f2d8-51c2-a213-f1a0cad6dfa7",
@@ -1483,10 +2473,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "leave.agreed_fraction",
+		"pay_fraction": "leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "3bc59a8f-4a28-507b-a6e1-2898e9faf807",
@@ -1503,10 +2538,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "54dc4234-a99c-52dd-95b5-fac07321bfaa",
@@ -1542,10 +2622,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "leave.agreed_fraction",
+		"pay_fraction": "leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "d859efc9-9cd2-5503-beea-f34e6f4a7b85",
@@ -1562,10 +2687,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "9e59302a-18e0-520b-baf2-23e99aff36c1",
@@ -1589,7 +2759,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "d2588dbc-4b6e-52f4-ad2f-97b3def95209",
@@ -1613,7 +2819,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "ac8906da-af0b-523e-a31a-ef9be8f32856",
@@ -1638,7 +2880,43 @@
 		"pay_fraction": "0.5",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "28d044c7-3d1f-5674-843f-bf4b1d3fcb26",
@@ -1663,7 +2941,43 @@
 		"pay_fraction": "0.5",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "8e888c93-5381-5a75-a7a9-400044dc2bf8",
@@ -1677,7 +2991,7 @@
 			"year_start_month": 1,
 			"proration": "CALENDAR_DAYS",
 			"rounding": "EXACT",
-			"encash_on_exit_when": "employment.exit_reason in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
+			"encash_on_exit_when": "employment.exit_ground in [\"DISMISSAL\", \"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"RETIREMENT\"] && !(\"dismissed_for_cause\" in employment.exit_fact_keys && employment.exit_facts.dismissed_for_cause)",
 			"encash_carry_on_exit_when": "",
 			"bands": [
 				{
@@ -1800,7 +3114,43 @@
 		"pay_fraction": "leave.day_index > 60 ? 0.0 : 1.0",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "5baae757-8bf3-5a9e-9a7c-a4fbcb68775b",
@@ -1836,10 +3186,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "leave.agreed_fraction",
+		"pay_fraction": "leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "bd6dca6c-10a6-56c4-8b8c-d263e4efbbce",
@@ -1856,10 +3251,55 @@
 		},
 		"evidence": "OPTIONAL",
 		"evidence_after_days": null,
-		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.agreed_fraction",
+		"pay_fraction": "employee.age < 18 && leave.taken(\"YOUNG_WORKER_TRAINING_LEAVE\") < 30.0 ? 1.0 : leave.facts.agreed_pay_fraction",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			},
+			{
+				"key": "agreed_pay_fraction",
+				"type": "number",
+				"label": "Agreed share of the day wage (0–1)",
+				"description": "The share of the day wage the parties agreed for this entry",
+				"minimum": 0,
+				"maximum": 1,
+				"default_value": 0
+			}
+		]
 	},
 	{
 		"id": "cfaea3be-7206-5efc-8acf-4d17291768b5",
@@ -1883,7 +3323,43 @@
 		"evidence_after_days": null,
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	},
 	{
 		"id": "1d8c1a67-8741-5f5d-b6f7-91d27fa71509",
@@ -1908,6 +3384,42 @@
 		"pay_fraction": "0.5",
 		"is_npl": false,
 		"can_encash": false,
-		"encash_on_exit": false
+		"encash_on_exit": false,
+		"event_facts": [
+			{
+				"key": "event_kind",
+				"type": "string",
+				"label": "Event",
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+			},
+			{
+				"key": "event_relationship",
+				"type": "string",
+				"label": "Whose event",
+				"description": "Whose event it is, where the grant turns on the relationship"
+			},
+			{
+				"key": "event_child_index",
+				"type": "number",
+				"label": "Child (1st, 2nd…)",
+				"description": "Which of the employee’s recorded children the event concerns, from 1",
+				"integer": true,
+				"minimum": 1
+			},
+			{
+				"key": "event_wife_prior_living_biological_children",
+				"type": "number",
+				"label": "Wife’s earlier living children",
+				"description": "The wife’s living biological children before this birth, where the grant counts them",
+				"integer": true,
+				"minimum": 0
+			},
+			{
+				"key": "event_date",
+				"type": "date",
+				"label": "Event date",
+				"description": "The day of the event; entries naming the same day are one event"
+			}
+		]
 	}
 ]

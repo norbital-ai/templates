@@ -170,11 +170,7 @@ export function settle(options: {
 		const priorCharges =
 			ceiling.assessment_period === 'MONTH' ? [...(options.monthPrior?.charged ?? [])] : [];
 		const assessmentStatutory =
-			statutoryEmployee +
-			priorCharges.reduce(
-				(total, [, charge]) => total + charge.employee + (charge.directed ?? 0),
-				0
-			);
+			statutoryEmployee + priorCharges.reduce((total, [, charge]) => total + charge.employee, 0);
 		const statutoryBase =
 			options.charges.reduce(
 				(total, charge) =>
@@ -189,7 +185,7 @@ export function settle(options: {
 				(total, [code, charge]) =>
 					total +
 					(ceiling.basis_statutory_codes == null || ceiling.basis_statutory_codes.includes(code)
-						? charge.employee + (charge.directed ?? 0)
+						? charge.employee
 						: 0),
 				0
 			);

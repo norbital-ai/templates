@@ -8,7 +8,7 @@ export default model({
 	description:
 		'The ad hoc catalogue of one jurisdiction settings version: the classes of one-off pay — bonus, back pay, ex-gratia, festival and separation payments, claw-backs — with the bands that price and cap them, the schemes each counts toward, the evidence a request demands and who raises one. Sealed with its version; the run cites the version it priced against.',
 	icon: 'lucide:hand-coins',
-	label: ['code', 'name'],
+	label: 'name',
 	fields: {
 		code: { kind: 'text' },
 		name: { kind: 'text', optional: true },

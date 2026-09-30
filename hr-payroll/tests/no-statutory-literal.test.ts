@@ -41,8 +41,7 @@ const ENGINE = [
 
 /** Files outside the calculation, each with its reason. */
 const SKIPPED: Record<string, string> = {
-	'src/lib/payroll/run/export.ts': 'PDF/XLSX byte layout of computed lines: rows, columns, points',
-	'src/lib/payroll/run/bank-formats.ts': "a bank's file record layout: byte offsets and widths"
+	'src/lib/payroll/run/export.ts': 'PDF/XLSX byte layout of computed lines: rows, columns, points'
 };
 
 /** Magnitudes allowed anywhere, each with its reason. */
@@ -87,7 +86,9 @@ const NAMED_LIMITS: Record<string, string> = {
 	GRID_DAYS: 'six displayed weeks of a month grid',
 	PROJECTION_DAYS: 'days a shift pattern is projected ahead',
 	LOOKBACK_MINUTES: 'how far back a punch pairs with its shift',
-	ANNUAL_LOOKBACK_DAYS: 'two leave years of at most 366 days a holiday and attendance read spans'
+	ANNUAL_LOOKBACK_DAYS: 'two leave years of at most 366 days a holiday and attendance read spans',
+	VARIADIC_ARITY: 'the argument counts a CEL overload family registers (CEL has no variadics)',
+	TABLE_KEY_ARITY: 'the key counts a table lookup overload family registers'
 };
 
 /**
@@ -105,17 +106,20 @@ const SITES: Record<string, Record<string, string>> = {
 	'src/lib/payroll/contribution.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/families.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/work.ts': { '2': SEMI_MONTHLY },
-	'src/lib/payroll/statutory-history.ts': { '2': SEMI_MONTHLY },
+	'src/lib/payroll/history.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/run/engine.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/run/contribute.ts': { '2': SEMI_MONTHLY, '4': SEMI_MONTHLY },
 	'src/lib/payroll/run/period.ts': {
 		'2': SEMI_MONTHLY,
-		'11': 'the last month of a twelve-month year'
+		'11': 'the last month of a twelve-month year',
+		'15': 'a semi-monthly month’s first instalment ends on the 15th',
+		'16': 'a semi-monthly month’s second instalment starts on the 16th'
 	},
 	'src/lib/payroll/run/rounding.ts': {
 		'4': 'float epsilon scale',
 		'20': 'the stored UP_5_CENTS mode: twentieths of a unit',
-		'2': 'the half-day rounding primitive'
+		'2': 'the half-day rounding primitive',
+		'0.5': 'the half a HALF_UP or HALF_EVEN mode rounds at'
 	},
 	'src/lib/payroll/run/validate.ts': { '3': 'months a quarter' },
 	'src/lib/scheduling/work-limits.ts': {

@@ -424,7 +424,7 @@ test('PH round 2 — Labor Code arts.298–299: the authorised cause chooses one
 				wage: 30_000,
 				hire_date: '2020-08-01',
 				exit_date: '2026-01-31',
-				exit_reason: key === 'LSD' ? 'REDUNDANCY' : 'RETRENCHMENT'
+				exit_ground: key === 'LSD' ? 'REDUNDANCY' : 'RETRENCHMENT'
 			}))
 		},
 		(world) => {

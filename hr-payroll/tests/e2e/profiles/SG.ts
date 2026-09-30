@@ -13,7 +13,13 @@
  * (`computePayslip(s).rows`), so every tag is a real branch of that payslip.
  * No Math.random: a seeded mulberry32 picks names, races and birth days.
  */
-import { computePayslip, daysOfMonth, isWorkingDay, publicHolidays, type Scenario } from '../oracle/SG';
+import {
+	computePayslip,
+	daysOfMonth,
+	isWorkingDay,
+	publicHolidays,
+	type Scenario
+} from '../oracle/SG';
 
 const rng = (() => {
 	let a = 20260930;
@@ -110,12 +116,21 @@ export function generateProfiles(): Scenario[] {
 				add({
 					id: `sg-o-t1-${period}-${g}-${j}`,
 					rows: [],
-					branches: [`T1/${GROUP_NAME[g]}/${wage}/${period.slice(0, 4)}`, spr3 ? 'SPR third year → Table 1' : 'citizen'],
+					branches: [
+						`T1/${GROUP_NAME[g]}/${wage}/${period.slice(0, 4)}`,
+						spr3 ? 'SPR third year → Table 1' : 'citizen'
+					],
 					description: `Table 1 ${GROUP_NAME[g]} at $${wage}, ${period}`,
 					period,
 					employee: {
 						birth_date: birthFor(period, age),
-						...(spr3 ? { residency: 'SPR' as const, spr_granted_on: monthsBefore(period, 30), spr_rates: 'GRADUATED' as const } : {})
+						...(spr3
+							? {
+									residency: 'SPR' as const,
+									spr_granted_on: monthsBefore(period, 30),
+									spr_rates: 'GRADUATED' as const
+								}
+							: {})
 					},
 					employment: { monthly_basic: wage }
 				});
@@ -124,7 +139,12 @@ export function generateProfiles(): Scenario[] {
 	);
 
 	// ---- B. SPR Tables 2–5 and approved full/full
-	const sprCells: [table: string, year: 1 | 2, rates: 'GRADUATED' | 'FULL_EMPLOYER' | 'FULL', groups: number][] = [
+	const sprCells: [
+		table: string,
+		year: 1 | 2,
+		rates: 'GRADUATED' | 'FULL_EMPLOYER' | 'FULL',
+		groups: number
+	][] = [
 		['T2', 1, 'GRADUATED', 4],
 		['T3', 2, 'GRADUATED', 4],
 		['T4', 1, 'FULL_EMPLOYER', 5],
@@ -140,7 +160,10 @@ export function generateProfiles(): Scenario[] {
 				add({
 					id: `sg-o-spr-${table}-${g}-${j}`,
 					rows: [],
-					branches: [`${table}/${GROUP_NAME[g]}/${wage}/${period.slice(0, 4)}`, `SPR year ${year} ${rates}`],
+					branches: [
+						`${table}/${GROUP_NAME[g]}/${wage}/${period.slice(0, 4)}`,
+						`SPR year ${year} ${rates}`
+					],
 					description: `SPR year ${year} (${rates}) ${GROUP_NAME[g]} at $${wage}, ${period}`,
 					period,
 					employee: {
@@ -159,7 +182,11 @@ export function generateProfiles(): Scenario[] {
 			branches: ['approved full/full → Table 1', `SPR year ${n + 1}`],
 			description: `SPR year ${n + 1} with Board-approved full/full rates, ${period}`,
 			period,
-			employee: { residency: 'SPR', spr_granted_on: monthsBefore(period, n === 0 ? 6 : 18), spr_rates: 'FULL' },
+			employee: {
+				residency: 'SPR',
+				spr_granted_on: monthsBefore(period, n === 0 ? 6 : 18),
+				spr_rates: 'FULL'
+			},
 			employment: { monthly_basic: 5000 }
 		});
 
@@ -169,7 +196,10 @@ export function generateProfiles(): Scenario[] {
 			add({
 				id: `sg-o-age-${age}-${n}`,
 				rows: [`SG-CPF18.seam-${age}`],
-				branches: [`attains ${age} on 15 Jun 2026`, ['month before', 'birthday month', 'month after'][n]!],
+				branches: [
+					`attains ${age} on 15 Jun 2026`,
+					['month before', 'birthday month', 'month after'][n]!
+				],
 				description: `Age ${age} seam, ${period}`,
 				period,
 				employee: { birth_date: `${2026 - age}-06-15` },
@@ -179,7 +209,10 @@ export function generateProfiles(): Scenario[] {
 		add({
 			id: `sg-o-age-first-of-month-${period}`,
 			rows: ['SG-CPF18.seam-55'],
-			branches: ['55th birthday on the 1st', period === '2026-07' ? 'birthday month' : 'month after'],
+			branches: [
+				'55th birthday on the 1st',
+				period === '2026-07' ? 'birthday month' : 'month after'
+			],
 			description: `55th birthday 1 Jul 2026, ${period}`,
 			period,
 			employee: { birth_date: '1971-07-01' },
@@ -214,7 +247,11 @@ export function generateProfiles(): Scenario[] {
 			branches: [branch],
 			description: `SPR granted ${granted} (${rates}), ${period}`,
 			period,
-			employee: { residency: 'SPR', spr_granted_on: granted, spr_rates: rates as 'GRADUATED' | 'FULL_EMPLOYER' },
+			employee: {
+				residency: 'SPR',
+				spr_granted_on: granted,
+				spr_rates: rates as 'GRADUATED' | 'FULL_EMPLOYER'
+			},
 			employment: { monthly_basic: 4000 }
 		});
 
@@ -240,7 +277,9 @@ export function generateProfiles(): Scenario[] {
 		});
 
 	// ---- F. SDL seams (SDLA s.3; SG-SDL13 cent rounding) on an employee no fund charges
-	for (const [n, wage] of [700, 799.99, 800, 800.01, 1002, 1234.56, 3999.99, 4500, 4500.01, 20000].entries())
+	for (const [n, wage] of [
+		700, 799.99, 800, 800.01, 1002, 1234.56, 3999.99, 4500, 4500.01, 20000
+	].entries())
 		add({
 			id: `sg-o-sdl-${n}`,
 			rows: ['SG-S3'],
@@ -273,14 +312,22 @@ export function generateProfiles(): Scenario[] {
 				});
 	const shgSpecial: [string, Partial<Scenario['employee']>, string[]][] = [
 		['muslim-indian', { race: 'INDIAN', religion: 'ISLAM' }, []],
-		['indian-chinese-dual', { race: 'INDIAN', second_race: 'CHINESE', shg_dual_election: true }, []],
+		[
+			'indian-chinese-dual',
+			{ race: 'INDIAN', second_race: 'CHINESE', shg_dual_election: true },
+			[]
+		],
 		['chinese-tamil-dual', { race: 'CHINESE', second_race: 'TAMIL', shg_dual_election: true }, []],
 		['sikh-chinese-dual', { race: 'SIKH', second_race: 'CHINESE', shg_dual_election: true }, []],
 		['indian-chinese-no-election', { race: 'INDIAN', second_race: 'CHINESE' }, []],
 		['cdac-opt-out', { race: 'CHINESE', shg_opt_out: ['CDAC'] }, []],
 		['telugu', { race: 'TELUGU' }, []],
 		['goan', { race: 'GOAN', religion: 'CHRISTIANITY' }, []],
-		['ceylonese-pr', { race: 'CEYLONESE', residency: 'SPR', spr_granted_on: '2020-03-10', spr_rates: 'GRADUATED' }, []],
+		[
+			'ceylonese-pr',
+			{ race: 'CEYLONESE', residency: 'SPR', spr_granted_on: '2020-03-10', spr_rates: 'GRADUATED' },
+			[]
+		],
 		['malay-no-religion', { race: 'MALAY', religion: undefined }, []]
 	];
 	for (const [n, [name, employee, rows]] of shgSpecial.entries())
@@ -295,33 +342,180 @@ export function generateProfiles(): Scenario[] {
 		});
 
 	// ---- H. Incomplete months (EA s.20A), absence (s.28) and holiday pay (s.88)
-	const pro: [string, string, Partial<Scenario['employment']>, Scenario['month'], string[], string][] = [
+	const pro: [
+		string,
+		string,
+		Partial<Scenario['employment']>,
+		Scenario['month'],
+		string[],
+		string
+	][] = [
 		['join-1st', '2026-09', { start: '2026-09-01' }, {}, [], 'hired on the 1st: whole month'],
 		['join-2nd', '2026-09', { start: '2026-09-02' }, {}, [], 'hired on the 2nd'],
-		['join-mid', '2026-09', { start: '2026-09-15', monthly_allowance: 200 }, {}, [], 'hired mid-month, gross includes allowance'],
+		[
+			'join-mid',
+			'2026-09',
+			{ start: '2026-09-15', monthly_allowance: 200 },
+			{},
+			[],
+			'hired mid-month, gross includes allowance'
+		],
 		['join-last', '2026-09', { start: '2026-09-30' }, {}, [], 'hired on the last day'],
-		['join-weekend-1st', '2026-08', { start: '2026-08-01' }, {}, [], 'hired Saturday 1st: every working day worked'],
-		['join-before-ph', '2026-08', { start: '2026-08-05' }, {}, [], 'joiner: holiday on a working day counted'],
-		['leave-1st', '2026-09', { end: '2026-09-01', exit_cause: 'RESIGNATION' }, {}, [], 'leaves on the 1st'],
-		['leave-mid', '2026-09', { end: '2026-09-15', exit_cause: 'RESIGNATION' }, {}, [], 'leaves mid-month'],
-		['leave-last', '2026-09', { end: '2026-09-30', exit_cause: 'CONTRACT_END' }, {}, ['SG-EA03'], 'contract ends on the last day'],
-		['leave-before-ph', '2026-08', { end: '2026-08-07', exit_cause: 'RESIGNATION' }, {}, [], 'leaves before the holiday'],
-		['leave-after-ph', '2026-08', { end: '2026-08-12', exit_cause: 'RESIGNATION' }, {}, [], 'leaver: holiday counted'],
-		['leave-sunday-1st', '2026-11', { end: '2026-11-01', exit_cause: 'RESIGNATION' }, {}, [], 'no working day in the month: nil wages, nil charges'],
-		['join-and-leave', '2026-09', { start: '2026-09-08', end: '2026-09-25', exit_cause: 'RESIGNATION' }, {}, [], 'joins and leaves in one month'],
+		[
+			'join-weekend-1st',
+			'2026-08',
+			{ start: '2026-08-01' },
+			{},
+			[],
+			'hired Saturday 1st: every working day worked'
+		],
+		[
+			'join-before-ph',
+			'2026-08',
+			{ start: '2026-08-05' },
+			{},
+			[],
+			'joiner: holiday on a working day counted'
+		],
+		[
+			'leave-1st',
+			'2026-09',
+			{ end: '2026-09-01', exit_cause: 'RESIGNATION' },
+			{},
+			[],
+			'leaves on the 1st'
+		],
+		[
+			'leave-mid',
+			'2026-09',
+			{ end: '2026-09-15', exit_cause: 'RESIGNATION' },
+			{},
+			[],
+			'leaves mid-month'
+		],
+		[
+			'leave-last',
+			'2026-09',
+			{ end: '2026-09-30', exit_cause: 'CONTRACT_END' },
+			{},
+			['SG-EA03'],
+			'contract ends on the last day'
+		],
+		[
+			'leave-before-ph',
+			'2026-08',
+			{ end: '2026-08-07', exit_cause: 'RESIGNATION' },
+			{},
+			[],
+			'leaves before the holiday'
+		],
+		[
+			'leave-after-ph',
+			'2026-08',
+			{ end: '2026-08-12', exit_cause: 'RESIGNATION' },
+			{},
+			[],
+			'leaver: holiday counted'
+		],
+		[
+			'leave-sunday-1st',
+			'2026-11',
+			{ end: '2026-11-01', exit_cause: 'RESIGNATION' },
+			{},
+			[],
+			'no working day in the month: nil wages, nil charges'
+		],
+		[
+			'join-and-leave',
+			'2026-09',
+			{ start: '2026-09-08', end: '2026-09-25', exit_cause: 'RESIGNATION' },
+			{},
+			[],
+			'joins and leaves in one month'
+		],
 		['dec-2025-join', '2025-12', { start: '2025-12-15' }, {}, [], 'Dec 2025 joiner with Christmas'],
-		['dec-2025-leave', '2025-12', { end: '2025-12-24', exit_cause: 'RESIGNATION' }, {}, [], 'Dec 2025 leaver before Christmas'],
+		[
+			'dec-2025-leave',
+			'2025-12',
+			{ end: '2025-12-24', exit_cause: 'RESIGNATION' },
+			{},
+			[],
+			'Dec 2025 leaver before Christmas'
+		],
 		['npl-1', '2026-09', {}, { no_pay_leave: ['2026-09-10'] }, [], 'one day no-pay leave'],
-		['npl-5', '2026-09', { monthly_allowance: 200 }, { no_pay_leave: ['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18'] }, [], 'five days no-pay leave, allowance'],
-		['npl-month', '2026-09', {}, { no_pay_leave: workingDaysOf('2026-09') }, [], 'whole month no-pay leave: nil'],
-		['npl-over-ph', '2026-02', {}, { no_pay_leave: ['2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19', '2026-02-20'] }, [], 's.88(2): holiday inside requested no-pay leave unpaid'],
+		[
+			'npl-5',
+			'2026-09',
+			{ monthly_allowance: 200 },
+			{ no_pay_leave: ['2026-09-14', '2026-09-15', '2026-09-16', '2026-09-17', '2026-09-18'] },
+			[],
+			'five days no-pay leave, allowance'
+		],
+		[
+			'npl-month',
+			'2026-09',
+			{},
+			{ no_pay_leave: workingDaysOf('2026-09') },
+			[],
+			'whole month no-pay leave: nil'
+		],
+		[
+			'npl-over-ph',
+			'2026-02',
+			{},
+			{ no_pay_leave: ['2026-02-16', '2026-02-17', '2026-02-18', '2026-02-19', '2026-02-20'] },
+			[],
+			's.88(2): holiday inside requested no-pay leave unpaid'
+		],
 		['absent-1', '2026-09', {}, { absent: ['2026-09-10'] }, [], 's.28(2): gross day deducted'],
-		['absent-1-allowance', '2026-10', { monthly_allowance: 300 }, { absent: ['2026-10-14'] }, [], 's.28(2) on the gross rate'],
-		['absent-before-ph', '2026-08', { monthly_basic: 2400 }, { absent: ['2026-08-07'] }, [], 's.88(3): absent the working day before'],
-		['absent-after-ph', '2026-08', { monthly_basic: 2400 }, { absent: ['2026-08-11'] }, [], 's.88(3): absent the working day after'],
-		['absent-both-ph', '2026-08', { monthly_basic: 2400 }, { absent: ['2026-08-07', '2026-08-11'] }, [], 's.88(3): absent both sides, forfeited once'],
-		['absent-good-friday', '2026-04', {}, { absent: ['2026-04-02'] }, [], 's.88(3): absent before Good Friday'],
-		['absent-not-adjacent', '2026-08', { monthly_basic: 2400 }, { absent: ['2026-08-20'] }, [], 'absence not adjacent to the holiday']
+		[
+			'absent-1-allowance',
+			'2026-10',
+			{ monthly_allowance: 300 },
+			{ absent: ['2026-10-14'] },
+			[],
+			's.28(2) on the gross rate'
+		],
+		[
+			'absent-before-ph',
+			'2026-08',
+			{ monthly_basic: 2400 },
+			{ absent: ['2026-08-07'] },
+			[],
+			's.88(3): absent the working day before'
+		],
+		[
+			'absent-after-ph',
+			'2026-08',
+			{ monthly_basic: 2400 },
+			{ absent: ['2026-08-11'] },
+			[],
+			's.88(3): absent the working day after'
+		],
+		[
+			'absent-both-ph',
+			'2026-08',
+			{ monthly_basic: 2400 },
+			{ absent: ['2026-08-07', '2026-08-11'] },
+			[],
+			's.88(3): absent both sides, forfeited once'
+		],
+		[
+			'absent-good-friday',
+			'2026-04',
+			{},
+			{ absent: ['2026-04-02'] },
+			[],
+			's.88(3): absent before Good Friday'
+		],
+		[
+			'absent-not-adjacent',
+			'2026-08',
+			{ monthly_basic: 2400 },
+			{ absent: ['2026-08-20'] },
+			[],
+			'absence not adjacent to the holiday'
+		]
 	];
 	for (const [name, period, employment, month, rows, branch] of pro)
 		add({
@@ -336,32 +530,210 @@ export function generateProfiles(): Scenario[] {
 
 	// ---- I. Overtime, rest-day and holiday work (EA ss.35, 37, 38, 88(4); Fourth Schedule)
 	const oct = (d: number) => `2026-10-${pad(d)}`;
-	const ot = (hours: number, n = 1) => workingDaysOf('2026-10').slice(0, n).map((date) => ({ date, hours }));
-	const work: [string, string, Partial<Scenario['employment']>, Scenario['month'], string[], string][] = [
-		['ot-2600', '2026-10', { monthly_basic: 2600 }, { overtime: ot(2) }, ['SG-EA46-R01', 'SG-EA22'], 'non-workman at $2,600: covered, unrounded hour'],
-		['ot-2600.01', '2026-10', { monthly_basic: 2600.01 }, { overtime: ot(2) }, [], 'non-workman at $2,600.01: outside Part 4'],
-		['ot-workman-4500', '2026-10', { monthly_basic: 4500, workman: true }, { overtime: ot(3) }, [], 'workman at $4,500: actual basic, no cap'],
-		['ot-workman-4500.01', '2026-10', { monthly_basic: 4500.01, workman: true }, { overtime: ot(3) }, [], 'workman at $4,500.01: outside Part 4'],
-		['ot-manager', '2026-10', { monthly_basic: 2000, managerial: true }, { overtime: ot(2) }, [], 'managerial: outside Part 4'],
-		['ot-half-hour', '2026-10', { monthly_basic: 2000 }, { overtime: ot(0.5) }, ['SG-EA22'], 'half an hour of overtime'],
-		['ot-72', '2026-10', { monthly_basic: 1800 }, { overtime: ot(4, 18) }, ['SG-EA22'], '72 hours in the month'],
-		['ot-workman-allowance', '2026-10', { monthly_basic: 3000, monthly_allowance: 300, workman: true }, { overtime: ot(2, 5) }, [], 'overtime on basic, not gross'],
-		['ot-allowance-not-salary', '2026-10', { monthly_basic: 2600, monthly_allowance: 500 }, { overtime: ot(1) }, [], 's.35 salary excludes allowances'],
-		['rest-employer-3', '2026-10', { monthly_basic: 3000, workman: true }, { rest_day_work: [{ date: oct(4), hours: 3, requested_by: 'EMPLOYER' }] }, [], 's.37(3)(a) ≤ half day'],
-		['rest-employer-4', '2026-10', { monthly_basic: 3000, workman: true }, { rest_day_work: [{ date: oct(4), hours: 4, requested_by: 'EMPLOYER' }] }, [], 's.37(3)(a) exactly half'],
-		['rest-employer-5', '2026-10', { monthly_basic: 3000, workman: true }, { rest_day_work: [{ date: oct(11), hours: 5, requested_by: 'EMPLOYER' }] }, [], 's.37(3)(b) two days'],
-		['rest-employer-8', '2026-10', { monthly_basic: 3000, workman: true }, { rest_day_work: [{ date: oct(11), hours: 8, requested_by: 'EMPLOYER' }] }, [], 's.37(3)(b) full normal day'],
-		['rest-employer-8.5', '2026-10', { monthly_basic: 3000, workman: true }, { rest_day_work: [{ date: oct(18), hours: 8.5, requested_by: 'EMPLOYER' }] }, [], 's.37(3)(c)(ii) hour or part thereof'],
-		['rest-employer-10', '2026-10', { monthly_basic: 3000, workman: true }, { rest_day_work: [{ date: oct(25), hours: 10, requested_by: 'EMPLOYER' }] }, [], 's.37(3)(c) beyond the normal day'],
-		['rest-employee-4', '2026-10', { monthly_basic: 3000, workman: true }, { rest_day_work: [{ date: oct(4), hours: 4, requested_by: 'EMPLOYEE' }] }, [], 's.37(2)(a) half day'],
-		['rest-employee-6', '2026-10', { monthly_basic: 3000, workman: true }, { rest_day_work: [{ date: oct(11), hours: 6, requested_by: 'EMPLOYEE' }] }, [], 's.37(2)(b) one day'],
-		['rest-employee-8', '2026-10', { monthly_basic: 2400 }, { rest_day_work: [{ date: oct(18), hours: 8, requested_by: 'EMPLOYEE' }] }, [], 's.37(2)(b) non-workman'],
-		['rest-employee-9', '2026-10', { monthly_basic: 3000, workman: true }, { rest_day_work: [{ date: oct(25), hours: 9, requested_by: 'EMPLOYEE' }] }, [], 's.37(2)(c) beyond the normal day'],
-		['rest-uncovered', '2026-10', { monthly_basic: 2600.01 }, { rest_day_work: [{ date: oct(4), hours: 8, requested_by: 'EMPLOYER' }] }, [], 'outside Part 4: s.37 does not apply'],
-		['holiday-8', '2026-08', { monthly_basic: 3000, workman: true }, { holiday_work: [{ date: '2026-08-10', hours: 8 }] }, [], 's.88(4) extra basic day'],
-		['holiday-10', '2026-08', { monthly_basic: 3000, workman: true }, { holiday_work: [{ date: '2026-08-10', hours: 10 }] }, ['SG-EA22'], 's.88(4) plus overtime beyond the normal day'],
-		['holiday-non-workman', '2026-05', { monthly_basic: 2600 }, { holiday_work: [{ date: '2026-05-27', hours: 8 }] }, [], 's.88(4) non-workman in Part 4'],
-		['holiday-xmas-2025', '2025-12', { monthly_basic: 3000, workman: true }, { holiday_work: [{ date: '2025-12-25', hours: 8 }] }, [], 'Christmas 2025 worked, Dec 2025 version']
+	const ot = (hours: number, n = 1) =>
+		workingDaysOf('2026-10')
+			.slice(0, n)
+			.map((date) => ({ date, hours }));
+	const work: [
+		string,
+		string,
+		Partial<Scenario['employment']>,
+		Scenario['month'],
+		string[],
+		string
+	][] = [
+		[
+			'ot-2600',
+			'2026-10',
+			{ monthly_basic: 2600 },
+			{ overtime: ot(2) },
+			['SG-EA46-R01', 'SG-EA22'],
+			'non-workman at $2,600: covered, unrounded hour'
+		],
+		[
+			'ot-2600.01',
+			'2026-10',
+			{ monthly_basic: 2600.01 },
+			{ overtime: ot(2) },
+			[],
+			'non-workman at $2,600.01: outside Part 4'
+		],
+		[
+			'ot-workman-4500',
+			'2026-10',
+			{ monthly_basic: 4500, workman: true },
+			{ overtime: ot(3) },
+			[],
+			'workman at $4,500: actual basic, no cap'
+		],
+		[
+			'ot-workman-4500.01',
+			'2026-10',
+			{ monthly_basic: 4500.01, workman: true },
+			{ overtime: ot(3) },
+			[],
+			'workman at $4,500.01: outside Part 4'
+		],
+		[
+			'ot-manager',
+			'2026-10',
+			{ monthly_basic: 2000, managerial: true },
+			{ overtime: ot(2) },
+			[],
+			'managerial: outside Part 4'
+		],
+		[
+			'ot-half-hour',
+			'2026-10',
+			{ monthly_basic: 2000 },
+			{ overtime: ot(0.5) },
+			['SG-EA22'],
+			'half an hour of overtime'
+		],
+		[
+			'ot-72',
+			'2026-10',
+			{ monthly_basic: 1800 },
+			{ overtime: ot(4, 18) },
+			['SG-EA22'],
+			'72 hours in the month'
+		],
+		[
+			'ot-workman-allowance',
+			'2026-10',
+			{ monthly_basic: 3000, monthly_allowance: 300, workman: true },
+			{ overtime: ot(2, 5) },
+			[],
+			'overtime on basic, not gross'
+		],
+		[
+			'ot-allowance-not-salary',
+			'2026-10',
+			{ monthly_basic: 2600, monthly_allowance: 500 },
+			{ overtime: ot(1) },
+			[],
+			's.35 salary excludes allowances'
+		],
+		[
+			'rest-employer-3',
+			'2026-10',
+			{ monthly_basic: 3000, workman: true },
+			{ rest_day_work: [{ date: oct(4), hours: 3, requested_by: 'EMPLOYER' }] },
+			[],
+			's.37(3)(a) ≤ half day'
+		],
+		[
+			'rest-employer-4',
+			'2026-10',
+			{ monthly_basic: 3000, workman: true },
+			{ rest_day_work: [{ date: oct(4), hours: 4, requested_by: 'EMPLOYER' }] },
+			[],
+			's.37(3)(a) exactly half'
+		],
+		[
+			'rest-employer-5',
+			'2026-10',
+			{ monthly_basic: 3000, workman: true },
+			{ rest_day_work: [{ date: oct(11), hours: 5, requested_by: 'EMPLOYER' }] },
+			[],
+			's.37(3)(b) two days'
+		],
+		[
+			'rest-employer-8',
+			'2026-10',
+			{ monthly_basic: 3000, workman: true },
+			{ rest_day_work: [{ date: oct(11), hours: 8, requested_by: 'EMPLOYER' }] },
+			[],
+			's.37(3)(b) full normal day'
+		],
+		[
+			'rest-employer-8.5',
+			'2026-10',
+			{ monthly_basic: 3000, workman: true },
+			{ rest_day_work: [{ date: oct(18), hours: 8.5, requested_by: 'EMPLOYER' }] },
+			[],
+			's.37(3)(c)(ii) hour or part thereof'
+		],
+		[
+			'rest-employer-10',
+			'2026-10',
+			{ monthly_basic: 3000, workman: true },
+			{ rest_day_work: [{ date: oct(25), hours: 10, requested_by: 'EMPLOYER' }] },
+			[],
+			's.37(3)(c) beyond the normal day'
+		],
+		[
+			'rest-employee-4',
+			'2026-10',
+			{ monthly_basic: 3000, workman: true },
+			{ rest_day_work: [{ date: oct(4), hours: 4, requested_by: 'EMPLOYEE' }] },
+			[],
+			's.37(2)(a) half day'
+		],
+		[
+			'rest-employee-6',
+			'2026-10',
+			{ monthly_basic: 3000, workman: true },
+			{ rest_day_work: [{ date: oct(11), hours: 6, requested_by: 'EMPLOYEE' }] },
+			[],
+			's.37(2)(b) one day'
+		],
+		[
+			'rest-employee-8',
+			'2026-10',
+			{ monthly_basic: 2400 },
+			{ rest_day_work: [{ date: oct(18), hours: 8, requested_by: 'EMPLOYEE' }] },
+			[],
+			's.37(2)(b) non-workman'
+		],
+		[
+			'rest-employee-9',
+			'2026-10',
+			{ monthly_basic: 3000, workman: true },
+			{ rest_day_work: [{ date: oct(25), hours: 9, requested_by: 'EMPLOYEE' }] },
+			[],
+			's.37(2)(c) beyond the normal day'
+		],
+		[
+			'rest-uncovered',
+			'2026-10',
+			{ monthly_basic: 2600.01 },
+			{ rest_day_work: [{ date: oct(4), hours: 8, requested_by: 'EMPLOYER' }] },
+			[],
+			'outside Part 4: s.37 does not apply'
+		],
+		[
+			'holiday-8',
+			'2026-08',
+			{ monthly_basic: 3000, workman: true },
+			{ holiday_work: [{ date: '2026-08-10', hours: 8 }] },
+			[],
+			's.88(4) extra basic day'
+		],
+		[
+			'holiday-10',
+			'2026-08',
+			{ monthly_basic: 3000, workman: true },
+			{ holiday_work: [{ date: '2026-08-10', hours: 10 }] },
+			['SG-EA22'],
+			's.88(4) plus overtime beyond the normal day'
+		],
+		[
+			'holiday-non-workman',
+			'2026-05',
+			{ monthly_basic: 2600 },
+			{ holiday_work: [{ date: '2026-05-27', hours: 8 }] },
+			[],
+			's.88(4) non-workman in Part 4'
+		],
+		[
+			'holiday-xmas-2025',
+			'2025-12',
+			{ monthly_basic: 3000, workman: true },
+			{ holiday_work: [{ date: '2025-12-25', hours: 8 }] },
+			[],
+			'Christmas 2025 worked, Dec 2025 version'
+		]
 	];
 	for (const [name, period, employment, month, rows, branch] of work)
 		add({
@@ -375,19 +747,136 @@ export function generateProfiles(): Scenario[] {
 		});
 
 	// ---- J. Additional wages and the AW ceiling (CPFA para 2; SG-CPF03/21)
-	const aw: [string, string, Partial<Scenario['employment']>, Scenario['month'], Scenario['cpf_opening'], Partial<Scenario['employee']>, string[], string][] = [
-		['bonus-mid-year', '2026-06', { monthly_basic: 4000 }, { bonus: 3000 }, { ordinary_wages_ytd: 20000, additional_wages_ytd: 0 }, {}, ['SG-AWS01'], 'bonus within the estimated ceiling'],
-		['december-ceiling', '2026-12', { monthly_basic: 8000 }, { bonus: 10000 }, { ordinary_wages_ytd: 88000, additional_wages_ytd: 0 }, {}, [], 'December: AW capped at 102,000 − 96,000'],
-		['december-ceiling-above-owc', '2026-12', { monthly_basic: 9000 }, { bonus: 10000 }, { ordinary_wages_ytd: 88000, additional_wages_ytd: 0 }, {}, [], 'OW above the ceiling counts only to $8,000'],
-		['december-prior-aw', '2026-12', { monthly_basic: 8000 }, { bonus: 5000 }, { ordinary_wages_ytd: 88000, additional_wages_ytd: 4000 }, {}, [], 'earlier AW uses the room first'],
-		['leaver-true-up', '2026-06', { monthly_basic: 8000, end: '2026-06-30', exit_cause: 'RESIGNATION' }, { bonus: 60000 }, { ordinary_wages_ytd: 40000, additional_wages_ytd: 0 }, {}, [], 'last month: ceiling on actual OW'],
-		['low-wage-into-band', '2026-04', { monthly_basic: 400 }, { bonus: 400 }, { ordinary_wages_ytd: 1200, additional_wages_ytd: 0 }, {}, [], 'OW 400 + AW 400: Total Wages above $750'],
-		['low-wage-mid-band', '2026-04', { monthly_basic: 300 }, { bonus: 300 }, { ordinary_wages_ytd: 900, additional_wages_ytd: 0 }, {}, [], 'Total Wages $600: graduated band'],
-		['dec-2025-joiner-bonus', '2025-12', { monthly_basic: 5000, start: '2025-12-01' }, { bonus: 5000 }, { ordinary_wages_ytd: 0, additional_wages_ytd: 0 }, {}, [], '2025 rates and $7,400 ceiling'],
-		['senior-2027-bonus', '2027-01', { monthly_basic: 3000 }, { bonus: 1500 }, { ordinary_wages_ytd: 0, additional_wages_ytd: 0 }, { birth_date: '1969-05-20' }, [], '2027 >55–60 rate on OW and AW'],
-		['bonus-lifts-cdac', '2026-07', { monthly_basic: 1900 }, { bonus: 200 }, { ordinary_wages_ytd: 11400, additional_wages_ytd: 0 }, { race: 'CHINESE', religion: undefined }, [], 'fund on total wages including AW'],
-		['bonus-lifts-sdl', '2026-07', { monthly_basic: 4000 }, { bonus: 1000 }, { ordinary_wages_ytd: 24000, additional_wages_ytd: 0 }, {}, [], 'SDL on wages including bonus, capped'],
-		['half-dollar-rounding', '2026-07', { monthly_basic: 3001.35 }, { bonus: 1000.01 }, { ordinary_wages_ytd: 18000, additional_wages_ytd: 0 }, {}, [], 'OW and AW summed unrounded before one rounding']
+	const aw: [
+		string,
+		string,
+		Partial<Scenario['employment']>,
+		Scenario['month'],
+		Scenario['cpf_opening'],
+		Partial<Scenario['employee']>,
+		string[],
+		string
+	][] = [
+		[
+			'bonus-mid-year',
+			'2026-06',
+			{ monthly_basic: 4000 },
+			{ bonus: 3000 },
+			{ ordinary_wages_ytd: 20000, additional_wages_ytd: 0 },
+			{},
+			['SG-AWS01'],
+			'bonus within the estimated ceiling'
+		],
+		[
+			'december-ceiling',
+			'2026-12',
+			{ monthly_basic: 8000 },
+			{ bonus: 10000 },
+			{ ordinary_wages_ytd: 88000, additional_wages_ytd: 0 },
+			{},
+			[],
+			'December: AW capped at 102,000 − 96,000'
+		],
+		[
+			'december-ceiling-above-owc',
+			'2026-12',
+			{ monthly_basic: 9000 },
+			{ bonus: 10000 },
+			{ ordinary_wages_ytd: 88000, additional_wages_ytd: 0 },
+			{},
+			[],
+			'OW above the ceiling counts only to $8,000'
+		],
+		[
+			'december-prior-aw',
+			'2026-12',
+			{ monthly_basic: 8000 },
+			{ bonus: 5000 },
+			{ ordinary_wages_ytd: 88000, additional_wages_ytd: 4000 },
+			{},
+			[],
+			'earlier AW uses the room first'
+		],
+		[
+			'leaver-true-up',
+			'2026-06',
+			{ monthly_basic: 8000, end: '2026-06-30', exit_cause: 'RESIGNATION' },
+			{ bonus: 60000 },
+			{ ordinary_wages_ytd: 40000, additional_wages_ytd: 0 },
+			{},
+			[],
+			'last month: ceiling on actual OW'
+		],
+		[
+			'low-wage-into-band',
+			'2026-04',
+			{ monthly_basic: 400 },
+			{ bonus: 400 },
+			{ ordinary_wages_ytd: 1200, additional_wages_ytd: 0 },
+			{},
+			[],
+			'OW 400 + AW 400: Total Wages above $750'
+		],
+		[
+			'low-wage-mid-band',
+			'2026-04',
+			{ monthly_basic: 300 },
+			{ bonus: 300 },
+			{ ordinary_wages_ytd: 900, additional_wages_ytd: 0 },
+			{},
+			[],
+			'Total Wages $600: graduated band'
+		],
+		[
+			'dec-2025-joiner-bonus',
+			'2025-12',
+			{ monthly_basic: 5000, start: '2025-12-01' },
+			{ bonus: 5000 },
+			{ ordinary_wages_ytd: 0, additional_wages_ytd: 0 },
+			{},
+			[],
+			'2025 rates and $7,400 ceiling'
+		],
+		[
+			'senior-2027-bonus',
+			'2027-01',
+			{ monthly_basic: 3000 },
+			{ bonus: 1500 },
+			{ ordinary_wages_ytd: 0, additional_wages_ytd: 0 },
+			{ birth_date: '1969-05-20' },
+			[],
+			'2027 >55–60 rate on OW and AW'
+		],
+		[
+			'bonus-lifts-cdac',
+			'2026-07',
+			{ monthly_basic: 1900 },
+			{ bonus: 200 },
+			{ ordinary_wages_ytd: 11400, additional_wages_ytd: 0 },
+			{ race: 'CHINESE', religion: undefined },
+			[],
+			'fund on total wages including AW'
+		],
+		[
+			'bonus-lifts-sdl',
+			'2026-07',
+			{ monthly_basic: 4000 },
+			{ bonus: 1000 },
+			{ ordinary_wages_ytd: 24000, additional_wages_ytd: 0 },
+			{},
+			[],
+			'SDL on wages including bonus, capped'
+		],
+		[
+			'half-dollar-rounding',
+			'2026-07',
+			{ monthly_basic: 3001.35 },
+			{ bonus: 1000.01 },
+			{ ordinary_wages_ytd: 18000, additional_wages_ytd: 0 },
+			{},
+			[],
+			'OW and AW summed unrounded before one rounding'
+		]
 	];
 	for (const [name, period, employment, month, opening, employee, rows, branch] of aw)
 		add({
@@ -404,14 +893,62 @@ export function generateProfiles(): Scenario[] {
 
 	// ---- K. Exit causes (EA ss.10–11; final pay; leave pay on exit an AW)
 	const exits: [string, Partial<Scenario['employment']>, Scenario['month'], string[], string][] = [
-		['resign-leave-pay', { end: '2026-09-15', exit_cause: 'RESIGNATION' }, { leave_days_paid_on_exit: 3 }, [], 'resignation with 3 days leave pay (AW)'],
-		['dismiss-1-week', { start: '2025-06-02', end: '2026-09-15', exit_cause: 'DISMISSAL' }, { notice_in_lieu_weeks: 1 }, ['SG-EA04.default-26-weeks'], 's.10(3)(b): 1 week in lieu, outside CPF/funds, inside SDL'],
-		['dismiss-2-weeks', { start: '2023-03-01', end: '2026-09-15', exit_cause: 'DISMISSAL' }, { notice_in_lieu_weeks: 2 }, ['SG-EA04.default-2-years'], 's.10(3)(c): 2 weeks in lieu'],
-		['dismiss-4-weeks', { start: '2019-01-07', end: '2026-09-15', exit_cause: 'DISMISSAL' }, { notice_in_lieu_weeks: 4 }, ['SG-EA04.default-5-years'], 's.10(3)(d): 4 weeks in lieu'],
-		['dismiss-1-day', { start: '2026-06-01', end: '2026-09-15', exit_cause: 'DISMISSAL' }, { notice_in_lieu_days: 1 }, ['SG-EA04.default-below-26-weeks'], 's.10(3)(a): 1 day in lieu'],
-		['retrench', { end: '2026-10-30', exit_cause: 'RETRENCHMENT' }, { leave_days_paid_on_exit: 2 }, ['SG-EA24'], 'retrenchment: no statutory benefit quantum'],
-		['death', { end: '2026-09-20', exit_cause: 'DEATH' }, {}, [], 'employment ends on death (Sunday)'],
-		['contract-end-full', { start: '2025-10-01', end: '2026-09-30', exit_cause: 'CONTRACT_END' }, {}, ['SG-EA03'], 'fixed term ends on the last day']
+		[
+			'resign-leave-pay',
+			{ end: '2026-09-15', exit_cause: 'RESIGNATION' },
+			{ leave_days_paid_on_exit: 3 },
+			[],
+			'resignation with 3 days leave pay (AW)'
+		],
+		[
+			'dismiss-1-week',
+			{ start: '2025-06-02', end: '2026-09-15', exit_cause: 'DISMISSAL' },
+			{ notice_in_lieu_weeks: 1 },
+			['SG-EA04.default-26-weeks'],
+			's.10(3)(b): 1 week in lieu, outside CPF/funds, inside SDL'
+		],
+		[
+			'dismiss-2-weeks',
+			{ start: '2023-03-01', end: '2026-09-15', exit_cause: 'DISMISSAL' },
+			{ notice_in_lieu_weeks: 2 },
+			['SG-EA04.default-2-years'],
+			's.10(3)(c): 2 weeks in lieu'
+		],
+		[
+			'dismiss-4-weeks',
+			{ start: '2019-01-07', end: '2026-09-15', exit_cause: 'DISMISSAL' },
+			{ notice_in_lieu_weeks: 4 },
+			['SG-EA04.default-5-years'],
+			's.10(3)(d): 4 weeks in lieu'
+		],
+		[
+			'dismiss-1-day',
+			{ start: '2026-06-01', end: '2026-09-15', exit_cause: 'DISMISSAL' },
+			{ notice_in_lieu_days: 1 },
+			['SG-EA04.default-below-26-weeks'],
+			's.10(3)(a): 1 day in lieu'
+		],
+		[
+			'retrench',
+			{ end: '2026-10-30', exit_cause: 'RETRENCHMENT' },
+			{ leave_days_paid_on_exit: 2 },
+			['SG-EA24'],
+			'retrenchment: no statutory benefit quantum'
+		],
+		[
+			'death',
+			{ end: '2026-09-20', exit_cause: 'DEATH' },
+			{},
+			[],
+			'employment ends on death (Sunday)'
+		],
+		[
+			'contract-end-full',
+			{ start: '2025-10-01', end: '2026-09-30', exit_cause: 'CONTRACT_END' },
+			{},
+			['SG-EA03'],
+			'fixed term ends on the last day'
+		]
 	];
 	for (const [name, employment, month, rows, branch] of exits) {
 		const period = employment.end!.slice(0, 7);
@@ -424,20 +961,34 @@ export function generateProfiles(): Scenario[] {
 			employment: { start: '2020-01-06', ...employment },
 			month,
 			// AW on exit: this employer's earlier OW in the year (Jan–Aug/Sep at $3,000)
-			cpf_opening: { ordinary_wages_ytd: 3000 * (Number(period.slice(5)) - 1), additional_wages_ytd: 0 }
+			cpf_opening: {
+				ordinary_wages_ytd: 3000 * (Number(period.slice(5)) - 1),
+				additional_wages_ytd: 0
+			}
 		});
 	}
 
 	// ---- L. Part-time (PT regs 2, 5): $1,040 a month, 4 h a day × 5 = 20 h a week, contract hourly basic $12
-	const pt = { monthly_basic: 1040, daily_hours: 4, part_time: { weekly_hours: 20, hourly_basic: 12 } };
-	const ptCases: [string, Partial<Scenario['employment']>, Scenario['month'], string[], string][] = [
-		['plain', {}, {}, [], 'part-time month, CPF on $1,040'],
-		['ot-3', {}, { overtime: ot(3) }, [], 'reg.5(1)(a)(i): 3 h at 1×'],
-		['ot-5', {}, { overtime: ot(5) }, [], 'reg.5(1)(a)(ii): 4 h at 1×, 1 h at 1.5×'],
-		['ot-4.5', {}, { overtime: ot(4.5) }, [], 'part of an hour above the comparator counts as an hour'],
-		['ot-2.25', {}, { overtime: ot(2.25) }, [], 'part of an hour at 1× counts as an hour'],
-		['join-mid', { start: '2026-10-15' }, {}, [], 'part-time joiner, s.20A']
-	];
+	const pt = {
+		monthly_basic: 1040,
+		daily_hours: 4,
+		part_time: { weekly_hours: 20, hourly_basic: 12 }
+	};
+	const ptCases: [string, Partial<Scenario['employment']>, Scenario['month'], string[], string][] =
+		[
+			['plain', {}, {}, [], 'part-time month, CPF on $1,040'],
+			['ot-3', {}, { overtime: ot(3) }, [], 'reg.5(1)(a)(i): 3 h at 1×'],
+			['ot-5', {}, { overtime: ot(5) }, [], 'reg.5(1)(a)(ii): 4 h at 1×, 1 h at 1.5×'],
+			[
+				'ot-4.5',
+				{},
+				{ overtime: ot(4.5) },
+				[],
+				'part of an hour above the comparator counts as an hour'
+			],
+			['ot-2.25', {}, { overtime: ot(2.25) }, [], 'part of an hour at 1× counts as an hour'],
+			['join-mid', { start: '2026-10-15' }, {}, [], 'part-time joiner, s.20A']
+		];
 	for (const [name, employment, month, rows, branch] of ptCases)
 		add({
 			id: `sg-o-pt-${name}`,
@@ -455,9 +1006,17 @@ export function generateProfiles(): Scenario[] {
 		['anglo-indian', { race: 'ANGLO INDIAN', religion: 'CHRISTIANITY' }, []],
 		['marathi', { race: 'MARATHI', religion: 'HINDUISM' }, []],
 		['nepalese-no-fund', { race: 'NEPALESE', religion: 'HINDUISM' }, ['SG-SHG04(a)']],
-		['tamil-punjabi-dual-refused', { race: 'TAMIL', second_race: 'PUNJABI', shg_dual_election: true }, []],
+		[
+			'tamil-punjabi-dual-refused',
+			{ race: 'TAMIL', second_race: 'PUNJABI', shg_dual_election: true },
+			[]
+		],
 		['cdac-instruction', { race: 'CHINESE', shg_instruction: { fund: 'CDAC', amount: 5 } }, []],
-		['sinda-instruction', { race: 'INDIAN', religion: 'HINDUISM', shg_instruction: { fund: 'SINDA', amount: 2 } }, []],
+		[
+			'sinda-instruction',
+			{ race: 'INDIAN', religion: 'HINDUISM', shg_instruction: { fund: 'SINDA', amount: 2 } },
+			[]
+		],
 		['unregistered-employer', { race: 'CHINESE' }, []]
 	];
 	for (const [n, [name, employee, rows]] of shgMore.entries())
@@ -474,14 +1033,50 @@ export function generateProfiles(): Scenario[] {
 
 	// ---- N. Saturday off-day holidays (EA s.88(1)(c), s.88(3); SG-HOL01.saturday, SG-HOL02)
 	const offDay: [string, string, Partial<Scenario['employment']>, Scenario['month'], string][] = [
-		['pay-2026-03', '2026-03', { monthly_allowance: 200 }, {}, 'Hari Raya Puasa Sat 21 Mar 2026: a gross day paid'],
-		['substitute-2026-03', '2026-03', {}, { off_day_holiday: 'SUBSTITUTE' }, 'a day off in substitution: nothing extra'],
-		['forfeit-2026-03', '2026-03', {}, { absent: ['2026-03-20'] }, 'absent Friday before: holiday pay forfeited'],
-		['joiner-after-2026-03', '2026-03', { start: '2026-03-23' }, {}, 'joined after the holiday: not paid'],
-		['leaver-on-2026-03', '2026-03', { end: '2026-03-21', exit_cause: 'RESIGNATION' }, {}, 'employed on the holiday: paid'],
+		[
+			'pay-2026-03',
+			'2026-03',
+			{ monthly_allowance: 200 },
+			{},
+			'Hari Raya Puasa Sat 21 Mar 2026: a gross day paid'
+		],
+		[
+			'substitute-2026-03',
+			'2026-03',
+			{},
+			{ off_day_holiday: 'SUBSTITUTE' },
+			'a day off in substitution: nothing extra'
+		],
+		[
+			'forfeit-2026-03',
+			'2026-03',
+			{},
+			{ absent: ['2026-03-20'] },
+			'absent Friday before: holiday pay forfeited'
+		],
+		[
+			'joiner-after-2026-03',
+			'2026-03',
+			{ start: '2026-03-23' },
+			{},
+			'joined after the holiday: not paid'
+		],
+		[
+			'leaver-on-2026-03',
+			'2026-03',
+			{ end: '2026-03-21', exit_cause: 'RESIGNATION' },
+			{},
+			'employed on the holiday: paid'
+		],
 		['pay-2027-02', '2027-02', {}, {}, 'CNY Sat 6 Feb 2027 paid; Sun 7 Feb → Mon 8 Feb'],
 		['pay-2027-05', '2027-05', { monthly_basic: 2400 }, {}, 'Labour Day Sat 1 May 2027'],
-		['pay-2027-12', '2027-12', { monthly_basic: 5200, managerial: true }, {}, 'Christmas Sat 25 Dec 2027, a manager too']
+		[
+			'pay-2027-12',
+			'2027-12',
+			{ monthly_basic: 5200, managerial: true },
+			{},
+			'Christmas Sat 25 Dec 2027, a manager too'
+		]
 	];
 	for (const [name, period, employment, month, branch] of offDay)
 		add({
@@ -498,8 +1093,18 @@ export function generateProfiles(): Scenario[] {
 	const lieu: [string, Partial<Scenario['employment']>, boolean, string][] = [
 		['outside-lieu', { monthly_basic: 5000 }, true, 's.88(4A): time off in lieu, no extra day'],
 		['outside-no-lieu', { monthly_basic: 5000 }, false, 's.88(4): extra basic day'],
-		['inside-lieu-ignored', { monthly_basic: 2500 }, true, 'Part 4 (s.35(b)): s.88(4A) does not reach; extra day paid'],
-		['workman-lieu-ignored', { monthly_basic: 4000, workman: true }, true, 's.35(a) workman: extra day paid']
+		[
+			'inside-lieu-ignored',
+			{ monthly_basic: 2500 },
+			true,
+			'Part 4 (s.35(b)): s.88(4A) does not reach; extra day paid'
+		],
+		[
+			'workman-lieu-ignored',
+			{ monthly_basic: 4000, workman: true },
+			true,
+			's.35(a) workman: extra day paid'
+		]
 	];
 	for (const [name, employment, flag, branch] of lieu)
 		add({
@@ -514,16 +1119,125 @@ export function generateProfiles(): Scenario[] {
 
 	// ---- P. Rate changes and conversions (SG-EA10.rate-change; SG-CPF34, SG-CPF09.conversion-month). September 2026
 	// has 22 working days and no holiday: $4,400 is $200 a day, so every segment is exact.
-	const conv: [string, Partial<Scenario['employee']>, Partial<Scenario['employment']>, Scenario['month'], string][] = [
-		['rate-up', {}, { monthly_basic: 2200, rate_changes: [{ from: '2026-09-16', monthly_basic: 4400 }] }, {}, 'raise on the 16th: 11 days at each rate'],
-		['rate-allowance', {}, { monthly_basic: 4000, monthly_allowance: 400, rate_changes: [{ from: '2026-09-21', monthly_basic: 4000, monthly_allowance: 0 }] }, {}, 'allowance withdrawn on the 21st'],
-		['foreigner-to-spr', { race: 'CHINESE', religion: undefined, residency: 'SPR', spr_granted_on: '2026-09-16', spr_rates: 'GRADUATED' }, { monthly_basic: 4400 }, {}, 'SPR from the 16th: CPF on 11/22, CDAC on the whole month'],
-		['foreigner-to-spr-bonus', { race: 'MALAY', religion: 'ISLAM', residency: 'SPR', spr_granted_on: '2026-09-16', spr_rates: 'GRADUATED' }, { monthly_basic: 4400 }, { bonus: 1000 }, 'AW payable after the SPR day at first-year rates'],
-		['foreigner-to-spr-fg', { race: 'OTHERS', religion: undefined, residency: 'SPR', spr_granted_on: '2026-09-08', spr_rates: 'FULL_EMPLOYER' }, { monthly_basic: 4400 }, {}, 'SPR F/G from the 8th: Table 4 on 17/22'],
-		['foreigner-to-spr-on-1st', { race: 'OTHERS', religion: undefined, residency: 'SPR', spr_granted_on: '2026-09-01', spr_rates: 'GRADUATED' }, { monthly_basic: 4400 }, {}, 'SPR from the 1st: whole month Table 2'],
-		['spr1-to-citizen', { race: 'INDIAN', religion: 'HINDUISM', residency: 'CITIZEN', spr_granted_on: '2026-03-10', spr_rates: 'GRADUATED', citizen_on: '2026-09-16' }, { monthly_basic: 4400 }, {}, 'Table 2 then Table 1'],
-		['spr2-to-citizen', { race: 'EURASIAN', religion: 'CHRISTIANITY', residency: 'CITIZEN', spr_granted_on: '2025-05-10', spr_rates: 'GRADUATED', citizen_on: '2026-09-22' }, { monthly_basic: 4400 }, { bonus: 2000 }, 'Table 3 then Table 1, AW at citizen rates'],
-		['spr3-to-citizen-ceiling', { race: 'OTHERS', religion: undefined, residency: 'CITIZEN', spr_granted_on: '2021-02-10', spr_rates: 'GRADUATED', citizen_on: '2026-09-16' }, { monthly_basic: 9900 }, {}, 'one OW ceiling across the month']
+	const conv: [
+		string,
+		Partial<Scenario['employee']>,
+		Partial<Scenario['employment']>,
+		Scenario['month'],
+		string
+	][] = [
+		[
+			'rate-up',
+			{},
+			{ monthly_basic: 2200, rate_changes: [{ from: '2026-09-16', monthly_basic: 4400 }] },
+			{},
+			'raise on the 16th: 11 days at each rate'
+		],
+		[
+			'rate-allowance',
+			{},
+			{
+				monthly_basic: 4000,
+				monthly_allowance: 400,
+				rate_changes: [{ from: '2026-09-21', monthly_basic: 4000, monthly_allowance: 0 }]
+			},
+			{},
+			'allowance withdrawn on the 21st'
+		],
+		[
+			'foreigner-to-spr',
+			{
+				race: 'CHINESE',
+				religion: undefined,
+				residency: 'SPR',
+				spr_granted_on: '2026-09-16',
+				spr_rates: 'GRADUATED'
+			},
+			{ monthly_basic: 4400 },
+			{},
+			'SPR from the 16th: CPF on 11/22, CDAC on the whole month'
+		],
+		[
+			'foreigner-to-spr-bonus',
+			{
+				race: 'MALAY',
+				religion: 'ISLAM',
+				residency: 'SPR',
+				spr_granted_on: '2026-09-16',
+				spr_rates: 'GRADUATED'
+			},
+			{ monthly_basic: 4400 },
+			{ bonus: 1000 },
+			'AW payable after the SPR day at first-year rates'
+		],
+		[
+			'foreigner-to-spr-fg',
+			{
+				race: 'OTHERS',
+				religion: undefined,
+				residency: 'SPR',
+				spr_granted_on: '2026-09-08',
+				spr_rates: 'FULL_EMPLOYER'
+			},
+			{ monthly_basic: 4400 },
+			{},
+			'SPR F/G from the 8th: Table 4 on 17/22'
+		],
+		[
+			'foreigner-to-spr-on-1st',
+			{
+				race: 'OTHERS',
+				religion: undefined,
+				residency: 'SPR',
+				spr_granted_on: '2026-09-01',
+				spr_rates: 'GRADUATED'
+			},
+			{ monthly_basic: 4400 },
+			{},
+			'SPR from the 1st: whole month Table 2'
+		],
+		[
+			'spr1-to-citizen',
+			{
+				race: 'INDIAN',
+				religion: 'HINDUISM',
+				residency: 'CITIZEN',
+				spr_granted_on: '2026-03-10',
+				spr_rates: 'GRADUATED',
+				citizen_on: '2026-09-16'
+			},
+			{ monthly_basic: 4400 },
+			{},
+			'Table 2 then Table 1'
+		],
+		[
+			'spr2-to-citizen',
+			{
+				race: 'EURASIAN',
+				religion: 'CHRISTIANITY',
+				residency: 'CITIZEN',
+				spr_granted_on: '2025-05-10',
+				spr_rates: 'GRADUATED',
+				citizen_on: '2026-09-22'
+			},
+			{ monthly_basic: 4400 },
+			{ bonus: 2000 },
+			'Table 3 then Table 1, AW at citizen rates'
+		],
+		[
+			'spr3-to-citizen-ceiling',
+			{
+				race: 'OTHERS',
+				religion: undefined,
+				residency: 'CITIZEN',
+				spr_granted_on: '2021-02-10',
+				spr_rates: 'GRADUATED',
+				citizen_on: '2026-09-16'
+			},
+			{ monthly_basic: 9900 },
+			{},
+			'one OW ceiling across the month'
+		]
 	];
 	for (const [name, employee, employment, month, branch] of conv)
 		add({
@@ -538,22 +1252,143 @@ export function generateProfiles(): Scenario[] {
 		});
 
 	// ---- Q. Paid leave, claims, benefits and deductions
-	const misc: [string, string, Partial<Scenario['employee']>, Partial<Scenario['employment']>, Scenario['month'], string][] = [
-		['annual-leave', '2026-10', {}, {}, { paid_leave: ['2026-10-05', '2026-10-06', '2026-10-07'].map((date) => ({ date, kind: 'ANNUAL' as const })) }, 'annual leave at the gross rate: salary unchanged'],
-		['outpatient', '2026-10', {}, { monthly_allowance: 150 }, { paid_leave: [{ date: '2026-10-12', kind: 'OUTPATIENT' }] }, 'outpatient sick day: salary unchanged'],
-		['hospitalisation', '2026-10', {}, {}, { paid_leave: ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23'].map((date) => ({ date, kind: 'HOSPITALISATION' as const })) }, 'hospitalisation leave: salary unchanged'],
-		['medical-sdl03a', '2026-04', { race: 'OTHERS', religion: undefined }, {}, { medical_reimbursement: 100 }, 'SG-SDL03A: $100 outside SDL, SDL stays $7.50'],
-		['medical-muslim', '2027-01', { race: 'MALAY', religion: 'ISLAM' }, { monthly_basic: 2000 }, { medical_reimbursement: 250 }, 'medical reimbursement outside CPF and MBMF'],
-		['retrenchment-golden', '2026-10', { race: 'CHINESE', religion: undefined }, { monthly_basic: 2000, end: '2026-10-30', exit_cause: 'RETRENCHMENT' }, { retrenchment_benefit: 1500 }, 'SG-EA24-R02 golden: outside CPF and CDAC, inside SDL'],
-		['retrenchment-sdl-cap', '2026-10', { race: 'OTHERS', religion: undefined }, { monthly_basic: 4000, end: '2026-10-30', exit_cause: 'RETRENCHMENT' }, { retrenchment_benefit: 12000 }, 'retrenchment benefit lifts SDL to its cap'],
-		['damage-within', '2026-10', { race: 'OTHERS', religion: undefined }, {}, { damage_recovery: { loss: 200 } }, 's.29(1): actual loss $200'],
-		['damage-quarter', '2026-10', { race: 'OTHERS', religion: undefined }, {}, { damage_recovery: { loss: 1000 } }, 's.29(1): capped at a quarter of $3,000'],
-		['damage-permitted-half', '2026-10', { race: 'OTHERS', religion: undefined }, {}, { damage_recovery: { loss: 1500, commissioner_permitted: true } }, 's.32(1): with CPF, half of the salary'],
-		['damage-final-salary', '2026-10', { race: 'OTHERS', religion: undefined }, { end: '2026-10-30', exit_cause: 'RESIGNATION' }, { damage_recovery: { loss: 1500, commissioner_permitted: true } }, 's.32(2): the last salary is outside the half'],
-		['damage-final-quarter', '2026-10', { race: 'OTHERS', religion: undefined }, { end: '2026-10-30', exit_cause: 'RESIGNATION' }, { damage_recovery: { loss: 1000 } }, 'last salary: the quarter still binds'],
-		['student-sdl-exempt', '2026-07', { sdl_exempt_student: true, birth_date: '2005-03-14' }, { monthly_basic: 1200 }, {}, 'listed-institution trainee: CPF, no SDL'],
-		['outside-singapore', '2026-07', { residency: 'FOREIGNER', pass: 'EP', race: 'OTHERS', religion: undefined }, { monthly_basic: 6000, wholly_outside_singapore: true }, {}, 'services wholly outside Singapore: no SDL'],
-		['company-chauffeur', '2026-07', {}, { monthly_basic: 2200, workman: true, household_role: true }, {}, 'a company chauffeur stays within SDL']
+	const misc: [
+		string,
+		string,
+		Partial<Scenario['employee']>,
+		Partial<Scenario['employment']>,
+		Scenario['month'],
+		string
+	][] = [
+		[
+			'annual-leave',
+			'2026-10',
+			{},
+			{},
+			{
+				paid_leave: ['2026-10-05', '2026-10-06', '2026-10-07'].map((date) => ({
+					date,
+					kind: 'ANNUAL' as const
+				}))
+			},
+			'annual leave at the gross rate: salary unchanged'
+		],
+		[
+			'outpatient',
+			'2026-10',
+			{},
+			{ monthly_allowance: 150 },
+			{ paid_leave: [{ date: '2026-10-12', kind: 'OUTPATIENT' }] },
+			'outpatient sick day: salary unchanged'
+		],
+		[
+			'hospitalisation',
+			'2026-10',
+			{},
+			{},
+			{
+				paid_leave: ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23'].map(
+					(date) => ({ date, kind: 'HOSPITALISATION' as const })
+				)
+			},
+			'hospitalisation leave: salary unchanged'
+		],
+		[
+			'medical-sdl03a',
+			'2026-04',
+			{ race: 'OTHERS', religion: undefined },
+			{},
+			{ medical_reimbursement: 100 },
+			'SG-SDL03A: $100 outside SDL, SDL stays $7.50'
+		],
+		[
+			'medical-muslim',
+			'2027-01',
+			{ race: 'MALAY', religion: 'ISLAM' },
+			{ monthly_basic: 2000 },
+			{ medical_reimbursement: 250 },
+			'medical reimbursement outside CPF and MBMF'
+		],
+		[
+			'retrenchment-golden',
+			'2026-10',
+			{ race: 'CHINESE', religion: undefined },
+			{ monthly_basic: 2000, end: '2026-10-30', exit_cause: 'RETRENCHMENT' },
+			{ retrenchment_benefit: 1500 },
+			'SG-EA24-R02 golden: outside CPF and CDAC, inside SDL'
+		],
+		[
+			'retrenchment-sdl-cap',
+			'2026-10',
+			{ race: 'OTHERS', religion: undefined },
+			{ monthly_basic: 4000, end: '2026-10-30', exit_cause: 'RETRENCHMENT' },
+			{ retrenchment_benefit: 12000 },
+			'retrenchment benefit lifts SDL to its cap'
+		],
+		[
+			'damage-within',
+			'2026-10',
+			{ race: 'OTHERS', religion: undefined },
+			{},
+			{ damage_recovery: { loss: 200 } },
+			's.29(1): actual loss $200'
+		],
+		[
+			'damage-quarter',
+			'2026-10',
+			{ race: 'OTHERS', religion: undefined },
+			{},
+			{ damage_recovery: { loss: 1000 } },
+			's.29(1): capped at a quarter of $3,000'
+		],
+		[
+			'damage-permitted-half',
+			'2026-10',
+			{ race: 'OTHERS', religion: undefined },
+			{},
+			{ damage_recovery: { loss: 1500, commissioner_permitted: true } },
+			's.32(1): with CPF, half of the salary'
+		],
+		[
+			'damage-final-salary',
+			'2026-10',
+			{ race: 'OTHERS', religion: undefined },
+			{ end: '2026-10-30', exit_cause: 'RESIGNATION' },
+			{ damage_recovery: { loss: 1500, commissioner_permitted: true } },
+			's.32(2): the last salary is outside the half'
+		],
+		[
+			'damage-final-quarter',
+			'2026-10',
+			{ race: 'OTHERS', religion: undefined },
+			{ end: '2026-10-30', exit_cause: 'RESIGNATION' },
+			{ damage_recovery: { loss: 1000 } },
+			'last salary: the quarter still binds'
+		],
+		[
+			'student-sdl-exempt',
+			'2026-07',
+			{ sdl_exempt_student: true, birth_date: '2005-03-14' },
+			{ monthly_basic: 1200 },
+			{},
+			'listed-institution trainee: CPF, no SDL'
+		],
+		[
+			'outside-singapore',
+			'2026-07',
+			{ residency: 'FOREIGNER', pass: 'EP', race: 'OTHERS', religion: undefined },
+			{ monthly_basic: 6000, wholly_outside_singapore: true },
+			{},
+			'services wholly outside Singapore: no SDL'
+		],
+		[
+			'company-chauffeur',
+			'2026-07',
+			{},
+			{ monthly_basic: 2200, workman: true, household_role: true },
+			{},
+			'a company chauffeur stays within SDL'
+		]
 	];
 	for (const [name, period, employee, employment, month, branch] of misc)
 		add({
@@ -569,9 +1404,29 @@ export function generateProfiles(): Scenario[] {
 
 	// ---- R. The AW ceiling across employers and an exhausted ceiling (SG-CPF03, SG-CPF22, SG-CPF21.overpayment)
 	const awMore: [string, Scenario['cpf_opening'], number, string][] = [
-		['other-employer-ignored', { ordinary_wages_ytd: 40000, additional_wages_ytd: 0, other_employer_ow_ytd: 48000 }, 30000, 'a former employer\'s OW does not reduce the ceiling'],
-		['related-company-approved', { ordinary_wages_ytd: 40000, additional_wages_ytd: 0, other_employer_ow_ytd: 48000, related_company_approved: true }, 30000, 'approved single ceiling: related OW counts'],
-		['ceiling-exhausted', { ordinary_wages_ytd: 88000, additional_wages_ytd: 10000 }, 1000, 'earlier AW over the true ceiling: no CPF, never negative']
+		[
+			'other-employer-ignored',
+			{ ordinary_wages_ytd: 40000, additional_wages_ytd: 0, other_employer_ow_ytd: 48000 },
+			30000,
+			"a former employer's OW does not reduce the ceiling"
+		],
+		[
+			'related-company-approved',
+			{
+				ordinary_wages_ytd: 40000,
+				additional_wages_ytd: 0,
+				other_employer_ow_ytd: 48000,
+				related_company_approved: true
+			},
+			30000,
+			'approved single ceiling: related OW counts'
+		],
+		[
+			'ceiling-exhausted',
+			{ ordinary_wages_ytd: 88000, additional_wages_ytd: 10000 },
+			1000,
+			'earlier AW over the true ceiling: no CPF, never negative'
+		]
 	];
 	for (const [name, opening, bonus, branch] of awMore)
 		add({
@@ -580,7 +1435,10 @@ export function generateProfiles(): Scenario[] {
 			branches: [branch],
 			description: branch,
 			period: '2026-12',
-			employment: { start: name === 'ceiling-exhausted' ? '2020-01-06' : '2026-07-01', monthly_basic: 8000 },
+			employment: {
+				start: name === 'ceiling-exhausted' ? '2020-01-06' : '2026-07-01',
+				monthly_basic: 8000
+			},
 			month: { bonus },
 			cpf_opening: opening
 		});

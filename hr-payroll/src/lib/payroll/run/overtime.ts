@@ -24,13 +24,6 @@ import { type DayType, type ScheduledDay } from './schedule.js';
 import { decodeNumber } from '../../wire.js';
 import { clockMinutes } from '../../../lib/scheduling/roster-code.js';
 
-/**
- * The default wall-clock frame, in minutes east of UTC, for callers that pass no offset: the seeded
- * MY and PH populations are fixed UTC+8. The engine derives the real offset for each date from the
- * version's IANA `payroll.timezone` (`offsetMinutesFor`), so daylight saving needs no column.
- */
-const ATTENDANCE_UTC_OFFSET_MINUTES = 8 * 60;
-
 const MINUTE_MS = 60_000;
 const HOUR_MS = 3_600_000;
 
@@ -125,7 +118,8 @@ function overlapHours(intervals: readonly Interval[], start: number, end: number
 export function ordinaryWorkedHours(
 	entry: WorkDayLike,
 	shift: NonNullable<ScheduledDay['shift']>,
-	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES
+	/** Minutes east of UTC on the day: `offsetMinutesFor` the version's `payroll.timezone`. */
+	utcOffsetMinutes: number
 ): number {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	const start = clockMinutes(shift.start_time);
@@ -158,7 +152,8 @@ export function nightWindowHours(
 	entry: WorkDayLike,
 	window: Pick<NightPremium, 'from' | 'to'>,
 	shift: ScheduledDay['shift'],
-	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES,
+	/** Minutes east of UTC on the day: `offsetMinutesFor` the version's `payroll.timezone`. */
+	utcOffsetMinutes: number,
 	/** The day's overtime: its last this many worked hours. */
 	overtimeHours = 0
 ): { readonly ordinary: number; readonly overtime: number } {
@@ -249,7 +244,8 @@ export type DailyOvertime = {
 export function dailyWorkedHours(
 	entry: WorkDayLike,
 	day: ScheduledDay,
-	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES
+	/** Minutes east of UTC on the day: `offsetMinutesFor` the version's `payroll.timezone`. */
+	utcOffsetMinutes: number
 ): number {
 	const workDate = requiredDateKey(entry.work_date, 'work_days.work_date');
 	const shiftStart =
@@ -262,8 +258,9 @@ export function dailyWorkedHours(
 export function deriveDailyOvertime(
 	entry: WorkDayLike,
 	day: ScheduledDay,
-	breaks?: readonly BreakRuleLike[] | null,
-	utcOffsetMinutes: number = ATTENDANCE_UTC_OFFSET_MINUTES,
+	breaks: readonly BreakRuleLike[] | null | undefined,
+	/** Minutes east of UTC on the day: `offsetMinutesFor` the version's `payroll.timezone`. */
+	utcOffsetMinutes: number,
 	/** The regime's night window, so a break rule may read `night_hours`; absent reads 0. */
 	night?: Pick<NightPremium, 'from' | 'to'> | null,
 	/** The person, so a break rule may read their entity's facts; absent reads none. */

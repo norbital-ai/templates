@@ -112,7 +112,7 @@ for (const code of ['MY'] as const)
 							registrations: { EPF_NON_CITIZEN: { kind: 'NOT_REGISTERED' } },
 							hire_date: '2023-05-15',
 							exit_date: '2026-01-31',
-							exit_reason: 'REDUNDANCY'
+							exit_ground: 'REDUNDANCY'
 						}
 					]
 				},
@@ -175,7 +175,7 @@ test('TW — 平均工資 is six months’ wages paid, the 施行細則 §2 sick
 					citizenship: 'CITIZEN',
 					hire_date: '2019-02-01',
 					exit_date: '2026-01-31',
-					exit_reason: 'REDUNDANCY'
+					exit_ground: 'REDUNDANCY'
 				}
 			]
 		},

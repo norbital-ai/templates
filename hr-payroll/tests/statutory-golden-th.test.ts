@@ -851,8 +851,10 @@ test('Thailand — one maternity event crossing the No.9 commencement requires t
 		from_date: date,
 		to_date: date,
 		days: null,
-		event_kind: 'BIRTH',
-		event_date: event
+		facts: {
+			event_kind: 'BIRTH',
+			event_date: event
+		}
 	});
 	assert.throws(
 		() => planLeaveActivity(context, { ...request(pre, 'CROSS'), to_date: post }, 'th-cross'),
@@ -898,8 +900,10 @@ test('Thailand — one maternity event crossing the No.9 commencement requires t
 							to_date: date,
 							days: 1,
 							effective_on: date,
-							event_kind: 'BIRTH',
-							event_date: event,
+							facts: {
+								event_kind: 'BIRTH',
+								event_date: event
+							},
 							allocations: [],
 							charges: [
 								{
@@ -969,8 +973,10 @@ test('Thailand — s.41/s.59 as amended by No.9: 120 days of maternity leave, th
 						half_day_end: false,
 						days: block.length,
 						effective_on: block[0]!,
-						event_kind: 'BIRTH',
-						event_date: '2026-02-01',
+						facts: {
+							event_kind: 'BIRTH',
+							event_date: '2026-02-01'
+						},
 						reason: 'ลาเพื่อคลอดบุตร',
 						allocations: [],
 						charges: block.map((date) => ({
@@ -1039,8 +1045,10 @@ test('Thailand — piece-paid maternity refuses until the s.60 prior-period wage
 						half_day_end: false,
 						days: 1,
 						effective_on: date,
-						event_kind: 'BIRTH',
-						event_date: date,
+						facts: {
+							event_kind: 'BIRTH',
+							event_date: date
+						},
 						allocations: [],
 						charges: [
 							{
@@ -1069,7 +1077,8 @@ test('Thailand — under-18 work needs a timed rest and cannot include overtime 
 	// Official LPA ss.46 and 48: https://www.mol.go.th/wp-content/uploads/sites/2/2018/03/301.pdf.
 	const settle = (
 		override?: readonly [string, string, string, string],
-		extraWork?: 'OVERTIME' | 'HOLIDAY' | 'SHORT_NO_REST' | 'SPLIT_HOUR_REST' | 'SPLIT_LATE_HOUR_REST'
+		extraWork?:
+			'OVERTIME' | 'HOLIDAY' | 'SHORT_NO_REST' | 'SPLIT_HOUR_REST' | 'SPLIT_LATE_HOUR_REST'
 	) =>
 		buildStatutory(
 			{ code: TH, period: '2026-01', people: [citizen('MINOR-REST', 12_000, { age: 17 })] },
@@ -1519,7 +1528,7 @@ test('Thailand — a retrenched leaver: part month, s.67 leave pay, s.118 severa
 		{
 			code: TH,
 			period: '2026-03',
-			people: [citizen('LEAVER', 60_000, { exit_date: '2026-03-15', exit_reason: 'RETRENCHMENT' })]
+			people: [citizen('LEAVER', 60_000, { exit_date: '2026-03-15', exit_ground: 'RETRENCHMENT' })]
 		},
 		(world) => {
 			encashOnExit(world, 'LEAVER', 'a3000000-0000-4000-8000-0000000000a1', 1.5, '2026-03-15');
@@ -1574,12 +1583,12 @@ test('Thailand — s.118 severance by service band, and none for a resignation o
 			period: '2026-03',
 			people: [
 				...cases.map(([key, hire]) =>
-					citizen(key, 30_000, { hire_date: hire, exit_date: exit, exit_reason: 'RETRENCHMENT' })
+					citizen(key, 30_000, { hire_date: hire, exit_date: exit, exit_ground: 'RETRENCHMENT' })
 				),
 				citizen('SEV-RESIGN', 30_000, {
 					hire_date: '2006-04-01',
 					exit_date: exit,
-					exit_reason: 'RESIGNATION'
+					exit_ground: 'RESIGNATION'
 				})
 			]
 		},
@@ -1616,7 +1625,7 @@ test('Thailand — s.119 cause and the s.118 para.3–4 fixed-term exemption rem
 	// withholding needs (the under-five-year case refuses; see the SEVERANCE_TAX golden).
 	const exit = '2026-03-31';
 	const leaver = (key: string, reason: string, hire = '2023-04-01') =>
-		citizen(key, 30_000, { hire_date: hire, exit_date: exit, exit_reason: reason });
+		citizen(key, 30_000, { hire_date: hire, exit_date: exit, exit_ground: reason });
 	const { slips } = buildStatutory(
 		{
 			code: TH,
@@ -1675,7 +1684,7 @@ test('Thailand — s.67 pays the year’s annual leave on exit only for an emplo
 		const when = annual.entitlement.encash_on_exit_when as string;
 		const exit = (reason: string, facts: Record<string, boolean> = {}) =>
 			evaluateBoolean(expressionEngine, when, {
-				employment: { exit_reason: reason, exit_facts: facts, exit_fact_keys: Object.keys(facts) }
+				employment: { exit_ground: reason, exit_facts: facts, exit_fact_keys: Object.keys(facts) }
 			});
 		assert.equal(exit('RESIGNATION'), false);
 		assert.equal(exit('DISMISSAL', { dismissed_for_cause: true }), false);
@@ -1729,7 +1738,7 @@ test('Thailand — severance is withheld under s.50(1) para.3 on s.48(5), after 
 			code: TH,
 			period: '2026-03',
 			people: cases.map(([key, wage, hire, reason]) =>
-				citizen(key, wage, { hire_date: hire, exit_date: exit, exit_reason: reason })
+				citizen(key, wage, { hire_date: hire, exit_date: exit, exit_ground: reason })
 			)
 		},
 		severanceWorld(cases, exit, '05')
@@ -1757,7 +1766,7 @@ test('Thailand — severance is withheld under s.50(1) para.3 on s.48(5), after 
 				citizen('TAX-RETIRE-3Y', 30_000, {
 					hire_date: '2023-04-01',
 					exit_date: exit,
-					exit_reason: 'RETIREMENT'
+					exit_ground: 'RETIREMENT'
 				})
 			]
 		},
@@ -1814,7 +1823,7 @@ test('Thailand — special severance: s.120 relocation objection, s.121 60 days 
 			code: TH,
 			period: '2026-03',
 			people: cases.map(([key, hire, reason]) =>
-				citizen(key, 30_000, { hire_date: hire, exit_date: exit, exit_reason: reason })
+				citizen(key, 30_000, { hire_date: hire, exit_date: exit, exit_ground: reason })
 			)
 		},
 		(world) => {
@@ -1942,7 +1951,7 @@ test('Thailand — s.17/1 pay in lieu of notice runs to the payday after the nex
 			),
 			wages: evaluateNumber(
 				expressionEngine,
-				`round_cent(employment.notice_monthly_wages(${wage}, ${days}, '${given}', 0))`,
+				`round(employment.notice_monthly_wages(${wage}, ${days}, '${given}', 0), 0.01, 'HALF_UP')`,
 				person
 			)
 		};
@@ -1987,7 +1996,7 @@ test('Thailand — s.17/1 pay in lieu as a catalogue line, withheld with severan
 					employment: {
 						service_start: '2020-01-01',
 						exit_date: exit,
-						exit_reason: reason,
+						exit_ground: reason,
 						exit_facts: facts,
 						exit_fact_keys: Object.keys(facts)
 					},
@@ -2027,7 +2036,7 @@ test('Thailand — s.17/1 pay in lieu as a catalogue line, withheld with severan
 	// 705,000 → 27,500 + 205,000 × 15% = 58,250 (severance alone: 47,000).
 	const exit = '2026-03-31';
 	const leaver = (key: string, wage: number, hire: string) =>
-		citizen(key, wage, { hire_date: hire, exit_date: exit, exit_reason: 'RETRENCHMENT' });
+		citizen(key, wage, { hire_date: hire, exit_date: exit, exit_ground: 'RETRENCHMENT' });
 	const lines = (keys: readonly string[]) => (world: PayrollWorld) => {
 		for (const [index, key] of keys.entries())
 			for (const [slot, code] of ['SEVERANCE_PAY', 'NOTICE_IN_LIEU'].entries())
@@ -2615,7 +2624,7 @@ test('Thailand — piece-rate severance pays wages earned on the last thirty wor
 						statutory_work_category: 'PIECE_RATE',
 						hire_date: '2025-09-01',
 						exit_date: '2026-01-20',
-						exit_reason: 'RETRENCHMENT'
+						exit_ground: 'RETRENCHMENT'
 					})
 				]
 			},
@@ -2712,9 +2721,9 @@ test('Thailand — s.70: a resignation is paid on the agreed payday, an employer
 		code: TH,
 		period: '2026-03',
 		people: [
-			citizen('S70-RESIGN', 30_000, { exit_date: '2026-03-10', exit_reason: 'RESIGNATION' }),
-			citizen('S70-RETRENCH', 30_000, { exit_date: '2026-03-10', exit_reason: 'RETRENCHMENT' }),
-			citizen('S70-RETRENCH-EOM', 30_000, { exit_date: '2026-03-31', exit_reason: 'RETRENCHMENT' })
+			citizen('S70-RESIGN', 30_000, { exit_date: '2026-03-10', exit_ground: 'RESIGNATION' }),
+			citizen('S70-RETRENCH', 30_000, { exit_date: '2026-03-10', exit_ground: 'RETRENCHMENT' }),
+			citizen('S70-RETRENCH-EOM', 30_000, { exit_date: '2026-03-31', exit_ground: 'RETRENCHMENT' })
 		]
 	});
 	const late = (key: string) =>
@@ -2754,7 +2763,7 @@ test('Thailand — s.122 needs more than six years’ service; its 180-day rule 
 			code: TH,
 			period: '2026-03',
 			people: cases.map(([key, hire]) =>
-				citizen(key, 30_000, { hire_date: hire, exit_date: exit, exit_reason: 'RETRENCHMENT' })
+				citizen(key, 30_000, { hire_date: hire, exit_date: exit, exit_ground: 'RETRENCHMENT' })
 			)
 		},
 		(world) => {

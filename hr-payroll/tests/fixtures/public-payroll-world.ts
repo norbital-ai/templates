@@ -57,6 +57,12 @@ function rosteredWorkDays(): PayrollWorld['work_days'] {
 const WORK_RULES = {
 	proration: { by: 'CALENDAR_DAYS' },
 	ordinary_divisor_days: '26.0',
+	// a stated week, day or hour taken to its month over 52 weeks a year
+	rate_conversions: {
+		weekly_to_monthly: '52.0 / 12.0',
+		daily_to_monthly: 'terms.working_days_per_week * 52.0 / 12.0',
+		hourly_to_monthly: 'terms.ordinary_hours_per_week * 52.0 / 12.0'
+	},
 	overtime_when: '',
 	bands: [],
 	limits: [

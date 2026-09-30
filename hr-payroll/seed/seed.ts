@@ -80,7 +80,10 @@ const DERIVED: { [collection: string]: (row: Row) => Row } = {
 	jurisdiction_settings: (row) => ({
 		facts: row.facts ?? [],
 		exit_facts: row.exit_facts ?? [],
-		obligations: row.obligations ?? []
+		obligations: row.obligations ?? [],
+		checks: row.checks ?? [],
+		returns: row.returns ?? [],
+		overlays: row.overlays ?? []
 	}),
 	statutory_contributions: (row) => ({ elections: row.elections ?? [], parts: row.parts ?? [] }),
 	employees: (row) => ({ children: row.children ?? [] }),
@@ -171,6 +174,36 @@ function lawRows(): { [collection: string]: Row[] } {
 	return out;
 }
 
+/**
+ * The bank's rows as the current model takes them, read without rewriting the bank: a value the model now
+ * holds elsewhere is moved there (a departure's closed-enum reason is its `TERMINATION_GROUND` code; a leave
+ * entry's event columns are its declared event facts).
+ */
+function shapeBank(out: { [collection: string]: Row[] }): { [collection: string]: Row[] } {
+	if (out.employments != null)
+		out.employments = out.employments.map(({ exit_reason, ...row }) =>
+			exit_reason == null ? row : { ...row, exit_ground: row.exit_ground ?? exit_reason }
+		);
+	if (out.leave_entries != null)
+		out.leave_entries = out.leave_entries.map((source) => {
+			const row: Row = {};
+			const facts: Row = { ...((source.facts as Row | null | undefined) ?? {}) };
+			for (const [key, value] of Object.entries(source))
+				if (!LEAVE_EVENT_COLUMNS.has(key)) row[key] = value;
+				else if (value != null) facts[key] = key === 'event_date' ? day(String(value)) : value;
+			return Object.keys(facts).length === 0 ? row : { ...row, facts };
+		});
+	return out;
+}
+const LEAVE_EVENT_COLUMNS = new Set([
+	'event_kind',
+	'event_relationship',
+	'event_child_index',
+	'event_wife_prior_living_biological_children',
+	'event_date',
+	'agreed_pay_fraction'
+]);
+
 function bankRows(bank: BankReader): { [collection: string]: Row[] } {
 	const out: { [collection: string]: Row[] } = {};
 	for (const entity of ENTITIES)
@@ -186,7 +219,7 @@ function bankRows(bank: BankReader): { [collection: string]: Row[] } {
 				)
 			);
 		}
-	return out;
+	return shapeBank(out);
 }
 
 export default {

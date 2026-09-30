@@ -23,6 +23,8 @@ export default policy({
 		employments: { read: OWN_EMPLOYMENT },
 		employment_terms: { read: OWN },
 		employment_statutory_facts: { read: { employee_id: { is: OWN_EMPLOYEE } } },
+		person_facts: { read: { employee_id: { is: OWN_EMPLOYEE } } },
+		employment_history: { read: { employee_id: { is: OWN_EMPLOYEE } } },
 		work_days: {
 			read: OWN,
 			// their own attendance, never the schedule
@@ -52,6 +54,7 @@ export default policy({
 		},
 		companies: { read: true },
 		company_facts: { read: true },
+		worksites: { read: true },
 		jurisdiction_holidays: { read: true },
 		shift_definitions: { read: true },
 		shift_patterns: { read: true },
@@ -59,6 +62,7 @@ export default policy({
 		adhoc_catalogue: { read: true },
 		allowance_catalogue: { read: true },
 		loan_catalogue: { read: true },
+		reference_rows: { read: true },
 		leave_catalogue: { read: true },
 		jurisdiction_settings: { read: true },
 		statutory_contributions: { read: true }

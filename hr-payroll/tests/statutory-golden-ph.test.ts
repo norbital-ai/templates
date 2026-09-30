@@ -92,7 +92,7 @@ test('Philippines — SSS, EC, PhilHealth, Pag-IBIG and the monthly withholding 
 	expectStatutory(book, 'PH-40000', 'SSS_EC', 0, 30);
 
 	// PhilHealth: one 5% premium on a monthly basic salary floored at ₱10,000 and capped at
-	// ₱100,000, then split — employee = truncate_cent(premium / 2), employer = the rest (the
+	// ₱100,000, then split — employee = round(premium / 2, 0.01, 'TRUNCATE'), employer = the rest (the
 	// employer table; the half-centavo case is pinned below).
 	// 4,000 → the floor: 2.5% × 10,000 = 250 each. 30,000 → 750 each. 40,000 → 1,000 each.
 	expectStatutory(book, 'PH-4000', 'PHIC', 250, 250);
@@ -631,8 +631,7 @@ test('Philippines — RIX-DW-06 holds a Dapitan City kasambahay to ₱6,000 from
 	// s.1: chartered cities and first-class municipalities ₱5,500 + ₱500 = ₱6,000 a month; s.5: no
 	// exemption; s.8: in force fifteen days after publication — published 4 May, effective 20 May
 	// 2026. June and July sit wholly inside the 20 May–25 September version: ₱6,000 pays, ₱5,999.99
-	// refuses. The 1 April–19 May version seals no Region IX domestic floor (RIX-DW-05's ₱5,500 is
-	// unseeded), so an April run refuses rather than price a floor it does not hold.
+	// refuses. Before it RIX-DW-05's ₱5,500 holds: an April run pays ₱5,500 and refuses ₱5,499.99.
 	const run = (period: string, wage: number) =>
 		buildStatutory({
 			code: 'PH',
@@ -654,7 +653,11 @@ test('Philippines — RIX-DW-06 holds a Dapitan City kasambahay to ₱6,000 from
 			period
 		);
 	}
-	assert.throws(() => run('2026-04', 6_000), /No sealed minimum-wage rate covers DOMESTIC/);
+	assert.equal(run('2026-04', 5_500).slips.get('DW')!.gross, 5_500);
+	assert.throws(
+		() => run('2026-04', 5_499.99),
+		/MINIMUM_WAGE_BELOW: DW is contracted at 5499\.99 a month, below the IX\/Dapitan minimum wage of 5500/
+	);
 });
 
 test('Philippines — NCR-28’s ₱755 is mandatory: an unexempted contract below the five-day floor of 16,421.25 refuses the run', () => {
@@ -695,6 +698,87 @@ test('Philippines — NCR-28’s ₱755 is mandatory: an unexempted contract bel
 	assert.deepEqual(
 		run(20_000).warnings.filter((line) => line.startsWith('MINIMUM_WAGE_BELOW')),
 		[]
+	);
+});
+
+test('Philippines — each regional wage order pays its sealed daily floor in the week or month it governs, and refuses a centavo below', () => {
+	// A daily-paid worker at the exact worksite and sector the order classes, in a pay period that
+	// ends inside the version (a Monday–Sunday week of a weekly company, else the month). The
+	// establishment facts are the compliance closure's: one establishment of twenty workers.
+	const site = (
+		period: string,
+		payFrequency: 'MONTHLY' | 'WEEKLY',
+		worksite: string,
+		sector: string,
+		wage: number
+	) =>
+		buildStatutory({
+			code: 'PH',
+			period,
+			payFrequency,
+			region: worksite.split('/')[0]!,
+			companyFacts: {
+				minimum_wage_exemption_approved: false,
+				ph_wage_one_establishment: true,
+				ph_wage_worker_count: 20
+			},
+			people: [{ key: 'W', wage, pay_frequency: 'DAILY', worksite, worksite_sector: sector }]
+		});
+	for (const [period, payFrequency, worksite, sector, daily] of [
+		// RB VIII-25 (effective 8 December 2025): agriculture PHP405 before it, PHP422 from it.
+		['2025-12-1', 'WEEKLY', 'VIII/Tacloban', 'AGRICULTURE', 405],
+		['2025-12-2', 'WEEKLY', 'VIII/Tacloban', 'AGRICULTURE', 422],
+		// RB XII-25 second tranche (15 December 2025): agriculture PHP443.
+		['2025-12-3', 'WEEKLY', 'XII/Koronadal', 'AGRICULTURE', 443],
+		// RXIII-20 first tranche (3 January 2026) holds through BARMM-DW-02's week: PHP455.
+		['2026-01-2', 'WEEKLY', 'XIII/Bayugan', 'AGRICULTURE', 455],
+		// RBV-23 (8 April 2026): PHP435 in the week to 5 April, PHP455 in the week to 12 April.
+		['2026-04-1', 'WEEKLY', 'V/Iriga', 'AGRICULTURE', 435],
+		['2026-04-2', 'WEEKLY', 'V/Iriga', 'AGRICULTURE', 455],
+		// RX-24 second tranche (1 May 2026): Category I PHP500.
+		['2026-05-1', 'WEEKLY', 'X/Manolo Fortich', 'OTHER_NONAGRI', 500],
+		// RXIII-20 second tranche (1 May 2026) under RIX-DW-06's version: PHP475.
+		['2026-05-4', 'WEEKLY', 'XIII/Bayugan', 'AGRICULTURE', 475],
+		// BARMM-05 first tranche (6 August 2026): Cotabato City non-agriculture PHP436.
+		['2026-08', 'MONTHLY', 'BARMM/Cotabato City', 'OTHER_NONAGRI', 436],
+		// RB XI-24 second tranche (1 September 2026): non-agriculture PHP540.
+		['2026-09-1', 'WEEKLY', 'XI/Davao', 'OTHER_NONAGRI', 540],
+		// September 2026 ends under NCR-28's version; ROVII-26's Class A PHP540 holds all month.
+		['2026-09', 'MONTHLY', 'VII/Cebu', 'OTHER_NONAGRI', 540]
+	] as const) {
+		const label = `${period} ${worksite} ${sector}`;
+		assert.ok(
+			site(period, payFrequency, worksite, sector, daily).slips.has('W'),
+			`${label} pays ${daily}`
+		);
+		assert.throws(
+			() => site(period, payFrequency, worksite, sector, daily - 0.01),
+			/MINIMUM_WAGE_BELOW/,
+			`${label} refuses ${daily - 0.01}`
+		);
+	}
+});
+
+test('Philippines — the 6–7 January 2026 version (RR 29-2025 in force) charges its own leave without pay', () => {
+	// RR 29-2025 commenced 6 January 2026 and BARMM-DW-02 on the 8th, so its version governs two
+	// days. Leave without pay on both is charged on that version's catalogue row: two days off the
+	// salary at the factor's day rate, 15,650 ÷ 21.75 = 719.54 each.
+	const { slips } = buildStatutory(
+		{ code: 'PH', period: '2026-01', people: [{ key: 'PH-RR29', wage: 15_650 }] },
+		(world) => {
+			withNoPayLeaveRow(world, settingsIdOn('PH', '2026-01-06'));
+			noPayLeave(world, 'PH-RR29', ['2026-01-06', '2026-01-07']);
+		}
+	);
+	assert.deepEqual(
+		slips
+			.get('PH-RR29')!
+			.adjustments.filter((row) => row.bucket === 'ABSENCE')
+			.map((row) => [row.quantity, row.amount]),
+		[
+			[1, 719.54],
+			[1, 719.54]
+		]
 	);
 });
 
@@ -1230,11 +1314,11 @@ test('Philippines — a salary change mid-month is one month of pay, never more 
 
 const PH_NPL = 'c1c1c1c1-0000-4000-8000-0000000000aa';
 /** The version's leave-without-pay row, which the fixture world does not carry. */
-const withNoPayLeaveRow = (world: PayrollWorld) => {
+const withNoPayLeaveRow = (world: PayrollWorld, settingsId: string = PH_2026) => {
 	if (world.leave_catalogue.some((row) => row.id === PH_NPL)) return;
 	world.leave_catalogue.push({
 		id: PH_NPL,
-		settings_id: PH_2026,
+		settings_id: settingsId,
 		code: 'LEAVE_WITHOUT_PAY',
 		name: 'Leave without pay',
 		eligibility: '',
@@ -1480,19 +1564,15 @@ test('Philippines — a minimum-wage earner’s overtime and night differential 
 	// against the day-weighted floor (15,333.75); both were wrong. The NWPC matrix as of 28 September
 	// 2026 (PH-S1) also lists NCR-28 effective 26 September; its withdrawn 11 September predecessor
 	// said the 21st, which would have taxed only 14 of the 22 days: 16,000 × 14 ÷ 22 = 10,181.82.
-	assert.deepEqual(
-		settingsVersions('PH')
-			.filter((version) => String(version.effective_range.start).slice(0, 10) >= '2026-04-01')
-			.map((version) => [
-				String(version.effective_range.start).slice(0, 10),
-				version.work_rules.wages.by_region['NCR']
-			]),
-		[
-			['2026-04-01', 18_127.92],
-			['2026-05-20', 18_127.92],
-			['2026-09-26', 19_692.92]
-		]
-	);
+	for (const version of settingsVersions('PH')) {
+		const start = String(version.effective_range.start).slice(0, 10);
+		if (start >= '2026-04-01')
+			assert.equal(
+				version.work_rules.wages.by_region['NCR'],
+				start >= '2026-09-26' ? 19_692.92 : 18_127.92,
+				start
+			);
+	}
 	for (const [period, base] of [
 		['2026-08', 16_000],
 		['2026-09', 13_818.18],
@@ -1699,7 +1779,7 @@ test('Philippines — separation pay: a month per year on redundancy, half a mon
 		wage,
 		hire_date: hire,
 		exit_date: '2026-01-31',
-		exit_reason: reason
+		exit_ground: reason
 	});
 	const { slips } = buildStatutory(
 		{
@@ -1988,7 +2068,7 @@ test('Philippines — a leaver on 13 March: part month, SIL conversion, pro-rata
 					wage: 30_000,
 					hire_date: '2020-01-01',
 					exit_date: EXIT,
-					exit_reason: 'RESIGNATION'
+					exit_ground: 'RESIGNATION'
 				}
 			]
 		},
@@ -2058,7 +2138,7 @@ test('Philippines — EM-1: off-boarding owes a June leaver the pro-rata 13th mo
 					wage: 30_000,
 					hire_date: '2026-01-01',
 					exit_date: EXIT,
-					exit_reason: 'RESIGNATION'
+					exit_ground: 'RESIGNATION'
 				}
 			]
 		},
@@ -2452,7 +2532,7 @@ test('Philippines — final pay: thirty days from separation holds even at the w
 					wage: 30_000,
 					hire_date: '2020-01-01',
 					exit_date: exit,
-					exit_reason: 'RESIGNATION'
+					exit_ground: 'RESIGNATION'
 				}
 			]
 		});
@@ -2476,7 +2556,7 @@ test('Philippines — final pay: thirty days from separation holds even at the w
 				wage: 30_000,
 				hire_date: '2020-01-01',
 				exit_date: '2026-01-10',
-				exit_reason: 'RESIGNATION'
+				exit_ground: 'RESIGNATION'
 			}
 		]
 	};
@@ -2569,7 +2649,7 @@ test('Philippines — separation pay for an authorised cause is outside the with
 					wage: 30_000,
 					hire_date: '2020-11-15',
 					exit_date: '2026-01-31',
-					exit_reason: 'REDUNDANCY'
+					exit_ground: 'REDUNDANCY'
 				}
 			]
 		},
@@ -2861,7 +2941,7 @@ test('Philippines — a settlement run after the exit month charges no PhilHealt
 					wage: 35_000,
 					hire_date: '2023-07-01',
 					exit_date: '2026-10-31',
-					exit_reason: 'REDUNDANCY'
+					exit_ground: 'REDUNDANCY'
 				}
 			]
 		},
@@ -2896,7 +2976,7 @@ test('Philippines — a settlement run after the exit month charges no PhilHealt
 					wage: 35_000,
 					hire_date: '2023-07-01',
 					exit_date: '2026-10-15',
-					exit_reason: 'RESIGNATION'
+					exit_ground: 'RESIGNATION'
 				}
 			]
 		},
@@ -3058,7 +3138,7 @@ test('Philippines — a kasambahay dismissed without just cause is paid fifteen 
 		employment_type: type,
 		hire_date: '2024-03-01',
 		exit_date: '2026-01-31',
-		exit_reason: 'DISMISSAL'
+		exit_ground: 'DISMISSAL'
 	});
 	const { slips } = buildStatutory(
 		{
@@ -3208,7 +3288,7 @@ test('Philippines — a six-day kasambahay’s indemnity uses the 313-day diviso
 					employment_type: 'DOMESTIC',
 					ordinary_hours_per_week: 48,
 					exit_date: '2026-01-31',
-					exit_reason: 'DISMISSAL'
+					exit_ground: 'DISMISSAL'
 				}
 			]
 		},
@@ -3242,7 +3322,7 @@ test('Philippines — unjustified kasambahay departure forfeits at most unpaid s
 						wage: 7_500,
 						employment_type: 'DOMESTIC',
 						exit_date: exit,
-						exit_reason: 'RESIGNATION'
+						exit_ground: 'RESIGNATION'
 					}
 				]
 			},
@@ -3276,7 +3356,7 @@ test('Philippines — a termination for disease recorded as a dismissal pays hal
 		wage: 30_000,
 		hire_date: hire,
 		exit_date: '2026-01-31',
-		exit_reason: 'DISMISSAL'
+		exit_ground: 'DISMISSAL'
 	});
 	const run = (disease: boolean | undefined) =>
 		buildStatutory(

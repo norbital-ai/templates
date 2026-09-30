@@ -16,7 +16,7 @@ import {
 	previousWagePeriodOrdinaryRate,
 	type PayslipWageMonth,
 	type ReferenceWagePeriod
-} from '../payroll/reference-wages.js';
+} from '../payroll/history.js';
 import { termsAt } from '../payroll/work.js';
 import {
 	patternAnchor,

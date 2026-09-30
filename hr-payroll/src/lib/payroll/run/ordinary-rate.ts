@@ -4,11 +4,12 @@
  * ÷ (52 × 44)): one expression over the person in days per month, so the PH 261/313 factor can
  * follow the week shape; a statute in hours is hours over the contract's normal day. Rates keep
  * their full quotient until the payroll amount is rounded; normal hours are the contract's weekly
- * hours over its working days.
+ * hours over its working days. A version that states `work_rules.ordinary_rate` prices the hour and
+ * the day with its own expressions instead (`statedOrdinaryRate`).
  */
 
 import type { Work } from './configuration.js';
-import type { PersonContext } from './eligibility.js';
+import { evaluateNumberOver, type PersonContext } from './eligibility.js';
 import type { MoneyValue } from './rounding.js';
 import { decodeNumber } from '../../wire.js';
 
@@ -16,6 +17,7 @@ import { monthDays } from './dates.js';
 import { normalDailyHours } from './schedule.js';
 import { prorationBasisFor } from './proration.js';
 import { evaluateNumber, expressionEngine } from '../../../lib/expressions/evaluate.js';
+import { openKeyMentions } from '../../../lib/expressions/contexts.js';
 
 const payFrequencies = ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY', 'DAILY', 'HOURLY'] as const;
 
@@ -45,6 +47,57 @@ export function ordinaryDivisorDays(options: {
 				'work_rules.ordinary_divisor_days must be a positive number of days.'
 		);
 	return divisor;
+}
+
+/** One recurring pay item on the contract, as `contract.classes` sums it. */
+export type ContractItem = {
+	readonly code: string;
+	readonly counts_toward?: readonly string[] | null | undefined;
+	readonly amount: number;
+};
+
+/**
+ * `contract.classes` on the rate site: each recurring item's amount under its own component code and
+ * under every class it counts toward, so a premium base reads `contract.classes.<class>` and leaves
+ * out what the version never tags (JP LSA art.37(5): family, commuting, housing allowances).
+ */
+export function contractClasses(items: readonly ContractItem[]): Record<string, number> {
+	const classes: Record<string, number> = {};
+	for (const item of items)
+		for (const key of new Set([item.code, ...(item.counts_toward ?? [])]))
+			classes[key] = (classes[key] ?? 0) + item.amount;
+	return classes;
+}
+
+/**
+ * The version's stated ordinary hour and day (`work_rules.ordinary_rate`) over the person on the
+ * rate's date and the contract's classes, or null where the version states none and the divisor
+ * prices them. A rate that is not a finite, non-negative amount stops the run by name.
+ */
+export function statedOrdinaryRate(
+	work: Pick<Work, 'ordinary_rate'>,
+	person: PersonContext,
+	classes: Readonly<Record<string, number>>,
+	employeeNumber?: string
+): { readonly hour: number; readonly day: number } | null {
+	const stated = work.ordinary_rate;
+	if (stated == null) return null;
+	const read = (key: 'hour' | 'day') => {
+		// A class the contract carries none of reads 0, as the site documents.
+		const named = openKeyMentions(stated[key], 'contract.classes').map((name) => [name, 0]);
+		const value = evaluateNumberOver(stated[key], {
+			...person,
+			contract: { classes: { ...Object.fromEntries(named), ...classes } },
+			rate: { date: person.employment.rule_date, boundary: '' }
+		});
+		if (!Number.isFinite(value) || value < 0)
+			throw new Error(
+				`The ordinary ${key} of ${employeeNumber ?? 'this person'} evaluated to ${value}; ` +
+					`work_rules.ordinary_rate.${key} must be a finite amount of zero or more.`
+			);
+		return value;
+	};
+	return { hour: read('hour'), day: read('day') };
 }
 
 /** The version and person a weekly, daily or hourly wage is taken to its month over. */
@@ -85,9 +138,10 @@ export function monthlyFactor(
 			working_days_per_week: week.working_days_per_week
 		}
 	});
-	if (!(factor > 0))
+	// An unmeasured week (0 hours) is a month of 0, as the stated rate carries no week to scale.
+	if (!Number.isFinite(factor) || factor < 0)
 		throw new Error(
-			`work_rules.rate_conversions.${key} evaluated to ${factor}; it must be positive.`
+			`work_rules.rate_conversions.${key} evaluated to ${factor}; it must be zero or more.`
 		);
 	return factor;
 }
@@ -107,24 +161,18 @@ function monthlyBaseSalary(terms: RateTerms, conversion: MonthConversion | undef
 }
 
 /**
- * Pay for one ordinary hour; round only the completed award. `dailyMonthDays`, where the version
- * states one, takes a daily wage to its month before the divisor prices the hour (ID PP 35/2021
- * art.33(1)(b): daily × 21 ÷ 173).
+ * Pay for one ordinary hour on the divisor, where the version states no `ordinary_rate`; round only
+ * the completed award.
  */
 export function ordinaryHourlyRate(
 	terms: RateTerms,
 	divisorDays: number,
-	dailyMonthDays?: number,
 	conversion?: MonthConversion
 ): number {
 	// DAILY and HOURLY staff are paid from the stated rate, never annualised: the rate is what the
 	// contract says an hour costs. Monthly staff are untouched by this branch.
 	if (terms.pay_frequency === 'HOURLY') return terms.base_salary.value;
-	if (terms.pay_frequency === 'DAILY')
-		return (
-			(terms.base_salary.value * (dailyMonthDays == null ? 1 : dailyMonthDays / divisorDays)) /
-			normalDailyHours(terms)
-		);
+	if (terms.pay_frequency === 'DAILY') return terms.base_salary.value / normalDailyHours(terms);
 	if (!(divisorDays > 0)) throw new Error('work_rules.ordinary_divisor_days must be positive.');
 	return monthlyBaseSalary(terms, conversion) / divisorDays / normalDailyHours(terms);
 }

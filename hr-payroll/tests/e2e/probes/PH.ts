@@ -1392,7 +1392,7 @@ register(
 				to: '2026-03-13',
 				salary: 30_450,
 				employment: {
-					exit_reason: 'REDUNDANCY',
+					exit_ground: 'REDUNDANCY',
 					exit_facts: { termination_cause: 'REDUNDANCY' }
 				}
 			}),
@@ -1443,7 +1443,7 @@ register(
 				to: '2026-01-16',
 				salary: 30_450,
 				employment: {
-					exit_reason: 'RETRENCHMENT',
+					exit_ground: 'RETRENCHMENT',
 					exit_facts: { termination_cause: 'RETRENCHMENT' }
 				}
 			}),
@@ -1510,7 +1510,7 @@ register(
 					to: '2026-01-16',
 					salary: 30_450,
 					employment: {
-						exit_reason: 'RETRENCHMENT',
+						exit_ground: 'RETRENCHMENT',
 						exit_facts: { termination_cause: 'RETRENCHMENT' }
 					}
 				}),
@@ -1557,7 +1557,7 @@ register(
 				from: '2016-01-04',
 				to: '2026-01-16',
 				salary: 30_450,
-				employment: { exit_reason: 'RETIREMENT' }
+				employment: { exit_ground: 'RETIREMENT' }
 			}),
 			{
 				collection: 'employment_statutory_facts',
@@ -1620,7 +1620,7 @@ register(
 				sector: null,
 				type: 'DOMESTIC',
 				employment: {
-					exit_reason: 'DISMISSAL',
+					exit_ground: 'DISMISSAL',
 					exit_facts: { kasambahay_unjust_dismissal: true }
 				}
 			}),
@@ -3332,7 +3332,7 @@ register(
 				sector: null,
 				type: 'DOMESTIC',
 				employment: {
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					exit_facts: { kasambahay_unjustified_departure: true }
 				}
 			}),

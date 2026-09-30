@@ -32,7 +32,11 @@ const f = customField({
 			},
 			proration_contractual: { kind: 'bool', optional: true },
 			ordinary_divisor_days: { kind: 'text' },
-			daily_month_days: { kind: 'text', optional: true },
+			ordinary_rate: {
+				kind: 'object',
+				optional: true,
+				fields: { hour: { kind: 'text' }, day: { kind: 'text' } }
+			},
 			rate_conversions: {
 				kind: 'object',
 				optional: true,
@@ -91,6 +95,19 @@ const f = customField({
 						price_amount: { kind: 'text' },
 						component: { kind: 'text', optional: true },
 						funnel_above_hours: { kind: 'text', optional: true }
+					}
+				}
+			},
+			derived_lines: {
+				kind: 'list',
+				optional: true,
+				of: {
+					kind: 'object',
+					fields: {
+						code: { kind: 'text' },
+						when: { kind: 'text', optional: true },
+						amount: { kind: 'text' },
+						component: { kind: 'enum', values: ['BASE', 'DAY_PAY'], optional: true }
 					}
 				}
 			},

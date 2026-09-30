@@ -89,8 +89,14 @@ export type Scenario = {
 		/** terms fact: annual scheduled hours (最低賃金法施行規則 art.2 / 労基則 art.19 divisor ÷ 12) */
 		annualScheduledHours: number;
 		/** monthly 通勤手当 paid; km = one-way vehicle/bicycle distance; transitFare = the transit part of a MIXED commute;
-	 *  parking = employer-paid monthly parking (JP-TAX-07, from 1 April 2026) */
-	commuting: null | { mode: 'TRANSIT' | 'VEHICLE' | 'MIXED'; amount: number; km: number; transitFare?: number; parking?: number };
+		 *  parking = employer-paid monthly parking (JP-TAX-07, from 1 April 2026) */
+		commuting: null | {
+			mode: 'TRANSIT' | 'VEHICLE' | 'MIXED';
+			amount: number;
+			km: number;
+			transitFare?: number;
+			parking?: number;
+		};
 		withholding: { column: 'KOU' | 'OTSU'; dependants: number; method: 'TABLE' | 'ELECTRONIC' };
 		/** municipality special-collection notice: the June installment and the July–May installment */
 		residentTax: null | { june: number; monthly: number };
@@ -176,63 +182,416 @@ const birthday = (birth: string, n: number) => {
 };
 /** 年齢計算ニ関スル法律: age n is attained on the day before the n-th birthday */
 const attains = (birth: string, n: number) => addDays(birthday(birth, n), -1);
-const daysOf = (p: string) => Array.from({ length: daysIn(p) }, (_, i) => `${p}-${String(i + 1).padStart(2, '0')}`);
+const daysOf = (p: string) =>
+	Array.from({ length: daysIn(p) }, (_, i) => `${p}-${String(i + 1).padStart(2, '0')}`);
 const minutes = (hhmm: string) => +hhmm.slice(0, 2) * 60 + +hhmm.slice(3, 5);
 
 // ---------- statutory tables (each from the source cited) ----------
 /** 令和8年度 floors the tracker records as enacted (IMPLEMENTED); every other *-R8 row is AWAITING-LAW on 2026-09-30. */
-const ENACTED_R8 = new Set(['JP-RF01-R8', 'JP-RF04-R8', 'JP-RF08-R8', 'JP-RF14-R8', 'JP-RF24-R8', 'JP-RF25-R8', 'JP-RF29-R8']);
+const ENACTED_R8 = new Set([
+	'JP-RF01-R8',
+	'JP-RF04-R8',
+	'JP-RF08-R8',
+	'JP-RF14-R8',
+	'JP-RF24-R8',
+	'JP-RF25-R8',
+	'JP-RF29-R8'
+]);
 const awaiting = (row: string) => row.endsWith('-R8') && !ENACTED_R8.has(row);
 /** KK / JP-KK01..47: Kyokai branch general health rate % [令和7 (insurance months to 2026-02), 令和8 (from 2026-03)];
  *  MWA / JP-RF01..47(-R8): regional minimum wage JPY/hour by 発効日 (R6 = the 令和6年度 rate still in force on 2025-12-01). */
-export const PREFECTURES: Record<string, { kk: string; health: readonly [number, number]; mw: readonly (readonly [string, number, string])[] }> = {
-	'北海道': { kk: 'JP-KK01', health: [10.31, 10.28], mw: [['2025-10-04', 1075, 'JP-RF01'], ['2026-10-01', 1131, 'JP-RF01-R8']] },
-	'青森県': { kk: 'JP-KK02', health: [9.85, 9.85], mw: [['2025-11-21', 1029, 'JP-RF02'], ['2026-10-29', 1090, 'JP-RF02-R8']] },
-	'岩手県': { kk: 'JP-KK03', health: [9.62, 9.51], mw: [['2025-12-01', 1031, 'JP-RF03'], ['2026-12-01', 1090, 'JP-RF03-R8']] },
-	'宮城県': { kk: 'JP-KK04', health: [10.11, 10.10], mw: [['2025-10-04', 1038, 'JP-RF04'], ['2026-10-01', 1098, 'JP-RF04-R8']] },
-	'秋田県': { kk: 'JP-KK05', health: [10.01, 10.01], mw: [['2024-10-01', 951, 'JP-RF05/R6'], ['2026-03-31', 1031, 'JP-RF05'], ['2026-10-14', 1090, 'JP-RF05-R8']] },
-	'山形県': { kk: 'JP-KK06', health: [9.75, 9.75], mw: [['2024-10-01', 955, 'JP-RF06/R6'], ['2025-12-23', 1032, 'JP-RF06'], ['2026-10-30', 1092, 'JP-RF06-R8']] },
-	'福島県': { kk: 'JP-KK07', health: [9.62, 9.50], mw: [['2024-10-01', 955, 'JP-RF07/R6'], ['2026-01-01', 1033, 'JP-RF07'], ['2026-10-16', 1094, 'JP-RF07-R8']] },
-	'茨城県': { kk: 'JP-KK08', health: [9.67, 9.52], mw: [['2025-10-12', 1074, 'JP-RF09'], ['2026-10-18', 1136, 'JP-RF09-R8']] },
-	'栃木県': { kk: 'JP-KK09', health: [9.82, 9.82], mw: [['2025-10-01', 1068, 'JP-RF10'], ['2026-10-01', 1125, 'JP-RF10-R8']] },
-	'群馬県': { kk: 'JP-KK10', health: [9.77, 9.68], mw: [['2024-10-01', 985, 'JP-RF11/R6'], ['2026-03-01', 1063, 'JP-RF11'], ['2026-10-03', 1120, 'JP-RF11-R8']] },
-	'埼玉県': { kk: 'JP-KK11', health: [9.76, 9.67], mw: [['2025-11-01', 1141, 'JP-RF12'], ['2026-10-01', 1196, 'JP-RF12-R8']] },
-	'千葉県': { kk: 'JP-KK12', health: [9.79, 9.73], mw: [['2025-10-03', 1140, 'JP-RF13'], ['2026-10-01', 1195, 'JP-RF13-R8']] },
-	'東京都': { kk: 'JP-KK13', health: [9.91, 9.85], mw: [['2025-10-03', 1226, 'JP-RF08'], ['2026-10-01', 1280, 'JP-RF08-R8']] },
-	'神奈川県': { kk: 'JP-KK14', health: [9.92, 9.92], mw: [['2025-10-04', 1225, 'JP-RF14'], ['2026-10-01', 1279, 'JP-RF14-R8']] },
-	'新潟県': { kk: 'JP-KK15', health: [9.55, 9.21], mw: [['2025-10-02', 1050, 'JP-RF15'], ['2026-10-01', 1108, 'JP-RF15-R8']] },
-	'富山県': { kk: 'JP-KK16', health: [9.65, 9.59], mw: [['2025-10-12', 1062, 'JP-RF16'], ['2026-10-01', 1119, 'JP-RF16-R8']] },
-	'石川県': { kk: 'JP-KK17', health: [9.88, 9.70], mw: [['2025-10-08', 1054, 'JP-RF17'], ['2026-10-03', 1113, 'JP-RF17-R8']] },
-	'福井県': { kk: 'JP-KK18', health: [9.94, 9.71], mw: [['2025-10-08', 1053, 'JP-RF18'], ['2026-10-04', 1112, 'JP-RF18-R8']] },
-	'山梨県': { kk: 'JP-KK19', health: [9.89, 9.55], mw: [['2025-12-01', 1052, 'JP-RF19'], ['2026-11-01', 1113, 'JP-RF19-R8']] },
-	'長野県': { kk: 'JP-KK20', health: [9.69, 9.63], mw: [['2025-10-03', 1061, 'JP-RF20'], ['2026-10-02', 1117, 'JP-RF20-R8']] },
-	'岐阜県': { kk: 'JP-KK21', health: [9.93, 9.80], mw: [['2025-10-18', 1065, 'JP-RF21'], ['2026-10-01', 1121, 'JP-RF21-R8']] },
-	'静岡県': { kk: 'JP-KK22', health: [9.80, 9.61], mw: [['2025-11-01', 1097, 'JP-RF22'], ['2026-10-15', 1154, 'JP-RF22-R8']] },
-	'愛知県': { kk: 'JP-KK23', health: [10.03, 9.93], mw: [['2025-10-18', 1140, 'JP-RF23'], ['2026-10-01', 1195, 'JP-RF23-R8']] },
-	'三重県': { kk: 'JP-KK24', health: [9.99, 9.77], mw: [['2025-11-21', 1087, 'JP-RF26'], ['2026-10-01', 1143, 'JP-RF26-R8']] },
-	'滋賀県': { kk: 'JP-KK25', health: [9.97, 9.88], mw: [['2025-10-05', 1080, 'JP-RF27'], ['2026-10-03', 1136, 'JP-RF27-R8']] },
-	'京都府': { kk: 'JP-KK26', health: [10.03, 9.89], mw: [['2025-11-21', 1122, 'JP-RF24'], ['2026-11-16', 1180, 'JP-RF24-R8']] },
-	'大阪府': { kk: 'JP-KK27', health: [10.24, 10.13], mw: [['2025-10-16', 1177, 'JP-RF25'], ['2026-10-01', 1231, 'JP-RF25-R8']] },
-	'兵庫県': { kk: 'JP-KK28', health: [10.16, 10.12], mw: [['2025-10-04', 1116, 'JP-RF28'], ['2026-10-01', 1172, 'JP-RF28-R8']] },
-	'奈良県': { kk: 'JP-KK29', health: [10.02, 9.91], mw: [['2025-11-16', 1051, 'JP-RF29'], ['2026-10-04', 1107, 'JP-RF29-R8']] },
-	'和歌山県': { kk: 'JP-KK30', health: [10.19, 10.06], mw: [['2025-11-01', 1045, 'JP-RF30'], ['2026-10-03', 1101, 'JP-RF30-R8']] },
-	'鳥取県': { kk: 'JP-KK31', health: [9.93, 9.86], mw: [['2025-10-04', 1030, 'JP-RF31'], ['2026-10-03', 1090, 'JP-RF31-R8']] },
-	'島根県': { kk: 'JP-KK32', health: [9.94, 9.94], mw: [['2025-11-17', 1033, 'JP-RF32'], ['2026-10-10', 1092, 'JP-RF32-R8']] },
-	'岡山県': { kk: 'JP-KK33', health: [10.17, 10.05], mw: [['2025-12-01', 1047, 'JP-RF33'], ['2026-10-02', 1104, 'JP-RF33-R8']] },
-	'広島県': { kk: 'JP-KK34', health: [9.97, 9.78], mw: [['2025-11-01', 1085, 'JP-RF34'], ['2026-10-11', 1141, 'JP-RF34-R8']] },
-	'山口県': { kk: 'JP-KK35', health: [10.36, 10.15], mw: [['2025-10-16', 1043, 'JP-RF35'], ['2026-10-08', 1101, 'JP-RF35-R8']] },
-	'徳島県': { kk: 'JP-KK36', health: [10.47, 10.24], mw: [['2024-10-01', 980, 'JP-RF36/R6'], ['2026-01-01', 1046, 'JP-RF36'], ['2026-11-01', 1103, 'JP-RF36-R8']] },
-	'香川県': { kk: 'JP-KK37', health: [10.21, 10.02], mw: [['2025-10-18', 1036, 'JP-RF37'], ['2026-10-01', 1092, 'JP-RF37-R8']] },
-	'愛媛県': { kk: 'JP-KK38', health: [10.18, 9.98], mw: [['2025-12-01', 1033, 'JP-RF38'], ['2026-11-01', 1093, 'JP-RF38-R8']] },
-	'高知県': { kk: 'JP-KK39', health: [10.13, 10.05], mw: [['2025-12-01', 1023, 'JP-RF39'], ['2026-10-29', 1086, 'JP-RF39-R8']] },
-	'福岡県': { kk: 'JP-KK40', health: [10.31, 10.11], mw: [['2025-11-16', 1057, 'JP-RF40'], ['2026-10-04', 1114, 'JP-RF40-R8']] },
-	'佐賀県': { kk: 'JP-KK41', health: [10.78, 10.55], mw: [['2025-11-21', 1030, 'JP-RF41'], ['2026-11-15', 1095, 'JP-RF41-R8']] },
-	'長崎県': { kk: 'JP-KK42', health: [10.41, 10.06], mw: [['2025-12-01', 1031, 'JP-RF42'], ['2026-11-02', 1087, 'JP-RF42-R8']] },
-	'熊本県': { kk: 'JP-KK43', health: [10.12, 10.08], mw: [['2024-10-01', 952, 'JP-RF44/R6'], ['2026-01-01', 1034, 'JP-RF44'], ['2026-12-01', 1092, 'JP-RF44-R8']] },
-	'大分県': { kk: 'JP-KK44', health: [10.25, 10.08], mw: [['2024-10-01', 954, 'JP-RF43/R6'], ['2026-01-01', 1035, 'JP-RF43'], ['2026-11-01', 1096, 'JP-RF43-R8']] },
-	'宮崎県': { kk: 'JP-KK45', health: [10.09, 9.77], mw: [['2025-11-16', 1023, 'JP-RF45'], ['2026-10-24', 1085, 'JP-RF45-R8']] },
-	'鹿児島県': { kk: 'JP-KK46', health: [10.31, 10.13], mw: [['2025-11-01', 1026, 'JP-RF46'], ['2026-10-25', 1090, 'JP-RF46-R8']] },
-	'沖縄県': { kk: 'JP-KK47', health: [9.44, 9.44], mw: [['2025-12-01', 1023, 'JP-RF47'], ['2026-12-02', 1086, 'JP-RF47-R8']] },};
+export const PREFECTURES: Record<
+	string,
+	{
+		kk: string;
+		health: readonly [number, number];
+		mw: readonly (readonly [string, number, string])[];
+	}
+> = {
+	北海道: {
+		kk: 'JP-KK01',
+		health: [10.31, 10.28],
+		mw: [
+			['2025-10-04', 1075, 'JP-RF01'],
+			['2026-10-01', 1131, 'JP-RF01-R8']
+		]
+	},
+	青森県: {
+		kk: 'JP-KK02',
+		health: [9.85, 9.85],
+		mw: [
+			['2025-11-21', 1029, 'JP-RF02'],
+			['2026-10-29', 1090, 'JP-RF02-R8']
+		]
+	},
+	岩手県: {
+		kk: 'JP-KK03',
+		health: [9.62, 9.51],
+		mw: [
+			['2025-12-01', 1031, 'JP-RF03'],
+			['2026-12-01', 1090, 'JP-RF03-R8']
+		]
+	},
+	宮城県: {
+		kk: 'JP-KK04',
+		health: [10.11, 10.1],
+		mw: [
+			['2025-10-04', 1038, 'JP-RF04'],
+			['2026-10-01', 1098, 'JP-RF04-R8']
+		]
+	},
+	秋田県: {
+		kk: 'JP-KK05',
+		health: [10.01, 10.01],
+		mw: [
+			['2024-10-01', 951, 'JP-RF05/R6'],
+			['2026-03-31', 1031, 'JP-RF05'],
+			['2026-10-14', 1090, 'JP-RF05-R8']
+		]
+	},
+	山形県: {
+		kk: 'JP-KK06',
+		health: [9.75, 9.75],
+		mw: [
+			['2024-10-01', 955, 'JP-RF06/R6'],
+			['2025-12-23', 1032, 'JP-RF06'],
+			['2026-10-30', 1092, 'JP-RF06-R8']
+		]
+	},
+	福島県: {
+		kk: 'JP-KK07',
+		health: [9.62, 9.5],
+		mw: [
+			['2024-10-01', 955, 'JP-RF07/R6'],
+			['2026-01-01', 1033, 'JP-RF07'],
+			['2026-10-16', 1094, 'JP-RF07-R8']
+		]
+	},
+	茨城県: {
+		kk: 'JP-KK08',
+		health: [9.67, 9.52],
+		mw: [
+			['2025-10-12', 1074, 'JP-RF09'],
+			['2026-10-18', 1136, 'JP-RF09-R8']
+		]
+	},
+	栃木県: {
+		kk: 'JP-KK09',
+		health: [9.82, 9.82],
+		mw: [
+			['2025-10-01', 1068, 'JP-RF10'],
+			['2026-10-01', 1125, 'JP-RF10-R8']
+		]
+	},
+	群馬県: {
+		kk: 'JP-KK10',
+		health: [9.77, 9.68],
+		mw: [
+			['2024-10-01', 985, 'JP-RF11/R6'],
+			['2026-03-01', 1063, 'JP-RF11'],
+			['2026-10-03', 1120, 'JP-RF11-R8']
+		]
+	},
+	埼玉県: {
+		kk: 'JP-KK11',
+		health: [9.76, 9.67],
+		mw: [
+			['2025-11-01', 1141, 'JP-RF12'],
+			['2026-10-01', 1196, 'JP-RF12-R8']
+		]
+	},
+	千葉県: {
+		kk: 'JP-KK12',
+		health: [9.79, 9.73],
+		mw: [
+			['2025-10-03', 1140, 'JP-RF13'],
+			['2026-10-01', 1195, 'JP-RF13-R8']
+		]
+	},
+	東京都: {
+		kk: 'JP-KK13',
+		health: [9.91, 9.85],
+		mw: [
+			['2025-10-03', 1226, 'JP-RF08'],
+			['2026-10-01', 1280, 'JP-RF08-R8']
+		]
+	},
+	神奈川県: {
+		kk: 'JP-KK14',
+		health: [9.92, 9.92],
+		mw: [
+			['2025-10-04', 1225, 'JP-RF14'],
+			['2026-10-01', 1279, 'JP-RF14-R8']
+		]
+	},
+	新潟県: {
+		kk: 'JP-KK15',
+		health: [9.55, 9.21],
+		mw: [
+			['2025-10-02', 1050, 'JP-RF15'],
+			['2026-10-01', 1108, 'JP-RF15-R8']
+		]
+	},
+	富山県: {
+		kk: 'JP-KK16',
+		health: [9.65, 9.59],
+		mw: [
+			['2025-10-12', 1062, 'JP-RF16'],
+			['2026-10-01', 1119, 'JP-RF16-R8']
+		]
+	},
+	石川県: {
+		kk: 'JP-KK17',
+		health: [9.88, 9.7],
+		mw: [
+			['2025-10-08', 1054, 'JP-RF17'],
+			['2026-10-03', 1113, 'JP-RF17-R8']
+		]
+	},
+	福井県: {
+		kk: 'JP-KK18',
+		health: [9.94, 9.71],
+		mw: [
+			['2025-10-08', 1053, 'JP-RF18'],
+			['2026-10-04', 1112, 'JP-RF18-R8']
+		]
+	},
+	山梨県: {
+		kk: 'JP-KK19',
+		health: [9.89, 9.55],
+		mw: [
+			['2025-12-01', 1052, 'JP-RF19'],
+			['2026-11-01', 1113, 'JP-RF19-R8']
+		]
+	},
+	長野県: {
+		kk: 'JP-KK20',
+		health: [9.69, 9.63],
+		mw: [
+			['2025-10-03', 1061, 'JP-RF20'],
+			['2026-10-02', 1117, 'JP-RF20-R8']
+		]
+	},
+	岐阜県: {
+		kk: 'JP-KK21',
+		health: [9.93, 9.8],
+		mw: [
+			['2025-10-18', 1065, 'JP-RF21'],
+			['2026-10-01', 1121, 'JP-RF21-R8']
+		]
+	},
+	静岡県: {
+		kk: 'JP-KK22',
+		health: [9.8, 9.61],
+		mw: [
+			['2025-11-01', 1097, 'JP-RF22'],
+			['2026-10-15', 1154, 'JP-RF22-R8']
+		]
+	},
+	愛知県: {
+		kk: 'JP-KK23',
+		health: [10.03, 9.93],
+		mw: [
+			['2025-10-18', 1140, 'JP-RF23'],
+			['2026-10-01', 1195, 'JP-RF23-R8']
+		]
+	},
+	三重県: {
+		kk: 'JP-KK24',
+		health: [9.99, 9.77],
+		mw: [
+			['2025-11-21', 1087, 'JP-RF26'],
+			['2026-10-01', 1143, 'JP-RF26-R8']
+		]
+	},
+	滋賀県: {
+		kk: 'JP-KK25',
+		health: [9.97, 9.88],
+		mw: [
+			['2025-10-05', 1080, 'JP-RF27'],
+			['2026-10-03', 1136, 'JP-RF27-R8']
+		]
+	},
+	京都府: {
+		kk: 'JP-KK26',
+		health: [10.03, 9.89],
+		mw: [
+			['2025-11-21', 1122, 'JP-RF24'],
+			['2026-11-16', 1180, 'JP-RF24-R8']
+		]
+	},
+	大阪府: {
+		kk: 'JP-KK27',
+		health: [10.24, 10.13],
+		mw: [
+			['2025-10-16', 1177, 'JP-RF25'],
+			['2026-10-01', 1231, 'JP-RF25-R8']
+		]
+	},
+	兵庫県: {
+		kk: 'JP-KK28',
+		health: [10.16, 10.12],
+		mw: [
+			['2025-10-04', 1116, 'JP-RF28'],
+			['2026-10-01', 1172, 'JP-RF28-R8']
+		]
+	},
+	奈良県: {
+		kk: 'JP-KK29',
+		health: [10.02, 9.91],
+		mw: [
+			['2025-11-16', 1051, 'JP-RF29'],
+			['2026-10-04', 1107, 'JP-RF29-R8']
+		]
+	},
+	和歌山県: {
+		kk: 'JP-KK30',
+		health: [10.19, 10.06],
+		mw: [
+			['2025-11-01', 1045, 'JP-RF30'],
+			['2026-10-03', 1101, 'JP-RF30-R8']
+		]
+	},
+	鳥取県: {
+		kk: 'JP-KK31',
+		health: [9.93, 9.86],
+		mw: [
+			['2025-10-04', 1030, 'JP-RF31'],
+			['2026-10-03', 1090, 'JP-RF31-R8']
+		]
+	},
+	島根県: {
+		kk: 'JP-KK32',
+		health: [9.94, 9.94],
+		mw: [
+			['2025-11-17', 1033, 'JP-RF32'],
+			['2026-10-10', 1092, 'JP-RF32-R8']
+		]
+	},
+	岡山県: {
+		kk: 'JP-KK33',
+		health: [10.17, 10.05],
+		mw: [
+			['2025-12-01', 1047, 'JP-RF33'],
+			['2026-10-02', 1104, 'JP-RF33-R8']
+		]
+	},
+	広島県: {
+		kk: 'JP-KK34',
+		health: [9.97, 9.78],
+		mw: [
+			['2025-11-01', 1085, 'JP-RF34'],
+			['2026-10-11', 1141, 'JP-RF34-R8']
+		]
+	},
+	山口県: {
+		kk: 'JP-KK35',
+		health: [10.36, 10.15],
+		mw: [
+			['2025-10-16', 1043, 'JP-RF35'],
+			['2026-10-08', 1101, 'JP-RF35-R8']
+		]
+	},
+	徳島県: {
+		kk: 'JP-KK36',
+		health: [10.47, 10.24],
+		mw: [
+			['2024-10-01', 980, 'JP-RF36/R6'],
+			['2026-01-01', 1046, 'JP-RF36'],
+			['2026-11-01', 1103, 'JP-RF36-R8']
+		]
+	},
+	香川県: {
+		kk: 'JP-KK37',
+		health: [10.21, 10.02],
+		mw: [
+			['2025-10-18', 1036, 'JP-RF37'],
+			['2026-10-01', 1092, 'JP-RF37-R8']
+		]
+	},
+	愛媛県: {
+		kk: 'JP-KK38',
+		health: [10.18, 9.98],
+		mw: [
+			['2025-12-01', 1033, 'JP-RF38'],
+			['2026-11-01', 1093, 'JP-RF38-R8']
+		]
+	},
+	高知県: {
+		kk: 'JP-KK39',
+		health: [10.13, 10.05],
+		mw: [
+			['2025-12-01', 1023, 'JP-RF39'],
+			['2026-10-29', 1086, 'JP-RF39-R8']
+		]
+	},
+	福岡県: {
+		kk: 'JP-KK40',
+		health: [10.31, 10.11],
+		mw: [
+			['2025-11-16', 1057, 'JP-RF40'],
+			['2026-10-04', 1114, 'JP-RF40-R8']
+		]
+	},
+	佐賀県: {
+		kk: 'JP-KK41',
+		health: [10.78, 10.55],
+		mw: [
+			['2025-11-21', 1030, 'JP-RF41'],
+			['2026-11-15', 1095, 'JP-RF41-R8']
+		]
+	},
+	長崎県: {
+		kk: 'JP-KK42',
+		health: [10.41, 10.06],
+		mw: [
+			['2025-12-01', 1031, 'JP-RF42'],
+			['2026-11-02', 1087, 'JP-RF42-R8']
+		]
+	},
+	熊本県: {
+		kk: 'JP-KK43',
+		health: [10.12, 10.08],
+		mw: [
+			['2024-10-01', 952, 'JP-RF44/R6'],
+			['2026-01-01', 1034, 'JP-RF44'],
+			['2026-12-01', 1092, 'JP-RF44-R8']
+		]
+	},
+	大分県: {
+		kk: 'JP-KK44',
+		health: [10.25, 10.08],
+		mw: [
+			['2024-10-01', 954, 'JP-RF43/R6'],
+			['2026-01-01', 1035, 'JP-RF43'],
+			['2026-11-01', 1096, 'JP-RF43-R8']
+		]
+	},
+	宮崎県: {
+		kk: 'JP-KK45',
+		health: [10.09, 9.77],
+		mw: [
+			['2025-11-16', 1023, 'JP-RF45'],
+			['2026-10-24', 1085, 'JP-RF45-R8']
+		]
+	},
+	鹿児島県: {
+		kk: 'JP-KK46',
+		health: [10.31, 10.13],
+		mw: [
+			['2025-11-01', 1026, 'JP-RF46'],
+			['2026-10-25', 1090, 'JP-RF46-R8']
+		]
+	},
+	沖縄県: {
+		kk: 'JP-KK47',
+		health: [9.44, 9.44],
+		mw: [
+			['2025-12-01', 1023, 'JP-RF47'],
+			['2026-12-02', 1086, 'JP-RF47-R8']
+		]
+	}
+};
 
 /** NTA 月額表 (令和8年分), rows 105,000–740,000: [以上, 未満, 甲0人 … 甲7人, 乙]. Transcribed from data/01-07.pdf. */
 const MONTHLY_2026: readonly (readonly number[])[] = [
@@ -466,7 +825,7 @@ const MONTHLY_2026: readonly (readonly number[])[] = [
 	[728000, 731000, 69540, 63070, 56600, 50140, 43670, 37210, 30740, 24270, 253100],
 	[731000, 734000, 70150, 63680, 57220, 50750, 44280, 37820, 31350, 24880, 254600],
 	[734000, 737000, 70770, 64290, 57830, 51370, 44890, 38430, 31970, 25490, 256200],
-	[737000, 740000, 71380, 64900, 58440, 51980, 45510, 39040, 32580, 26110, 257700],
+	[737000, 740000, 71380, 64900, 58440, 51980, 45510, 39040, 32580, 26110, 257700]
 ];
 /** NTA 月額表: 甲欄 at and above JPY740,000 — [anchor, 甲0…7 at the anchor, % on the excess until the next anchor]. */
 const MONTHLY_KOU_TOP: readonly (readonly [number, readonly number[], number])[] = [
@@ -478,25 +837,53 @@ const MONTHLY_KOU_TOP: readonly (readonly [number, readonly number[], number])[]
 	[2_170_000, [571_220, 564_750, 558_280, 551_820, 545_350, 538_880, 532_420, 525_950], 40.84],
 	[2_210_000, [593_000, 586_520, 580_060, 573_600, 567_120, 560_660, 554_200, 547_730], 40.84],
 	[2_250_000, [614_770, 608_300, 601_840, 595_380, 588_900, 582_440, 575_980, 569_500], 40.84],
-	[3_500_000, [1_125_270, 1_118_800, 1_112_340, 1_105_880, 1_099_400, 1_092_940, 1_086_480, 1_080_000], 45.945]
+	[
+		3_500_000,
+		[1_125_270, 1_118_800, 1_112_340, 1_105_880, 1_099_400, 1_092_940, 1_086_480, 1_080_000],
+		45.945
+	]
 ];
 
 /** NTA 賞与算出率の表 (令和8年分, data/15-16.pdf): the rate (%) per row, and for 甲 0…7人以上 the lower bound (千円)
  *  of each row from the second; below the first bound the rate is 0. 乙: <224 10.21, <295 20.42, <527 30.63,
  *  <1,118 38.798, else 45.945 (千円 of the previous month's pay after social insurance). */
 const BONUS_RATES = [
-	0, 2.042, 4.084, 6.126, 8.168, 10.21, 12.252, 14.294, 16.336, 18.378, 20.42, 22.462, 24.504, 26.546, 28.588, 30.63,
-	32.672, 35.735, 38.798, 41.861, 45.945
+	0, 2.042, 4.084, 6.126, 8.168, 10.21, 12.252, 14.294, 16.336, 18.378, 20.42, 22.462, 24.504,
+	26.546, 28.588, 30.63, 32.672, 35.735, 38.798, 41.861, 45.945
 ];
 const BONUS_KOU_BOUNDS: readonly (readonly number[])[] = [
-	[82, 94, 260, 309, 342, 372, 402, 433, 520, 605, 684, 715, 752, 795, 854, 922, 1318, 1521, 2621, 3495],
-	[107, 250, 289, 346, 373, 401, 430, 463, 520, 621, 705, 739, 778, 821, 882, 952, 1342, 1526, 2645, 3527],
-	[143, 276, 321, 377, 400, 426, 457, 492, 525, 636, 728, 764, 804, 848, 910, 983, 1367, 1526, 2669, 3559],
-	[181, 300, 354, 405, 424, 452, 484, 517, 550, 651, 751, 788, 830, 876, 938, 1013, 1391, 1538, 2693, 3590],
-	[218, 300, 387, 431, 452, 477, 509, 540, 577, 666, 774, 813, 856, 903, 966, 1044, 1416, 1555, 2716, 3622],
-	[251, 304, 412, 457, 479, 503, 531, 564, 604, 681, 798, 838, 881, 930, 994, 1074, 1440, 1555, 2740, 3654],
-	[284, 343, 438, 483, 505, 527, 553, 589, 630, 697, 821, 862, 907, 957, 1022, 1104, 1464, 1555, 2764, 3685],
-	[317, 383, 463, 508, 529, 552, 578, 614, 657, 708, 845, 887, 933, 985, 1051, 1135, 1489, 1583, 2788, 3717]
+	[
+		82, 94, 260, 309, 342, 372, 402, 433, 520, 605, 684, 715, 752, 795, 854, 922, 1318, 1521, 2621,
+		3495
+	],
+	[
+		107, 250, 289, 346, 373, 401, 430, 463, 520, 621, 705, 739, 778, 821, 882, 952, 1342, 1526,
+		2645, 3527
+	],
+	[
+		143, 276, 321, 377, 400, 426, 457, 492, 525, 636, 728, 764, 804, 848, 910, 983, 1367, 1526,
+		2669, 3559
+	],
+	[
+		181, 300, 354, 405, 424, 452, 484, 517, 550, 651, 751, 788, 830, 876, 938, 1013, 1391, 1538,
+		2693, 3590
+	],
+	[
+		218, 300, 387, 431, 452, 477, 509, 540, 577, 666, 774, 813, 856, 903, 966, 1044, 1416, 1555,
+		2716, 3622
+	],
+	[
+		251, 304, 412, 457, 479, 503, 531, 564, 604, 681, 798, 838, 881, 930, 994, 1074, 1440, 1555,
+		2740, 3654
+	],
+	[
+		284, 343, 438, 483, 505, 527, 553, 589, 630, 697, 821, 862, 907, 957, 1022, 1104, 1464, 1555,
+		2764, 3685
+	],
+	[
+		317, 383, 463, 508, 529, 552, 578, 614, 657, 708, 845, 887, 933, 985, 1051, 1135, 1489, 1583,
+		2788, 3717
+	]
 ];
 const BONUS_OTSU: readonly (readonly [number, number])[] = [
 	[224, 10.21],
@@ -508,44 +895,115 @@ const BONUS_OTSU: readonly (readonly [number, number])[] = [
 
 /** KK: health 標準報酬月額 grades 1–50 and the 報酬月額 lower bound of grades 2–50 (HIA art.40). */
 export const HEALTH_GRADES = [
-	58_000, 68_000, 78_000, 88_000, 98_000, 104_000, 110_000, 118_000, 126_000, 134_000, 142_000, 150_000, 160_000,
-	170_000, 180_000, 190_000, 200_000, 220_000, 240_000, 260_000, 280_000, 300_000, 320_000, 340_000, 360_000, 380_000,
-	410_000, 440_000, 470_000, 500_000, 530_000, 560_000, 590_000, 620_000, 650_000, 680_000, 710_000, 750_000, 790_000,
-	830_000, 880_000, 930_000, 980_000, 1_030_000, 1_090_000, 1_150_000, 1_210_000, 1_270_000, 1_330_000, 1_390_000
+	58_000, 68_000, 78_000, 88_000, 98_000, 104_000, 110_000, 118_000, 126_000, 134_000, 142_000,
+	150_000, 160_000, 170_000, 180_000, 190_000, 200_000, 220_000, 240_000, 260_000, 280_000, 300_000,
+	320_000, 340_000, 360_000, 380_000, 410_000, 440_000, 470_000, 500_000, 530_000, 560_000, 590_000,
+	620_000, 650_000, 680_000, 710_000, 750_000, 790_000, 830_000, 880_000, 930_000, 980_000,
+	1_030_000, 1_090_000, 1_150_000, 1_210_000, 1_270_000, 1_330_000, 1_390_000
 ];
 export const HEALTH_BANDS = [
-	63_000, 73_000, 83_000, 93_000, 101_000, 107_000, 114_000, 122_000, 130_000, 138_000, 146_000, 155_000, 165_000,
-	175_000, 185_000, 195_000, 210_000, 230_000, 250_000, 270_000, 290_000, 310_000, 330_000, 350_000, 370_000, 395_000,
-	425_000, 455_000, 485_000, 515_000, 545_000, 575_000, 605_000, 635_000, 665_000, 695_000, 730_000, 770_000, 810_000,
-	855_000, 905_000, 955_000, 1_005_000, 1_055_000, 1_115_000, 1_175_000, 1_235_000, 1_295_000, 1_355_000
+	63_000, 73_000, 83_000, 93_000, 101_000, 107_000, 114_000, 122_000, 130_000, 138_000, 146_000,
+	155_000, 165_000, 175_000, 185_000, 195_000, 210_000, 230_000, 250_000, 270_000, 290_000, 310_000,
+	330_000, 350_000, 370_000, 395_000, 425_000, 455_000, 485_000, 515_000, 545_000, 575_000, 605_000,
+	635_000, 665_000, 695_000, 730_000, 770_000, 810_000, 855_000, 905_000, 955_000, 1_005_000,
+	1_055_000, 1_115_000, 1_175_000, 1_235_000, 1_295_000, 1_355_000
 ];
 /** The grade a 報酬月額 falls in (the acquisition/regular decision the insurer records, JP-SI-03/20). */
-export const gradeFor = (remuneration: number) => HEALTH_GRADES[HEALTH_BANDS.filter((b) => remuneration >= b).length]!;
+export const gradeFor = (remuneration: number) =>
+	HEALTH_GRADES[HEALTH_BANDS.filter((b) => remuneration >= b).length]!;
 /** KK note: pension grades 1–32 = health grades 4–35 (JPY88,000–650,000; EPIA art.20 until the Sept 2027 top grade). */
 const pensionGrade = (g: number) => Math.min(650_000, Math.max(88_000, g));
 
 /** WC 労災保険率表 (1/1,000), 令和6年4月1日施行, 令和8年度 unchanged. */
 export const WC_RATES: Record<string, number> = {
-	'02': 52, '03': 52, '11': 18, '12': 37, '21': 88, '23': 13, '24': 2.5, '25': 37, '26': 26,
-	'31': 34, '32': 11, '33': 9, '34': 9, '35': 9.5, '38': 12, '36': 6, '37': 15,
-	'41': 5.5, '42': 4, '44': 13, '45': 7, '46': 3.5, '47': 4.5, '48': 6, '66': 13, '62': 17, '49': 23, '50': 6.5,
-	'51': 7, '52': 5, '53': 16, '54': 9, '63': 6.5, '55': 6.5, '56': 5, '57': 3, '58': 4, '59': 23, '60': 2.5,
-	'64': 3.5, '61': 6, '71': 4, '72': 8.5, '73': 9, '74': 12, '81': 3,
-	'95': 13, '91': 13, '93': 6, '96': 6.5, '97': 2.5, '98': 3, '99': 2.5, '94': 3, '90': 42
+	'02': 52,
+	'03': 52,
+	'11': 18,
+	'12': 37,
+	'21': 88,
+	'23': 13,
+	'24': 2.5,
+	'25': 37,
+	'26': 26,
+	'31': 34,
+	'32': 11,
+	'33': 9,
+	'34': 9,
+	'35': 9.5,
+	'38': 12,
+	'36': 6,
+	'37': 15,
+	'41': 5.5,
+	'42': 4,
+	'44': 13,
+	'45': 7,
+	'46': 3.5,
+	'47': 4.5,
+	'48': 6,
+	'66': 13,
+	'62': 17,
+	'49': 23,
+	'50': 6.5,
+	'51': 7,
+	'52': 5,
+	'53': 16,
+	'54': 9,
+	'63': 6.5,
+	'55': 6.5,
+	'56': 5,
+	'57': 3,
+	'58': 4,
+	'59': 23,
+	'60': 2.5,
+	'64': 3.5,
+	'61': 6,
+	'71': 4,
+	'72': 8.5,
+	'73': 9,
+	'74': 12,
+	'81': 3,
+	'95': 13,
+	'91': 13,
+	'93': 6,
+	'96': 6.5,
+	'97': 2.5,
+	'98': 3,
+	'99': 2.5,
+	'94': 3,
+	'90': 42
 };
 
 /** EI: [worker, employer] per 1,000 — 令和7年度 (closing to 2026-03-31), 令和8年度 (closing 2026-04-01 to 2027-03-31). */
 const EI_RATES: Record<EiClass, readonly [readonly [number, number], readonly [number, number]]> = {
-	GENERAL: [[5.5, 9], [5, 8.5]],
-	AGRICULTURE_SAKE: [[6.5, 10], [6, 9.5]],
-	CONSTRUCTION: [[6.5, 11], [6, 10.5]]
+	GENERAL: [
+		[5.5, 9],
+		[5, 8.5]
+	],
+	AGRICULTURE_SAKE: [
+		[6.5, 10],
+		[6, 9.5]
+	],
+	CONSTRUCTION: [
+		[6.5, 11],
+		[6, 10.5]
+	]
 };
 
 /** COMM: monthly income-tax exemption for a vehicle/bicycle commute by one-way km; before April 2026 55 km+ is 38,700. */
 const vehicleExempt = (km: number, payDate: string) => {
 	const bands: readonly (readonly [number, number])[] = [
-		[2, 0], [10, 4_200], [15, 7_300], [25, 13_500], [35, 19_700], [45, 25_900], [55, 32_300],
-		[65, 38_700], [75, 45_700], [85, 52_700], [95, 59_600], [Infinity, 66_400]
+		[2, 0],
+		[10, 4_200],
+		[15, 7_300],
+		[25, 13_500],
+		[35, 19_700],
+		[45, 25_900],
+		[55, 32_300],
+		[65, 38_700],
+		[75, 45_700],
+		[85, 52_700],
+		[95, 59_600],
+		[Infinity, 66_400]
 	];
 	const v = bands.find(([under]) => km < under)![1];
 	return payDate < '2026-04-01' ? Math.min(v, 38_700) : v;
@@ -555,9 +1013,11 @@ const vehicleExempt = (km: number, payDate: string) => {
 const commutingExempt = (c: NonNullable<Scenario['employee']['commuting']>, payDate: string) => {
 	const parking = payDate >= '2026-04-01' && c.km >= 2 ? Math.min(c.parking ?? 0, 5_000) : 0;
 	const limit =
-		c.mode === 'TRANSIT' ? 150_000
-		: c.mode === 'VEHICLE' ? vehicleExempt(c.km, payDate) + parking
-		: Math.min(150_000, (c.transitFare ?? 0) + vehicleExempt(c.km, payDate) + parking);
+		c.mode === 'TRANSIT'
+			? 150_000
+			: c.mode === 'VEHICLE'
+				? vehicleExempt(c.km, payDate) + parking
+				: Math.min(150_000, (c.transitFare ?? 0) + vehicleExempt(c.km, payDate) + parking);
 	return Math.min(c.amount, limit);
 };
 
@@ -571,7 +1031,12 @@ export function monthlyTableTax(A: number, column: 'KOU' | 'OTSU', dependants: n
 		const row = MONTHLY_2026.find((r) => A >= r[0]! && A < r[1]!)!;
 		v = column === 'OTSU' ? row[10]! : row[2 + k]!;
 	} else if (column === 'OTSU') {
-		v = A === 1_710_000 ? 655_400 : A < 1_710_000 ? 259_200 + ((A - 740_000) * 40.84) / 100 : 655_400 + ((A - 1_710_000) * 45.945) / 100;
+		v =
+			A === 1_710_000
+				? 655_400
+				: A < 1_710_000
+					? 259_200 + ((A - 740_000) * 40.84) / 100
+					: 655_400 + ((A - 1_710_000) * 45.945) / 100;
 	} else {
 		const [anchor, amounts, pct] = [...MONTHLY_KOU_TOP].reverse().find(([a]) => A >= a)!;
 		v = amounts[k]! + ((A - anchor) * pct) / 100;
@@ -583,27 +1048,49 @@ export function monthlyTableTax(A: number, column: 'KOU' | 'OTSU', dependants: n
 /** 電算機計算の特例 (告示116号 別表第一〜第四, 令和8年分), 甲欄 only. */
 export function electronicTax(A: number, dependants: number): number {
 	const salary =
-		A <= 158_333 ? 54_167
-		: A <= 299_999 ? Math.ceil(norm((A * 30) / 100 + 6_667))
-		: A <= 549_999 ? Math.ceil(norm((A * 20) / 100 + 36_667))
-		: A <= 708_330 ? Math.ceil(norm((A * 10) / 100 + 91_667))
-		: 162_500; // 別表第一: 1円未満切上げ
+		A <= 158_333
+			? 54_167
+			: A <= 299_999
+				? Math.ceil(norm((A * 30) / 100 + 6_667))
+				: A <= 549_999
+					? Math.ceil(norm((A * 20) / 100 + 36_667))
+					: A <= 708_330
+						? Math.ceil(norm((A * 10) / 100 + 91_667))
+						: 162_500; // 別表第一: 1円未満切上げ
 	const basic =
-		A <= 2_120_833 ? 48_334 : A <= 2_162_499 ? 40_000 : A <= 2_204_166 ? 26_667 : A <= 2_245_833 ? 13_334 : 0;
+		A <= 2_120_833
+			? 48_334
+			: A <= 2_162_499
+				? 40_000
+				: A <= 2_204_166
+					? 26_667
+					: A <= 2_245_833
+						? 13_334
+						: 0;
 	const B = A - salary - basic - 31_667 * dependants; // 別表第二
 	if (B <= 0) return 0;
 	const [pct, less] =
-		B <= 162_500 ? [5.105, 0]
-		: B <= 275_000 ? [10.21, 8_296]
-		: B <= 579_166 ? [20.42, 36_374]
-		: B <= 750_000 ? [23.483, 54_113]
-		: B <= 1_500_000 ? [33.693, 130_688]
-		: B <= 3_333_333 ? [40.84, 237_893]
-		: [45.945, 408_061];
+		B <= 162_500
+			? [5.105, 0]
+			: B <= 275_000
+				? [10.21, 8_296]
+				: B <= 579_166
+					? [20.42, 36_374]
+					: B <= 750_000
+						? [23.483, 54_113]
+						: B <= 1_500_000
+							? [33.693, 130_688]
+							: B <= 3_333_333
+								? [40.84, 237_893]
+								: [45.945, 408_061];
 	return Math.max(0, Math.round(norm((B * pct) / 100 - less) / 10 + EPS) * 10); // 別表第四 注: 10円未満四捨五入
 }
 const monthlyTax = (A: number, w: Scenario['employee']['withholding']) =>
-	A <= 0 ? 0 : w.column === 'KOU' && w.method === 'ELECTRONIC' ? electronicTax(A, w.dependants) : monthlyTableTax(A, w.column, w.dependants);
+	A <= 0
+		? 0
+		: w.column === 'KOU' && w.method === 'ELECTRONIC'
+			? electronicTax(A, w.dependants)
+			: monthlyTableTax(A, w.column, w.dependants);
 /** 賞与算出率の表 rate for the previous month's pay after social insurance. */
 const bonusRate = (prior: number, w: Scenario['employee']['withholding']) => {
 	const k = prior / 1000;
@@ -615,13 +1102,19 @@ const bonusRate = (prior: number, w: Scenario['employee']['withholding']) => {
 /** 退職所得の源泉徴収税額の速算表 (令和8年分): (A×B−C)×102.1%, 1円未満切捨て. */
 const retirementTableTax = (A: number) => {
 	const [pct, less] =
-		A <= 1_950_000 ? [5, 0]
-		: A <= 3_300_000 ? [10, 97_500]
-		: A <= 6_950_000 ? [20, 427_500]
-		: A <= 9_000_000 ? [23, 636_000]
-		: A <= 18_000_000 ? [33, 1_536_000]
-		: A <= 40_000_000 ? [40, 2_796_000]
-		: [45, 4_796_000];
+		A <= 1_950_000
+			? [5, 0]
+			: A <= 3_300_000
+				? [10, 97_500]
+				: A <= 6_950_000
+					? [20, 427_500]
+					: A <= 9_000_000
+						? [23, 636_000]
+						: A <= 18_000_000
+							? [33, 1_536_000]
+							: A <= 40_000_000
+								? [40, 2_796_000]
+								: [45, 4_796_000];
 	return trunc((((A * pct) / 100 - less) * 102.1) / 100);
 };
 /** Completed service years with any part year counted as one (JP-TAX-25). */
@@ -633,10 +1126,18 @@ const serviceYears = (hire: string, last: string) => {
 };
 
 // ---------- the payslip ----------
-const segmentOn = (pref: string, day: string) => [...PREFECTURES[pref]!.mw].reverse().find(([from]) => from <= day)!;
+const segmentOn = (pref: string, day: string) =>
+	[...PREFECTURES[pref]!.mw].reverse().find(([from]) => from <= day)!;
 const floorOn = (pref: string, day: string) => segmentOn(pref, day)[1];
 
-type Minutes = { INLAW: number; OT: number; OT60: number; HOL: number; REST: number; NIGHT: number };
+type Minutes = {
+	INLAW: number;
+	OT: number;
+	OT60: number;
+	HOL: number;
+	REST: number;
+	NIGHT: number;
+};
 
 /** LSA arts.32, 35, 37; PREM: classify each minute worked in the period (week = Sunday–Saturday, DEFAULT absent a
  *  work-rules week; Sunday is the 法定休日, Saturday a 所定休日). */
@@ -660,10 +1161,22 @@ function classify(s: Scenario, employed: (d: string) => boolean): Minutes {
 		if (w) {
 			const a = minutes(w.start);
 			const b = minutes(w.end);
-			spans = w.breakMinutes > 0 ? [[a, 720], [720 + w.breakMinutes, b]] : [[a, b]];
+			spans =
+				w.breakMinutes > 0
+					? [
+							[a, 720],
+							[720 + w.breakMinutes, b]
+						]
+					: [[a, b]];
 		} else if (wd >= 1 && wd <= 5) {
 			const h = e.dailyHours * 60;
-			spans = h <= 360 ? [[540, 540 + h]] : [[540, 720], [780, 780 + h - 180]];
+			spans =
+				h <= 360
+					? [[540, 540 + h]]
+					: [
+							[540, 720],
+							[780, 780 + h - 180]
+						];
 		} else continue;
 		const scheduled = wd >= 1 && wd <= 5 ? e.dailyHours * 60 : 0;
 		let day = 0;
@@ -713,14 +1226,29 @@ function core(s: Scenario, withTax: boolean): Core {
 	const payDate = end;
 	const lines: Record<string, Line> = {};
 	const unsupported: string[] = [];
-	const fail = (why: string): Core => ({ lines: {}, unsupported, refused: why, taxableSalary: 0, salarySI: 0, wages: 0 });
+	const fail = (why: string): Core => ({
+		lines: {},
+		unsupported,
+		refused: why,
+		taxableSalary: 0,
+		salarySI: 0,
+		wages: 0
+	});
 	const pref = PREFECTURES[s.company.prefecture];
-	if (pref === undefined) return fail(`worksite ${s.company.prefecture} is not one of the 47 prefectures`);
+	if (pref === undefined)
+		return fail(`worksite ${s.company.prefecture} is not one of the 47 prefectures`);
 	// 雇用保険法 §6(i): a worker contracted under 20 hours a week is not a general insured person
-	if (e.employmentInsurance.registered && e.employmentInsurance.category === 'GENERAL' && e.dailyHours * 5 < 20)
-		return fail('EMPLOYMENT_INSURANCE: REGISTERED GENERAL worker contracted under 20 hours a week (雇用保険法 §6(i))');
+	if (
+		e.employmentInsurance.registered &&
+		e.employmentInsurance.category === 'GENERAL' &&
+		e.dailyHours * 5 < 20
+	)
+		return fail(
+			'EMPLOYMENT_INSURANCE: REGISTERED GENERAL worker contracted under 20 hours a week (雇用保険法 §6(i))'
+		);
 	// EI: the 令和9年度 rates are not published (JP-EI-02 DEFAULT refuses)
-	if (e.employmentInsurance.registered && end >= '2027-04-01') return fail('EMPLOYMENT_INSURANCE: 令和9年度 rates not published');
+	if (e.employmentInsurance.registered && end >= '2027-04-01')
+		return fail('EMPLOYMENT_INSURANCE: 令和9年度 rates not published');
 
 	const exitDate = s.exit?.date ?? '9999-12-31';
 	const employed = (d: string) => d >= e.hireDate && d <= exitDate;
@@ -732,22 +1260,37 @@ function core(s: Scenario, withTax: boolean): Core {
 	const days = daysOf(P);
 	const scheduled = days.filter((d) => dow(d) >= 1 && dow(d) <= 5);
 	const monthlyHours = e.annualScheduledHours / 12; // MWA施行規則 art.2(1)(iv); LSAR art.19(1)(iv)
-	const effective = (d: string) => Math.max(e.monthlySalary, floorOn(s.company.prefecture, d) * monthlyHours);
+	const effective = (d: string) =>
+		Math.max(e.monthlySalary, floorOn(s.company.prefecture, d) * monthlyHours);
 	// a floor not yet enacted cannot be applied, nor ignored where it would bind
-	if (days.some((d) => employed(d) && awaiting(segmentOn(s.company.prefecture, d)[2]) && floorOn(s.company.prefecture, d) * monthlyHours > e.monthlySalary))
+	if (
+		days.some(
+			(d) =>
+				employed(d) &&
+				awaiting(segmentOn(s.company.prefecture, d)[2]) &&
+				floorOn(s.company.prefecture, d) * monthlyHours > e.monthlySalary
+		)
+	)
 		unsupported.push('* (a 令和8年度 floor AWAITING-LAW binds this payslip)');
 	const dayRate = (d: string) => effective(d) / scheduled.length;
 	const unpaid = new Set(s.time.unpaidLeaveDays);
 	const base = yen(scheduled.filter(employed).reduce((a, d) => a + dayRate(d), 0));
-	const npl = -yen(scheduled.filter((d) => employed(d) && unpaid.has(d)).reduce((a, d) => a + dayRate(d), 0));
+	const npl = -yen(
+		scheduled.filter((d) => employed(d) && unpaid.has(d)).reduce((a, d) => a + dayRate(d), 0)
+	);
 	set('BASE', { amount: base });
 	set('NO_PAY_LEAVE', { amount: npl });
 
 	// ----- premiums: LSA art.37, PREM, LSAR arts.19/21 (commuting excluded), CIRC monthly-total rounding -----
 	const hourly = yen(effective(end) / monthlyHours); // DEFAULT: the period-end effective wage; hourly rounded to the yen
 	const t = classify(s, employed);
-	const band = (mins: number, mult: number) => yen(((mins / 60) * hourly * mult));
-	const overtime = band(t.INLAW, 1) + band(t.REST, 1.25) + band(t.OT, 1.25) + band(t.OT60, 1.5) + band(t.HOL, 1.35);
+	const band = (mins: number, mult: number) => yen((mins / 60) * hourly * mult);
+	const overtime =
+		band(t.INLAW, 1) +
+		band(t.REST, 1.25) +
+		band(t.OT, 1.25) +
+		band(t.OT60, 1.5) +
+		band(t.HOL, 1.35);
 	const night = band(t.NIGHT, 0.25);
 	set('OVERTIME', { amount: overtime });
 	set('NIGHT_PREMIUM', { amount: night });
@@ -764,9 +1307,11 @@ function core(s: Scenario, withTax: boolean): Core {
 	const loss = s.exit ? addDays(s.exit.date, 1).slice(0, 7) : '9999-12';
 	const insured = (m: string) => m >= acq && (m < loss || (m === acq && m === loss)); // 同月得喪 charges that month
 	const healthOn = (m: string) => birthday(e.birthDate, 75) > monthEnd(m); // cover ends on the 75th birthday
-	const careOn = (m: string) => attains(e.birthDate, 40) <= monthEnd(m) && attains(e.birthDate, 65) > monthEnd(m);
+	const careOn = (m: string) =>
+		attains(e.birthDate, 40) <= monthEnd(m) && attains(e.birthDate, 65) > monthEnd(m);
 	const pensionOn = (m: string) => attains(e.birthDate, 70) > monthEnd(m) && !e.pensionCertificate;
-	const healthPct = (m: string) => pref.health[m >= '2026-03' ? 1 : 0] + (careOn(m) ? (m >= '2026-03' ? 1.62 : 1.59) : 0);
+	const healthPct = (m: string) =>
+		pref.health[m >= '2026-03' ? 1 : 0] + (careOn(m) ? (m >= '2026-03' ? 1.62 : 1.59) : 0);
 	const share = (total: number) => {
 		const employee = halfDown(total / 2);
 		return { employee, employer: yen(total - employee) }; // DEFAULT (JP-SI-05): unrounded premium less the deduction
@@ -780,7 +1325,10 @@ function core(s: Scenario, withTax: boolean): Core {
 	};
 	if (e.health.registered) {
 		// §167: the previous month's premium from this pay; at exit the current month too
-		const months = [addMonths(P, -1), ...(s.exit && s.exit.date.slice(0, 7) === P ? [P] : [])].filter(insured);
+		const months = [
+			addMonths(P, -1),
+			...(s.exit && s.exit.date.slice(0, 7) === P ? [P] : [])
+		].filter(insured);
 		for (const m of months) {
 			if (e.premiumExemptMonths.includes(m) || !healthOn(m)) continue;
 			const g = e.health.grade;
@@ -816,12 +1364,21 @@ function core(s: Scenario, withTax: boolean): Core {
 		const eiEmployee = halfDown(((wages + bonus) * ee) / 1000);
 		eiSalary = wages + bonus > 0 ? (eiEmployee * wages) / (wages + bonus) : 0;
 		eiBonus = eiEmployee - eiSalary;
-		add('EMPLOYMENT_INSURANCE', { employee: eiEmployee, employer: trunc(((wages + bonus) * er) / 1000) }, wages + bonus);
+		add(
+			'EMPLOYMENT_INSURANCE',
+			{ employee: eiEmployee, employer: trunc(((wages + bonus) * er) / 1000) },
+			wages + bonus
+		);
 	}
 	// ----- workers' compensation: employer only, every worker, sub-yen dropped (DEFAULT) -----
 	const wcRate = s.company.wcMeritRate ?? WC_RATES[s.company.wcBusinessType];
-	if (wcRate === undefined) return fail(`WORKERS_COMP: no business type ${s.company.wcBusinessType}`);
-	add('WORKERS_COMP', { employee: 0, employer: trunc(((wages + bonus) * wcRate) / 1000) }, wages + bonus);
+	if (wcRate === undefined)
+		return fail(`WORKERS_COMP: no business type ${s.company.wcBusinessType}`);
+	add(
+		'WORKERS_COMP',
+		{ employee: 0, employer: trunc(((wages + bonus) * wcRate) / 1000) },
+		wages + bonus
+	);
 
 	// ----- exit pay: LSA art.20 notice pay on the art.12 average wage; retirement allowance -----
 	let noticePay = 0;
@@ -847,16 +1404,23 @@ function core(s: Scenario, withTax: boolean): Core {
 	const ee = (code: string) => acc[code]?.employee ?? 0;
 	const salarySI = ee('HEALTH') + ee('PENSION') + ee('CHILD_SUPPORT') + eiSalary;
 	const bonusSI = ee('HEALTH_BONUS') + ee('PENSION_BONUS') + ee('CHILD_SUPPORT_BONUS') + eiBonus;
-	const taxableSalary = wages - (e.commuting && commuting > 0 ? commutingExempt(e.commuting, payDate) : 0);
+	const taxableSalary =
+		wages - (e.commuting && commuting > 0 ? commutingExempt(e.commuting, payDate) : 0);
 
 	// ----- income tax -----
 	if (withTax) {
 		const year = payDate.slice(0, 4);
 		const outside = year !== '2026';
-		if (outside) unsupported.push(`INCOME_TAX (pay due ${payDate}: the 令和${year === '2025' ? 7 : 9}年分 table is not transcribed)`);
-		else if (!e.taxResident) set('INCOME_TAX', { employee: trunc((taxableSalary * 20.42) / 100) }); // NR: 20.42%, no deductions
+		if (outside)
+			unsupported.push(
+				`INCOME_TAX (pay due ${payDate}: the 令和${year === '2025' ? 7 : 9}年分 table is not transcribed)`
+			);
+		else if (!e.taxResident)
+			set('INCOME_TAX', { employee: trunc((taxableSalary * 20.42) / 100) }); // NR: 20.42%, no deductions
 		else if (P.endsWith('-12') && e.withholding.column === 'KOU')
-			unsupported.push('INCOME_TAX (December: the year-end adjustment settles the year, JP-TAX-03)');
+			unsupported.push(
+				'INCOME_TAX (December: the year-end adjustment settles the year, JP-TAX-03)'
+			);
 		else set('INCOME_TAX', { employee: monthlyTax(taxableSalary - salarySI, e.withholding) });
 		// INCOME_TAX_BONUS (JP-TAX-21): 告示115号 3項 on the bonus after its own social insurance
 		if (s.bonus) {
@@ -868,27 +1432,35 @@ function core(s: Scenario, withTax: boolean): Core {
 				const tax =
 					priorNet <= 0 || net > 10 * priorNet
 						? // 3項1号イ(2)/ロ(2): through the monthly table on 1/6 of the bonus (bonus period ≤ 6 months, DEFAULT)
-							(monthlyTax(priorNet + net / 6, e.withholding) - monthlyTax(priorNet, e.withholding)) * 6
+							(monthlyTax(priorNet + net / 6, e.withholding) -
+								monthlyTax(priorNet, e.withholding)) *
+							6
 						: trunc((net * bonusRate(priorNet, e.withholding)) / 100);
 				set('INCOME_TAX_BONUS', { employee: tax });
 			}
 		}
 		const retirementIncome = retirementPay + noticePay; // 所得税法 art.30: notice pay on dismissal is 退職手当等 (基本通達 30-5)
 		if (retirementIncome > 0) {
-			if (outside) unsupported.push('RETIREMENT_INCOME_TAX, RESIDENT_TAX_RETIREMENT (outside 令和8年分)');
+			if (outside)
+				unsupported.push('RETIREMENT_INCOME_TAX, RESIDENT_TAX_RETIREMENT (outside 令和8年分)');
 			else {
 				const years = serviceYears(e.hireDate, s.exit!.date);
-				const deduction = years <= 20 ? Math.max(800_000, 400_000 * years) : 8_000_000 + 700_000 * (years - 20);
+				const deduction =
+					years <= 20 ? Math.max(800_000, 400_000 * years) : 8_000_000 + 700_000 * (years - 20);
 				const excess = Math.max(0, retirementIncome - deduction);
-				const half = years <= 5 && excess > 3_000_000 ? 1_500_000 + (excess - 3_000_000) : excess / 2; // 短期退職手当等
+				const half =
+					years <= 5 && excess > 3_000_000 ? 1_500_000 + (excess - 3_000_000) : excess / 2; // 短期退職手当等
 				const taxable = Math.floor(half / 1000) * 1000;
 				if (!e.taxResident || !s.exit!.retirementDeclaration)
 					set('RETIREMENT_INCOME_TAX', { employee: trunc((retirementIncome * 20.42) / 100) }); // RET §201(3) / NR
-				else set('RETIREMENT_INCOME_TAX', { employee: taxable > 0 ? retirementTableTax(taxable) : 0 });
+				else
+					set('RETIREMENT_INCOME_TAX', { employee: taxable > 0 ? retirementTableTax(taxable) : 0 });
 				// RRT: residents only (§50-2 reaches 所得税法 §199 payments); without the 申告書 the same computation (JP-RES-02 DEFAULT)
 				if (e.taxResident)
 					set('RESIDENT_TAX_RETIREMENT', {
-						employee: Math.floor((taxable * 0.06) / 100 + EPS) * 100 + Math.floor((taxable * 0.04) / 100 + EPS) * 100
+						employee:
+							Math.floor((taxable * 0.06) / 100 + EPS) * 100 +
+							Math.floor((taxable * 0.04) / 100 + EPS) * 100
 					});
 			}
 		}
@@ -898,9 +1470,11 @@ function core(s: Scenario, withTax: boolean): Core {
 			let due = mm === 6 ? e.residentTax.june : e.residentTax.monthly;
 			if (s.exit && s.exit.date.slice(0, 7) === P && mm !== 5) {
 				const remaining =
-					mm <= 4 ? e.residentTax.monthly * (5 - mm + 1)
-					: s.exit.residentTaxLumpRequested ? due + e.residentTax.monthly * (12 - mm + 5)
-					: due;
+					mm <= 4
+						? e.residentTax.monthly * (5 - mm + 1)
+						: s.exit.residentTaxLumpRequested
+							? due + e.residentTax.monthly * (12 - mm + 5)
+							: due;
 				// §321-5(2): the lump where the pay (給与又は退職手当等) exceeds the remaining tax; else this installment (DEFAULT)
 				const pay = Object.values(lines).reduce((a, l) => a + (l.amount ?? 0), 0);
 				if (pay > remaining) due = remaining;
@@ -912,7 +1486,12 @@ function core(s: Scenario, withTax: boolean): Core {
 }
 
 /** The same employment in an ordinary month: no bonus, no exit, no leave or extra work. */
-const steady = (s: Scenario): Scenario => ({ ...s, bonus: null, exit: null, time: { unpaidLeaveDays: [], paidLeaveDays: [], work: [] } });
+const steady = (s: Scenario): Scenario => ({
+	...s,
+	bonus: null,
+	exit: null,
+	time: { unpaidLeaveDays: [], paidLeaveDays: [], work: [] }
+});
 
 /** 前月の社会保険料等控除後の給与等の金額 for the bonus table (the INCOME_TAX_BONUS election prior_month_net_pay): an
  *  ordinary previous month of the same employment, 0 before hire. */
@@ -925,17 +1504,39 @@ export function priorMonthNetPay(s: Scenario): number {
 
 export function computePayslip(s: Scenario): Payslip {
 	const c = core(s, true);
-	if (c.refused) return { refused: c.refused, lines: {}, unsupported: c.unsupported, gross: 0, total_deductions: 0, net: 0, employer_cost: 0 };
+	if (c.refused)
+		return {
+			refused: c.refused,
+			lines: {},
+			unsupported: c.unsupported,
+			gross: 0,
+			total_deductions: 0,
+			net: 0,
+			employer_cost: 0
+		};
 	const sum = (k: keyof Line) => Object.values(c.lines).reduce((a, l) => a + (l[k] ?? 0), 0);
 	const gross = sum('amount');
 	const total_deductions = sum('employee');
-	return { refused: null, lines: c.lines, unsupported: c.unsupported, gross, total_deductions, net: gross - total_deductions, employer_cost: gross + sum('employer') };
+	return {
+		refused: null,
+		lines: c.lines,
+		unsupported: c.unsupported,
+		gross,
+		total_deductions,
+		net: gross - total_deductions,
+		employer_cost: gross + sum('employer')
+	};
 }
 
 /** The payslip as the probe harness's line keys: component amounts, `<scheme>.employee|employer`, and totals. */
 export function probeLines(p: Payslip): Record<string, number> {
 	if (p.unsupported.some((u) => u.startsWith('*'))) return {};
-	const out: Record<string, number> = { gross: p.gross, net: p.net, total_deductions: p.total_deductions, employer_cost: p.employer_cost };
+	const out: Record<string, number> = {
+		gross: p.gross,
+		net: p.net,
+		total_deductions: p.total_deductions,
+		employer_cost: p.employer_cost
+	};
 	// an unsupported line is a deduction the oracle cannot state, so the totals it enters cannot be pinned either
 	if (p.unsupported.length > 0) {
 		delete out.net;

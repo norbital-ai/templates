@@ -7,7 +7,11 @@ import {
 import { refuseUnlessDraftOnBoth, versionsById } from '../../../lib/settings_seal.js';
 import { readAll } from '../../../lib/reads.js';
 import { plain } from '../../../lib/wire.js';
-import { orderSchemes, producedMentions } from '../../../lib/payroll/run/mentions.js';
+import {
+	orderSchemes,
+	producedMentions,
+	producedMentionsOf
+} from '../../../lib/payroll/run/mentions.js';
 import { compileExpression, type DeclaredKey } from '../../../lib/expressions/compile.js';
 import type { ContributionRule } from '../../../lib/datatypes/contribution_rules.js';
 import { getErrorMessage } from '../../../lib/refuse.js';
@@ -42,6 +46,7 @@ const c = collection('statutory_contributions', {
 				'project_relief_annually',
 				'rules',
 				'assessed_on',
+				'base_when',
 				'ordinary_on',
 				'history_trigger',
 				'deduction_categories',
@@ -72,6 +77,7 @@ const c = collection('statutory_contributions', {
 				'project_relief_annually',
 				'rules',
 				'assessed_on',
+				'base_when',
 				'ordinary_on',
 				'history_trigger',
 				'deduction_categories',
@@ -96,6 +102,8 @@ type Scheme = {
 	readonly remittance_rounding?: string;
 	readonly remittance_rounding_when?: string;
 	readonly assessed_on?: string;
+	readonly base_when?:
+		readonly { readonly when: string; readonly base: string; readonly authority: string }[] | null;
 	readonly ordinary_on?: string;
 	readonly history_trigger?: {
 		readonly less_employee_of: readonly string[];
@@ -195,6 +203,25 @@ c.transform(async (inputs, ctx) => {
 			)
 				ctx.refuse(`${what}: a history trigger states a non-negative threshold for every cadence.`);
 		}
+		for (const [index, override] of (row.base_when ?? []).entries()) {
+			const where = `${what} base override ${index + 1}`;
+			if (override.authority.trim() === '') ctx.refuse(`${where}: cite the law that states it.`);
+			if (producedMentionsOf(override.when).length + producedMentionsOf(override.base).length > 0)
+				ctx.refuse(`${where} reads another scheme; write that dependency in assessed_on.`);
+			for (const [expression, type] of [
+				[override.when, 'boolean'],
+				[override.base, 'money']
+			] as const) {
+				const fault = compileExpression({
+					expression,
+					site: 'assessment',
+					type,
+					elections: row.elections ?? [],
+					parts: row.parts ?? []
+				});
+				if (fault != null) ctx.refuse(`${where}: ${fault}`);
+			}
+		}
 		const assessedOn = row.assessed_on ?? '';
 		const others = siblings.filter(
 			(other) =>
@@ -226,7 +253,11 @@ c.transform(async (inputs, ctx) => {
 		);
 		if (fault != null) ctx.refuse(fault);
 		if (row.settings_id != null && row.settings_id !== '') {
-			refuseUnknownAssessedOnMentions(catalogues, row.settings_id, assessedOn, what);
+			for (const expression of [
+				assessedOn,
+				...(row.base_when ?? []).flatMap((override) => [override.when, override.base])
+			])
+				refuseUnknownAssessedOnMentions(catalogues, row.settings_id, expression, what);
 			try {
 				orderSchemes([
 					...others.map((other) => ({ row: { ...other, rules: other.rules ?? [] } })),

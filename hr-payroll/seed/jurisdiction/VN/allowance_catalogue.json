@@ -12,12 +12,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 1 || person.employee.receiving_pension || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.monthly_wage < 2340000.0)) ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 1 || person.employee.receiving_pension || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.monthly_wage < 2340000.0)) ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -33,12 +31,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -54,12 +50,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -78,9 +72,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "61414af3-f218-537b-9802-ac5f561676b3",
@@ -98,9 +90,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "967227a4-f8d3-51ed-b5af-21c3df8ab048",
@@ -118,9 +108,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "07c29007-a80d-5b42-b210-c51985446a2e",
@@ -138,9 +126,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "5478b5c9-e552-50dd-934a-d3500cc723ae",
@@ -158,9 +144,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "f1ce40bc-faa4-5cc7-a3a3-3892ccb96d11",
@@ -178,9 +162,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "d2195d57-6939-53ba-b7b9-b6335e93d4a1",
@@ -195,12 +177,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -219,9 +199,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "4efc5b9f-eaf0-5061-8de5-64d3c87dcb37",
@@ -239,9 +217,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "fd029a90-4363-5d9e-b9d0-a06b7b221bf3",
@@ -256,12 +232,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 1 || person.employee.receiving_pension || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.monthly_wage < 2340000.0)) ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 1 || person.employee.receiving_pension || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.monthly_wage < 2340000.0)) ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -277,12 +251,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -298,12 +270,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -322,9 +292,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "30156795-5515-5704-953e-3b8ef5f748dd",
@@ -342,9 +310,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "14601160-16c9-5450-a548-428de72b3235",
@@ -362,9 +328,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "6bf99622-ec64-57ee-b465-88b85063a2e6",
@@ -382,9 +346,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "5a95cf97-6471-5c18-a5ef-9983dbe04a9d",
@@ -402,9 +364,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "a61c0319-cfbb-50af-90c9-97783f30322b",
@@ -422,9 +382,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "dc553a10-067c-5cb0-b870-00aed749892c",
@@ -439,12 +397,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -463,9 +419,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "ff85c37f-fdcb-508c-8921-8ca3e9169fc3",
@@ -483,9 +437,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "fe7a9307-a1a4-5d88-a5a9-a0199efb6c99",
@@ -500,12 +452,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 1 || person.employee.receiving_pension || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.monthly_wage < 2340000.0)) ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 1 || person.employee.receiving_pension || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.monthly_wage < 2340000.0)) ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -521,12 +471,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -542,12 +490,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -566,9 +512,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "633f8a46-bdc6-5a92-a89a-1b3dbabb6cb9",
@@ -586,9 +530,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "6a70e4e3-683f-51ce-af79-1d41a0fc12de",
@@ -606,9 +548,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "c71ebdf6-efc0-5c54-ac13-58adac585321",
@@ -626,9 +566,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "46516382-53b3-5c2e-aa4c-fa90a7b13109",
@@ -646,9 +584,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "3aa40d8e-c590-5e90-a6a4-696aebf28390",
@@ -666,9 +602,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "407bd222-76b2-5172-aaab-ed505c0be81d",
@@ -683,12 +617,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -707,9 +639,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "33e5517f-5dcc-5d2f-a8d9-fb64579f60c6",
@@ -727,9 +657,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "82e72f28-8e8f-5c4c-ae43-7cef6326dcd9",
@@ -744,12 +672,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -765,12 +691,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -789,9 +713,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "f68d2e29-fcf1-5096-a851-078133178af1",
@@ -809,9 +731,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "7e8a6437-64fb-5497-afeb-74500c0919cc",
@@ -829,9 +749,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "edccaac4-3f86-5264-a932-f357d819728b",
@@ -849,9 +767,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "8ebdd668-1a55-52fb-af08-fc972beeb070",
@@ -866,12 +782,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -890,9 +804,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "4fd8c543-5d37-5f81-a9ba-6efb27d92ac0",
@@ -910,9 +822,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "a0e61d24-9726-5c8f-a997-d54f0dbff4f3",
@@ -927,12 +837,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 1 || person.employee.receiving_pension || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.monthly_wage < 2340000.0)) ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 1 || person.employee.receiving_pension || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.monthly_wage < 2340000.0)) ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -951,9 +859,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "840e9d75-88ce-5004-a3d6-6b615a40e20f",
@@ -971,9 +877,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "ce89e7e6-383d-5745-a629-2145c10c9030",
@@ -988,12 +892,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -1009,12 +911,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -1033,9 +933,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "d8e87320-200a-56a0-8be7-e419d588adbf",
@@ -1053,9 +951,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "d7f7e337-1795-5c80-a28c-eec699f21031",
@@ -1073,9 +969,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "b1bcd7a0-aaee-5b81-8030-09b1c15a3291",
@@ -1093,9 +987,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "97e2f0a7-b7af-5198-8b5d-edebcc5860f3",
@@ -1110,12 +1002,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -1134,9 +1024,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "955a9b44-a994-508f-9d00-536298dcf985",
@@ -1154,9 +1042,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "24e03e00-9f47-5b36-aa26-c29b86a455f2",
@@ -1171,12 +1057,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 1 || person.employee.receiving_pension || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.monthly_wage < 2340000.0)) ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" && (person.employment.open_ended || person.employment.contract_months >= 1 || person.employee.receiving_pension || person.employment.type == \"INTERN\" || (person.employment.type == \"PART_TIME\" && person.terms.monthly_wage < 2340000.0)) ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -1195,9 +1079,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "f63e38f8-c8f0-5f89-b359-cb2215d2e73d",
@@ -1215,9 +1097,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "19bff8ce-5115-5a81-ac86-3f91e7a19e68",
@@ -1232,12 +1112,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -1253,12 +1131,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 50600000.0 ? 50600000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2530000.0 ? 2530000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -1277,9 +1153,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "9256dfbf-de99-5b6e-9226-16924687f40c",
@@ -1297,9 +1171,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "2aaa5121-8c8b-5f10-8d0d-056cc9ba0328",
@@ -1317,9 +1189,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "eae7a00a-211f-5812-ba86-02db9de73e5b",
@@ -1337,9 +1207,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	},
 	{
 		"id": "9102713f-45cc-5607-85e2-bf3c105df7f8",
@@ -1354,12 +1222,10 @@
 			{
 				"when": "",
 				"limit": null,
-				"amount": "round_unit((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0))"
+				"amount": "round((person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 46800000.0 ? 46800000.0 : person.terms.monthly_wage) * (((has(person.company.facts.occupational_accident_reduced) && person.company.facts.occupational_accident_reduced) ? 17.3 : 17.5) + (person.employee.receiving_pension ? 0.0 : 3.0)) / 100.0 + (person.employee.citizenship != \"FOREIGNER\" ? (person.terms.monthly_wage < 2340000.0 ? 2340000.0 : person.terms.monthly_wage > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : person.terms.monthly_wage) * 1.0 / 100.0 : 0.0), 1, 'HALF_UP')"
 			}
 		],
-		"counts_toward": [
-			"PIT"
-		],
+		"counts_toward": ["PIT"],
 		"owed": true
 	},
 	{
@@ -1378,9 +1244,7 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.MEAL"
-		]
+		"counts_toward": ["PIT.MEAL"]
 	},
 	{
 		"id": "0caecad7-17d5-5c2c-af2b-d6021ba4994c",
@@ -1398,8 +1262,6 @@
 				"amount": "entry.amount"
 			}
 		],
-		"counts_toward": [
-			"PIT.HOUSING"
-		]
+		"counts_toward": ["PIT.HOUSING"]
 	}
 ]

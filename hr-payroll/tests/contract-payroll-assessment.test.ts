@@ -51,7 +51,13 @@ function rehireWorld() {
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
-		rules: [{ when: 'base >= 0.0', employee: 'round_cent(30.01)', employer: 'round_cent(60.01)' }],
+		rules: [
+			{
+				when: 'base >= 0.0',
+				employee: 'round(30.01, 0.01, "HALF_UP")',
+				employer: 'round(60.01, 0.01, "HALF_UP")'
+			}
+		],
 		assessed_on: 'BASE + OVERTIME - ABSENCE - NO_PAY_LEAVE + ALLOWANCES',
 		parts: [],
 		approval_id: null
@@ -73,7 +79,9 @@ test('a company-assessed scheme lands once on the run, on no payslip', async () 
 		employee_share_annual_cap: null,
 		shared_cap_group: null,
 		project_relief_annually: false,
-		rules: [{ when: 'true', employee: '0.0', employer: 'round_cent(base * 1.0 / 100.0)' }],
+		rules: [
+			{ when: 'true', employee: '0.0', employer: 'round(base * 1.0 / 100.0, 0.01, "HALF_UP")' }
+		],
 		assessed_on: 'BASE',
 		approval_id: null
 	});
