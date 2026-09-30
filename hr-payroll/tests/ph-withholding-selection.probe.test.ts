@@ -180,7 +180,8 @@ for (const scenario of monthlyCases)
 				base_salary: scenario.basic
 			},
 			week: { ordinary_hours_per_week: 48, working_days_per_week: 6 },
-			company: { region: 'NCR' },
+			// RA 9178 s.8: a declared BMBE certificate lifts the minimum wage; this ordinary employer has none.
+			company: { region: 'NCR', facts: { bmbe_certificate_of_authority: false } },
 			period: { leave_pay: { MATERNITY_LEAVE: scenario.maternity ?? 0 } },
 			wageFloor: setting.work_rules.wages.by_region.NCR,
 			asOf: end

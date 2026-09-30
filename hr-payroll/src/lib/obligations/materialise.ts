@@ -28,7 +28,9 @@ export const DUTY_TRIGGERS = [
 	'EXIT',
 	'FACT_CHANGE',
 	'CALENDAR',
-	'CASE_EVENT'
+	'CASE_EVENT',
+	/** Raised only by `scheduled_entries`, one instance per catalogue occurrence; `trigger.date` is its due day. */
+	'SCHEDULED'
 ] as const;
 export const DUTY_CADENCES = ['MONTH', 'QUARTER', 'YEAR'] as const;
 export const DUTY_BLOCKS = ['EXIT', 'PAYMENT', 'RUN'] as const;

@@ -99,6 +99,7 @@ const settings = collection('jurisdiction_settings', {
 							'eligibility',
 							'evidence',
 							'raised_by',
+							'schedule',
 							'counts_toward',
 							'reduces_unpaid_salary',
 							'request_requirements',
@@ -156,7 +157,8 @@ const settings = collection('jurisdiction_settings', {
 							'evidence_after_days',
 							'entitlement',
 							'requires_no_pay_origin',
-							'event_facts'
+							'event_facts',
+							'schedule'
 						]
 					}
 				},

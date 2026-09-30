@@ -17,6 +17,7 @@ const holidays = collection('jurisdiction_holidays', {
 				'given_to',
 				'worksite',
 				'religion',
+				'applies_when',
 				'source',
 				'published_at'
 			]
@@ -33,6 +34,7 @@ const holidays = collection('jurisdiction_holidays', {
 				'given_to',
 				'worksite',
 				'religion',
+				'applies_when',
 				'source',
 				'published_at'
 			]

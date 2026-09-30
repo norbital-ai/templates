@@ -441,7 +441,7 @@
 				"code": "PREGNANCY_NO_EXTENDED_HOURS",
 				"at": "PAYSLIP",
 				"severity": "REFUSE",
-				"when": "has(employee.facts.pregnancy_start) && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
+				"when": "\"pregnancy_start\" in employee.fact_keys && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
 				"message": "A worker under three months or from seven months pregnant cannot be given extended hours or night work; remove the overtime or record the pregnancy’s end.",
 				"authority": "云南省女职工劳动保护特别规定 (Yunnan Government Order 232) art.10(3): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026; register CN-KM11). Judged on the payslip’s rule date against the recorded pregnancy start (ponytail: a period straddling the 3- or 7-month mark is judged at the rule date, not per overtime day)"
 			}
@@ -994,7 +994,7 @@
 				"code": "PREGNANCY_NO_EXTENDED_HOURS",
 				"at": "PAYSLIP",
 				"severity": "REFUSE",
-				"when": "has(employee.facts.pregnancy_start) && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
+				"when": "\"pregnancy_start\" in employee.fact_keys && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
 				"message": "A worker under three months or from seven months pregnant cannot be given extended hours or night work; remove the overtime or record the pregnancy’s end.",
 				"authority": "云南省女职工劳动保护特别规定 (Yunnan Government Order 232) art.10(3): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026; register CN-KM11). Judged on the payslip’s rule date against the recorded pregnancy start (ponytail: a period straddling the 3- or 7-month mark is judged at the rule date, not per overtime day)"
 			}
@@ -1547,7 +1547,7 @@
 				"code": "PREGNANCY_NO_EXTENDED_HOURS",
 				"at": "PAYSLIP",
 				"severity": "REFUSE",
-				"when": "has(employee.facts.pregnancy_start) && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
+				"when": "\"pregnancy_start\" in employee.fact_keys && period.overtime_days > 0 && (check.date < add_months(employee.facts.pregnancy_start, 3) || check.date >= add_months(employee.facts.pregnancy_start, 7))",
 				"message": "A worker under three months or from seven months pregnant cannot be given extended hours or night work; remove the overtime or record the pregnancy’s end.",
 				"authority": "云南省女职工劳动保护特别规定 (Yunnan Government Order 232) art.10(3): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026; register CN-KM11). Judged on the payslip’s rule date against the recorded pregnancy start (ponytail: a period straddling the 3- or 7-month mark is judged at the rule date, not per overtime day)"
 			}

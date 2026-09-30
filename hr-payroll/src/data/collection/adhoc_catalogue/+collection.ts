@@ -24,6 +24,7 @@ const c = collection('adhoc_catalogue', {
 				'request_requirements',
 				'request_facts',
 				'raised_by',
+				'schedule',
 				'counts_toward'
 			]
 		}
@@ -42,6 +43,7 @@ const c = collection('adhoc_catalogue', {
 				'request_requirements',
 				'request_facts',
 				'raised_by',
+				'schedule',
 				'counts_toward'
 			]
 		}

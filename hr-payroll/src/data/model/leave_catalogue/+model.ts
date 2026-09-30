@@ -35,7 +35,12 @@ export default model({
 		evidence_after_days: { kind: 'int', min: 0, optional: true },
 		entitlement: { kind: 'custom', of: 'leave_entitlement' },
 		/** What an entry of this leave records about its event or state (`leave_entries.facts`, `leave.facts.<key>`). */
-		event_facts: { kind: 'custom', of: 'fact_keys', default: [] }
+		event_facts: { kind: 'custom', of: 'fact_keys', default: [] },
+		/**
+		 * A leave-year-end conversion: `scheduled_entries` raises the unused balance of each leave year
+		 * as a held ENCASHMENT on the year's last day; `due` is the legal pay day (`leave_year.end`).
+		 */
+		schedule: { kind: 'custom', of: 'catalogue_schedule', optional: true }
 	},
 	unique: [{ fields: ['settings_id', 'code'] }],
 	search: { text: ['code', 'name'] }

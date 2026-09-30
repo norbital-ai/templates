@@ -97,6 +97,13 @@ const NAMED_LIMITS: Record<string, string> = {
  */
 const SEMI_MONTHLY = "a semi-monthly month's two instalments; a weekly month has four or five";
 const SITES: Record<string, Record<string, string>> = {
+	'src/lib/payroll/run/export-data.ts': {
+		'2': 'decimal places a currency figure is displayed with'
+	},
+	'src/lib/payroll/world.ts': {
+		'2_000_000': 'the byte budget of one read crossing (the host caps a crossing at 4 MiB)',
+		'50_000': 'the measured bytes a payroll run carries per employment'
+	},
 	'src/lib/payroll/run/dates.ts': Object.fromEntries(
 		// Hinnant's days-from-civil: era, leap, month-shift and Monday-shift constants.
 		['2', '3', '4', '5', '6', '9', '10', '100', '153', '365', '366', '399', '400', '1460']

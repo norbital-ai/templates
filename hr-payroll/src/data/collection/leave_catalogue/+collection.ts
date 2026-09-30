@@ -43,7 +43,8 @@ const c = collection('leave_catalogue', {
 				'unit',
 				'evidence_after_days',
 				'entitlement',
-				'event_facts'
+				'event_facts',
+				'schedule'
 			]
 		}
 	},
@@ -65,7 +66,8 @@ const c = collection('leave_catalogue', {
 				'unit',
 				'evidence_after_days',
 				'entitlement',
-				'event_facts'
+				'event_facts',
+				'schedule'
 			]
 		}
 	},

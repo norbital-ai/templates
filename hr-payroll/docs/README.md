@@ -276,6 +276,7 @@ changes, leave, claims and loans on a person's behalf, within that person's own 
 - [Architecture](architecture.md): models, calculation and settlement
 - [Leave](leave.md): entitlement, balances, manual activity, approval and payroll
 - [Scheduling](scheduling.md): patterns, rosters, attendance, holidays and kiosk
+- [Attendance](attendance.md): roster, day type, planned overtime, clock, cut-off and lock
 - [Source data](data.md): input evidence, provisioning and reconciliation
 - [Expression reference](expression-context.md): fields and functions for rule expressions
 - [Verification record](verification.md): acceptance and known limits
