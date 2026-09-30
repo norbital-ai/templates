@@ -1113,6 +1113,59 @@
 		"counts_toward": []
 	},
 	{
+		"id": "6560a1da-1158-5d8b-bb93-cefd766a1d19",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"code": "MEDICAL_CLAIM_DIRECT",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "EMPLOYER",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Medical claim (paid by the company direct)",
+		"counts_toward": []
+	},
+	{
+		"id": "74b23643-8df7-54e4-b43b-b2887569c7f5",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"code": "MEDICAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Medical claim",
+		"counts_toward": []
+	},
+	{
+		"id": "61fbfd02-7984-5812-8d09-74fb802eb60f",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"code": "DENTAL_CLAIM",
+		"eligibility": "",
+		"evidence": "REQUIRED",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": null
+			}
+		],
+		"name": "Dental claim",
+		"counts_toward": []
+	},
+	{
 		"id": "459a3080-c953-5e96-a83c-0b2a37866922",
 		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
 		"code": "MEDICAL_CLAIM_DIRECT",

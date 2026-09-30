@@ -38,12 +38,15 @@
 		employment: {
 			readonly id: Id<'employments'>;
 			readonly range_start: PlainDate;
+			/** A set end not yet passed (a fixed term): the last day may only move earlier. */
+			readonly range_end?: PlainDate | null;
 			readonly company_id: Id<'companies'>;
 			readonly employee_number: unknown;
 		};
 		onclose: () => void;
 	} = $props();
 	const startDay = $derived(employment.range_start);
+	const endDay = $derived(employment.range_end ?? null);
 
 	let lastDay = $state<string | null>(todayKey());
 	let exitReason = $state<ExitReason | null>(null);
@@ -52,14 +55,21 @@
 	let stepError = $state<string | null>(null);
 	let submitting = $state(false);
 
-	const lastDayValid = $derived(lastDay != null && lastDay >= startDay);
+	const lastDayValid = $derived(
+		lastDay != null && lastDay >= startDay && (endDay == null || lastDay <= endDay)
+	);
 </script>
 
 <Stack gap="lg">
 	<FormSection first title={t('offboarding.step_last_day')} hint={t('offboarding.last_day_hint')}>
 		<Stack gap="sm">
 			<Labelled label={t('offboarding.last_day')} class="text-sm font-medium">
-				<DateInput value={lastDay} min={startDay} onChange={(next) => (lastDay = next)} />
+				<DateInput
+					value={lastDay}
+					min={startDay}
+					{...endDay == null ? {} : { max: endDay }}
+					onChange={(next) => (lastDay = next)}
+				/>
 			</Labelled>
 			<Labelled label={t('component.exit_reason')} class="text-sm font-medium">
 				<Combobox

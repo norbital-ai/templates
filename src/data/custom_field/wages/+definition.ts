@@ -126,7 +126,10 @@ const f = customField({
 					piece_history_weeks: { kind: 'number', optional: true },
 					piece_history_catalogues: { kind: 'list', of: { kind: 'text' }, optional: true },
 					task_only_time_events_refused: { kind: 'bool', optional: true },
-					levy_scheme: { kind: 'text', optional: true }
+					levy_scheme: { kind: 'text', optional: true },
+					levy_unclassified_codes: { kind: 'list', of: { kind: 'text' }, optional: true },
+					results_wage_codes: { kind: 'list', of: { kind: 'text' }, optional: true },
+					zero_results_code: { kind: 'text', optional: true }
 				},
 				optional: true
 			},

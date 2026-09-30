@@ -220,7 +220,7 @@ const SI_CITE =
 const HI_CITE =
 	'HI: Decree 188/2025/ND-CP — 4.5% of the SI salary, employer 3%, employee 1.5% (https://xaydungchinhsach.chinhphu.vn/nghi-dinh-188-2025-nd-cp-quy-dinh-moi-ve-doi-tuong-muc-dong-muc-ho-tro-dong-bao-hiem-y-te-119250711175642187.htm)';
 const UI_CITE =
-	'UI: Law 74/2025/QH15 art.33(1) 1% + 1%, art.34(2) ceiling 20 × the regional minimum (Region I 5,310,000 → 106,200,000, Decree 293/2025/ND-CP) (https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm)';
+	'UI: Decree 374/2025/ND-CP art.4(1)–(2) worker 1%, employer 1% (Official Gazette 48 of 23 January 2026, pp.3–4; Law 74/2025/QH15 art.33(1) sets only the 1% maximum), Law 74/2025/QH15 art.34(2) ceiling 20 × the regional minimum (Region I 5,310,000 → 106,200,000, Decree 293/2025/ND-CP) (https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm)';
 const PIT_CITE =
 	'PIT: Law 109/2025/QH15 monthly table 5/10/20/30/35% at 10/30/60/100m (https://xaydungchinhsach.chinhphu.vn/chi-tiet-bieu-thue-thu-nhap-ca-nhan-luy-tien-tung-phan-119260327091407544.htm); Resolution 110/2025/UBTVQH15 personal deduction 15,500,000, dependant 6,200,000 (https://xaydungchinhsach.chinhphu.vn/nghi-quyet-110-2025-ubtvqh15-dieu-chinh-muc-giam-tru-gia-canh-cua-thue-thu-nhap-ca-nhan-119251110101313787.htm)';
 const LC_CITE =
@@ -452,34 +452,69 @@ register(
 		id: 'VN-LC46-02-1',
 		profile: 'VN',
 		description:
-			'Two mid-month leavers on Friday 17 April 2026, each hired 1 January 2008 on 22,000,000 with UI from 1 January 2009 (one uncovered year): one resigns (severance), one is made redundant (job-loss allowance). Final salary on 13 of April’s 22 working days, 5 untaken annual-leave days at March’s contract wage, and the 10% withholding on salary paid after the contract ended.',
+			'Four mid-month leavers on Friday 17 April 2026, each hired 1 January 2008 on 22,000,000: one resigns with UI from 1 January 2009 (one uncovered year, severance), one is made redundant with the same UI history (job-loss allowance), and two resign with UI from 1 July and 1 August 2009 (a 6- and a 7-month leftover). Final salary on 13 of April’s 22 working days, 5 untaken annual-leave days at March’s contract wage, and the 10% withholding on salary paid after the contract ended.',
 		citation: [
 			`Final salary: owner rule VN-PRORATE-01 and ${LC_CITE} art.54(1)(a3): 22,000,000 × 13 ÷ 22 = 13,000,000`,
 			`Annual leave: Labour Code art.113(1) 12 days + art.114(1) one day per five years (18 full years → 3) = 15; ${LC_CITE} art.66(1)–(2): 15 ÷ 12 × 4 months (April’s 13 of 22 days is at least 50%) = 5 days; art.67(3): March contract salary 22,000,000 ÷ 22 normal working days = 1,000,000 a day → 5,000,000`,
-			`Severance: Labour Code art.46 half a month per year; ${LC_CITE} art.8(1), (3)(b)–(c): service 1 January 2008 – 17 April 2026 less UI-insured time from 1 January 2009 = 12 months = 1 year; salary the six-month contractual average 22,000,000 → 11,000,000. The resignation is art.34(3); the leaver does not qualify for a pension (exit fact)`,
+			`Severance: Labour Code art.46 half a month per year; ${LC_CITE} art.8(1), (3)(b)–(c): service 1 January 2008 – 17 April 2026 less UI-insured time from 1 January 2009 = 12 months = 1 year; salary the six-month contractual average 22,000,000 → 11,000,000. The resignation is the worker’s unilateral termination, Labour Code art.34(9) with art.35 (Official Gazette 993+994 pp.17–18), one of the art.34 grounds Decree 145/2020 art.8(1) lists for severance; the leaver does not qualify for a pension (exit fact)`,
+			`Remainders, ${LC_CITE} art.8(3)(c): a leftover of 6 months or less counts as half a year, over 6 months as a year. A resigner with UI from 1 July 2009 has 18 uncovered months = 1 year 6 months → 1.5 years × 11,000,000 = 16,500,000; one with UI from 1 August 2009 has 19 = 1 year 7 months → 2 years → 22,000,000`,
+			'Calendar: 26 April 2026 (Hùng Kings, 10th day of the 3rd lunar month, a Sunday, substituted on Monday 27 April under art.111(3); Government policy portal https://xaydungchinhsach.chinhphu.vn/lich-nghi-le-gio-to-hung-vuong-30-4-1-5-quoc-khanh-2-9-nam-2026-119260222115822151.htm) and 30 April (art.112(1)(c)) are published; both fall after the 17 April exit, so April keeps 22 normal working days with the holidays among them',
 			`Job-loss: Labour Code art.47 one month per year, ${LC_CITE} art.8(2): at least two months where the service is under 24 months → 2 × 22,000,000 = 44,000,000 (redundancy, art.34(11))`,
 			`${SI_CITE}; arts.33(5), 34(3): nine unworked days after the exit is under 14 → the whole contract salary: 1,760,000 / 3,850,000`,
 			`${HI_CITE}: 330,000 / 660,000; ${UI_CITE}: 220,000 / 220,000`,
 			'PIT: the April salary is paid on 30 April, after the contract ended on the 17th: owner rule 2026-09-28 (VN-PIT-06, Circular 111/2013/TT-BTC art.25(1)(i), GDT letter 51/TCT-DNNCN) withholds 10% of the payment: 13,000,000 × 10% = 1,300,000. Untaken-leave pay is exempt (Law 109/2025 art.4(8); Decree 253/2026 art.26(2)); severance and job-loss allowances are outside salary income (Decree 253/2026 art.8(3)(h))',
-			'Resigner: gross 13,000,000 + 5,000,000 + 11,000,000 = 29,000,000, net 29,000,000 − 2,310,000 − 1,300,000 = 25,390,000. Redundant: gross 13,000,000 + 5,000,000 + 44,000,000 = 62,000,000, net 58,390,000',
+			'Resigner: gross 13,000,000 + 5,000,000 + 11,000,000 = 29,000,000, net 29,000,000 − 2,310,000 − 1,300,000 = 25,390,000. Redundant: gross 13,000,000 + 5,000,000 + 44,000,000 = 62,000,000, net 58,390,000. 6-month leftover: gross 34,500,000, net 30,890,000. 7-month leftover: gross 40,000,000, net 36,390,000',
 			'Final pay due within 14 working days (Labour Code art.48(1)), 30 days for redundancy (art.48(1)(b)): a run warning, not a payslip line'
 		],
 		company: company(),
 		inputs: [
 			...WEEK,
-			...(['giang', 'hai'] as const).flatMap((ref, index) => [
+			holiday('2026-04-26', 'Giỗ Tổ Hùng Vương'),
+			holiday('2026-04-30', 'Ngày Chiến thắng'),
+			...(
+				[
+					{
+						ref: 'giang',
+						name: 'Đỗ Thị Giang',
+						gender: 'FEMALE',
+						uiFrom: '2009-01-01',
+						redundant: false
+					},
+					{
+						ref: 'hai',
+						name: 'Bùi Văn Hải',
+						gender: 'MALE',
+						uiFrom: '2009-01-01',
+						redundant: true
+					},
+					{
+						ref: 'hoa',
+						name: 'Phan Thị Hoa',
+						gender: 'FEMALE',
+						uiFrom: '2009-07-01',
+						redundant: false
+					},
+					{
+						ref: 'hung',
+						name: 'Lương Văn Hùng',
+						gender: 'MALE',
+						uiFrom: '2009-08-01',
+						redundant: false
+					}
+				] as const
+			).flatMap(({ ref, name, gender, uiFrom, redundant }, index) => [
 				...hire({
 					ref,
-					name: index === 0 ? 'Đỗ Thị Giang' : 'Bùi Văn Hải',
+					name,
 					number: `P-VN-04${index + 1}`,
 					born: '1980-09-09',
-					gender: index === 0 ? 'FEMALE' : 'MALE',
+					gender,
 					salary: 22_000_000,
 					from: '2008-01-01',
 					to: '2026-04-17',
-					uiFrom: '2009-01-01',
-					exitReason: index === 0 ? 'RESIGNATION' : 'REDUNDANCY',
-					exitFacts: index === 0 ? { pension_eligible: false } : {},
+					uiFrom,
+					exitReason: redundant ? 'REDUNDANCY' : 'RESIGNATION',
+					exitFacts: redundant ? {} : { pension_eligible: false },
 					pit: {
 						unit_assessments: [
 							{
@@ -506,10 +541,9 @@ register(
 					collection: 'adhoc_requests',
 					values: {
 						employment_id: `@${ref}_job`,
-						catalogue_id:
-							index === 0
-								? '@law:adhoc_catalogue:SEVERANCE_ALLOWANCE'
-								: '@law:adhoc_catalogue:JOB_LOSS_ALLOWANCE',
+						catalogue_id: redundant
+							? '@law:adhoc_catalogue:JOB_LOSS_ALLOWANCE'
+							: '@law:adhoc_catalogue:SEVERANCE_ALLOWANCE',
 						amount: 0,
 						event_date: '2026-04-17',
 						pay_period: '2026-04',
@@ -543,6 +577,38 @@ register(
 					net: 58_390_000,
 					employer_cost: 4_730_000,
 					JOB_LOSS_ALLOWANCE: 44_000_000,
+					'SI.employee': 1_760_000,
+					'SI.employer': 3_850_000,
+					'HI.employee': 330_000,
+					'HI.employer': 660_000,
+					'UI.employee': 220_000,
+					'UI.employer': 220_000,
+					'PIT.employee': 1_300_000
+				}
+			},
+			{
+				employment: 'hoa_job',
+				lines: {
+					gross: 34_500_000,
+					net: 30_890_000,
+					employer_cost: 4_730_000,
+					SEVERANCE_ALLOWANCE: 16_500_000,
+					'SI.employee': 1_760_000,
+					'SI.employer': 3_850_000,
+					'HI.employee': 330_000,
+					'HI.employer': 660_000,
+					'UI.employee': 220_000,
+					'UI.employer': 220_000,
+					'PIT.employee': 1_300_000
+				}
+			},
+			{
+				employment: 'hung_job',
+				lines: {
+					gross: 40_000_000,
+					net: 36_390_000,
+					employer_cost: 4_730_000,
+					SEVERANCE_ALLOWANCE: 22_000_000,
 					'SI.employee': 1_760_000,
 					'SI.employer': 3_850_000,
 					'HI.employee': 330_000,
@@ -637,9 +703,9 @@ register(
 		id: 'VN-LC115-02-1',
 		profile: 'VN',
 		description:
-			'Unpaid and paid personal leave, March 2026, 22,000,000: one worker takes the unpaid day for a grandparent’s death (one working day off pay), the other the three paid days for their own marriage (no deduction).',
+			'Unpaid and paid personal leave, March 2026, 22,000,000 each: the unpaid day for a grandparent’s death and for a sibling’s marriage (one working day off pay), and the paid days for the worker’s own marriage (3), a child’s marriage (1) and a spouse’s parent’s death (3) (no deduction).',
 		citation: [
-			'Labour Code 45/2019 art.115(1)(a) own marriage 3 paid days; art.115(2) one unpaid day for the death of a grandparent (https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf)',
+			'Labour Code 45/2019 art.115(1)(a) own marriage 3 paid days, (b) a child’s marriage 1, (c) the death of a parent, a spouse’s parent, a spouse or a child 3; art.115(2) one unpaid day for the death of a grandparent or sibling or the marriage of a parent or sibling (Official Gazette 993+994 p.50, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf)',
 			`Unpaid day at the working-day rate (owner rule VN-PRORATE-01): 22,000,000 × 21 ÷ 22 = 21,000,000; ${LC_CITE} art.67(2) the paid days at the contract wage`,
 			`${SI_CITE}: one unpaid day is under 14 → 1,760,000 / 3,850,000 on the contract salary`,
 			`${HI_CITE}: 330,000 / 660,000; ${UI_CITE}: 220,000 / 220,000`,
@@ -682,6 +748,60 @@ register(
 				event_relationship: 'SELF',
 				event_date: '2026-03-10',
 				reason: 'Own marriage'
+			}),
+			...hire({
+				ref: 'phuc',
+				name: 'Kha Văn Phúc',
+				number: 'P-VN-063',
+				born: '1970-02-02',
+				gender: 'MALE',
+				salary: 22_000_000,
+				from: '2025-06-02'
+			}),
+			...hire({
+				ref: 'quyen',
+				name: 'Đoàn Thị Quyên',
+				number: 'P-VN-064',
+				born: '1985-03-03',
+				gender: 'FEMALE',
+				salary: 22_000_000,
+				from: '2025-06-02'
+			}),
+			...hire({
+				ref: 'rang',
+				name: 'Thân Văn Rạng',
+				number: 'P-VN-065',
+				born: '1994-04-04',
+				gender: 'MALE',
+				salary: 22_000_000,
+				from: '2025-06-02'
+			}),
+			leave('phuc_job', 'CHILD_MARRIAGE_LEAVE', {
+				reference: 'MAR-C-1',
+				from_date: '2026-03-16',
+				to_date: '2026-03-16',
+				event_kind: 'MARRIAGE',
+				event_relationship: 'CHILD',
+				event_date: '2026-03-16',
+				reason: 'Child’s marriage'
+			}),
+			leave('quyen_job', 'BEREAVEMENT_LEAVE', {
+				reference: 'BRV-P-1',
+				from_date: '2026-03-17',
+				to_date: '2026-03-19',
+				event_kind: 'DEATH',
+				event_relationship: 'PARENT_IN_LAW',
+				event_date: '2026-03-17',
+				reason: 'Death of a spouse’s parent'
+			}),
+			leave('rang_job', 'BEREAVEMENT_LEAVE_UNPAID', {
+				reference: 'BRV-U-2',
+				from_date: '2026-03-20',
+				to_date: '2026-03-20',
+				event_kind: 'MARRIAGE',
+				event_relationship: 'SIBLING',
+				event_date: '2026-03-20',
+				reason: 'Marriage of a sibling'
 			})
 		],
 		period: '2026-03',
@@ -714,6 +834,51 @@ register(
 					'UI.employee': 220_000,
 					'UI.employer': 220_000,
 					'PIT.employee': 209_500
+				}
+			},
+			{
+				employment: 'phuc_job',
+				lines: {
+					gross: 22_000_000,
+					net: 19_480_500,
+					employer_cost: 4_730_000,
+					'SI.employee': 1_760_000,
+					'SI.employer': 3_850_000,
+					'HI.employee': 330_000,
+					'HI.employer': 660_000,
+					'UI.employee': 220_000,
+					'UI.employer': 220_000,
+					'PIT.employee': 209_500
+				}
+			},
+			{
+				employment: 'quyen_job',
+				lines: {
+					gross: 22_000_000,
+					net: 19_480_500,
+					employer_cost: 4_730_000,
+					'SI.employee': 1_760_000,
+					'SI.employer': 3_850_000,
+					'HI.employee': 330_000,
+					'HI.employer': 660_000,
+					'UI.employee': 220_000,
+					'UI.employer': 220_000,
+					'PIT.employee': 209_500
+				}
+			},
+			{
+				employment: 'rang_job',
+				lines: {
+					gross: 21_000_000,
+					net: 18_530_500,
+					employer_cost: 4_730_000,
+					'SI.employee': 1_760_000,
+					'SI.employer': 3_850_000,
+					'HI.employee': 330_000,
+					'HI.employer': 660_000,
+					'UI.employee': 220_000,
+					'UI.employer': 220_000,
+					'PIT.employee': 159_500
 				}
 			}
 		]
@@ -813,7 +978,7 @@ register(
 			'A raise inside the month for a foreign work-permit holder (tax resident): 50,000,000 to Monday 16 March 2026, 60,000,000 from Tuesday the 17th — 11 working days each. Both salaries are above the SI/HI ceiling, so the split month insures 46,800,000 whichever salary is read; a foreigner is outside UI.',
 		citation: [
 			'Labour Code 45/2019 art.90, art.95: the wage agreed for the time worked; owner rule VN-PRORATE-01: 50,000,000 × 11 ÷ 22 + 60,000,000 × 11 ÷ 22 = 25,000,000 + 30,000,000 = 55,000,000',
-			`${SI_CITE}; art.2(2): a foreigner with a work permit on an open-ended contract is covered: 3,744,000 / 8,190,000`,
+			`${SI_CITE}; Law 41/2024/QH15 art.2(2) (Official Gazette 987+988 pp.4–5): a foreigner with a work permit is covered on a fixed-term labour contract of 12 months or more (“hợp đồng lao động xác định thời hạn có thời hạn từ đủ 12 tháng trở lên”); Labour Code art.151(2) (Official Gazette 993+994 p.65) caps a foreign worker’s contract at the work-permit term, so the case hires on a 24-month fixed term, 2 June 2025 – 1 June 2027: 3,744,000 / 8,190,000`,
 			`${HI_CITE}: 702,000 / 1,404,000`,
 			'UI: Law 74/2025/QH15 art.2(1) — the worker the law covers is a Vietnamese citizen: none',
 			`${PIT_CITE}: 55,000,000 − 4,446,000 − 15,500,000 = 35,054,000 → 500,000 + 2,000,000 + 1,010,800 = 3,510,800`,
@@ -830,9 +995,11 @@ register(
 				foreigner: true,
 				salary: [
 					{ amount: 50_000_000, from: '2025-06-02', to: '2026-03-16' },
-					{ amount: 60_000_000, from: '2026-03-17', to: null }
+					{ amount: 60_000_000, from: '2026-03-17', to: '2027-06-01' }
 				],
-				from: '2025-06-02'
+				type: 'CONTRACT',
+				from: '2025-06-02',
+				to: '2027-06-01'
 			})
 		],
 		period: '2026-03',
@@ -857,10 +1024,10 @@ register(
 		id: 'VN-LC112-01-1',
 		profile: 'VN',
 		description:
-			'A foreign work-permit holder (tax resident) on 20,000,000 takes one of the two paid home-country days (10 March 2026): pay is whole; SI and HI apply, UI does not.',
+			'A Greek work-permit holder (tax resident, 24-month fixed-term contract) on 20,000,000 takes the paid home-country national day, Greece’s 25 March Independence Day (Wednesday 25 March 2026): pay is whole; SI and HI apply, UI does not.',
 		citation: [
 			'Labour Code 45/2019 art.112(2): a foreign worker also has one traditional New Year day and one national day of their country off at full pay (https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf)',
-			`${SI_CITE}; art.2(2): 1,600,000 / 3,500,000`,
+			`${SI_CITE}; Law 41/2024/QH15 art.2(2) (Official Gazette 987+988 pp.4–5): a foreigner with a work permit is covered on a fixed-term labour contract of 12 months or more (“hợp đồng lao động xác định thời hạn có thời hạn từ đủ 12 tháng trở lên”); Labour Code art.151(2) (Official Gazette 993+994 p.65) caps a foreign worker’s contract at the work-permit term, so the case hires on a 24-month fixed term, 2 June 2025 – 1 June 2027: 1,600,000 / 3,500,000`,
 			`${HI_CITE}: 300,000 / 600,000; UI: Law 74/2025 art.2(1) citizens only — none`,
 			`${PIT_CITE}: 20,000,000 − 1,900,000 − 15,500,000 = 2,600,000 × 5% = 130,000`,
 			'Net 20,000,000 − 1,900,000 − 130,000 = 17,970,000'
@@ -869,25 +1036,28 @@ register(
 		inputs: [
 			...WEEK,
 			...hire({
-				ref: 'sato',
-				name: 'Sato Hiroshi',
+				ref: 'nikos',
+				name: 'Nikos Papadopoulos',
 				number: 'P-VN-091',
 				born: '1988-10-10',
+				nationality: 'Greek',
 				foreigner: true,
+				type: 'CONTRACT',
 				salary: 20_000_000,
-				from: '2025-06-02'
+				from: '2025-06-02',
+				to: '2027-06-01'
 			}),
-			leave('sato_job', 'FOREIGN_NATIONAL_LEAVE', {
+			leave('nikos_job', 'FOREIGN_NATIONAL_LEAVE', {
 				reference: 'FNL-1',
-				from_date: '2026-03-10',
-				to_date: '2026-03-10',
-				reason: 'Home-country national day'
+				from_date: '2026-03-25',
+				to_date: '2026-03-25',
+				reason: 'Home-country national day (Greece, 25 March)'
 			})
 		],
 		period: '2026-03',
 		expected: [
 			{
-				employment: 'sato_job',
+				employment: 'nikos_job',
 				lines: {
 					gross: 20_000_000,
 					net: 17_970_000,
@@ -905,10 +1075,10 @@ register(
 		id: 'VN-PIT-03-1',
 		profile: 'VN',
 		description:
-			'A declared non-resident foreign work-permit holder on 30,000,000, March 2026: 20% of taxable pay with no deductions; SI and HI apply, UI does not.',
+			'A declared non-resident foreign work-permit holder on 30,000,000 (24-month fixed-term contract), March 2026: 20% of taxable pay with no deductions; SI and HI apply, UI does not.',
 		citation: [
-			'PIT: Decree 253/2026/ND-CP art.5 and PIT Law 109/2025 — a non-resident’s salary is taxed at 20% with no personal, dependant or insurance deduction: 30,000,000 × 20% = 6,000,000',
-			`${SI_CITE}: 2,400,000 / 5,250,000; ${HI_CITE}: 450,000 / 900,000; UI: Law 74/2025 art.2(1) — none`,
+			'PIT: March 2026 is before Law 109/2025/QH15 takes effect (1 July 2026, art.29(1); art.29(2) brings forward only the resident salary rules), so PIT Law 04/2007/QH12 art.26 and Circular 111/2013/TT-BTC art.18(1) (Official Gazette 563+564 p.61) govern: a non-resident’s salary × 20%, with no personal, dependant or insurance deduction: 30,000,000 × 20% = 6,000,000',
+			`${SI_CITE}; Law 41/2024/QH15 art.2(2) (Official Gazette 987+988 pp.4–5): a foreigner with a work permit is covered on a fixed-term labour contract of 12 months or more (“hợp đồng lao động xác định thời hạn có thời hạn từ đủ 12 tháng trở lên”); Labour Code art.151(2) (Official Gazette 993+994 p.65) caps a foreign worker’s contract at the work-permit term, so the case hires on a 24-month fixed term, 2 June 2025 – 1 June 2027: 2,400,000 / 5,250,000; ${HI_CITE}: 450,000 / 900,000; UI: Law 74/2025 art.2(1) — none`,
 			'Net 30,000,000 − 2,850,000 − 6,000,000 = 21,150,000'
 		],
 		company: company(),
@@ -922,8 +1092,10 @@ register(
 				nationality: 'Korean',
 				foreigner: true,
 				nonResident: true,
+				type: 'CONTRACT',
 				salary: 30_000_000,
-				from: '2025-06-02'
+				from: '2025-06-02',
+				to: '2027-06-01'
 			})
 		],
 		period: '2026-03',
@@ -950,7 +1122,7 @@ register(
 			'Resident deductions, March 2026, 30,000,000: one worker with one registered dependant; one with no dependant who pays a 4,000,000 voluntary-pension premium (deductible to 3,000,000 a month).',
 		citation: [
 			`${PIT_CITE}: 30,000,000 − 3,150,000 − 15,500,000 − 6,200,000 = 5,150,000 × 5% = 257,500`,
-			'Voluntary pension: Decree 253/2026/ND-CP — supplementary/voluntary pension and life insurance deductible up to 3,000,000 a month in total (https://xaydungchinhsach.chinhphu.vn/quy-dinh-moi-ve-khau-tru-thue-thu-nhap-ca-nhan-119260703150410707.htm): 30,000,000 − 3,150,000 − 15,500,000 − 3,000,000 = 8,350,000 × 5% = 417,500',
+			'Voluntary pension: Decree 253/2026/ND-CP art.46(2)(a) (signed text pp.29–30, https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf), applied to tax year 2026 by art.69(1)(a) — supplementary pension, voluntary pension and life insurance deductible up to 3,000,000 a month in total, employer and employee payments together: 30,000,000 − 3,150,000 − 15,500,000 − 3,000,000 = 8,350,000 × 5% = 417,500',
 			`${SI_CITE}: 2,400,000 / 5,250,000; ${HI_CITE}: 450,000 / 900,000; ${UI_CITE}: 300,000 / 300,000`,
 			'Net 30,000,000 − 3,150,000 − 257,500 = 26,592,500 and − 417,500 = 26,432,500 (the premium is the employee’s own, not a payroll deduction)'
 		],
@@ -1030,7 +1202,8 @@ register(
 			'Union dues: VGCL Decision 61/QĐ-TLĐ (in force 1 July 2025), group 3 (non-State enterprises): 0.5% of the salary compulsory SI is based on, at most 10% of the base salary 2,340,000 = 234,000 (https://pbgdpl.cantho.gov.vn/quyet-dinh-61qd-tld-ve-dieu-chinh-giam-muc-dong-doan-phi-cong-doan); Trade Union Law 50/2024/QH15 art.29',
 			`${SI_CITE}, ${HI_CITE}, ${UI_CITE}`,
 			`${PIT_CITE}: 30,000,000 − 3,150,000 − 15,500,000 = 11,350,000 → 500,000 + 135,000 = 635,000; 60,000,000 → 4,390,800`,
-			'Net 30,000,000 − 3,150,000 − 635,000 − 150,000 = 26,065,000; 60,000,000 − 5,046,000 − 4,390,800 − 234,000 = 50,329,200. The employer’s 2% union fund is an establishment line, not a payslip charge (Trade Union Law art.29(1)(b))'
+			'Net 30,000,000 − 3,150,000 − 635,000 − 150,000 = 26,065,000; 60,000,000 − 5,046,000 − 4,390,800 − 234,000 = 50,329,200. The employer’s 2% union fund is an establishment line, not a payslip charge (Trade Union Law art.29(1)(b))',
+			'Union fund (Trade Union Law 50/2024/QH15 art.29(1)(b), https://congbao.chinhphu.vn/van-ban/luat-so-50-2024-qh15-43589.htm): 2% of the salary fund compulsory SI is paid on — (30,000,000 + 46,800,000 capped) × 2% = 1,536,000'
 		],
 		company: company(),
 		inputs: [
@@ -1055,6 +1228,7 @@ register(
 			})
 		],
 		period: '2026-03',
+		companyLines: { 'UNION_FEE.employer': 1_536_000 },
 		expected: [
 			{
 				employment: 'son_job',
@@ -1130,11 +1304,11 @@ register(
 		id: 'VN-LC104-01-1',
 		profile: 'VN',
 		description:
-			'A Tết bonus of 20,000,000 paid with March 2026 salary of 20,000,000: taxed as salary income of the month paid, outside the insurance salary. The VN lineage seals no bonus class yet, so this case names BONUS (the code MY, TH and CN use) and fails at input until one is sealed.',
+			'A Tết bonus of 20,000,000 under the employer’s published bonus regulation, paid with the March 2026 salary of 20,000,000: salary income of the month paid, outside the insurance salary.',
 		citation: [
-			'Labour Code 45/2019 art.104: a bonus is paid under the employer’s published regulation',
-			`${SI_CITE} art.31(1)(b) with Decree 158/2025/ND-CP art.7: the insurance salary excludes bonuses → 1,600,000 / 3,500,000; ${HI_CITE}: 300,000 / 600,000; ${UI_CITE}: 200,000 / 200,000`,
-			`${PIT_CITE}: bonus is salary income taxed in the month paid: 40,000,000 − 2,100,000 − 15,500,000 = 22,400,000 → 500,000 + 1,240,000 = 1,740,000`,
+			'Labour Code 45/2019 art.104 (consolidation 18/VBHN-VPQH of 12 Feb 2026): a bonus is awarded on business results and work completion under the employer’s published regulation; the law sets no amount (the request carries it)',
+			`${SI_CITE} art.31(1)(b) with Decree 158/2025/ND-CP art.7(1)(c): supplements varying with performance are outside the insurance salary → 1,600,000 / 3,500,000; ${HI_CITE}: 300,000 / 600,000; ${UI_CITE}: 200,000 / 200,000`,
+			`${PIT_CITE}; Decree 253/2026/ND-CP art.8(2)(i): a bonus is salary income, taxed in the month paid: 40,000,000 − 2,100,000 − 15,500,000 = 22,400,000 → 10,000,000 × 5% + 12,400,000 × 10% = 500,000 + 1,240,000 = 1,740,000`,
 			'Net 40,000,000 − 2,100,000 − 1,740,000 = 36,160,000'
 		],
 		company: company(),
@@ -1184,12 +1358,14 @@ register(
 		id: 'VN-LC97-01-1',
 		profile: 'VN',
 		description:
-			'February’s 20,000,000 wage, due 28 February 2026, paid 20 days late on 20 March: the March payslip adds the interest at the payroll bank’s published one-month deposit rate (a case input: 4.5% a year).',
+			'February’s 20,000,000 wage, due 28 February 2026, for three workers: paid 20 days late on 20 March (interest at the payroll bank’s published one-month deposit rate, a case input: 4.5% a year), paid 14 days late on 14 March (under 15 days: no compensation), and paid 20 days late through force majeure (the same compensation).',
 		citation: [
 			'Labour Code 45/2019 art.97(4): a wage paid 15 or more days late earns at least interest on it at the one-month deposit rate of the payroll bank on the payment day; owner rule 2026-09-28 (VN-LC97-01): actual days over 365, rounded up: 20,000,000 × 4.5% × 20 ÷ 365 = 49,315.07 → 49,316',
 			`${SI_CITE}, ${HI_CITE}, ${UI_CITE}: on the March salary only`,
 			`${PIT_CITE}: the compensation is taxable pay (owner rule, VN-LC97-01): 20,049,316 − 2,100,000 − 15,500,000 = 2,449,316 × 5% = 122,465.8 → 122,466`,
-			'Net 20,049,316 − 2,100,000 − 122,466 = 17,826,850'
+			'Net 20,049,316 − 2,100,000 − 122,466 = 17,826,850',
+			'Labour Code art.97(4): the compensation is owed for a delay “từ 15 ngày trở lên”; 14 days earns none → gross 20,000,000, PIT (20,000,000 − 2,100,000 − 15,500,000) × 5% = 120,000, net 17,780,000',
+			'Force majeure: art.97(4) states the compensation in the force-majeure sentence itself, and owner rule 2026-09-28 (VN-LC97-01) applies the same compensation with or without it → 49,316, the same payslip as the first worker'
 		],
 		company: company(),
 		inputs: [
@@ -1219,12 +1395,94 @@ register(
 						force_majeure: false
 					}
 				}
+			},
+			...hire({
+				ref: 'xuyen',
+				name: 'Tăng Thị Xuyến',
+				number: 'P-VN-152',
+				born: '1990-09-20',
+				gender: 'FEMALE',
+				salary: 20_000_000,
+				from: '2025-06-02'
+			}),
+			{
+				collection: 'adhoc_requests',
+				values: {
+					employment_id: '@xuyen_job',
+					catalogue_id: '@law:adhoc_catalogue:LATE_WAGE_COMPENSATION',
+					amount: 20_000_000,
+					event_date: '2026-03-14',
+					pay_period: '2026-03',
+					reason: 'February wage paid late',
+					late_wage: {
+						due_on: '2026-02-28',
+						paid_on: '2026-03-14',
+						deposit_rate: 4.5,
+						rate_reference: 'PROBE-BANK-NOTICE-2026-03-14',
+						force_majeure: false
+					}
+				}
+			},
+			...hire({
+				ref: 'xoan2',
+				name: 'Hồ Văn Xoan',
+				number: 'P-VN-153',
+				born: '1988-09-21',
+				salary: 20_000_000,
+				from: '2025-06-02'
+			}),
+			{
+				collection: 'adhoc_requests',
+				values: {
+					employment_id: '@xoan2_job',
+					catalogue_id: '@law:adhoc_catalogue:LATE_WAGE_COMPENSATION',
+					amount: 20_000_000,
+					event_date: '2026-03-20',
+					pay_period: '2026-03',
+					reason: 'February wage paid late',
+					late_wage: {
+						due_on: '2026-02-28',
+						paid_on: '2026-03-20',
+						deposit_rate: 4.5,
+						rate_reference: 'PROBE-BANK-NOTICE-2026-03-20',
+						force_majeure: true
+					}
+				}
 			}
 		],
 		period: '2026-03',
 		expected: [
 			{
 				employment: 'xuan_job',
+				lines: {
+					gross: 20_049_316,
+					net: 17_826_850,
+					LATE_WAGE_COMPENSATION: 49_316,
+					'SI.employee': 1_600_000,
+					'SI.employer': 3_500_000,
+					'HI.employee': 300_000,
+					'HI.employer': 600_000,
+					'UI.employee': 200_000,
+					'UI.employer': 200_000,
+					'PIT.employee': 122_466
+				}
+			},
+			{
+				employment: 'xuyen_job',
+				lines: {
+					gross: 20_000_000,
+					net: 17_780_000,
+					'SI.employee': 1_600_000,
+					'SI.employer': 3_500_000,
+					'HI.employee': 300_000,
+					'HI.employer': 600_000,
+					'UI.employee': 200_000,
+					'UI.employer': 200_000,
+					'PIT.employee': 120_000
+				}
+			},
+			{
+				employment: 'xoan2_job',
 				lines: {
 					gross: 20_049_316,
 					net: 17_826_850,
@@ -1420,14 +1678,15 @@ register(
 		id: 'VN-PIT-01-1',
 		profile: 'VN',
 		description:
-			'December 2025 under the law then in force: a citizen on 20,000,000 withheld on the seven-bracket table with the 11,000,000 personal deduction, and a citizen on exactly the Decree 74/2024 Region I floor of 4,960,000.',
+			'December 2025 under the law then in force: a citizen on 20,000,000 withheld on the seven-bracket table with the 11,000,000 personal deduction, a citizen on exactly the Decree 74/2024 Region I floor of 4,960,000, and a citizen on 20,000,000 paying a 2,000,000 voluntary-pension premium (deductible to 1,000,000 a month).',
 		citation: [
 			'PIT: PIT Law 04/2007/QH12 art.22 (Law 26/2012/QH13) monthly table 5% to 5m, 10% to 10m, 15% to 18m …; Resolution 954/2020/UBTVQH14 personal deduction 11,000,000: 20,000,000 − 2,100,000 − 11,000,000 = 6,900,000 → 250,000 + 190,000 = 440,000',
 			'Minimum wage: Decree 74/2024/ND-CP Region I 4,960,000 a month to 31 December 2025',
 			`${SI_CITE}: 1,600,000 / 3,500,000; 396,800 / 868,000`,
 			`${HI_CITE}: 300,000 / 600,000; 74,400 / 148,800`,
 			'UI: Law on Employment 38/2013/QH13 art.57: 1% + 1% → 200,000; 49,600',
-			'Net 20,000,000 − 2,100,000 − 440,000 = 17,460,000; 4,960,000 − 520,800 = 4,439,200'
+			'Net 20,000,000 − 2,100,000 − 440,000 = 17,460,000; 4,960,000 − 520,800 = 4,439,200',
+			'Voluntary pension, December 2025: Circular 111/2013/TT-BTC art.9(2)(b) as replaced by Circular 92/2015/TT-BTC art.15 (Official Gazette 911+912 pp.29–30) — voluntary pension premiums deducted as paid, at most 1,000,000 a month: 20,000,000 − 2,100,000 − 11,000,000 − 1,000,000 = 5,900,000 → 250,000 + 90,000 = 340,000; net 20,000,000 − 2,100,000 − 340,000 = 17,560,000'
 		],
 		company: company(),
 		inputs: [
@@ -1450,6 +1709,26 @@ register(
 				salary: 4_960_000,
 				from: '2025-06-02',
 				uiFrom: null
+			}),
+			...hire({
+				ref: 'dao',
+				name: 'Đào Văn Đạo',
+				number: 'P-VN-183',
+				born: '1986-06-06',
+				salary: 20_000_000,
+				from: '2025-06-02',
+				uiFrom: null,
+				pit: {
+					deduction_claims: [
+						{
+							period: '2025-12',
+							category: 'VOLUNTARY_PENSION',
+							amount: 2_000_000,
+							source: 'EMPLOYEE',
+							reference: 'VP-2025-12'
+						}
+					]
+				}
 			})
 		],
 		period: '2025-12',
@@ -1481,6 +1760,21 @@ register(
 					'HI.employer': 148_800,
 					'UI.employee': 49_600,
 					'UI.employer': 49_600
+				}
+			},
+			{
+				employment: 'dao_job',
+				lines: {
+					gross: 20_000_000,
+					net: 17_560_000,
+					employer_cost: 4_300_000,
+					'SI.employee': 1_600_000,
+					'SI.employer': 3_500_000,
+					'HI.employee': 300_000,
+					'HI.employer': 600_000,
+					'UI.employee': 200_000,
+					'UI.employer': 200_000,
+					'PIT.employee': 340_000
 				}
 			}
 		]
@@ -1524,6 +1818,105 @@ register(
 					'UI.employee': 200_000,
 					'UI.employer': 200_000,
 					'PIT.employee': 120_000
+				}
+			}
+		]
+	},
+	{
+		id: 'VN-SI-05-4',
+		profile: 'VN',
+		description:
+			'The 1 July 2026 reference-level step, August 2026 (no holiday): a citizen on 60,000,000 insures SI and HI on the new ceiling of 20 × 2,530,000 = 50,600,000; UI stays on the whole salary, under 20 × 5,310,000.',
+		citation: [
+			'SI: Law 41/2024/QH15 art.31 (ceiling 20 × the reference level) with Decree 161/2026/ND-CP art.3(2) — reference level 2,530,000 from 1 July 2026 (signed text p.3, https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/5/161-ndcp.signed.pdf) → 50,600,000; art.33(1) 8% = 4,048,000; art.34(1) 3% + 14% with Decree 58/2020/ND-CP art.4(1) (as amended by Decree 158/2025/ND-CP art.43(2)) 0.5% → 17.5% = 8,855,000',
+			`${HI_CITE}: 50,600,000 × 1.5% = 759,000; × 3% = 1,518,000`,
+			`${UI_CITE}: 60,000,000 × 1% = 600,000 each side`,
+			`${PIT_CITE}: 60,000,000 − 5,407,000 − 15,500,000 = 39,093,000 → 500,000 + 2,000,000 + 9,093,000 × 20% = 4,318,600`,
+			'Net 60,000,000 − 5,407,000 − 4,318,600 = 50,274,400; employer cost 8,855,000 + 1,518,000 + 600,000 = 10,973,000'
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...hire({
+				ref: 'giap',
+				name: 'Nông Văn Giáp',
+				number: 'P-VN-014',
+				born: '1978-08-08',
+				salary: 60_000_000,
+				from: '2025-06-02'
+			})
+		],
+		period: '2026-08',
+		expected: [
+			{
+				employment: 'giap_job',
+				lines: {
+					gross: 60_000_000,
+					net: 50_274_400,
+					employer_cost: 10_973_000,
+					'SI.employee': 4_048_000,
+					'SI.employer': 8_855_000,
+					'HI.employee': 759_000,
+					'HI.employer': 1_518_000,
+					'UI.employee': 600_000,
+					'UI.employer': 600_000,
+					'PIT.employee': 4_318_600
+				}
+			}
+		]
+	},
+	{
+		id: 'VN-PIT-09-1',
+		profile: 'VN',
+		description:
+			'December 2025 overtime under the old PIT law: a citizen on 18,400,000 (23 normal working days, no holiday → 100,000 an hour) works 3 hours beyond Tuesday 9 December’s normal day; only the premium above normal pay is exempt.',
+		citation: [
+			`${LC_CITE} art.55(1)(a): 18,400,000 ÷ (23 × 8) = 100,000 an hour; Labour Code 45/2019 art.98(1)(a) 150% on a normal day: 3 × 150,000 = 450,000`,
+			'PIT: PIT Law 04/2007/QH12 art.4(11) exempts only the part of overtime pay above the normal-hours wage — 3 × 50,000 = 150,000 exempt, 300,000 taxable (the whole-OT exemption of Law 109/2025 art.4(8) starts with tax year 2026); art.22 seven-bracket table, Resolution 954/2020/UBTVQH14 personal deduction 11,000,000: 18,400,000 + 300,000 − 1,932,000 − 11,000,000 = 5,768,000 → 250,000 + 76,800 = 326,800',
+			`${SI_CITE}, ${HI_CITE}: on the 18,400,000 contract salary — 1,472,000 / 3,220,000; 276,000 / 552,000`,
+			'UI: Law on Employment 38/2013/QH13 art.57: 1% + 1% → 184,000 / 184,000',
+			'Gross 18,400,000 + 450,000 = 18,850,000; net 18,850,000 − 1,932,000 − 326,800 = 16,591,200'
+		],
+		company: company(),
+		inputs: [
+			...WEEK,
+			...hire({
+				ref: 'hau',
+				name: 'Lò Văn Hậu',
+				number: 'P-VN-072',
+				born: '1992-12-09',
+				salary: 18_400_000,
+				from: '2025-06-02',
+				uiFrom: null
+			}),
+			worked(
+				'hau_job',
+				'2025-12-09',
+				[
+					['09:00', '13:00'],
+					['14:00', '18:00'],
+					['18:30', '21:30']
+				],
+				3
+			)
+		],
+		period: '2025-12',
+		expected: [
+			{
+				employment: 'hau_job',
+				lines: {
+					gross: 18_850_000,
+					net: 16_591_200,
+					employer_cost: 3_956_000,
+					BASIC: 18_400_000,
+					OVERTIME: 450_000,
+					'SI.employee': 1_472_000,
+					'SI.employer': 3_220_000,
+					'HI.employee': 276_000,
+					'HI.employer': 552_000,
+					'UI.employee': 184_000,
+					'UI.employer': 184_000,
+					'PIT.employee': 326_800
 				}
 			}
 		]

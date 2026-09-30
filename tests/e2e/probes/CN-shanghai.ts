@@ -9,7 +9,8 @@ import { register, type ProbeInput, type Row } from '../payroll-probe.ts';
  *   agency determination the operator records, CN-SH07).
  * - `unemployment_*_rate` 0.5 / 0.5: from 1 January 2026 the rates are the agency notice's, recorded as entity facts
  *   (no 2026 instrument was located, CN-SH06). December 2025 charges the law's own 0.5% / 0.5%.
- * - `housing_fund_rate` 7: the unit's elected equal rate inside 5–7% (沪公积金管委会〔2023〕3号 art.17).
+ * - `housing_fund_rate` 7: the unit's elected equal rate inside 5–7% (the band is the annual committee notice's,
+ *   沪公积金管委会〔2023〕3号 art.33; each share is base × rate, art.18; art.17 sets only the base ceiling and floor).
  * - Social insurance rounds to the fen half-up per side (law silent; owner default, CN-X-SI-ROUNDING); each
  *   housing-fund share rounds to the whole yuan half-up per side (CN-SH09, CN-SH40).
  * - Each company works a five-day week with two rest days (its own pattern; Labour Law art.38 requires at least one).
@@ -30,6 +31,8 @@ const SOURCES = {
 		'Unemployment employer 0.5%, employee 0.5% to 31 December 2025 (https://rsj.sh.gov.cn/tshbx_17729/20250103/t0035_1429759.html)',
 	unemployment2026:
 		'Unemployment 0.5% / 0.5% from 1 January 2026 is the recorded agency-notice rate, not law (CN-SH06: no 2026 instrument located)',
+	injury2025:
+		'Work injury employer-only at the assigned class rate, 0.2% recorded (class I 0.2% from 1 January 2025, 2024 Shanghai rate notice item 2, https://rsj.sh.gov.cn/tshbx_17729/20250103/t0035_1429759.html)',
 	injury:
 		'Work injury employer-only at the assigned class rate, 0.2% recorded (沪人社规〔2026〕2号, https://rsj.sh.gov.cn/tshbx_17729/20260121/t0035_1438097.html)',
 	hf2025:
@@ -230,7 +233,7 @@ register(
 			`${SOURCES.pension}: 20,000 × 8% = 1,600 / × 16% = 3,200`,
 			`${SOURCES.medical2025}: 400 / 1,800`,
 			`${SOURCES.unemployment2025}: 100 / 100`,
-			`${SOURCES.injury}: 40`,
+			`${SOURCES.injury2025}: 40`,
 			`${SOURCES.hf2025}; a transferred worker contributes from the first month on 本人当月工资 (Housing Provident Fund Regulation art.17, https://www.gov.cn/zhengce/content/202608/content_7078477.htm): 20,000 × 7% = 1,400 each side`,
 			`${SOURCES.iitResident}: 20,000 − 3,500 − 5,000 = 11,500 × 3% = 345`,
 			'Net 20,000 − 3,500 − 345 = 16,155; employer 3,200 + 1,800 + 100 + 40 + 1,400 = 6,540'
@@ -271,7 +274,7 @@ register(
 			`${SOURCES.pension}: 37,302 × 8% = 2,984.16 / × 16% = 5,968.32`,
 			`${SOURCES.medical2025}: 746.04 / 3,357.18`,
 			`${SOURCES.unemployment2025}: 186.51 / 186.51`,
-			`${SOURCES.injury}: 37,302 × 0.2% = 74.604 → 74.60`,
+			`${SOURCES.injury2025}: 37,302 × 0.2% = 74.604 → 74.60`,
 			'Housing fund 37,302 × 7% = 2,611.14 → 2,611 each side',
 			`${SOURCES.iitResident}: 50,000 − 6,527.71 − 5,000 = 38,472.29 → × 10% − 2,520 = 1,327.23; 47,527.71 − 6,527.71 − 5,000 = 36,000.00 → × 3% = 1,080.00 (the band seam, and 10% − 2,520 gives the same)`,
 			'Net 50,000 − 6,527.71 − 1,327.23 = 42,145.06 and 47,527.71 − 6,527.71 − 1,080 = 39,920.00; employer 5,968.32 + 3,357.18 + 186.51 + 74.60 + 2,611 = 12,197.61 each'
@@ -323,14 +326,14 @@ register(
 		id: 'CN-SH09-1',
 		profile: 'CN-shanghai',
 		description:
-			'December 2025, two foreign non-resident workers in Shanghai since March 2024: one on CNY9,000 whose declared 2024 averages (6,000 insurance, 2,600 fund) sit below both floors and who agreed to join the fund; one on CNY30,000 with no fund agreement, on the 25,000 non-resident band seam.',
+			'December 2025, two foreign non-resident workers employed by the Shanghai unit since March 2024 but recorded as present in China fewer than 183 days in 2025 (regional roles mostly abroad; IIT Law art.1), hence non-resident for 2025: one on CNY9,000 whose declared 2024 averages (6,000 insurance, 2,600 fund) sit below both floors and who agreed to join the fund; one on CNY30,000 with no fund agreement, on the 25,000 non-resident band seam.',
 		citation: [
 			`${SOURCES.si2025}: a declared 6,000 insures on the 7,460 floor; foreign employees are insured like citizens (Social Insurance Law art.97; CN-N25)`,
 			`${SOURCES.pension}: 7,460 → 596.80 / 1,193.60; 30,000 → 2,400 / 4,800`,
 			`${SOURCES.medical2025}: 149.20 / 671.40; 600 / 2,700`,
 			`${SOURCES.unemployment2025}: 37.30 / 37.30; 150 / 150`,
-			`${SOURCES.injury}: 7,460 × 0.2% = 14.92; 60`,
-			`${SOURCES.hf2025}: a declared 2,600 contributes on the 2,690 floor, 2,690 × 7% = 188.30 → 188 each side. A foreign worker joins only by mutual agreement (沪公积金管委会〔2023〕3号 art.5; CN-SH41): the second worker, without one, pays nothing`,
+			`${SOURCES.injury2025}: 7,460 × 0.2% = 14.92; 60`,
+			`${SOURCES.hf2025}: a declared 2,600 contributes on the 2,690 floor, 2,690 × 7% = 188.30 → 188 each side. A foreign worker joins only by mutual agreement (沪公积金管委会〔2023〕3号 art.6, 在本人与单位协商一致的基础上; CN-SH41): the second worker, without one, pays nothing`,
 			`${SOURCES.iitNonResident}: 9,000 − 5,000 = 4,000 × 10% − 210 = 190; 30,000 − 5,000 = 25,000 × 20% − 1,410 = 3,590 (the band seam)`,
 			'Net 9,000 − 971.30 − 190 = 7,838.70 and 30,000 − 3,150 − 3,590 = 23,260; employer 1,193.60 + 671.40 + 37.30 + 14.92 + 188 = 2,105.22 and 4,800 + 2,700 + 150 + 60 = 7,710'
 		],
@@ -393,7 +396,7 @@ register(
 			`${SOURCES.si2025}; ${SOURCES.pension}: 21,750 → 1,740 / 3,480`,
 			`${SOURCES.medical2025}: 435 / 1,957.50`,
 			`${SOURCES.unemployment2025}: 108.75 / 108.75`,
-			`${SOURCES.injury}: 43.50`,
+			`${SOURCES.injury2025}: 43.50`,
 			'Housing fund: a new worker contributes from the second month (Housing Provident Fund Regulation art.17, https://www.gov.cn/zhengce/content/202608/content_7078477.htm; 沪公积金管委会〔2023〕3号 arts.16–21; CN-SH43): nothing in December',
 			`${SOURCES.iitResident}: 13,000 − 2,283.75 − 5,000 = 5,716.25 × 3% = 171.4875 → 171.49`,
 			'Net 13,000 − 2,283.75 − 171.49 = 10,544.76; employer 3,480 + 1,957.50 + 108.75 + 43.50 = 5,589.75'
@@ -945,6 +948,159 @@ register(
 					BASIC: 20000,
 					...si([1600, 3200], [400, 1800], [100, 100], 40, 1400),
 					'IIT.employee': 345
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-SH05-4',
+		profile: 'CN-shanghai',
+		description:
+			'June 2026, the last month of the 2025 contribution year: a resident citizen transferred in on Monday 1 June 2026 on CNY40,000 insures and contributes on the 2025 ceiling 37,302, not the 2026 37,731 that CN-SH40-1 charges from 1 July.',
+		citation: [
+			`${SOURCES.si2025} (to 30 June 2026; the 2026 bounds start 1 July, CN-SH05): 40,000 → 37,302`,
+			`${SOURCES.pension}: 2,984.16 / 5,968.32; ${SOURCES.medical2026}: 746.04 / 3,357.18; ${SOURCES.unemployment2026}: 186.51 / 186.51; ${SOURCES.injury}: 74.604 → 74.60`,
+			`${SOURCES.hf2025} (the 2025 contribution year runs to 30 June 2026, CN-SH09); a transferred worker contributes from the first month (Regulation art.17): 37,302 × 7% = 2,611.14 → 2,611 each side`,
+			`${SOURCES.iitResident}: June is the first month employed here: 40,000 − 6,527.71 − 5,000 = 28,472.29 × 3% = 854.1687 → 854.17`,
+			'Net 40,000 − 6,527.71 − 854.17 = 32,618.12; employer 5,968.32 + 3,357.18 + 186.51 + 74.60 + 2,611 = 12,197.61'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2026-06-01'),
+			...hire('kong', {
+				name: 'Kong Rui',
+				from: '2026-06-01',
+				wages: [[40000, '2026-06-01', null]],
+				si: 40000,
+				hf: { contribution_base: 40000, first_ever_account: false }
+			})
+		],
+		period: '2026-06',
+		expected: [
+			{
+				employment: 'kong_job',
+				lines: {
+					gross: 40000,
+					net: 32618.12,
+					employer_cost: 12197.61,
+					BASIC: 40000,
+					...si([2984.16, 5968.32], [746.04, 3357.18], [186.51, 186.51], 74.6, 2611),
+					'IIT.employee': 854.17
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-SH09-3',
+		profile: 'CN-shanghai',
+		description:
+			'December 2025, a unit that elected the 5% supplementary fund: a resident citizen transferred in on 1 December on CNY10,010; the ordinary 700.70 and supplementary 500.50 shares round to the yuan separately (701 + 501 = 1,202, not 1,201.20 → 1,201).',
+		citation: [
+			`${SOURCES.si2025}; ${SOURCES.pension}: 800.80 / 1,601.60; ${SOURCES.medical2025}: 200.20 / 900.90; ${SOURCES.unemployment2025}: 50.05 / 50.05; ${SOURCES.injury2025}: 20.02`,
+			`${SOURCES.hf2025}; supplementary 1–5% equal each side where the unit elected it (沪公积金管委会〔2025〕8号; CN-SH09): 10,010 × 7% = 700.70 → 701 plus × 5% = 500.50 → 501, 1,202 each side (each share 四舍五入 separately, the centre's 2025 Q&A)`,
+			`${SOURCES.iitResident}: 10,010 − 2,253.05 − 5,000 = 2,756.95 × 3% = 82.7085 → 82.71`,
+			'Net 10,010 − 2,253.05 − 82.71 = 7,674.24; employer 1,601.60 + 900.90 + 50.05 + 20.02 + 1,202 = 3,774.57'
+		],
+		company: { facts: { ...FACTS, housing_fund_supplementary_rate: 5 } },
+		inputs: [
+			...cnWeek('2025-12-01'),
+			...hire('fang', {
+				name: 'Fang Yu',
+				from: '2025-12-01',
+				wages: [[10010, '2025-12-01', null]],
+				si: 10010,
+				hf: { contribution_base: 10010, first_ever_account: false }
+			})
+		],
+		period: '2025-12',
+		expected: [
+			{
+				employment: 'fang_job',
+				lines: {
+					gross: 10010,
+					net: 7674.24,
+					employer_cost: 3774.57,
+					BASIC: 10010,
+					...si([800.8, 1601.6], [200.2, 900.9], [50.05, 50.05], 20.02, 1202),
+					'IIT.employee': 82.71
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-SH19-2',
+		profile: 'CN-shanghai',
+		description:
+			'May 2026, a resident citizen assigned to outdoor work with the CNY300 heat allowance on the contract, transferred in on 1 May 2026 on CNY10,000: May is outside June–September, so no allowance is paid.',
+		citation: [
+			'沪人社规〔2019〕19号 items 1–3 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501; in force to 31 December 2028 by 沪人社规〔2023〕29号): the allowance is paid for June to September only: nothing in May',
+			`${SOURCES.si2025}; ${SOURCES.pension}: 800 / 1,600; ${SOURCES.medical2026}: 200 / 900; ${SOURCES.unemployment2026}: 50 / 50; ${SOURCES.injury}: 20; ${SOURCES.hf2025}: 700 each side`,
+			`${SOURCES.iitResident}: May is the first month employed here: 10,000 − 1,750 − 5,000 = 3,250 × 3% = 97.50`,
+			'Net 10,000 − 1,750 − 97.50 = 8,152.50; employer 1,600 + 900 + 50 + 20 + 700 = 3,270'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2026-04-27'),
+			...hire('tang', {
+				name: 'Tang Wei',
+				from: '2026-05-01',
+				wages: [[10000, '2026-05-01', null]],
+				si: 10000,
+				hf: { contribution_base: 10000, first_ever_account: false },
+				terms: {
+					allowances: [{ catalogue_id: '@law:allowance_catalogue:HEAT_ALLOWANCE', amount: 300 }]
+				}
+			})
+		],
+		period: '2026-05',
+		expected: [
+			{
+				employment: 'tang_job',
+				lines: {
+					gross: 10000,
+					net: 8152.5,
+					employer_cost: 3270,
+					BASIC: 10000,
+					...si([800, 1600], [200, 900], [50, 50], 20, 700),
+					'IIT.employee': 97.5
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-SH43-2',
+		profile: 'CN-shanghai',
+		description:
+			'The CN-SH43-1 first-ever worker (hired Monday 15 December 2025 on CNY21,750) in January 2026, the second month: the housing fund now charges on 本人当月工资 21,750; December runs first.',
+		citation: [
+			'Housing fund: a new worker contributes from the second month on 本人当月工资 × rate (Housing Provident Fund Regulation art.17, https://www.gov.cn/zhengce/content/202608/content_7078477.htm; 沪公积金管委会〔2023〕3号 arts.16–21; CN-SH43): 21,750 × 7% = 1,522.50 → 1,523 each side',
+			`${SOURCES.si2025}; ${SOURCES.pension}: 1,740 / 3,480; ${SOURCES.medical2025}: 435 / 1,957.50; ${SOURCES.unemployment2026}: 108.75 / 108.75; ${SOURCES.injury}: 43.50`,
+			`${SOURCES.iitResident}: January is the first month of the tax year: 21,750 − 3,806.75 − 5,000 = 12,943.25 × 3% = 388.2975 → 388.30`,
+			'Net 21,750 − 3,806.75 − 388.30 = 17,554.95; employer 3,480 + 1,957.50 + 108.75 + 43.50 + 1,523 = 7,112.75'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2025-12-01'),
+			...hire('chen', {
+				name: 'Chen Jie',
+				from: '2025-12-15',
+				wages: [[21750, '2025-12-15', null]],
+				si: 21750,
+				hf: { contribution_base: 21750, first_ever_account: true }
+			}),
+			run('2025-12')
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'chen_job',
+				lines: {
+					gross: 21750,
+					net: 17554.95,
+					employer_cost: 7112.75,
+					BASIC: 21750,
+					...si([1740, 3480], [435, 1957.5], [108.75, 108.75], 43.5, 1523),
+					'IIT.employee': 388.3
 				}
 			}
 		]

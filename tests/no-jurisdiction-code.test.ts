@@ -166,10 +166,100 @@ test('no src string equals a jurisdiction code', () => {
 		if (file.endsWith('.svelte')) tokens.push(...svelteTokens(text));
 		else scan(text, 0, text.length, tokens);
 		for (const t of tokens)
-			if (STRING.has(t.kind) && CODES.has(t.value))
+			// A string that equals a code, or opens with one as its label ('VN paternity leave …').
+			if (STRING.has(t.kind) && (CODES.has(t.value) || CODES.has(t.value.split(/[\s:]/)[0]!)))
 				offenders.push(`${rel(file)}:${lineOf(text, t.pos)} — '${t.value}'`);
 	}
 	assert.deepEqual(offenders, [], 'a jurisdiction code in src is a branch: move it to the seed');
+});
+
+/** Catalogue codes (`seed/jurisdiction/<lineage>/*_catalogue.json`) by the lineages, first segment, that seed them. */
+const CATALOGUE_LINEAGES = new Map<string, Set<string>>();
+for (const lineage of LINEAGES)
+	for (const name of readdirSync(at(`seed/jurisdiction/${lineage}`)).filter((f) =>
+		f.endsWith('_catalogue.json')
+	))
+		for (const row of JSON.parse(readFileSync(at(`seed/jurisdiction/${lineage}/${name}`), 'utf8')))
+			CATALOGUE_LINEAGES.set(
+				row.code,
+				(CATALOGUE_LINEAGES.get(row.code) ?? new Set()).add(lineage.split('-')[0]!)
+			);
+
+/** Enum values declared in `src/data` models and custom fields: engine vocabulary, not a branch. */
+const VOCABULARY = new Set(
+	walk(at('src/data'))
+		.filter((f) => /\+(model|definition)\.ts$/.test(f))
+		.flatMap((file) => {
+			const sf = ts.createSourceFile(
+				file,
+				readFileSync(file, 'utf8'),
+				ts.ScriptTarget.Latest,
+				true
+			);
+			const out: string[] = [];
+			const visit = (node: ts.Node): void => {
+				if (
+					ts.isPropertyAssignment(node) &&
+					node.name.getText(sf) === 'values' &&
+					ts.isArrayLiteralExpression(node.initializer)
+				)
+					for (const el of node.initializer.elements) if (ts.isStringLiteral(el)) out.push(el.text);
+				ts.forEachChild(node, visit);
+			};
+			visit(sf);
+			return out;
+		})
+);
+
+test('no src string equals a catalogue code only one lineage seeds', () => {
+	assert.ok(CATALOGUE_LINEAGES.get('KASAMBAHAY_FORFEITURE')?.size === 1);
+	const offenders: string[] = [];
+	for (const file of src.filter((f) => !f.startsWith(i18n))) {
+		const text = readFileSync(file, 'utf8');
+		const tokens: Token[] = [];
+		if (file.endsWith('.svelte')) tokens.push(...svelteTokens(text));
+		else scan(text, 0, text.length, tokens);
+		for (const t of tokens)
+			if (
+				STRING.has(t.kind) &&
+				CATALOGUE_LINEAGES.get(t.value)?.size === 1 &&
+				!VOCABULARY.has(t.value)
+			)
+				offenders.push(
+					`${rel(file)}:${lineOf(text, t.pos)} — '${t.value}' (${[...CATALOGUE_LINEAGES.get(t.value)!]})`
+				);
+	}
+	assert.deepEqual(offenders, [], 'a one-lineage catalogue code in src is a branch: declare it');
+});
+
+test('the declarations that replaced catalogue-code branches name seeded rows', () => {
+	for (const lineage of LINEAGES) {
+		const dir = `seed/jurisdiction/${lineage}`;
+		const adhoc: { code: string; destination: string; direction: string | null }[] = readdirSync(
+			at(dir)
+		).includes('adhoc_catalogue.json')
+			? JSON.parse(readFileSync(at(`${dir}/adhoc_catalogue.json`), 'utf8'))
+			: [];
+		const codes = new Set(adhoc.map((row) => row.code));
+		for (const version of JSON.parse(
+			readFileSync(at(`${dir}/jurisdiction_settings.json`), 'utf8')
+		)) {
+			const pay = version.work_rules?.wages?.results_pay ?? {};
+			for (const code of [
+				...(pay.levy_unclassified_codes ?? []),
+				...(pay.results_wage_codes ?? []),
+				...(pay.zero_results_code == null ? [] : [pay.zero_results_code])
+			])
+				assert.ok(codes.has(code), `${dir} ${version.id}: results_pay names unseeded ${code}`);
+		}
+		// RA 10361 s.32: the forfeiture takes unpaid salary, so a flagged class is a NET deduction.
+		for (const row of adhoc.filter((r) => 'reduces_unpaid_salary' in r))
+			assert.deepEqual([row.destination, row.direction], ['NET', 'SUBTRACT'], `${dir} ${row.code}`);
+	}
+	const ph = JSON.parse(readFileSync(at('seed/jurisdiction/PH/adhoc_catalogue.json'), 'utf8'));
+	const forfeiture = ph.filter((row: { code: string }) => row.code === 'KASAMBAHAY_FORFEITURE');
+	assert.ok(forfeiture.length > 0);
+	for (const row of forfeiture) assert.equal(row.reduces_unpaid_salary, true, row.id);
 });
 
 test('no src identifier or string names a jurisdiction', () => {

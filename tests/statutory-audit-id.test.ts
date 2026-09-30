@@ -139,6 +139,12 @@ test('ID audit — Kesehatan floor, ceiling and the six-month foreigner (Perpres
 				{ key: 'FLOOR', wage: 5_000_000 },
 				// Between floor and cap: 1% / 4% of 11,000,000 = 110,000 / 440,000.
 				{ key: 'MID', wage: 11_000_000 },
+				// Part month (tracker ID-161: art.30(1)/32(2)–(3) are silent on it; the month's paid
+				// wage is lifted to the whole floor). Joiners on 15 January are paid 17 of 31 days:
+				// 10,000,000 → 5,483,870.97, under the 5,938,885 UMK → 59,389 / 237,555;
+				// 11,000,000 → 6,032,258.06, over it → 1% 60,322.58 → 60,323, 4% 241,290.32 → 241,290.
+				{ key: 'JOIN-10M', wage: 10_000_000, hire_date: '2026-01-15' },
+				{ key: 'JOIN-11M', wage: 11_000_000, hire_date: '2026-01-15' },
 				// art.32(1): cap 12,000,000 → 120,000 / 480,000, at and above.
 				{ key: 'CAP', wage: 12_000_000 },
 				{ key: 'CAP+1', wage: 12_000_001 },
@@ -169,6 +175,8 @@ test('ID audit — Kesehatan floor, ceiling and the six-month foreigner (Perpres
 	);
 	expectStatutory(book, 'FLOOR', 'KESEHATAN', 59_389, 237_555);
 	expectStatutory(book, 'MID', 'KESEHATAN', 110_000, 440_000);
+	expectStatutory(book, 'JOIN-10M', 'KESEHATAN', 59_389, 237_555);
+	expectStatutory(book, 'JOIN-11M', 'KESEHATAN', 60_323, 241_290);
 	expectStatutory(book, 'CAP', 'KESEHATAN', 120_000, 480_000);
 	expectStatutory(book, 'CAP+1', 'KESEHATAN', 120_000, 480_000);
 	expectStatutorySkipped(book, 'TKA-3M', 'KESEHATAN');

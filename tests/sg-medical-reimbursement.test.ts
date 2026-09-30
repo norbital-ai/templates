@@ -108,7 +108,12 @@ test('a mismatched treatment or dependant is refused at collection admission and
 		{ solely_aesthetic: true },
 		{ practitioner_qualified: false },
 		{ amount_incurred: 99 },
-		{ patient: 'OTHER', relationship_from: '2020-01-01', relationship_recognised: true },
+		{
+			patient: 'OTHER',
+			relationship_from: '2020-01-01',
+			relationship_recognised: true,
+			relationship_reference: 'Statutory declaration'
+		},
 		{
 			patient: 'FOSTER_CHILD',
 			relationship_from: '2020-01-01',
@@ -163,10 +168,11 @@ test('medical claim inputs require a positive incurred amount and relationship e
 		admit({ ...valid, amount: 0, facts: medical({ amount_incurred: 0 }) }),
 		/Enter the positive amount actually incurred/
 	);
-	// A dependant with no relationship start never qualifies (the start is what para.3 dates).
+	// A dependant with no relationship start never qualifies (the start is what para.3 dates); the
+	// missing input is named before the qualification rule runs.
 	await assert.rejects(
 		admit({ ...valid, facts: medical({ patient: 'FOSTER_CHILD', relationship_recognised: true }) }),
-		/does not satisfy its claim qualification rule/
+		/When the patient relationship began is required/
 	);
 	await assert.rejects(
 		admit({

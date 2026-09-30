@@ -78,6 +78,7 @@ const settings = collection('jurisdiction_settings', {
 							'evidence',
 							'raised_by',
 							'counts_toward',
+							'reduces_unpaid_salary',
 							'request_requirements',
 							'request_facts'
 						]

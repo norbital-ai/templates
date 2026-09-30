@@ -1399,15 +1399,15 @@ register(
 		id: 'MY-HRDA06-1',
 		profile: 'MY',
 		description:
-			'An optional registrant that went above its class maximum earlier in 2026 and is back to eight Malaysian employees: s.15(5) keeps the 1% to the end of the year.',
+			'An optional registrant that went above its class maximum in March 2026 (its last 1% year is 2026) and is back to eight Malaysian employees in May 2026: s.15(5) keeps the 1% to the end of the year.',
 		citation: [
-			`${HRD}: s.15(4)–(5): 1% × 3,000 = 30.00 through the current year; HRD Corp Employers’ Circular 5/2018 example (https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf)`,
-			`${EPF_A}: RM390 / RM330; ${SOCSO}: row 34; ${EIS}: row 34; ${PCB}: nil`,
+			`${HRD}: s.15(4)–(5): the count exceeded the Part II maximum in March 2026 (declared as hrd_optional_last_high_year 2026) and has decreased to eight; the rate remains 1% × 3,000 = 30.00 until the end of 2026; HRD Corp Employers’ Circular 5/2018 example (https://hrdcorp.gov.my/wp-content/uploads/2021/03/EMP-CIRCULAR-NO-5_2018.pdf)`,
+			`${EPF_A}: RM390 / RM330; ${SOCSO}: row 34; ${EIS}: row 34 (May 2026, before SKBBK from the June 2026 contribution month); ${PCB}: May, n = 7, K2 = 330, P = 2,670 × 8 − 9,000 = 12,360, [(12,360 − 5,000) × 1% − 400] ÷ 8 < 0: nil`,
 			'Net: 2,649.35; employer cost 447.55 + 30 = 477.55'
 		],
 		company: hrd('OPTIONAL', 8, { hrd_optional_last_high_year: 2026 }),
 		inputs: [...officeWeek('2024-01-01'), ...citizen('crossed', 'Syafiq Crossed', 3000)],
-		period: '2026-01',
+		period: '2026-05',
 		expected: [
 			{
 				employment: 'crossed_job',
@@ -1434,7 +1434,7 @@ register(
 		description:
 			'A registered employer in a P.U.(A) 13/2026 education class (MSIC 85302) with twelve Malaysian employees: no levy for January 2026.',
 		citation: [
-			'P.U.(A) 13/2026 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3268260/PUA%2013%20(2026).pdf) under Act 612 s.19: registered employers in the scheduled education classes are exempt from the ss.14–15 levy from 15 January to 31 December 2026; HRD Corp Employers’ Circular 1/2026 applies it to the January–December 2026 contribution months (https://hrdcorp.gov.my/wp-content/uploads/2026/01/Employers-Circular-No-01-2026.pdf)',
+			'P.U.(A) 13/2026 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3268260/PUA%2013%20(2026).pdf) under Act 612 s.19: registered employers in the scheduled education classes are exempt from the ss.14–15 levy from 15 January to 31 December 2026 (para 1(2)). The Order is silent on a contribution month that straddles 15 January; recorded default (MY-HRD11): the levy is one monthly charge on the month’s wages (s.14(1)), so the whole January 2026 contribution month is exempt — the reading HRD Corp Employers’ Circular 1/2026 applies to the January–December 2026 contribution months (https://hrdcorp.gov.my/wp-content/uploads/2026/01/Employers-Circular-No-01-2026.pdf)',
 			`${EPF_A}: RM390 / RM330; ${SOCSO}: row 34; ${EIS}: row 34; ${PCB}: nil`,
 			'Net: 2,649.35; employer cost 447.55'
 		],
@@ -1499,7 +1499,7 @@ register(
 		description:
 			'A part-time citizen (four hours a day, five days a week) on RM1,200 at a compulsory HRD employer: EPF, SOCSO and EIS as for anyone, no HRD levy.',
 		citation: [
-			'HRD: the part-time exemption recorded as MY-HRD12 (effective 1 October 2010: part-time wages exempt) under Act 612 s.19 (https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%20612%20-%20Reprint%202017.pdf)',
+			'HRD: HRD Corp Employers’ Circular 19/2010 (https://hrdcorp.gov.my/wp-content/uploads/2021/03/19-EMP-CIRCULAR-NO-19_2010.pdf): from 1 October 2010 part-time workers’ wages are exempt from the levy. SOURCE-BLOCKED (MY-HRD12): Act 612 s.2 "employee" (any citizen employed for wages under a contract of service, not a domestic servant) and s.14(1) carry no part-time exclusion, and the s.19 Gazette order the circular implies has not been located (https://lom.agc.gov.my/ilims/upload/portal/akta/LOM/EN/Act%20612%20-%20Reprint%202017.pdf); this nil levy has no primary source yet',
 			`${EPF_A}: "1,180.01 to 1,200.00" RM156 / RM132`,
 			`${SOCSO}: row 16 RM20.15 / RM5.75; ${EIS}: row 16 RM2.30 each; ${PCB}: nil`,
 			'Minimum wage: P.U.(A) 376/2024 para 5(1) RM8.72 an hour; RM1,200 for 20 hours a week (86.67 hours a month) is RM13.85 an hour',
@@ -1808,7 +1808,7 @@ register(
 		description:
 			'A non-resident foreign specialist on a six-week contract (1 February–13 March 2026, in Malaysia 1 February–15 March) on RM6,000: employment exercised in Malaysia for not more than sixty days is exempt, so no MTD.',
 		citation: [
-			`${ITA_SCH6} para 21: the income of a non-resident from an employment exercised in Malaysia for a period or periods not exceeding sixty days in a calendar year is exempt; 1 February to 15 March 2026 is 43 days. ${PCB}, E(9): exempt income is excluded from remuneration for MTD: nil`,
+			`${ITA_SCH6} para 21: the income of a non-resident from an employment exercised in Malaysia for a period or periods not exceeding sixty days in a calendar year is exempt; the stay is recorded as employment exercised here, clipped to the contract 1 February–13 March 2026: 41 days (28 through the February run's 28 February). Para 22(b) does not apply: not a public entertainer. ${PCB}, E(9): exempt income is excluded from remuneration for MTD: nil`,
 			`${EPF_F}: 120 + 120; ${SOCSO}: row 64 RM104.15 / RM29.75; EIS: none`,
 			'Net: 6,000 − 120 − 29.75 = 5,850.25; employer cost 224.15'
 		],
@@ -1837,6 +1837,7 @@ register(
 					employee_id: '@specialist',
 					jurisdiction_code: 'MY',
 					period: { from: '2026-02-01', to: '2026-03-15' },
+					employment_exercised: true,
 					reference: 'Passport stamps 1 February and 15 March 2026'
 				}
 			}

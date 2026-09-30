@@ -484,6 +484,7 @@
 			recordLabel: t('component.work_days'),
 			buildPayload: schedulingImportPayload,
 			importedCount: schedulingImportDays,
+			overwritten: (output) => output.overwritten,
 			afterImport: warnHolidaysWithoutOvertime
 		});
 		importing = false;

@@ -159,7 +159,9 @@ function longFormAttendanceRows(table: SheetTable): readonly AttendanceImportRow
 		const work_date = reader.calendarDate('work_date') ?? '';
 		const clock_in = reader.clockTime('clock_in');
 		const clock_out = reader.clockTime('clock_out');
-		if (clock_in == null && clock_out != null) reader.reject('clock_in', 'a local time as HH:mm');
+		// a bad clock_in was already rejected by clockTime; only a blank one is rejected here, so each problem is named once
+		if (reader.text('clock_in') == null && clock_out != null)
+			reader.reject('clock_in', 'a local time as HH:mm');
 		return clock_in == null
 			? null
 			: { employee_number, work_date, clock_in, ...(clock_out == null ? {} : { clock_out }) };

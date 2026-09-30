@@ -63,6 +63,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
 | `employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
@@ -145,6 +146,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.DAY_PAY` | The part of DAY_PAY paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -222,6 +224,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
 | `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
@@ -304,6 +307,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.DAY_PAY` | The part of DAY_PAY paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -423,6 +427,7 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
 | `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
@@ -505,6 +510,7 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.DAY_PAY` | The part of DAY_PAY paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -597,7 +603,7 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 
 Used by: `statutory_contributions.assessed_on` and `ordinary_on` — one scheme’s wage.
 
-Bare names: `BASE`, `OVERTIME`, `NIGHT_PREMIUM`, `OVERTIME_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT`, `INCENTIVE`, `NIGHT_WAGE`, `ALLOWANCES`, `ADHOC`, `CLAIMS`.
+Bare names: `BASE`, `OVERTIME`, `DAY_PAY`, `NIGHT_PREMIUM`, `OVERTIME_PREMIUM`, `ABSENCE`, `NO_PAY_LEAVE`, `ENCASHMENT`, `INCENTIVE`, `NIGHT_WAGE`, `ALLOWANCES`, `ADHOC`, `CLAIMS`.
 
 Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.elections.<key>`, `scheme.child_claims.<key>`, `scheme.deductions.<key>`, `scheme.deductions_current.<key>`, `scheme.deductions_prior.<key>`, `scheme.deductions_prior_employer.<key>`, `scheme.deduction_claim_counts.<key>`, `scheme.deduction_claims_missing_event.<key>`, `scheme.deduction_claims_negative_event.<key>`, `scheme.deductions_last_year.<key>`, `scheme.deductions_two_years_ago.<key>`, `person.company.facts.<key>`, `person.facts.<key>`, `person.period.leave_full_days.<key>`, `person.period.leave_days.<key>`, `person.period.leave_pay.<key>`, `person.employment.exit_facts.<key>`, `person.terms.facts.<key>`.
 
@@ -624,6 +630,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
 | `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
@@ -706,6 +713,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.DAY_PAY` | The part of DAY_PAY paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -808,6 +816,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `history.<code>.has_opening` | Whether a selected prior-employer declaration exists, including an all-zero one |
 | `BASE` | The salary line |
 | `OVERTIME` | Every overtime and incentive line |
+| `DAY_PAY` | Band day pay posted to its own line (`bands[].line`): a day the law prices but does not count as overtime; outside BASE and OVERTIME |
 | `NIGHT_PREMIUM` | The night premium line |
 | `OVERTIME_PREMIUM` | The part of every overtime line above the ordinary hour: amount less hours × ordinary hour |
 | `ABSENCE` | Unexplained absence and every unpaid leave day |
@@ -883,6 +892,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `person.employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
 | `person.employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
 | `person.employment.risk_class` | The employment risk class, or empty |
@@ -965,6 +975,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `person.wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `person.wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `person.wage_floor_pay.DAY_PAY` | The part of DAY_PAY paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `person.wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -1122,6 +1133,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
 | `employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
@@ -1204,6 +1216,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.DAY_PAY` | The part of DAY_PAY paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
@@ -1289,6 +1302,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
 | `employee.presence_linked_days` | Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b)) |
 | `employee.presence_years_90` | Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii)) |
+| `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
 | `employment.risk_class` | The employment risk class, or empty |
@@ -1371,6 +1385,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `wage_floor` | The region’s minimum wage, or 0 when the wages order excludes this person |
 | `wage_floor_pay.BASE` | The part of BASE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.OVERTIME` | The part of OVERTIME paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
+| `wage_floor_pay.DAY_PAY` | The part of DAY_PAY paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.NIGHT_PREMIUM` | The part of NIGHT_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.OVERTIME_PREMIUM` | The part of OVERTIME_PREMIUM paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |
 | `wage_floor_pay.ABSENCE` | The part of ABSENCE paid for days on which the contract’s month is at or below the floor of the version in force that day (a minimum-wage earner’s days); dated work-day lines by their date, the rest by the share of paid days; 0 outside payroll |

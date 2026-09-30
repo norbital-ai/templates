@@ -57,6 +57,25 @@ type ContractAssessment = {
 	readonly calculation: Parameters<typeof contribute>[0];
 };
 
+/**
+ * Run one employment's step so a refusal names whose record to complete: a refused message that
+ * does not already carry the employee number is prefixed with it; anything else is rethrown as is.
+ */
+export function naming<T>(employeeNumber: string, body: () => T): T {
+	try {
+		return body();
+	} catch (error) {
+		if (
+			error instanceof Error &&
+			Predicate.hasProperty(error, 'kind') &&
+			error.kind === 'refused' &&
+			!error.message.includes(employeeNumber)
+		)
+			refuse(`${employeeNumber}: ${error.message}`);
+		throw error;
+	}
+}
+
 /** Allocate a rounded charge proportionally; tied fractional cents follow contract-id order. */
 function allocate(amount: number, weights: readonly number[]): number[] {
 	const total = weights.reduce((sum, value) => sum + value, 0);
@@ -119,15 +138,20 @@ export function assessContributions(
 			}
 		}
 		if (ordered.length === 1) {
-			result.set(first.employment.id, contribute(input));
+			result.set(
+				first.employment.id,
+				naming(first.employment.employee_number, () => contribute(input))
+			);
 			continue;
 		}
 		const accumulations = ordered.map((contract) => contract.calculation.accumulation);
-		const charges = contribute({
-			...input,
-			accumulation: sumAccumulations(accumulations),
-			parts: accumulations
-		});
+		const charges = naming(first.employment.employee_number, () =>
+			contribute({
+				...input,
+				accumulation: sumAccumulations(accumulations),
+				parts: accumulations
+			})
+		);
 		for (const contract of ordered) result.set(contract.employment.id, []);
 		// By scheme, not by position: a scheme the person is outside produced no charge at all.
 		for (const charge of charges) {
@@ -703,7 +727,13 @@ function workingDayDeadline(
  * version's floor: a wage order binds from its effective date (PH NCR-28 from 26 September 2026),
  * so the days before it are owed the old floor and only the days after it the new one.
  */
-export function minimumWageIssues(options: {
+export function minimumWageIssues(options: Parameters<typeof floorIssues>[0]): RunIssue[] {
+	return options.bundles.flatMap((bundle) =>
+		naming(bundle.employment.employee_number, () => floorIssues({ ...options, bundles: [bundle] }))
+	);
+}
+
+function floorIssues(options: {
 	readonly configuration: Configuration;
 	readonly bundles: readonly EmploymentBundle[];
 	readonly measured?: readonly MeasuredEmployment[];
@@ -758,7 +788,10 @@ export function minimumWageIssues(options: {
 						(measured?.adjustments.some(
 							(line) =>
 								line.input.family === 'ADHOC' &&
-								['TASK_MONTHLY_WAGE', 'TRIP_MONTHLY_WAGE'].includes(line.catalogueComponent.code)
+								(
+									configuration.jurisdiction.work_rules.wages?.results_pay
+										?.levy_unclassified_codes ?? []
+								).includes(line.catalogueComponent.code)
 						) ||
 							measured?.base.some(
 								(line) => line.catalogueComponent.output === 'salary_top_up' && line.amount > 0
@@ -911,6 +944,19 @@ function* floorTerms(
  * `weekly_daily_hourly_alternative` refuses a daily contract; measure first if one ever does.
  */
 export function raiseToMinimumWage(
+	configuration: Configuration,
+	bundles: readonly EmploymentBundle[]
+): { bundles: EmploymentBundle[]; issues: RunIssue[] } {
+	const raised = bundles.map((bundle) =>
+		naming(bundle.employment.employee_number, () => raiseFloors(configuration, [bundle]))
+	);
+	return {
+		bundles: raised.flatMap((row) => row.bundles),
+		issues: raised.flatMap((row) => row.issues)
+	};
+}
+
+function raiseFloors(
 	configuration: Configuration,
 	bundles: readonly EmploymentBundle[]
 ): { bundles: EmploymentBundle[]; issues: RunIssue[] } {
@@ -1156,12 +1202,8 @@ function wageAgainstFloor(
 				refuse(
 					`${bundle.employment.employee_number}: fixed allowances on task, trip or commission terms need a sourced minimum-wage classification before the monthly comparator can run.`
 				);
-			const codes = [
-				'TASK_MONTHLY_WAGE',
-				'TRIP_MONTHLY_WAGE',
-				'COMMISSION_MONTHLY',
-				'COMMISSION_IRREGULAR'
-			];
+			const resultsPay = configuration.jurisdiction.work_rules.wages?.results_pay;
+			const codes = resultsPay?.results_wage_codes ?? [];
 			if (
 				term.pay_frequency !== 'MONTHLY' ||
 				bundle.workDays.some(
@@ -1184,7 +1226,7 @@ function wageAgainstFloor(
 			const attestations = bundle.payRequests.filter(
 				(request) =>
 					request.family === 'ADHOC' &&
-					request.catalogueComponent.code === 'RESULTS_ZERO_MONTH' &&
+					request.catalogueComponent.code === resultsPay?.zero_results_code &&
 					(request.pay_period === monthKey(asOf) ||
 						(request.event_date >= monthWindow.start && request.event_date <= monthWindow.end))
 			);
@@ -1663,7 +1705,9 @@ function classifiedWageKey(configuration: WageConfiguration, person: PersonConte
 	const domestic = person.employment.type === 'DOMESTIC';
 	const sector = person.terms.worksite_sector.trim();
 	if (worksite === '' || (!domestic && sector === ''))
-		refuse('Record the exact worksite and wage-order sector before pricing this minimum wage.');
+		refuse(
+			'Record the exact worksite (employment_terms.worksite) and wage-order sector (employment_terms.worksite_sector) before pricing this minimum wage.'
+		);
 	const rows = classification.rows.filter(
 		(row) =>
 			row.worksite === worksite &&
@@ -1762,10 +1806,12 @@ function sectorCode(
 	const editions = wages.sector_editions ?? [];
 	const latest = editions.at(-1);
 	if (!new RegExp(wages.sector_code_pattern ?? '\\S').test(code))
-		refuse('Record the worksite sector code before pricing a sector wage.');
+		refuse(
+			'Record the worksite sector code (employment_terms.worksite_sector) before pricing a sector wage.'
+		);
 	if (!editions.includes(edition) || wages.sector_edition == null)
 		refuse(
-			`Record a supported worksite sector edition (${editions.join(', ')}) and a sealed wage-order edition before payroll.`
+			`Record a supported worksite sector edition (${editions.join(', ')}) in employment_terms.facts.worksite_sector_edition and a sealed wage-order edition before payroll.`
 		);
 	if (
 		editions.length > 1 &&
@@ -1810,7 +1856,9 @@ export function bindingMinimumWage(
 		(localRows.length > 0 || strictSector) &&
 		!new RegExp(wages.sector_code_pattern ?? '\\S').test(sector)
 	)
-		refuse(`Record the worksite sector code before pricing the sector minimum wage at "${place}".`);
+		refuse(
+			`Record the worksite sector code (employment_terms.worksite_sector) before pricing the sector minimum wage at "${place}".`
+		);
 	const sectorRows = localRows.filter((row) => row.sector_codes.includes(sector));
 	if (sectorRows.length === 0) {
 		if (
@@ -1865,6 +1913,17 @@ function workplace(
 
 /** The person's monthly rate for this window; an unresolved mid-month worksite change refuses. */
 export function windowMinimumWage(
+	configuration: Configuration,
+	window: { readonly start: IsoDate; readonly end: IsoDate },
+	termsHistory: EmploymentBundle['termsHistory'],
+	employeeNumber?: string
+): number {
+	return naming(employeeNumber ?? '', () =>
+		windowWage(configuration, window, termsHistory, employeeNumber)
+	);
+}
+
+function windowWage(
 	configuration: Configuration,
 	window: { readonly start: IsoDate; readonly end: IsoDate },
 	termsHistory: EmploymentBundle['termsHistory'],
@@ -2008,7 +2067,15 @@ export function configuredMonthlyWageAverage(
 	return average;
 }
 
-export function prepareContributionAssessment(options: {
+export function prepareContributionAssessment(
+	options: Parameters<typeof contributionAssessment>[0]
+): ContractAssessment {
+	return naming(options.measured.bundle.employment.employee_number, () =>
+		contributionAssessment(options)
+	);
+}
+
+function contributionAssessment(options: {
 	readonly measured: MeasuredEmployment;
 	readonly configuration: Configuration;
 	readonly projection: ContractAssessment['calculation']['projection'];

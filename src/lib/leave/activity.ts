@@ -651,7 +651,9 @@ export function planLeaveActivity(
 					(date) => rules.catalogueOn(date).entitlement.availability === 'PER_EVENT'
 				)
 			)
-				refuse('Per-event leave requires the dated event that grants it.');
+				refuse(
+					`Per-event leave requires the dated event that grants it: ${rules.selected.code} entry ${input.reference} names no event date.`
+				);
 			if (pointNumber(range.end) < pointNumber(range.start))
 				refuse('Leave must end after it starts.');
 			if (range.start.date < rules.hire || (rules.exit != null && range.end.date > rules.exit))
@@ -1001,14 +1003,18 @@ export function planLeaveActivity(
 	};
 	const proposed = { id, ...fields, allocations, approval_id: null };
 	const ownEntries = [...sameLeave, proposed];
-	assertLeaveBalanceIntegrity(
-		ownEntries,
-		affectedWindows(null, ownEntries, rules),
-		rules.entitlementAt,
-		undefined,
-		rules.carryFrom
-	);
-	if (pools.pool != null) {
+	// Only a debit can overdraw. A row that gives days back (a time-off reversal) is not judged on
+	// an overdraft other entries already hold: the repair of a broken entry must stay open.
+	const debits = allocations.some((row) => row.days < 0 || (row.hours ?? 0) < 0);
+	if (debits)
+		assertLeaveBalanceIntegrity(
+			ownEntries,
+			affectedWindows(null, ownEntries, rules),
+			rules.entitlementAt,
+			undefined,
+			rules.carryFrom
+		);
+	if (debits && pools.pool != null) {
 		const poolEntries = [...pools.pool.entries, { ...proposed, leave_code: rules.selected.code }];
 		assertLeaveBalanceIntegrity(
 			poolEntries,

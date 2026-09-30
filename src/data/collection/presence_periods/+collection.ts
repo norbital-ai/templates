@@ -4,8 +4,14 @@ import { dateKey } from '../../../lib/iso-day.js';
 
 const presencePeriods = collection('presence_periods', {
 	read: { fields: 'all' },
-	create: { input: { columns: ['employee_id', 'jurisdiction_code', 'period', 'reference'] } },
-	update: { input: { columns: ['jurisdiction_code', 'period', 'reference'] } },
+	create: {
+		input: {
+			columns: ['employee_id', 'jurisdiction_code', 'period', 'employment_exercised', 'reference']
+		}
+	},
+	update: {
+		input: { columns: ['jurisdiction_code', 'period', 'employment_exercised', 'reference'] }
+	},
 	delete: {}
 });
 export default presencePeriods;

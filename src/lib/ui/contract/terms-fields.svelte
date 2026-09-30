@@ -144,6 +144,20 @@
 			{@render coded('tax_residency', t('component.tax_residency'), true)}
 			<Field name="notice_days" label={t('component.notice_days')} />
 			<Field name="paid_rest_days" label={t('component.paid_rest_days')} />
+			<!-- Absence decided before the workspace's first work day, read by an absence-forfeiture test -->
+			<Field
+				name="opening_attendance_through"
+				label={t('component.opening_attendance_through')}
+				help={t('component.opening_attendance_hint')}
+			/>
+			<Field
+				name="opening_unexcused_absence_days"
+				label={t('component.opening_unexcused_absence_days')}
+			/>
+			<Field
+				name="opening_attendance_reference"
+				label={t('component.opening_attendance_reference')}
+			/>
 			<Field name="proration" label={t('component.proration')} />
 			<!-- TH Minimum Wage Notice 14: the worksite and sector the daily rate is read at -->
 			<Field name="worksite" label={t('component.worksite')} />

@@ -909,9 +909,10 @@ function assessedBase(options: {
 			reads: options.reads,
 			ordinaryReads: options.ordinaryReads
 		}),
-		// The six reserved lines are magnitudes; the formula writes their sign.
+		// The reserved lines are magnitudes; the formula writes their sign.
 		BASE: options.accumulation.reserved.BASE,
 		OVERTIME: options.accumulation.reserved.OVERTIME,
+		DAY_PAY: options.accumulation.reserved.DAY_PAY,
 		NIGHT_PREMIUM: options.accumulation.reserved.NIGHT_PREMIUM,
 		OVERTIME_PREMIUM: options.accumulation.reserved.OVERTIME_PREMIUM,
 		ABSENCE: options.accumulation.reserved.ABSENCE,

@@ -278,7 +278,7 @@ test('MY-nihon — every planned hour at its column multiple: 1.5 off day, 2.0 r
 	assert.deepEqual(price('OFF_DAY', 10, true), [['OVERTIME', 'WORKDAY-OT-1.5X', 10, 199.95]]);
 	assert.deepEqual(price('REST_DAY', 12), [['OVERTIME', 'RESTDAY-OT-2.0X', 12, 319.92]]);
 	assert.deepEqual(price('PUBLIC_HOLIDAY', 11), [
-		['OVERTIME', 'HOLIDAY-2.0X', 9, 239.94],
+		['HOLIDAY_WORK', 'HOLIDAY-2.0X', 9, 239.94],
 		['OVERTIME', 'HOLIDAY-OT-3.0X', 2, 79.98]
 	]);
 });

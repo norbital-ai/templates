@@ -10,6 +10,8 @@ import { termsSummary } from '../../../lib/derived-titles.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { settingsInForce, stableJson } from '../../../lib/jurisdiction_settings.js';
 import { entityFactsFault, sealedLineages } from '../../../lib/entity-facts.js';
+import { readLeaveContext } from '../../../lib/leave/context.js';
+import { departureFactsMissing } from '../../../lib/leave/exit-settlement.js';
 
 /** Contracts. A referenced contract is frozen and undeletable (the delete guard reads its references). */
 const employments = collection('employments', {
@@ -93,15 +95,16 @@ const lastDayOf = (range: unknown) => {
 
 /**
  * One contract per employee and entity on any date; every referenced contract is frozen; departure closes the range
- * once and only its notes stay writable after; a paid final payroll fixes the departure inputs; a referenced contract
+ * once (an end not yet passed may only move earlier) and only its notes stay writable after; a paid final payroll fixes the departure inputs; a referenced contract
  * is never deleted (the delete guard reads the same references).
  */
-employments.transform(async (inputs, { existing, db, refuse }) => {
+employments.transform(async (inputs, { existing, db, refuse, today }) => {
 	type Candidate = {
 		id?: string;
 		employee_id?: string | null;
 		company_id?: string | null;
 		effective_range?: unknown;
+		exit_reason?: string | null;
 		exit_facts?: Readonly<Record<string, unknown>> | null;
 	};
 	const candidates: Candidate[] = inputs.map((input, index) => ({
@@ -118,8 +121,31 @@ employments.transform(async (inputs, { existing, db, refuse }) => {
 			)
 			.map(([key]) => key);
 	};
+	// An end not yet passed may move earlier (an early departure); that is not a reopening.
+	const shortens = (index: number) => {
+		const stored = existing[index];
+		if (stored == null || '$delete' in inputs[index]!) return false;
+		const was = readRange(stored.effective_range);
+		const next = readRange(candidates[index]!.effective_range);
+		return (
+			was?.end != null &&
+			next?.end != null &&
+			dateKey(was.end) >= dateKey(today) &&
+			dateKey(next.start) === dateKey(was.start) &&
+			dateKey(next.end) < dateKey(was.end)
+		);
+	};
 	const declared = candidates.filter(
 		(row, index) => !('$delete' in inputs[index]!) && Object.keys(row.exit_facts ?? {}).length > 0
+	);
+	// A departure being recorded or revised: its owed declarations are judged against the leaver on the last day.
+	const leaving = candidates.flatMap((row, index) =>
+		lastDayOf(row.effective_range) != null &&
+		changedKeys(index).some(
+			(key) => key === 'exit_reason' || key === 'exit_facts' || key === 'effective_range'
+		)
+			? [index]
+			: []
 	);
 	const departures = inputs.flatMap((_, index) =>
 		changedKeys(index).some((key) => key === 'exit_reason' || key === 'exit_facts')
@@ -133,7 +159,8 @@ employments.transform(async (inputs, { existing, db, refuse }) => {
 		const changed = changedKeys(index);
 		const closed = lastDayOf(stored.effective_range) != null;
 		const free = changed.every(
-			(key) => DEPARTURE_NOTES.has(key) || (!closed && key === 'effective_range')
+			(key) =>
+				DEPARTURE_NOTES.has(key) || (key === 'effective_range' && (!closed || shortens(index)))
 		);
 		return changed.length > 0 && !free ? [stored.id] : [];
 	});
@@ -152,7 +179,9 @@ employments.transform(async (inputs, { existing, db, refuse }) => {
 	const nested = candidates.filter((_, index) => nestedTermsFacts(index).length > 0);
 	const entityIds = [
 		...new Set(
-			[...declared, ...nested].flatMap((row) => (row.company_id == null ? [] : [row.company_id]))
+			[...declared, ...nested, ...leaving.map((index) => candidates[index]!)].flatMap((row) =>
+				row.company_id == null ? [] : [row.company_id]
+			)
 		)
 	];
 	// One wave: the entities whose law judges departures, paid finals, the person's other contracts, and what
@@ -207,6 +236,35 @@ employments.transform(async (inputs, { existing, db, refuse }) => {
 			const fault = factValueFault(field!, value);
 			if (fault != null) refuse(fault, { field: 'exit_facts' });
 		}
+	}
+	for (const index of leaving) {
+		const row = candidates[index]!;
+		const lastDay = lastDayOf(row.effective_range)!;
+		const code = companies.find((company) => company.id === row.company_id)?.settings_code;
+		const owed = (
+			(code == null ? null : settingsInForce(versions, code, lastDay))?.exit_facts as
+				readonly FactKey[] | undefined
+		)?.some((field) => field.required || field.required_when != null);
+		if (owed !== true) continue;
+		const context = await readLeaveContext(db, [row.id!]);
+		const missing = departureFactsMissing(
+			{
+				...context,
+				employments: context.employments.map((stored) =>
+					stored.id === row.id
+						? {
+								...stored,
+								effective_range: readRange(row.effective_range),
+								exit_reason: row.exit_reason ?? null,
+								exit_facts: row.exit_facts ?? null
+							}
+						: stored
+				)
+			},
+			row.id!,
+			lastDay
+		);
+		if (missing != null) refuse(missing, { field: 'exit_facts' });
 	}
 	for (const [index, row] of candidates.entries()) {
 		if ('$delete' in inputs[index]!) continue;
@@ -263,12 +321,14 @@ employments.transform(async (inputs, { existing, db, refuse }) => {
 		if (
 			!('$delete' in input) &&
 			lastDayOf(stored.effective_range) != null &&
-			changedKeys(index).includes('effective_range')
+			changedKeys(index).includes('effective_range') &&
+			!shortens(index)
 		)
-			// A closed contract never reopens; a rehire is a new contract.
-			refuse('A closed contract cannot be reopened. Create a new contract for a rehire.', {
-				field: 'effective_range'
-			});
+			// A passed end never moves and a set end never extends; a rehire is a new contract.
+			refuse(
+				'A closed contract cannot be reopened or extended; an end not yet passed may only move earlier. Create a new contract for a rehire.',
+				{ field: 'effective_range' }
+			);
 		if (changing.includes(stored.id)) {
 			const fault = contractReferenceFault(references, stored.id);
 			if (fault != null) refuse(fault);

@@ -125,6 +125,11 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii))'
 	},
 	{
+		path: 'employee.employment_days',
+		description:
+			'Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a))'
+	},
+	{
 		path: 'employment.type',
 		description:
 			'PERMANENT | CONTRACT | PROBATION | INTERN | CONSULTANT | PART_TIME | APPRENTICE | DOMESTIC'
@@ -458,6 +463,7 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 		[
 			'BASE',
 			'OVERTIME',
+			'DAY_PAY',
 			'NIGHT_PREMIUM',
 			'OVERTIME_PREMIUM',
 			'ABSENCE',
@@ -597,7 +603,8 @@ const PERSON_BLANK = {
 		presence_recorded: false,
 		presence_days: 0,
 		presence_linked_days: 0,
-		presence_years_90: 0
+		presence_years_90: 0,
+		employment_days: 0
 	},
 	employment: {
 		type: '',
@@ -669,6 +676,7 @@ const PERSON_BLANK = {
 	wage_floor_pay: {
 		BASE: 0,
 		OVERTIME: 0,
+		DAY_PAY: 0,
 		NIGHT_PREMIUM: 0,
 		OVERTIME_PREMIUM: 0,
 		ABSENCE: 0,
@@ -1635,10 +1643,15 @@ const PAYMENT_CONTEXT: ExpressionContext = {
 	}
 };
 
-/** The six reserved lines: engine money, magnitudes with the sign written in the formula. */
+/** The reserved lines: engine money, magnitudes with the sign written in the formula. */
 const RESERVED_LINES: readonly ContextField[] = [
 	{ path: 'BASE', description: 'The salary line' },
 	{ path: 'OVERTIME', description: 'Every overtime and incentive line' },
+	{
+		path: 'DAY_PAY',
+		description:
+			'Band day pay posted to its own line (`bands[].line`): a day the law prices but does not count as overtime; outside BASE and OVERTIME'
+	},
 	{ path: 'NIGHT_PREMIUM', description: 'The night premium line' },
 	{
 		path: 'OVERTIME_PREMIUM',
@@ -1732,7 +1745,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 			...Object.fromEntries(DEDUCTION_TOTAL_KEYS.map((key) => [key, {}]))
 		},
 		produced: {
-			EPF: {
+			SCHEME: {
 				base: 0,
 				employee: 0,
 				employee_normal: 0,
@@ -1744,6 +1757,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		history: {},
 		BASE: 0,
 		OVERTIME: 0,
+		DAY_PAY: 0,
 		NIGHT_PREMIUM: 0,
 		OVERTIME_PREMIUM: 0,
 		ABSENCE: 0,
@@ -1839,7 +1853,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 			...Object.fromEntries(DEDUCTION_TOTAL_KEYS.map((key) => [key, {}]))
 		},
 		produced: {
-			EPF: {
+			SCHEME: {
 				base: 0,
 				employee: 0,
 				employee_normal: 0,

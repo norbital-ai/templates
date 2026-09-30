@@ -5,7 +5,8 @@ import { everyField } from '../../../../lib/every-field.js';
  * back to the pattern; a sheet on its own replaces only its half of every day. Refused before any
  * write: a named person with a day unshifted while employed, or a payslip-taken day restated
  * differently. Overtime totals split at the statutory limits (`splitPlannedOvertime`). The writes
- * are one act: new days created whole, stored days updated in one batch, emptied days deleted.
+ * are one act: new days created whole, stored days the file changes updated in one batch, emptied days deleted; each
+ * row is written once, and every stored day changed or removed is returned by name (`overwritten`).
  */
 import type { ActionCtx, Id } from '@norbital-ai/bolt';
 import { PlainDate } from '@norbital-ai/std/date';
@@ -805,22 +806,40 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 				...halvesOf(file)
 			})) as never
 		);
-	const updates = [...existingByKey]
-		.filter(([at]) => !untouched.has(at))
-		.map(([at, row]) => ({ target: row.id, set: halvesOf(fileDays.get(at), row.facts) }));
-	if (updates.length > 0) await ctx.act('work_days.update', updates as never);
 	// A stored day the file does not name keeps only the halves the file does not carry; one left with nothing is removed.
-	const emptied = [...existingByKey]
-		.filter(([at]) => !fileDays.has(at))
+	const emptied = [...existingByKey].filter(
+		([at, row]) =>
+			!fileDays.has(at) &&
+			!row.absence_decision_recorded &&
+			(carriesPlan || row.shift_definition_id == null) &&
+			(carriesClock || row.worked_intervals == null) &&
+			(carriesOvertime || row.approved_overtime_hours + row.incentive_hours === 0)
+	);
+	const removedKeys = new Set(emptied.map(([at]) => at));
+	// Every other stored day is restated from the file, and written only when that changes it: the import is the month of
+	// record, so an in-app edit the file does not repeat is overwritten, and reported by name rather than silently.
+	const updates = [...existingByKey]
+		.filter(([at]) => !untouched.has(at) && !removedKeys.has(at))
+		.map(([at, row]) => ({ row, set: halvesOf(fileDays.get(at), row.facts) }))
 		.filter(
-			([, row]) =>
-				!row.absence_decision_recorded &&
-				(carriesPlan || row.shift_definition_id == null) &&
-				(carriesClock || row.worked_intervals == null) &&
-				(carriesOvertime || row.approved_overtime_hours + row.incentive_hours === 0)
-		)
-		.map(([, row]) => row.id);
-	if (emptied.length > 0) await ctx.act('work_days.delete', { target: emptied });
+			({ row, set }) =>
+				(set.shift_definition_id !== undefined &&
+					set.shift_definition_id !== row.shift_definition_id) ||
+				(set.worked_intervals !== undefined &&
+					!sameIntervals(set.worked_intervals, row.worked_intervals)) ||
+				(set.approved_overtime_hours !== undefined &&
+					(set.approved_overtime_hours !== row.approved_overtime_hours ||
+						set.incentive_hours !== row.incentive_hours ||
+						set.overtime_consented_at !== row.overtime_consented_at ||
+						(set.facts !== undefined && !sameFacts(set.facts, row.facts))))
+		);
+	if (updates.length > 0)
+		await ctx.act(
+			'work_days.update',
+			updates.map(({ row, set }) => ({ target: row.id, set })) as never
+		);
+	if (emptied.length > 0)
+		await ctx.act('work_days.delete', { target: emptied.map(([, row]) => row.id) });
 
 	// ── rosters of record: one per person the Roster sheet names; gone for those it drops ──
 	if (carriesPlan) {
@@ -848,7 +867,14 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 	return {
 		days: fileDays.size,
 		created: creates.length,
-		updated: updates.length - creates.length,
-		removed: emptied.length
+		updated: updates.length,
+		removed: emptied.length,
+		/** The stored days this import changed or removed, `EMP on YYYY-MM-DD`: what a re-import reverted. */
+		overwritten: [...updates.map(({ row }) => row), ...emptied.map(([, row]) => row)]
+			.map(
+				(row) =>
+					`${numberByEmployment.get(row.employment_id) ?? row.employment_id} on ${row.work_date}`
+			)
+			.toSorted()
 	};
 }

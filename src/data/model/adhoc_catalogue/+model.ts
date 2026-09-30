@@ -27,6 +27,11 @@ export default model({
 		request_facts: { kind: 'custom', of: 'fact_keys', default: [] },
 		/** The schemes whose `ADHOC` base every line of this class enters; empty enters none. */
 		counts_toward: { kind: 'custom', of: 'code_list' },
+		/**
+		 * A line of this class comes off the unpaid salary later classes read as
+		 * `entry.unpaid_salary`: a forfeiture of unpaid salary (PH RA 10361 s.32) spends what it takes.
+		 */
+		reduces_unpaid_salary: { kind: 'bool', optional: true },
 		/** MANUAL is HR; SEPARATION is raised for a leaver in the final period. */
 		raised_by: { kind: 'enum', values: ['MANUAL', 'SEPARATION'], default: 'MANUAL' }
 	},

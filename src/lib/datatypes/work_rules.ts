@@ -140,6 +140,13 @@ const workRateBandValueSchema = Schema.Struct({
 	 */
 	component: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isMinLength(1)))),
 	/**
+	 * The line an overtime-day band posts to instead of `OVERTIME`, where the law prices the day but
+	 * does not count the pay as overtime: it settles as additional normal-time wages, read as `BASE`
+	 * (MY EA s.60D(3)(a)(i) holiday work within the normal hours is not overtime under s.60A(3)(b),
+	 * so it is EPF wages — KWSP Employer FAQ 21). Absent is `OVERTIME`. Not with `component`.
+	 */
+	line: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isMinLength(1)))),
+	/**
 	 * Inert: nothing reads it. It once named the day limit above which planned OT became incentive;
 	 * every overtime limit now splits (`splitsOvertime`). Kept, and still compiled, only because
 	 * sealed versions (MY-nihon, VN) store it.
@@ -400,6 +407,9 @@ export const workRulesValueSchema = Schema.Struct({
 		);
 		if (enforcedFault != null)
 			return `Limit ${enforcedFault.key}: payroll enforces only a weekly NORMAL_HOURS or ALL_OVERTIME_HOURS limit, or the rest limit.`;
+		const doubled = rules.bands.find((band) => band.line != null && band.component != null);
+		if (doubled != null)
+			return `Band ${doubled.label}: a normal-day band posts to its component; it cannot name a line too.`;
 		const ruleKeys = (rules.day_rules ?? []).map((rule) => rule.key);
 		if (new Set(ruleKeys).size !== ruleKeys.length) return 'Day rules: each key is declared once.';
 		const limitKeys = new Set(rules.limits.map((limit) => limit.key));

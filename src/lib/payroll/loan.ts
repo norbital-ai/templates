@@ -15,7 +15,7 @@ type LoanComponent = CatalogueComponent &
 /** A loan with the catalogue row it was agreed against — the revision it pins, read at GATHER. */
 export type PreparedLoan = Loan & { readonly catalogueComponent: LoanComponent };
 export type LoanRepayment = WorkspaceRow<'loan_repayments'>;
-import { defaultPayPeriod, type PayCadence } from '../../lib/payroll/run/period.js';
+import type { PayCadence } from '../../lib/payroll/run/period.js';
 import { dateKey } from '../iso-day.js';
 import { monthBounds, shiftPeriod } from '../../lib/payroll/run/dates.js';
 import { cents } from '../../lib/payroll/run/rounding.js';
@@ -181,8 +181,15 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		 * unlinked and is recovered here. A person's arrears are not swept in one month: each
 		 * payslip links at most one repayment per agreement, the earliest still unlinked, so a
 		 * monthly plan stays monthly when runs resume after a gap.
+		 *
+		 * "By now" is the salary period this payslip pays, not the entry cutoff: an instalment is a
+		 * date the agreement fixed, not a late-reported event, so it is taken on the payslip whose
+		 * period contains its due date (a 25 January instalment at a 21st-cutoff company is
+		 * January's, paid 31 January). Mapping it through `defaultPayPeriod` pushed every
+		 * instalment after the cutoff a month late, past the final payslip of a leaver in that
+		 * month and past the advance-recovery deadline below, which reads the due dates themselves.
 		 */
-		if (defaultPayPeriod(due, options.cutoffDay, options.cadence) > options.period) continue;
+		if (due > options.bundle.window.salary.end) continue;
 		if (takenLoanIds.has(repayment.loan_id)) continue;
 		if (component.destination !== 'NET' || component.direction !== 'SUBTRACT')
 			refuse(

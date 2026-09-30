@@ -3722,3 +3722,33 @@ test('Singapore — at a sub-monthly cadence the employee CPF share is taken in 
 	assert.ok(charged.slice(0, -1).every(([employee, employer]) => employee === 0 && employer === 0));
 	assert.deepEqual(charged.at(-1), [600, 510]);
 });
+
+test('Singapore — a missing SDL election refuses naming the employee and the election, never pricing SDL at zero (F22)', () => {
+	// The bank's OPS SG employments carry no SDL elections. SDL Act s.5 levies 0.25% of every
+	// employee's monthly total wages (Second Schedule, $2 minimum, $11.25 maximum): the service-scope
+	// election decides whether the month is levied at all, so its absence refuses rather than prices.
+	const run = (drop: boolean) =>
+		assessStatutory(
+			{
+				code: 'SG',
+				period: '2026-06',
+				people: [{ key: 'SG-NOSDL', wage: 3000, age: 30, citizenship: 'CITIZEN', race: 'CHINESE' }]
+			},
+			(world) => {
+				if (!drop) return;
+				const sdl = new Set(
+					world.statutory_contributions.filter((row) => row.code === 'SDL').map((row) => row.id)
+				);
+				for (const fact of world.employment_statutory_facts)
+					if (sdl.has(fact.statutory_contribution_id))
+						delete (fact.status as { elections: Record<string, unknown> }).elections
+							.sdl_service_scope;
+			}
+		);
+	// Golden: 0.25% × 3,000 = 7.50, inside the $800–$4,500 band.
+	expectStatutory(run(false), 'SG-NOSDL', 'SDL', 0, 7.5);
+	assert.throws(
+		() => run(true),
+		/SG-NOSDL: SDL: Singapore SDL service scope for the calendar month is required before calculation\./
+	);
+});

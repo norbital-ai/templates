@@ -1062,11 +1062,13 @@ test('Indonesia — the statutory leave ladder on every version', () => {
 	}
 });
 
-test('Indonesia — the Kesehatan floor is on the wage per month, not on a part month’s prorated base (Perpres 82/2018 art.32(2))', () => {
+test('Indonesia — a part month’s Kesehatan wage paid under the UMK is lifted to the whole UMK (Perpres 82/2018 art.32(2); ID-161)', () => {
+	// Perpres 82/2018 art.30(1) prices “Gaji atau Upah per bulan” and art.32(2) sets its lowest
+	// bound at the UMK/UMP; it is silent on a part month. Recorded default (tracker ID-161,
+	// 2026-09-30): the base is the wage paid for the month, lifted to the whole floor when under it.
 	// A joiner on 15 January at 10,000,000 is paid 17 of 31 days — 5,483,870.97, under the
-	// 5,729,876 UMP — but the contract is above the floor: 1% / 4% of the wage paid, 54,839 /
-	// 219,355. A contract at 5,000,000 is under it, and its part month is lifted in the same
-	// proportion: 5,729,876 × 17 ÷ 31 = 3,142,190 → 31,422 / 125,688.
+	// 5,729,876 UMP — and a contract at 5,000,000 is paid 2,741,935.48: both are charged on the UMP,
+	// 1% 57,298.76 → 57,299 and 4% 229,195.04 → 229,195.
 	const book = assessStatutoryUnvalidated({
 		...idWorld('2026-01'),
 		people: [
@@ -1074,8 +1076,8 @@ test('Indonesia — the Kesehatan floor is on the wage per month, not on a part 
 			{ key: 'ID-JOIN-5M', wage: 5_000_000, hire_date: '2026-01-15' }
 		]
 	});
-	expectStatutory(book, 'ID-JOIN-10M', 'KESEHATAN', 54_839, 219_355);
-	expectStatutory(book, 'ID-JOIN-5M', 'KESEHATAN', 31_422, 125_688);
+	expectStatutory(book, 'ID-JOIN-10M', 'KESEHATAN', 57_299, 229_195);
+	expectStatutory(book, 'ID-JOIN-5M', 'KESEHATAN', 57_299, 229_195);
 });
 
 test('Indonesia — biaya jabatan is capped per month of income, the join month whole (PMK 168/2023 art.10(2))', async () => {
@@ -1696,20 +1698,21 @@ test('Indonesia — a resigner on 15 June: final pay, untaken leave as UPH, and 
 	);
 	const charge = charges(slip);
 	// The UPH is not upah. JHT, JKK and JKM on the contract's monthly rate, 10,000,000 (owner rule
-	// 2026-09-28, ID-161); JP and Kesehatan on the 5,000,000 paid.
+	// 2026-09-28, ID-161); JP on the 5,000,000 paid; Kesehatan on the 5,000,000 paid lifted to the
+	// DKI UMP 5,729,876 (ID-161 default 2026-09-30, Perpres 82/2018 art.32(2)): 57,299 / 229,195.
 	assert.deepEqual(charge.JHT, [200_000, 370_000]);
 	assert.deepEqual(charge.JKK, [0, 54_000]);
 	assert.deepEqual(charge.JKM, [0, 30_000]);
 	assert.deepEqual(charge.JP, [50_000, 100_000]);
-	assert.deepEqual(charge.KESEHATAN, [50_000, 200_000]);
+	assert.deepEqual(charge.KESEHATAN, [57_299, 229_195]);
 	// PP 68/2009 art.1 angka 4: uang pesangon includes uang penggantian hak, paid in connection with
 	// the end of service — so the leave UPH takes the final rates (0% to Rp50,000,000, art.4(a))
 	// and stays out of the PPh 21 annual base.
 	assert.deepEqual(charge.PPH21_FINAL_SEVERANCE, [0, 0]);
 	// PMK 168/2023 (DJP Lampiran example, Tuan D): the month a resident employee stops working is the
 	// last tax period, reckoned on actual year income with the whole PTKP. Year gross = 5 × 10,484,000
-	// + June 5,284,000 (5,000,000 + 54,000 + 30,000 + 200,000) = 57,704,000; biaya jabatan 5% =
-	// 2,885,200 (under 6 × 500,000); JP 550,000; JHT 1,200,000; PTKP 54,000,000 → PKP −931,200 → 0.
+	// + June 5,313,195 (5,000,000 + 54,000 + 30,000 + 229,195) = 57,733,195; biaya jabatan 5% =
+	// 2,886,659.75 (under 6 × 500,000); JP 550,000; JHT 1,200,000; PTKP 54,000,000 → PKP −903,464.75 → 0.
 	// The 1,310,500 withheld January–May is refunded.
 	assert.deepEqual(charge.PPH21, [-1_310_500, 0]);
 	// Final pay: PP 36/2021 art.55(1) pays wages at the agreed time and art.55(4) caps the interval
@@ -2804,4 +2807,29 @@ test('Indonesia — piece-rate BPJS uses three paid months, or twelve for weathe
 				`${key} ${code}`
 			);
 	}
+});
+
+test('Indonesia — a worksite without its KBLI sector code refuses naming the employee and the field (F22)', () => {
+	// The bank's KDIT worksite states no KBLI. DKI Kep. Gubernur 33 Tahun 2026 sets sector wages by
+	// five-digit KBLI (PP 36/2021 art.35D as amended by PP 49/2025), so the floor cannot be chosen
+	// without it and the run refuses rather than falling back to the UMP.
+	const world = (worksite_sector?: null) => ({
+		...idWorld('2026-01'),
+		people: [
+			{
+				key: 'ID-NOKBLI',
+				wage: 6_000_000,
+				marital_status: 'SINGLE',
+				children: 0,
+				...(worksite_sector === undefined ? {} : { worksite_sector })
+			}
+		]
+	});
+	// Golden control, KBLI 62019 (no DKI sector row): JHT 2% × 6,000,000 = 120,000 worker,
+	// 3.7% = 222,000 employer (PP 46/2015 art.16).
+	expectStatutory(assessStatutory(world()), 'ID-NOKBLI', 'JHT', 120_000, 222_000);
+	assert.throws(
+		() => assessStatutory(world(null)),
+		/ID-NOKBLI: .*worksite sector code \(employment_terms\.worksite_sector\)/
+	);
 });

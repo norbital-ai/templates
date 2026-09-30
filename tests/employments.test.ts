@@ -128,3 +128,76 @@ test('departure inputs follow the law of the last working day and are fixed by a
 	});
 	await assert.rejects(one({ exit_reason: 'DISMISSAL' }, paid), /fixed by paid final payroll/);
 });
+
+test('a departure write that leaves an owed declaration unrecorded is refused, naming the leaver', async () => {
+	const open = contract('a', '2025-01-01');
+	const tables = {
+		companies: [{ id: 'entity', settings_code: 'MY', region: null, pay_frequency: 'MONTHLY' }],
+		employees: [
+			{
+				id: 'person',
+				name: 'Aisyah Rahman',
+				gender: 'FEMALE',
+				date_of_birth: '1992-01-04',
+				nationality: 'MY',
+				marital_status: 'SINGLE',
+				solo_parent: false,
+				disabled: false,
+				race: null,
+				religion: null,
+				children: []
+			}
+		],
+		employments: [open],
+		employment_terms: [
+			{
+				id: 't',
+				employment_id: 'a',
+				approval_id: null,
+				effective_range: { from: '2025-01-01', to: null },
+				shift_pattern_id: null,
+				employment_type: 'PERMANENT',
+				residency_status: null,
+				work_classification: 'EA_COVERED',
+				base_salary: 3000,
+				currency: 'MYR',
+				statutory_work_category: 'NON_MANUAL',
+				department: null,
+				payroll_group: null,
+				paid_rest_days: false,
+				grade: null,
+				residency_since: null
+			}
+		],
+		jurisdiction_settings: [
+			{
+				...law('2025-01-01', null, []),
+				code: 'MY',
+				// EA 1955 s.21(2): a walk-out's final wages fall due by the third day after, so a resignation owes it.
+				exit_facts: [
+					{
+						key: 'terminated_without_notice',
+						type: 'boolean',
+						label: 'Left without notice',
+						required_when: 'employment.exit_reason == "RESIGNATION"'
+					}
+				]
+			}
+		]
+	};
+	const leave = (set, row = open) => transform(employments, [set], { existing: [row], tables });
+	const range = { from: '2025-01-01', to: '2026-03-31' };
+	await assert.rejects(
+		leave({ effective_range: range, exit_reason: 'RESIGNATION' }),
+		/Departure of Aisyah Rahman on 2026-03-31: Left without notice is required before calculation\./
+	);
+	await leave({
+		effective_range: range,
+		exit_reason: 'RESIGNATION',
+		exit_facts: { terminated_without_notice: false }
+	});
+	await leave({ effective_range: range, exit_reason: 'RETIREMENT' });
+	// A note on a departure recorded before the check is not a departure change.
+	const recorded = { ...open, effective_range: range, exit_reason: 'RESIGNATION' };
+	await leave({ comments: 'Handover done' }, recorded);
+});

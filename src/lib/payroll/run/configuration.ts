@@ -57,6 +57,8 @@ export type Work = WorkRules & {
  * - `RESULTS_FLOOR`    — a separately shown monthly minimum-wage top-up for results pay.
  * - `DERIVED_OVERTIME` — priced by the jurisdiction's regime from work days, never entered.
  * - `DERIVED_NORMAL`   — additional normal-time wages priced from an agreed work day.
+ * - `DERIVED_DAY`      — a day's pay a band posts to its own `line`: priced like overtime, but not
+ *                        overtime in law and not the salary (read as `DAY_PAY`).
  * - `ABSENCE`          — unexplained absence, priced from the day wage.
  */
 export type ComponentDefinition =
@@ -65,6 +67,7 @@ export type ComponentDefinition =
 	| { readonly source: 'RESULTS_FLOOR'; readonly unit: 'MONEY' }
 	| { readonly source: 'DERIVED_OVERTIME'; readonly unit: 'MONEY' }
 	| { readonly source: 'DERIVED_NORMAL'; readonly unit: 'MONEY' }
+	| { readonly source: 'DERIVED_DAY'; readonly unit: 'MONEY' }
 	| { readonly source: 'ABSENCE'; readonly unit: 'MONEY' };
 
 export type CatalogueComponent = FamilyPayItem & { readonly definition: ComponentDefinition };

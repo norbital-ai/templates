@@ -392,7 +392,7 @@ register(
 		{ sss: [250, 500], ec: 10, phic: [250, 250], hdmf: [15, 30] },
 		985,
 		790,
-		'Pag-IBIG: 1,500 is "₱1,500 or below" → employee 1% = 15, employer 2% = 30. SSS "Below 5,250" → MSC 5,000: 250 / 500, EC 10. PhilHealth floor 250 / 250. Taxable 1,500 − 515 = 985 → 0. Net 1,500 − 515 = 985; employer cost 500 + 10 + 250 + 30 = 790. A part-timer below the pro-rated floor keeps only a warning (tracker default PH-A3).',
+		'Pag-IBIG: 1,500 is "₱1,500 or below" → employee 1% = 15, employer 2% = 30. SSS "Below 5,250" → MSC 5,000: 250 / 500, EC 10. PhilHealth floor 250 / 250. Taxable 1,500 − 515 = 985 → 0. Net 1,500 − 515 = 985; employer cost 500 + 10 + 250 + 30 = 790. ₱1,500 is below the part-timer’s hour-proportionate floor (695 × 261 ÷ 12 × 20 ÷ 40 = 7,558.13, tracker PH-A3) and pays only because the exemption is recorded.',
 		{ exempt: true, type: 'PART_TIME', terms: { ordinary_hours_per_week: 20 } }
 	),
 	seam(
@@ -440,6 +440,16 @@ register(
 		2290.53,
 		'Wage Order NCR-28 s.1: ₱755 a day non-agriculture from 26 September 2026 (tracker PH-WG10; https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-NCR-28.pdf); 755 × 261 ÷ 12 = 16,421.25. SSS 16,250–16,749.99 → MSC 16,500: 825 / 1,650, EC 30. PhilHealth 16,421.25 × 5% = 821.0625 → 821.06 → 410.53 / 410.53. Pag-IBIG 200 / 200. WTAX 0 (minimum-wage earner). Net 16,421.25 − 1,435.53 = 14,985.72; employer cost 1,650 + 30 + 410.53 + 200 = 2,290.53.',
 		{ period: '2026-10' }
+	),
+	seam(
+		'PH-A3-1',
+		'A part-timer on 20 hours a week in NCR, July 2026, with no exemption recorded, paid exactly the hour-proportionate NCR-26 floor: ₱695 × 261 ÷ 12 × 20 ÷ 40 = ₱7,558.13 is met, so the run pays.',
+		7558.13,
+		{ sss: [375, 750], ec: 10, phic: [250, 250], hdmf: [151.16, 151.16] },
+		6781.97,
+		1161.16,
+		`${NCR26}. Wage Order NCR-28 ss.3–4 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-NCR-28.pdf): the daily rate is for normal working hours of at most eight a day and covers every minimum wage earner regardless of status; ${HANDBOOK} ch.1 §L: less than the normal hours is owed "a proportion thereof". Floor on a five-day week 695 × 261 ÷ 12 = 15,116.25, × 20 of 40 hours (tracker default PH-A3: the full-time week of the person's own factor) = 7,558.125, met by 7,558.13. SSS 7,250–7,749.99 → MSC 7,500: 375 / 750, EC 10. PhilHealth on the ₱10,000 floor 250 / 250. Pag-IBIG 2% × 7,558.13 = 151.1626 → 151.16 / 151.16. WTAX 0 (minimum-wage earner; 6,781.97 is under 20,833 anyway). Net 7,558.13 − (375 + 250 + 151.16) = 6,781.97; employer cost 750 + 10 + 250 + 151.16 = 1,161.16.`,
+		{ type: 'PART_TIME', terms: { ordinary_hours_per_week: 20 } }
 	),
 	{
 		...seam(
@@ -517,7 +527,7 @@ register(
 		id: 'PH-PR01-1',
 		profile: 'PH',
 		description:
-			'A joiner on Thursday 16 July 2026 on ₱30,450 is paid the 12 working days worked; SSS reads what was paid, PhilHealth and Pag-IBIG the monthly basic.',
+			'A joiner on Thursday 16 July 2026 on ₱30,450 is paid the 12 working days worked; SSS and Pag-IBIG read what was paid (Pag-IBIG at its ₱10,000 cap either way), PhilHealth the monthly basic.',
 		citation: [
 			`${HANDBOOK} ch.2 §E: a part month is paid the days worked`,
 			DAILY,
@@ -667,6 +677,96 @@ register(
 						hdmf: [200, 200],
 						wtax: 19_566.9
 					})
+				}
+			}
+		]
+	},
+	{
+		id: 'PH-PR01-4',
+		profile: 'PH',
+		description:
+			'A joiner on Thursday 16 July 2026 on ₱8,700 is paid the 12 working days worked, ₱4,800: SSS and Pag-IBIG read what was paid, below the Pag-IBIG cap; PhilHealth the monthly basic on its floor.',
+		citation: [
+			`${HANDBOOK} ch.2 §E: a part month is paid the days worked`,
+			'Daily rate 8,700 × 12 ÷ 261 = 400 (tracker PH-WG59)',
+			'Below the NCR floor only because the establishment records a regional-board exemption (RA 6727 s.4(c)): the case isolates the part-month base under the Pag-IBIG cap',
+			SSS,
+			PHIC,
+			`${HDMF}; fund salary is the basic salary and other allowances received in the month (Circular 460 p.2)`,
+			WTAX,
+			'16–17, 20–24, 27–31 July = 12 working days × 400 = 4,800. SSS "Below 5,250" → MSC 5,000: 250 / 500, EC 10. PhilHealth on the monthly basic 8,700, under the ₱10,000 floor → 250 / 250. Pag-IBIG 2% × 4,800 = 96 / 96. Taxable 4,800 − 596 = 4,204 → 0. Net 4,204; employer cost 500 + 10 + 250 + 96 = 856'
+		],
+		company: company({ minimum_wage_exemption_approved: true }),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Ana Reyes',
+				gender: 'FEMALE',
+				born: '1996-09-03',
+				from: '2026-07-16',
+				salary: 8700
+			})
+		],
+		period: '2026-07',
+		expected: [
+			{
+				employment: 'w_job',
+				lines: {
+					gross: 4800,
+					net: 4204,
+					employer_cost: 856,
+					...charges({ sss: [250, 500], ec: 10, phic: [250, 250], hdmf: [96, 96] })
+				}
+			}
+		]
+	},
+	{
+		id: 'PH-PR01-5',
+		profile: 'PH',
+		description:
+			'Two days of leave without pay (Tuesday 14 and Wednesday 15 July 2026) on ₱8,700: the pay, SSS and Pag-IBIG lose 2 × 400, below the Pag-IBIG cap; PhilHealth keeps the monthly basic.',
+		citation: [
+			`${HANDBOOK} ch.2 §E (no work, no pay)`,
+			'Daily rate 8,700 × 12 ÷ 261 = 400 (tracker PH-WG59)',
+			'Below the NCR floor only because the establishment records a regional-board exemption (RA 6727 s.4(c)): the case isolates the reduced base under the Pag-IBIG cap',
+			SSS,
+			PHIC,
+			`${HDMF}; fund salary is the basic salary and other allowances received in the month (Circular 460 p.2)`,
+			WTAX,
+			'Gross 8,700 − 800 = 7,900. SSS 7,750–8,249.99 → MSC 8,000: 400 / 800, EC 10. PhilHealth on the monthly basic 8,700, under the ₱10,000 floor → 250 / 250. Pag-IBIG 2% × 7,900 = 158 / 158. Taxable 7,900 − 808 = 7,092 → 0. Net 7,092; employer cost 800 + 10 + 250 + 158 = 1,218'
+		],
+		company: company({ minimum_wage_exemption_approved: true }),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 8700
+			}),
+			{
+				collection: 'leave_entries',
+				values: {
+					employment_id: '@w_job',
+					catalogue_id: '@law:leave_catalogue:UNPAID_LEAVE',
+					reference: 'PROBE-PH-NPL-LOW',
+					from_date: '2026-07-14',
+					to_date: '2026-07-15',
+					reason: 'Personal matter, unpaid'
+				}
+			}
+		],
+		period: '2026-07',
+		expected: [
+			{
+				employment: 'w_job',
+				lines: {
+					gross: 7900,
+					net: 7092,
+					employer_cost: 1218,
+					...charges({ sss: [400, 800], ec: 10, phic: [250, 250], hdmf: [158, 158] })
 				}
 			}
 		]
@@ -861,7 +961,7 @@ register(
 				20_000,
 				1035.86,
 				46_702.89,
-				'A ₱20,000 performance bonus in July 2026 on ₱30,450: SSS compensation, not PhilHealth basic or Pag-IBIG fund salary, and wholly inside the ₱90,000 benefits exclusion.',
+				'A ₱20,000 performance bonus in July 2026 on ₱30,450: SSS compensation, not PhilHealth basic, and wholly inside the ₱90,000 benefits exclusion; Pag-IBIG is at its ₱10,000 cap on the salary alone.',
 				'Taxable regular 30,450 − (1,750 + 761.25 + 200) = 27,738.75; the bonus is inside the ₱90,000 pool (nothing else paid in 2026) → 15% × 6,905.75 = 1,035.8625 → 1,035.86. Net 50,450 − 2,711.25 − 1,035.86 = 46,702.89'
 			],
 			[
@@ -878,7 +978,7 @@ register(
 		profile: 'PH',
 		description,
 		citation: [
-			'SSS IRR Rule 12 s.6(iii): a performance bonus is compensation (tracker PH-SS09); PhilHealth reads the monthly basic salary only; Pag-IBIG fund salary is basic plus allowances and remuneration for services (Circular 460)',
+			'SSS IRR Rule 12 s.6(iii): a performance bonus is compensation (tracker PH-SS09); PhilHealth reads the monthly basic salary only; Pag-IBIG fund salary is the basic salary and other allowances and remuneration received in the month (Circular 460 p.2), capped at ₱10,000, which the ₱30,450 salary already reaches',
 			'NIRC s.32(B)(7)(e); RR 11-2018 s.6: 13th-month pay and other benefits (productivity incentives, bonuses) are excluded up to ₱90,000 a year; the excess is taxable',
 			SSS,
 			PHIC,
@@ -1200,6 +1300,74 @@ register(
 			}
 		]
 	},
+	...(
+		[
+			[
+				'PH-HR15-3',
+				'2020-06-01',
+				91_350,
+				'A retrenchment on Friday 16 January 2026 after five years and seven months on ₱30,450: the fraction of at least six months counts as a whole year, so six half-months of separation pay.',
+				'1 June 2020 – 16 January 2026 is 5 years 7 months, the fraction of at least six months a whole year → 6 years; half a month per year 6 × 15,225 = 91,350, above the one-month minimum'
+			],
+			[
+				'PH-HR15-4',
+				'2025-05-19',
+				30_450,
+				'A retrenchment on Friday 16 January 2026 after under eight months on ₱30,450: the one-month minimum outweighs half a month for the one counted year.',
+				'19 May 2025 – 16 January 2026 is 7 months, a fraction of at least six months → 1 year; half a month 15,225 is below the one-month minimum, so 30,450'
+			]
+		] as const
+	).map(([id, from, severance, description, service]): ProbeCase => {
+		const gross = 16_800 + severance;
+		const net = Math.round((gross - 1811.25 + 1400) * 100) / 100;
+		return {
+			id,
+			profile: 'PH',
+			description,
+			citation: [
+				`Labor Code art.298: retrenchment pays one month’s pay or at least half a month per year of service, whichever is higher, a fraction of at least six months counting as one whole year: ${service}; exempt (NIRC s.32(B)(6)(b))`,
+				'PD 851 Revised Guidelines ¶6: 16,800 ÷ 12 = 1,400',
+				'Service incentive leave: no month of 2026 completed by 16 January → nothing to commute (Labor Code art.95, pro rata)',
+				`${HANDBOOK} ch.2 §E; ${DAILY}`,
+				SSS,
+				PHIC,
+				HDMF,
+				'RR 11-2018 s.2.83: the year’s compensation 16,800 − 1,811.25 = 14,988.75 → no tax',
+				`1–2, 5–9, 12–16 January = 12 working days × 1,400 = 16,800. SSS 16,750–17,249.99 → MSC 17,000: 850 / 1,700, EC 30. PhilHealth 761.25 / 761.25. Pag-IBIG 200 / 200. Gross 16,800 + ${severance} = ${gross}; net ${gross} − 1,811.25 + 1,400 = ${net}; employer cost 1,700 + 30 + 761.25 + 200 = 2,691.25`
+			],
+			company: company(),
+			inputs: [
+				...week,
+				...hire({
+					ref: 'w',
+					name: 'Juan Dela Cruz',
+					born: '1990-05-14',
+					from,
+					to: '2026-01-16',
+					salary: 30_450,
+					employment: {
+						exit_reason: 'RETRENCHMENT',
+						exit_facts: { termination_cause: 'RETRENCHMENT' }
+					}
+				}),
+				...separation('w', '2026-01-16', ['SEPARATION_PAY', 'THIRTEENTH_MONTH_PAY'])
+			],
+			period: '2026-01',
+			expected: [
+				{
+					employment: 'w_job',
+					lines: {
+						gross,
+						net,
+						employer_cost: 2691.25,
+						SEPARATION_PAY: severance,
+						THIRTEENTH_MONTH_PAY: 1400,
+						...charges({ sss: [850, 1700], ec: 30, phic: [761.25, 761.25], hdmf: [200, 200] })
+					}
+				}
+			]
+		};
+	}),
 	{
 		id: 'PH-HR16-1',
 		profile: 'PH',
@@ -1272,7 +1440,7 @@ register(
 			SSS,
 			PHIC,
 			HDMF,
-			'1–2, 5–9, 12–16, 19–20 January = 14 working days: 7,800 × 14 ÷ 21.75 = 5,020.69. SSS "Below 5,250" → MSC 5,000: 250 / 500, EC 10 (the wage is ₱5,000 or more, so the worker shares, s.30). PhilHealth on the ₱10,000 floor 250 / 250. Pag-IBIG on the monthly basic 7,800 × 2% = 156 / 156. Gross 5,020.69 + 5,379.31 = 10,400; net 10,400 − 656 + 418.39 = 10,162.39; employer cost 500 + 10 + 250 + 156 = 916'
+			'1–2, 5–9, 12–16, 19–20 January = 14 working days: 7,800 × 14 ÷ 21.75 = 5,020.69. SSS "Below 5,250" → MSC 5,000: 250 / 500, EC 10 (the wage is ₱5,000 or more, so the worker shares, s.30). PhilHealth on the ₱10,000 floor 250 / 250. Pag-IBIG on the fund salary received in the month (Circular 460 p.2; tracker PH-PR01): 5,020.69 × 2% = 100.4138 → 100.41 / 100.41. Gross 5,020.69 + 5,379.31 = 10,400; net 10,400 − (250 + 250 + 100.41) + 418.39 = 10,217.98; employer cost 500 + 10 + 250 + 100.41 = 860.41'
 		],
 		company: company(),
 		inputs: [
@@ -1300,11 +1468,11 @@ register(
 				employment: 'k_job',
 				lines: {
 					gross: 10_400,
-					net: 10_162.39,
-					employer_cost: 916,
+					net: 10_217.98,
+					employer_cost: 860.41,
 					KASAMBAHAY_INDEMNITY: 5379.31,
 					THIRTEENTH_MONTH_PAY: 418.39,
-					...charges({ sss: [250, 500], ec: 10, phic: [250, 250], hdmf: [156, 156] })
+					...charges({ sss: [250, 500], ec: 10, phic: [250, 250], hdmf: [100.41, 100.41] })
 				}
 			}
 		]
@@ -1365,7 +1533,9 @@ register(
 					from_date: from,
 					to_date: to,
 					reason: 'Statutory leave'
-				}
+				},
+				// The catalogue requires the statutory proof (solo parent ID; barangay/court certification).
+				files: { certificate_file: `${code.toLowerCase()}-certificate.pdf` }
 			}
 		],
 		period: '2026-07',
@@ -1376,6 +1546,43 @@ register(
 			}
 		]
 	})),
+	{
+		id: 'PH-HR11-2',
+		profile: 'PH',
+		description:
+			'Solo-parent leave filed without the solo parent ID is refused at input: the leave rests on the statutory proof, so the entry cannot stand without it.',
+		citation: [
+			'RA 11861 s.8 and Revised IRR: the leave is granted to a solo parent holding the Solo Parent Identification Card (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/96104)'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Liza Mendoza',
+				gender: 'FEMALE',
+				born: '1992-03-08',
+				from: '2020-01-06',
+				salary: 30_450,
+				employee: { solo_parent: true }
+			}),
+			{
+				collection: 'leave_entries',
+				values: {
+					employment_id: '@w_job',
+					catalogue_id: '@law:leave_catalogue:SOLO_PARENT_LEAVE',
+					reference: 'PROBE-PH-SOLO_PARENT_LEAVE-NO-ID',
+					from_date: '2026-07-14',
+					to_date: '2026-07-15',
+					reason: 'Statutory leave'
+				},
+				refused:
+					'^refused leave_entries\\.transform A certificate is required for this time off\\.$'
+			}
+		],
+		period: '2026-07',
+		expected: []
+	},
 
 	// ── Kasambahay floors by region (July 2026 unless stated) ─────────────────────────────────
 	domestic(

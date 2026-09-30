@@ -278,18 +278,19 @@ export async function admitPayRequests(
 						return bands.length > 0 ? 0 : decodeNumber(row.amount);
 					};
 					const context = contextOf(candidate, eventDate, component);
-					if (
-						(component.qualifies_when ?? '').trim() !== '' &&
-						!evaluateBoolean(expressionEngine, component.qualifies_when!, context)
-					)
-						refuse(`${component.code} does not satisfy its claim qualification rule.`);
 					// The class's declared request inputs, judged whole at the write: the one write surface.
+					// Before the qualification rule, so a missing input is refused by its label (F16).
 					requireFactValues(
 						component.request_facts ?? [],
 						scalarFacts(candidate.facts as Readonly<Record<string, unknown>> | null),
 						component.code,
 						(expression) => evaluateBoolean(expressionEngine, expression, context)
 					);
+					if (
+						(component.qualifies_when ?? '').trim() !== '' &&
+						!evaluateBoolean(expressionEngine, component.qualifies_when!, context)
+					)
+						refuse(`${component.code} does not satisfy its claim qualification rule.`);
 					const band = bandFor(component.bands, context);
 					if (band != null && band.limit != null) {
 						const limit = band.limit as {

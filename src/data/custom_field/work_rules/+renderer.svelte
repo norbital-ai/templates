@@ -109,6 +109,8 @@
 		when: string;
 		take_hours: string;
 		price_amount: string;
+		line: string;
+		component: string | null;
 	};
 	const projectBands = (rules: WorkRules | null): BandRow[] =>
 		(rules?.bands ?? []).map((band, index) => ({
@@ -116,7 +118,9 @@
 			label: band.label,
 			when: band.when,
 			take_hours: band.take_hours,
-			price_amount: band.price_amount
+			price_amount: band.price_amount,
+			line: band.line ?? '',
+			component: band.component ?? null
 		}));
 	let bandRows = $state<BandRow[]>([]);
 	watch(
@@ -156,6 +160,14 @@
 			renderer: ExpressionCell,
 			placeholder: 'hours * ordinary_hour * 1.5',
 			width: 210
+		},
+		// Empty posts to OVERTIME; a named line settles as normal-time wages (a holiday's normal hours).
+		{
+			key: 'line',
+			label: t('component.catalogue_section_pay_line'),
+			field: fieldOf('line', 'text'),
+			placeholder: 'OVERTIME',
+			width: 120
 		}
 	];
 	function commitBands(rows: BandRow[]): void {
@@ -166,7 +178,9 @@
 				label: row.label,
 				when: row.when,
 				take_hours: row.take_hours,
-				price_amount: row.price_amount
+				price_amount: row.price_amount,
+				...((row.line ?? '').trim() === '' ? {} : { line: row.line.trim() }),
+				...(row.component == null ? {} : { component: row.component })
 			}))
 		});
 	}
@@ -749,7 +763,9 @@
 					label: '',
 					when: '',
 					take_hours: '',
-					price_amount: ''
+					price_amount: '',
+					line: '',
+					component: null
 				})}
 				onChange={commitBands}
 			/>

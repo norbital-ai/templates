@@ -980,3 +980,112 @@ test('a part-paid row deducts the unpaid share, a fund-paid row the whole day, a
 	// The unpaid days a jurisdiction counts (VN art.33(5)): the shares, not the calendar days.
 	assert.equal(unpaidLeaveDays(prepared, { start: '2026-04-01', end: '2026-04-30' }), 1.25);
 });
+
+test('a per-event entry saved without its event date is named, and repairs by reversal and replacement', () => {
+	const context = leaveContext();
+	catalogue(context, {
+		id: id(20),
+		code: 'PATERNITY',
+		eligibility: 'event.kind == "BIRTH"',
+		entitlement: {
+			availability: 'PER_EVENT',
+			proration: 'NONE',
+			year_start_month: 1,
+			bands: [{ eligibility: '', days: 7 }]
+		}
+	});
+	const birth = (from: string, to: string, reference: string) => ({
+		...submission({ ...timeOff(from, to), event_kind: 'BIRTH', event_date: from }, reference),
+		catalogue_id: id(20)
+	});
+	assert.match(
+		refusalOf(() =>
+			planLeaveActivity(
+				context,
+				{ ...birth('2026-03-02', '2026-03-02', 'NO-DATE'), event_date: null },
+				id(39)
+			)
+		),
+		/PATERNITY entry NO-DATE names no event date/
+	);
+	// Two rows loaded as the MY-nihon bank rows were: no event, and a debit per day in the leave
+	// year that the planner never writes for a per-event grant (Mon–Tue and Wed–Thu, 2 days each).
+	const legacy = (from: string, to: string, reference: string, number: number) => {
+		const plan = planLeaveActivity(context, birth(from, to, reference), id(number));
+		return {
+			...plan,
+			id: id(number),
+			approval_id: null,
+			event_kind: null,
+			event_date: null,
+			allocations: plan.charges.map((charge) => ({
+				window: { start: '2026-01-01', end: '2026-12-31' },
+				date: charge.date,
+				days: -charge.days,
+				credit_entry_id: null
+			}))
+		};
+	};
+	const first = legacy('2026-03-02', '2026-03-03', 'LEGACY-A', 40);
+	const second = legacy('2026-03-04', '2026-03-05', 'LEGACY-B', 41);
+	context.entries.push(first, second);
+	assert.match(
+		refusalOf(() =>
+			withLeaveDeductionEligibility(
+				{ entries: [first], catalogues: context.catalogues, captures: [], schemes: [] },
+				{
+					employment: { ...context.employments[0]!, employee_number: 'E-7' },
+					servicePeriods: [{ start: '2025-01-01', end: null }],
+					employee: context.employees[0]! as never,
+					configuration: {
+						company: { id: id(3), settings_code: 'TEST', facts: {} },
+						recordedCompanyFacts: {},
+						companyFactRevisions: [],
+						lineageVersions: context.versions
+					} as never,
+					statutoryFacts: [],
+					terms: context.terms as never
+				}
+			)
+		),
+		/E-7's PATERNITY entry LEGACY-A names no event date\. Reverse it and file a replacement/
+	);
+	// The reversal carries no event, so the pool reads the person ineligible: 0 available. On
+	// 2026-03-04 the window holds 0 − 2 (A) + 2 (this reversal) − 1 (B) = −1, B's overdraft, not
+	// this row's. A reversal only gives days back, so it is not refused as overdrawn.
+	const reversal = planLeaveActivity(
+		context,
+		{
+			...submission(
+				{
+					as_adjustment_entry: true,
+					reversal_of_id: first.id,
+					effective_on: '2026-03-10',
+					days: null,
+					reason: 'Event date missing'
+				},
+				'REV-A'
+			),
+			catalogue_id: id(20)
+		},
+		id(42)
+	);
+	assert.equal(reversal.days, 2);
+	assert.deepEqual(
+		reversal.allocations.map((row) => [row.date, row.days]),
+		[
+			['2026-03-02', 1],
+			['2026-03-03', 1]
+		]
+	);
+	context.entries.push({ ...reversal, id: id(42), approval_id: null });
+	// The replacement names the birth: 2 of the event's 7 days, and no annual-pool allocation.
+	const replacement = planLeaveActivity(
+		context,
+		birth('2026-03-02', '2026-03-03', 'FIX-A'),
+		id(43)
+	);
+	assert.equal(replacement.days, 2);
+	assert.equal(replacement.event_date, '2026-03-02');
+	assert.deepEqual(replacement.allocations, []);
+});

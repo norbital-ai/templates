@@ -70,7 +70,10 @@ test('PH wage order: IV-A reclassified and small-retail tranches follow the date
 });
 
 test('PH wage order: missing, ambiguous or multi-establishment class inputs refuse', () => {
-	assert.throws(() => ncr(null, 20), /exact worksite and wage-order sector/);
+	assert.throws(
+		() => ncr(null, 20),
+		/exact worksite \(employment_terms.worksite\) and wage-order sector/
+	);
 	assert.throws(
 		() => iva('2026-10', 'Batangas/Malvar', 'OTHER_NONAGRI', 20_000),
 		/No sealed wage-order class/

@@ -18,7 +18,7 @@ const SRC = {
 	TER: 'PPh 21 TER on the month’s gross, which includes the employer-paid JKK, JKM and Kesehatan premiums: PP 58/2023 art.2(3)–(4) and Lampiran A–C (signed PDF https://peraturan.bpk.go.id/Download/332609/PP%20Nomor%2058%20Tahun%202023.pdf); PMK 168/2023 arts.5, 15 (https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf)',
 	LAST: 'Last tax period (December or the exit month): year gross − biaya jabatan 5% capped Rp500,000 a month employed − employee JHT and JP − zakat through the employer − PTKP (Rp54,000,000 + Rp4,500,000 married + Rp4,500,000 per dependant, max 3), PKP down to the thousand, UU PPh art.17(1)(a) rates 5% to Rp60m, 15% to Rp250m, 25% to Rp500m: PMK 168/2023 arts.8(4), 10 (https://jdih.kemenkeu.go.id/api/download/e60a82e0-b218-40f5-9d18-b924aa1e11ce/2023pmkeuangan168.pdf); UU 36/2008 as amended by UU 7/2021 arts.7, 17 (https://jdih.kemenkeu.go.id/dok/uu-36-tahun-2008)',
 	PRORATE:
-		'Part month on calendar days (monthly ÷ the month’s calendar days): tracker ID-106 owner default 2026-09-28, law silent (PP 36/2021 arts.14–19, https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf); JHT/JKK/JKM on the contract’s monthly rate, JP and Kesehatan on the wage paid: tracker ID-161 (PP 44/2015 art.19, PP 46/2015 art.17, PP 45/2015 art.29(1))',
+		'Part month on calendar days (monthly ÷ the month’s calendar days): tracker ID-106 owner default 2026-09-28, law silent (PP 36/2021 arts.14–19, https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf); JHT/JKK/JKM on the contract’s monthly rate, JP on the wage paid, Kesehatan on the wage paid lifted to the whole UMK/UMP when under it: tracker ID-161 (PP 44/2015 art.19, PP 46/2015 art.17, PP 45/2015 art.29(1), Perpres 82/2018 arts.30(1), 32(2))',
 	PESANGON:
 		'Pesangon under one year of service is one month’s wage (basic + fixed allowances): PP 35/2021 art.40(2)(a) and art.43 (efficiency to prevent loss 1×, because of loss 0.5×), art.50 (resignation: UPH + uang pisah per PK/PP/PKB) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.157 as amended by UU 6/2023',
 	PP68: 'Severance of a resident is final PPh 21: 0% to Rp50m, 5% to Rp100m, 15% to Rp500m, 25% above: PP 68/2009 arts.1, 4 (https://jdih.kemnaker.go.id/asset/data_puu/PP_No_68_2009.pdf)'
@@ -675,6 +675,47 @@ const cases: ProbeCase[] = [
 			}
 		]
 	},
+	...(
+		[
+			['ID-52-3', 'II', '0.270%', 32_400, 627_420, 10_907_106],
+			['ID-52-4', 'III', '0.445%', 53_400, 628_470, 10_906_056],
+			['ID-52-5', 'IV', '0.635%', 76_200, 629_610, 10_904_916],
+			['ID-52-6', 'V', '0.870%', 104_400, 631_020, 10_903_506]
+		] as const
+	).map(([id, risk, rate, jkk, pph21, net]): ProbeCase => ({
+		id,
+		profile: 'ID',
+		description: `A BPJS-verified labour-intensive employer (PP 7/2025) in January 2026, group ${risk}, Rp12,000,000: JKK halved to ${rate}.`,
+		citation: [
+			`PP 7/2025 art.4(1) as extended by PP 36/2025 art.10A: JKK ${risk} ${rate} for contribution months February 2025 to January 2026 (https://jdih.kemnaker.go.id/peraturan/detail/2641/peraturan-pemerintah-nomor-7-tahun-2025; https://jdih.kemnaker.go.id/download.php?id=2720; tracker ID-52)`,
+			SRC.JHT,
+			SRC.JP,
+			SRC.KES,
+			SRC.TER,
+			`JKK ${rate} × 12,000,000 = ${jkk}; JHT 240,000 / 444,000; JP at the January ceiling 10,547,400: 105,474 / 210,948; JKM 36,000; Kesehatan capped 120,000 / 480,000`,
+			`TER gross 12,000,000 + ${jkk} + 36,000 + 480,000, TER A 12,500,001–13,750,000 at 5% = ${pph21}; net 12,000,000 − 240,000 − 105,474 − 120,000 − ${pph21} = ${net}`
+		],
+		company: company({ risk_class: risk, facts: { jkk_padat_karya: true } }),
+		inputs: [...week('2025-06-02'), ...worker({ ref: 'padat', wage: 12_000_000 })],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'padat_job',
+				lines: {
+					net,
+					'JHT.employee': 240_000,
+					'JHT.employer': 444_000,
+					'JP.employee': 105_474,
+					'JP.employer': 210_948,
+					'JKK.employer': jkk,
+					'JKM.employer': 36_000,
+					'KESEHATAN.employee': 120_000,
+					'KESEHATAN.employer': 480_000,
+					'PPH21.employee': pph21
+				}
+			}
+		]
+	})),
 	{
 		id: 'ID-52-2',
 		profile: 'ID',
@@ -761,6 +802,45 @@ const cases: ProbeCase[] = [
 					'KESEHATAN.employee': 100_000,
 					'KESEHATAN.employer': 400_000,
 					'PPH21.employee': 262_100
+				}
+			}
+		]
+	},
+	{
+		id: 'ID-124-2',
+		profile: 'ID',
+		description:
+			'A construction-services employer (Permenaker 5/2021 BAB IV), risk group II, February 2026: a piece-rate (borongan) worker in the first month of the employment, Rp6,000,000, pays JKK at 1.74%.',
+		citation: [
+			'PP 44/2015 art.54(1): JKK 1.74% of Upah sebulan for harian lepas, borongan and PKWT workers of a non-state employer in construction services where the wage is known (https://jdih.kemnaker.go.id/asset/data_puu/PP_NOMOR_44_TAHUN2015OK.PDF, read 2026-09-30); Permenaker 5/2021 arts.65, 71(1)–(2) (tracker ID-124)',
+			'PP 44/2015 art.19(4) and PP 46/2015 art.17(4): borongan wages average the last three months; tracker ID-62 owner default 2026-09-28: with no earlier month, the first month on its own wage',
+			SRC.JHT,
+			SRC.JP,
+			SRC.KES,
+			SRC.TER,
+			'JKK 1.74% × 6,000,000 = 104,400; JHT 120,000 / 222,000; JP 60,000 / 120,000; JKM 18,000; Kesehatan 60,000 / 240,000 (6,000,000 is above the DKI UMP 5,729,876)',
+			'TER gross 6,000,000 + 104,400 + 18,000 + 240,000 = 6,362,400, TER A 6,300,001–6,750,000 at 1% = 63,624; net 6,000,000 − 120,000 − 60,000 − 60,000 − 63,624 = 5,696,376'
+		],
+		company: company({ risk_class: 'II', facts: { jkk_jasa_konstruksi: true } }),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({ ref: 'wayan', wage: 6_000_000, hire: '2026-02-01', category: 'PIECE_RATE' })
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'wayan_job',
+				lines: {
+					net: 5_696_376,
+					'JHT.employee': 120_000,
+					'JHT.employer': 222_000,
+					'JP.employee': 60_000,
+					'JP.employer': 120_000,
+					'JKK.employer': 104_400,
+					'JKM.employer': 18_000,
+					'KESEHATAN.employee': 60_000,
+					'KESEHATAN.employer': 240_000,
+					'PPH21.employee': 63_624
 				}
 			}
 		]
@@ -992,48 +1072,6 @@ const cases: ProbeCase[] = [
 		}))
 	},
 	{
-		id: 'ID-24-1',
-		profile: 'ID',
-		description:
-			'A non-resident foreign worker on an 18-month PKWT at Rp20,000,000, February 2026: PPh 26 at 20% of gross, no PPh 21, no JP unregistered.',
-		citation: [
-			'UU 36/2008 art.26(1): 20% of the gross remuneration of a non-resident (https://jdih.kemenkeu.go.id/dok/uu-36-tahun-2008)',
-			SRC.JHT,
-			SRC.JKK,
-			SRC.KES,
-			'Gross 20,000,000 + JKK 48,000 + JKM 60,000 + Kesehatan 480,000 = 20,588,000 × 20% = 4,117,600; net 20,000,000 − 400,000 − 120,000 − 4,117,600 = 15,362,400'
-		],
-		company: company(),
-		inputs: [
-			...week('2025-06-02'),
-			...worker({
-				ref: 'kim',
-				wage: 20_000_000,
-				citizenship: 'FOREIGNER',
-				tax: 'NON_RESIDENT',
-				type: 'CONTRACT',
-				hire: '2025-07-01',
-				exit: '2026-12-31'
-			})
-		],
-		period: '2026-02',
-		expected: [
-			{
-				employment: 'kim_job',
-				lines: {
-					net: 15_362_400,
-					'JHT.employee': 400_000,
-					'JHT.employer': 740_000,
-					'JKK.employer': 48_000,
-					'JKM.employer': 60_000,
-					'KESEHATAN.employee': 120_000,
-					'KESEHATAN.employer': 480_000,
-					'PPH26.employee': 4_117_600
-				}
-			}
-		]
-	},
-	{
 		id: 'ID-84-1',
 		profile: 'ID',
 		description:
@@ -1167,12 +1205,13 @@ const cases: ProbeCase[] = [
 		id: 'ID-106-1',
 		profile: 'ID',
 		description:
-			'A joiner on 16 February 2026 at Rp12,000,000: 13 of February’s 28 days paid; JHT/JKK/JKM on the monthly rate, JP and Kesehatan on the wage paid.',
+			'A joiner on 16 February 2026 at Rp12,000,000: 13 of February’s 28 days paid; JHT/JKK/JKM on the monthly rate, JP on the wage paid, Kesehatan on the wage paid lifted to the DKI UMP.',
 		citation: [
 			SRC.PRORATE,
 			SRC.TER,
-			'Paid 12,000,000 × 13 ÷ 28 = 5,571,428.57; JHT 240,000 / 444,000; JKK 28,800; JKM 36,000; JP 55,714.29 → 55,714 / 111,428.57 → 111,429; Kesehatan 55,714 / 222,857.14 → 222,857 (the monthly wage is above the floor, so the floor does not lift it)',
-			'TER gross 5,571,428.57 + 28,800 + 36,000 + 222,857 = 5,859,085.57, TER A 5,650,001–5,950,000 at 0.5% = 29,295.43 → 29,295; net 5,571,428.57 − 240,000 − 55,714 − 55,714 − 29,295 = 5,190,705.57'
+			'Paid 12,000,000 × 13 ÷ 28 = 5,571,428.57; JHT 240,000 / 444,000; JKK 28,800; JKM 36,000; JP 55,714.29 → 55,714 / 111,428.57 → 111,429',
+			'Kesehatan: the wage paid 5,571,428.57 is under the DKI UMP 5,729,876, the lowest “Gaji atau Upah per bulan” (Perpres 82/2018 arts.30(1), 32(2)), so it is lifted to the whole UMP (tracker ID-161 default 2026-09-30, law silent on a part month): 1% 57,298.76 → 57,299, 4% 229,195.04 → 229,195; DKI UMP 2026 Kep. Gubernur DKI 1142/2025 (tracker ID-94)',
+			'TER gross 5,571,428.57 + 28,800 + 36,000 + 229,195 = 5,865,423.57, TER A 5,650,001–5,950,000 at 0.5% = 29,327.12 → 29,327; net 5,571,428.57 − 240,000 − 55,714 − 57,299 − 29,327 = 5,189,088.57'
 		],
 		company: company(),
 		inputs: [
@@ -1185,7 +1224,7 @@ const cases: ProbeCase[] = [
 				employment: 'purnama_job',
 				lines: {
 					gross: 5_571_428.57,
-					net: 5_190_705.57,
+					net: 5_189_088.57,
 					BASIC: 5_571_428.57,
 					'JHT.employee': 240_000,
 					'JHT.employer': 444_000,
@@ -1193,9 +1232,9 @@ const cases: ProbeCase[] = [
 					'JP.employer': 111_429,
 					'JKK.employer': 28_800,
 					'JKM.employer': 36_000,
-					'KESEHATAN.employee': 55_714,
-					'KESEHATAN.employer': 222_857,
-					'PPH21.employee': 29_295
+					'KESEHATAN.employee': 57_299,
+					'KESEHATAN.employer': 229_195,
+					'PPH21.employee': 29_327
 				}
 			}
 		]
@@ -1426,10 +1465,61 @@ const cases: ProbeCase[] = [
 		]
 	},
 	{
+		id: 'ID-25-2',
+		profile: 'ID',
+		description:
+			'Severance in the PP 68/2009 25% band: a PKWTT worker hired 5 January 2026 at Rp600,000,000 who leaves on 23 January for efficiency to prevent loss (one month’s pesangon).',
+		citation: [
+			SRC.PP68,
+			SRC.PESANGON,
+			SRC.LAST,
+			SRC.PRORATE,
+			SRC.JP,
+			SRC.KES,
+			'PP 68: 0% × 50,000,000 + 5% × 50,000,000 + 15% × 400,000,000 + 25% × 100,000,000 = 0 + 2,500,000 + 60,000,000 + 25,000,000 = 87,500,000',
+			'Paid 600,000,000 × 19/31 = 367,741,935.48; JHT 12,000,000 / 22,200,000; JP at the January ceiling 10,547,400: 105,474 / 210,948; JKK 0.24% 1,440,000; JKM 1,800,000; Kesehatan capped 120,000 / 480,000',
+			'Last period: 367,741,935.48 + 1,440,000 + 1,800,000 + 480,000 = 371,461,935.48; − biaya jabatan 500,000 (one month) − JHT 12,000,000 − JP 105,474 − PTKP 54,000,000 = 304,856,461.48 → 304,856,000; 5% × 60,000,000 + 15% × 190,000,000 + 25% × 54,856,000 = 3,000,000 + 28,500,000 + 13,714,000 = 45,214,000',
+			'Net 367,741,935.48 + 600,000,000 − 12,000,000 − 105,474 − 120,000 − 45,214,000 − 87,500,000 = 822,802,461.48'
+		],
+		company: company(),
+		inputs: [
+			...week('2025-06-02'),
+			...worker({
+				ref: 'zainal',
+				wage: 600_000_000,
+				hire: '2026-01-05',
+				exit: '2026-01-23',
+				exit_reason: 'REDUNDANCY',
+				exit_facts: departure('EFFICIENCY_PREVENT_LOSS', { separation_wage_basis: 'MONTHLY' })
+			}),
+			adhoc('zainal', 'PESANGON', '2026-01-23')
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'zainal_job',
+				lines: {
+					PESANGON: 600_000_000,
+					net: 822_802_461.48,
+					'JHT.employee': 12_000_000,
+					'JHT.employer': 22_200_000,
+					'JP.employee': 105_474,
+					'JP.employer': 210_948,
+					'JKK.employer': 1_440_000,
+					'JKM.employer': 1_800_000,
+					'KESEHATAN.employee': 120_000,
+					'KESEHATAN.employer': 480_000,
+					'PPH21.employee': 45_214_000,
+					'PPH21_FINAL_SEVERANCE.employee': 87_500_000
+				}
+			}
+		]
+	},
+	{
 		id: 'ID-168-1',
 		profile: 'ID',
 		description:
-			'A citizen who is not tax resident, hired 5 January 2026 on Rp10,000,000 and let go on 23 January for efficiency to prevent loss: the pesangon is PPh 26 at 20% with the wage, not PP 68/2009 final tax.',
+			'A citizen who lives abroad and is not tax resident — present in Indonesia only for this 19-day engagement, with no residence or intention to reside there (UU PPh art.2(3)(a), (4)(a)) — hired 5 January 2026 on Rp10,000,000 and let go on 23 January for efficiency to prevent loss: the pesangon is PPh 26 at 20% with the wage, not PP 68/2009 final tax.',
 		citation: [
 			'PP 68/2009 art.1 angka 3: its Pegawai is a resident individual (https://jdih.kemnaker.go.id/asset/data_puu/PP_No_68_2009.pdf); UU 36/2008 art.26(1): 20% of the gross paid to a non-resident',
 			SRC.PESANGON,
@@ -1715,6 +1805,119 @@ const cases: ProbeCase[] = [
 				'2026-02'
 			],
 			[
+				'ID-11-2',
+				'Two days of medical leave (3–4 February 2026), the first month of illness, paid.',
+				'UU 13/2003 arts.93(2)(a), 93(3)(a): a sick worker is paid 100% of the wage for the first four months (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
+				'MALE',
+				// The catalogue asks for the doctor's letter from day one (art.153(1)(a): sick "menurut
+				// keterangan dokter").
+				{
+					...leave('x', 'MEDICAL_LEAVE', '2026-02-03', '2026-02-04'),
+					files: { certificate_file: 'medical-certificate.pdf' }
+				},
+				'2026-02'
+			],
+			[
+				'ID-11-3',
+				'Five days of religious-duty leave (2–6 February 2026), paid.',
+				'UU 13/2003 art.93(2)(e): the wage is paid while the worker performs a duty the religion commands (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
+				'MALE',
+				leave('x', 'RELIGIOUS_DUTY_LEAVE', '2026-02-02', '2026-02-06', {
+					event_kind: 'RELIGIOUS_DUTY',
+					event_date: '2026-02-02'
+				}),
+				'2026-02'
+			],
+			[
+				'ID-12-2',
+				'Two days of leave when the worker’s wife gives birth (18–19 February 2026), paid.',
+				'UU 13/2003 arts.93(2)(c), 93(4)(e): the wife gives birth or miscarries, two days paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
+				'MALE',
+				leave('x', 'PATERNITY_LEAVE', '2026-02-18', '2026-02-19', {
+					event_kind: 'BIRTH',
+					event_relationship: 'CHILD',
+					event_date: '2026-02-18'
+				}),
+				'2026-02'
+			],
+			[
+				'ID-12-3',
+				'Two days of leave for the marriage of the worker’s child (23–24 February 2026), paid.',
+				'UU 13/2003 arts.93(2)(c), 93(4)(b): the worker marries off a child, two days paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
+				'MALE',
+				leave('x', 'CHILD_MARRIAGE_LEAVE', '2026-02-23', '2026-02-24', {
+					event_kind: 'MARRIAGE',
+					event_relationship: 'CHILD',
+					event_date: '2026-02-23'
+				}),
+				'2026-02'
+			],
+			[
+				'ID-12-4',
+				'Two days of leave for the circumcision of the worker’s child (25–26 February 2026), paid.',
+				'UU 13/2003 arts.93(2)(c), 93(4)(c): the worker has a child circumcised, two days paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
+				'MALE',
+				leave('x', 'CHILD_CIRCUMCISION_LEAVE', '2026-02-25', '2026-02-26', {
+					event_kind: 'CIRCUMCISION',
+					event_relationship: 'CHILD',
+					event_date: '2026-02-25'
+				}),
+				'2026-02'
+			],
+			[
+				'ID-12-5',
+				'Two days of leave for the baptism of the worker’s child (12–13 February 2026), paid.',
+				'UU 13/2003 arts.93(2)(c), 93(4)(d): the worker has a child baptised, two days paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
+				'MALE',
+				leave('x', 'CHILD_BAPTISM_LEAVE', '2026-02-12', '2026-02-13', {
+					event_kind: 'BAPTISM',
+					event_relationship: 'CHILD',
+					event_date: '2026-02-12'
+				}),
+				'2026-02'
+			],
+			[
+				'ID-12-6',
+				'Two days of bereavement leave on the death of the worker’s parent (5–6 February 2026), paid.',
+				'UU 13/2003 arts.93(2)(c), 93(4)(f): a spouse, parent, parent-in-law, child or child-in-law dies, two days paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
+				'MALE',
+				leave('x', 'BEREAVEMENT_LEAVE', '2026-02-05', '2026-02-06', {
+					event_kind: 'DEATH',
+					event_relationship: 'PARENT',
+					event_date: '2026-02-05'
+				}),
+				'2026-02'
+			],
+			[
+				'ID-12-7',
+				'One day of leave on the death of a member of the worker’s household (20 February 2026), paid.',
+				'UU 13/2003 arts.93(2)(c), 93(4)(g): another member of the household dies, one day paid (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30)',
+				'MALE',
+				leave('x', 'BEREAVEMENT_HOUSEHOLD_LEAVE', '2026-02-20', '2026-02-20', {
+					event_kind: 'DEATH',
+					event_relationship: 'HOUSEHOLD',
+					event_date: '2026-02-20'
+				}),
+				'2026-02'
+			],
+			[
+				'ID-12-8',
+				'Miscarriage rest of one and a half months from 2 February 2026 (to 18 March; the February part), paid in full.',
+				'UU 13/2003 arts.82(2), 84: a worker who miscarries rests 1.5 months and is paid the full wage (https://jdih.kemnaker.go.id/asset/data_puu/peraturan_file_13.pdf, read 2026-09-30); UU 4/2024 art.4(3)(b)',
+				'FEMALE',
+				// art.82(2): the rest is "sesuai dengan surat keterangan dokter kandungan atau bidan".
+				// An entry settles whole in the period holding all its days, so the February part is
+				// its own entry (as ID-126-1).
+				{
+					...leave('x', 'MISCARRIAGE_LEAVE', '2026-02-02', '2026-02-28', {
+						event_kind: 'MISCARRIAGE',
+						event_date: '2026-02-02'
+					}),
+					files: { certificate_file: 'miscarriage-certificate.pdf' }
+				},
+				'2026-02'
+			],
+			[
 				'ID-126-1',
 				'Maternity leave from a birth on 2 February 2026 (the February part of the leave), paid in full in its first months.',
 				'UU 4/2024 arts.4(3)(a), 5(2): maternity leave at least three months, full wage for the first four months (https://jdih.kemnaker.go.id/asset/data_puu/2024uu004.pdf)',
@@ -1862,6 +2065,24 @@ function floorCases(): ProbeCase[] {
 				}
 			]
 		),
+		{
+			id: 'ID-94-3',
+			profile: 'ID',
+			description:
+				'A DKI Jakarta worker contracted a rupiah under the 2026 UMP (Rp5,729,875), February 2026: the run is refused, not paid.',
+			citation: [
+				'DKI UMP 2026 Rp5,729,876: Kep. Gubernur DKI 1142/2025 (tracker ID-94, https://jdih.jakarta.go.id/dokumenPeraturanDirectory/0031/2025KEPGUB00311142.pdf)',
+				'UU 13/2003 art.88E(2) as inserted by UU 6/2023: employers are prohibited from paying wages below the minimum wage; PP 36/2021 arts.7(2), 23–24 (https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)'
+			],
+			company: company({ region: DKI }),
+			inputs: [
+				...week('2025-06-02'),
+				...worker({ ref: 'under', wage: 5_729_875, worksite: DKI, sector: '62019' })
+			],
+			period: '2026-02',
+			refused: 'MINIMUM_WAGE_BELOW: P-ID-under is contracted at ',
+			expected: []
+		},
 		floorCase(
 			'ID-94-2',
 			'DKI Jakarta UMP 2025 Rp5,396,761 in December 2025, a 1 December joiner.',

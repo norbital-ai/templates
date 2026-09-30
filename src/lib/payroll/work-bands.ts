@@ -193,10 +193,15 @@ export function nightAddsFor(options: {
 	return { ordinary: read(premium.ordinary_add), overtime: read(premium.overtime_add) };
 }
 
+/** The line a band's rows post to: a normal-day band's component, else its own line, else OVERTIME. */
+export const lineOf = (band: Pick<WorkRateBand, 'component' | 'line'>): string =>
+	band.component ?? band.line ?? OVERTIME_LINE;
+
 /**
  * Price one day's bands. Rows are ordered by band; an incentive row follows the row it came from.
  * The overtime bands price by default; `normalDay` prices the normal-day bands instead (those
- * naming a `component`), whose rows carry that component as their line.
+ * naming a `component`), whose rows carry that component as their line. An overtime band naming a
+ * `line` posts there instead of OVERTIME.
  */
 export function priceWorkDay(options: {
 	readonly work: WorkRules;
@@ -255,12 +260,12 @@ export function priceWorkDay(options: {
 			? [
 					{
 						workDayId: day.workDayId,
-						line: band.component ?? OVERTIME_LINE,
+						line: lineOf(band),
 						label: band.label,
 						hours: 0,
 						amount,
 						rate: 0,
-						ruleKey: `${band.component ?? OVERTIME_LINE}:${band.label}`
+						ruleKey: `${lineOf(band)}:${band.label}`
 					}
 				]
 			: [];
@@ -289,12 +294,12 @@ export function priceWorkDay(options: {
 		if (mainAmount > 0)
 			rows.push({
 				workDayId: day.workDayId,
-				line: slice.band.component ?? OVERTIME_LINE,
+				line: lineOf(slice.band),
 				label: slice.band.label,
 				hours: slice.hours - funnelHours,
 				amount: mainAmount,
 				rate: slice.hours > 0 ? amount / slice.hours : 0,
-				ruleKey: `${slice.band.component ?? OVERTIME_LINE}:${slice.band.label}`
+				ruleKey: `${lineOf(slice.band)}:${slice.band.label}`
 			});
 		if (funnelHours > 0)
 			rows.push({

@@ -57,6 +57,7 @@ import {
 	type PayrollWindow
 } from './period.js';
 import type { WorkDayLike } from './overtime.js';
+import type { PersonInput } from './eligibility.js';
 import {
 	employmentDates,
 	resolveEmploymentSettlement,
@@ -119,8 +120,7 @@ export type EmploymentBundle = {
 	/** Approved dated wage history a statutory ordinary rate or conversion may consume. */
 	readonly wagePeriods: readonly ReferenceWagePeriod[];
 	/** The person's recorded stays in the run's jurisdiction, entry to exit (null while running). */
-	readonly presence?:
-		readonly { readonly start: string; readonly end: string | null }[] | undefined;
+	readonly presence?: PersonInput['presence'];
 	/** The person's earlier payslips as months of pay, the record a normal-wage reference reads first. */
 	readonly payslipWageMonths?: readonly PayslipWageMonth[] | undefined;
 	/** The rosters of record whose cycles touch the attendance span, as day ranges. */
@@ -450,7 +450,8 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 				)
 				.map((row) => ({
 					start: dateKey(row.period?.from),
-					end: row.period?.to == null ? null : dateKey(row.period.to)
+					end: row.period?.to == null ? null : dateKey(row.period.to),
+					employment_exercised: row.employment_exercised === true
 				})),
 			payslipWageMonths: prior.payslipWageMonths.get(employment.employee_id) ?? [],
 			serviceMonths: completedMonths(hire, paid.end),

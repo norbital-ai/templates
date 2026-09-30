@@ -14,7 +14,10 @@ import {
 	LINEAGES,
 	adhocCatalogue,
 	allowanceCatalogue,
+	assessStatutoryUnvalidated,
 	contributionSchemes,
+	expectStatutory,
+	settingsIdOn,
 	settingsVersions
 } from './fixtures/statutory-world.ts';
 
@@ -162,7 +165,8 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		THIRTEENTH_MONTH_PAY: ['WTAX.SPECIAL'],
 		allowance: [...PH_WAGES, 'WTAX.ORDINARY'],
 		// SSS IRR (RA 11199) Rule 12 s.6(iii): compensation includes "Bonuses (except Christmas bonus)".
-		bonus: ['SSS', 'SSS_EC', 'SSS_MPF', 'WTAX.SPECIAL'],
+		// Circular 460 p.2: fund salary is remuneration "however designated" for services rendered (PH-HD02).
+		bonus: [...PH_WAGES, 'WTAX.SPECIAL'],
 		communication: [...PH_WAGES, 'WTAX.ORDINARY'],
 		corporate_duty_allowance: [...PH_WAGES, 'WTAX.ORDINARY'],
 		duty_allowance: [...PH_WAGES, 'WTAX.ORDINARY'],
@@ -175,6 +179,9 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	},
 	// Circular 111/2013 art.2(2): allowances are salary income except severance and job-loss allowances.
 	VN: {
+		// Labour Code art.104 bonus: salary income (Circular 111/2013 art.2(2)(e); Decree 253/2026 art.8(2)(i)),
+		// outside the insured salary as a performance-varying supplement (Decree 158/2025 art.7(1)(c)).
+		BONUS: ['PIT'],
 		INSURANCE_EQUIVALENT: ['PIT'],
 		// Labour Code 45/2019 art.97(4); owner rule 2026-09-28: taxable, not insured (Decree 158/2025 art.7(1)).
 		LATE_WAGE_COMPENSATION: ['PIT'],
@@ -387,3 +394,35 @@ for (const lineage of LINEAGES) {
 		}
 	});
 }
+
+test('PH-HD02 — a performance bonus is Pag-IBIG fund salary, capped at PHP10,000', () => {
+	// Circular 460 p.2: fund salary is the basic salary plus remuneration "however designated";
+	// employee 2% above PHP1,500, employer 2%, on at most PHP10,000. Unvalidated: the low salary
+	// isolates the base, not the NCR floor.
+	const run = (wage: number, bonus: number) =>
+		assessStatutoryUnvalidated(
+			{ code: 'PH', period: '2026-07', people: [{ key: 'B', wage }] },
+			(world) => {
+				const version = settingsIdOn('PH', '2026-07-15');
+				world.adhoc_requests!.push({
+					id: 'a5100000-0000-4000-8000-0000000000b1',
+					employment_id: world.employments[0]!.id,
+					catalogue_id: world.adhoc_catalogue!.find(
+						(row) => row.code === 'bonus' && row.settings_id === version
+					)!.id,
+					amount: bonus,
+					event_date: '2026-07-15',
+					pay_period: '2026-07',
+					payslip_id: null,
+					reason: 'performance bonus',
+					evidence_file: null,
+					as_adjustment_entry: false,
+					approval_id: null
+				});
+			}
+		);
+	// 5,000 + 3,000 = 8,000 → 2% = 160 each (the salary alone would be 100 each).
+	expectStatutory(run(5_000, 3_000), 'B', 'HDMF', 160, 160);
+	// 8,000 + 5,000 = 13,000 → capped 10,000 → 200 each (the salary alone would be 160 each).
+	expectStatutory(run(8_000, 5_000), 'B', 'HDMF', 200, 200);
+});
