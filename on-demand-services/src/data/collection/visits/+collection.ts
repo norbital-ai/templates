@@ -1,7 +1,7 @@
 import { collection, type ActionCtx, type Id, type Instant } from '@norbital-ai/bolt';
 import { Instant as instant } from '@norbital-ai/std/date';
 import { dayOf, loadPool, reassign, settingsOf, VISIT, when } from '../../../lib/dispatch.js';
-import { rank, refusal, slotOf, type Refusal } from '../../../lib/matching.js';
+import { lookups, rank, refusal, slotOf, type Refusal } from '../../../lib/matching.js';
 
 const HOUR = 3_600_000;
 const WHY: { [R in Refusal]: string } = {
@@ -51,7 +51,7 @@ const visits = collection('visits', {
 						name: { kind: 'text' },
 						drive_minutes: { kind: 'int' },
 						same_area: { kind: 'bool' },
-						week_load: { kind: 'int' }
+						week_hours: { kind: 'number' }
 					}
 				}
 			}
@@ -145,7 +145,7 @@ visits.transform(async (inputs, ctx) => {
 			status: input.status ?? v.status
 		});
 	});
-	const pool = {
+	const holds = {
 		helpers: helpers.rows,
 		busy: [...held.values()].flatMap((v) =>
 			v.helper === null || v.status === 'cancelled'
@@ -161,6 +161,22 @@ visits.transform(async (inputs, ctx) => {
 		),
 		off: off.rows
 	};
+	const legs = lookups(
+		holds,
+		inputs.map((_, i) => ctx.existing[i]!.location),
+		ctx.tz
+	);
+	const drive =
+		legs.length === 0
+			? []
+			: (
+					await ctx.db.read('drive_times', {
+						where: { leg: { in: legs } },
+						select: { leg: true, minutes: true },
+						all: true
+					})
+				).rows;
+	const pool = { ...holds, drive: new Map(drive.map((d) => [d.leg, d.minutes])) };
 	return inputs.map((input, i) => {
 		const stored = ctx.existing[i]!;
 		const helper = input.helper === undefined ? stored.helper : input.helper;
@@ -204,7 +220,7 @@ visits.transform(async (inputs, ctx) => {
 visits.query('candidates', async ({ visit }, ctx) => {
 	const v = await ctx.get('visits', visit);
 	if (v === null) return ctx.refuse('This visit is not visible to you.');
-	const pool = await loadPool(ctx, v.slot.start, v.slot.start);
+	const pool = await loadPool(ctx, v.slot.start, v.slot.start, [v.location]);
 	const need = {
 		skill: v.skill,
 		slot: { start: v.slot.start, end: v.slot.end! },
@@ -221,7 +237,7 @@ visits.query('candidates', async ({ visit }, ctx) => {
 		name: c.name,
 		drive_minutes: c.drive_minutes,
 		same_area: c.same_area,
-		week_load: c.week_load
+		week_hours: c.week_hours
 	}));
 });
 
@@ -318,7 +334,7 @@ visits.action('reschedule', async ({ start }, ctx) => {
 	if (Date.parse(start) <= Date.parse(ctx.now))
 		ctx.refuse('Pick a time in the future.', { field: 'start' });
 	const slot = slotOf(start, (Date.parse(v.slot.end!) - Date.parse(v.slot.start)) / 60_000);
-	const pool = await loadPool(ctx, slot.start, slot.start);
+	const pool = await loadPool(ctx, slot.start, slot.start, [v.location]);
 	const need = { skill: v.skill, slot, location: v.location, area: v.area, visit: v.id };
 	const best = rank(need, pool, ctx.tz, v.helper)[0];
 	if (best === undefined) return ctx.refuse('No helper is free at that time.', { field: 'start' });

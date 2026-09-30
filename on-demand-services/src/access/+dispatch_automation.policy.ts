@@ -2,7 +2,7 @@ import { policy } from '@norbital-ai/bolt';
 
 /**
  * The dispatch runs: read the roster and the schedule, re-dispatch visits, file warnings and their letters, notify
- * customers, publish the portal's open times, and book portal requests (filing a new customer) through the same
+ * customers, publish the portal's open times, cache Google drive times, and book portal requests (filing a new customer) through the same
  * `bookings.book` as the desk.
  */
 export default policy({
@@ -12,6 +12,7 @@ export default policy({
 		dispatch_settings: { read: true },
 		services: { read: true },
 		openings: { read: true, create: true, update: true, delete: true },
+		drive_times: { read: true, create: true },
 		helpers: { read: true },
 		helper_time_off: { read: true },
 		customers: { read: true, create: true },
@@ -35,7 +36,7 @@ export default policy({
 			}
 		},
 		helper_warnings: { read: true, create: true, update: { fields: ['letter'] } },
-		customer_notices: { read: true, create: true, update: { fields: ['delivery'] } }
+		customer_notices: { read: true, create: true, update: { fields: ['whatsapp'] } }
 	},
 	limits: { act: '600/min', read: '600/min' }
 });

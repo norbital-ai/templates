@@ -106,7 +106,7 @@
 		{where}
 		{card}
 		orderBy={{ number: 'asc' }}
-		toolbar={{ title: false, controls: dayPicker, new: false }}
+		toolbar={{ title: t('app.schedule.by_helper'), controls: dayPicker, new: false }}
 	/>
 {/snippet}
 
@@ -116,7 +116,7 @@
 		key="list"
 		{where}
 		orderBy={{ number: 'asc' }}
-		toolbar={{ title: false, controls: dayPicker, new: false }}
+		toolbar={{ title: t('app.schedule.list'), controls: dayPicker, new: false }}
 		columns={['number', 'slot', 'helper', 'address', 'status', 'shift_check', 'eta_minutes']}
 		actions={[
 			{ action: 'visits.reassign', label: t('app.schedule.auto_reassign') },

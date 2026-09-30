@@ -2,7 +2,7 @@ import { app } from '@norbital-ai/bolt';
 
 export default app('field_ops_controller', {
 	title: 'app.field_ops_controller.title',
-	description: 'Schedule site jobs and dispatch contractors',
+	description: 'app.field_ops_controller.header_description',
 	icon: 'lucide:building-2',
 	banner: 'app-media/field_ops_controller-banner.webp',
 	pages: {

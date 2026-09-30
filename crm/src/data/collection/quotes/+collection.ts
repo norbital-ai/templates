@@ -1,6 +1,6 @@
 import { collection, type TransformCtx } from '@norbital-ai/bolt';
 import { EXPORT_OUTPUT, quoteDocument } from '../../../lib/document-export.js';
-import { missingReason, num } from '../../../lib/pricing.js';
+import { missingReason, num, reprices } from '../../../lib/pricing.js';
 
 /** The commercial terms a rep states on a quote, on creation and while it is a draft. */
 const terms = [
@@ -20,15 +20,14 @@ const terms = [
 	'time_of_shipment',
 	'other_terms',
 	'owner_id',
-	'description',
-	'revision_of',
-	'revision_number'
+	'description'
 ] as const;
 
 /**
- * Opens a quote against an active account (numbered `QT-<year>-<n>` by the model, draft revision 1). The state field
- * polices the moves; the transform adds what a move needs: confirming demands lines on active products and, under
- * adverse credit, an explicit acknowledgement; reopening a sent quote raises its revision; cancelling needs a reason.
+ * Opens a quote against an active account, in its currency unless stated (numbered `QT-<year>-<n>` by the model, draft
+ * revision 1). The state field polices the moves; the transform adds what a move needs: confirming demands lines on
+ * active products and, under adverse credit, an explicit acknowledgement; reopening a sent quote raises its revision;
+ * cancelling needs a reason. A draft's currency and tax basis hold still under its priced lines.
  */
 const c = collection('quotes', {
 	read: { fields: 'all' },
@@ -56,11 +55,18 @@ c.transform(async (inputs, ctx: TransformCtx<'quotes'>) => {
 			)
 		)
 	];
-	// a transform's stored rows carry no roll-ups (rule 10): the confirming quotes' lines are read here
+	const repricing = inputs.flatMap((input, i) => {
+		const stored = ctx.existing[i];
+		return stored !== undefined && reprices(input, stored) ? [stored.id] : [];
+	});
+	// a transform's stored rows carry no roll-ups (rule 10): the confirming and repricing quotes' lines are read here
 	const onConfirming = { quote_id: { in: confirming.map((q) => q.id) } };
 	const [accounts, lines, inactive] = await Promise.all([
 		ctx.db.read('accounts', { where: { id: { in: accountIds } }, all: true }),
-		ctx.db.read('quote_lines', { where: onConfirming, all: true }),
+		ctx.db.read('quote_lines', {
+			where: { quote_id: { in: [...onConfirming.quote_id.in, ...repricing] } },
+			all: true
+		}),
 		ctx.db.read('quote_lines', {
 			where: { ...onConfirming, product_id: { is: { active: { eq: false } } } },
 			all: true
@@ -71,15 +77,20 @@ c.transform(async (inputs, ctx: TransformCtx<'quotes'>) => {
 	return inputs.map((input, i) => {
 		const stored = ctx.existing[i];
 		if (stored === undefined) {
-			if (account(input.account_id!)?.active === false)
-				ctx.refuse('Cannot create a quote for an inactive account.');
-			return input;
+			const a = account(input.account_id!);
+			if (a?.active === false) ctx.refuse('Cannot create a quote for an inactive account.');
+			return { ...input, currency: input.currency ?? a?.currency ?? null };
 		}
 		const from = stored.status,
 			to = input.status ?? from;
 		if (from === to) {
 			if (from !== 'draft')
 				ctx.refuse(`A ${from} document is immutable. Revise by reopening to draft status first.`);
+			// lines are priced once, in the quote's currency and tax basis: neither moves under them
+			if (reprices(input, stored) && lines.rows.some((l) => l.quote_id === stored.id))
+				ctx.refuse(
+					'Currency and tax basis cannot change once the quote has lines. Remove the lines first.'
+				);
 			return input;
 		}
 		if (to === 'confirmed') {

@@ -3,7 +3,9 @@ import type { SeedSource } from '@norbital-ai/bolt';
 type Row = { readonly [field: string]: unknown };
 /**
  * The `crm` bank tree: one `<collection>.json` per collection, read as is, except that an activity's
- * `regarding_type`/`regarding_id` pair becomes its `regarding` reference, and `product_unit_cost_cny.json` (a cost
+ * `regarding_type`/`regarding_id` pair becomes its `regarding` reference, a line takes its document's currency (its
+ * money reads in it), a product keeps the bank's `currency` when its row has one (else the model default, the
+ * workspace's), and `product_unit_cost_cny.json` (a cost
  * lookup the purchase lines were priced from, not a collection) stays in the bank. With no bank (the public `base`
  * pack) the rows are this directory's invented `<collection>.json` fixtures; no bank row ships publicly.
  */
@@ -38,6 +40,13 @@ export default {
 					regarding: { collection: regarding_type, id: regarding_id }
 				}));
 			else out[name] = rows as Row[];
+		}
+		for (const [lines, docs, fk] of [
+			['quote_lines', 'quotes', 'quote_id'],
+			['purchase_order_lines', 'purchase_orders', 'purchase_order_id']
+		] as const) {
+			const currency = new Map((out[docs] ?? []).map((d) => [d['id'], d['currency']]));
+			if (out[lines]) out[lines] = out[lines].map((l) => ({ ...l, currency: currency.get(l[fk]) }));
 		}
 		return out as never;
 	}

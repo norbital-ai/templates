@@ -6,7 +6,7 @@ export default model({
 	description:
 		'The contract lifecycle of a confirmed quote: the workspace generates the document, the counterparty returns a stamped copy, and the owner acknowledges it. `binding_hash` fingerprints the quote substance at generation, so a quote edited afterwards can never silently ride under an acknowledged contract. One active signing per quote; re-signing voids the predecessor.',
 	icon: 'lucide:file-signature',
-	label: 'binding_hash',
+	label: ['variant', 'status'],
 	fields: {
 		variant: { kind: 'enum', values: ['advance', 'credit'], default: 'advance' },
 		status: {

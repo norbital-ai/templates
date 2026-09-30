@@ -2,6 +2,8 @@
 
 ![CRM workspace thumbnail](assets/thumbnail.svg)
 
+The user guide, with screens of every app, is [docs/README.md](docs/README.md).
+
 A two-sided B2B trade workspace: the **sales side** qualifies accounts and contacts, quotes from a
 product catalogue, runs the pipeline to won, and confirms the deal; the **purchase side** raises
 purchase orders against suppliers and confirms the buy. Both sides work from master data imported
@@ -80,7 +82,7 @@ any document requires a reason. Sent quotes past `valid_until` are caught by the
 | `sales_invoice_lines`    | One billed quantity per quote line, capped across live invoices.                                                |
 | `contract_signings`      | The confirmed quote's contract lifecycle; `binding_hash` fingerprints the quote substance at generation.        |
 | `activities`             | Interaction log (call / meeting / email / task / note) on an account or a quote: `regarding`, an exclusive arc. |
-| `products`               | Sellable catalogue — the ERP item master. Sell prices and tax rate only; cost never lives here.                 |
+| `products`               | Sellable catalogue — the ERP item master. Sell price in its own currency (default SGD) and tax rate; no cost.   |
 | `settlements`            | Payments in or out against any committed document (`regarding`). Paid status derived at render.                 |
 | `suppliers`              | Vendors — the ERP vendor master, with contact, category, and payment terms.                                     |
 | `purchase_orders`        | The buying pipeline document, snapshotting the supplier and inheriting its currency.                            |
@@ -94,14 +96,17 @@ any document requires a reason. Sent quotes past `valid_until` are caught by the
 
 ### Apps
 
-| App            | What a user does                                                                                                                                                                                                                                                                                                                                    |
-| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `crm`          | Sales CRM (`src/app/crm/+desk.page.svelte`). The account picker in the header scopes the page (the first active account by name until one is chosen). Pipeline board over the quote states with a rep filter, then quotes, quote lines, accounts, contacts, products, activities, invoices, invoice lines, contracts and payments for that account. |
-| `crm_purchase` | Purchasing (`src/app/crm_purchase/+desk.page.svelte`). A live dashboard of orders per status, committed spend per currency and the top five suppliers; then purchase orders, order lines (with `received`), suppliers, goods receipts, receipt lines, purchase invoices, their lines and payments.                                                  |
+| App            | What a user does                                                                                                                                                                                                                                                                                                                                                |
+| -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `crm`          | Sales (`src/app/crm/+desk.page.svelte`). The account picker in the header scopes the page (the first active account by name until one is chosen). Pipeline board over the quote states with a rep filter, then quotes, accounts, contacts, products, activities, invoices, contracts and payments for that account; a document's lines are a tab of its record. |
+| `crm_purchase` | Purchasing (`src/app/crm_purchase/+desk.page.svelte`). A live dashboard of orders per status, committed spend per currency and the top five suppliers; then purchase orders, suppliers, goods receipts, purchase invoices and payments; a document's lines (an order line with `received`) are a tab of its record.                                             |
 
 Every collection opens in the shell's record sheet; `src/data/collection/<c>/+representation.svelte` lays out its form
 (`src/lib/ui/record-form.svelte`), labels from the messages, the quote's contact picked from the chosen account's people,
-and an **Export** button on a confirmed quote or purchase order.
+and an **Export** button on a confirmed quote or purchase order. A document shows its number and total in the header and
+its lines on a **Lines** tab, added there while it is a draft (a product fills its catalogue price and tax rate; a
+follow-on document's pickers offer only confirmed parents and their own lines); a document in a final state is read-only.
+A document number in a table opens its record.
 
 ### Automation
 
@@ -162,7 +167,7 @@ src/
 ├── automation/                +quote_expiry_watch.automation.ts
 ├── channel/                   +sales_desk.channel.ts
 ├── app/                       crm/ and crm_purchase/: +app.ts and +desk.page.svelte
-├── i18n/                      +messages.ts / +zh.messages.ts over messages.en.json / messages.zh.json
+├── i18n/                      +messages.ts / +zh.messages.ts
 └── lib/                       pricing.ts (the only rounding), erp-feed.ts, document-export.ts, currency.ts, ui/
 ```
 

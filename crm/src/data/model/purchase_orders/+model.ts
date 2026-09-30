@@ -1,5 +1,4 @@
 import { model } from '@norbital-ai/bolt';
-import { CURRENCIES } from '../../../lib/currency.js';
 
 export default model({
 	description:
@@ -23,7 +22,7 @@ export default model({
 				cancelled: { edit: 'none' }
 			}
 		},
-		currency: { kind: 'enum', values: CURRENCIES, optional: true },
+		currency: { kind: 'currency', optional: true },
 		tax_inclusive: { kind: 'bool' },
 		expected_date: { kind: 'date', optional: true },
 		net: { kind: 'sum', of: 'purchase_order_lines.net' },

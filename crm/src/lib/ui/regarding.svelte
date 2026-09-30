@@ -10,8 +10,14 @@
 	/** Each arm's collection and the message key of its name. */
 	let {
 		form,
-		arms
-	}: { form: FormState; arms: readonly (readonly [CollectionName, MessageKey])[] } = $props();
+		arms,
+		confirmed = false
+	}: {
+		form: FormState;
+		arms: readonly (readonly [CollectionName, MessageKey])[];
+		/** Offer only confirmed documents (a payment is recorded against nothing else). */
+		confirmed?: boolean;
+	} = $props();
 	const stored = $derived(form.get('regarding'));
 	const isRef = (v: unknown): v is { readonly collection?: unknown; readonly id?: unknown } =>
 		Predicate.isObjectOrArray(v) && !Array.isArray(v);
@@ -33,6 +39,7 @@
 	{#key arm}
 		<Picker
 			of={arm}
+			{...confirmed ? { where: { status: { eq: 'confirmed' } } as never } : {}}
 			value={typeof ref?.id === 'string' ? ref.id : null}
 			onChange={(id) => form.set('regarding', id ? { collection: arm, id } : null)}
 		/>

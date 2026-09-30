@@ -28,14 +28,14 @@
 	/>
 {/snippet}
 
-{#snippet jobRequirements()}
+{#snippet jobs()}
 	<Table
 		of="jobs"
 		key="construction_workforce:jobs"
 		columns={[
 			'job_title',
 			'job_number',
-			{ field: 'project_id', label: t('component.project'), width: 200 },
+			{ field: 'project_id', width: 200 },
 			'job_type',
 			'status',
 			'priority',
@@ -47,7 +47,7 @@
 <AppShell
 	icon="lucide:users"
 	title={t('app.construction_settings_workforce.title')}
-	description="Manage workers, certifications, and job requirements."
+	description={t('app.construction_settings_workforce.description')}
 	banner="app-media/construction_settings_workforce-banner.webp"
 	variant="full"
 >
@@ -66,10 +66,10 @@
 				body: certifications
 			},
 			{
-				name: 'job-requirements',
-				title: t('app.construction_settings_workforce.tab_job_requirements'),
+				name: 'jobs',
+				title: t('app.construction_settings_workforce.tab_jobs'),
 				icon: 'lucide:briefcase',
-				body: jobRequirements
+				body: jobs
 			}
 		]}
 	/>

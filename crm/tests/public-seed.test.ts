@@ -10,5 +10,6 @@ it('restores the public base pack: one invented account, contact and product', a
 	expect(await codes('accounts', 'external_code')).toEqual(['PUB-ACC-0001']);
 	expect(await codes('contacts', 'email')).toEqual(['ada.fixture@example.test']);
 	expect(await codes('products', 'code')).toEqual(['PUB-WIDGET']);
+	expect(await codes('products', 'currency')).toEqual(['SGD']);
 	expect(await codes('quotes', 'id')).toEqual([]);
 });

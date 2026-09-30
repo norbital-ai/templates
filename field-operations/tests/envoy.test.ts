@@ -1,52 +1,14 @@
 /**
- * G12 (5), the `field_ops_whatsapp` envoy (WhatsApp, authenticated, mention_or_reply, delegation disabled) over the
- * bolt-server WhatsApp adapter on a fake Baileys socket and a scripted model. A linked contractor's report lands as one
- * update with its photo filed into the photo field (channel source) and its message kept; a write outside the sender's
- * jobs is refused; an unlinked sender is asked to register and gets no turn; an unaddressed group message is ambient;
- * an addressed group message is a turn under the envoy's policy alone (P32).
+ * G12 (5), the `field_ops_whatsapp` envoy (WhatsApp, authenticated, mention_or_reply, delegation disabled) on the test
+ * kit's fake WhatsApp transport, fed the wire messages a WhatsApp provider emits, and a scripted model. A linked
+ * contractor's report lands as one update with its photo filed into the photo field (channel source) and its message
+ * kept; a write outside the sender's jobs is refused; a number on no member's account is not admitted and gets no turn; an
+ * unaddressed group message is ambient; an addressed group message is a turn under the envoy's policy alone (P32).
  */
-import { EventEmitter } from 'node:events';
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { beforeEach, describe, expect, it } from 'vitest';
 import type { AiPort, AiRequest, Json } from '@norbital-ai/bolt/engine';
-import { whatsappTransport as whatsapp } from '@norbital-ai/bolt-server';
-
-type WaOpen = NonNullable<Parameters<typeof whatsapp>[2]>;
 import { CONTRACTOR, person, rows, siteWithJob, workspace, type T } from './kit.ts';
-
-const BOT = '6590000000:7@s.whatsapp.net';
-const scratch = join(tmpdir(), 'norbital-scratch', `field-ops-envoy-${process.pid}`);
-afterAll(() => rmSync(scratch, { recursive: true, force: true }));
-
-/** A Baileys socket double: the test drives `messages.upsert` as the library would; media comes from the fixture. */
-function fakeBaileys() {
-	const ev = new EventEmitter();
-	const open: WaOpen = async (dir) => {
-		mkdirSync(dir, { recursive: true });
-		writeFileSync(join(dir, 'creds.json'), '{}');
-		return {
-			socket: {
-				ev: { on: (e: string, l: (x: never) => void) => void ev.on(e, l as (x: unknown) => void) },
-				user: { id: BOT },
-				sendMessage: async () => ({ key: { id: crypto.randomUUID() } }),
-				requestPairingCode: async () => 'ABCD',
-				logout: async () => {},
-				end: () => {}
-			},
-			download: async (raw: unknown) =>
-				(raw as { message?: { imageMessage?: unknown } }).message?.imageMessage === undefined
-					? null
-					: {
-							bytes: new Uint8Array(readFileSync('tests/fixtures/photo-evidence.jpg')),
-							mime: 'image/jpeg',
-							name: 'IMG_0042.jpg'
-						}
-		};
-	};
-	return { ev, open };
-}
 
 /** `act <callable> <json>` in a message becomes that call; `$FILE` is the message's first file reference. */
 function scripted() {
@@ -114,7 +76,6 @@ function scripted() {
 
 let t: T,
 	ai: ReturnType<typeof scripted>,
-	baileys: ReturnType<typeof fakeBaileys>,
 	seq = 0;
 let mine: { job: string }, theirs: { job: string };
 beforeEach(async () => {
@@ -123,14 +84,9 @@ beforeEach(async () => {
 	const bob = await person(t, CONTRACTOR, '6591111111');
 	mine = await siteWithJob(t, { assignee_user_id: bob.actor.id, status: 'assigned' });
 	theirs = await siteWithJob(t);
-	baileys = fakeBaileys();
-	const wa = whatsapp(join(scratch, String(++seq)), 'field_ops_whatsapp', baileys.open, () => 10);
-	wa.subscribe((event) => t.fakes.transports.whatsapp.emit(event));
-	await wa.pair();
-	baileys.ev.emit('connection.update', { connection: 'open' });
 });
 
-/** One inbound WhatsApp message, then every turn it started settles. */
+/** One inbound WhatsApp message as the provider emits it (its photo as a bin), then every turn it started settles. */
 async function say(o: {
 	from: string;
 	text: string;
@@ -139,26 +95,34 @@ async function say(o: {
 	photo?: true;
 }) {
 	const id = `M${++seq}`;
-	const context = o.mention ? { contextInfo: { mentionedJid: [BOT] } } : {};
-	baileys.ev.emit('messages.upsert', {
-		type: 'notify',
-		messages: [
-			{
-				key: {
-					remoteJid: o.group ?? `${o.from}@s.whatsapp.net`,
-					id,
-					fromMe: false,
-					...(o.group ? { participant: `${o.from}@s.whatsapp.net` } : {})
-				},
-				messageTimestamp: Math.floor(Date.parse(t.clock.now()) / 1000),
-				pushName: 'Bob',
-				message: o.photo
-					? { imageMessage: { caption: o.text, ...context } }
-					: { extendedTextMessage: { text: o.text, ...context } }
-			}
-		]
+	const jid = `${o.from}@s.whatsapp.net`;
+	const photo = o.photo ? new Uint8Array(readFileSync('tests/fixtures/photo-evidence.jpg')) : null;
+	await t.fakes.transports.whatsapp.emit({
+		kind: 'inbound',
+		channel: 'field_ops_whatsapp',
+		message: {
+			id,
+			thread: o.group ?? jid,
+			sentAt: t.clock.now(),
+			from: { handle: jid, name: 'Bob' },
+			group: o.group !== undefined,
+			text: o.text,
+			replyTo: null,
+			invocation: o.group === undefined ? 'direct' : o.mention ? 'mention' : 'ambient',
+			attachments:
+				photo === null
+					? []
+					: [
+							{
+								fileName: 'IMG_0042.jpg',
+								mimeType: 'image/jpeg',
+								byteLength: photo.byteLength,
+								bin: 0
+							}
+						]
+		},
+		...(photo === null ? {} : { bins: [photo] })
 	});
-	await new Promise((r) => setTimeout(r, 50)); // the adapter delivers asynchronously
 	await t.settled();
 	t.clock.advance('2s'); // triage's trailing debounce (P40)
 	await t.runDue();
@@ -250,14 +214,15 @@ describe('field_ops_whatsapp (G12 5)', () => {
 		expect((await job(theirs.job))['status']).toBe('completed');
 	});
 
-	it('an unlinked sender is asked to register and gets no turn', async () => {
+	it("a number on no member's account is not admitted: one fixed notice, no link, no turn", async () => {
 		const before = ai.requests.length;
 		const id = await say({ from: '6599999999', text: 'hello' });
 		expect((await inbound(id))['refused']).toBe('unregistered');
 		expect(ai.requests.length).toBe(before);
-		expect(t.fakes.transports.whatsapp.sent.at(-1)?.message).toMatchObject({
-			to: '6599999999@s.whatsapp.net'
-		});
+		const notice = t.fakes.transports.whatsapp.sent.at(-1)?.message as { to: string; text: string };
+		expect(notice.to).toBe('6599999999@s.whatsapp.net');
+		expect(notice.text).toMatch(/is not recognised/);
+		expect(notice.text).not.toMatch(/https?:|regist/i);
 	});
 
 	it('an unaddressed group message is ambient; an addressed one is a turn under the envoy policy alone', async () => {

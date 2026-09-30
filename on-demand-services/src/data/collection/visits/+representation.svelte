@@ -42,7 +42,7 @@
 			{ field: 'name', label: t('component.helper') },
 			{ field: 'drive_minutes', label: t('component.drive_minutes') },
 			{ field: 'same_area', label: t('component.same_area') },
-			{ field: 'week_load', label: t('component.week_load') },
+			{ field: 'week_hours', label: t('component.week_hours') },
 			{ field: 'helper', label: t('app.schedule.assign'), cell: assignCell }
 		]}
 	/>

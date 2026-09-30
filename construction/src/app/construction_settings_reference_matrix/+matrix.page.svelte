@@ -5,9 +5,9 @@
 </script>
 
 <AppShell
-	icon="lucide:grid-3x3"
+	icon="lucide:table-properties"
 	title={bolt.t('app.construction_settings_reference_matrix.title')}
-	description="Maintain the BIM reference matrix."
+	description={bolt.t('app.construction_settings_reference_matrix.description')}
 	banner="app-media/construction_settings_reference_matrix-banner.webp"
 >
 	<Table

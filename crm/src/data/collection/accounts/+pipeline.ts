@@ -1,5 +1,4 @@
 import { pipeline } from '@norbital-ai/bolt';
-import { CURRENCIES } from '../../../lib/currency.js';
 import { masterRecords } from '../../../lib/erp-feed.js';
 
 /** The ERP's changed customers, mirrored into `accounts`. */
@@ -15,7 +14,7 @@ export default pipeline('accounts', {
 					fields: {
 						external_code: { kind: 'text' },
 						name: { kind: 'text' },
-						currency: { kind: 'enum', values: CURRENCIES, optional: true },
+						currency: { kind: 'currency', optional: true },
 						active: { kind: 'bool', optional: true }
 					}
 				}

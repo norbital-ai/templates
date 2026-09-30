@@ -1,18 +1,18 @@
 <script lang="ts">
 	/**
-	 * The sales desk, scoped to one account (the picker beside the tabs; the first active account by name until one is
-	 * chosen):
-	 * the pipeline board with a rep filter, then the account's quotes, lines, contacts, activities, invoices, invoice
-	 * lines, contracts and payments, beside the account and product books.
+	 * The sales desk, scoped to one account (the picker in the header; the first active account by name until one is
+	 * chosen): the pipeline board with a rep filter, then the account's quotes, contacts, activities, invoices, contracts
+	 * and payments, beside the account and product books. A document's lines are a tab of its record.
 	 */
 	import { bolt } from '$bolt';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Picker } from '@norbital-ai/ui';
-	import { AppShell, Cover, Stack } from '@norbital-ai/ui/layout';
+	import { EmptyState, Picker, Show } from '@norbital-ai/ui';
+	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Tabs } from '@norbital-ai/ui';
 	import { Board, Table } from '@norbital-ai/ui';
 	import { num } from '../../lib/pricing.js';
 	import Ref from '../../lib/ui/ref.svelte';
+	import DocLink from '../../lib/ui/doc-link.svelte';
 
 	const t = bolt.t;
 	let account = $state<Id<'accounts'> | null>(null);
@@ -31,38 +31,45 @@
 	/** The chosen account's rows; none before one is chosen (the tabs render only once one is). */
 	const onAccount = $derived({ account_id: { in: account === null ? [] : [account] } });
 	const onQuote = $derived({ quote_id: { is: onAccount } });
+	const money = { kind: 'money', currency: 'currency' } as const;
 	const lanes = (['draft', 'sent', 'won', 'confirmed', 'lost'] as const).map((value) => ({
 		value,
 		label: t(`component.status_${value}`)
 	}));
-	const credit = (row: { [f: string]: unknown }) =>
-		row.credit_hold === true
-			? t('component.hold')
-			: row.credit_limit == null
-				? '—'
-				: (num(row.credit_limit) - num(row.credit_used ?? 0)).toLocaleString();
 </script>
 
 <!-- an arc column shows its row's label (`lib/ui/ref.svelte`); a one-relation column does by default -->
 {#snippet regarding({ value }: { value: unknown })}<Ref id={value} />{/snippet}
+<!-- a document's number opens it -->
+{#snippet quoteNo({ row, value }: { row: { id: unknown }; value: unknown })}<DocLink
+		of="quotes"
+		{row}
+		{value}
+	/>{/snippet}
+{#snippet invoiceNo({ row, value }: { row: { id: unknown }; value: unknown })}<DocLink
+		of="sales_invoices"
+		{row}
+		{value}
+	/>{/snippet}
 
 {#snippet ownerFilter()}
-	<Stack as="label" gap="xs" class="max-w-72 text-sm">
-		<span class="font-medium">{t('component.owner')}</span>
-		<Picker of="sys_user" label={['name']} value={owner} onChange={(id) => (owner = id)} />
-	</Stack>
+	<Picker of="sys_user" label={['name']} value={owner} onChange={(id) => (owner = id)} />
+{/snippet}
+{#snippet quoteCard({ row }: { row: { [f: string]: unknown } })}
+	<span class="font-medium">{row['doc_no']}</span>
+	<span class="text-meta">{row['title']}</span>
+	<span class="text-meta"><Show kind={money} value={row['gross']} {row} /></span>
 {/snippet}
 {#snippet pipeline()}
-	<Cover gap="md" top={ownerFilter}>
-		<Board
-			of="quotes"
-			by="status"
-			{lanes}
-			key="pipeline"
-			card={['doc_no', 'title', 'currency', 'gross']}
-			where={owner ? { ...onAccount, owner_id: { eq: owner } } : onAccount}
-		/>
-	</Cover>
+	<Board
+		of="quotes"
+		by="status"
+		{lanes}
+		key="pipeline"
+		card={quoteCard}
+		toolbar={{ title: t('app.crm.tab_pipeline'), controls: ownerFilter }}
+		where={owner ? { ...onAccount, owner_id: { eq: owner } } : onAccount}
+	/>
 {/snippet}
 {#snippet quotes()}
 	<Table
@@ -72,31 +79,13 @@
 		where={onAccount}
 		orderBy={{ doc_no: 'desc' }}
 		columns={[
-			'doc_no',
+			{ field: 'doc_no', label: t('component.doc_no'), cell: quoteNo },
 			'title',
 			'status',
 			{ field: 'gross', label: t('component.amount') },
-			'currency',
 			{ field: 'valid_until', label: t('component.valid_until') },
 			{ field: 'confirmed_at', label: t('component.confirmed') },
 			{ field: 'owner_id', label: t('component.owner') }
-		]}
-	/>
-{/snippet}
-{#snippet quoteLines()}
-	<Table
-		of="quote_lines"
-		key="quote_lines"
-		toolbar={{ title: t('app.crm.tab_quote_lines') }}
-		where={onQuote}
-		columns={[
-			{ field: 'quote_id', label: t('component.quote') },
-			{ field: 'product_code', label: t('component.code') },
-			{ field: 'product_name', label: t('component.product') },
-			'quantity',
-			{ field: 'unit_price', label: t('component.unit_price') },
-			{ field: 'discount_pct', label: t('component.discount_pct') },
-			{ field: 'line_total', label: t('component.total') }
 		]}
 	/>
 {/snippet}
@@ -117,7 +106,13 @@
 		]}
 	/>
 {/snippet}
-{#snippet creditCell({ row }: { row: { [f: string]: unknown } })}{credit(row)}{/snippet}
+{#snippet creditCell({ row }: { row: { [f: string]: unknown } })}{#if row.credit_hold === true}{t(
+			'component.hold'
+		)}{:else if row.credit_limit == null}—{:else}<Show
+			kind={money}
+			value={num(row.credit_limit) - num(row.credit_used ?? 0)}
+			{row}
+		/>{/if}{/snippet}
 {#snippet contacts()}
 	<Table
 		of="contacts"
@@ -183,28 +178,11 @@
 		where={onAccount}
 		orderBy={{ doc_no: 'desc' }}
 		columns={[
-			{ field: 'doc_no', label: t('component.doc_no') },
+			{ field: 'doc_no', label: t('component.doc_no'), cell: invoiceNo },
 			{ field: 'quote_id', label: t('component.quote') },
 			'status',
-			'currency',
 			{ field: 'gross', label: t('component.gross_amount') },
 			{ field: 'owner_id', label: t('component.owner') }
-		]}
-	/>
-{/snippet}
-{#snippet billingLines()}
-	<Table
-		of="sales_invoice_lines"
-		key="billing_lines"
-		toolbar={{ title: t('app.crm.billing_lines_title') }}
-		where={{ sales_invoice_id: { is: onAccount } }}
-		columns={[
-			{ field: 'sales_invoice_id', label: t('component.invoice') },
-			{ field: 'product_code', label: t('component.code') },
-			{ field: 'product_name', label: t('component.product') },
-			'quantity',
-			{ field: 'unit_price', label: t('component.unit_price') },
-			{ field: 'line_total', label: t('component.total') }
 		]}
 	/>
 {/snippet}
@@ -232,15 +210,19 @@
 		columns={[
 			{ field: 'regarding', label: t('component.quote'), cell: regarding },
 			'amount',
-			'currency',
 			{ field: 'settled_on', label: t('component.settled_on') },
 			'reference'
 		]}
 	/>
 {/snippet}
 
-{#snippet accountPicker()}
-	<div class="min-w-64">
+<AppShell
+	icon="lucide:handshake"
+	title={t('app.crm.title')}
+	description={t('app.crm.description')}
+	variant="full"
+>
+	{#snippet actions()}
 		<Picker
 			of="accounts"
 			value={account}
@@ -248,23 +230,11 @@
 			orderBy={{ name: 'asc' }}
 			onChange={(id) => (account = id)}
 		/>
-	</div>
-{/snippet}
-
-<AppShell
-	icon="lucide:handshake"
-	title={t('app.crm.title')}
-	description={t('app.crm.header_description')}
-	variant="full"
->
+	{/snippet}
 	{#if account === null}
-		<Stack gap="sm">
-			{@render accountPicker()}
-			<p class="text-sm text-muted-foreground">{t('app.crm.select_account')}</p>
-		</Stack>
+		<EmptyState title={t('app.crm.select_account')} />
 	{:else}
 		<Tabs
-			trailing={accountPicker}
 			tabs={[
 				{
 					name: 'pipeline',
@@ -273,12 +243,6 @@
 					body: pipeline
 				},
 				{ name: 'quotes', title: t('app.crm.tab_quotes'), icon: 'lucide:file-text', body: quotes },
-				{
-					name: 'quote-lines',
-					title: t('app.crm.tab_quote_lines'),
-					icon: 'lucide:list-checks',
-					body: quoteLines
-				},
 				{
 					name: 'accounts',
 					title: t('app.crm.tab_accounts'),
@@ -308,12 +272,6 @@
 					title: t('app.crm.billing_title'),
 					icon: 'lucide:file-text',
 					body: billing
-				},
-				{
-					name: 'billing-lines',
-					title: t('app.crm.billing_lines_title'),
-					icon: 'lucide:list-checks',
-					body: billingLines
 				},
 				{
 					name: 'contracts',

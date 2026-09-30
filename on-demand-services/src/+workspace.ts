@@ -15,6 +15,18 @@ export default workspace({
 	currency: 'SGD',
 	// the warning letter
 	convert: { to: ['pdf'] },
+	env: {
+		GOOGLE_MAPS_API_KEY: {
+			label: 'Google Maps API key',
+			description:
+				'A key with the Routes API enabled. Times every planned drive for matching and the ETA check from live traffic. While unset, drives are estimated from straight-line distance.'
+		},
+		GOOGLE_ROUTES_BASE_URL: {
+			label: 'Google Routes API base URL',
+			secret: false,
+			default: 'https://routes.googleapis.com/'
+		}
+	},
 	apps: [
 		'scheduler/schedule',
 		'scheduler/helpers',

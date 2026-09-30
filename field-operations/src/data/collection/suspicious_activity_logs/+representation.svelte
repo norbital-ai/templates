@@ -5,13 +5,13 @@
 	 */
 	import { bolt } from '$bolt';
 	import type { RecordView } from '@norbital-ai/ui';
-	import { Field, Form, RecordShell } from '@norbital-ai/ui';
+	import { Field, Form, format, RecordShell, useKinds } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
-	import { singaporeInstant } from '../../../lib/format.js';
 
 	let { view }: { view: RecordView<'suspicious_activity_logs'> } = $props();
 	const t = bolt.t;
+	const kinds = useKinds();
 	const record = $derived(view.mode === 'update' ? view.record : null);
 	const open = $derived(record?.resolved_at == null);
 </script>
@@ -61,9 +61,11 @@
 					</p>
 					<p class="text-meta">
 						{t('component.suspicion_resolved_at', {
-							instant: singaporeInstant(
-								record.resolved_at == null ? null : String(record.resolved_at)
-							)
+							instant:
+								format({ kind: 'instant' }, record.resolved_at ?? null, {
+									...kinds,
+									locale: kinds.locale ?? bolt.locale
+								}) || '—'
 						})}
 					</p>
 				</section>

@@ -7,17 +7,18 @@
 
 <RecordForm
 	{view}
-	subtitle={(r) => `${r.code} · ${r.active ? 'Active' : 'Inactive'}`}
+	subtitle={['code']}
 	fields={[
-		['code', 'component.code'],
+		'code',
 		'name',
 		'external_code',
-		['unit', 'component.unit'],
-		['unit_price', 'component.unit_price'],
-		['tax_rate', 'component.tax_rate'],
-		['qty_on_hand', 'component.on_hand'],
+		'unit',
+		'currency',
+		'unit_price',
+		'tax_rate',
+		'qty_on_hand',
 		'active',
-		['main_supplier_id', 'component.supplier'],
+		'main_supplier_id',
 		'description',
 		'spec'
 	]}

@@ -63,6 +63,17 @@ interface ViewerSimpleScene {
 interface ViewerSimpleCamera {
 	enabled: boolean;
 	three: ViewerCameraObject;
+	controls: {
+		// repository-health:allow EFF2 -- camera-controls returns a native Promise, adapted with Effect.tryPromise by the viewer.
+		fitToBox(box: ViewerBox, enableTransition: boolean): Promise<void>;
+		/** Moves the camera toward the controls' target state; `0` applies it at once. */
+		update(delta: number): boolean;
+	};
+}
+
+/** A model's bounds (a three.js `Box3`). */
+interface ViewerBox {
+	readonly viewerBox: unique symbol;
 }
 
 interface ViewerSimpleRenderer {}
@@ -96,6 +107,7 @@ export interface ViewerItemData {
 export interface ViewerFragmentsModel {
 	modelId: string;
 	object: ViewerSceneObject;
+	box: ViewerBox;
 	// repository-health:allow EFF2 -- The pinned fragments vendor returns a native Promise, adapted with Effect.tryPromise by the viewer.
 	getItemsData(ids: number[]): Promise<Array<ViewerItemData | null | undefined>>;
 }

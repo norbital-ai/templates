@@ -5,7 +5,7 @@
 	 */
 	import { bolt } from '$bolt';
 	import { AppShell, Split } from '@norbital-ai/ui/layout';
-	import { Map, Table } from '@norbital-ai/ui';
+	import { EmptyState, Map, Table } from '@norbital-ai/ui';
 
 	const t = bolt.t;
 </script>
@@ -20,7 +20,7 @@
 	/>
 {/snippet}
 {#snippet quiet()}
-	<p class="text-sm text-muted-foreground">{t('app.schedule.nothing_under_way')}</p>
+	<EmptyState variant="inset" title={t('app.schedule.nothing_under_way')} />
 {/snippet}
 {#snippet underWay()}
 	<Table

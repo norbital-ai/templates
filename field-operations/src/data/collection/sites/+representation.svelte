@@ -2,13 +2,13 @@
 	/** A site: its details, the jobs still ahead of it (scheduled from today, or overdue and not done), and its history. */
 	import { bolt } from '$bolt';
 	import type { RecordView } from '@norbital-ai/ui';
-	import { RecordShell, Table } from '@norbital-ai/ui';
-	import { singaporeDay } from '../../../lib/format.js';
+	import { RecordShell, Table, useKinds } from '@norbital-ai/ui';
+	import { dayIn } from '../../../lib/format.js';
 
 	let { view }: { view: RecordView<'sites'> } = $props();
 	const t = bolt.t;
 	const record = $derived(view.mode === 'update' ? view.record : null);
-	const today = singaporeDay(new Date());
+	const today = dayIn(useKinds().zone);
 </script>
 
 {#snippet upcoming()}
@@ -55,7 +55,7 @@
 	<RecordShell
 		of="sites"
 		id={record.id}
-		subtitle={`${record.client_name ?? '—'} · ${record.house_type ?? t('component.not_recorded')}`}
+		subtitle={['client_name', 'house_type']}
 		tabs={[
 			{ name: 'upcoming', title: t('component.upcoming_jobs'), body: upcoming },
 			{ name: 'activity', title: t('component.activity_history'), body: history }

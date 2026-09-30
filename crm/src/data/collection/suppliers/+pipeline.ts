@@ -1,5 +1,4 @@
 import { pipeline } from '@norbital-ai/bolt';
-import { CURRENCIES } from '../../../lib/currency.js';
 import { masterRecords } from '../../../lib/erp-feed.js';
 
 /** The ERP's changed vendors, mirrored into `suppliers`; the ERP vendor code is the supplier code. */
@@ -15,7 +14,7 @@ export default pipeline('suppliers', {
 					fields: {
 						external_code: { kind: 'text' },
 						name: { kind: 'text' },
-						currency: { kind: 'enum', values: CURRENCIES, optional: true },
+						currency: { kind: 'currency', optional: true },
 						payment_terms_days: { kind: 'int', min: 0, max: 365, optional: true },
 						active: { kind: 'bool', optional: true }
 					}

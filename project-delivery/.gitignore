@@ -1,8 +1,0 @@
-node_modules/
-
-# Generated workspace state (bolt check, build, test); never committed.
-.norbital/
-
-.svelte-check/
-.tmp/
-.vite/

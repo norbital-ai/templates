@@ -6,8 +6,9 @@ const cells = ['quantity', 'unit_price', 'discount_pct', 'tax_rate'] as const;
 
 /**
  * Adds a line for an active product (only while its quote is a draft: the line is owned), fills the product code,
- * name, unit and tax rate from the catalogue, and prices net, tax and total against the quote. An update re-prices
- * from the changed cells; a line never moves to another quote or product. The quote's totals are its roll-ups.
+ * name and unit, and unless stated the sell price and tax rate, from the catalogue, and prices net, tax and total
+ * against the quote. An update re-prices from the changed cells; a line never moves to another quote or product. The
+ * quote's totals are its roll-ups.
  */
 const c = collection('quote_lines', {
 	read: { fields: 'all' },
@@ -34,11 +35,13 @@ c.transform(async (inputs, ctx: TransformCtx<'quote_lines'>) => {
 		if (stored === undefined && !product) ctx.refuse('Referenced product does not exist.');
 		if (product?.active === false) ctx.refuse('Cannot add a line for an inactive product.');
 		// a new line snapshots the product; an update re-prices from the stored cells and the changed ones
+		const listed = product?.unit_price;
 		const written =
 			product === undefined
 				? input
 				: {
 						...input,
+						...(input.unit_price == null && listed != null ? { unit_price: listed } : {}),
 						tax_rate: input.tax_rate ?? product.tax_rate ?? dec(0),
 						product_code: product.code,
 						product_name: product.name,

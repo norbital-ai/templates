@@ -2,6 +2,8 @@
 
 ![Construction workspace thumbnail](assets/thumbnail.svg)
 
+The user guide, with screens of every app, is [docs/README.md](docs/README.md).
+
 A project-centered construction operations workspace: projects, work fronts, jobs, workers and
 their permits, quality defects, RFIs, payment claims, handover documents, and a BIM reference
 matrix for cost and embodied-carbon baselines — with a server-enforced rule that a worker is only
@@ -84,7 +86,7 @@ qualification set.
 | App                                      | What a user does                                                             |
 | ---------------------------------------- | ---------------------------------------------------------------------------- |
 | `construction_project_workspace`         | Browse the project catalogue; open a project record for the delivery detail. |
-| `construction_settings_workforce`        | Manage workers, certification types, and job requirements.                   |
+| `construction_settings_workforce`        | Manage workers, certifications and jobs.                                     |
 | `construction_settings_reference_matrix` | Maintain the BIM reference matrix: codes, units, rates, carbon factors.      |
 
 The project workspace app is deliberately just the projects table: the depth lives in the project

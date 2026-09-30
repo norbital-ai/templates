@@ -3,12 +3,12 @@ import { ledger, num, priceLine } from '../../../lib/pricing.js';
 
 /**
  * Bills a quote line of the invoice's own quote (only while the invoice is a draft: the line is owned), snapshotting
- * the product and price, and refuses to bill more than was quoted, counting only lines on invoices that are not
- * cancelled. An update re-prices from the changed cells. The invoice's totals are its roll-ups.
+ * the product, price, discount and tax rate, and refuses to bill more than was quoted, counting only lines on invoices
+ * that are not cancelled. An update re-prices from the changed cells. The invoice's totals are its roll-ups.
  */
 const c = collection('sales_invoice_lines', {
 	read: { fields: 'all' },
-	create: { input: { columns: ['sales_invoice_id', 'quote_line_id', 'quantity', 'tax_rate'] } },
+	create: { input: { columns: ['sales_invoice_id', 'quote_line_id', 'quantity'] } },
 	update: { input: { columns: ['quantity', 'unit_price', 'tax_rate'] } },
 	delete: {}
 });
@@ -58,7 +58,8 @@ c.transform(async (inputs, ctx: TransformCtx<'sales_invoice_lines'>) => {
 						product_name: quoteLine.product_name,
 						product_unit: quoteLine.product_unit ?? '',
 						unit_price: quoteLine.unit_price,
-						tax_rate: input.tax_rate ?? quoteLine.tax_rate
+						discount_pct: quoteLine.discount_pct,
+						tax_rate: quoteLine.tax_rate
 					};
 		const line = { ...stored, ...written };
 		const priced = priceLine(invoice, line);

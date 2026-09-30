@@ -2,12 +2,12 @@ import { automation } from '@norbital-ai/bolt';
 import { whatsapp } from '../lib/dispatch.js';
 
 /**
- * Delivers each customer notice: on WhatsApp to the customer's number (their identity, so always), and by email too when
- * they gave one. Where it went — or why it could not go — is recorded on the notice.
+ * Sends each customer notice on WhatsApp to the customer's number (their identity, so always) and records whether it
+ * went. The mail, when the customer gave an address, is the `customer_mail` channel's: it sends with the notice.
  */
 const deliver_notices = automation({
 	description:
-		'Sends each customer notice on WhatsApp to the customer’s number, and by email when they gave one, and records where it went.',
+		'Sends each customer notice on WhatsApp to the customer’s number and records whether it went.',
 	on: { created: 'customer_notices' },
 	runAs: ['dispatch_automation']
 });
@@ -19,37 +19,23 @@ const getErrorMessage = (error: unknown): string =>
 
 deliver_notices.run(async ({ ids }, ctx) => {
 	const { rows } = await ctx.read('customer_notices', {
-		where: { id: { in: ids }, delivery: { isNull: true } },
-		select: { subject: true, body: true, customer: { select: { phone: true, email: true } } },
+		where: { id: { in: ids }, whatsapp: { isNull: true } },
+		select: { subject: true, body: true, customer: { select: { phone: true } } },
 		all: true
 	});
 	const set = [];
 	for (const n of rows) {
-		const about = { collection: 'customer_notices' as const, id: n.id };
-		const went: string[] = [];
+		let went = 'sent';
 		try {
 			await ctx.send('whatsapp', {
 				to: whatsapp(n.customer.phone),
 				text: `${n.subject}\n\n${n.body}`,
-				about
+				about: { collection: 'customer_notices', id: n.id }
 			});
-			went.push('whatsapp');
 		} catch (error) {
-			went.push(`whatsapp failed: ${getErrorMessage(error)}`);
+			went = `failed: ${getErrorMessage(error)}`;
 		}
-		if (n.customer.email !== null)
-			try {
-				await ctx.send('customer_mail', {
-					to: [n.customer.email],
-					subject: n.subject,
-					text: n.body,
-					about
-				});
-				went.push('email');
-			} catch (error) {
-				went.push(`email failed: ${getErrorMessage(error)}`);
-			}
-		set.push({ target: n.id, set: { delivery: went.join('; ') } });
+		set.push({ target: n.id, set: { whatsapp: went } });
 	}
 	if (set.length > 0) await ctx.act('customer_notices.update', set);
 });
