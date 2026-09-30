@@ -194,7 +194,7 @@ import type { PersonInput } from '../../lib/payroll/run/eligibility.js';
 import { factStatusesOn, personFacts } from './facts.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { realignStatutoryFacts } from '../../lib/payroll/run/statutory-facts.js';
-import { ordinaryDivisorDays } from '../../lib/payroll/run/ordinary-rate.js';
+import { monthlyFactor, ordinaryDivisorDays } from '../../lib/payroll/run/ordinary-rate.js';
 import { live, coversDate, effectiveWithin, readRange } from '../../lib/payroll/run/effective.js';
 import type { Configuration } from '../../lib/payroll/run/configuration.js';
 import type { WorkspaceRow } from '../rows.js';
@@ -1006,8 +1006,8 @@ function raiseFloors(
  * district key overriding its province) and the sector's. The day is the normal day however short
  * the employer makes it (cl.19), so a daily rate meets the whole floor and an hourly rate meets it
  * over the day's scheduled hours. A monthly or semi-monthly wage (`base_salary` is the month for
- * both) is the month over the version's `ordinary_divisor_days`, a weekly one its month (× 52 ÷ 12)
- * over it (owner rule 2026-09-28, register TH-WAGE-01: daily × 30, LPA s.68's monthly ÷ 30).
+ * both) is the month over the version's `ordinary_divisor_days`, a weekly one its month (the
+ * version's `rate_conversions.weekly_to_monthly`) over it (owner rule 2026-09-28, register TH-WAGE-01: daily × 30, LPA s.68's monthly ÷ 30).
  * One issue per terms row.
  */
 function dailyFloorIssues(
@@ -1033,7 +1033,10 @@ function dailyFloorIssues(
 	>();
 	// Per terms row: whether the order covers the person (null where it does not) and blocks, and
 	// the version's divisor over them.
-	const judged = new Map<string, { blocking: boolean; divisor: number } | null>();
+	const judged = new Map<
+		string,
+		{ blocking: boolean; divisor: number; weekly: number } | null
+	>();
 	// A work day's recorded site overrides the terms' worksite for that day (cl.20: the day's workplace).
 	const siteOn = new Map(
 		bundle.workDays
@@ -1066,7 +1069,11 @@ function dailyFloorIssues(
 								expression: configuration.work.ordinary_divisor_days,
 								person,
 								employeeNumber: number
-							})
+							}),
+							weekly:
+								term.pay_frequency === 'WEEKLY'
+									? monthlyFactor('WEEKLY', person.terms, { work: configuration.work, person })
+									: 1
 						}
 					: null
 			);
@@ -1101,7 +1108,7 @@ function dailyFloorIssues(
 				: term.pay_frequency === 'HOURLY'
 					? [day.shift.paid_minutes, 60]
 					: term.pay_frequency === 'WEEKLY'
-						? [52, 12 * judgement.divisor]
+						? [judgement.weekly, judgement.divisor]
 						: [1, judgement.divisor];
 		if (cents(rate * scale) >= cents(floor * per)) continue;
 		const paid = Math.round((rate * scale * 10_000) / per) / 10_000;
@@ -1498,7 +1505,15 @@ function wageAgainstFloor(
 					]
 				: partTimeMonthlyHourly && hourly != null
 					? [
-							(person.terms.monthly_basic * 12) / (contractedWeek * 52),
+							person.terms.monthly_basic /
+								monthlyFactor(
+									'HOURLY',
+									{
+										ordinary_hours_per_week: contractedWeek,
+										working_days_per_week: person.terms.working_days_per_week
+									},
+									{ work: configuration.work, person }
+								),
 							hourly * scale,
 							'an hour (converted from monthly part-time pay)',
 							statedHourly
@@ -1520,7 +1535,16 @@ function wageAgainstFloor(
 							: hourly != null && person.employment.type === 'PART_TIME'
 								? [
 										person.terms.monthly_basic,
-										(hourly * scale * (term.ordinary_hours_per_week ?? 0) * 52) / 12,
+										hourly *
+											scale *
+											monthlyFactor(
+												'HOURLY',
+												{
+													ordinary_hours_per_week: term.ordinary_hours_per_week ?? 0,
+													working_days_per_week: person.terms.working_days_per_week
+												},
+												{ work: configuration.work, person }
+											),
 										'a month',
 										`${statedHourly} an hour over ${term.ordinary_hours_per_week ?? 0} hours a week`
 									]
@@ -2210,6 +2234,8 @@ function contributionAssessment(options: {
 				})
 			),
 			frequency: assessmentFrequency,
+			weeksPerMonth: () =>
+				monthlyFactor('WEEKLY', person.terms, { work: configuration.work, person }),
 			requirePeriodsFor: historyPeriodCodes,
 			triggers: new Map(
 				configuration.contributions.flatMap((scheme) =>
@@ -2478,12 +2504,12 @@ function contributionAssessment(options: {
 							? weeklyInstalments(bundle.window.period).length
 							: 1,
 				// A MONTH-assessed scheme reads the month's wage from one instalment: a half is doubled,
-				// a week is the year's 52 over 12 (SSS Circular 2014-002: weekly × 52 ÷ 12).
+				// a week is the version's weeks a month (`rate_conversions.weekly_to_monthly`).
 				monthFactor:
 					bundle.window.payFrequency === 'SEMI_MONTHLY'
 						? 2
 						: bundle.window.payFrequency === 'WEEKLY'
-							? 52 / 12
+							? monthlyFactor('WEEKLY', person.terms, { work: configuration.work, person })
 							: 1,
 				// A weekly company charges the month's schemes in the last week, when the month is known.
 				monthlyOn:

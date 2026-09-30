@@ -69,6 +69,8 @@ type Hire = {
 	pcb?: Row;
 	/** Extra fields for the EPF registration (TP3 opening). */
 	epf?: Row;
+	/** Extra registration fields by scheme code (e.g. `first_contribution_due_on`). */
+	status?: { readonly [code: string]: Row };
 	person?: Row;
 	employment?: Row;
 	terms?: Row;
@@ -146,7 +148,7 @@ const hire = (h: Hire): ProbeInput[] => {
 			}
 		},
 		...(h.schemes ?? ['EPF', 'SOCSO', 'EIS']).map((code) =>
-			fact(code, code === 'EPF' ? (h.epf ?? {}) : {})
+			fact(code, { ...(code === 'EPF' ? (h.epf ?? {}) : {}), ...h.status?.[code] })
 		),
 		...(h.pcb == null ? [] : [fact('PCB', h.pcb)])
 	];
@@ -1855,6 +1857,908 @@ register(
 					'SOCSO.employee': 29.75,
 					'SOCSO.employer': 104.15,
 					'PCB.employee': 0
+				}
+			}
+		]
+	}
+);
+
+// ── Round 2026-09-30: branches the cases above leave unproven ─────────────────────────────────────
+const ACT4 =
+	'Employees’ Social Security Act 1969 (Act 4), AGC online text 2026 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/3226981_BI/Act%204%20(Online%202026).pdf)';
+const ACT800 =
+	'Employment Insurance System Act 2017 (Act 800), AGC text (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1742141_BI/Act%20800%20FINAL.pdf)';
+const EPF_C =
+	'EPF Act 1991 (Act 452) Third Schedule Part C (employees who have attained sixty: (b) permanent residents, (c) non-citizens who elected before 1 August 1998), same AGC text as at 1 July 2022 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf); Part C is untouched by Act A1760 s.10';
+/** A recorded non-registration for one scheme of `ref`'s employment. */
+const unregistered = (ref: string, code: string, from: string): ProbeInput => ({
+	collection: 'employment_statutory_facts',
+	values: {
+		employee_id: `@${ref}`,
+		employment_id: `@${ref}_job`,
+		statutory_contribution_id: `@law:statutory_contributions:${code}`,
+		effective_range: { from, to: null },
+		status: { kind: 'NOT_REGISTERED', reason: 'The employer has not registered the employee' }
+	}
+});
+/** A citizen on RM3,000 in January 2026 under EPF, SOCSO and EIS: 330/390, 14.75/51.65, 5.90 each, no MTD. */
+const PLAIN_3000 = {
+	gross: 3000,
+	net: 2649.35,
+	'EPF.employee': 330,
+	'EPF.employer': 390,
+	'SOCSO.employee': 14.75,
+	'SOCSO.employer': 51.65,
+	'EIS.employee': 5.9,
+	'EIS.employer': 5.9
+};
+const PLAIN_3000_CITED = [
+	`${EPF_A}: "2,980.01 to 3,000.00" employer RM390, employee RM330`,
+	`${SOCSO}: row 34 (exceeding RM2,900, not RM3,000) employer RM51.65, employee RM14.75`,
+	`${EIS}: row 34 RM5.90 each`,
+	`${PCB}: K2 = 330; P = 2,670 × 12 − 9,000 = 23,040; 3,040 × 3% − 250 < 0, no MTD`
+];
+/** A retrenchment departure on `last`, notice served from `noticeOn`. */
+const retrenched = (noticeOn: string) => ({
+	exit_reason: 'RETRENCHMENT',
+	exit_facts: {
+		leaving_malaysia: false,
+		wages_12m: 36000,
+		notice_termination_party: 'EMPLOYER',
+		notice_approved_apprenticeship: false,
+		notice_exception: 'NONE',
+		notice_given: true,
+		notice_given_on: noticeOn,
+		notice_waived_days: 0,
+		notice_structural_ground: 'REDUCED_WORK',
+		notice_exception_reference: `PROBE retrenchment notice ${noticeOn}`
+	}
+});
+const exitLeave = (job: string, days: number, last: string): ProbeInput => ({
+	collection: 'leave_entries',
+	values: {
+		employment_id: `@${job}`,
+		catalogue_id: '@law:leave_catalogue:ANNUAL_LEAVE',
+		reference: `PROBE-EXIT-ANNUAL_LEAVE-${job}`,
+		from_date: `${last.slice(0, 4)}-01-01`,
+		to_date: `${last.slice(0, 4)}-12-31`,
+		days,
+		encash_days: days,
+		effective_on: last,
+		due_on: last,
+		reason: `Unused leave on departure ${last}`
+	}
+});
+
+register(
+	// ── EPF above RM20,000: the percentage method ─────────────────────────────────────────────────
+	{
+		id: 'MY-EPF-01-6',
+		profile: 'MY',
+		description:
+			'A citizen on RM25,000 in January 2026: above the last Part A row EPF is 11% and 12% of the wages, rounded up to the ringgit; SOCSO and EIS at the ceiling; MTD in the 25% band with the RM4,000 EPF relief spread by K2.',
+		citation: [
+			`${EPF_A}: "for the months where the wages exceed RM20,000.00, the contribution by the employee shall be calculated at the rate of 11% … the employer … 12% … rounded to the next ringgit": 25,000 × 11% = 2,750.00, × 12% = 3,000.00`,
+			`${SOCSO}: row 65 (exceeding RM6,000) employer RM104.15, employee RM29.75`,
+			`${EIS}: row 65 (exceeding RM6,000) RM11.90 each`,
+			`${PCB}. January, n = 11. K1 = 2,750; K2 = lower of 2,750 and (4,000 − 2,750)/11 = 113.636 → 113.63. P = 22,250 + (25,000 − 113.63) × 11 − 9,000 = 22,250 + 273,750.07 − 9,000 = 287,000.07; row 100,001–400,000 (M 100,000, R 25%, B 9,400): 187,000.07 × 25% = 46,750.0175 → 46,750.01; + 9,400 = 56,150.01; / 12 = 4,679.1675 → 4,679.16 → 4,679.20`,
+			'Net: 25,000 − 2,750 − 29.75 − 11.90 − 4,679.20 = 17,529.15; employer cost 3,000 + 104.15 + 11.90 = 3,116.05'
+		],
+		company: NO_HRD,
+		inputs: [...officeWeek('2024-01-01'), ...citizen('director', 'Datin Farida', 25000)],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'director_job',
+				lines: {
+					gross: 25000,
+					net: 17529.15,
+					employer_cost: 3116.05,
+					'EPF.employee': 2750,
+					'EPF.employer': 3000,
+					'SOCSO.employee': 29.75,
+					'SOCSO.employer': 104.15,
+					'EIS.employee': 11.9,
+					'EIS.employer': 11.9,
+					'PCB.employee': 4679.2
+				}
+			}
+		]
+	},
+
+	// ── Part C: a permanent resident at sixty-one ──────────────────────────────────────────────────
+	{
+		id: 'MY-EPF-01-7',
+		profile: 'MY',
+		description:
+			'A permanent resident aged 61 on RM3,000 in January 2026, contributing since 2015: EPF Third Schedule Part C, SOCSO Second Category (employment injury only after sixty), no EIS, resident MTD nil.',
+		citation: [
+			`${EPF_C}: "2,980.01 to 3,000.00" employer RM195, employee RM165`,
+			`${ACT4} First Schedule para 12(ii): an employee who has attained sixty is outside the Invalidity Scheme; ${SOCSO}: row 34 Second Category employer RM36.90, no employee share before SKBBK`,
+			`${ACT800} First Schedule para 8: an employee who has attained sixty is outside the Act: no EIS`,
+			`${PCB}: K1 = 165; K2 = lower of 165 and 3,835/11 = 348.63 → 165; P = 2,835 × 12 − 9,000 = 25,020; 5,020 × 3% = 150.60 − 250 < 0, no MTD`,
+			'Net: 3,000 − 165 = 2,835; employer cost 195 + 36.90 = 231.90'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2015-01-05'),
+			...hire({
+				ref: 'pr_senior',
+				name: 'Wang Li PR',
+				born: '1964-03-10',
+				nationality: 'Chinese',
+				standing: 'PERMANENT_RESIDENT',
+				tax: 'RESIDENT',
+				salary: 3000,
+				from: '2015-01-05',
+				schemes: ['EPF_PR', 'SOCSO', 'EIS']
+			})
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'pr_senior_job',
+				lines: {
+					gross: 3000,
+					net: 2835,
+					employer_cost: 231.9,
+					'EPF_PR.employee': 165,
+					'EPF_PR.employer': 195,
+					'SOCSO.employee': 0,
+					'SOCSO.employer': 36.9
+				}
+			}
+		]
+	},
+
+	// ── First contribution at fifty-seven: SOCSO Second Category, no EIS ────────────────────────────
+	{
+		id: 'MY-SOCSO-01-1',
+		profile: 'MY',
+		description:
+			'A citizen born 15 June 1968 first employed (and first contributable) on 1 December 2025, aged 57, on RM3,000; January 2026: SOCSO Second Category only, no EIS, EPF Part A.',
+		citation: [
+			`${ACT4} First Schedule para 12(i): an employee who has attained fifty-five and in respect of whom no contributions were payable before fifty-five is outside the Invalidity Scheme; ${SOCSO}: row 34 Second Category employer RM36.90`,
+			`${ACT800} First Schedule para 9: an employee who has attained fifty-seven and in respect of whom no contributions were payable before fifty-seven is outside the Act: no EIS`,
+			`${EPF_A}: "2,980.01 to 3,000.00" employer RM390, employee RM330`,
+			`${PCB}: K2 = 330; P = 23,040; no MTD`,
+			'Net: 3,000 − 330 = 2,670; employer cost 390 + 36.90 = 426.90'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2025-12-01'),
+			...citizen('late_joiner', 'Rahmah Late', 3000, {
+				born: '1968-06-15',
+				gender: 'FEMALE',
+				from: '2025-12-01',
+				status: {
+					SOCSO: { first_contribution_due_on: '2025-12-01' },
+					EIS: { first_contribution_due_on: '2025-12-01' }
+				}
+			})
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'late_joiner_job',
+				lines: {
+					gross: 3000,
+					net: 2670,
+					employer_cost: 426.9,
+					'EPF.employee': 330,
+					'EPF.employer': 390,
+					'SOCSO.employee': 0,
+					'SOCSO.employer': 36.9,
+					'EIS.employee': 0,
+					'EIS.employer': 0
+				}
+			}
+		]
+	},
+
+	// ── HRD: the ten-employee threshold, unregistered ────────────────────────────────────────────
+	{
+		id: 'MY-HRD-01-2',
+		profile: 'MY',
+		description:
+			'A Part I employer with exactly ten Malaysian employees, not registered with HRD Corp: the compulsory threshold is met, so the 1% levy is owed on its citizen on RM3,000.',
+		citation: [
+			`${HRD}; First Schedule Part I as substituted by P.U.(A) 84/2021 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf): an employer with ten or more Malaysian employees; s.14(1): 1% × 3,000 = 30.00; registration (s.13) is not a condition of the levy`,
+			...PLAIN_3000_CITED,
+			'Net: 2,649.35; employer cost 447.55 + 30 = 477.55'
+		],
+		company: hrd('NOT_REGISTERED', 10),
+		inputs: [...officeWeek('2024-01-01'), ...citizen('tenth', 'Ten Threshold', 3000)],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'tenth_job',
+				lines: { ...PLAIN_3000, employer_cost: 477.55, 'HRDF.employer': 30 }
+			}
+		]
+	},
+
+	// ── HRD: nine employees, never registered ────────────────────────────────────────────────────
+	{
+		id: 'MY-HRD-01-3',
+		profile: 'MY',
+		description:
+			'A Part I employer with nine Malaysian employees that has not opted to register: below the compulsory ten, the levy applies only on registration (s.15(1)), so none.',
+		citation: [
+			`${HRD}; First Schedule Parts I–II as substituted by P.U.(A) 84/2021 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/pua_20210226_PUA84.pdf): five to nine Malaysian employees is the optional class; s.15(1)–(2): the 0.5% levy is paid "upon registration" only`,
+			...PLAIN_3000_CITED,
+			'Net: 2,649.35; employer cost 447.55'
+		],
+		company: hrd('NOT_REGISTERED', 9),
+		inputs: [...officeWeek('2024-01-01'), ...citizen('ninth', 'Nine Optional', 3000)],
+		period: '2026-01',
+		expected: [{ employment: 'ninth_job', lines: { ...PLAIN_3000, employer_cost: 447.55 } }]
+	},
+
+	// ── HRD s.15(6): back to 0.5% the year after ─────────────────────────────────────────────────
+	{
+		id: 'MY-HRDA06-2',
+		profile: 'MY',
+		description:
+			'An optional registrant whose count went above its class maximum in 2025 and stayed at eight Malaysian employees after 2025: s.15(6) returns it to 0.5% in January 2026.',
+		citation: [
+			`${HRD}: s.15(6): "If the number of employees … remains below the maximum number for his class … after the current year, the rate of levy shall be 0.5 per centum": 0.5% × 3,000 = 15.00 (the 2025 high-rate year declared as hrd_optional_last_high_year 2025)`,
+			...PLAIN_3000_CITED,
+			'Net: 2,649.35; employer cost 447.55 + 15 = 462.55'
+		],
+		company: hrd('OPTIONAL', 8, { hrd_optional_last_high_year: 2025 }),
+		inputs: [...officeWeek('2024-01-01'), ...citizen('returned', 'Aina Returned', 3000)],
+		period: '2026-01',
+		expected: [
+			{ employment: 'returned_job', lines: { ...PLAIN_3000, employer_cost: 462.55, 'HRDF.employer': 15 } }
+		]
+	},
+
+	// ── HRD s.15(7): immediately back to 1% ──────────────────────────────────────────────────────
+	{
+		id: 'MY-HRDA06-3',
+		profile: 'MY',
+		description:
+			'The same kind of registrant, back at 0.5% for 2026, has eleven Malaysian employees in February 2026: s.15(7) raises the levy to 1% immediately.',
+		citation: [
+			`${HRD}: s.15(7): if the number of employees of an employer referred to in s.15(6) increases to more than the maximum for his class, the rate "shall immediately increase to one per centum": 1% × 3,000 = 30.00; the Part II maximum is nine (P.U.(A) 84/2021)`,
+			...PLAIN_3000_CITED.slice(0, 3),
+			`${PCB}: February, n = 10: K2 = 330, P = 2,670 × 12 − 9,000 = 23,040 (the January month as paid on the same terms); no MTD`,
+			'Net: 2,649.35; employer cost 447.55 + 30 = 477.55'
+		],
+		company: hrd('OPTIONAL', 11, { hrd_optional_last_high_year: 2025 }),
+		inputs: [...officeWeek('2024-01-01'), ...citizen('grew', 'Grew Again', 3000)],
+		period: '2026-02',
+		expected: [
+			{ employment: 'grew_job', lines: { ...PLAIN_3000, employer_cost: 477.55, 'HRDF.employer': 30 } }
+		]
+	},
+
+	// ── HRD wages: a fixed allowance in, the bonus out ────────────────────────────────────────
+	{
+		id: 'MY-HRDA02-1',
+		profile: 'MY',
+		description:
+			'A citizen on RM2,800 with a fixed RM200 scale-up allowance and a RM500 bonus in January 2026 at a compulsory HRD employer: HRD levy on salary and allowance, not the bonus; SOCSO and EIS likewise; EPF on all three.',
+		citation: [
+			`${HRD}: s.2 "wages" is "the basic salary and fixed allowances" and "does not include … (e) any bonus or commission": 1% × (2,800 + 200) = 30.00`,
+			`${EPF_WAGES}: base 3,500, "3,480.01 to 3,500.00" employee RM385 (11% of 3,500), employer RM455 (13%)`,
+			`${SOCSO}; Act 4 s.2(24) includes allowances and excludes (e) any annual bonus: base 3,000, row 34 RM51.65 / RM14.75`,
+			`${EIS}; Act 800 s.2 "wages" likewise: row 34 RM5.90 each`,
+			`${PCB}, D(b)(2): Y1 = 3,000, K1 = EPF on 3,000 = 330, Yt = 500, Kt = 385 − 330 = 55. Step 2: K2 = (4,000 − 330 − 55)/11 = 328.636 → 328.63; P = 2,670 + 2,671.37 × 11 + 445 − 9,000 = 23,500.07; 3,500.07 × 3% = 105.00 − 250 < 0, so the year's tax and each step are nil`,
+			'Net: 3,500 − 385 − 14.75 − 5.90 = 3,094.35; employer cost 455 + 51.65 + 5.90 + 30 = 542.55'
+		],
+		company: hrd('COMPULSORY', 12),
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('scaled', 'Suraya Scaled', 2800, {
+				gender: 'FEMALE',
+				terms: {
+					allowances: [{ catalogue_id: '@law:allowance_catalogue:SUA', amount: 200 }]
+				}
+			}),
+			adhoc('scaled_job', 'BONUS', 500, '2026-01-20', '2026-01')
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'scaled_job',
+				lines: {
+					gross: 3500,
+					net: 3094.35,
+					employer_cost: 542.55,
+					BASIC: 2800,
+					SUA: 200,
+					BONUS: 500,
+					'EPF.employee': 385,
+					'EPF.employer': 455,
+					'SOCSO.employee': 14.75,
+					'SOCSO.employer': 51.65,
+					'EIS.employee': 5.9,
+					'EIS.employer': 5.9,
+					'HRDF.employer': 30,
+					'PCB.employee': 0
+				}
+			}
+		]
+	},
+
+	// ── Termination benefit tiers of ten and twenty days, with the 8- and 16-day leave ladder ──────────
+	{
+		id: 'MY-SR10-2',
+		profile: 'MY',
+		description:
+			'Two citizens on RM3,000 retrenched with the last day 31 March 2026 after notice served in full: one employed from 1 April 2020 (six years: 20 days a year, 16 days’ annual leave), one from 1 January 2025 (fifteen months: 10 days a year, 8 days’ leave); each is paid March, the terminating year’s leave pro rata to three completed months, and the reg.6 benefit.',
+		citation: [
+			`${TLB}: six years × 20 days × 36,000/365 = 4,320,000/365 = 11,835.6164 → 11,835.62; 15 months = 1.25 years × 10 days × 36,000/365 = 450,000/365 = 1,232.8767 → 1,232.88 (the twelve months’ wages stated as the exit fact wages_12m)`,
+			`${EA} s.12(2)(a), (c): four weeks under two years (notice 20 February 2026, 40 days) and eight weeks at five years or more (notice 15 January 2026, 76 days): both served, no indemnity. s.60E(1)(a), (c) and proviso: 8 and 16 days a year, the terminating year in direct proportion to completed months, January–March = 3: 8 × 3/12 = 2 and 16 × 3/12 = 4 days (the 2025 leave taken in 2025). s.60E(3A) with s.60I(1A): 4 × 3,000/26 = 461.5385 → 461.54; 2 × 3,000/26 = 230.7692 → 230.77`,
+			`${EPF_WAGES}; KWSP Employer FAQ 8 and 11 (leave payment is wages, termination benefit is not): 3,461.54 on "3,460.01 to 3,480.00" RM383 / RM453; 3,230.77 on "3,220.01 to 3,240.00" RM357 / RM422`,
+			`${SOCSO}; the reg.6 benefit is outside the base as MY-SR10-1 records: 3,461.54 row 39 (RM3,400–3,500) RM60.35 / RM17.25; 3,230.77 row 37 (RM3,200–3,300) RM56.85 / RM16.25`,
+			`${EIS}: row 39 RM6.90 each; row 37 RM6.50 each`,
+			`${ITA_SCH6} para 15(1)(b): RM10,000 for each completed year exempts both benefits (60,000 ≥ 11,835.62; 10,000 ≥ 1,232.88). ${PCB}: at RM3,000 a month the year’s chargeable income stays under RM28,333 and the tax is nil`,
+			'Net: 3,000 + 461.54 + 11,835.62 = 15,297.16 − 383 − 17.25 − 6.90 = 14,890.01 (employer 453 + 60.35 + 6.90 = 520.25); 3,000 + 230.77 + 1,232.88 = 4,463.65 − 357 − 16.25 − 6.50 = 4,083.90 (employer 422 + 56.85 + 6.50 = 485.35)'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2020-03-30'),
+			...citizen('veteran', 'Veteran Retrench', 3000, {
+				from: '2020-04-01',
+				to: '2026-03-31',
+				employment: retrenched('2026-01-15')
+			}),
+			...citizen('newer', 'Newer Retrench', 3000, {
+				from: '2025-01-01',
+				to: '2026-03-31',
+				employment: retrenched('2026-02-20')
+			}),
+			exitLeave('veteran_job', 4, '2026-03-31'),
+			exitLeave('newer_job', 2, '2026-03-31'),
+			adhoc('veteran_job', 'TERMINATION_BENEFIT', 0, '2026-03-31', '2026-03'),
+			adhoc('newer_job', 'TERMINATION_BENEFIT', 0, '2026-03-31', '2026-03')
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'veteran_job',
+				lines: {
+					gross: 15297.16,
+					net: 14890.01,
+					employer_cost: 520.25,
+					BASIC: 3000,
+					ANNUAL_LEAVE_ENCASHMENT: 461.54,
+					TERMINATION_BENEFIT: 11835.62,
+					'EPF.employee': 383,
+					'EPF.employer': 453,
+					'SOCSO.employee': 17.25,
+					'SOCSO.employer': 60.35,
+					'EIS.employee': 6.9,
+					'EIS.employer': 6.9,
+					'PCB.employee': 0
+				}
+			},
+			{
+				employment: 'newer_job',
+				lines: {
+					gross: 4463.65,
+					net: 4083.9,
+					employer_cost: 485.35,
+					BASIC: 3000,
+					ANNUAL_LEAVE_ENCASHMENT: 230.77,
+					TERMINATION_BENEFIT: 1232.88,
+					'EPF.employee': 357,
+					'EPF.employer': 422,
+					'SOCSO.employee': 16.25,
+					'SOCSO.employer': 56.85,
+					'EIS.employee': 6.5,
+					'EIS.employer': 6.5,
+					'PCB.employee': 0
+				}
+			}
+		]
+	},
+
+	// ── A missing EPF registration is refused, not treated as an exemption ─────────────────────────
+	{
+		id: 'MY-REG-01-2',
+		profile: 'MY',
+		description:
+			'A citizen on RM3,000 whose EPF registration is recorded NOT_REGISTERED: the run is refused, because non-registration is not a statutory EPF exemption.',
+		citation: [
+			'EPF Act 1991 (Act 452) s.43(1): every employee and employer shall contribute at the Third Schedule rate; the First Schedule lists the only excluded persons, and registration is a separate employer duty — a missing registration exempts no one (https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1736246_BI/Act%20452%20(Online%202022).pdf)'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('no_epf', 'Norman NoEPF', 3000, { schemes: ['SOCSO', 'EIS'] }),
+			unregistered('no_epf', 'EPF', '2024-01-02')
+		],
+		period: '2026-01',
+		refused: 'NOT_REGISTERED does not prove a statutory EPF exemption',
+		expected: []
+	},
+
+	// ── SOCSO and EIS: likewise refused ──────────────────────────────────────────────────────────
+	{
+		id: 'MY-REG-01-3',
+		profile: 'MY',
+		description:
+			'A citizen on RM3,000 whose SOCSO registration is recorded NOT_REGISTERED: the run is refused rather than paying the month without the Act 4 contribution.',
+		citation: [
+			`${ACT4} s.6: contributions are payable in respect of every employee to whom the Act applies; s.5 and the First Schedule are the only exclusions; the employer’s registration duty does not condition liability`
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('no_socso', 'Nora NoSOCSO', 3000, { schemes: ['EPF', 'EIS'], gender: 'FEMALE' }),
+			unregistered('no_socso', 'SOCSO', '2024-01-02')
+		],
+		period: '2026-01',
+		refused: 'SOCSO: the recorded not-registered status cannot establish an exemption',
+		expected: []
+	},
+
+	// ── A 181-day contract is non-resident MTD ────────────────────────────────────────────────────
+	{
+		id: 'MY-PCB-06-2',
+		profile: 'MY',
+		description:
+			'A foreign worker on a 181-day contract (1 January–30 June 2026) on RM6,000, with no other presence recorded: one day short of 182, so MTD is the flat 30% non-resident rate.',
+		citation: [
+			`${PCB}, D(a): a non-resident employee is deducted 30% of remuneration; the resident-MTD note reaches only a foreign employee with a contract of 182 days or more: 1 January–30 June 2026 is 181 days, so 6,000 × 30% = 1,800.00. ${ITA_SCH6.replace('Schedule 6', 's.7(1)')}: no 182-day, linked, 90-day or four-year period is recorded`,
+			`${EPF_F}: 120 + 120; ${SOCSO}: row 64 (RM5,900–6,000) RM104.15 / RM29.75; EIS: none for a foreign employee (Act 800 First Schedule para 10)`,
+			'Net: 6,000 − 120 − 29.75 − 1,800 = 4,050.25; employer cost 120 + 104.15 = 224.15'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2025-12-29'),
+			...hire({
+				ref: 'contract181',
+				name: 'Nguyen Contract',
+				born: '1990-08-08',
+				nationality: 'Vietnamese',
+				standing: 'FOREIGNER',
+				salary: 6000,
+				from: '2026-01-01',
+				to: '2026-06-30',
+				type: 'CONTRACT',
+				employment: {
+					exit_reason: 'END_OF_CONTRACT',
+					exit_facts: { notice_termination_party: 'NEITHER' }
+				}
+			})
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'contract181_job',
+				lines: {
+					gross: 6000,
+					net: 4050.25,
+					employer_cost: 224.15,
+					'EPF_NON_CITIZEN.employee': 120,
+					'EPF_NON_CITIZEN.employer': 120,
+					'SOCSO.employee': 29.75,
+					'SOCSO.employer': 104.15,
+					'PCB.employee': 1800
+				}
+			}
+		]
+	},
+
+	// ── A contract below the monthly minimum wage is refused ──────────────────────────────────────
+	{
+		id: 'MY-NAT-01-2',
+		profile: 'MY',
+		description:
+			'A citizen contracted at RM1,650 a month in January 2026: below the RM1,700 floor, the run is refused rather than paying the shortfall silently.',
+		citation: [
+			'Minimum Wages Order 2024, P.U.(A) 376/2024 para 3(1) (https://gajiminimum.mohr.gov.my/wp-content/uploads/PUA%20376.pdf): RM1,700 a month; National Wages Consultative Council Act 2011 s.43: an employer shall pay not less than the minimum wage — the run blocks a contract below it (work_rules.wages.block_below_when)'
+		],
+		company: NO_HRD,
+		inputs: [...officeWeek('2024-01-01'), ...citizen('underpaid', 'Umar Underpaid', 1650)],
+		period: '2026-01',
+		refused: 'MINIMUM_WAGE_BELOW',
+		expected: []
+	},
+
+	// ── HRD education exemption: another class, the last month ────────────────────────────────────
+	{
+		id: 'MY-HRD11-2',
+		profile: 'MY',
+		description:
+			'A registered employer in MSIC class 8541 (Schedule item 6, 8541/8542/8549 “Other education”) with twelve Malaysian employees: no levy for December 2026, the last exempt contribution month; SKBBK is due from June 2026.',
+		citation: [
+			'P.U.(A) 13/2026 (https://lom.agc.gov.my/ilims/upload/portal/akta/outputp/3268260/PUA%2013%20(2026).pdf) under Act 612 s.19: registered employers in the scheduled education classes are exempt (Schedule item 6: 8541/8542/8549 Other education) from the ss.14–15 levy to 31 December 2026 (para 1(2))',
+			...PLAIN_3000_CITED.slice(0, 3),
+			`${SOCSO}: SKBBK column row 34 RM22.15 (employee only)`,
+			`${PCB}: December, n = 0; at RM3,000 a month the year’s P = 23,040: no MTD`,
+			'Net: 3,000 − 330 − 14.75 − 22.15 − 5.90 = 2,627.20; employer cost 447.55'
+		],
+		company: hrd('COMPULSORY', 12, { hrd_education_schedule_code: '8541' }),
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('lecturer', 'Pensyarah Latif', 3000, {
+				schemes: ['EPF', 'SOCSO', 'SKBBK', 'EIS']
+			})
+		],
+		period: '2026-12',
+		expected: [
+			{
+				employment: 'lecturer_job',
+				lines: {
+					...PLAIN_3000,
+					net: 2627.2,
+					employer_cost: 447.55,
+					'SKBBK.employee': 22.15,
+					'SKBBK.employer': 0
+				}
+			}
+		]
+	},
+
+	// ── Form TP3: previous-employer zakat ─────────────────────────────────────────────────────────
+	{
+		id: 'MY-PCB-03-2',
+		profile: 'MY',
+		description:
+			'A citizen joins on 1 April 2026 on RM5,000 and declares on Form TP3 the previous employer’s January–March: RM15,000 remuneration, RM1,650 EPF, RM330 MTD and RM150 zakat.',
+		citation: [
+			`${PCB}; para 10: the TP3 amounts are treated in the formula as (Y − K), X and Z; Z is the accumulated zakat paid in the current year other than the current month. As MY-PCB-03-1, P = 47,000.00, n = 8: [(12,000 × 6% = 720 + 600) − (150 + 330)] / 9 = 840 / 9 = 93.333 → 93.33 → 93.35`,
+			`${EPF_A}: RM650 / RM550; ${SOCSO}: row 54 RM86.65 / RM24.75; ${EIS}: row 54 RM9.90 each`,
+			'Net: 5,000 − 550 − 24.75 − 9.90 − 93.35 = 4,322.00; employer cost 746.55'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2026-03-30'),
+			...citizen('tp3z', 'Zulkifli TP3', 5000, {
+				from: '2026-04-01',
+				pcb: {
+					opening: [
+						{
+							year: '2026',
+							base: 15000,
+							employee: 330,
+							employer: 0,
+							rebate: 150,
+							months: 3,
+							reference: 'TP3'
+						}
+					]
+				},
+				epf: {
+					opening: [{ year: '2026', base: 15000, employee: 1650, employer: 1950, reference: 'TP3' }]
+				}
+			})
+		],
+		period: '2026-04',
+		expected: [
+			{
+				employment: 'tp3z_job',
+				lines: {
+					gross: 5000,
+					net: 4322,
+					employer_cost: 746.55,
+					'EPF.employee': 550,
+					'EPF.employer': 650,
+					'SOCSO.employee': 24.75,
+					'SOCSO.employer': 86.65,
+					'EIS.employee': 9.9,
+					'EIS.employer': 9.9,
+					'PCB.employee': 93.35
+				}
+			}
+		]
+	}
+);
+
+// ── Round 2026-09-30 (batch 9): leave with pay, Schedule 6 para 22, the aged non-citizen, SKBBK release ──
+/** A time-off entry; a per-event leave names its event. */
+const leave = (job: string, code: string, from: string, to: string, event?: string): ProbeInput => ({
+	collection: 'leave_entries',
+	values: {
+		employment_id: `@${job}`,
+		catalogue_id: `@law:leave_catalogue:${code}`,
+		reference: `PROBE-${code}-${from}`,
+		from_date: from,
+		to_date: to,
+		half_day_start: false,
+		half_day_end: false,
+		...(event == null ? {} : { event_kind: 'BIRTH', event_date: event }),
+		reason: `probe ${code}`
+	},
+	files: { certificate_file: `${code.toLowerCase()}-certificate.pdf` }
+});
+const PLAIN_3000_EMPLOYER = 447.55;
+const RELEASE =
+	'PERKESO: on 8 July 2026 SKBBK (LINDUNG 24 Jam) became voluntary for Malaysian citizens and permanent residents by a signed Notis Perakuan Pelepasan Liabiliti, and stays mandatory for non-citizens (PERKESO media statement 10 July 2026, https://www.perkeso.gov.my/images/kenyataan_media/2026/100726%20-%20OPSYEN%20OPT-OUT%20LINDUNG%2024%20JAM%20DISEDIAKAN%20ISNIN%20DEPAN.pdf; LINDUNG 24 Jam FAQ 13 July 2026 Q4, Q6–8, https://www.perkeso.gov.my/images/lindung/lindung-24-jam/130726-FAQ_LINDUNG_24_JAM.pdf). The accepted release is recorded as an SKBBK fact from its effective date (docs/inventory/malaysia.csv MY-SKBBK-04 recorded default)';
+
+register(
+	// ── s.37(2): a qualifying mother on a monthly rate keeps her wages ─────────────────────────────
+	{
+		id: 'MY-EA22-1',
+		profile: 'MY',
+		description:
+			'A married citizen employed since January 2024 on RM3,000 is confined on Monday 12 January 2026 and takes 98 consecutive days of maternity leave (12 January – 19 April): she qualifies for the allowance and, paid monthly, keeps January’s wages unabated.',
+		citation: [
+			`${EA} s.37(1)(a): maternity leave of not less than ninety-eight consecutive days (12 January – 19 April 2026: 20 + 28 + 31 + 19 = 98); s.37(2)(a)(i)–(ii): employed not less than ninety days in the nine months and at some time in the four months immediately before the confinement (every day since 2 January 2024); s.37(1)(c): no surviving children recorded; s.37(2)(c): a monthly-rated employee is deemed paid the allowance when her monthly wages continue without abatement: January gross 3,000`,
+			...PLAIN_3000_CITED,
+			`Net: 2,649.35; employer cost ${PLAIN_3000_EMPLOYER}`
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('mother', 'Nurul Ibu', 3000, {
+				gender: 'FEMALE',
+				person: { marital_status: 'MARRIED', spouse_status: 'WITH_INCOME' }
+			}),
+			leave('mother_job', 'MATERNITY_LEAVE', '2026-01-12', '2026-04-19', '2026-01-12')
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'mother_job',
+				lines: { ...PLAIN_3000, employer_cost: PLAIN_3000_EMPLOYER, BASIC: 3000 }
+			}
+		]
+	},
+
+	// ── s.37(2)(a)(i): under ninety days of service, the leave is without allowance ────────────────
+	{
+		id: 'MY-EA22-2',
+		profile: 'MY',
+		description:
+			'A citizen hired on 1 December 2025 on RM3,000 is confined on Tuesday 20 January 2026 after 50 days of service: she has her 98 days of maternity leave (20 January – 27 April) but no allowance, so January pays s.18A(c) for the 19 days before the leave.',
+		citation: [
+			`${EA} s.37(1)(a): 98 consecutive days of leave (20 January – 27 April 2026: 12 + 28 + 31 + 27); s.37(2)(a)(i): employed 1 December 2025 – 19 January 2026 = 50 days, under ninety in the nine months before the confinement: no maternity allowance`,
+			`${EA} s.18A(c): leave without pay for 12 of January’s 31 days: 3,000 × 19/31 = 1,838.7097 → 1,838.71`,
+			`${EPF_A}: "1,820.01 to 1,840.00" employer RM240, employee RM203`,
+			`${SOCSO}: row 23 (exceeding RM1,800, not RM1,900) employer RM32.35, employee RM9.25`,
+			`${EIS}: row 23 RM3.70 each`,
+			`${PCB}: K1 = K2 = 203; P = (1,838.71 − 203) × 12 − 9,000 = 10,628.52; row 5,001–20,000: 5,628.52 × 1% − 400 < 0, no MTD`,
+			'Net: 1,838.71 − 203 − 9.25 − 3.70 = 1,622.76; employer cost 240 + 32.35 + 3.70 = 276.05'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2025-12-01'),
+			...citizen('new_mother', 'Aina Baharu', 3000, {
+				gender: 'FEMALE',
+				from: '2025-12-01',
+				person: { marital_status: 'MARRIED', spouse_status: 'WITH_INCOME' }
+			}),
+			leave('new_mother_job', 'MATERNITY_LEAVE', '2026-01-20', '2026-04-27', '2026-01-20')
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'new_mother_job',
+				lines: {
+					gross: 1838.71,
+					net: 1622.76,
+					employer_cost: 276.05,
+					'EPF.employee': 203,
+					'EPF.employer': 240,
+					'SOCSO.employee': 9.25,
+					'SOCSO.employer': 32.35,
+					'EIS.employee': 3.7,
+					'EIS.employer': 3.7
+				}
+			}
+		]
+	},
+
+	// ── s.60F: certified sick leave is paid ────────────────────────────────────────────────────────
+	{
+		id: 'MY-EA34-1',
+		profile: 'MY',
+		description:
+			'A citizen on RM3,000 with two years’ service has two days of certified sick leave, Tuesday 13 and Wednesday 14 January 2026: paid sick leave leaves January’s wages whole.',
+		citation: [
+			`${EA} s.60F(1)(a)(ii): eighteen days of paid sick leave a year for two to under five years’ service, on a registered medical practitioner’s certificate; two taken, no abatement of the monthly wage`,
+			...PLAIN_3000_CITED,
+			`Net: 2,649.35; employer cost ${PLAIN_3000_EMPLOYER}`
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('sick', 'Hafiz Sakit', 3000),
+			leave('sick_job', 'MEDICAL_LEAVE', '2026-01-13', '2026-01-14')
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'sick_job',
+				lines: { ...PLAIN_3000, employer_cost: PLAIN_3000_EMPLOYER, BASIC: 3000 }
+			}
+		]
+	},
+
+	// ── s.60FA: paternity leave is paid ────────────────────────────────────────────────────────────
+	{
+		id: 'MY-EA35-1',
+		profile: 'MY',
+		description:
+			'A married citizen father with two years’ service takes seven consecutive days of paternity leave for his child born on Monday 12 January 2026 (12–18 January): paid leave, January’s wages whole.',
+		citation: [
+			`${EA} s.60FA(1)–(3): a married male employee employed by the same employer at least twelve months immediately before the leave is entitled to paid paternity leave at his ordinary rate of pay for seven consecutive days for each confinement, restricted to five confinements; no abatement of the monthly wage`,
+			...PLAIN_3000_CITED,
+			`Net: 2,649.35; employer cost ${PLAIN_3000_EMPLOYER}`
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('father', 'Faizal Bapa', 3000, { person: { marital_status: 'MARRIED', spouse_status: 'WITH_INCOME' } }),
+			leave('father_job', 'PATERNITY_LEAVE', '2026-01-12', '2026-01-18', '2026-01-12')
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'father_job',
+				lines: { ...PLAIN_3000, employer_cost: PLAIN_3000_EMPLOYER, BASIC: 3000 }
+			}
+		]
+	},
+
+	// ── Schedule 6 para 22(a): past sixty employment days the para 21 claim fails ─────────────────
+	{
+		id: 'MY-PCB-07-2',
+		profile: 'MY',
+		description:
+			'A non-resident foreign specialist on a contract 1 January – 31 March 2026 on RM6,000, employment exercised in Malaysia throughout and a para 21 claim declared: by the March payroll date he has 90 employment days, over sixty, so the exemption is gone and March’s MTD is the 30% non-resident rate.',
+		citation: [
+			`${ITA_SCH6} para 21: exemption only for employment exercised in Malaysia for periods not exceeding sixty days; para 22(a): it does not apply where that employment exceeds sixty days — 31 + 28 + 31 = 90 recorded employment days by 31 March 2026`,
+			`Income Tax Act 1967 Schedule 1 para 1A (same AGC text) and ${PCB}, D(a): a non-resident is deducted 30% of remuneration: 6,000 × 30% = 1,800 (no earlier slip in this case to recover)`,
+			`${EPF_F}: 120 + 120; ${SOCSO}: row 64 RM104.15 / RM29.75; EIS: none (Act 800 First Schedule para 10)`,
+			'Net: 6,000 − 120 − 29.75 − 1,800 = 4,050.25; employer cost 224.15'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2025-12-29'),
+			...hire({
+				ref: 'long_stay',
+				name: 'Anders Longstay',
+				born: '1981-04-04',
+				nationality: 'Swedish',
+				standing: 'FOREIGNER',
+				salary: 6000,
+				from: '2026-01-01',
+				to: '2026-03-31',
+				type: 'CONTRACT',
+				employment: {
+					exit_reason: 'END_OF_CONTRACT',
+					exit_facts: { notice_termination_party: 'NEITHER' }
+				},
+				pcb: { elections: { pcb_sch6_para21: true } }
+			}),
+			{
+				collection: 'presence_periods',
+				values: {
+					employee_id: '@long_stay',
+					jurisdiction_code: 'MY',
+					period: { from: '2026-01-01', to: '2026-03-31' },
+					employment_exercised: true,
+					reference: 'Passport stamps 1 January and 31 March 2026'
+				}
+			}
+		],
+		period: '2026-03',
+		expected: [
+			{
+				employment: 'long_stay_job',
+				lines: {
+					gross: 6000,
+					net: 4050.25,
+					employer_cost: 224.15,
+					'EPF_NON_CITIZEN.employee': 120,
+					'EPF_NON_CITIZEN.employer': 120,
+					'SOCSO.employee': 29.75,
+					'SOCSO.employer': 104.15,
+					'PCB.employee': 1800
+				}
+			}
+		]
+	},
+
+	// ── A non-citizen aged 76: no EPF, SOCSO employment injury only ───────────────────────────────
+	{
+		id: 'MY-EPF-03-3',
+		profile: 'MY',
+		description:
+			'A non-resident Indonesian worker aged 76 on RM2,900 in January 2026: no EPF at 75 or over (Part F included), SOCSO Second Category, no EIS, MTD at 30%.',
+		citation: [
+			'EPF: KWSP, Employer mandatory contribution: employees aged 14 to under 75 contribute, Malaysian or not (https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution); EPF Act 1991 First Schedule para 13 (AGC text as at 1 July 2022) excludes a person who has attained seventy-five, untouched by Act A1760 s.9 (which deletes paras 6–7 only): no EPF',
+			`${SOCSO}: row 33 (RM2,800–2,900) Second Category employer RM35.60, no employee share (${ACT4} First Schedule para 12: an employee who has attained sixty is insured for employment injury only)`,
+			`${ACT800} First Schedule para 10 (foreign employee) and the sixty-year limit: no EIS`,
+			`${PCB}, D(a): 2,900 × 30% = 870`,
+			'Net: 2,900 − 870 = 2,030; employer cost 35.60'
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...hire({
+				ref: 'aged_foreign',
+				name: 'Suparman Tua',
+				born: '1949-11-20',
+				standing: 'FOREIGNER',
+				salary: 2900,
+				from: '2024-01-02'
+			})
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'aged_foreign_job',
+				lines: {
+					gross: 2900,
+					net: 2030,
+					employer_cost: 35.6,
+					'SOCSO.employee': 0,
+					'SOCSO.employer': 35.6,
+					'PCB.employee': 870
+				}
+			}
+		]
+	},
+
+	// ── SKBBK: a local’s accepted release ends the charge; a non-citizen’s does not ─────────────────
+	{
+		id: 'MY-SKBBK-04-1',
+		profile: 'MY',
+		description:
+			'September 2026, two workers on RM3,000 whose SKBBK facts from 1 September record an accepted release of liability: the citizen owes no SKBBK; the non-citizen’s release is of no effect and SKBBK is still deducted.',
+		citation: [
+			RELEASE,
+			...PLAIN_3000_CITED,
+			`Non-citizen: ${EPF_F}: 60 + 60; ${SOCSO}: row 34 First Category RM51.65 / RM14.75 and SKBBK RM22.15; EIS none (Act 800 First Schedule para 10); ${PCB}, D(a): 30% × 3,000 = 900`,
+			`Net: citizen 2,649.35 (employer ${PLAIN_3000_EMPLOYER}); non-citizen 3,000 − 60 − 14.75 − 22.15 − 900 = 2,003.10 (employer 111.65)`
+		],
+		company: NO_HRD,
+		inputs: [
+			...officeWeek('2024-01-01'),
+			...citizen('released', 'Zulkifli Lepas', 3000),
+			...hire({
+				ref: 'foreign_release',
+				name: 'Rahim Mandatory',
+				born: '1994-03-14',
+				nationality: 'Bangladeshi',
+				standing: 'FOREIGNER',
+				salary: 3000,
+				from: '2024-01-02'
+			}),
+			...['released', 'foreign_release'].map(
+				(ref): ProbeInput => ({
+					collection: 'employment_statutory_facts',
+					values: {
+						employee_id: `@${ref}`,
+						employment_id: `@${ref}_job`,
+						statutory_contribution_id: '@law:statutory_contributions:SKBBK',
+						effective_range: { from: '2026-09-01', to: null },
+						status: {
+							kind: 'REGISTERED',
+							reference_number: `PROBE-SKBBK-RELEASE-${ref}`,
+							elections: { skbbk_liability_released: true }
+						}
+					}
+				})
+			)
+		],
+		period: '2026-09',
+		expected: [
+			{
+				employment: 'released_job',
+				lines: { ...PLAIN_3000, employer_cost: PLAIN_3000_EMPLOYER, 'SKBBK.employee': 0 }
+			},
+			{
+				employment: 'foreign_release_job',
+				lines: {
+					gross: 3000,
+					net: 2003.1,
+					employer_cost: 111.65,
+					'EPF_NON_CITIZEN.employee': 60,
+					'EPF_NON_CITIZEN.employer': 60,
+					'SOCSO.employee': 14.75,
+					'SOCSO.employer': 51.65,
+					'SKBBK.employee': 22.15,
+					'PCB.employee': 900
 				}
 			}
 		]

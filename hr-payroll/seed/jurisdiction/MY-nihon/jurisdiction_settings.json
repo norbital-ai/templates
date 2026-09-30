@@ -18,6 +18,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -874,6 +879,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -1741,6 +1751,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -2619,6 +2634,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -3497,6 +3517,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -4375,6 +4400,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -5232,6 +5262,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -6100,6 +6135,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -6979,6 +7019,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -7858,6 +7903,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -8737,6 +8787,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -9595,6 +9650,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -10464,6 +10524,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -11344,6 +11409,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -12224,6 +12294,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -13104,6 +13179,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -14003,6 +14083,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -14913,6 +14998,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -15834,6 +15924,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -16755,6 +16850,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -17676,6 +17776,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -18595,6 +18700,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -19514,6 +19624,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -20444,6 +20559,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -21385,6 +21505,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -22326,6 +22451,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -23267,6 +23397,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -24186,6 +24321,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -25105,6 +25245,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -26035,6 +26180,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -26976,6 +27126,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{
@@ -27917,6 +28072,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.ordinary_hours_per_week > 0.0 ? 52.0 * terms.working_days_per_week * (terms.payroll_group == \"5D\" ? 42.5 : 45.0) / (12.0 * terms.ordinary_hours_per_week) : 26.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.type != \"DOMESTIC\" && (terms.statutory_work_category != \"VESSEL_WORK\" && (terms.statutory_work_category == \"MANUAL_LABOUR\" || terms.statutory_work_category == \"MANUAL_LABOUR_SUPERVISOR\" || terms.statutory_work_category == \"COMMERCIAL_VEHICLE_OPERATOR\" || terms.statutory_wages <= 4000.0))",
 			"bands": [
 				{

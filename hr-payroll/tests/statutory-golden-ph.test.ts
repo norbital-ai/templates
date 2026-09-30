@@ -3372,3 +3372,46 @@ test('Philippines — protection-order support comes off net pay at the ordered 
 			version.id
 		);
 });
+
+test('PH wage orders — every signed tranche is its own sealed interval', () => {
+	// Figures are the orders' own daily rates (NWPC regional pages and signed orders read 2026-09-30):
+	// RB VIII-25 ₱452 from 8 Dec 2025 and ₱470 from 1 Jun 2026; CAR-24 ₱505 from 30 Dec 2025;
+	// RBV-23 ₱455 from 8 Apr 2026; RBIII-26 ₱600 from 16 Apr 2026; RX-24 ₱500 and RXIII-20 ₱475
+	// from 1 May 2026; RB XI-24 ₱540 from 1 Sep 2026; BARMM-05 ₱436 from 6 Aug 2026; ROVII-27
+	// ₱582 from 14 Oct 2026. A daily-paid worker at the rate pays; one centavo below refuses.
+	const facts = {
+		minimum_wage_exemption_approved: false,
+		ph_wage_one_establishment: true,
+		ph_wage_worker_count: 20
+	};
+	const run = (period: string, worksite: string, sector: string, wage: number) =>
+		buildStatutory({
+			code: 'PH',
+			period,
+			region: worksite.split('/')[0]!,
+			companyFacts: facts,
+			people: [{ key: 'W', wage, pay_frequency: 'DAILY', worksite, worksite_sector: sector }]
+		});
+	for (const [period, worksite, sector, daily] of [
+		['2026-01', 'VIII/Tacloban', 'OTHER_NONAGRI', 452],
+		['2026-07', 'VIII/Tacloban', 'OTHER_NONAGRI', 470],
+		['2026-01', 'CAR/Baguio', 'OTHER_NONAGRI', 505],
+		['2026-05', 'V/Iriga', 'AGRICULTURE', 455],
+		['2026-05', 'Pampanga/San Fernando', 'OTHER_NONAGRI', 600],
+		['2026-05', 'X/Manolo Fortich', 'OTHER_NONAGRI', 500],
+		['2026-05', 'XIII/Bayugan', 'AGRICULTURE', 475],
+		['2026-09', 'XI/Davao', 'OTHER_NONAGRI', 540],
+		['2026-09', 'BARMM/Cotabato City', 'OTHER_NONAGRI', 436],
+		['2026-11', 'VII/Cebu', 'OTHER_NONAGRI', 582]
+	] as const) {
+		assert.ok(
+			run(period, worksite, sector, daily).slips.has('W'),
+			`${worksite} ${period} pays ${daily}`
+		);
+		assert.throws(
+			() => run(period, worksite, sector, daily - 0.01),
+			/MINIMUM_WAGE_BELOW/,
+			`${worksite} ${period} blocks ${daily - 0.01}`
+		);
+	}
+});

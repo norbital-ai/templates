@@ -83,6 +83,7 @@ const hire = (h: Hire): ProbeInput[] => [
 	},
 	{
 		collection: 'employment_terms',
+		ref: `${h.ref}_terms`,
 		values: {
 			employment_id: `@${h.ref}_job`,
 			residency_status: 'CITIZEN',
@@ -275,6 +276,122 @@ const domestic = (
 	};
 };
 
+/** The worksite and sector sources a regional (non-NCR) private class needs, each evidenced by reference and file. */
+const SOURCES = ['wage_worksite_source', 'wage_sector_source'] as const;
+const sourced = (ref: string, order: string): ProbeInput[] =>
+	SOURCES.map((key): ProbeInput => ({
+		collection: 'fact_evidence',
+		values: {
+			subject: { collection: 'employment_terms', id: `@${ref}_terms` },
+			fact_key: key,
+			reference: `PROBE-${key}-${ref}`
+		},
+		files: { file: `${key}.pdf` }
+	}));
+
+/**
+ * A private worker at a regional worksite paid a monthly salary on the shared five-day week (the order's daily
+ * rate × 261 ÷ 12, tracker PH-WG59), the order's municipality and sector recorded as evidenced terms facts.
+ */
+const regional = (
+	worksite: string,
+	sector: string,
+	salary: number,
+	order: string
+): ProbeInput[] => [
+	...week,
+	...hire({
+		ref: 'w',
+		name: 'Juan Dela Cruz',
+		born: '1990-05-14',
+		from: '2020-01-06',
+		salary,
+		worksite,
+		sector,
+		terms: {
+			facts: {
+				wage_worksite_source: `${worksite}: ${order}`,
+				wage_sector_source: `${sector}: ${order}`
+			}
+		}
+	}),
+	...sourced('w', order)
+];
+
+/** A regional private worker at exactly the order's daily floor for the whole month. */
+const site = (
+	id: string,
+	description: string,
+	worksite: string,
+	sector: string,
+	salary: number,
+	period: string,
+	order: string,
+	c: Charges,
+	net: number,
+	employerCost: number,
+	arithmetic: string
+): ProbeCase => ({
+	id,
+	profile: 'PH',
+	description,
+	citation: [order, SSS, PHIC, HDMF, WTAX, arithmetic],
+	company: company(),
+	inputs: regional(worksite, sector, salary, order),
+	period,
+	expected: [
+		{
+			employment: 'w_job',
+			lines: { gross: salary, net, employer_cost: employerCost, BASIC: salary, ...charges(c) }
+		}
+	]
+});
+
+/**
+ * A contract below the floor in force during the period — a private worker (sector named) or a kasambahay (sector
+ * null): no exemption is recorded (RA 6727 s.4(c)) and a domestic floor admits none, so the run is refused.
+ */
+const below = (
+	id: string,
+	description: string,
+	worksite: string,
+	sector: string | null,
+	salary: number,
+	period: string,
+	order: string
+): ProbeCase => ({
+	id,
+	profile: 'PH',
+	description,
+	citation: [
+		order,
+		sector === null
+			? DOMESTIC
+			: `RA 6727 s.4 and the order's coverage section: every private minimum wage earner in the region, whatever the payment method; the daily rate × 261 ÷ 12 on a five-day week (tracker PH-WG59); ₱${salary} a month is below it`
+	],
+	company: company(),
+	inputs:
+		sector === null
+			? [
+					...week,
+					...hire({
+						ref: 'k',
+						name: 'Maria Santos',
+						gender: 'FEMALE',
+						born: '1988-02-11',
+						from: '2024-01-08',
+						salary,
+						worksite,
+						sector: null,
+						type: 'DOMESTIC'
+					})
+				]
+			: regional(worksite, sector, salary, order),
+	period,
+	refused: `MINIMUM_WAGE_BELOW: P-PH-${sector === null ? 'k' : 'w'} is contracted at `,
+	expected: []
+});
+
 const FULL_30450 = {
 	sss: [1000, 2000],
 	mpf: [525, 1050],
@@ -283,6 +400,53 @@ const FULL_30450 = {
 	hdmf: [200, 200],
 	wtax: 1069.61
 } satisfies Charges;
+
+const O_NCR26A =
+	'Wage Order NCR-26: agriculture (plantation and non-plantation), service/retail employing 15 workers or less and manufacturing regularly employing less than 10 workers ₱658 a day, through 25 Sep 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/06/01.-Wage-Order-No.-NCR-26.pdf; NCR-28 states it as the baseline, https://nwpc.dole.gov.ph/ncr/, read 30 Sep 2026)';
+const O_NCR28 =
+	'Wage Order NCR-28 ss.1–3 (issued 7 Sep, published 11 Sep, effective 26 Sep 2026): NCR-26 baseline + ₱60 — non-agriculture ₱695 → ₱755; agriculture (plantation and non-plantation), service/retail employing 15 workers or less and manufacturing regularly employing less than 10 workers ₱658 → ₱718 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-NCR-28.pdf; https://nwpc.dole.gov.ph/ncr/, read 30 Sep 2026)';
+const O_III =
+	'Wage Order No. RBIII-26 (effective 30 Oct 2025; second tranche 16 Apr 2026), Bataan, Bulacan, Nueva Ecija, Pampanga, Tarlac, Zambales: non-agriculture ₱570 → ₱600, agriculture ₱540 → ₱570, retail/service ₱560 → ₱590 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBIII-26.pdf; https://nwpc.dole.gov.ph/region-iii/, read 30 Sep 2026)';
+const O_IX =
+	'Wage Order No. RIX-24 (published 16 Dec 2025, effective 1 Jan 2026): non-agriculture (including retail/service of 10 workers or more) ₱414 → ₱439 → ₱464 and agriculture ₱401 → ₱426 → ₱451, second tranche 1 June 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RIX-24.pdf; https://nwpc.dole.gov.ph/region-ix/, read 30 Sep 2026)';
+const O_X =
+	'Wage Order No. RX-24 ss.1–4 (published 31 Dec 2025, effective 16 Jan 2026): Category I (Cities of Cagayan de Oro, Iligan and the other named areas) non-agriculture and agriculture ₱461 → ₱486 → ₱500, Category II ₱446 → ₱471 → ₱485, second tranche 1 May 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RX-24.pdf; https://nwpc.dole.gov.ph/region-x/, read 30 Sep 2026)';
+const O_XI =
+	'Wage Order No. RB XI-24 (issued 19 Feb, published 25 Feb 2026): non-agriculture ₱510 → ₱525 from 13 Mar 2026 → ₱540 from 1 Sep 2026; agriculture ₱505 → ₱515 → ₱525 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/02/Wage-Order-No.-RB-XI-24.pdf; https://nwpc.dole.gov.ph/region-xi/, read 30 Sep 2026)';
+const O_XIII =
+	'Wage Order No. RXIII-20 (published 18 Dec 2025, effective 3 Jan 2026): every sector ₱435 → ₱455, ₱475 from 1 May 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RXIII-20.pdf; https://nwpc.dole.gov.ph/region-xiii/, read 30 Sep 2026)';
+const O_IVA =
+	"Wage Order No. IVA-22 s.2 table (issued 3 Sep, published 19 Sep, effective 5 Oct 2025): reclassified first-class municipalities (DOF DO 074-2024) non-agriculture ₱450 + ₱60 + ₱40 (1 Apr 2026) = ₱550; second- to fifth-class municipalities non-agriculture ₱450 + ₱60 + ₱15 (1 Apr 2026) = ₱525 and agriculture ₱425 + ₱60 + ₱23 (1 Apr 2026) = ₱508 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-IVA-22_compressed.pdf; https://nwpc.dole.gov.ph/region-iva/, read 30 Sep 2026); Amadeo is a second- to fifth-class and Noveleta a reclassified first-class Cavite municipality as the seed's worksite classes record them";
+const O_IVB =
+	'Wage Order No. RB-MIMAROPA-13 ss.1–4 (published 16 Dec 2025, effective 1 Jan 2026): ₱455 a day for every establishment size (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-MIMAROPA-13.pdf; https://nwpc.dole.gov.ph/region-ivb/, read 30 Sep 2026)';
+const O_XII =
+	'Wage Order No. RB XII-25 (effective 2 Nov 2025; second tranche 15 Dec 2025): non-agriculture/retail/service ₱450 → ₱460, agriculture ₱433 → ₱443 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBXII-25.pdf; https://nwpc.dole.gov.ph/region-xii/, read 30 Sep 2026)';
+const O_II =
+	'Wage Order No. RTWPB 2-24 (issued 8 Oct, published 20 Oct, effective 5 Nov 2025): non-agriculture ₱480 + ₱20 and agriculture ₱460 + ₱40, each ₱500 a day (https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RTWPB-2-24.pdf; https://nwpc.dole.gov.ph/region-ii/, read 30 Sep 2026)';
+const O_V =
+	'Wage Order No. RBV-23 (issued 3 Mar, published 23 Mar, effective 8 Apr 2026): all sectors ₱435 → ₱455, ₱480 from 1 Dec 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/03/Wage-Order-No.-RBV-23.pdf; https://nwpc.dole.gov.ph/region-v/, read 30 Sep 2026)';
+const O_BARMM =
+	'Wage Order No. BARMM-05 s.2 (issued 15 Jul, published 21 Jul, effective 6 Aug 2026): Cotabato City/Lamitan City/Marawi City non-agriculture ₱411 → ₱436, a further ₱25 to ₱461 from 1 Dec 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/07/Wage-Order-No.-BARMM-05.pdf; https://nwpc.dole.gov.ph/barmm/, read 30 Sep 2026)';
+const O_VIII =
+	'Wage Order No. RB VIII-25 ss.1–2, 6 (approved 10 Nov, published 22 Nov, effective 8 Dec 2025): non-agriculture and service/retail of more than 10 workers ₱435 → ₱452 → ₱470, second tranche 1 June 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-VIII-25.pdf; https://nwpc.dole.gov.ph/region-viii/, read 30 Sep 2026)';
+/** A Monday-to-Saturday office week with Sunday rest (no paid rest day): the 313-day factor (tracker PH-WG59). */
+const six: ProbeInput[] = [
+	{
+		collection: 'shift_patterns',
+		ref: 'six',
+		values: {
+			company_id: '@company',
+			code: 'OFFICEx6-REST',
+			name: '6 x OFFICE, REST',
+			pattern: {
+				days: ['@office', '@office', '@office', '@office', '@office', '@office', '@rest'].map(
+					(roster_code_id) => ({ roster_code_id })
+				)
+			},
+			effective_range: { from: '2010-01-04', to: null }
+		}
+	}
+];
 
 register(
 	// ── Full month and every contribution seam ────────────────────────────────────────────────
@@ -1774,5 +1938,864 @@ register(
 		[300, 600],
 		120,
 		'A General Santos kasambahay at exactly the SOCCSKSARGEN floor of ₱6,000.'
-	)
+	),
+
+	// ── Regional private floors and tranche boundaries (2026-09-30) ───────────────────────────
+	site(
+		'PH-WG08-1',
+		'A Baguio (CAR) office worker at exactly the CAR-24 floor of ₱505 a day, July 2026.',
+		'CAR/Baguio',
+		'OTHER_NONAGRI',
+		10_983.75,
+		'2026-07',
+		'Wage Order No. CAR-24 (issued 2 Dec, published 14 Dec, effective 30 Dec 2025): ₱470 → ₱505 a day, Abra, Apayao, Benguet, Ifugao, Kalinga, Mountain Province and Baguio City (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-CAR-24.pdf; https://nwpc.dole.gov.ph/car/, read 30 Sep 2026)',
+		{ sss: [550, 1100], ec: 10, phic: [274.59, 274.6], hdmf: [200, 200] },
+		9959.16,
+		1584.6,
+		'505 × 261 ÷ 12 = 10,983.75. SSS → MSC 11,000: 550.00 / 1,100.00, EC 10. PhilHealth 10,983.75 × 5% = 549.19 → 274.59 / 274.60. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,959.16 is under 20,833 anyway). Net 10,983.75 − 1,024.59 = 9,959.16; employer cost 1,584.60.'
+	),
+	below(
+		'PH-WG08-2',
+		'A Baguio worker still on the superseded ₱470 rate in December 2025: the version from 30 December states ₱505, so the run is refused.',
+		'CAR/Baguio',
+		'OTHER_NONAGRI',
+		10_222.5,
+		'2025-12',
+		'Wage Order No. CAR-24 (issued 2 Dec, published 14 Dec, effective 30 Dec 2025): ₱470 → ₱505 a day, Abra, Apayao, Benguet, Ifugao, Kalinga, Mountain Province and Baguio City (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-CAR-24.pdf; https://nwpc.dole.gov.ph/car/, read 30 Sep 2026)'
+	),
+	below(
+		'PH-WG09-2',
+		'A Baguio kasambahay on ₱6,000 in December 2025: CAR-DW-07 raises the floor to ₱6,600 from 30 December, so the run is refused.',
+		'CAR/Baguio',
+		null,
+		6000,
+		'2025-12',
+		'Wage Order No. CAR-DW-07 (published 14 Dec, effective 30 Dec 2025): domestic ₱6,000 → ₱6,600 a month (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-CAR-DW-07.pdf; https://nwpc.dole.gov.ph/car/, read 30 Sep 2026)'
+	),
+	site(
+		'PH-WG12-1',
+		'A City of San Fernando (Pampanga) worker at exactly the RBIII-26 second-tranche floor of ₱600, July 2026.',
+		'Pampanga/San Fernando',
+		'OTHER_NONAGRI',
+		13_050,
+		'2026-07',
+		'Wage Order No. RBIII-26 (effective 30 Oct 2025; second tranche 16 Apr 2026), Bataan, Bulacan, Nueva Ecija, Pampanga, Tarlac, Zambales: non-agriculture ₱570 → ₱600, agriculture ₱540 → ₱570, retail/service ₱560 → ₱590 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBIII-26.pdf; https://nwpc.dole.gov.ph/region-iii/, read 30 Sep 2026)',
+		{ sss: [650, 1300], ec: 10, phic: [326.25, 326.25], hdmf: [200, 200] },
+		11_873.75,
+		1836.25,
+		'600 × 261 ÷ 12 = 13,050.00. SSS → MSC 13,000: 650.00 / 1,300.00, EC 10. PhilHealth 13,050.00 × 5% = 652.50 → 326.25 / 326.25. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 11,873.75 is under 20,833 anyway). Net 13,050.00 − 1,176.25 = 11,873.75; employer cost 1,836.25.'
+	),
+	below(
+		'PH-WG12-2',
+		'A City of San Fernando worker left on the ₱570 first-tranche rate in May 2026, after the 16 April second tranche: refused.',
+		'Pampanga/San Fernando',
+		'OTHER_NONAGRI',
+		12_397.5,
+		'2026-05',
+		'Wage Order No. RBIII-26 (effective 30 Oct 2025; second tranche 16 Apr 2026), Bataan, Bulacan, Nueva Ecija, Pampanga, Tarlac, Zambales: non-agriculture ₱570 → ₱600, agriculture ₱540 → ₱570, retail/service ₱560 → ₱590 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBIII-26.pdf; https://nwpc.dole.gov.ph/region-iii/, read 30 Sep 2026)'
+	),
+	site(
+		'PH-WG13-1',
+		'A Legazpi (Bicol) worker at exactly the RBV-23 floor of ₱455, July 2026.',
+		'V/Legazpi',
+		'OTHER_NONAGRI',
+		9896.25,
+		'2026-07',
+		'Wage Order No. RBV-23 (issued 3 Mar, published 23 Mar, effective 8 Apr 2026): all sectors ₱435 → ₱455, ₱480 from 1 Dec 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/03/Wage-Order-No.-RBV-23.pdf; https://nwpc.dole.gov.ph/region-v/, read 30 Sep 2026)',
+		{ sss: [500, 1000], ec: 10, phic: [250, 250], hdmf: [197.93, 197.93] },
+		8948.32,
+		1457.93,
+		'455 × 261 ÷ 12 = 9,896.25. SSS → MSC 10,000: 500.00 / 1,000.00, EC 10. PhilHealth on the ₱10,000 floor → 250.00 / 250.00. Pag-IBIG 2% of 9,896.25 → 197.93 / 197.93. WTAX 0 (minimum-wage earner; taxable 8,948.32 is under 20,833 anyway). Net 9,896.25 − 947.93 = 8,948.32; employer cost 1,457.93.'
+	),
+	below(
+		'PH-WG13-2',
+		'A Legazpi worker left on the RBV-22 rate of ₱435 in May 2026, after the 8 April tranche: refused.',
+		'V/Legazpi',
+		'OTHER_NONAGRI',
+		9461.25,
+		'2026-05',
+		'Wage Order No. RBV-23 (issued 3 Mar, published 23 Mar, effective 8 Apr 2026): all sectors ₱435 → ₱455, ₱480 from 1 Dec 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/03/Wage-Order-No.-RBV-23.pdf; https://nwpc.dole.gov.ph/region-v/, read 30 Sep 2026)'
+	),
+	site(
+		'PH-WG14-1',
+		'A Zamboanga City non-agriculture worker at exactly the RIX-24 second-tranche floor of ₱464, July 2026.',
+		'IX/Zamboanga',
+		'OTHER_NONAGRI',
+		10_092,
+		'2026-07',
+		'Wage Order No. RIX-24 (published 16 Dec 2025, effective 1 Jan 2026): non-agriculture ₱414 → ₱439 → ₱464 and agriculture ₱401 → ₱426 → ₱451, second tranche 1 June 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RIX-24.pdf; https://nwpc.dole.gov.ph/region-ix/, read 30 Sep 2026)',
+		{ sss: [500, 1000], ec: 10, phic: [252.3, 252.3], hdmf: [200, 200] },
+		9139.7,
+		1462.3,
+		'464 × 261 ÷ 12 = 10,092.00. SSS → MSC 10,000: 500.00 / 1,000.00, EC 10. PhilHealth 10,092.00 × 5% = 504.60 → 252.30 / 252.30. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,139.70 is under 20,833 anyway). Net 10,092.00 − 952.30 = 9,139.70; employer cost 1,462.30.'
+	),
+	site(
+		'PH-WG14-2',
+		'A Zamboanga City agriculture worker at exactly the RIX-24 second-tranche floor of ₱451, July 2026.',
+		'IX/Zamboanga',
+		'AGRICULTURE',
+		9809.25,
+		'2026-07',
+		'Wage Order No. RIX-24 (published 16 Dec 2025, effective 1 Jan 2026): non-agriculture ₱414 → ₱439 → ₱464 and agriculture ₱401 → ₱426 → ₱451, second tranche 1 June 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RIX-24.pdf; https://nwpc.dole.gov.ph/region-ix/, read 30 Sep 2026)',
+		{ sss: [500, 1000], ec: 10, phic: [250, 250], hdmf: [196.19, 196.19] },
+		8863.06,
+		1456.19,
+		'451 × 261 ÷ 12 = 9,809.25. SSS → MSC 10,000: 500.00 / 1,000.00, EC 10. PhilHealth on the ₱10,000 floor → 250.00 / 250.00. Pag-IBIG 2% of 9,809.25 → 196.19 / 196.19. WTAX 0 (minimum-wage earner; taxable 8,863.06 is under 20,833 anyway). Net 9,809.25 − 946.19 = 8,863.06; employer cost 1,456.19.'
+	),
+	site(
+		'PH-WG15-1',
+		'A Cagayan de Oro (Category I) worker at exactly the RX-24 second-tranche floor of ₱500, July 2026.',
+		'X/Cagayan de Oro',
+		'OTHER_NONAGRI',
+		10_875,
+		'2026-07',
+		'Wage Order No. RX-24 ss.1–4 (published 31 Dec 2025, effective 16 Jan 2026): Category I (Cagayan de Oro and the other named areas) ₱461 → ₱486 → ₱500, Category II ₱446 → ₱471 → ₱485, second tranche 1 May 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RX-24.pdf; https://nwpc.dole.gov.ph/region-x/, read 30 Sep 2026)',
+		{ sss: [550, 1100], ec: 10, phic: [271.87, 271.88], hdmf: [200, 200] },
+		9853.13,
+		1581.88,
+		'500 × 261 ÷ 12 = 10,875.00. SSS → MSC 11,000: 550.00 / 1,100.00, EC 10. PhilHealth 10,875.00 × 5% = 543.75 → 271.87 / 271.88. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,853.13 is under 20,833 anyway). Net 10,875.00 − 1,021.87 = 9,853.13; employer cost 1,581.88.'
+	),
+	below(
+		'PH-WG15-2',
+		'A Cagayan de Oro worker left on the ₱486 first-tranche rate in May 2026, after the 1 May second tranche: refused.',
+		'X/Cagayan de Oro',
+		'OTHER_NONAGRI',
+		10_570.5,
+		'2026-05',
+		'Wage Order No. RX-24 ss.1–4 (published 31 Dec 2025, effective 16 Jan 2026): Category I (Cagayan de Oro and the other named areas) ₱461 → ₱486 → ₱500, Category II ₱446 → ₱471 → ₱485, second tranche 1 May 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RX-24.pdf; https://nwpc.dole.gov.ph/region-x/, read 30 Sep 2026)'
+	),
+	site(
+		'PH-WG16-1',
+		'A Davao City non-agriculture worker at exactly the RB XI-24 second-tranche floor of ₱540, October 2026.',
+		'XI/Davao',
+		'OTHER_NONAGRI',
+		11_745,
+		'2026-10',
+		'Wage Order No. RB XI-24 (issued 19 Feb, published 25 Feb 2026): non-agriculture ₱510 → ₱525 from 13 Mar 2026 → ₱540 from 1 Sep 2026; agriculture ₱505 → ₱515 → ₱525 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/02/Wage-Order-No.-RB-XI-24.pdf; https://nwpc.dole.gov.ph/region-xi/, read 30 Sep 2026)',
+		{ sss: [575, 1150], ec: 10, phic: [293.62, 293.63], hdmf: [200, 200] },
+		10_676.38,
+		1653.63,
+		'540 × 261 ÷ 12 = 11,745.00. SSS → MSC 11,500: 575.00 / 1,150.00, EC 10. PhilHealth 11,745.00 × 5% = 587.25 → 293.62 / 293.63. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 10,676.38 is under 20,833 anyway). Net 11,745.00 − 1,068.62 = 10,676.38; employer cost 1,653.63.'
+	),
+	site(
+		'PH-WG16-2',
+		'A Davao City agriculture worker at exactly the RB XI-24 first-tranche floor of ₱515, July 2026.',
+		'XI/Davao',
+		'AGRICULTURE',
+		11_201.25,
+		'2026-07',
+		'Wage Order No. RB XI-24 (issued 19 Feb, published 25 Feb 2026): non-agriculture ₱510 → ₱525 from 13 Mar 2026 → ₱540 from 1 Sep 2026; agriculture ₱505 → ₱515 → ₱525 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/02/Wage-Order-No.-RB-XI-24.pdf; https://nwpc.dole.gov.ph/region-xi/, read 30 Sep 2026)',
+		{ sss: [550, 1100], ec: 10, phic: [280.03, 280.03], hdmf: [200, 200] },
+		10_171.22,
+		1590.03,
+		'515 × 261 ÷ 12 = 11,201.25. SSS → MSC 11,000: 550.00 / 1,100.00, EC 10. PhilHealth 11,201.25 × 5% = 560.06 → 280.03 / 280.03. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 10,171.22 is under 20,833 anyway). Net 11,201.25 − 1,030.03 = 10,171.22; employer cost 1,590.03.'
+	),
+	below(
+		'PH-WG16-3',
+		'A Davao City non-agriculture worker left on the ₱525 first-tranche rate in September 2026, after the 1 September second tranche: refused.',
+		'XI/Davao',
+		'OTHER_NONAGRI',
+		11_418.75,
+		'2026-09',
+		'Wage Order No. RB XI-24 (issued 19 Feb, published 25 Feb 2026): non-agriculture ₱510 → ₱525 from 13 Mar 2026 → ₱540 from 1 Sep 2026; agriculture ₱505 → ₱515 → ₱525 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/02/Wage-Order-No.-RB-XI-24.pdf; https://nwpc.dole.gov.ph/region-xi/, read 30 Sep 2026)'
+	),
+	site(
+		'PH-WG18-1',
+		'A Butuan (Caraga) worker at exactly the RXIII-20 second-tranche floor of ₱475, July 2026.',
+		'XIII/Butuan',
+		'OTHER_NONAGRI',
+		10_331.25,
+		'2026-07',
+		'Wage Order No. RXIII-20 (published 18 Dec 2025, effective 3 Jan 2026): every sector ₱435 → ₱455, ₱475 from 1 May 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RXIII-20.pdf; https://nwpc.dole.gov.ph/region-xiii/, read 30 Sep 2026)',
+		{ sss: [525, 1050], ec: 10, phic: [258.28, 258.28], hdmf: [200, 200] },
+		9347.97,
+		1518.28,
+		'475 × 261 ÷ 12 = 10,331.25. SSS → MSC 10,500: 525.00 / 1,050.00, EC 10. PhilHealth 10,331.25 × 5% = 516.56 → 258.28 / 258.28. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,347.97 is under 20,833 anyway). Net 10,331.25 − 983.28 = 9,347.97; employer cost 1,518.28.'
+	),
+	site(
+		'PH-WG25-1',
+		'A Calapan (MIMAROPA) worker at exactly the MIMAROPA-13 floor of ₱455, July 2026.',
+		'IV-B/Calapan',
+		'OTHER_NONAGRI',
+		9896.25,
+		'2026-07',
+		'Wage Order No. RB-MIMAROPA-13 ss.1–4 (published 16 Dec 2025, effective 1 Jan 2026): ₱455 a day for every establishment size (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-MIMAROPA-13.pdf; https://nwpc.dole.gov.ph/region-ivb/, read 30 Sep 2026)',
+		{ sss: [500, 1000], ec: 10, phic: [250, 250], hdmf: [197.93, 197.93] },
+		8948.32,
+		1457.93,
+		'455 × 261 ÷ 12 = 9,896.25. SSS → MSC 10,000: 500.00 / 1,000.00, EC 10. PhilHealth on the ₱10,000 floor → 250.00 / 250.00. Pag-IBIG 2% of 9,896.25 → 197.93 / 197.93. WTAX 0 (minimum-wage earner; taxable 8,948.32 is under 20,833 anyway). Net 9,896.25 − 947.93 = 8,948.32; employer cost 1,457.93.'
+	),
+	site(
+		'PH-WG27-1',
+		'A Tacloban non-agriculture worker at exactly the RB VIII-25 second-tranche floor of ₱470, July 2026 (non-agriculture sits with retail of more than 10 workers).',
+		'VIII/Tacloban',
+		'OTHER_NONAGRI',
+		10_222.5,
+		'2026-07',
+		'Wage Order No. RB VIII-25 ss.1–2, 6 (approved 10 Nov, published 22 Nov, effective 8 Dec 2025): non-agriculture and service/retail of more than 10 workers ₱435 → ₱452 → ₱470; service/retail of 1–10 workers, cottage/handicraft and agriculture ₱405 → ₱422 → ₱440; second tranche 1 June 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-VIII-25.pdf, read 30 Sep 2026)',
+		{ sss: [500, 1000], ec: 10, phic: [255.56, 255.57], hdmf: [200, 200] },
+		9266.94,
+		1465.57,
+		'470 × 261 ÷ 12 = 10,222.50. SSS → MSC 10,000: 500.00 / 1,000.00, EC 10. PhilHealth 10,222.50 × 5% = 511.13 → 255.56 / 255.57. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,266.94 is under 20,833 anyway). Net 10,222.50 − 955.56 = 9,266.94; employer cost 1,465.57.'
+	),
+	site(
+		'PH-WG27-2',
+		'A Tacloban agriculture worker at exactly the RB VIII-25 second-tranche floor of ₱440, July 2026.',
+		'VIII/Tacloban',
+		'AGRICULTURE',
+		9570,
+		'2026-07',
+		'Wage Order No. RB VIII-25 ss.1–2, 6 (approved 10 Nov, published 22 Nov, effective 8 Dec 2025): non-agriculture and service/retail of more than 10 workers ₱435 → ₱452 → ₱470; service/retail of 1–10 workers, cottage/handicraft and agriculture ₱405 → ₱422 → ₱440; second tranche 1 June 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-VIII-25.pdf, read 30 Sep 2026)',
+		{ sss: [475, 950], ec: 10, phic: [250, 250], hdmf: [191.4, 191.4] },
+		8653.6,
+		1401.4,
+		'440 × 261 ÷ 12 = 9,570.00. SSS → MSC 9,500: 475.00 / 950.00, EC 10. PhilHealth on the ₱10,000 floor → 250.00 / 250.00. Pag-IBIG 2% of 9,570.00 → 191.40 / 191.40. WTAX 0 (minimum-wage earner; taxable 8,653.60 is under 20,833 anyway). Net 9,570.00 − 916.40 = 8,653.60; employer cost 1,401.40.'
+	),
+	below(
+		'PH-WG27-3',
+		'A Tacloban non-agriculture worker left on the ₱452 first-tranche rate in July 2026, after the 1 June second tranche: refused.',
+		'VIII/Tacloban',
+		'OTHER_NONAGRI',
+		9831,
+		'2026-07',
+		'Wage Order No. RB VIII-25 ss.1–2, 6 (approved 10 Nov, published 22 Nov, effective 8 Dec 2025): non-agriculture and service/retail of more than 10 workers ₱435 → ₱452 → ₱470; service/retail of 1–10 workers, cottage/handicraft and agriculture ₱405 → ₱422 → ₱440; second tranche 1 June 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-VIII-25.pdf, read 30 Sep 2026)'
+	),
+	domestic(
+		'PH-WG28-1',
+		'VIII/Tacloban',
+		6400,
+		'2026-07',
+		'Wage Order No. RBVIII-DW-06 ss.1, 5, 8 (approved 10 Nov, published 22 Nov, effective 8 Dec 2025): domestic workers in chartered cities and first-class municipalities ₱6,000 → ₱6,400 a month, other municipalities ₱5,500 → ₱5,800; no exemption (https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RBVIII-DW-06.pdf, read 30 Sep 2026); Tacloban is a chartered city',
+		[325, 650],
+		128,
+		'A Tacloban kasambahay at exactly the RBVIII-DW-06 chartered-city floor of ₱6,400.'
+	),
+	below(
+		'PH-WG28-2',
+		'A Tacloban kasambahay on the superseded ₱6,000 in January 2026: refused.',
+		'VIII/Tacloban',
+		null,
+		6000,
+		'2026-01',
+		'Wage Order No. RBVIII-DW-06 ss.1, 5, 8 (approved 10 Nov, published 22 Nov, effective 8 Dec 2025): domestic workers in chartered cities and first-class municipalities ₱6,000 → ₱6,400 a month, other municipalities ₱5,500 → ₱5,800; no exemption (https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RBVIII-DW-06.pdf, read 30 Sep 2026); Tacloban is a chartered city'
+	),
+	site(
+		'PH-WG29-1',
+		'A General Santos non-agriculture worker at exactly the RB XII-25 second-tranche floor of ₱460, July 2026.',
+		'XII/General Santos',
+		'OTHER_NONAGRI',
+		10_005,
+		'2026-07',
+		'Wage Order No. RB XII-25 (effective 2 Nov 2025; second tranche 15 Dec 2025): non-agriculture/retail/service ₱460, agriculture ₱443 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBXII-25.pdf; https://nwpc.dole.gov.ph/region-xii/, read 30 Sep 2026)',
+		{ sss: [500, 1000], ec: 10, phic: [250.12, 250.13], hdmf: [200, 200] },
+		9054.88,
+		1460.13,
+		'460 × 261 ÷ 12 = 10,005.00. SSS → MSC 10,000: 500.00 / 1,000.00, EC 10. PhilHealth 10,005.00 × 5% = 500.25 → 250.12 / 250.13. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,054.88 is under 20,833 anyway). Net 10,005.00 − 950.12 = 9,054.88; employer cost 1,460.13.'
+	),
+	site(
+		'PH-WG29-2',
+		'A General Santos agriculture worker at exactly the RB XII-25 second-tranche floor of ₱443, July 2026.',
+		'XII/General Santos',
+		'AGRICULTURE',
+		9635.25,
+		'2026-07',
+		'Wage Order No. RB XII-25 (effective 2 Nov 2025; second tranche 15 Dec 2025): non-agriculture/retail/service ₱460, agriculture ₱443 (https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RBXII-25.pdf; https://nwpc.dole.gov.ph/region-xii/, read 30 Sep 2026)',
+		{ sss: [475, 950], ec: 10, phic: [250, 250], hdmf: [192.71, 192.71] },
+		8717.54,
+		1402.71,
+		'443 × 261 ÷ 12 = 9,635.25. SSS → MSC 9,500: 475.00 / 950.00, EC 10. PhilHealth on the ₱10,000 floor → 250.00 / 250.00. Pag-IBIG 2% of 9,635.25 → 192.71 / 192.71. WTAX 0 (minimum-wage earner; taxable 8,717.54 is under 20,833 anyway). Net 9,635.25 − 917.71 = 8,717.54; employer cost 1,402.71.'
+	),
+	site(
+		'PH-WG30-2',
+		'An Alaminos (Ilocos) agriculture worker at exactly the RB I-24 floor of ₱480, July 2026.',
+		'I/Alaminos',
+		'AGRICULTURE',
+		10_440,
+		'2026-07',
+		'Wage Order No. RB I-24 (effective 19 Nov 2025): agriculture and non-agriculture below 10 workers ₱480 a day (https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RB-1-24.pdf)',
+		{ sss: [525, 1050], ec: 10, phic: [261, 261], hdmf: [200, 200] },
+		9454,
+		1521,
+		'480 × 261 ÷ 12 = 10,440.00. SSS → MSC 10,500: 525.00 / 1,050.00, EC 10. PhilHealth 10,440.00 × 5% = 522.00 → 261.00 / 261.00. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,454.00 is under 20,833 anyway). Net 10,440.00 − 986.00 = 9,454.00; employer cost 1,521.00.'
+	),
+	site(
+		'PH-WG31-2',
+		'A Tuguegarao (Cagayan Valley) non-agriculture worker at exactly the RTWPB 2-24 floor of ₱500, July 2026.',
+		'II/Tuguegarao',
+		'OTHER_NONAGRI',
+		10_875,
+		'2026-07',
+		'Wage Order No. RTWPB 2-24 (effective 5 Nov 2025): non-agriculture and agriculture ₱500 a day (https://nwpc.dole.gov.ph/wp-content/uploads/2025/10/Wage-Order-No.-RTWPB-2-24.pdf)',
+		{ sss: [550, 1100], ec: 10, phic: [271.87, 271.88], hdmf: [200, 200] },
+		9853.13,
+		1581.88,
+		'500 × 261 ÷ 12 = 10,875.00. SSS → MSC 11,000: 550.00 / 1,100.00, EC 10. PhilHealth 10,875.00 × 5% = 543.75 → 271.87 / 271.88. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,853.13 is under 20,833 anyway). Net 10,875.00 − 1,021.87 = 9,853.13; employer cost 1,581.88.'
+	),
+	site(
+		'PH-WG32-2',
+		'An Iloilo City agriculture worker at exactly the RBVI-29 floor of ₱520, July 2026.',
+		'VI/Iloilo City',
+		'AGRICULTURE',
+		11_310,
+		'2026-07',
+		'Wage Order No. RBVI-29 (effective 19 Nov 2025): agriculture ₱520 a day (https://nwpc.dole.gov.ph/wp-content/uploads/2025/11/Wage-Order-No.-RBVI-29.pdf)',
+		{ sss: [575, 1150], ec: 10, phic: [282.75, 282.75], hdmf: [200, 200] },
+		10_252.25,
+		1642.75,
+		'520 × 261 ÷ 12 = 11,310.00. SSS → MSC 11,500: 575.00 / 1,150.00, EC 10. PhilHealth 11,310.00 × 5% = 565.50 → 282.75 / 282.75. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 10,252.25 is under 20,833 anyway). Net 11,310.00 − 1,057.75 = 10,252.25; employer cost 1,642.75.'
+	),
+	site(
+		'PH-WG33-2',
+		'A Cebu City (Class A) worker at exactly the ROVII-26 floor of ₱540, July 2026.',
+		'VII/Cebu',
+		'OTHER_NONAGRI',
+		11_745,
+		'2026-07',
+		'Wage Order No. ROVII-26 (effective 4 Oct 2025): expanded Metro Cebu Class A ₱540 a day (https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-ROVII-26.pdf); Wage Order No. ROVII-27 (issued 14 Sep, published 28 Sep, effective 14 Oct 2026): Class A (Cities of Carcar, Cebu, Danao, Lapu-Lapu, Mandaue, Naga, Talisay and the named municipalities) ₱540 → ₱582 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-ROVII-27.pdf; https://nwpc.dole.gov.ph/region-vii/, read 30 Sep 2026)',
+		{ sss: [575, 1150], ec: 10, phic: [293.62, 293.63], hdmf: [200, 200] },
+		10_676.38,
+		1653.63,
+		'540 × 261 ÷ 12 = 11,745.00. SSS → MSC 11,500: 575.00 / 1,150.00, EC 10. PhilHealth 11,745.00 × 5% = 587.25 → 293.62 / 293.63. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 10,676.38 is under 20,833 anyway). Net 11,745.00 − 1,068.62 = 10,676.38; employer cost 1,653.63.'
+	),
+	site(
+		'PH-WG61-1',
+		'A Cebu City (Class A) worker at exactly the ROVII-27 floor of ₱582, November 2026.',
+		'VII/Cebu',
+		'OTHER_NONAGRI',
+		12_658.5,
+		'2026-11',
+		'Wage Order No. ROVII-26 (effective 4 Oct 2025): expanded Metro Cebu Class A ₱540 a day (https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-ROVII-26.pdf); Wage Order No. ROVII-27 (issued 14 Sep, published 28 Sep, effective 14 Oct 2026): Class A (Cities of Carcar, Cebu, Danao, Lapu-Lapu, Mandaue, Naga, Talisay and the named municipalities) ₱540 → ₱582 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-ROVII-27.pdf; https://nwpc.dole.gov.ph/region-vii/, read 30 Sep 2026)',
+		{ sss: [625, 1250], ec: 10, phic: [316.46, 316.47], hdmf: [200, 200] },
+		11_517.04,
+		1776.47,
+		'582 × 261 ÷ 12 = 12,658.50. SSS → MSC 12,500: 625.00 / 1,250.00, EC 10. PhilHealth 12,658.50 × 5% = 632.93 → 316.46 / 316.47. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 11,517.04 is under 20,833 anyway). Net 12,658.50 − 1,141.46 = 11,517.04; employer cost 1,776.47.'
+	),
+	below(
+		'PH-WG61-2',
+		'A Cebu City worker left on the ROVII-26 rate of ₱540 in November 2026, after ROVII-27 took effect on 14 October: refused.',
+		'VII/Cebu',
+		'OTHER_NONAGRI',
+		11_745,
+		'2026-11',
+		'Wage Order No. ROVII-26 (effective 4 Oct 2025): expanded Metro Cebu Class A ₱540 a day (https://nwpc.dole.gov.ph/wp-content/uploads/2025/09/Wage-Order-No.-ROVII-26.pdf); Wage Order No. ROVII-27 (issued 14 Sep, published 28 Sep, effective 14 Oct 2026): Class A (Cities of Carcar, Cebu, Danao, Lapu-Lapu, Mandaue, Naga, Talisay and the named municipalities) ₱540 → ₱582 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-ROVII-27.pdf; https://nwpc.dole.gov.ph/region-vii/, read 30 Sep 2026)'
+	),
+	domestic(
+		'PH-WG61-3',
+		'VII/Cebu',
+		7500,
+		'2026-11',
+		'Wage Order No. ROVII-DW-06 (effective 14 Oct 2026): domestic ₱7,000 → ₱7,500 a month (https://nwpc.dole.gov.ph/wp-content/uploads/2026/09/Wage-Order-No.-ROVII-DW-06.pdf; https://nwpc.dole.gov.ph/region-vii/, read 30 Sep 2026)',
+		[375, 750],
+		150,
+		'A Cebu kasambahay at exactly the ROVII-DW-06 floor of ₱7,500, November 2026.'
+	),
+	site(
+		'PH-WG20-1',
+		'A Cotabato City (BARMM) non-agriculture worker at exactly the BARMM-05 floor of ₱436, September 2026.',
+		'BARMM/Cotabato City',
+		'OTHER_NONAGRI',
+		9483,
+		'2026-09',
+		'Wage Order No. BARMM-05 ss.2, 4, 6 (approved 15 Jul, published 21 Jul, effective 6 Aug 2026): Cotabato City/Lamitan City/Marawi City non-agriculture ₱411 → ₱436, agriculture/retail ₱386 → ₱411, a further ₱25 from 1 Dec 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/07/Wage-Order-No.-BARMM-05.pdf, read 30 Sep 2026)',
+		{ sss: [475, 950], ec: 10, phic: [250, 250], hdmf: [189.66, 189.66] },
+		8568.34,
+		1399.66,
+		'436 × 261 ÷ 12 = 9,483.00. SSS → MSC 9,500: 475.00 / 950.00, EC 10. PhilHealth on the ₱10,000 floor → 250.00 / 250.00. Pag-IBIG 2% of 9,483.00 → 189.66 / 189.66. WTAX 0 (minimum-wage earner; taxable 8,568.34 is under 20,833 anyway). Net 9,483.00 − 914.66 = 8,568.34; employer cost 1,399.66.'
+	),
+	site(
+		'PH-WG20-2',
+		'A Cotabato City retail/service worker at exactly the BARMM-05 agriculture/retail floor of ₱411, September 2026.',
+		'BARMM/Cotabato City',
+		'RETAIL_SERVICE',
+		8939.25,
+		'2026-09',
+		'Wage Order No. BARMM-05 ss.2, 4, 6 (approved 15 Jul, published 21 Jul, effective 6 Aug 2026): Cotabato City/Lamitan City/Marawi City non-agriculture ₱411 → ₱436, agriculture/retail ₱386 → ₱411, a further ₱25 from 1 Dec 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/07/Wage-Order-No.-BARMM-05.pdf, read 30 Sep 2026)',
+		{ sss: [450, 900], ec: 10, phic: [250, 250], hdmf: [178.79, 178.79] },
+		8060.46,
+		1338.79,
+		'411 × 261 ÷ 12 = 8,939.25. SSS → MSC 9,000: 450.00 / 900.00, EC 10. PhilHealth on the ₱10,000 floor → 250.00 / 250.00. Pag-IBIG 2% of 8,939.25 → 178.79 / 178.79. WTAX 0 (minimum-wage earner; taxable 8,060.46 is under 20,833 anyway). Net 8,939.25 − 878.79 = 8,060.46; employer cost 1,338.79.'
+	),
+	below(
+		'PH-WG20-3',
+		'A Cotabato City non-agriculture worker left on the BARMM-04 rate of ₱411 in September 2026: refused.',
+		'BARMM/Cotabato City',
+		'OTHER_NONAGRI',
+		8939.25,
+		'2026-09',
+		'Wage Order No. BARMM-05 ss.2, 4, 6 (approved 15 Jul, published 21 Jul, effective 6 Aug 2026): Cotabato City/Lamitan City/Marawi City non-agriculture ₱411 → ₱436, agriculture/retail ₱386 → ₱411, a further ₱25 from 1 Dec 2026 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/07/Wage-Order-No.-BARMM-05.pdf, read 30 Sep 2026)'
+	),
+	domestic(
+		'PH-WG17-2',
+		'XI/Davao',
+		6000,
+		'2026-02',
+		'Wage Order No. RB XI-DW-04 ss.1, 8 (published 25 Feb, effective 13 Mar 2026): chartered cities and first-class municipalities ₱6,000 → ₱6,500 a month (https://nwpc.dole.gov.ph/wp-content/uploads/2026/02/Wage-Order-No.-RB-XI-DW-04.pdf; https://nwpc.dole.gov.ph/region-xi/, read 30 Sep 2026); Davao is a chartered city',
+		[300, 600],
+		120,
+		'A Davao City kasambahay on ₱6,000 in February 2026, the floor before RB XI-DW-04 took effect on 13 March.'
+	),
+	below(
+		'PH-WG17-3',
+		'A Davao City kasambahay left on ₱6,000 in April 2026: refused.',
+		'XI/Davao',
+		null,
+		6000,
+		'2026-04',
+		'Wage Order No. RB XI-DW-04 ss.1, 8 (published 25 Feb, effective 13 Mar 2026): chartered cities and first-class municipalities ₱6,000 → ₱6,500 a month (https://nwpc.dole.gov.ph/wp-content/uploads/2026/02/Wage-Order-No.-RB-XI-DW-04.pdf; https://nwpc.dole.gov.ph/region-xi/, read 30 Sep 2026); Davao is a chartered city'
+	),
+	below(
+		'PH-WG19-2',
+		'A Bayugan kasambahay on the superseded ₱6,000 in February 2026: refused.',
+		'XIII/Bayugan',
+		null,
+		6000,
+		'2026-02',
+		'Wage Order No. RXIII-DW-06 (published 18 Dec 2025, effective 3 Jan 2026): chartered cities and first-class municipalities ₱6,000 → ₱6,500 a month (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RXIII-DW-06.pdf; https://nwpc.dole.gov.ph/region-xiii/, read 30 Sep 2026)'
+	),
+	below(
+		'PH-WG23-2',
+		'A Cagayan de Oro kasambahay on the superseded ₱6,000 in February 2026: refused.',
+		'X/Cagayan de Oro',
+		null,
+		6000,
+		'2026-02',
+		'Wage Order No. RBX-DW-06 ss.1, 8 (published 31 Dec 2025, effective 16 Jan 2026): ₱6,000 → ₱6,500 a month in all areas (https://nwpc.dole.gov.ph/wp-content/uploads/2025/12/Wage-Order-No.-RBX-DW-06.pdf; https://nwpc.dole.gov.ph/region-x/, read 30 Sep 2026)'
+	),
+	domestic(
+		'PH-WG26-2',
+		'IV-B/Calapan',
+		6500,
+		'2025-12',
+		'Wage Order No. RB-MIMAROPA-DW-05: ₱6,500 a month before MIMAROPA-DW-06 took effect on 1 January 2026 (https://nwpc.dole.gov.ph/region-ivb/, read 30 Sep 2026)',
+		[325, 650],
+		130,
+		'A Calapan kasambahay at exactly the MIMAROPA-DW-05 floor of ₱6,500, December 2025.'
+	),
+	domestic(
+		'PH-WG22-3',
+		'IX/Dapitan',
+		5500,
+		'2026-04',
+		'Wage Order No. RIX-DW-06 s.1 (effective 20 May 2026): chartered cities and first-class municipalities ₱5,500 → ₱6,000 a month, so RIX-DW-05’s ₱5,500 holds before 20 May (https://nwpc.dole.gov.ph/wp-content/uploads/2026/05/Wage-Order-No.-RIX-DW-06.pdf; https://nwpc.dole.gov.ph/region-ix/, read 30 Sep 2026)',
+		[275, 550],
+		110,
+		'A Dapitan City kasambahay at exactly the RIX-DW-05 floor of ₱5,500, April 2026, before RIX-DW-06.'
+	),
+	below(
+		'PH-WG22-4',
+		'A Dapitan City kasambahay left on ₱5,500 in June 2026, after RIX-DW-06 took effect on 20 May: refused.',
+		'IX/Dapitan',
+		null,
+		5500,
+		'2026-06',
+		'Wage Order No. RIX-DW-06 s.1 (effective 20 May 2026): chartered cities and first-class municipalities ₱5,500 → ₱6,000 a month, so RIX-DW-05’s ₱5,500 holds before 20 May (https://nwpc.dole.gov.ph/wp-content/uploads/2026/05/Wage-Order-No.-RIX-DW-06.pdf; https://nwpc.dole.gov.ph/region-ix/, read 30 Sep 2026)'
+	),
+	// ── A certified BMBE (RA 9178 s.8) ────────────────────────────────────────────────────────
+	{
+		...seam(
+			'PH-WG42-1',
+			'A certified Barangay Micro Business Enterprise in NCR pays ₱12,000 a month, under the NCR-26 floor, July 2026: the establishment is outside the Minimum Wage Law, so the run pays, and SSS, PhilHealth and Pag-IBIG still charge.',
+			12_000,
+			{ sss: [600, 1200], ec: 10, phic: [300, 300], hdmf: [200, 200] },
+			10_900,
+			1710,
+			'RA 9178 (Barangay Micro Business Enterprises Act of 2002) s.8: "The BMBEs shall be exempt from the coverage of the Minimum Wage Law", its employees keeping social security and healthcare benefits; s.4: the Certificate of Authority is issued by the city or municipal treasurer (https://lawphil.net/statutes/repacts/ra2002/ra_9178_2002.html, read 30 Sep 2026); company fact bmbe_certificate_of_authority. SSS 11,750–12,249.99 → MSC 12,000: 600 / 1,200, EC 10. PhilHealth 12,000 × 5% = 600 → 300 / 300. Pag-IBIG 200 / 200. Taxable 12,000 − 1,100 = 10,900 → 0. Net 10,900; employer cost 1,200 + 10 + 300 + 200 = 1,710.'
+		),
+		company: company({ bmbe_certificate_of_authority: true })
+	},
+	{
+		...below(
+			'PH-WG42-2',
+			"A kasambahay of a household whose employer also runs a certified BMBE, paid ₱7,000 in NCR in July 2026: the BMBE exemption is the enterprise's, never the household's, so the NCR-DW-06 floor of ₱7,800 refuses the run.",
+			'NCR/Manila',
+			null,
+			7000,
+			'2026-07',
+			'Wage Order NCR-DW-06 ss.1–2, 8: ₱7,800 a month from 7 February 2026; no exemption (https://nwpc.dole.gov.ph/wp-content/uploads/2026/01/Wage-Order-No.-NCR-DW-06.pdf); RA 9178 s.8 exempts the BMBE from the Minimum Wage Law, and a kasambahay is a household employee under RA 10361, not a BMBE employee (tracker default PH-WG42)'
+		),
+		company: company({ bmbe_certificate_of_authority: true })
+	}
+);
+
+register(
+	// ── Tranches, sectors and monthly factors not yet probed (2026-09-30) ─────────────────────
+	site(
+		'PH-WG10-3',
+		'A Manila agricultural worker at exactly the NCR-26 agriculture floor of ₱658, July 2026: the agriculture class needs its evidenced worksite and sector sources and pays at 658 × 261 ÷ 12.',
+		'NCR/Manila',
+		'AGRICULTURE',
+		14311.5,
+		'2026-07',
+		O_NCR26A,
+		{ sss: [725, 1450], ec: 10, phic: [357.79, 357.79], hdmf: [200, 200] },
+		13028.71,
+		2017.79,
+		'658 × 261 ÷ 12 = 14,311.50. SSS 14,250–14,749.99 → MSC 14,500: 725.00 / 1,450.00, EC 10. PhilHealth 14,311.50 × 5% = 715.58 → 357.79 / 357.79. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 13,028.71 is under 20,833 anyway). Net 14,311.50 − 1,282.79 = 13,028.71; employer cost 2,017.79.'
+	),
+	site(
+		'PH-WG10-4',
+		'A Manila agricultural worker at exactly the NCR-28 agriculture floor of ₱718, November 2026.',
+		'NCR/Manila',
+		'AGRICULTURE',
+		15616.5,
+		'2026-11',
+		O_NCR28,
+		{ sss: [775, 1550], ec: 30, phic: [390.41, 390.42], hdmf: [200, 200] },
+		14251.09,
+		2170.42,
+		'718 × 261 ÷ 12 = 15,616.50. SSS 15,250–15,749.99 → MSC 15,500: 775.00 / 1,550.00, EC 30. PhilHealth 15,616.50 × 5% = 780.83 → 390.41 / 390.42. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 14,251.09 is under 20,833 anyway). Net 15,616.50 − 1,365.41 = 14,251.09; employer cost 2,170.42.'
+	),
+	below(
+		'PH-WG10-5',
+		'A Manila agricultural worker left on the NCR-26 ₱658 rate in November 2026, after NCR-28 took effect on 26 September: refused.',
+		'NCR/Manila',
+		'AGRICULTURE',
+		14311.5,
+		'2026-11',
+		O_NCR28
+	),
+	site(
+		'PH-WG12-3',
+		'A City of San Fernando (Pampanga) agricultural worker at exactly the RBIII-26 second-tranche agriculture floor of ₱570, July 2026.',
+		'Pampanga/San Fernando',
+		'AGRICULTURE',
+		12397.5,
+		'2026-07',
+		O_III,
+		{ sss: [625, 1250], ec: 10, phic: [309.94, 309.94], hdmf: [200, 200] },
+		11262.56,
+		1769.94,
+		'570 × 261 ÷ 12 = 12,397.50. SSS 12,250–12,749.99 → MSC 12,500: 625.00 / 1,250.00, EC 10. PhilHealth 12,397.50 × 5% = 619.88 → 309.94 / 309.94. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 11,262.56 is under 20,833 anyway). Net 12,397.50 − 1,134.94 = 11,262.56; employer cost 1,769.94.'
+	),
+	site(
+		'PH-WG12-4',
+		'A City of San Fernando (Pampanga) retail/service worker at exactly the RBIII-26 second-tranche retail/service floor of ₱590, July 2026.',
+		'Pampanga/San Fernando',
+		'RETAIL_SERVICE',
+		12832.5,
+		'2026-07',
+		O_III,
+		{ sss: [650, 1300], ec: 10, phic: [320.81, 320.82], hdmf: [200, 200] },
+		11661.69,
+		1830.82,
+		'590 × 261 ÷ 12 = 12,832.50. SSS 12,750–13,249.99 → MSC 13,000: 650.00 / 1,300.00, EC 10. PhilHealth 12,832.50 × 5% = 641.63 → 320.81 / 320.82. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 11,661.69 is under 20,833 anyway). Net 12,832.50 − 1,170.81 = 11,661.69; employer cost 1,830.82.'
+	),
+	site(
+		'PH-WG14-3',
+		'A Zamboanga City office worker at exactly the RIX-24 first-tranche non-agriculture floor of ₱439, February 2026 (before the 1 June tranche).',
+		'IX/Zamboanga',
+		'OTHER_NONAGRI',
+		9548.25,
+		'2026-02',
+		O_IX,
+		{ sss: [475, 950], ec: 10, phic: [250, 250], hdmf: [190.97, 190.97] },
+		8632.28,
+		1400.97,
+		'439 × 261 ÷ 12 = 9,548.25. SSS 9,250–9,749.99 → MSC 9,500: 475.00 / 950.00, EC 10. PhilHealth on the ₱10,000 floor → 250.00 / 250.00. Pag-IBIG 2% of 9,548.25 → 190.97 / 190.97. WTAX 0 (minimum-wage earner; taxable 8,632.28 is under 20,833 anyway). Net 9,548.25 − 915.97 = 8,632.28; employer cost 1,400.97.'
+	),
+	below(
+		'PH-WG14-4',
+		'A Zamboanga City office worker left on the ₱439 first-tranche rate in July 2026, after the 1 June tranche to ₱464: refused.',
+		'IX/Zamboanga',
+		'OTHER_NONAGRI',
+		9548.25,
+		'2026-07',
+		O_IX
+	),
+	site(
+		'PH-WG15-3',
+		'An Iligan (Category I) office worker at exactly the RX-24 first-tranche floor of ₱486, February 2026 (before the 1 May tranche).',
+		'X/Iligan',
+		'OTHER_NONAGRI',
+		10570.5,
+		'2026-02',
+		O_X,
+		{ sss: [525, 1050], ec: 10, phic: [264.26, 264.27], hdmf: [200, 200] },
+		9581.24,
+		1524.27,
+		'486 × 261 ÷ 12 = 10,570.50. SSS 10,250–10,749.99 → MSC 10,500: 525.00 / 1,050.00, EC 10. PhilHealth 10,570.50 × 5% = 528.53 → 264.26 / 264.27. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,581.24 is under 20,833 anyway). Net 10,570.50 − 989.26 = 9,581.24; employer cost 1,524.27.'
+	),
+	site(
+		'PH-WG16-4',
+		'A Davao City office worker at exactly the RB XI-24 first-tranche non-agriculture floor of ₱525, April 2026 (after 13 March, before 1 September).',
+		'XI/Davao',
+		'OTHER_NONAGRI',
+		11418.75,
+		'2026-04',
+		O_XI,
+		{ sss: [575, 1150], ec: 10, phic: [285.47, 285.47], hdmf: [200, 200] },
+		10358.28,
+		1645.47,
+		'525 × 261 ÷ 12 = 11,418.75. SSS 11,250–11,749.99 → MSC 11,500: 575.00 / 1,150.00, EC 10. PhilHealth 11,418.75 × 5% = 570.94 → 285.47 / 285.47. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 10,358.28 is under 20,833 anyway). Net 11,418.75 − 1,060.47 = 10,358.28; employer cost 1,645.47.'
+	),
+	site(
+		'PH-WG18-2',
+		'A Butuan office worker at exactly the RXIII-20 first-tranche floor of ₱455, February 2026 (before the 1 May tranche).',
+		'XIII/Butuan',
+		'OTHER_NONAGRI',
+		9896.25,
+		'2026-02',
+		O_XIII,
+		{ sss: [500, 1000], ec: 10, phic: [250, 250], hdmf: [197.93, 197.93] },
+		8948.32,
+		1457.93,
+		'455 × 261 ÷ 12 = 9,896.25. SSS 9,750–10,249.99 → MSC 10,000: 500.00 / 1,000.00, EC 10. PhilHealth on the ₱10,000 floor → 250.00 / 250.00. Pag-IBIG 2% of 9,896.25 → 197.93 / 197.93. WTAX 0 (minimum-wage earner; taxable 8,948.32 is under 20,833 anyway). Net 9,896.25 − 947.93 = 8,948.32; employer cost 1,457.93.'
+	),
+	below(
+		'PH-WG18-3',
+		'A Butuan office worker left on the ₱455 first-tranche rate in July 2026, after the 1 May tranche to ₱475: refused.',
+		'XIII/Butuan',
+		'OTHER_NONAGRI',
+		9896.25,
+		'2026-07',
+		O_XIII
+	),
+	site(
+		'PH-WG24-2',
+		'An Amadeo (Cavite, second- to fifth-class municipality) office worker at exactly the IVA-22 second-tranche non-agriculture floor of ₱525, July 2026.',
+		'Cavite/Amadeo',
+		'OTHER_NONAGRI',
+		11418.75,
+		'2026-07',
+		O_IVA,
+		{ sss: [575, 1150], ec: 10, phic: [285.47, 285.47], hdmf: [200, 200] },
+		10358.28,
+		1645.47,
+		'525 × 261 ÷ 12 = 11,418.75. SSS 11,250–11,749.99 → MSC 11,500: 575.00 / 1,150.00, EC 10. PhilHealth 11,418.75 × 5% = 570.94 → 285.47 / 285.47. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 10,358.28 is under 20,833 anyway). Net 11,418.75 − 1,060.47 = 10,358.28; employer cost 1,645.47.'
+	),
+	site(
+		'PH-WG24-3',
+		'A Noveleta (Cavite, reclassified first-class municipality) office worker at exactly the IVA-22 second-tranche non-agriculture floor of ₱550, July 2026.',
+		'Cavite/Noveleta',
+		'OTHER_NONAGRI',
+		11962.5,
+		'2026-07',
+		O_IVA,
+		{ sss: [600, 1200], ec: 10, phic: [299.06, 299.07], hdmf: [200, 200] },
+		10863.44,
+		1709.07,
+		'550 × 261 ÷ 12 = 11,962.50. SSS 11,750–12,249.99 → MSC 12,000: 600.00 / 1,200.00, EC 10. PhilHealth 11,962.50 × 5% = 598.13 → 299.06 / 299.07. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 10,863.44 is under 20,833 anyway). Net 11,962.50 − 1,099.06 = 10,863.44; employer cost 1,709.07.'
+	),
+	site(
+		'PH-WG24-4',
+		'An Amadeo (Cavite) agricultural worker at exactly the IVA-22 second-tranche agriculture floor of ₱508, July 2026.',
+		'Cavite/Amadeo',
+		'AGRICULTURE',
+		11049,
+		'2026-07',
+		O_IVA,
+		{ sss: [550, 1100], ec: 10, phic: [276.22, 276.23], hdmf: [200, 200] },
+		10022.78,
+		1586.23,
+		'508 × 261 ÷ 12 = 11,049.00. SSS 10,750–11,249.99 → MSC 11,000: 550.00 / 1,100.00, EC 10. PhilHealth 11,049.00 × 5% = 552.45 → 276.22 / 276.23. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 10,022.78 is under 20,833 anyway). Net 11,049.00 − 1,026.22 = 10,022.78; employer cost 1,586.23.'
+	),
+	below(
+		'PH-WG24-5',
+		'An Amadeo office worker left on the IVA-22 first-tranche ₱510 in July 2026, after the 1 April 2026 tranche to ₱525: refused.',
+		'Cavite/Amadeo',
+		'OTHER_NONAGRI',
+		11092.5,
+		'2026-07',
+		O_IVA
+	),
+	below(
+		'PH-WG25-2',
+		'A Puerto Princesa office worker left on the superseded ₱430 in July 2026: MIMAROPA-13 states ₱455 from 1 January 2026, so the run is refused.',
+		'IV-B/Puerto Princesa',
+		'OTHER_NONAGRI',
+		9352.5,
+		'2026-07',
+		O_IVB
+	),
+	below(
+		'PH-WG29-3',
+		'A General Santos office worker left on the RB XII-25 first-tranche ₱450 in July 2026, after the 15 December 2025 tranche to ₱460: refused.',
+		'XII/General Santos',
+		'OTHER_NONAGRI',
+		9787.5,
+		'2026-07',
+		O_XII
+	),
+	site(
+		'PH-WG31-3',
+		'A Tuguegarao agricultural worker at exactly the RTWPB 2-24 agriculture floor of ₱500, July 2026.',
+		'II/Tuguegarao',
+		'AGRICULTURE',
+		10875,
+		'2026-07',
+		O_II,
+		{ sss: [550, 1100], ec: 10, phic: [271.87, 271.88], hdmf: [200, 200] },
+		9853.13,
+		1581.88,
+		'500 × 261 ÷ 12 = 10,875.00. SSS 10,750–11,249.99 → MSC 11,000: 550.00 / 1,100.00, EC 10. PhilHealth 10,875.00 × 5% = 543.75 → 271.87 / 271.88. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,853.13 is under 20,833 anyway). Net 10,875.00 − 1,021.87 = 9,853.13; employer cost 1,581.88.'
+	),
+	site(
+		'PH-WG13-3',
+		'A Naga (Bicol) office worker at exactly the RBV-23 second-tranche floor of ₱480, December 2026.',
+		'V/Naga',
+		'OTHER_NONAGRI',
+		10440,
+		'2026-12',
+		O_V,
+		{ sss: [525, 1050], ec: 10, phic: [261, 261], hdmf: [200, 200] },
+		9454,
+		1521,
+		'480 × 261 ÷ 12 = 10,440.00. SSS 10,250–10,749.99 → MSC 10,500: 525.00 / 1,050.00, EC 10. PhilHealth 10,440.00 × 5% = 522.00 → 261.00 / 261.00. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,454.00 is under 20,833 anyway). Net 10,440.00 − 986.00 = 9,454.00; employer cost 1,521.00.'
+	),
+	below(
+		'PH-WG13-4',
+		'A Naga office worker left on the ₱455 first-tranche rate in December 2026, after the 1 December tranche to ₱480: refused.',
+		'V/Naga',
+		'OTHER_NONAGRI',
+		9896.25,
+		'2026-12',
+		O_V
+	),
+	site(
+		'PH-WG20-4',
+		'A Cotabato City office worker at exactly the BARMM-05 second-tranche non-agriculture floor of ₱461, December 2026.',
+		'BARMM/Cotabato City',
+		'OTHER_NONAGRI',
+		10026.75,
+		'2026-12',
+		O_BARMM,
+		{ sss: [500, 1000], ec: 10, phic: [250.67, 250.67], hdmf: [200, 200] },
+		9076.08,
+		1460.67,
+		'461 × 261 ÷ 12 = 10,026.75. SSS 9,750–10,249.99 → MSC 10,000: 500.00 / 1,000.00, EC 10. PhilHealth 10,026.75 × 5% = 501.34 → 250.67 / 250.67. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 9,076.08 is under 20,833 anyway). Net 10,026.75 − 950.67 = 9,076.08; employer cost 1,460.67.'
+	),
+	below(
+		'PH-WG20-5',
+		'A Cotabato City office worker left on the ₱436 first-tranche rate in December 2026, after the 1 December tranche to ₱461: refused.',
+		'BARMM/Cotabato City',
+		'OTHER_NONAGRI',
+		9483,
+		'2026-12',
+		O_BARMM
+	),
+	site(
+		'PH-WG27-4',
+		'A Tacloban office worker at exactly the RB VIII-25 first-tranche non-agriculture floor of ₱452, February 2026 (after 8 December 2025, before the 1 June tranche).',
+		'VIII/Tacloban',
+		'OTHER_NONAGRI',
+		9831,
+		'2026-02',
+		O_VIII,
+		{ sss: [500, 1000], ec: 10, phic: [250, 250], hdmf: [196.62, 196.62] },
+		8884.38,
+		1456.62,
+		'452 × 261 ÷ 12 = 9,831.00. SSS 9,750–10,249.99 → MSC 10,000: 500.00 / 1,000.00, EC 10. PhilHealth on the ₱10,000 floor → 250.00 / 250.00. Pag-IBIG 2% of 9,831.00 → 196.62 / 196.62. WTAX 0 (minimum-wage earner; taxable 8,884.38 is under 20,833 anyway). Net 9,831.00 − 946.62 = 8,884.38; employer cost 1,456.62.'
+	),
+	seam(
+		'PH-WG59-1',
+		'An NCR office worker whose contract pays the rest days (terms.paid_rest_days) is compared with the NCR-26 floor on the 365-day factor: ₱695 × 365 ÷ 12 = ₱21,139.58(3), met by ₱21,139.59 in July 2026.',
+		21_139.59,
+		{ sss: [1000, 2000], mpf: [50, 100], ec: 30, phic: [528.49, 528.49], hdmf: [200, 200] },
+		19361.1,
+		2858.49,
+		`${NCR26}. ` +
+			'NWPC equivalent-monthly-rate FAQ (https://nwpc.dole.gov.ph/faqs/, read 30 Sep 2026): the monthly equivalent of a worker paid for every day of the year, rest days included, is the daily rate × 365 ÷ 12 — 695 × 365 ÷ 12 = 21,139.583, met by 21,139.59 (the floor is money, in cents). SSS 20,750–21,249.99 → MSC 21,000: 1,000.00 / 2,000.00, MPF 1,000 × 5% / 10% = 50.00 / 100.00, EC 30. PhilHealth 21,139.59 × 5% = 1,056.98 → 528.49 / 528.49. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 19,361.10 is under 20,833 anyway). Net 21,139.59 − 1,778.49 = 19,361.10; employer cost 2,858.49.',
+		{ terms: { paid_rest_days: true } }
+	),
+	{
+		id: 'PH-WG59-2',
+		profile: 'PH',
+		description:
+			'The same paid-rest-day contract at the five-day monthly equivalent ₱15,116.25 in July 2026: on the 365-day factor the NCR-26 floor is ₱21,139.58, so the run is refused.',
+		citation: [
+			NCR26,
+			'NWPC equivalent-monthly-rate FAQ (https://nwpc.dole.gov.ph/faqs/, read 30 Sep 2026): a worker paid for every day including rest days is judged on daily rate × 365 ÷ 12 = 695 × 365 ÷ 12 = 21,139.58; ₱15,116.25 (the 261-day figure) is below it'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 15_116.25,
+				terms: { paid_rest_days: true }
+			})
+		],
+		period: '2026-07',
+		refused: 'MINIMUM_WAGE_BELOW: P-PH-w is contracted at ',
+		expected: []
+	},
+	{
+		...seam(
+			'PH-WG59-3',
+			'An NCR worker rostered six days a week (Monday to Saturday, Sunday rest, no paid rest day) is compared with the NCR-26 floor on the 313-day factor: ₱695 × 313 ÷ 12 = ₱18,127.92, paid exactly in July 2026.',
+			18_127.92,
+			{ sss: [900, 1800], ec: 30, phic: [453.2, 453.2], hdmf: [200, 200] },
+			16574.72,
+			2483.2,
+			`${NCR26}. ` +
+				'NWPC equivalent-monthly-rate FAQ (https://nwpc.dole.gov.ph/faqs/, read 30 Sep 2026): a six-day worker without paid rest days is judged on daily rate × 313 ÷ 12 — 695 × 313 ÷ 12 = 18,127.92 (18,127.9167 to the cent). SSS 17,750–18,249.99 → MSC 18,000: 900.00 / 1,800.00, EC 30. PhilHealth 18,127.92 × 5% = 906.40 → 453.20 / 453.20. Pag-IBIG 2% of the ₱10,000 cap → 200.00 / 200.00. WTAX 0 (minimum-wage earner; taxable 16,574.72 is under 20,833 anyway). Net 18,127.92 − 1,553.20 = 16,574.72; employer cost 2,483.20.',
+			{ terms: { shift_pattern_id: '@six' } }
+		),
+		inputs: [
+			...week,
+			...six,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 18_127.92,
+				terms: { shift_pattern_id: '@six' }
+			})
+		]
+	},
+	{
+		id: 'PH-WG59-4',
+		profile: 'PH',
+		description:
+			'A six-day NCR worker on the five-day monthly equivalent ₱15,116.25 in July 2026: the 313-day floor ₱18,127.92 applies, so the run is refused.',
+		citation: [
+			NCR26,
+			'NWPC equivalent-monthly-rate FAQ (https://nwpc.dole.gov.ph/faqs/, read 30 Sep 2026): a six-day worker without paid rest days is judged on daily rate × 313 ÷ 12 = 18,127.92; ₱15,116.25 is below it'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...six,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '1990-05-14',
+				from: '2020-01-06',
+				salary: 15_116.25,
+				terms: { shift_pattern_id: '@six' }
+			})
+		],
+		period: '2026-07',
+		refused: 'MINIMUM_WAGE_BELOW: P-PH-w is contracted at ',
+		expected: []
+	},
+	{
+		id: 'PH-EBET05-1',
+		profile: 'PH',
+		description:
+			'An NCR apprentice on a five-day week paid ₱11,000 in July 2026: the training allowance floor is 75% of the NCR-26 minimum, 695 × 0.75 × 261 ÷ 12 = ₱11,337.19, so the run is refused.',
+		citation: [
+			NCR26,
+			'RA 12063 (Enterprise-Based Education and Training Framework Act) s.13(b): an apprenticeship trainee receives a training allowance not lower than 75% of the applicable minimum wage rate (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/98026, read 30 Sep 2026); 695 × 0.75 = 521.25 a day × 261 ÷ 12 = 11,337.1875; ₱11,000 is below it'
+		],
+		company: company(),
+		inputs: [
+			...week,
+			...hire({
+				ref: 'w',
+				name: 'Juan Dela Cruz',
+				born: '2005-05-14',
+				from: '2026-01-05',
+				salary: 11_000,
+				type: 'APPRENTICE'
+			})
+		],
+		period: '2026-07',
+		refused: 'MINIMUM_WAGE_BELOW: P-PH-w is contracted at ',
+		expected: []
+	}
 );

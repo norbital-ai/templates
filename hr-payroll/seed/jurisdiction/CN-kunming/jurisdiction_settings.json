@@ -40,6 +40,11 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "21.75",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"normal_hours": "8.0",
 			"bands": [
@@ -421,6 +426,11 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "21.75",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"normal_hours": "8.0",
 			"bands": [
@@ -820,6 +830,11 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "21.75",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"normal_hours": "8.0",
 			"bands": [

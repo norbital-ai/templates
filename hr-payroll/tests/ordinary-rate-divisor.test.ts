@@ -143,9 +143,14 @@ for (const code of ['MY'] as const)
 				expression: version.work_rules.ordinary_divisor_days,
 				person: subject
 			});
-			// Weekly basic 601 / 6 plus monthly normal-hours allowance 260 / 26.
-			assert.ok(Math.abs(ordinaryDayWage(weekly, divisor) - (601 / 6 + 10)) < 1e-10);
-			assert.ok(Math.abs(ordinaryHourlyRate(weekly, divisor) - (601 / 6 + 10) / 8) < 1e-10);
+			// Weekly basic 601 / 6 plus monthly normal-hours allowance 260 / 26; the week is the
+			// version's month by `rate_conversions.weekly_to_monthly`.
+			const conversion = { work: version.work_rules, person: subject };
+			assert.ok(Math.abs(ordinaryDayWage(weekly, divisor, conversion) - (601 / 6 + 10)) < 1e-10);
+			assert.ok(
+				Math.abs(ordinaryHourlyRate(weekly, divisor, undefined, conversion) - (601 / 6 + 10) / 8) <
+					1e-10
+			);
 		}
 	});
 

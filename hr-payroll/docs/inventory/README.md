@@ -87,3 +87,14 @@ way is a `GAP` in the generic engine, not a licence for a jurisdiction branch.
 jurisdiction-named collection, model, custom field, `src/lib` or `src/app` entry, a model field
 with a jurisdiction prefix or scheme name, a jurisdiction-scoped i18n key, and a `HARDCODED:`
 `config_path`. There is no exception list.
+
+## Calculation rule
+
+Every statutory calculation lives in the runtime objects — the stored rule expressions, band
+rows, rates, caps, floors, divisors, thresholds and rounding modes of the settings versions and
+catalogues — never in the engine's flow. The engine evaluates what is stored; it does not know a
+rate, a band edge, a ceiling, a divisor, a rounding step or an age. A statutory figure or band
+written as a literal in `src` (a `0.2`, `20000`, `26`, `× 1.5`, a band table, a rounding to 50 sen)
+is a defect: move it into the version's configuration and give the engine only the generic
+operation that evaluates it. A calculation the expression language cannot state is a `GAP` for a
+generic expression primitive, not a licence for a literal.

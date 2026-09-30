@@ -224,6 +224,29 @@ export const workRulesValueSchema = Schema.Struct({
 	 * one, then 1/173). Absent or empty is the day over its normal hours.
 	 */
 	daily_month_days: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/**
+	 * What one stated unit of a weekly, daily or hourly wage is as a month: a factor over the person
+	 * on the rate's own week (`terms.working_days_per_week`, `terms.ordinary_hours_per_week`), e.g.
+	 * `52.0 / 12.0` a week. The weeks in a month are a statutory choice (SSS Circular 2014-002:
+	 * weekly × 52 ÷ 12), not the calendar's 365 ÷ 7 ÷ 12. Absent refuses a non-monthly wage.
+	 */
+	rate_conversions: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({ weekly_to_monthly: cel, daily_to_monthly: cel, hourly_to_monthly: cel })
+		)
+	),
+	/**
+	 * The gross hourly rate an hourly leave charge withholds, money over the person on the charge
+	 * date: `terms.basic_salary` in its cadence, `terms.fixed_allowances` the gross-rate allowances
+	 * (SG EA s.2: 12 × monthly ÷ (52 × weekly hours)). Absent refuses hourly leave deductions.
+	 */
+	hourly_rate: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/**
+	 * The hourly amount of the allowances a leave class excludes, over the person whose
+	 * `terms.fixed_allowances` are those allowances; a day charge is it × the normal daily hours.
+	 * Absent refuses a leave class that excludes an allowance.
+	 */
+	hourly_rate_excluded: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/** A statutory ordinary rate taken from approved dated wage history instead of the current contract. */
 	ordinary_rate_reference: Schema.optionalKey(
 		Schema.NullOr(
@@ -443,6 +466,17 @@ export const workRulesValueSchema = Schema.Struct({
 			(rules.daily_month_days ?? '').trim() === ''
 				? null
 				: faultIn(rules.daily_month_days ?? '', 'person', 'days', 'Daily wage month'),
+			...(['weekly_to_monthly', 'daily_to_monthly', 'hourly_to_monthly'] as const).map((key) =>
+				rules.rate_conversions == null
+					? null
+					: faultIn(rules.rate_conversions[key], 'person', 'number', `Rate conversion ${key}`)
+			),
+			(rules.hourly_rate ?? '').trim() === ''
+				? null
+				: faultIn(rules.hourly_rate ?? '', 'person', 'money', 'Hourly rate'),
+			(rules.hourly_rate_excluded ?? '').trim() === ''
+				? null
+				: faultIn(rules.hourly_rate_excluded ?? '', 'person', 'money', 'Hourly excluded rate'),
 			faultIn(rules.overtime_when, 'person', 'boolean', 'Overtime eligibility'),
 			(rules.part_time_comparator_when ?? '').trim() === ''
 				? null

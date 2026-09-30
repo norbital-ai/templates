@@ -19,6 +19,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -705,6 +711,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -1400,6 +1412,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -2095,6 +2113,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -2782,6 +2806,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -3478,6 +3508,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -4174,6 +4210,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -4863,6 +4905,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -5561,6 +5609,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -6259,6 +6313,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -6967,6 +7027,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -7675,6 +7741,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -8397,6 +8469,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{
@@ -9138,6 +9216,12 @@
 				"days": 30
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : terms.basic_salary / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)) + terms.fixed_allowances / 30.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
 			"overtime_when": "!(has(company.facts.responsibility_system) && company.facts.responsibility_system && employment.classification == \"NON_EA\")",
 			"bands": [
 				{

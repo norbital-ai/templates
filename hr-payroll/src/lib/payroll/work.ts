@@ -993,17 +993,21 @@ function workContext(
 	const dailyMonthRule = (configuration.work.daily_month_days ?? '').trim();
 	const dailyMonthDays = (person: PersonContext) =>
 		dailyMonthRule === '' ? undefined : evaluatePersonNumber(dailyMonthRule, person);
-	const hourlyRate = ordinaryHourlyRate(rateTerms, divisorDays, dailyMonthDays(subject));
-	const dayWage = ordinaryDayWage(rateTerms, divisorDays);
+	const closingConversion = { work: configuration.work, person: subject };
+	const hourlyRate = ordinaryHourlyRate(
+		rateTerms,
+		divisorDays,
+		dailyMonthDays(subject),
+		closingConversion
+	);
+	const dayWage = ordinaryDayWage(rateTerms, divisorDays, closingConversion);
 	// Resolve salary, allowances and hours on the day worked, including salary changes inside a month.
 	const ratesByDate = new Map<
 		string,
 		{ ordinaryHour: number; dayWage: number; person: PersonContext }
 	>();
-	const ratesOn = (date: IsoDate) => {
-		const cached = ratesByDate.get(date);
-		if (cached != null) return cached;
-		const term = termsAt(bundle, date);
+	/** The person a terms row prices on `date`: its allowances and the week its pattern measures. */
+	const personInputOn = (term: EmploymentBundle['terms'][number], date: IsoDate) => {
 		const month = monthBounds(monthKey(date));
 		const days = termsDaysPerWeek(term, configuration);
 		const workload = termsWorkload({
@@ -1012,30 +1016,40 @@ function workContext(
 			workDays: bundle.workDays,
 			window: month
 		});
-		const personInput = {
-			employee: bundle.employee,
-			employment: employmentForPerson(),
-			terms: term,
-			fixedAllowances: contractAllowancesOn(bundle, configuration, date),
-			// The s.2 "gross rate of pay" allowances: the contract's, less the classes the version
-			// names (SG EA s.2(e): travelling, food or housing allowances).
-			grossAllowances: contractAllowancesOn(
-				bundle,
-				configuration,
-				date,
-				undefined,
-				configuration.work.gross_excluded_allowances ?? undefined
-			),
-			children: bundle.children,
-			company: configuration.company,
-			week: {
-				ordinary_hours_per_week:
-					term.ordinary_hours_per_week ?? workload.average_weekly_paid_minutes / 60,
-				working_days_per_week: days
-			},
-			period: { working_days: workingDaysIn(month) },
-			asOf: date
+		return {
+			days,
+			workload,
+			input: {
+				employee: bundle.employee,
+				employment: employmentForPerson(),
+				terms: term,
+				fixedAllowances: contractAllowancesOn(bundle, configuration, date),
+				// The s.2 "gross rate of pay" allowances: the contract's, less the classes the version
+				// names (SG EA s.2(e): travelling, food or housing allowances).
+				grossAllowances: contractAllowancesOn(
+					bundle,
+					configuration,
+					date,
+					undefined,
+					configuration.work.gross_excluded_allowances ?? undefined
+				),
+				children: bundle.children,
+				company: configuration.company,
+				week: {
+					ordinary_hours_per_week:
+						term.ordinary_hours_per_week ?? workload.average_weekly_paid_minutes / 60,
+					working_days_per_week: days
+				},
+				period: { working_days: workingDaysIn(month) },
+				asOf: date
+			}
 		};
+	};
+	const ratesOn = (date: IsoDate) => {
+		const cached = ratesByDate.get(date);
+		if (cached != null) return cached;
+		const term = termsAt(bundle, date);
+		const { days, workload, input: personInput } = personInputOn(term, date);
 		const datedPerson = personContext(personInput);
 		const cap = normalHoursCapOn(term, workload, date);
 		const datedTerms = asRateTerms(
@@ -1061,8 +1075,9 @@ function workContext(
 		// The work day reads the rate a daily, hourly or weekly contract states as its month on the
 		// divisor just evaluated (`terms.monthly_basic`, `terms.ordinary_day`), as documented.
 		const person = personContext({ ...personInput, week: rateWeek, divisorDays: divisor });
-		let ordinaryHour = ordinaryHourlyRate(datedTerms, divisor, dailyMonthDays(person));
-		let dayWage = ordinaryDayWage(datedTerms, divisor);
+		const conversion = { work: configuration.work, person };
+		let ordinaryHour = ordinaryHourlyRate(datedTerms, divisor, dailyMonthDays(person), conversion);
+		let dayWage = ordinaryDayWage(datedTerms, divisor, conversion);
 		// A verified dated wage record replaces the current contract's reconstruction where the
 		// version says so (MY s.60I(1C): the preceding wage period's earnings over its worked days).
 		// A latest-month normal-wage reference is the leave cash-out's (TW 施行細則 §24-1) alone: the
@@ -1153,15 +1168,10 @@ function workContext(
 		);
 		if (!term) refuse(`Hourly Leave has no captured employment terms on ${charge.date}.`);
 		if (term.currency !== currency) refuse('Hourly Leave has a different currency from payroll.');
-		const workload = termsWorkload({
-			terms: term,
-			configuration,
-			workDays: bundle.workDays,
-			window: monthBounds(monthKey(charge.date))
-		});
-		const weeklyHours = term.ordinary_hours_per_week ?? workload.average_weekly_paid_minutes / 60;
-		const days = termsDaysPerWeek(term, configuration);
-		if (!(weeklyHours > 0) || !(days > 0))
+		const rule = (configuration.work.hourly_rate ?? '').trim();
+		if (rule === '') refuse('Hourly Leave needs the version’s work_rules.hourly_rate.');
+		const { input } = personInputOn(term, charge.date);
+		if (!(input.week.ordinary_hours_per_week > 0) || !(input.week.working_days_per_week > 0))
 			refuse('Hourly Leave needs positive contracted weekly hours and working days.');
 		const grossExcluded = configuration.work.gross_excluded_allowances ?? [];
 		for (const listed of listedAllowances(term)) {
@@ -1176,20 +1186,12 @@ function workContext(
 			)
 				refuse(`Hourly Leave needs gross-rate classification for allowance ${component.code}.`);
 		}
-		const allowances = contractAllowancesOn(
-			bundle,
-			configuration,
-			charge.date,
-			undefined,
-			grossExcluded
+		// `terms.fixed_allowances` is the gross rate's allowances: the contract's, less the classes
+		// `gross_excluded_allowances` names.
+		return evaluatePersonNumber(
+			rule,
+			personContext({ ...input, fixedAllowances: input.grossAllowances })
 		);
-		const allowanceHour = (12 * allowances) / (52 * weeklyHours);
-		const basic = term.base_salary;
-		const frequency = payFrequency(term.pay_frequency);
-		if (frequency === 'HOURLY') return basic + allowanceHour;
-		if (frequency === 'DAILY') return basic / (weeklyHours / days) + allowanceHour;
-		if (frequency === 'WEEKLY') return basic / weeklyHours + allowanceHour;
-		return (12 * basic) / (52 * weeklyHours) + allowanceHour;
 	};
 	const outpatientSickExcludedRate = (charge: LeaveCharge): number => {
 		const term = bundle.termsHistory.find(
@@ -1240,18 +1242,19 @@ function workContext(
 			}
 		}
 		if (excluded === 0) return 0;
-		const workload = termsWorkload({
-			terms: term,
-			configuration,
-			workDays: bundle.workDays,
-			window: monthBounds(monthKey(charge.date))
-		});
-		const divisor =
-			charge.hours == null
-				? termsDaysPerWeek(term, configuration)
-				: (term.ordinary_hours_per_week ?? workload.average_weekly_paid_minutes / 60);
-		if (!(divisor > 0)) refuse('Outpatient sick leave needs normal contractual days or hours.');
-		return (12 * excluded) / (52 * divisor);
+		const rule = (configuration.work.hourly_rate_excluded ?? '').trim();
+		if (rule === '')
+			refuse('Outpatient sick leave needs the version’s work_rules.hourly_rate_excluded.');
+		const { input } = personInputOn(term, charge.date);
+		const { ordinary_hours_per_week: hours, working_days_per_week: days } = input.week;
+		if (!(hours > 0) || (charge.hours == null && !(days > 0)))
+			refuse('Outpatient sick leave needs normal contractual days or hours.');
+		const hourly = evaluatePersonNumber(
+			rule,
+			personContext({ ...input, fixedAllowances: excluded })
+		);
+		// A day charge is the normal day's hours of it: the week's hours over its days.
+		return charge.hours == null ? (hourly * hours) / days : hourly;
 	};
 
 	const workedOn = new Set(

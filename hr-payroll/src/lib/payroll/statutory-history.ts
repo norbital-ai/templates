@@ -39,11 +39,6 @@ type Opening = {
 	readonly payroll_frequency?: AssessmentFrequency | null | undefined;
 };
 
-const periodsPerMonth: Readonly<Record<AssessmentFrequency, number>> = {
-	MONTHLY: 1,
-	SEMI_MONTHLY: 2,
-	WEEKLY: 52 / 12
-};
 
 const frequencyOf = (
 	period: string,
@@ -56,11 +51,26 @@ const frequencyOf = (
 	return /^\d{4}-\d{2}$/.test(period) ? 'MONTHLY' : null;
 };
 
+/** Payroll periods of one cadence in a month; a week's is the version's weeks a month. */
+const periodsPerMonth = (
+	frequency: AssessmentFrequency,
+	weeksPerMonth: (() => number) | undefined
+): number =>
+	frequency === 'MONTHLY'
+		? 1
+		: frequency === 'SEMI_MONTHLY'
+			? 2
+			: (weeksPerMonth ?? refuse('A weekly cadence needs the version’s weeks a month.'))();
+
 const convertPeriods = (
 	periods: number,
 	from: AssessmentFrequency,
-	to: AssessmentFrequency
-): number => (periods * periodsPerMonth[to]) / periodsPerMonth[from];
+	to: AssessmentFrequency,
+	weeksPerMonth: (() => number) | undefined
+): number =>
+	from === to
+		? periods
+		: (periods * periodsPerMonth(to, weeksPerMonth)) / periodsPerMonth(from, weeksPerMonth);
 
 /** One paid assessment per person and payroll period, including all concurrent contracts. */
 export function buildStatutoryHistory(options: {
@@ -123,6 +133,8 @@ export function cumulativeHistory(options: {
 	readonly periods: readonly StatutoryPeriodHistory[];
 	readonly openings: ReadonlyMap<string, Opening>;
 	readonly frequency: AssessmentFrequency;
+	/** The version's weeks a month (`work_rules.rate_conversions.weekly_to_monthly`), read only to convert a weekly cadence. */
+	readonly weeksPerMonth?: (() => number) | undefined;
 	/** Codes whose `history.<code>.periods` the catalogue reads; their openings must state a cadence. */
 	readonly requirePeriodsFor?: ReadonlySet<string> | undefined;
 	/** The schemes that declare a trigger, by code. */
@@ -172,7 +184,12 @@ export function cumulativeHistory(options: {
 				const sourcePeriods = opening.payroll_periods ?? opening.months;
 				const usable = sourceFrequency != null && sourcePeriods != null && sourcePeriods > 0;
 				periodsRecorded &&= usable;
-				if (usable) periods += convertPeriods(sourcePeriods, sourceFrequency, options.frequency);
+				if (usable) periods += convertPeriods(
+						sourcePeriods,
+						sourceFrequency,
+						options.frequency,
+						options.weeksPerMonth
+					);
 			}
 			for (const period of options.periods) {
 				if (needsPeriods) {
@@ -181,7 +198,7 @@ export function cumulativeHistory(options: {
 						refuse(
 							`${period.period}: record the payroll cadence on the settled statutory assessment.`
 						);
-					periods += convertPeriods(1, frequency, options.frequency);
+					periods += convertPeriods(1, frequency, options.frequency, options.weeksPerMonth);
 				}
 				const charge = period.charges[code];
 				if (charge == null) continue;

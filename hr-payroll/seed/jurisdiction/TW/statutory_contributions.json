@@ -22800,6 +22800,11 @@
 				"employer": "0.0"
 			},
 			{
+				"when": "scheme.current_registration_status == \"NOT_REGISTERED\" && scheme.registration_status == \"NOT_REGISTERED\" && person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.terms.residency_since > \"2019-05-17\" && scheme.declaration_reference != \"\" && person.employment.service_start < \"2019-05-17\" && scheme.elections.pr_old_transition_class == \"FOREIGN_LATER_PR_GRANT\" && scheme.elections.pr_old_election_on >= person.terms.residency_since && scheme.elections.pr_old_election_on < add_months(person.terms.residency_since, 6)",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
 				"when": "scheme.current_registration_status == \"NOT_REGISTERED\" && (scheme.registration_status == \"NOT_REGISTERED\" || person.employment.exit_date == \"\" || person.employment.exit_date > period.end) && !(person.facts.LI.elections.parental_leave != \"NONE\" || person.facts.EI.elections.parental_leave != \"NONE\")",
 				"employee": "0.0",
 				"employer": "0.0",
@@ -23189,15 +23194,15 @@
 				"key": "pr_old_transition_class",
 				"type": "string",
 				"label": "Permanent-resident old-pension transition class",
-				"description": "Select the documented 2018 foreign-professional or 2019 other foreign-PR old-system transition at this same employer. The declaration reference must identify PR, professional/nonprofessional class, LSA coverage, written election and same-unit history. BLI: https://www.bli.gov.tw/en/0010369.html",
+				"description": "Select the documented 2018 foreign-professional or 2019 other foreign-PR old-system transition at this same employer, or FOREIGN_LATER_PR_GRANT: permanent residence granted after 2019-05-17 to a worker already serving this unit before that day, who elected within six months of the grant (勞工退休金條例 §8-1(1)(3), (2)). The declaration reference must identify PR, professional/nonprofessional class, LSA coverage, written election and same-unit history. BLI: https://www.bli.gov.tw/en/0010369.html",
 				"scope": "EMPLOYMENT",
-				"options": ["FOREIGN_PROFESSIONAL_2018", "FOREIGN_NONPROFESSIONAL_2019"]
+				"options": ["FOREIGN_PROFESSIONAL_2018", "FOREIGN_NONPROFESSIONAL_2019", "FOREIGN_LATER_PR_GRANT"]
 			},
 			{
 				"key": "pr_old_election_on",
 				"type": "string",
 				"label": "Permanent-resident written old-pension election date",
-				"description": "YYYY-MM-DD from the written election at this unit. This narrow route accepts only the original 2018 or 2019 commencement windows; a later PR grant requires a separate six-month deadline calculation and remains refused. BLI: https://www.bli.gov.tw/en/0010369.html",
+				"description": "YYYY-MM-DD from the written election at this unit. The 2018 and 2019 classes accept only the original commencement windows; FOREIGN_LATER_PR_GRANT accepts an election on or after the recorded residency_since and before the same day six months later (勞工退休金條例 §8-1(2): 於適用本條例之日起六個月內; the stricter reading of 行政程序法 §48 is the recorded default). BLI: https://www.bli.gov.tw/en/0010369.html",
 				"scope": "EMPLOYMENT",
 				"min_length": 10
 			},
@@ -25009,6 +25014,11 @@
 				"employer": "0.0"
 			},
 			{
+				"when": "scheme.current_registration_status == \"NOT_REGISTERED\" && scheme.registration_status == \"NOT_REGISTERED\" && person.employee.citizenship == \"PERMANENT_RESIDENT\" && person.terms.residency_since > \"2019-05-17\" && scheme.declaration_reference != \"\" && person.employment.service_start < \"2019-05-17\" && scheme.elections.pr_old_transition_class == \"FOREIGN_LATER_PR_GRANT\" && scheme.elections.pr_old_election_on >= person.terms.residency_since && scheme.elections.pr_old_election_on < add_months(person.terms.residency_since, 6)",
+				"employee": "0.0",
+				"employer": "0.0"
+			},
+			{
 				"when": "scheme.current_registration_status == \"NOT_REGISTERED\" && (scheme.registration_status == \"NOT_REGISTERED\" || person.employment.exit_date == \"\" || person.employment.exit_date > period.end) && !(person.facts.LI.elections.parental_leave != \"NONE\" || person.facts.EI.elections.parental_leave != \"NONE\")",
 				"employee": "0.0",
 				"employer": "0.0",
@@ -25414,15 +25424,15 @@
 				"key": "pr_old_transition_class",
 				"type": "string",
 				"label": "Permanent-resident old-pension transition class",
-				"description": "Select the documented 2018 foreign-professional or 2019 other foreign-PR old-system transition at this same employer. The declaration reference must identify PR, professional/nonprofessional class, LSA coverage, written election and same-unit history. BLI: https://www.bli.gov.tw/en/0010369.html",
+				"description": "Select the documented 2018 foreign-professional or 2019 other foreign-PR old-system transition at this same employer, or FOREIGN_LATER_PR_GRANT: permanent residence granted after 2019-05-17 to a worker already serving this unit before that day, who elected within six months of the grant (勞工退休金條例 §8-1(1)(3), (2)). The declaration reference must identify PR, professional/nonprofessional class, LSA coverage, written election and same-unit history. BLI: https://www.bli.gov.tw/en/0010369.html",
 				"scope": "EMPLOYMENT",
-				"options": ["FOREIGN_PROFESSIONAL_2018", "FOREIGN_NONPROFESSIONAL_2019"]
+				"options": ["FOREIGN_PROFESSIONAL_2018", "FOREIGN_NONPROFESSIONAL_2019", "FOREIGN_LATER_PR_GRANT"]
 			},
 			{
 				"key": "pr_old_election_on",
 				"type": "string",
 				"label": "Permanent-resident written old-pension election date",
-				"description": "YYYY-MM-DD from the written election at this unit. This narrow route accepts only the original 2018 or 2019 commencement windows; a later PR grant requires a separate six-month deadline calculation and remains refused. BLI: https://www.bli.gov.tw/en/0010369.html",
+				"description": "YYYY-MM-DD from the written election at this unit. The 2018 and 2019 classes accept only the original commencement windows; FOREIGN_LATER_PR_GRANT accepts an election on or after the recorded residency_since and before the same day six months later (勞工退休金條例 §8-1(2): 於適用本條例之日起六個月內; the stricter reading of 行政程序法 §48 is the recorded default). BLI: https://www.bli.gov.tw/en/0010369.html",
 				"scope": "EMPLOYMENT",
 				"min_length": 10
 			},

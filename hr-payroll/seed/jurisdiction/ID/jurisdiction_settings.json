@@ -18,6 +18,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) * terms.basic_salary / terms.monthly_wage : 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"bands": [
 				{
@@ -1306,6 +1311,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) * terms.basic_salary / terms.monthly_wage : 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"bands": [
 				{
@@ -3316,6 +3326,11 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "terms.monthly_wage > 0.0 ? 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) * terms.basic_salary / terms.monthly_wage : 173.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week)",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"bands": [
 				{

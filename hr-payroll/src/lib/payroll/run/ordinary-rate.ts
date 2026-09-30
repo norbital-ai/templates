@@ -47,6 +47,49 @@ export function ordinaryDivisorDays(options: {
 	return divisor;
 }
 
+/** The version and person a weekly, daily or hourly wage is taken to its month over. */
+export type MonthConversion = {
+	readonly work: Pick<Work, 'rate_conversions'>;
+	readonly person: PersonContext;
+};
+
+const conversionKeys = {
+	WEEKLY: 'weekly_to_monthly',
+	DAILY: 'daily_to_monthly',
+	HOURLY: 'hourly_to_monthly'
+} as const;
+
+/**
+ * What one stated unit of a weekly, daily or hourly wage is as a month: the version's
+ * `work_rules.rate_conversions` expression for the cadence (a statutory choice — SG and PH SSS
+ * state 52 ÷ 12 weeks a month, not 365 ÷ 7 ÷ 12), over the person on the rate's own week. A
+ * monthly or semi-monthly wage is already the month.
+ */
+export function monthlyFactor(
+	frequency: RateTerms['pay_frequency'],
+	week: Pick<RateTerms, 'ordinary_hours_per_week' | 'working_days_per_week'>,
+	conversion: MonthConversion | undefined
+): number {
+	if (frequency === 'MONTHLY' || frequency === 'SEMI_MONTHLY') return 1;
+	const key = conversionKeys[frequency];
+	const expression = conversion?.work.rate_conversions?.[key]?.trim() ?? '';
+	if (conversion == null || expression === '')
+		throw new Error(
+			`A ${frequency.toLowerCase()} wage needs the version's work_rules.rate_conversions.${key}.`
+		);
+	const factor = evaluateNumber(expressionEngine, expression, {
+		...conversion.person,
+		terms: {
+			...conversion.person.terms,
+			ordinary_hours_per_week: week.ordinary_hours_per_week,
+			working_days_per_week: week.working_days_per_week
+		}
+	});
+	if (!(factor > 0))
+		throw new Error(`work_rules.rate_conversions.${key} evaluated to ${factor}; it must be positive.`);
+	return factor;
+}
+
 /**
  * The monthly-equivalent contract wage.
  *
@@ -54,24 +97,11 @@ export function ordinaryDivisorDays(options: {
  * `pay_frequency` controls when that wage is paid; it does not change the wage's unit. Treating a
  * semi-monthly employee's stored salary as one half-period doubled every OT and absence rate.
  *
- * Weekly, daily and hourly contracts are converted because those are genuinely different wage
- * bases. They still need their own proration story before those populations are trusted.
+ * Weekly, daily and hourly contracts are converted by the version's `rate_conversions`, because
+ * those are genuinely different wage bases.
  */
-function monthlyBaseSalary(terms: RateTerms): number {
-	const value = terms.base_salary.value;
-	const hoursPerDay = terms.ordinary_hours_per_week / terms.working_days_per_week;
-	switch (terms.pay_frequency) {
-		case 'MONTHLY':
-			return value;
-		case 'SEMI_MONTHLY':
-			return value;
-		case 'WEEKLY':
-			return (value * 52) / 12;
-		case 'DAILY':
-			return (value * terms.working_days_per_week * 52) / 12;
-		case 'HOURLY':
-			return (value * hoursPerDay * terms.working_days_per_week * 52) / 12;
-	}
+function monthlyBaseSalary(terms: RateTerms, conversion: MonthConversion | undefined): number {
+	return terms.base_salary.value * monthlyFactor(terms.pay_frequency, terms, conversion);
 }
 
 /**
@@ -82,7 +112,8 @@ function monthlyBaseSalary(terms: RateTerms): number {
 export function ordinaryHourlyRate(
 	terms: RateTerms,
 	divisorDays: number,
-	dailyMonthDays?: number
+	dailyMonthDays?: number,
+	conversion?: MonthConversion
 ): number {
 	// DAILY and HOURLY staff are paid from the stated rate, never annualised: the rate is what the
 	// contract says an hour costs. Monthly staff are untouched by this branch.
@@ -93,19 +124,23 @@ export function ordinaryHourlyRate(
 			normalDailyHours(terms)
 		);
 	if (!(divisorDays > 0)) throw new Error('work_rules.ordinary_divisor_days must be positive.');
-	return monthlyBaseSalary(terms) / divisorDays / normalDailyHours(terms);
+	return monthlyBaseSalary(terms, conversion) / divisorDays / normalDailyHours(terms);
 }
 
 /**
  * One day's wages — what a `day_wage` award multiplies: the monthly wage over the divisor
  * (decision E28).
  */
-export function ordinaryDayWage(terms: RateTerms, divisorDays: number): number {
+export function ordinaryDayWage(
+	terms: RateTerms,
+	divisorDays: number,
+	conversion?: MonthConversion
+): number {
 	// A DAILY contract states its day wage; an HOURLY one states it per hour, so a day is the
 	// contracted daily hours priced at that rate. Monthly staff read the divisor.
 	if (terms.pay_frequency === 'DAILY') return terms.base_salary.value;
 	if (terms.pay_frequency === 'HOURLY') return terms.base_salary.value * normalDailyHours(terms);
-	return monthlyBaseSalary(terms) / divisorDays;
+	return monthlyBaseSalary(terms, conversion) / divisorDays;
 }
 
 /** One day of withheld pay: the contract terms and the work's proration divisor over a period. */
@@ -131,7 +166,7 @@ type AbsenceDayRateOptions = {
  * Round the completed deduction in the payroll currency, not this intermediate rate.
  */
 export function absenceDayRate(options: AbsenceDayRateOptions): number {
-	const monthly = monthlyBaseSalary(options.terms);
+	const monthly = monthlyBaseSalary(options.terms, options);
 	const proration = prorationBasisFor(options.work, options.person);
 	switch (proration.by) {
 		case 'CALENDAR_DAYS':

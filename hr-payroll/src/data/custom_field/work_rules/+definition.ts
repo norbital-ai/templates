@@ -33,6 +33,17 @@ const f = customField({
 			proration_contractual: { kind: 'bool', optional: true },
 			ordinary_divisor_days: { kind: 'text' },
 			daily_month_days: { kind: 'text', optional: true },
+			rate_conversions: {
+				kind: 'object',
+				optional: true,
+				fields: {
+					weekly_to_monthly: { kind: 'text' },
+					daily_to_monthly: { kind: 'text' },
+					hourly_to_monthly: { kind: 'text' }
+				}
+			},
+			hourly_rate: { kind: 'text', optional: true },
+			hourly_rate_excluded: { kind: 'text', optional: true },
 			ordinary_rate_reference: {
 				kind: 'object',
 				optional: true,

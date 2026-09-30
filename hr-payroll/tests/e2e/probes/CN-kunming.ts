@@ -912,3 +912,713 @@ register(
 		]
 	}
 );
+
+// ─────────────────────────── Round 9 (30 Sep 2026): branches the register named as unproven ───────────
+
+const MIN_WAGE_2025 =
+	'云人社发〔2025〕19号 (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf): from 1 October 2025 Wuhua (class I) CNY2,170 a month, gross including the worker’s insurance and fund (CN-KM01); 最低工资规定 (MOLSS Order 21) art.12 and 昆明市工资支付条例 art.8 forbid paying below it (CN-KM-WP03, CN-N50)';
+const PAID_LEAVE =
+	'昆明市工资支付条例 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=67457) and 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html): statutory leave is paid at the normal wage (CN-KM-WP12)';
+const JAN_21750_IIT =
+	'IIT: 21,750 − 4,850.25 − 5,000 = 11,899.75 × 3% = 356.9925 → 356.99. Net 21,750 − 5,207.24 = 16,542.76.';
+const JAN_21750_PAID = {
+	gross: 21750,
+	BASIC: 21750,
+	total_deductions: 5207.24,
+	net: 16542.76,
+	'IIT.employee': 356.99
+};
+
+/** One Wuhua worker's floor case: the run must be refused below the version's minimum wage. */
+const belowFloor = (
+	id: string,
+	description: string,
+	citation: string[],
+	period: string,
+	wage: number,
+	refused: string
+): ProbeCase => ({
+	id,
+	profile: 'CN-kunming',
+	description,
+	citation,
+	company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+	inputs: [
+		...officeWeek(SINCE),
+		...worker({ ref: 'low', name: `Floor ${id}`, wage, siBase: 2300, hfBase: 2300 })
+	],
+	period,
+	refused,
+	expected: []
+});
+
+register(
+	belowFloor(
+		'CN-KM01-2',
+		'January 2026, a Wuhua (class I) worker contracted at CNY2,100, under the 2,170 class I minimum: the run is refused.',
+		[
+			MIN_WAGE_2025,
+			'2,100 < 2,170. Declared bases 2,300 (above both fund floors) so only the wage floor is in question.'
+		],
+		'2026-01',
+		2100,
+		'MINIMUM_WAGE_BELOW: P-KM-low is contracted at 2100 a month'
+	),
+	belowFloor(
+		'CN-KM02-2',
+		'September 2026, a Wuhua worker still contracted at CNY2,170 (the class I minimum to 31 August): under the new 2,270 minimum from 1 September, the run is refused.',
+		[
+			'Yunnan HRSS 29 Aug 2026 (https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html): from 1 September 2026 category I CNY2,270 (CN-KM02); 2,170 < 2,270',
+			'Declared bases 2,300 (at or above the 2,270 fund floor) so only the wage floor is in question.'
+		],
+		'2026-09',
+		2170,
+		'MINIMUM_WAGE_BELOW: P-KM-low is contracted at 2170 a month'
+	),
+	{
+		id: 'CN-KM01-3',
+		profile: 'CN-kunming',
+		description:
+			'January 2026, a Wuhua (class I) worker at exactly the class I minimum CNY2,170 with a 5% fund on the class I floor: the run passes (against CN-KM01-2 at 2,100, refused).',
+		citation: [
+			MIN_WAGE_2025,
+			'Insurance floors as CN-KM25-1: pension 704.48 / 352.24, medical 304.99 / 87.14, maternity 39.21, unemployment 30.82 / 13.21, injury 8.81.',
+			'Fund class I floor 2,170 (CN-KM05) × 5% = 108.50 → 109 each side (四舍五入, CN-KM20).',
+			'IIT nil. Net 2,170 − 561.59 = 1,608.41; employer 704.48 + 304.99 + 39.21 + 30.82 + 8.81 + 109 = 1,197.31.'
+		],
+		company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+		inputs: [...officeWeek(SINCE), ...worker({ ref: 'qi', name: 'Qi Yun', wage: 2170 })],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'qi_job',
+				lines: {
+					gross: 2170,
+					total_deductions: 561.59,
+					net: 1608.41,
+					employer_cost: 1197.31,
+					'PENSION.employee': 352.24,
+					'PENSION.employer': 704.48,
+					'MEDICAL.employee': 87.14,
+					'MEDICAL.employer': 304.99,
+					'MATERNITY.employer': 39.21,
+					'UNEMPLOYMENT.employee': 13.21,
+					'UNEMPLOYMENT.employer': 30.82,
+					'INJURY.employer': 8.81,
+					'HOUSING_FUND.employee': 109,
+					'HOUSING_FUND.employer': 109
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-KM-WP06-1',
+		profile: 'CN-kunming',
+		description:
+			'January 2026, two Wuhua workers on 21,750 resign: on Thursday 15 January (final pay due Thursday 22 January) and on Tuesday 27 January (due Tuesday 3 February). The month-end run is late for the first only, and says so.',
+		citation: [
+			'昆明市工资支付条例 art.13 (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=67457): wages paid in one sum within five working days of the end of the relationship (CN-KM-WP06). The run pays on 31 January: 22 January has passed, 3 February has not.',
+			'Pay: 21,750 ÷ 21.75 per working day (CN-N02 recorded default; no company holiday recorded): 1–15 January 11 days = 11,000; 1–27 January 19 days = 19,000.',
+			'Insurance and fund for the month on the declared 21,750 (4,850.25 / 8,004, as every jan21750 case). A resignation (LCL art.37) owes no compensation.',
+			'IIT: 11,000 − 4,850.25 − 5,000 = 1,149.75 × 3% = 34.4925 → 34.49; 19,000 − 4,850.25 − 5,000 = 9,149.75 × 3% = 274.4925 → 274.49. Net 11,000 − 4,884.74 = 6,115.26 and 19,000 − 5,124.74 = 13,875.26.'
+		],
+		company: { facts: FACTS_2026 },
+		inputs: [
+			...officeWeek(SINCE),
+			...(
+				[
+					['mid', '2026-01-15'],
+					['late', '2026-01-27']
+				] as const
+			).flatMap(([ref, to]) =>
+				worker({
+					ref,
+					name: `Leaver ${ref}`,
+					wage: 21750,
+					to,
+					employment: {
+						exit_reason: 'RESIGNATION',
+						exit_facts: { lcl_termination_ground: 'ART_37', renewal_offer_refused: false }
+					}
+				})
+			)
+		],
+		period: '2026-01',
+		warnings: ['FINAL_PAY_LATE: P-KM-mid left on 2026-01-15.*by 2026-01-22.*pays on 2026-01-31'],
+		expected: [
+			{
+				employment: 'mid_job',
+				lines: {
+					...SI_21750,
+					gross: 11000,
+					BASIC: 11000,
+					total_deductions: 4884.74,
+					net: 6115.26,
+					employer_cost: 8004,
+					'IIT.employee': 34.49
+				}
+			},
+			{
+				employment: 'late_job',
+				lines: {
+					...SI_21750,
+					gross: 19000,
+					BASIC: 19000,
+					total_deductions: 5124.74,
+					net: 13875.26,
+					employer_cost: 8004,
+					'IIT.employee': 274.49
+				}
+			}
+		]
+	},
+	jan21750(
+		'CN-KM12-2',
+		'Childcare leave (育儿假) for a mother of two children under three, Monday 5 – Monday 19 January 2026: eleven working days, above the one-child ten and within the fifteen; no deduction.',
+		[
+			'Yunnan Population and Family Planning Regulation art.18 para.2 (third amendment 17 Jan 2022, https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html): each spouse 10 days a year while a child is under three, 5 more with two or more under three (CN-KM12); paid (CN-KM-WP12).',
+			JAN_21750_IIT
+		],
+		[leave('w', 'CHILDCARE_LEAVE', '2026-01-05', '2026-01-19')],
+		JAN_21750_PAID,
+		{
+			gender: 'FEMALE',
+			children: [
+				{ child_birthdate: '2024-06-01', relationship: 'CHILD', citizenship: 'CITIZEN' },
+				{ child_birthdate: '2025-08-01', relationship: 'CHILD', citizenship: 'CITIZEN' }
+			]
+		}
+	),
+	{
+		...jan21750(
+			'CN-KM31-1',
+			'An IUD inserted on Monday 12 January 2026: paid family-planning procedure leave Monday 12 – Friday 16 January with the certificate; no deduction.',
+			[
+				'Yunnan Population and Family Planning Regulation art.19 (https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html): 放置宫内节育器 7 days of paid leave (CN-KM31); five working days are taken.',
+				PAID_LEAVE,
+				JAN_21750_IIT
+			],
+			[],
+			JAN_21750_PAID,
+			{ gender: 'FEMALE' }
+		),
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({ ref: 'w', name: 'Worker CN-KM31-1', wage: 21750, gender: 'FEMALE' }),
+			{
+				...leave('w', 'FAMILY_PLANNING_PROCEDURE_LEAVE', '2026-01-12', '2026-01-16', {
+					event_kind: 'IUD_INSERTION',
+					event_date: '2026-01-12'
+				}),
+				files: { certificate_file: 'iud-certificate.pdf' }
+			}
+		]
+	},
+	{
+		...jan21750(
+			'CN-KM-WP13-1',
+			'Certified work-injury stop-work medical leave (停工留薪期), Monday 12 – Friday 16 January 2026, after a recognised injury on 9 January: the original wage continues; no deduction.',
+			[
+				'工伤保险条例 art.33 (https://xzfg.moj.gov.cn/front/law/detail?LawID=610): 在停工留薪期内，原工资福利待遇不变，由所在单位按月支付 (CN-N21, CN-KM-WP13; owner rule 2026-09-28: the contract wage continues).',
+				JAN_21750_IIT
+			],
+			[],
+			JAN_21750_PAID
+		),
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({ ref: 'w', name: 'Worker CN-KM-WP13-1', wage: 21750 }),
+			{
+				...leave('w', 'WORK_INJURY_LEAVE', '2026-01-12', '2026-01-16', {
+					event_kind: 'WORK_INJURY',
+					event_date: '2026-01-09'
+				}),
+				files: { certificate_file: 'injury-recognition.pdf' }
+			}
+		]
+	},
+	jan21750(
+		'CN-KM-WP12-2',
+		'Paid funeral leave for a parent’s death on Saturday 17 January 2026: Monday 19 – Wednesday 21 January, no deduction.',
+		[
+			'国劳总薪字〔1980〕29号 item 1 (one to three days for a parent, the spouse or a child; the seed grants 3, owner rule 2026-09-28, CN-N51) and 工资支付暂行规定 art.11 (https://www.mohrss.gov.cn/xxgk2020/gzk/gz/202112/t20211228_431557.html): paid at the contract standard (CN-KM-WP12).',
+			JAN_21750_IIT
+		],
+		[
+			leave('w', 'FUNERAL_LEAVE', '2026-01-19', '2026-01-21', {
+				event_kind: 'DEATH',
+				event_relationship: 'PARENT',
+				event_date: '2026-01-17'
+			})
+		],
+		JAN_21750_PAID
+	),
+	jan21750(
+		'CN-KM-WP08-4',
+		'Rest-day work with compensatory rest arranged: Sunday 11 January 2026, three hours; no premium is paid.',
+		[
+			'Labour Law art.44(2) (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): 休息日安排劳动者工作又不能安排补休的 at no less than 200% — where compensatory rest is arranged, no premium (CN-KM-WP08, CN-N01, CN-N40).',
+			JAN_21750_IIT
+		],
+		[
+			{
+				collection: 'work_days',
+				values: {
+					employment_id: '@w_job',
+					work_date: '2026-01-11',
+					worked_intervals: [
+						{ start: '2026-01-11T09:00:00+08:00', end: '2026-01-11T12:00:00+08:00' }
+					],
+					approved_overtime_hours: 3,
+					time_off_in_lieu: true
+				}
+			}
+		],
+		JAN_21750_PAID
+	),
+	{
+		id: 'CN-KM26-1',
+		profile: 'CN-kunming',
+		description:
+			'January 2026, a Wuhua unit the agency assigned to industry class VIII (1.9%): work injury on a 10,000 base is 190, employer-only; every other line as CN-KM-WP09-1.',
+		citation: [
+			'云人社发〔2020〕14号 (https://hrss.yn.gov.cn/Uploads/NewsPhoto/2020-03-12/b451dfd4-ba60-48d9-931e-2bed943dcef0.pdf) and the county notice (https://www.yncxym.gov.cn/info/1011/286437.htm): classes I–VIII at 0.2–1.9%, employer-only, the assigned rate recorded as `injury_rate` (CN-KM26): 10,000 × 1.9% = 190.',
+			'As CN-KM-WP09-1: pension 800 / 1,600, medical 200 / 700, maternity 90, unemployment 30 / 70, fund 1,200 / 1,200, IIT 83.10; net 7,686.90; employer 1,600 + 700 + 90 + 70 + 190 + 1,200 = 3,850.'
+		],
+		company: { facts: { ...FACTS_2026, injury_rate: 1.9 } },
+		inputs: [...officeWeek(SINCE), ...worker({ ref: 'li', name: 'Li Qiang', wage: 10000 })],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'li_job',
+				lines: {
+					gross: 10000,
+					total_deductions: 2313.1,
+					net: 7686.9,
+					employer_cost: 3850,
+					'PENSION.employee': 800,
+					'PENSION.employer': 1600,
+					'MEDICAL.employee': 200,
+					'MEDICAL.employer': 700,
+					'MATERNITY.employer': 90,
+					'UNEMPLOYMENT.employee': 30,
+					'UNEMPLOYMENT.employer': 70,
+					'INJURY.employer': 190,
+					'HOUSING_FUND.employee': 1200,
+					'HOUSING_FUND.employer': 1200,
+					'IIT.employee': 83.1
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-KM-A1-2',
+		profile: 'CN-kunming',
+		description:
+			'The CN-KM-A1-1 non-resident is paid a 60,000 multi-month bonus in January 2026 and another in February: the six-month method is once per non-resident per calendar year, so the February run is refused.',
+		citation: [
+			'MOF/STA 2019 No.35 item 3(2) (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202332/content.html): 在一个公历年度内，对每一个非居民个人，该计税办法只允许适用一次 (CN-KM-A1).'
+		],
+		company: { facts: FACTS_2026 },
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({
+				ref: 'tom',
+				name: 'Tom Becker',
+				wage: 30000,
+				citizenship: 'FOREIGNER',
+				taxResidency: 'NON_RESIDENT',
+				nationality: 'German',
+				hf: { voluntary_agreement: false }
+			}),
+			adhoc('tom', 'ANNUAL_BONUS_SEPARATE', 60000, '2026-01-20', 'Bonus for July–December 2025'),
+			{
+				collection: 'payroll_runs',
+				values: { company_id: '@company', period: '2026-01' }
+			},
+			adhoc('tom', 'ANNUAL_BONUS_SEPARATE', 60000, '2026-02-20', 'Second multi-month bonus')
+		],
+		period: '2026-02',
+		refused: 'once per tax year',
+		expected: []
+	},
+	{
+		id: 'CN-KM20-2',
+		profile: 'CN-kunming',
+		description:
+			'The CN-KM20-1 first-ever fund account (hired Monday 19 January 2026 at 21,750) in February, its second month: the fund now charges 12% of the month’s full wage; January runs first.',
+		citation: [
+			'Fund: a first-ever contributor starts in the second month on that month’s full wage (昆公积金规〔2020〕2号 arts.10–14, https://zc.51shebao.com/detail/825467; CN-KM20): 21,750 × 12% = 2,610 each side.',
+			'Insurance on the declared 21,750 as SI_21750. January (CN-KM20-1): 10,000 paid, 2,240.25 employee insurance, IIT 82.79.',
+			'IIT February cumulative (STA 2018 No.61 art.6): 31,750 − (2,240.25 + 4,850.25) − 10,000 = 14,659.50 × 3% = 439.785 → 439.79 − 82.79 = 357.00. Net 21,750 − 5,207.25 = 16,542.75; employer 8,004.'
+		],
+		company: { facts: FACTS_2026 },
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({
+				ref: 'zhou',
+				name: 'Zhou Min',
+				wage: 21750,
+				from: '2026-01-19',
+				hfBase: 21750,
+				hf: { first_ever_account: true }
+			}),
+			{
+				collection: 'payroll_runs',
+				values: { company_id: '@company', period: '2026-01' }
+			}
+		],
+		period: '2026-02',
+		expected: [
+			{
+				employment: 'zhou_job',
+				lines: {
+					...SI_21750,
+					gross: 21750,
+					BASIC: 21750,
+					total_deductions: 5207.25,
+					net: 16542.75,
+					employer_cost: 8004,
+					'IIT.employee': 357
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-KM32-1',
+		profile: 'CN-kunming',
+		description:
+			'August 2026, a Wuhua worker on 12,000 (in service since June 2025) gives birth on Monday 3 August and is on paid maternity leave all of August’s working days; the fund paid her a 9,000 allowance for them, which comes off the leave wage and the employer tops up to the wage: gross 3,000.',
+		citation: [
+			'女职工劳动保护特别规定 art.7 (https://xzfg.moj.gov.cn/mobile/law/detail?LawID=343) with the Yunnan regulation (158 days, CN-N20, CN-KM12): 3 August 2026 – 7 January 2027.',
+			'Kunming maternity rules (https://ybj.km.gov.cn/c/2024-07-25/4882692.shtml) item 2: the allowance is the fund’s benefit to her; recorded with its evidence. Owner rule 2026-09-28 (Yunnan silent on a shortfall): the employer tops up to the wage, lawful under 女职工劳动保护特别规定 art.5: 12,000 − 9,000 = 3,000 (CN-KM32).',
+			'Insurance continues on the declared 12,000 (medical on the 2025 bounds to 31 August): pension 960 / 1,920, medical 240 / 840, maternity 108, unemployment 36 / 84, injury 24, fund 12% 1,440 each side.',
+			'The allowance is exempt (财税〔2008〕8号): IIT on 3,000 − 2,676 is nil. Net 3,000 − 2,676 = 324; employer 1,920 + 840 + 108 + 84 + 24 + 1,440 = 4,416.'
+		],
+		company: { facts: FACTS_2026 },
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({ ref: 'xu', name: 'Xu Ying', wage: 12000, gender: 'FEMALE' }),
+			leave('xu', 'MATERNITY_LEAVE', '2026-08-03', '2027-01-07', {
+				event_kind: 'BIRTH',
+				event_date: '2026-08-03'
+			}),
+			{
+				...adhoc(
+					'xu',
+					'MATERNITY_ALLOWANCE_OFFSET',
+					9000,
+					'2026-08-31',
+					'生育津贴 paid by the fund'
+				),
+				files: { evidence_file: 'maternity-allowance-notice.pdf' }
+			}
+		],
+		period: '2026-08',
+		expected: [
+			{
+				employment: 'xu_job',
+				lines: {
+					gross: 3000,
+					total_deductions: 2676,
+					net: 324,
+					employer_cost: 4416,
+					'PENSION.employee': 960,
+					'PENSION.employer': 1920,
+					'MEDICAL.employee': 240,
+					'MEDICAL.employer': 840,
+					'MATERNITY.employer': 108,
+					'UNEMPLOYMENT.employee': 36,
+					'UNEMPLOYMENT.employer': 84,
+					'INJURY.employer': 24,
+					'HOUSING_FUND.employee': 1440,
+					'HOUSING_FUND.employer': 1440
+				}
+			}
+		]
+	}
+);
+
+// ─────────────────────────── Round 9b (30 Sep 2026): further branches the register named as unproven ──
+
+const LCL =
+	'Labour Contract Law (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html, re-read 30 Sep 2026)';
+
+/** The CN-KM-WP09-2 leaver (hired Monday 5 January 2026, out Friday 16 January, 21,750) on another LCL ground. */
+const leaverOn = (
+	id: string,
+	description: string,
+	citation: string[],
+	facts: Row,
+	severance: number,
+	net: number
+): ProbeCase => ({
+	id,
+	profile: 'CN-kunming',
+	description,
+	citation,
+	company: { facts: FACTS_2026 },
+	inputs: [
+		...officeWeek(SINCE),
+		...worker({
+			ref: 'wu',
+			name: `Leaver ${id}`,
+			wage: 21750,
+			from: '2026-01-05',
+			to: '2026-01-16',
+			employment: {
+				exit_reason: 'DISMISSAL',
+				exit_facts: { renewal_offer_refused: false, ...facts }
+			}
+		}),
+		adhoc('wu', 'SEVERANCE_PAY', 0, '2026-01-16', id)
+	],
+	period: '2026-01',
+	expected: [
+		{
+			employment: 'wu_job',
+			lines: {
+				...SI_21750,
+				gross: 10000 + severance,
+				BASIC: 10000,
+				SEVERANCE_PAY: severance,
+				total_deductions: 4854.74,
+				net,
+				employer_cost: 8004,
+				'IIT.employee': 4.49
+			}
+		}
+	]
+});
+
+const WP09_2_WAGE =
+	'Final pay 21,750 ÷ 21.75 × 10 working days = 10,000 (CN-N02); insurance and fund on the declared 21,750 (4,850.25 / 8,004); IIT on the wage 10,000 − 4,850.25 − 5,000 = 149.75 × 3% = 4.49; the compensation is inside the 财税〔2018〕164号 item 5(1) exemption 3 × 130,174 = 390,522 (http://szs.mof.gov.cn/zhengcefabu/201812/t20181227_3110164.htm): no IIT_SEVERANCE.';
+
+register(
+	{
+		...jan21750(
+			'CN-N40-1',
+			'Labour Law art.41 on the production path, January 2026: approving 4 extended hours on one day is refused (3 a day); twelve weekdays of 3 approved hours reach the 36-hour month, and a thirteenth approval is refused. The 36 approved hours are paid at 150%.',
+			[
+				'Labour Law art.41 (https://www.mohrss.gov.cn/xxgk2020/fdzdgknr/zcfg/fl/202011/t20201102_394625.html): 延长工作时间一般每日不得超过一小时；因特殊原因…每日不得超过三小时，但是每月不得超过三十六小时 (seeded `daily_ot` 3, `monthly_ot` 36; CN-N40). The work-day write refuses approved overtime above the headroom (the schedule gate).',
+				'Labour Law art.44(1): 150% of the 21.75-day hour 21,750 ÷ 21.75 ÷ 8 = 125 (CN-N02): 36 × 187.50 = 6,750.',
+				'IIT: 28,500 − 4,850.25 − 5,000 = 18,649.75 × 3% = 559.4925 → 559.49. Net 28,500 − 5,409.74 = 23,090.26.'
+			],
+			[],
+			{
+				gross: 28500,
+				BASIC: 21750,
+				OVERTIME: 6750,
+				total_deductions: 5409.74,
+				net: 23090.26,
+				'IIT.employee': 559.49
+			}
+		),
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({ ref: 'w', name: 'Worker CN-N40-1', wage: 21750 }),
+			{
+				...punch(
+					'w',
+					'2026-01-05',
+					[
+						['09:00', '13:00'],
+						['14:00', '22:00']
+					],
+					4
+				),
+				refused:
+					'is refused: 2026-01-05 would hold 4 h of approved overtime, above the 3 h left within the 3-hour limit "daily_ot"'
+			},
+			...['05', '06', '07', '08', '09', '12', '13', '14', '15', '16', '19', '20'].map((day) =>
+				punch(
+					'w',
+					`2026-01-${day}`,
+					[
+						['09:00', '13:00'],
+						['14:00', '21:00']
+					],
+					3
+				)
+			),
+			{
+				...punch(
+					'w',
+					'2026-01-21',
+					[
+						['09:00', '13:00'],
+						['14:00', '21:00']
+					],
+					3
+				),
+				refused:
+					'is refused: 2026-01-21 would hold 3 h of approved overtime, above the 0 h left within the 36-hour limit "monthly_ot"'
+			}
+		]
+	},
+	{
+		id: 'CN-KM03-3',
+		profile: 'CN-kunming',
+		description:
+			'September 2026, the medical and maternity ceiling moves to 22,017: a Wuhua worker transferred in on Tuesday 1 September at 30,000 (fund base 40,000) is insured at 22,017 for every scheme and the fund at the 32,543 cap.',
+		citation: [
+			'云人社发〔2026〕8号 (https://www.yn.gov.cn/hdjl/msgq/202608/t20260829_330317.html; returned 404 on 30 Sep 2026, figures as read 29 Sep 2026): medical and maternity on 4,403–22,017 from 1 September 2026 (CN-KM03); pension, unemployment and injury on the same 2026 bounds (county notice, https://www.yncxym.gov.cn/info/1011/286437.htm).',
+			'Pension 22,017 × 16% / 8% = 3,522.72 / 1,761.36; medical × 7% = 1,541.19, × 2% = 440.34; maternity × 0.9% = 198.153 → 198.15; unemployment × 0.7% = 154.119 → 154.12, × 0.3% = 66.051 → 66.05; injury × 0.2% = 44.034 → 44.03 (CN-KM04, KM25–27, KM32).',
+			'Fund: a transferred account contributes from the first month (昆公积金规〔2020〕2号 art.12, CN-KM20); 40,000 capped at 32,543 (CN-KM05) × 12% = 3,905.16 → 3,905 each side.',
+			'IIT (month 1 here, STA 2018 No.61 art.6): 30,000 − 6,172.75 − 5,000 = 18,827.25 × 3% = 564.8175 → 564.82. Net 30,000 − 6,737.57 = 23,262.43; employer 9,365.21.'
+		],
+		company: { facts: FACTS_2026 },
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({
+				ref: 'gao',
+				name: 'Gao Peng',
+				wage: 30000,
+				hfBase: 40000,
+				from: '2026-09-01',
+				hf: { first_ever_account: false }
+			})
+		],
+		period: '2026-09',
+		expected: [
+			{
+				employment: 'gao_job',
+				lines: {
+					gross: 30000,
+					total_deductions: 6737.57,
+					net: 23262.43,
+					employer_cost: 9365.21,
+					'PENSION.employee': 1761.36,
+					'PENSION.employer': 3522.72,
+					'MEDICAL.employee': 440.34,
+					'MEDICAL.employer': 1541.19,
+					'MATERNITY.employer': 198.15,
+					'UNEMPLOYMENT.employee': 66.05,
+					'UNEMPLOYMENT.employer': 154.12,
+					'INJURY.employer': 44.03,
+					'HOUSING_FUND.employee': 3905,
+					'HOUSING_FUND.employer': 3905,
+					'IIT.employee': 564.82
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-KM02-3',
+		profile: 'CN-kunming',
+		description:
+			'September 2026, a Fumin (category II) worker contracted at CNY2,100 — above the old 2,020, below the new category II 2,120: the run is refused.',
+		citation: [
+			'Yunnan HRSS 29 Aug 2026 (https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html): from 1 September 2026 category II CNY2,120 (CN-KM02); 最低工资规定 art.12 and 昆明市工资支付条例 art.8 (CN-KM-WP03): 2,100 < 2,120.',
+			'Declared bases 2,300 (above the 2,120 fund floor) so only the wage floor is in question.'
+		],
+		company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({
+				ref: 'low',
+				name: 'Floor CN-KM02-3',
+				wage: 2100,
+				siBase: 2300,
+				hfBase: 2300,
+				worksite: FUMIN
+			})
+		],
+		period: '2026-09',
+		refused: 'MINIMUM_WAGE_BELOW: P-KM-low is contracted at 2100 a month',
+		expected: []
+	},
+	jan21750(
+		'CN-KM12-3',
+		'Childcare leave asked on Tuesday 6 – Wednesday 7 January 2026 by a parent whose only child turned three on 1 December 2025: refused (under three only); the month is paid in full.',
+		[
+			'Yunnan Population and Family Planning Regulation art.18 (https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html, re-read 30 Sep 2026): 子女不满3周岁的…每年累计10天的育儿假 (CN-KM12).',
+			JAN_21750_IIT
+		],
+		[
+			{
+				...leave('w', 'CHILDCARE_LEAVE', '2026-01-06', '2026-01-07'),
+				refused: 'Leave on 2026-01-06 cannot be approved: INELIGIBLE\\.'
+			}
+		],
+		JAN_21750_PAID,
+		{
+			gender: 'FEMALE',
+			children: [{ child_birthdate: '2022-12-01', relationship: 'CHILD', citizenship: 'CITIZEN' }]
+		}
+	),
+	jan21750(
+		'CN-KM12-4',
+		'Childcare leave for one child under three, Monday 5 – Monday 19 January 2026: eleven working days against the one-child ten: refused (against CN-KM12-2, fifteen for two children).',
+		[
+			'Yunnan Population and Family Planning Regulation art.18 (https://www.ynrd.gov.cn/html/2022/changweihuigonggao_0118/16355.html, re-read 30 Sep 2026): 每年累计10天; 5 more only with two or more under three (CN-KM12).',
+			JAN_21750_IIT
+		],
+		[
+			{
+				...leave('w', 'CHILDCARE_LEAVE', '2026-01-05', '2026-01-19'),
+				refused: 'Insufficient leave in .*: 1 more days are needed'
+			}
+		],
+		JAN_21750_PAID,
+		{
+			gender: 'FEMALE',
+			children: [{ child_birthdate: '2024-06-01', relationship: 'CHILD', citizenship: 'CITIZEN' }]
+		}
+	),
+	leaverOn(
+		'CN-N41-1',
+		'The CN-KM-WP09-2 leaver dismissed under LCL art.40 with no written notice: half a month’s 经济补偿 plus one month’s wage in lieu of notice.',
+		[
+			`${LCL} art.40: 提前三十日以书面形式通知…或者额外支付劳动者一个月工资; art.46(3) and art.47: under six months is half a month. Implementing Regulation art.20 (https://xzfg.moj.gov.cn/front/law/detail?LawID=284): the extra month at the previous month’s wage — the contract month 21,750 for a leaver hired in the exit month (CN-SH-A2 recorded default). 0.5 × 21,750 + 21,750 = 32,625 (CN-N12, CN-N41).`,
+			WP09_2_WAGE
+		],
+		{ lcl_termination_ground: 'ART_40', notice_days_given: 0 },
+		32625,
+		37770.26 // 42,625 − 4,854.74
+	),
+	leaverOn(
+		'CN-N41-2',
+		'The CN-KM-WP09-2 leaver unlawfully dismissed: damages at twice the art.47 compensation.',
+		[
+			`${LCL} art.87: 依照本法第四十七条规定的经济补偿标准的二倍向劳动者支付赔偿金; art.47 half a month under six months on the contract month 21,750 (CN-SH-A2): 2 × 0.5 × 21,750 = 21,750 (CN-N12, CN-N41).`,
+			WP09_2_WAGE
+		],
+		{ lcl_termination_ground: 'ART_87' },
+		21750,
+		26895.26 // 31,750 − 4,854.74
+	),
+	jan21750(
+		'CN-N54-2',
+		'A Kunming resident declares CNY1,500 of housing rent for January 2026: the provincial-capital standard, deducted in full.',
+		[
+			'国发〔2018〕41号, housing-rent article: CNY1,500 a month in municipalities and provincial capitals (Kunming is the capital of Yunnan; CN-N54; unchanged by 2023 No.14, which raised only the child, infant and elderly standards); the agent deducts as declared within the standard (STA 2022 No.7 arts.25–26, CN-N16).',
+			'IIT: 21,750 − 4,850.25 − 5,000 − 1,500 = 10,399.75 × 3% = 311.9925 → 311.99. Net 21,750 − 5,162.24 = 16,587.76.'
+		],
+		[
+			{
+				collection: 'employment_statutory_facts',
+				values: {
+					employee_id: '@w',
+					employment_id: '@w_job',
+					statutory_contribution_id: '@law:statutory_contributions:IIT',
+					effective_range: { from: SINCE, to: null },
+					status: {
+						kind: 'REGISTERED',
+						reference_number: 'PROBE-IIT-w',
+						deduction_claims: [
+							{
+								period: '2026-01',
+								category: 'HOUSING_RENT',
+								amount: 1500,
+								source: 'EMPLOYEE',
+								reference: 'RENT-2026-01'
+							}
+						]
+					}
+				}
+			}
+		],
+		{ gross: 21750, BASIC: 21750, total_deductions: 5162.24, net: 16587.76, 'IIT.employee': 311.99 }
+	)
+);

@@ -252,23 +252,28 @@
 		"code": "IIT_BONUS",
 		"unregistered_action": "ASSESS",
 		"name": "IIT on an annual one-off bonus taxed separately (全年一次性奖金)",
-		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. Non-resident bonus treatment (MOF/STA 2019 No.35) is not transcribed and refuses.",
+		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. A non-resident’s bonus covering several months (数月奖金) is taxed apart from the month’s wages, spread over 6 months with no deduction, on the monthly table: [(bonus ÷ 6) × rate − quick deduction] × 6, once per non-resident per calendar year (MOF/STA 2019 No.35 item 3(2)) https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202332/content.html. Transcribed into every Shanghai version 30 Sep 2026 (fix in place: the national rule was in force throughout, register CN-KM-A1 / CN-N10).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "base > 0.0 && person.terms.tax_residency != \"RESIDENT\"",
+				"when": "base > 0.0 && !(person.terms.tax_residency in [\"RESIDENT\", \"NON_RESIDENT\"])",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "A separately taxed annual bonus is a resident election (MOF/STA 2023 No.30); the non-resident bonus rule (MOF/STA 2019 No.35) is not transcribed."
+				"refusal": "Record tax residence as resident or non-resident on the employment terms: a resident’s annual bonus (MOF/STA 2023 No.30) and a non-resident’s multi-month bonus (MOF/STA 2019 No.35) are taxed differently."
 			},
 			{
 				"when": "base > 0.0 && scheme.year_to_date.base > 0.0",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号); pay a second bonus as an ordinary bonus."
+				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号; a non-resident’s multi-month bonus, MOF/STA 2019 No.35 item 3(2)); pay a second bonus as an ordinary bonus."
+			},
+			{
+				"when": "base > 0.0 && person.terms.tax_residency == \"NON_RESIDENT\"",
+				"employee": "round_cent(progressive(base / 6.0, [0.0, 0.0, 3.0, 3000.0, 90.0, 10.0, 12000.0, 990.0, 20.0, 25000.0, 3590.0, 25.0, 35000.0, 6090.0, 30.0, 55000.0, 12090.0, 35.0, 80000.0, 20840.0, 45.0]) * 6.0)",
+				"employer": "0.0"
 			},
 			{
 				"when": "base > 0.0",
@@ -565,23 +570,28 @@
 		"code": "IIT_BONUS",
 		"unregistered_action": "ASSESS",
 		"name": "IIT on an annual one-off bonus taxed separately (全年一次性奖金)",
-		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. Non-resident bonus treatment (MOF/STA 2019 No.35) is not transcribed and refuses.",
+		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. A non-resident’s bonus covering several months (数月奖金) is taxed apart from the month’s wages, spread over 6 months with no deduction, on the monthly table: [(bonus ÷ 6) × rate − quick deduction] × 6, once per non-resident per calendar year (MOF/STA 2019 No.35 item 3(2)) https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202332/content.html. Transcribed into every Shanghai version 30 Sep 2026 (fix in place: the national rule was in force throughout, register CN-KM-A1 / CN-N10).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "base > 0.0 && person.terms.tax_residency != \"RESIDENT\"",
+				"when": "base > 0.0 && !(person.terms.tax_residency in [\"RESIDENT\", \"NON_RESIDENT\"])",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "A separately taxed annual bonus is a resident election (MOF/STA 2023 No.30); the non-resident bonus rule (MOF/STA 2019 No.35) is not transcribed."
+				"refusal": "Record tax residence as resident or non-resident on the employment terms: a resident’s annual bonus (MOF/STA 2023 No.30) and a non-resident’s multi-month bonus (MOF/STA 2019 No.35) are taxed differently."
 			},
 			{
 				"when": "base > 0.0 && scheme.year_to_date.base > 0.0",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号); pay a second bonus as an ordinary bonus."
+				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号; a non-resident’s multi-month bonus, MOF/STA 2019 No.35 item 3(2)); pay a second bonus as an ordinary bonus."
+			},
+			{
+				"when": "base > 0.0 && person.terms.tax_residency == \"NON_RESIDENT\"",
+				"employee": "round_cent(progressive(base / 6.0, [0.0, 0.0, 3.0, 3000.0, 90.0, 10.0, 12000.0, 990.0, 20.0, 25000.0, 3590.0, 25.0, 35000.0, 6090.0, 30.0, 55000.0, 12090.0, 35.0, 80000.0, 20840.0, 45.0]) * 6.0)",
+				"employer": "0.0"
 			},
 			{
 				"when": "base > 0.0",
@@ -878,23 +888,28 @@
 		"code": "IIT_BONUS",
 		"unregistered_action": "ASSESS",
 		"name": "IIT on an annual one-off bonus taxed separately (全年一次性奖金)",
-		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. Non-resident bonus treatment (MOF/STA 2019 No.35) is not transcribed and refuses.",
+		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. A non-resident’s bonus covering several months (数月奖金) is taxed apart from the month’s wages, spread over 6 months with no deduction, on the monthly table: [(bonus ÷ 6) × rate − quick deduction] × 6, once per non-resident per calendar year (MOF/STA 2019 No.35 item 3(2)) https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202332/content.html. Transcribed into every Shanghai version 30 Sep 2026 (fix in place: the national rule was in force throughout, register CN-KM-A1 / CN-N10).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "base > 0.0 && person.terms.tax_residency != \"RESIDENT\"",
+				"when": "base > 0.0 && !(person.terms.tax_residency in [\"RESIDENT\", \"NON_RESIDENT\"])",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "A separately taxed annual bonus is a resident election (MOF/STA 2023 No.30); the non-resident bonus rule (MOF/STA 2019 No.35) is not transcribed."
+				"refusal": "Record tax residence as resident or non-resident on the employment terms: a resident’s annual bonus (MOF/STA 2023 No.30) and a non-resident’s multi-month bonus (MOF/STA 2019 No.35) are taxed differently."
 			},
 			{
 				"when": "base > 0.0 && scheme.year_to_date.base > 0.0",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号); pay a second bonus as an ordinary bonus."
+				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号; a non-resident’s multi-month bonus, MOF/STA 2019 No.35 item 3(2)); pay a second bonus as an ordinary bonus."
+			},
+			{
+				"when": "base > 0.0 && person.terms.tax_residency == \"NON_RESIDENT\"",
+				"employee": "round_cent(progressive(base / 6.0, [0.0, 0.0, 3.0, 3000.0, 90.0, 10.0, 12000.0, 990.0, 20.0, 25000.0, 3590.0, 25.0, 35000.0, 6090.0, 30.0, 55000.0, 12090.0, 35.0, 80000.0, 20840.0, 45.0]) * 6.0)",
+				"employer": "0.0"
 			},
 			{
 				"when": "base > 0.0",
@@ -1191,23 +1206,28 @@
 		"code": "IIT_BONUS",
 		"unregistered_action": "ASSESS",
 		"name": "IIT on an annual one-off bonus taxed separately (全年一次性奖金)",
-		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. Non-resident bonus treatment (MOF/STA 2019 No.35) is not transcribed and refuses.",
+		"authority": "MOF/STA 2023 No.30 (to 31 December 2027): a resident may have a qualifying annual one-off bonus taxed apart from the year’s wages: the bonus ÷ 12 selects the rate and quick deduction of the monthly comprehensive-income table, and the tax is bonus × rate − quick deduction. Once per person per tax year (国税发〔2005〕9号). https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html. A bonus the employee does not elect to separate is an ordinary bonus class counted in IIT. A non-resident’s bonus covering several months (数月奖金) is taxed apart from the month’s wages, spread over 6 months with no deduction, on the monthly table: [(bonus ÷ 6) × rate − quick deduction] × 6, once per non-resident per calendar year (MOF/STA 2019 No.35 item 3(2)) https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202332/content.html. Transcribed into every Shanghai version 30 Sep 2026 (fix in place: the national rule was in force throughout, register CN-KM-A1 / CN-N10).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "base > 0.0 && person.terms.tax_residency != \"RESIDENT\"",
+				"when": "base > 0.0 && !(person.terms.tax_residency in [\"RESIDENT\", \"NON_RESIDENT\"])",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "A separately taxed annual bonus is a resident election (MOF/STA 2023 No.30); the non-resident bonus rule (MOF/STA 2019 No.35) is not transcribed."
+				"refusal": "Record tax residence as resident or non-resident on the employment terms: a resident’s annual bonus (MOF/STA 2023 No.30) and a non-resident’s multi-month bonus (MOF/STA 2019 No.35) are taxed differently."
 			},
 			{
 				"when": "base > 0.0 && scheme.year_to_date.base > 0.0",
 				"employee": "0.0",
 				"employer": "0.0",
-				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号); pay a second bonus as an ordinary bonus."
+				"refusal": "The separate annual-bonus method may be used once per tax year (国税发〔2005〕9号; a non-resident’s multi-month bonus, MOF/STA 2019 No.35 item 3(2)); pay a second bonus as an ordinary bonus."
+			},
+			{
+				"when": "base > 0.0 && person.terms.tax_residency == \"NON_RESIDENT\"",
+				"employee": "round_cent(progressive(base / 6.0, [0.0, 0.0, 3.0, 3000.0, 90.0, 10.0, 12000.0, 990.0, 20.0, 25000.0, 3590.0, 25.0, 35000.0, 6090.0, 30.0, 55000.0, 12090.0, 35.0, 80000.0, 20840.0, 45.0]) * 6.0)",
+				"employer": "0.0"
 			},
 			{
 				"when": "base > 0.0",

@@ -37,7 +37,28 @@ const SAME_LAW = {
 	'MY-PCB-02-1': 'MY-nihon-PCB-02-1',
 	'MY-PCB-03-1': 'MY-nihon-PCB-03-1',
 	'MY-PCB-05-1': 'MY-nihon-PCB-05-1',
-	'MY-PCB-06-1': 'MY-nihon-PCB-06-1'
+	'MY-PCB-06-1': 'MY-nihon-PCB-06-1',
+	'MY-EPF-01-6': 'MY-nihon-EPF-01-6',
+	'MY-EPF-01-7': 'MY-nihon-EPF-01-7',
+	'MY-SOCSO-01-1': 'MY-nihon-SOCSO-01-1',
+	'MY-HRD-01-2': 'MY-nihon-HRD-01-2',
+	'MY-HRD-01-3': 'MY-nihon-HRD-01-3',
+	'MY-HRDA06-2': 'MY-nihon-HRDA06-2',
+	'MY-HRDA06-3': 'MY-nihon-HRDA06-3',
+	'MY-HRDA02-1': 'MY-nihon-HRDA02-1',
+	'MY-REG-01-2': 'MY-nihon-REG-01-2',
+	'MY-REG-01-3': 'MY-nihon-REG-01-3',
+	'MY-PCB-06-2': 'MY-nihon-PCB-06-2',
+	'MY-NAT-01-2': 'MY-nihon-NAT-01-2',
+	'MY-HRD11-2': 'MY-nihon-HRD11-2',
+	'MY-PCB-03-2': 'MY-nihon-PCB-03-2',
+	'MY-EA22-1': 'MY-nihon-EA22-1',
+	'MY-EA22-2': 'MY-nihon-EA22-2',
+	'MY-EA34-1': 'MY-nihon-EA34-1',
+	'MY-EA35-1': 'MY-nihon-EA35-1',
+	'MY-PCB-07-2': 'MY-nihon-PCB-07-2',
+	'MY-EPF-03-3': 'MY-nihon-EPF-03-3',
+	'MY-SKBBK-04-1': 'MY-nihon-SKBBK-04-1'
 } as const;
 
 register(

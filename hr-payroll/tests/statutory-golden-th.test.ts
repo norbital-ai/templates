@@ -1414,6 +1414,35 @@ test('Thailand — overtime is withheld as an occasional payment (P.96/2543 cl.1
 	assert.deepEqual(charge(slips.get('OT-MGR')!, 'PIT'), [60_000, 2_910.41, 0]);
 });
 
+test('Thailand — s.65(2)–(9) classes earn no s.61/s.63 premium; (3)–(9) are paid the hourly rate per hour (TH-WORK-06)', () => {
+	// LPA s.65 (Council of State consolidation, re-read 30 Sep 2026): the classes of (1)–(9) have
+	// no s.61 or s.63 pay, but those of (3)–(9) are paid the working-day hourly rate for each hour
+	// worked; s.66 removes only (1) from s.62. 24,000 (hourly 100): Monday 5 January 2026 three
+	// overtime hours; Saturday 10 January (weekly holiday) nine hours.
+	const { slips } = buildStatutory(
+		{
+			code: TH,
+			period: '2026-01',
+			people: [
+				citizen('S65-GATE', 24_000, { work_classification: 'OVERTIME_AT_HOURLY_RATE' }),
+				citizen('S65-SALES', 24_000, { work_classification: 'COMMISSION_SALES' })
+			]
+		},
+		(world) => {
+			for (const key of ['S65-GATE', 'S65-SALES']) {
+				punch(world, key, '2026-01-05', '09:00', '21:00', 3);
+				punch(world, key, '2026-01-10', '09:00', '19:00', 9);
+			}
+		}
+	);
+	assert.deepEqual(workLines(slips.get('S65-GATE')!), [
+		['2026-01-05', 'S65-OT-HOURLY-1.0X', 3, 300],
+		['2026-01-10', 'HOL-1.0X', 8, 800],
+		['2026-01-10', 'S65-OT-HOURLY-1.0X', 1, 100]
+	]);
+	assert.deepEqual(workLines(slips.get('S65-SALES')!), [['2026-01-10', 'HOL-1.0X', 8, 800]]);
+});
+
 test('Thailand — a daily-paid employee working the weekly holiday is paid 2× (s.62(2))', () => {
 	// 800 a day: the hourly rate is 800 ÷ 8 = 100. The weekly holiday is unpaid to a daily-paid
 	// employee (s.56(1)), so eight hours on Saturday 10 January 2026 earn 8 × 2 × 100 = 1,600.

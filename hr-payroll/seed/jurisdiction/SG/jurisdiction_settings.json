@@ -50,6 +50,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -688,6 +695,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -1326,6 +1340,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -1964,6 +1985,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -2602,6 +2630,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -3240,6 +3275,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -3880,6 +3922,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -4520,6 +4569,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -5160,6 +5216,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -5800,6 +5863,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -6440,6 +6510,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -7087,6 +7164,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -7734,6 +7818,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -8381,6 +8472,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -9028,6 +9126,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -9675,6 +9780,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -10329,6 +10441,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -10983,6 +11102,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -11637,6 +11763,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -12291,6 +12424,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -12945,6 +13085,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -13600,6 +13747,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -14255,6 +14409,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -14910,6 +15071,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -15565,6 +15733,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -16220,6 +16395,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -16876,6 +17058,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -17532,6 +17721,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -18188,6 +18384,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -18844,6 +19047,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -19500,6 +19710,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -20157,6 +20374,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -20814,6 +21038,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -21471,6 +21702,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -22128,6 +22366,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -22785,6 +23030,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -23446,6 +23698,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -24107,6 +24366,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -24768,6 +25034,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -25429,6 +25702,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -26090,6 +26370,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -26751,6 +27038,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -27412,6 +27706,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -28073,6 +28374,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -28734,6 +29042,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -29395,6 +29710,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -30056,6 +30378,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -30717,6 +31046,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -31378,6 +31714,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -32039,6 +32382,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -32700,6 +33050,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -33361,6 +33718,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -34022,6 +34386,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -34683,6 +35054,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -35344,6 +35722,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -36005,6 +36390,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -36673,6 +37065,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -37341,6 +37740,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -38009,6 +38415,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -38677,6 +39090,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -39345,6 +39765,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -40013,6 +40440,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -40681,6 +41115,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -41349,6 +41790,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -42017,6 +42465,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -42685,6 +43140,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -43353,6 +43815,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -44021,6 +44490,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -44689,6 +45165,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -45357,6 +45840,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -46025,6 +46515,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -46694,6 +47191,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -47363,6 +47867,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -48032,6 +48543,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -48701,6 +49219,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -49370,6 +49895,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -50288,6 +50820,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -51206,6 +51745,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -52124,6 +52670,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{
@@ -53042,6 +53595,13 @@
 				"by": "WORKING_DAYS"
 			},
 			"ordinary_divisor_days": "52.0 * terms.working_days_per_week / 12.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
+			"hourly_rate": "(terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : terms.pay_frequency == \"DAILY\" ? terms.basic_salary / (terms.ordinary_hours_per_week / terms.working_days_per_week) : terms.pay_frequency == \"WEEKLY\" ? terms.basic_salary / terms.ordinary_hours_per_week : 12.0 * terms.basic_salary / (52.0 * terms.ordinary_hours_per_week)) + 12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
+			"hourly_rate_excluded": "12.0 * terms.fixed_allowances / (52.0 * terms.ordinary_hours_per_week)",
 			"overtime_when": "",
 			"bands": [
 				{

@@ -574,20 +574,19 @@ test('Shanghai — an ordinary bonus joins the month’s cumulative wage; a seco
 			),
 		/once per tax year/
 	);
-	assert.throws(
-		() =>
-			buildStatutory(
-				{
-					code: SH,
-					period: '2026-01',
-					region: 'SHANGHAI',
-					companyFacts: SH_2026_FACTS,
-					people: [person('SH-NR-BONUS', 20_000, { tax_residency: 'NON_RESIDENT' })]
-				},
-				(world) => adhoc(world, 'SH-NR-BONUS', 'ANNUAL_BONUS_SEPARATE', 12_000, '2026-01-10')
-			),
-		/resident election/
-	);
+	// A non-resident's multi-month bonus (MOF/STA 2019 No.35 item 3(2), transcribed into every Shanghai
+	// version 30 Sep 2026): [(12,000 ÷ 6) × 3% − 0] × 6 = 360, apart from the wage.
+	const nonResident = buildStatutory(
+		{
+			code: SH,
+			period: '2026-01',
+			region: 'SHANGHAI',
+			companyFacts: SH_2026_FACTS,
+			people: [person('SH-NR-BONUS', 20_000, { tax_residency: 'NON_RESIDENT' })]
+		},
+		(world) => adhoc(world, 'SH-NR-BONUS', 'ANNUAL_BONUS_SEPARATE', 12_000, '2026-01-10')
+	).slips.get('SH-NR-BONUS')!;
+	assert.deepEqual(charge(nonResident, 'IIT_BONUS'), [12_000, 360, 0]);
 });
 
 test('Shanghai — first wage income in July deducts from January; the 60,000 election; the rent cap (CN-N11, N44, N54)', () => {
@@ -3104,6 +3103,9 @@ test('both cities — 丧假: three paid days for a parent, the spouse or a chil
 				[3, 3, 3, null],
 				`${code} ${version.name}`
 			);
+			// Shanghai only: 沪劳资发〔87〕130号 (kept to 15 Aug 2031 by 沪人社规〔2026〕12号) gives 一至三天 for a
+			// 岳父母或公婆 funeral, the discretionary maximum 3 (register CN-SH17); Yunnan has no such rule.
+			assert.equal(days('PARENT_IN_LAW'), code === SH ? 3 : null, `${code} ${version.name}`);
 			assert.equal(seeded(leaveCatalogue(code), version.id, 'FUNERAL_LEAVE').is_npl, false);
 		}
 });

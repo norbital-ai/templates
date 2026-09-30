@@ -3179,44 +3179,47 @@ test('Taiwan — PR nonprofessional EI exclusion needs dated classification and 
 });
 
 for (const period of ['2025-12', '2026-01'])
-	test(`Taiwan ${period} — a later PR grant with a declared old-pension election refuses until the six-month window is verified`, () => {
-		// BLI transition guide §6: https://www.bli.gov.tw/en/0010369.html.
-		// A grant after the 2019 commencement starts an individual six-month election window.
-		assert.throws(
-			() =>
-				buildStatutory({
-					code: 'TW',
-					period,
-					riskClass: '1',
-					companyFacts: { pension_reserve_rate: 6 },
-					people: [
-						{
-							key: 'TW-LATER-PR-OLD',
-							wage: 40_000,
-							citizenship: 'PERMANENT_RESIDENT',
-							residency_since: '2024-03-01',
-							pass_type: 'OTHER',
-							hire_date: '2017-01-01',
-							registrations: {
-								EI: {
-									kind: 'NOT_REGISTERED',
-									declaration_reference: 'FIXTURE-PR-NONPROFESSIONAL-NONSPOUSE-BLI-CLASS',
-									elections: { pr_nonprofessional_excluded: true }
-								},
-								LABOR_PENSION: {
-									kind: 'NOT_REGISTERED',
-									declaration_reference: 'FIXTURE-2024-PR-GRANT-WRITTEN-ELECTION',
-									elections: {
-										pr_old_transition_class: 'FOREIGN_NONPROFESSIONAL_2019',
-										pr_old_election_on: '2024-08-31'
-									}
-								}
-							}
-						}
-					]
-				}),
-			/NOT_REGISTERED does not establish an old-system/
-		);
+	test(`Taiwan ${period} — a later PR grant opens a six-month old-pension election for a worker serving the unit before 2019-05-17`, () => {
+		// 勞工退休金條例 §8-1(1)(3), (2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=8-1):
+		// a PR granted after the 2019 amendment applies the Act from the grant day; one already serving the same
+		// unit before 2019-05-17 may elect the LSA system in writing 於適用本條例之日起六個月內. Grant 2024-03-01:
+		// an election on 2024-08-31 is inside, on 2024-09-01 outside (default: before add_months(grant, 6)).
+		// §56(1) reserve 40,000 × 6% = 2,400.
+		const person = (electedOn: string) => ({
+			key: 'TW-LATER-PR-OLD',
+			wage: 40_000,
+			citizenship: 'PERMANENT_RESIDENT',
+			residency_since: '2024-03-01',
+			pass_type: 'OTHER',
+			hire_date: '2017-01-01',
+			registrations: {
+				EI: {
+					kind: 'NOT_REGISTERED',
+					declaration_reference: 'FIXTURE-PR-NONPROFESSIONAL-NONSPOUSE-BLI-CLASS',
+					elections: { pr_nonprofessional_excluded: true }
+				},
+				LABOR_PENSION: {
+					kind: 'NOT_REGISTERED',
+					declaration_reference: 'FIXTURE-2024-PR-GRANT-WRITTEN-ELECTION',
+					elections: {
+						pr_old_transition_class: 'FOREIGN_LATER_PR_GRANT',
+						pr_old_election_on: electedOn
+					}
+				}
+			}
+		});
+		const run = (electedOn: string) =>
+			buildStatutory({
+				code: 'TW',
+				period,
+				riskClass: '1',
+				companyFacts: { pension_reserve_rate: 6 },
+				people: [person(electedOn)]
+			});
+		const slip = run('2024-08-31').slips.get('TW-LATER-PR-OLD')!;
+		assert.equal(charge(slip, 'LABOR_PENSION_RESERVE')[2], 2400);
+		assert.equal(charge(slip, 'LABOR_PENSION')?.[2] ?? 0, 0);
+		assert.throws(() => run('2024-09-01'), /NOT_REGISTERED does not establish an old-system/);
 	});
 
 for (const period of ['2025-12', '2026-01'])

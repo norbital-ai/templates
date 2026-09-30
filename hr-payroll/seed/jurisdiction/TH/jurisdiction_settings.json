@@ -18,11 +18,28 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
 			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
 			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
+				{
+					"label": "S65-OT-HOURLY-1.0X",
+					"when": "person.employment.classification == \"OVERTIME_AT_HOURLY_RATE\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "S65-OT-EXCLUDED",
+					"when": "person.employment.classification == \"COMMISSION_SALES\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 0.0"
+				},
 				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
@@ -378,12 +395,18 @@
 				"preserve_year_end_rate": false,
 				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
 			},
-			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
+			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.65(2)–(9) (re-read 30 Sep 2026 in the consolidation) have no s.61 overtime or s.63 holiday-overtime pay unless the employer agrees, but keep s.62 holiday-work pay, and those in (3)–(9) are paid the working-day hourly rate for each hour worked beyond the normal hours: work classification COMMISSION_SALES (s.65(2), canvassing sales paid commission) is priced by band S65-OT-EXCLUDED at nothing and OVERTIME_AT_HOURLY_RATE (s.65(3)–(9): railway train operations, water gates, water-level reading, firefighting and public-danger prevention, outside work whose hours cannot be fixed, watch duty outside normal work, work a Ministerial Regulation adds) by band S65-OT-HOURLY-1.0X at 1× (register TH-WORK-06); an agreed higher rate is contractual, not modelled; s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
-				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"work_classification": [
+					"EA_COVERED",
+					"NON_EA",
+					"MANAGERIAL",
+					"COMMISSION_SALES",
+					"OVERTIME_AT_HOURLY_RATE"
+				],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
@@ -633,11 +656,28 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
 			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
 			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
+				{
+					"label": "S65-OT-HOURLY-1.0X",
+					"when": "person.employment.classification == \"OVERTIME_AT_HOURLY_RATE\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "S65-OT-EXCLUDED",
+					"when": "person.employment.classification == \"COMMISSION_SALES\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 0.0"
+				},
 				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
@@ -993,12 +1033,18 @@
 				"preserve_year_end_rate": false,
 				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
 			},
-			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
+			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.65(2)–(9) (re-read 30 Sep 2026 in the consolidation) have no s.61 overtime or s.63 holiday-overtime pay unless the employer agrees, but keep s.62 holiday-work pay, and those in (3)–(9) are paid the working-day hourly rate for each hour worked beyond the normal hours: work classification COMMISSION_SALES (s.65(2), canvassing sales paid commission) is priced by band S65-OT-EXCLUDED at nothing and OVERTIME_AT_HOURLY_RATE (s.65(3)–(9): railway train operations, water gates, water-level reading, firefighting and public-danger prevention, outside work whose hours cannot be fixed, watch duty outside normal work, work a Ministerial Regulation adds) by band S65-OT-HOURLY-1.0X at 1× (register TH-WORK-06); an agreed higher rate is contractual, not modelled; s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
-				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"work_classification": [
+					"EA_COVERED",
+					"NON_EA",
+					"MANAGERIAL",
+					"COMMISSION_SALES",
+					"OVERTIME_AT_HOURLY_RATE"
+				],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
@@ -1248,11 +1294,28 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
 			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
 			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
+				{
+					"label": "S65-OT-HOURLY-1.0X",
+					"when": "person.employment.classification == \"OVERTIME_AT_HOURLY_RATE\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "S65-OT-EXCLUDED",
+					"when": "person.employment.classification == \"COMMISSION_SALES\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 0.0"
+				},
 				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
@@ -1608,12 +1671,18 @@
 				"preserve_year_end_rate": false,
 				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
 			},
-			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
+			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.65(2)–(9) (re-read 30 Sep 2026 in the consolidation) have no s.61 overtime or s.63 holiday-overtime pay unless the employer agrees, but keep s.62 holiday-work pay, and those in (3)–(9) are paid the working-day hourly rate for each hour worked beyond the normal hours: work classification COMMISSION_SALES (s.65(2), canvassing sales paid commission) is priced by band S65-OT-EXCLUDED at nothing and OVERTIME_AT_HOURLY_RATE (s.65(3)–(9): railway train operations, water gates, water-level reading, firefighting and public-danger prevention, outside work whose hours cannot be fixed, watch duty outside normal work, work a Ministerial Regulation adds) by band S65-OT-HOURLY-1.0X at 1× (register TH-WORK-06); an agreed higher rate is contractual, not modelled; s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
-				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"work_classification": [
+					"EA_COVERED",
+					"NON_EA",
+					"MANAGERIAL",
+					"COMMISSION_SALES",
+					"OVERTIME_AT_HOURLY_RATE"
+				],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
@@ -1863,11 +1932,28 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
 			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
 			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
+				{
+					"label": "S65-OT-HOURLY-1.0X",
+					"when": "person.employment.classification == \"OVERTIME_AT_HOURLY_RATE\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "S65-OT-EXCLUDED",
+					"when": "person.employment.classification == \"COMMISSION_SALES\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 0.0"
+				},
 				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
@@ -2223,12 +2309,18 @@
 				"preserve_year_end_rate": false,
 				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
 			},
-			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
+			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.65(2)–(9) (re-read 30 Sep 2026 in the consolidation) have no s.61 overtime or s.63 holiday-overtime pay unless the employer agrees, but keep s.62 holiday-work pay, and those in (3)–(9) are paid the working-day hourly rate for each hour worked beyond the normal hours: work classification COMMISSION_SALES (s.65(2), canvassing sales paid commission) is priced by band S65-OT-EXCLUDED at nothing and OVERTIME_AT_HOURLY_RATE (s.65(3)–(9): railway train operations, water gates, water-level reading, firefighting and public-danger prevention, outside work whose hours cannot be fixed, watch duty outside normal work, work a Ministerial Regulation adds) by band S65-OT-HOURLY-1.0X at 1× (register TH-WORK-06); an agreed higher rate is contractual, not modelled; s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
-				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"work_classification": [
+					"EA_COVERED",
+					"NON_EA",
+					"MANAGERIAL",
+					"COMMISSION_SALES",
+					"OVERTIME_AT_HOURLY_RATE"
+				],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
@@ -2470,11 +2562,28 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
 			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
 			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
+				{
+					"label": "S65-OT-HOURLY-1.0X",
+					"when": "person.employment.classification == \"OVERTIME_AT_HOURLY_RATE\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "S65-OT-EXCLUDED",
+					"when": "person.employment.classification == \"COMMISSION_SALES\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 0.0"
+				},
 				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
@@ -2830,12 +2939,18 @@
 				"preserve_year_end_rate": false,
 				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
 			},
-			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
+			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.65(2)–(9) (re-read 30 Sep 2026 in the consolidation) have no s.61 overtime or s.63 holiday-overtime pay unless the employer agrees, but keep s.62 holiday-work pay, and those in (3)–(9) are paid the working-day hourly rate for each hour worked beyond the normal hours: work classification COMMISSION_SALES (s.65(2), canvassing sales paid commission) is priced by band S65-OT-EXCLUDED at nothing and OVERTIME_AT_HOURLY_RATE (s.65(3)–(9): railway train operations, water gates, water-level reading, firefighting and public-danger prevention, outside work whose hours cannot be fixed, watch duty outside normal work, work a Ministerial Regulation adds) by band S65-OT-HOURLY-1.0X at 1× (register TH-WORK-06); an agreed higher rate is contractual, not modelled; s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
-				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"work_classification": [
+					"EA_COVERED",
+					"NON_EA",
+					"MANAGERIAL",
+					"COMMISSION_SALES",
+					"OVERTIME_AT_HOURLY_RATE"
+				],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
@@ -3091,11 +3206,28 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
 			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
 			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
+				{
+					"label": "S65-OT-HOURLY-1.0X",
+					"when": "person.employment.classification == \"OVERTIME_AT_HOURLY_RATE\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "S65-OT-EXCLUDED",
+					"when": "person.employment.classification == \"COMMISSION_SALES\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 0.0"
+				},
 				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
@@ -3451,12 +3583,18 @@
 				"preserve_year_end_rate": false,
 				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
 			},
-			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
+			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.65(2)–(9) (re-read 30 Sep 2026 in the consolidation) have no s.61 overtime or s.63 holiday-overtime pay unless the employer agrees, but keep s.62 holiday-work pay, and those in (3)–(9) are paid the working-day hourly rate for each hour worked beyond the normal hours: work classification COMMISSION_SALES (s.65(2), canvassing sales paid commission) is priced by band S65-OT-EXCLUDED at nothing and OVERTIME_AT_HOURLY_RATE (s.65(3)–(9): railway train operations, water gates, water-level reading, firefighting and public-danger prevention, outside work whose hours cannot be fixed, watch duty outside normal work, work a Ministerial Regulation adds) by band S65-OT-HOURLY-1.0X at 1× (register TH-WORK-06); an agreed higher rate is contractual, not modelled; s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
-				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"work_classification": [
+					"EA_COVERED",
+					"NON_EA",
+					"MANAGERIAL",
+					"COMMISSION_SALES",
+					"OVERTIME_AT_HOURLY_RATE"
+				],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
@@ -3712,11 +3850,28 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
 			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
 			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
+				{
+					"label": "S65-OT-HOURLY-1.0X",
+					"when": "person.employment.classification == \"OVERTIME_AT_HOURLY_RATE\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "S65-OT-EXCLUDED",
+					"when": "person.employment.classification == \"COMMISSION_SALES\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 0.0"
+				},
 				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
@@ -4072,12 +4227,18 @@
 				"preserve_year_end_rate": false,
 				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
 			},
-			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
+			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.65(2)–(9) (re-read 30 Sep 2026 in the consolidation) have no s.61 overtime or s.63 holiday-overtime pay unless the employer agrees, but keep s.62 holiday-work pay, and those in (3)–(9) are paid the working-day hourly rate for each hour worked beyond the normal hours: work classification COMMISSION_SALES (s.65(2), canvassing sales paid commission) is priced by band S65-OT-EXCLUDED at nothing and OVERTIME_AT_HOURLY_RATE (s.65(3)–(9): railway train operations, water gates, water-level reading, firefighting and public-danger prevention, outside work whose hours cannot be fixed, watch duty outside normal work, work a Ministerial Regulation adds) by band S65-OT-HOURLY-1.0X at 1× (register TH-WORK-06); an agreed higher rate is contractual, not modelled; s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
-				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"work_classification": [
+					"EA_COVERED",
+					"NON_EA",
+					"MANAGERIAL",
+					"COMMISSION_SALES",
+					"OVERTIME_AT_HOURLY_RATE"
+				],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
@@ -4333,11 +4494,28 @@
 				"by": "CALENDAR_DAYS"
 			},
 			"ordinary_divisor_days": "30.0",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "employment.classification != \"MANAGERIAL\"",
 			"normal_hours": "'hazardous_work' in terms.fact_keys && terms.facts.hazardous_work ? 7.0 : 8.0",
 			"shift_day_hours": "'normal_hours_redistribution_agreed_at' in day_fact_keys && day_facts.normal_hours_redistribution_agreed_at != '' && !('hazardous_work' in person.terms.fact_keys && person.terms.facts.hazardous_work) ? (person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 48.0 : 9.0) : stated_day_hours",
 			"redistributed_hours": "normal_hours > 8.0 && person.terms.statutory_work_category == 'GUARD_DUTY' && date >= '2026-04-24' ? 0.0 : normal_hours - 8.0",
 			"bands": [
+				{
+					"label": "S65-OT-HOURLY-1.0X",
+					"when": "person.employment.classification == \"OVERTIME_AT_HOURLY_RATE\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 1.0"
+				},
+				{
+					"label": "S65-OT-EXCLUDED",
+					"when": "person.employment.classification == \"COMMISSION_SALES\"",
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * ordinary_hour * 0.0"
+				},
 				{
 					"label": "OT-1.5X",
 					"when": "day_type == \"ORDINARY\" && person.terms.statutory_work_category != \"GUARD_DUTY\"",
@@ -4693,12 +4871,18 @@
 				"preserve_year_end_rate": false,
 				"authority": "Labour Protection Act s.67 (as amended by No.2 B.E.2551): on termination the employer pays wages for the annual leave owed — the year of termination pro rata where the employer terminates other than under s.119, and carried-forward leave in every case — at the wage rate in force at termination. A monthly wage’s day is taken as monthly wage ÷ 30, the Act’s own conversion of a month (s.68, stated for overtime and holiday pay); no text read states another divisor for leave pay (register TH-WORK-05, TH-EXIT-02)."
 			},
-			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
+			"authority": "Labour Protection Act B.E.2541 (Council of State consolidation through No.9 B.E.2568, https://searchlaw.ocs.go.th/council-of-state/#/public/doc/ZGN3NXk0eENvNjBSdjRnT2NsdjFTQT09): s.23 normal hours at most eight a day (seven for work declared hazardous on dated employment terms); s.28 a weekly holiday; s.29 a traditional holiday falling on a weekly holiday moves to the next working day (SUBSTITUTE); s.56 weekly-holiday wages are owed except to employees paid daily, hourly or by piece; traditional and annual holidays are paid to all; s.61 overtime on a working day at least 1.5× the hourly rate; s.62 work on a holiday — (1) at least 1× more for an employee entitled to wages on that holiday, (2) at least 2× for one who is not (weekly holiday of a daily/hourly-paid employee); s.63 overtime on a holiday at least 3×; s.65(1)/s.66 an employee with authority to hire, reward or dismiss has no s.61–63 entitlement (read as work classification MANAGERIAL); s.65(2)–(9) (re-read 30 Sep 2026 in the consolidation) have no s.61 overtime or s.63 holiday-overtime pay unless the employer agrees, but keep s.62 holiday-work pay, and those in (3)–(9) are paid the working-day hourly rate for each hour worked beyond the normal hours: work classification COMMISSION_SALES (s.65(2), canvassing sales paid commission) is priced by band S65-OT-EXCLUDED at nothing and OVERTIME_AT_HOURLY_RATE (s.65(3)–(9): railway train operations, water gates, water-level reading, firefighting and public-danger prevention, outside work whose hours cannot be fixed, watch duty outside normal work, work a Ministerial Regulation adds) by band S65-OT-HOURLY-1.0X at 1× (register TH-WORK-06); an agreed higher rate is contractual, not modelled; s.68 the hourly rate of a monthly-paid employee is the monthly wage ÷ (30 × normal hours a day). The Act states no part-month proration: the seed prorates a monthly wage on calendar days, because s.56(1) pays a monthly wage for every day including weekly holidays, and deducts an unpaid day at the month’s calendar-day rate — a reading, not statute text (register TH-WORK-05). No statutory night premium exists (register TH-WORK-07). The Ministerial Regulation No.3 B.E.2541 combined 36-hour weekly overtime/holiday-work ceiling is transcribed; the timed s.27 adult breaks still need a saved compliance gate (register TH-WORK-07)."
 		},
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": ["NON_MANUAL", "GUARD_DUTY", "PIECE_RATE"],
-				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"work_classification": [
+					"EA_COVERED",
+					"NON_EA",
+					"MANAGERIAL",
+					"COMMISSION_SALES",
+					"OVERTIME_AT_HOURLY_RATE"
+				],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},

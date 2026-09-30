@@ -91,7 +91,8 @@ export const PROFILES = [
 	'CN-shanghai',
 	'CN-kunming',
 	'TW',
-	'VN'
+	'VN',
+	'JP'
 ] as const;
 export const cases: ProbeCase[] = [];
 export const register = (...add: ProbeCase[]) => void cases.push(...add);

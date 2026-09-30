@@ -97,7 +97,7 @@ const twWeek = (from: string): ProbeInput[] => [
 type Code =
 	'LI' | 'EI' | 'NHI' | 'OCC_INJURY' | 'LABOR_PENSION' | 'WAGE_ARREARS_BASE' | 'INCOME_TAX';
 type Standing =
-	| { kind: 'REGISTERED'; elections?: Row }
+	| { kind: 'REGISTERED'; elections?: Row; since?: string }
 	| { kind: 'NOT_REGISTERED'; reason: string; declaration_reference?: string; elections?: Row };
 type Piece = readonly [from: string, to: string | null, standing: Standing];
 type Person = {
@@ -159,8 +159,8 @@ function personInputs(p: Person): ProbeInput[] {
 			? {
 					...registered(code, standing.elections),
 					reference_number: `PROBE-${code}`,
-					since: p.hired,
-					first_contribution_due_on: p.hired
+					since: standing.since ?? p.hired,
+					first_contribution_due_on: standing.since ?? p.hired
 				}
 			: {
 					kind: 'NOT_REGISTERED',
@@ -264,7 +264,8 @@ const tw = (c: TwCase): ProbeCase => ({
 	],
 	expected: Object.entries(c.expected).map(([ref, lines]) => ({ employment: `${ref}_job`, lines })),
 	...(c.warnings === undefined ? {} : { warnings: c.warnings }),
-	...(c.companyLines === undefined ? {} : { companyLines: c.companyLines })
+	...(c.companyLines === undefined ? {} : { companyLines: c.companyLines }),
+	...(c.refused === undefined ? {} : { refused: c.refused })
 });
 
 const leave = (
@@ -2762,4 +2763,1330 @@ register(
 			}
 		}
 	})
+);
+
+// ── Round 9 (2026-09-30): branches the trackers name as unproven ──────────────────────────────────
+const LSA_ALL =
+	'https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030001 (最後修正 113-07-31, read 2026-09-30)';
+const LEAVE_RULES =
+	'勞工請假規則 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030006, 最後修正 114-12-09, read 2026-09-30)';
+const GENDER =
+	'性別平等工作法 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030014, 最後修正 112-08-16, read 2026-09-30)';
+const PENSION_ACT =
+	'勞工退休金條例 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0030020, read 2026-09-30)';
+const Y114 = [
+	'民國114年 tables of the 2025-12-01 version: 最低工資 NT$28,590 a month / NT$190 an hour (最低工資法 §5, https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030028&flno=5); 勞保/就保 投保薪資分級表 114年 (BLI Files/24813: 第1級 28,590, 28,591–28,800 → 28,800, 28,801–30,300 → 30,300, ceiling 45,800); 勞保 11.5%, 就保 1%, shares 20/70 (勞工保險條例 §13, §15, https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050001); 健保 5.17%, 本人 30%, 單位 60% × (1 + 0.56) (全民健康保險法 §27, https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=L0060001), 59 grades 28,590–313,000; 勞退 6% to 150,000; 災保 22 grades 28,590–72,800 at 行業 四二 0.12% (Files/24759, from 114-01-01).'
+];
+/** A dated standing that changes on `from`. */
+const dated = (
+	hired: string,
+	...rest: readonly (readonly [from: string, to: string | null, standing: Standing])[]
+): Piece[] => rest.map(([from, to, standing]) => [from === '' ? hired : from, to, standing]);
+
+register(
+	tw({
+		id: 'TW-MW-01-2',
+		description:
+			'December 2025, the 114年 floor: a full-timer agreed at NT$28,000 is paid 28,590 on the 28,590 grade; a 29,500 wage is not a 114年 grade and insures at 30,300 (it insures at 29,500 a month later, TW-MW-01-1).',
+		citation: [
+			...Y114,
+			'28,590: 勞保 3,287.85 → 657.57 → 658 / 2,301.495 → 2,301; 就保 285.90 → 57.18 → 57 / 200.13 → 200; 健保 1,478.10 × 30% = 443.43 → 443 / × 0.936 = 1,383.50 → 1,384; 勞退 1,715.40 → 1,715; 災保 34.31 → 34. Net 28,590 − 1,158 = 27,432; employer 5,634.',
+			'30,300: 勞保 3,484.50 → 696.90 → 697 / 2,439.15 → 2,439; 就保 303 → 60.60 → 61 / 212.10 → 212; 健保 1,566.51 → 469.95 → 470 / 1,466.25 → 1,466; 勞退 1,818; 災保 36.36 → 36. Net 29,500 − 1,228 = 28,272; employer 5,971.'
+		],
+		period: '2025-12',
+		people: [
+			citizen('hsiao', 'Hsiao Ya-chi', 28_000, all(28_590), { gender: 'FEMALE' }),
+			citizen('wei', 'Wei Cheng-en', 29_500, all(30_300))
+		],
+		expected: {
+			hsiao: {
+				gross: 28_590,
+				net: 27_432,
+				employer_cost: 5634,
+				'LI.employee': 658,
+				'LI.employer': 2301,
+				'EI.employee': 57,
+				'EI.employer': 200,
+				'NHI.employee': 443,
+				'NHI.employer': 1384,
+				'LABOR_PENSION.employer': 1715,
+				'OCC_INJURY.employer': 34
+			},
+			wei: {
+				gross: 29_500,
+				net: 28_272,
+				employer_cost: 5971,
+				'LI.employee': 697,
+				'LI.employer': 2439,
+				'EI.employee': 61,
+				'EI.employer': 212,
+				'NHI.employee': 470,
+				'NHI.employer': 1466,
+				'LABOR_PENSION.employer': 1818,
+				'OCC_INJURY.employer': 36
+			}
+		}
+	}),
+	tw({
+		id: 'TW-TAX-03-3',
+		description:
+			'A §11 layoff on 31 December 2025 after seven new-system years at NT$1,000,000 a month: 3.5 months of 平均工資, taxed on the 114年度 退職所得 amounts 198,000 / 398,000.',
+		citation: [
+			...Y114,
+			SRC.fivePercent,
+			`${PENSION_ACT} §12(1): 每滿一年發給二分之一個月之平均工資 … 最高以發給六個月平均工資為限 — 0.5 × 7 = 3.5 × 1,000,000 (平均工資 declared 1,000,000 ÷ 30 a day) = 3,500,000. ${SRC.lsa} §16(1)(3): 30 days’ notice given, no notice pay.`,
+			'所得稅法 §14(1) 第九類 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=14) with the 114年度 amounts (財政部 113-11-28 公告, unchanged for 114年度; tracker TW-TAX-03): 198,000 × 7 = 1,386,000 exempt, the band to 398,000 × 7 = 2,786,000 half: 所得額 700,000 + 714,000 = 1,414,000; 各類所得扣繳率標準 §2(1)(9) 6% = 84,840.',
+			'Exit on the last day of the month: 30 insured days, 健保 charged (退保 1 January). 勞保 ceiling 1,053 / 3,687; 就保 92 / 321; 健保 313,000: 16,182.10 → 4,855 / 15,146; 勞退 150,000 × 6% = 9,000; 災保 72,800 × 0.12% = 87. 5% × 1,000,000 = 50,000.',
+			'Gross 4,500,000; net 4,500,000 − (1,053 + 92 + 4,855 + 50,000 + 84,840) = 4,359,160; employer 3,687 + 321 + 15,146 + 9,000 + 87 = 28,241.'
+		],
+		period: '2025-12',
+		people: [
+			citizen(
+				'fu',
+				'Fu Chien-kuo',
+				1_000_000,
+				{ LI: 45_800, EI: 45_800, NHI: 313_000, LABOR_PENSION: 150_000, OCC_INJURY: 72_800 },
+				{
+					hired: '2019-01-01',
+					left: '2025-12-31',
+					tax: FIVE,
+					exit_reason: 'REDUNDANCY',
+					exit_facts: {
+						...NOTICE,
+						average_daily_wage: 1_000_000 / 30,
+						old_system_service_months: 0
+					}
+				}
+			)
+		],
+		extra: (job) => [
+			adhoc(job('fu'), 'SEVERANCE_PAY', 0, '2025-12-31', 'SEVERANCE_PAY on departure 2025-12-31')
+		],
+		expected: {
+			fu: {
+				gross: 4_500_000,
+				net: 4_359_160,
+				employer_cost: 28_241,
+				SEVERANCE_PAY: 3_500_000,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 4855,
+				'NHI.employer': 15_146,
+				'LABOR_PENSION.employer': 9000,
+				'OCC_INJURY.employer': 87,
+				'INCOME_TAX.employee': 50_000,
+				'SEVERANCE_TAX.employee': 84_840
+			}
+		}
+	}),
+	tw({
+		id: 'TW-MW-02-2',
+		description:
+			'An hourly part-timer agreed at NT$190 an hour works 80 hours in March 2026 (every Monday and Tuesday, 8 h): paid the NT$196 hourly floor, 15,680; 15,840 part-time grade, 健保 and 災保 at 29,500.',
+		citation: [
+			...EVERY,
+			SRC.minimumWage,
+			'最低工資法 §5: an hourly rate below NT$196 is paid 196 — 80 × 196 = 15,680 (僱用部分時間工作勞工應行注意事項 §6(2)(1), https://laws.mol.gov.tw/FLAW/FLAWDOC01.aspx?flno=6&id=FL072875: hourly pay not below the hourly minimum).',
+			'15,840 (13,501–15,840): 勞保 364 / 1,275; 就保 32 / 111; 勞退 950. 健保 458 / 1,428 (16 h a week ≥ 12). 災保 35. Net 15,680 − 854 = 14,826; employer 3,799.'
+		],
+		period: '2026-03',
+		people: [
+			citizen(
+				'ting',
+				'Ting Yu-han',
+				190,
+				{ LI: 15_840, EI: 15_840, NHI: 29_500, LABOR_PENSION: 15_840, OCC_INJURY: 29_500 },
+				{
+					gender: 'FEMALE',
+					terms: {
+						employment_type: 'PART_TIME',
+						pay_frequency: 'HOURLY',
+						ordinary_hours_per_week: 16,
+						working_days_per_week: 2
+					}
+				}
+			)
+		],
+		extra: (job) =>
+			['02', '03', '09', '10', '16', '17', '23', '24', '30', '31'].map((day) =>
+				worked(job('ting'), `2026-03-${day}`, ['09:00', '13:00'], ['14:00', '18:00'])
+			),
+		expected: {
+			ting: {
+				gross: 15_680,
+				net: 14_826,
+				employer_cost: 3799,
+				'LI.employee': 364,
+				'LI.employer': 1275,
+				'EI.employee': 32,
+				'EI.employer': 111,
+				'NHI.employee': 458,
+				'NHI.employer': 1428,
+				'LABOR_PENSION.employer': 950,
+				'OCC_INJURY.employer': 35
+			}
+		}
+	}),
+	tw({
+		id: 'TW-HOURS-02-2',
+		description:
+			'NT$48,000 (200 an hour, 1,600 a day): four emergency hours on the 例假 (Sunday 8 March) earn one further day’s wage; ten hours on the 休息日 (Saturday 14 March, in stints of 4 + 4 + 2) pay 2 h at 1⅓ and 8 h at 1⅔.',
+		citation: [
+			...EVERY,
+			SRC.table,
+			`${SRC.lsa} §40(1): 停止假期之工資，應加倍發給 — 48,000 ÷ 30 = 1,600 (${LSA_ALL}).`,
+			`${SRC.lsa} §24(2): 休息日 二小時以內 另再加給一又三分之一以上；工作二小時後再繼續工作者 另再加給一又三分之二以上 — hours nine and ten stay at 1⅔: 2 × 266.67 = 533.33; 8 × 333.33 = 2,666.67; 3,200. §32(2) 12-hour day not reached; §35 break owed after four continuous hours, each stint is at most four.`,
+			'The table withholds nothing (52,800 < 90,501). Grades as TW-LI-01-1: net 52,800 − (1,053 + 92 + 748) = 50,907; employer 9,290.'
+		],
+		period: '2026-03',
+		people: [citizen('ko', 'Ko Wei-ting', 48_000, all(45_800, 48_200))],
+		extra: (job) => [
+			asked(worked(job('ko'), '2026-03-08', ['09:00', '13:00']), 4),
+			asked(
+				worked(job('ko'), '2026-03-14', ['09:00', '13:00'], ['13:30', '17:30'], ['18:00', '20:00']),
+				10
+			)
+		],
+		expected: {
+			ko: {
+				gross: 52_800,
+				net: 50_907,
+				employer_cost: 9290,
+				OVERTIME: 4800,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 748,
+				'NHI.employer': 2332,
+				'LABOR_PENSION.employer': 2892,
+				'OCC_INJURY.employer': 58
+			}
+		}
+	}),
+	tw({
+		id: 'TW-LEAVE-02-2',
+		description:
+			'NT$60,000 (2,000 a day): ten hospitalised sick days (2–13 March) after thirty ordinary sick days in January–February are unpaid (20,000 off); the same ten as the year’s first are half-paid (10,000 off).',
+		citation: [
+			...EVERY,
+			`${LEAVE_RULES} §4(1)–(3): 未住院者 一年內合計不得超過三十日 … 普通傷病假一年內未超過三十日部分，工資折半發給 — the thirty half-paid days count hospitalised and non-hospitalised days together; beyond them no wage is owed.`,
+			'Grades 45,800 / 60,800 as TW-LEAVE-01-1: 1,053 / 3,687, 92 / 321, 943 / 2,942, 勞退 3,648, 災保 73. Net 40,000 − 2,088 = 37,912 and 50,000 − 2,088 = 47,912; employer 10,671 each.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('ma', 'Ma Chia-wen', 60_000, all(45_800, 60_800), { gender: 'FEMALE' }),
+			citizen('niu', 'Niu Po-han', 60_000, all(45_800, 60_800))
+		],
+		extra: (job) => [
+			leave(job('ma'), 'SICK_LEAVE', 'SICK-TW-MA-JAN', '2026-01-05', '2026-01-30'),
+			leave(job('ma'), 'SICK_LEAVE', 'SICK-TW-MA-FEB', '2026-02-02', '2026-02-13'),
+			leave(job('ma'), 'HOSPITALISED_SICK_LEAVE', 'HOSP-TW-MA', '2026-03-02', '2026-03-13'),
+			leave(job('niu'), 'HOSPITALISED_SICK_LEAVE', 'HOSP-TW-NIU', '2026-03-02', '2026-03-13')
+		],
+		expected: {
+			ma: {
+				gross: 40_000,
+				net: 37_912,
+				employer_cost: 10_671,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 943,
+				'NHI.employer': 2942,
+				'LABOR_PENSION.employer': 3648,
+				'OCC_INJURY.employer': 73
+			},
+			niu: {
+				gross: 50_000,
+				net: 47_912,
+				employer_cost: 10_671,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 943,
+				'NHI.employer': 2942,
+				'LABOR_PENSION.employer': 3648,
+				'OCC_INJURY.employer': 73
+			}
+		}
+	}),
+	tw({
+		id: 'TW-LEAVE-03-2',
+		description:
+			'The 14-day 事假 year with 家庭照顧假 inside it, on NT$45,000: twelve personal days by February, two hours of family care (375 off) and one more day (1,500 off) are taken; three more days would pass fourteen and are refused; hours on ordinary 事假 are refused.',
+		citation: [
+			...EVERY,
+			`${LEAVE_RULES} §7: 事假 一年內合計不得超過十四日。事假期間不給工資。勞工為親自照顧家庭成員 … 並得擇定以小時為請假單位 — only family care is taken by the hour.`,
+			`${GENDER} §20(1): 家庭照顧假 其請假日數併入事假計算，全年以七日為限 — 12 + 0.25 + 3 = 15.25 > 14 refused; 12 + 0.25 + 1 = 13.25.`,
+			'45,000 ÷ 30 = 1,500 a day, 187.50 an hour: 2 h = 375. Gross 43,125; grades 45,800: net 43,125 − 1,855 = 41,270; employer 9,027.'
+		],
+		period: '2026-03',
+		people: [citizen('lo2', 'Lo Hsin-hui', 45_000, all(45_800), { gender: 'FEMALE' })],
+		extra: (job) => [
+			leave(job('lo2'), 'PERSONAL_LEAVE', 'NPL-TW-LO-JAN', '2026-01-05', '2026-01-16'),
+			leave(job('lo2'), 'PERSONAL_LEAVE', 'NPL-TW-LO-FEB', '2026-02-02', '2026-02-03'),
+			leave(job('lo2'), 'FAMILY_CARE_LEAVE', 'CARE-TW-LO', '2026-03-10', '2026-03-10', {
+				hours: 2
+			}),
+			{
+				...leave(job('lo2'), 'PERSONAL_LEAVE', 'NPL-TW-LO-OVER', '2026-03-11', '2026-03-13'),
+				refused: 'Insufficient leave|allows 14'
+			},
+			{
+				...leave(job('lo2'), 'PERSONAL_LEAVE', 'NPL-TW-LO-HOURS', '2026-03-16', '2026-03-16', {
+					hours: 2
+				}),
+				refused: 'not by the hour'
+			},
+			leave(job('lo2'), 'PERSONAL_LEAVE', 'NPL-TW-LO-MAR', '2026-03-12', '2026-03-12')
+		],
+		expected: {
+			lo2: {
+				gross: 43_125,
+				net: 41_270,
+				employer_cost: 9027,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 710,
+				'NHI.employer': 2216,
+				'LABOR_PENSION.employer': 2748,
+				'OCC_INJURY.employer': 55
+			}
+		}
+	}),
+	tw({
+		id: 'TW-LEAVE-05-2',
+		description:
+			'Paid leaves on NT$36,000: five 陪產檢及陪產假 days, two 產檢假 days, and a March inside eight weeks of 產假 after two years’ service — each keeps the full wage.',
+		citation: [
+			...EVERY,
+			`${GENDER} §15(4)–(5): 產檢假七日 … 陪產檢及陪產假七日。產檢假、陪產檢及陪產假期間，薪資照給.`,
+			`${SRC.lsa} §50(1)–(2): 分娩前後 停止工作，給予產假八星期 … 受僱工作在六個月以上者，停止工作期間工資照給 (${LSA_ALL}).`,
+			'Grades 36,300 as TW-LEAVE-02-1: net 36,000 − 1,471 = 34,529; employer 7,155 each.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('chien', 'Chien Yu-lun', 36_000, all(36_300)),
+			citizen('ou', 'Ou Shu-chen', 36_000, all(36_300), { gender: 'FEMALE' }),
+			citizen('lan', 'Lan Pei-yu', 36_000, all(36_300), { gender: 'FEMALE' })
+		],
+		extra: (job) => [
+			leave(job('chien'), 'PATERNITY_LEAVE', 'PAT-TW-CHIEN', '2026-03-09', '2026-03-13'),
+			leave(job('ou'), 'PRENATAL_CHECKUP_LEAVE', 'PRE-TW-OU', '2026-03-16', '2026-03-17'),
+			leave(job('lan'), 'MATERNITY_LEAVE', 'MAT-TW-LAN', '2026-03-01', '2026-04-25', {
+				event_kind: 'BIRTH',
+				event_date: '2026-03-01'
+			})
+		],
+		expected: Object.fromEntries(
+			['chien', 'ou', 'lan'].map((ref) => [
+				ref,
+				{
+					gross: 36_000,
+					net: 34_529,
+					employer_cost: 7155,
+					'LI.employee': 835,
+					'LI.employer': 2922,
+					'EI.employee': 73,
+					'EI.employer': 254,
+					'NHI.employee': 563,
+					'NHI.employer': 1757,
+					'LABOR_PENSION.employer': 2178,
+					'OCC_INJURY.employer': 44
+				}
+			])
+		)
+	}),
+	tw({
+		id: 'TW-LEAVE-08-2',
+		description:
+			'§16(2) limits: with 30 days’ notice to 15 March 2026, two job-search days (Mon 2 – Tue 3 March) are paid; a third that week and a day before the notice window are refused; a worker paid in lieu of notice has no job-search leave.',
+		citation: [
+			...EVERY,
+			`${SRC.lsa} §16(2): 勞工於接到前項預告後 … 每星期不得超過二日之工作時間，請假期間之工資照給. Tracker defaults: ISO week; the window starts the day after notice (民法 §120(2)) — 12 February is 31 days before the exit, outside 30.`,
+			'Pay as TW-LEAVE-08-1: 79,558 severance + 20,000 wages; net 99,057; employer 2,981.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('kou', 'Kou Chia-ling', 40_000, all(40_100), {
+				gender: 'FEMALE',
+				hired: '2022-03-16',
+				tax: FIVE,
+				left: '2026-03-15',
+				exit_reason: 'REDUNDANCY',
+				exit_facts: { ...NOTICE, average_daily_wage: 240_000 / 181, old_system_service_months: 0 }
+			}),
+			citizen('jen', 'Jen Kuan-yu', 40_000, all(40_100), {
+				hired: '2022-03-16',
+				left: '2026-03-15',
+				exit_reason: 'REDUNDANCY',
+				exit_facts: {
+					lsa_termination_ground: 'ARTICLE_11',
+					notice_days_given: 0,
+					average_daily_wage: 240_000 / 181,
+					old_system_service_months: 0
+				}
+			})
+		],
+		extra: (job) => [
+			leave(job('kou'), 'JOB_SEARCH_LEAVE', 'JOBSEARCH-TW-KOU-1', '2026-03-02', '2026-03-03'),
+			{
+				...leave(job('kou'), 'JOB_SEARCH_LEAVE', 'JOBSEARCH-TW-KOU-3', '2026-03-04', '2026-03-04'),
+				refused: 'allows 2 days a week; 2 are already taken in the week of 2026-03-02'
+			},
+			{
+				...leave(
+					job('kou'),
+					'JOB_SEARCH_LEAVE',
+					'JOBSEARCH-TW-KOU-EARLY',
+					'2026-02-12',
+					'2026-02-12'
+				),
+				refused: 'INELIGIBLE'
+			},
+			{
+				...leave(job('jen'), 'JOB_SEARCH_LEAVE', 'JOBSEARCH-TW-JEN', '2026-03-03', '2026-03-03'),
+				refused: 'INELIGIBLE'
+			},
+			adhoc(job('kou'), 'SEVERANCE_PAY', 0, '2026-03-15', 'SEVERANCE_PAY on departure 2026-03-15')
+		],
+		expected: {
+			kou: {
+				gross: 99_558,
+				net: 99_057,
+				employer_cost: 2981,
+				SEVERANCE_PAY: 79_558,
+				'LI.employee': 461,
+				'LI.employer': 1614,
+				'EI.employee': 40,
+				'EI.employer': 140,
+				'LABOR_PENSION.employer': 1203,
+				'OCC_INJURY.employer': 24
+			}
+		}
+	}),
+	tw({
+		id: 'TW-EXIT-01-3',
+		description:
+			'A §14 worker termination on 15 March 2026 after two and a half new-system years at NT$45,000: severance pro rata, 1.25 months of 平均工資, and no notice pay.',
+		citation: [
+			...EVERY,
+			SRC.fivePercent,
+			`${SRC.lsa} §14(4): 第十七條規定於本條終止契約準用之 (${LSA_ALL}); §16 notice binds the employer’s termination only.`,
+			`${PENSION_ACT} §12(1): 依勞動基準法 … 第十四條 … 終止時 … 每滿一年發給二分之一個月之平均工資，未滿一年者，以比例計給 — 30 months: 0.5 × 30/12 = 1.25; 270,000 ÷ 181 × 30 × 1.25 = 55,939.23 → 55,939.`,
+			'所得稅法 §14(1) 第九類: 2.5 years (a tail of six months counts one year) × 206,000 exempt → none. 15 × 1,500 = 22,500; 5% = 1,125 → 0.',
+			'15 insured days on 45,800: 527 / 1,843, 46 / 160, 勞退 1,374, 災保 27. Gross 78,439; net 77,866; employer 3,404.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('hou', 'Hou Mei-ling', 45_000, all(45_800), {
+				gender: 'FEMALE',
+				hired: '2023-09-16',
+				tax: FIVE,
+				left: '2026-03-15',
+				exit_reason: 'RESIGNATION',
+				exit_facts: {
+					lsa_termination_ground: 'ARTICLE_14',
+					notice_days_given: 0,
+					average_daily_wage: 270_000 / 181,
+					old_system_service_months: 0
+				}
+			})
+		],
+		extra: (job) => [
+			adhoc(job('hou'), 'SEVERANCE_PAY', 0, '2026-03-15', 'SEVERANCE_PAY on departure 2026-03-15')
+		],
+		expected: {
+			hou: {
+				gross: 78_439,
+				net: 77_866,
+				employer_cost: 3404,
+				SEVERANCE_PAY: 55_939,
+				'LI.employee': 527,
+				'LI.employer': 1843,
+				'EI.employee': 46,
+				'EI.employer': 160,
+				'LABOR_PENSION.employer': 1374,
+				'OCC_INJURY.employer': 27
+			}
+		}
+	}),
+	tw({
+		id: 'TW-EXIT-02-3',
+		description:
+			'A §11 layoff on 15 March 2026 of a worker hired 16 March 2004 who kept 15.5 months of old-system seniority on moving to the new system: 16/12 months under §17 beside the new system’s six-month cap.',
+		citation: [
+			...EVERY,
+			SRC.fivePercent,
+			`${SRC.lsa} §17(1): 每滿一年發給相當於一個月平均工資之資遣費; 未滿一年者，依比例計給之。未滿一個月者以一個月計 — 15.5 months → 16/12. ${PENSION_ACT} §11(2): the retained seniority is severed under the LSA at the termination-day 平均工資.`,
+			`${PENSION_ACT} §12(1): 248.5 new-system months × ½ ÷ 12 = 10.35 → capped at 6. 270,000 ÷ 181 × 30 × (16/12 + 6) = 328,176.80 → 328,177.`,
+			'30 days’ notice given; 22 years × 206,000 exempt. 15 insured days as TW-EXIT-02-1: 527 / 1,843, 46 / 160, 1,374, 27. Gross 22,500 + 328,177 = 350,677; net 350,104; employer 3,404.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('shen', 'Shen Kuo-liang', 45_000, all(45_800), {
+				born: '1975-04-04',
+				hired: '2004-03-16',
+				tax: FIVE,
+				left: '2026-03-15',
+				exit_reason: 'REDUNDANCY',
+				exit_facts: {
+					...NOTICE,
+					average_daily_wage: 270_000 / 181,
+					old_system_service_months: 15.5
+				}
+			})
+		],
+		extra: (job) => [
+			adhoc(job('shen'), 'SEVERANCE_PAY', 0, '2026-03-15', 'SEVERANCE_PAY on departure 2026-03-15')
+		],
+		expected: {
+			shen: {
+				gross: 350_677,
+				net: 350_104,
+				employer_cost: 3404,
+				SEVERANCE_PAY: 328_177,
+				'LI.employee': 527,
+				'LI.employer': 1843,
+				'EI.employee': 46,
+				'EI.employer': 160,
+				'LABOR_PENSION.employer': 1374,
+				'OCC_INJURY.employer': 27
+			}
+		}
+	}),
+	tw({
+		id: 'TW-EXIT-06-2',
+		description:
+			'An art. 54(1)(2) forced retirement for a duty-caused disability on 15 March 2026 after 31 years 7 months on the old system: the tail counts a whole year (32), the bases cap at 45, and 20% more — 54 bases.',
+		citation: [
+			...EVERY,
+			`${SRC.lsa} §54(1)(2): 身心障礙不堪勝任工作者 may be retired; §55(1)(1): 每滿一年給與兩個基數 … 超過十五年 … 每滿一年給與一個基數，最高總數以四十五個基數為限。未滿半年者以半年計；滿半年者以一年計; §55(1)(2): 因執行職務所致 … 加給百分之二十 (${LSA_ALL}).`,
+			'379 months = 31 years 7 months → 32 → 30 + 17 = 47 → 45 × 1.2 = 54; 270,000 ÷ 181 × 30 × 54 = 2,416,574.59 → 2,416,575.',
+			'所得稅法 §14(1) 第九類: 32 × 206,000 exempt. §56(1) reserve 2% × 22,500 = 450. 15 insured days on 45,800 (age 58): 527 / 1,843, 46 / 160, 災保 27.',
+			'Gross 22,500 + 2,416,575 = 2,439,075; net 2,438,502; employer 1,843 + 160 + 27 + 450 = 2,480.'
+		],
+		company: { facts: { pension_reserve_rate: 2 } },
+		period: '2026-03',
+		people: [
+			citizen(
+				'tai',
+				'Tai Wen-chung',
+				45_000,
+				{ LI: 45_800, EI: 45_800, NHI: 45_800, OCC_INJURY: 45_800 },
+				{
+					born: '1968-01-01',
+					hired: '1994-08-16',
+					left: '2026-03-15',
+					exit_reason: 'RETIREMENT',
+					exit_facts: {
+						average_daily_wage: 270_000 / 181,
+						old_system_service_months: 379,
+						retirement_disability: true,
+						retirement_disability_duty_caused: true
+					},
+					standing: { LABOR_PENSION: OLD_SYSTEM }
+				}
+			)
+		],
+		extra: (job) => [
+			adhoc(job('tai'), 'RETIREMENT_PAY', 0, '2026-03-15', 'RETIREMENT_PAY on departure 2026-03-15')
+		],
+		expected: {
+			tai: {
+				gross: 2_439_075,
+				net: 2_438_502,
+				employer_cost: 2480,
+				RETIREMENT_PAY: 2_416_575,
+				'LI.employee': 527,
+				'LI.employer': 1843,
+				'EI.employee': 46,
+				'EI.employer': 160,
+				'OCC_INJURY.employer': 27,
+				'LABOR_PENSION_RESERVE.employer': 450
+			}
+		}
+	}),
+	tw({
+		id: 'TW-EXIT-05-2',
+		description:
+			'An occupational injury in March 2026 on NT$40,000: 公傷病假 9–13 March keeps the wage whole, NT$12,000 of receipted medical costs are paid outside every base, and an elected NT$5,000 insurer-benefit 抵充 comes off net.',
+		citation: [
+			...EVERY,
+			`${SRC.lsa} §59(1): 必需之醫療費用 補償; §59 但書: 同一事故 已由雇主支付費用補償者，雇主得予以抵充之 (${LSA_ALL}). 勞動基準法施行細則 §10(7): 職業災害補償費 is not 工資; 所得稅法 §4(1)(3) exempts it (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=G0340003).`,
+			'Owner rule 2026-09-28 (tracker TW-EXIT-05): the offset is recorded as the employer elects, not computed.',
+			'40,100: 922 / 3,228, 80 / 281, 622 / 1,940, 2,406, 48. Gross 40,000 + 12,000 = 52,000; net 52,000 − 1,624 − 5,000 = 45,376; employer 7,903.'
+		],
+		period: '2026-03',
+		people: [citizen('yu', 'Yu Chih-ming', 40_000, all(40_100))],
+		extra: (job) => [
+			leave(job('yu'), 'OCCUPATIONAL_INJURY_LEAVE', 'OCC-TW-YU', '2026-03-09', '2026-03-13'),
+			{
+				...adhoc(job('yu'), 'OCC_INJURY_MEDICAL', 12_000, '2026-03-13', '§59(1) hospital receipts'),
+				files: { evidence_file: 'medical-receipts.pdf' }
+			},
+			adhoc(job('yu'), 'OCC_INJURY_OFFSET', 5000, '2026-03-20', '§59 但書 抵充: BLI 職災傷病給付')
+		],
+		expected: {
+			yu: {
+				gross: 52_000,
+				net: 45_376,
+				employer_cost: 7903,
+				OCC_INJURY_MEDICAL: 12_000,
+				'LI.employee': 922,
+				'LI.employer': 3228,
+				'EI.employee': 80,
+				'EI.employer': 281,
+				'NHI.employee': 622,
+				'NHI.employer': 1940,
+				'LABOR_PENSION.employer': 2406,
+				'OCC_INJURY.employer': 48
+			}
+		}
+	}),
+	tw({
+		id: 'TW-NHI-14-3',
+		description:
+			'A 輕度 disability certificate on NT$36,000 with one 健保 dependant holding a 重度 certificate: a quarter of the worker’s own 勞保/就保/健保, each rounded on its own, and the whole of the dependant’s premium.',
+		citation: [
+			...EVERY,
+			'身心障礙者參加社會保險保險費補助辦法 (https://law.moj.gov.tw/LawClass/LawAll.aspx?PCode=D0050090): 極重度、重度 全額, 中度 二分之一, 輕度 四分之一 of the insured’s own share; the NHI subsidy also covers a disabled dependant on that dependant’s own premium.',
+			'36,300: 勞保 834.90 → 835 less 208.73 → 209 = 626; 就保 72.60 → 73 less 18.15 → 18 = 55; 健保 563 less 140.75 → 141 = 422, dependant 563 less 563 = 0.',
+			'Net 36,000 − (626 + 55 + 422) = 34,897; employer 2,922 + 254 + 1,757 + 2,178 + 44 = 7,155.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('kan', 'Kan Shu-hui', 36_000, all(36_300), {
+				gender: 'FEMALE',
+				dependants: 1,
+				elections: {
+					LI: { disability_subsidy: 25 },
+					EI: { disability_subsidy: 25 },
+					NHI: { disability_subsidy: 25, dependants_subsidised_full: 1 }
+				}
+			})
+		],
+		expected: {
+			kan: {
+				gross: 36_000,
+				net: 34_897,
+				employer_cost: 7155,
+				'LI.employee': 626,
+				'LI.employer': 2922,
+				'EI.employee': 55,
+				'EI.employer': 254,
+				'NHI.employee': 422,
+				'NHI.employer': 1757,
+				'LABOR_PENSION.employer': 2178,
+				'OCC_INJURY.employer': 44
+			}
+		}
+	}),
+	...(['2019-11-15', '2019-11-16'] as const).map((electedOn) =>
+		tw({
+			id: electedOn === '2019-11-15' ? 'TW-PEN-14-2' : 'TW-PEN-14-3',
+			description:
+				electedOn === '2019-11-15'
+					? 'A non-professional foreign permanent resident (PR since 2018, serving since 2017) who elected the old system in writing on 15 November 2019, the last day of the window: no 勞退 6%, the reserve at 6%, no 就保.'
+					: 'The same worker electing on 16 November 2019, one day after the window closed: the run is refused, not zero-charged.',
+			citation: [
+				...EVERY,
+				'BLI old/new pension transition guide §6 (https://www.bli.gov.tw/en/0010369.html): other foreign permanent residents are on the new system from 2019-05-17; one already resident and serving the same unit before that date could elect the old system in writing within six months — before 2019-11-16 (勞工退休金條例 §9 as amended 108-05-15).',
+				'就業保險法 §5(1) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050021): a non-professional permanent resident who is not an ROC spouse is outside 就保.',
+				electedOn === '2019-11-15'
+					? '40,100: 922 / 3,228, 622 / 1,940, 災保 48; §56(1) reserve 6% × 40,000 = 2,400. Net 40,000 − 1,544 = 38,456; employer 7,616.'
+					: 'Tracker TW-SCOPE-02: NOT_REGISTERED without a lawful exclusion refuses the run.'
+			],
+			company: { facts: { pension_reserve_rate: 6 } },
+			period: '2026-03',
+			...(electedOn === '2019-11-16'
+				? { refused: 'NOT_REGISTERED does not establish an old-system' }
+				: {}),
+			people: [
+				citizen(
+					'kim',
+					'Kim Min-jun',
+					40_000,
+					{ LI: 40_100, NHI: 40_100, OCC_INJURY: 40_100 },
+					{
+						nationality: 'Korean',
+						born: '1982-02-02',
+						hired: '2017-01-01',
+						terms: {
+							residency_status: 'PERMANENT_RESIDENT',
+							residency_since: '2018-01-01',
+							pass_type: 'OTHER'
+						},
+						standing: {
+							EI: {
+								kind: 'NOT_REGISTERED',
+								reason: 'Non-professional PR, not an ROC spouse: outside 就業保險法 §5',
+								declaration_reference: 'PROBE-PR-NONPROFESSIONAL-NONSPOUSE-BLI-CLASS',
+								elections: { pr_nonprofessional_excluded: true }
+							},
+							LABOR_PENSION: {
+								kind: 'NOT_REGISTERED',
+								reason: 'LSA old system elected in writing',
+								declaration_reference: `PROBE-WRITTEN-OLD-ELECTION-${electedOn}-SAME-UNIT`,
+								elections: {
+									pr_old_transition_class: 'FOREIGN_NONPROFESSIONAL_2019',
+									pr_old_election_on: electedOn
+								}
+							}
+						}
+					}
+				)
+			],
+			expected:
+				electedOn === '2019-11-15'
+					? {
+							kim: {
+								gross: 40_000,
+								net: 38_456,
+								employer_cost: 7616,
+								'LI.employee': 922,
+								'LI.employer': 3228,
+								'NHI.employee': 622,
+								'NHI.employer': 1940,
+								'OCC_INJURY.employer': 48,
+								'LABOR_PENSION_RESERVE.employer': 2400
+							}
+						}
+					: {}
+		})
+	),
+	tw({
+		id: 'TW-SCOPE-02-2',
+		description:
+			'A citizen whose 勞退 is recorded NOT_REGISTERED with no old-system, private-school or other exclusion: the run is refused rather than the compulsory 6% waived.',
+		citation: [
+			`${PENSION_ACT} §6(1), §7(1), §14(1): 雇主應為 … 本國籍人員 … 提繳 … 不得低於勞工每月工資百分之六 — a compulsory charge; only the §8–§9 old-system retention or a §7 exclusion lifts it.`,
+			'Tracker TW-SCOPE-02: an unregistered compulsory scheme without a lawful exemption refuses payroll.'
+		],
+		period: '2026-03',
+		refused: 'NOT_REGISTERED does not establish an old-system',
+		people: [
+			citizen('pao', 'Pao Chen-yu', 40_000, all(40_100), {
+				standing: {
+					LABOR_PENSION: { kind: 'NOT_REGISTERED', reason: 'Not yet declared to BLI' }
+				}
+			})
+		],
+		expected: {}
+	}),
+	tw({
+		id: 'TW-EI-02-2',
+		description:
+			'A foreign professional employed since 2024 is granted permanent residence on 16 March 2026: 就保 starts that day, fifteen insured days of March; every other leg is the whole month.',
+		citation: [
+			...EVERY,
+			SRC.fivePercent,
+			'外國專業人才延攬及僱用法 §25 (https://theme.ndc.gov.tw/lawout/LawContent.aspx?id=GL000273) and BLI (https://www.bli.gov.tw/0109624.html): a foreign professional holding permanent residence is insured under 就保 — from the day residence is granted; before it, outside 就業保險法 §5.',
+			'就保 45,800 × 1% × 15/30: 91.60 → 45.80 → 46; 320.60 → 160.30 → 160. 勞保 ceiling 1,053 / 3,687; 健保 60,800: 943 / 2,942; 勞退 3,648 (foreign professional, new system from 2026); 災保 73. 5% × 60,000 = 3,000.',
+			'Gross 60,000 (two terms rows at one rate); net 60,000 − (1,053 + 46 + 943 + 3,000) = 54,958; employer 3,687 + 160 + 2,942 + 3,648 + 73 = 10,510.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('garcia', 'Lucia Garcia', 60_000, all(45_800, 60_800), {
+				gender: 'FEMALE',
+				nationality: 'Spanish',
+				born: '1987-03-03',
+				tax: FIVE,
+				terms: { pass_type: 'EMPLOYMENT_PASS' },
+				termsRows: [
+					{
+						residency_status: 'FOREIGNER',
+						effective_range: { from: '2024-02-01', to: '2026-03-15' }
+					},
+					{
+						residency_status: 'PERMANENT_RESIDENT',
+						residency_since: '2026-03-16',
+						effective_range: { from: '2026-03-16', to: null }
+					}
+				],
+				elections: { LABOR_PENSION: { professional_work_class: 'FOREIGN_PROFESSIONAL' } },
+				standing: {
+					EI: dated(
+						'2024-02-01',
+						[
+							'',
+							'2026-03-15',
+							{
+								kind: 'NOT_REGISTERED',
+								reason: 'Foreigner without permanent residence: outside 就業保險法 §5',
+								declaration_reference: 'PROBE-ARC-NO-APRC',
+								elections: { foreign_worker_excluded: true }
+							}
+						],
+						[
+							'2026-03-16',
+							null,
+							{
+								kind: 'REGISTERED',
+								since: '2026-03-16',
+								elections: {
+									eligibility_class: 'FOREIGN_PROFESSIONAL_PR',
+									eligibility_document_reference: 'PROBE-APRC-2026-03-16-AND-PROFESSIONAL-PERMIT'
+								}
+							}
+						]
+					)
+				}
+			})
+		],
+		expected: {
+			garcia: {
+				gross: 60_000,
+				net: 54_958,
+				employer_cost: 10_510,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 46,
+				'EI.employer': 160,
+				'NHI.employee': 943,
+				'NHI.employer': 2942,
+				'LABOR_PENSION.employer': 3648,
+				'OCC_INJURY.employer': 73,
+				'INCOME_TAX.employee': 3000
+			}
+		}
+	}),
+	tw({
+		id: 'TW-NHI-10-2',
+		description:
+			'The raise of TW-NHI-10-1 (NT$40,000 → 48,000 on 16 March 2026), notified in March: from 1 April every insured grade moves — 勞保/就保 45,800, 健保/勞退/災保 48,200.',
+		citation: [
+			...EVERY,
+			'勞工保險條例 §14(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0050001&flno=14): 月投保薪資 … 調整 … 自申報之次月一日生效; 勞工退休金條例 §15(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=15): 自通知調整之次月一日起 … 調整提繳; NHIA (https://www.nhi.gov.tw/ch/cp-3204-6ecca-2568-1.html) and 勞工職業災害保險及保護法 §17 (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050031): the adjusted amount from the first of the next month.',
+			'April on 48,000: 勞保 1,053 / 3,687; 就保 92 / 321; 健保 748 / 2,332; 勞退 2,892; 災保 57.84 → 58. The table withholds nothing. Net 48,000 − 1,893 = 46,107; employer 9,290.'
+		],
+		period: '2026-04',
+		people: [
+			citizen('chu2', 'Chu Ya-ting', 40_000, all(40_100), {
+				gender: 'FEMALE',
+				termsRows: [
+					{ base_salary: 40_000, effective_range: { from: '2024-02-01', to: '2026-03-15' } },
+					{ base_salary: 48_000, effective_range: { from: '2026-03-16', to: null } }
+				],
+				standing: Object.fromEntries(
+					(
+						[
+							['LI', 45_800],
+							['EI', 45_800],
+							['WAGE_ARREARS_BASE', 45_800],
+							['NHI', 48_200],
+							['LABOR_PENSION', 48_200],
+							['OCC_INJURY', 48_200]
+						] as const
+					).map(
+						([code, grade]) =>
+							[
+								code,
+								dated(
+									'2024-02-01',
+									['', '2026-03-31', { kind: 'REGISTERED', elections: { insured_amount: 40_100 } }],
+									[
+										'2026-04-01',
+										null,
+										{
+											kind: 'REGISTERED',
+											elections: {
+												insured_amount: grade,
+												notification_reference: 'PROBE-BLI-ADJUSTMENT-2026-03'
+											}
+										}
+									]
+								)
+							] as const
+					)
+				)
+			})
+		],
+		expected: {
+			chu2: {
+				gross: 48_000,
+				net: 46_107,
+				employer_cost: 9290,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 748,
+				'NHI.employer': 2332,
+				'LABOR_PENSION.employer': 2892,
+				'OCC_INJURY.employer': 58
+			}
+		}
+	}),
+	tw({
+		id: 'TW-PEN-12-2',
+		description:
+			'A voluntary 勞退 rate raised from 3% to 6%, filed in March: April charges the new 6% (3,036) beside the unit’s 6% on the 50,600 grade.',
+		citation: [
+			...EVERY,
+			`${PENSION_ACT} §14(3): 得在其每月工資百分之六範圍內，自願提繳; BLI 自願提繳 FAQ (https://www.bli.gov.tw/0017599.html): a rate change takes effect from the first of the month after it is filed.`,
+			'50,600: 勞退 3,036 each; 健保 785 / 2,449; 災保 61. The table withholds nothing (50,000 − 3,036 < 90,501). Net 50,000 − (1,053 + 92 + 785 + 3,036) = 45,034; employer 9,554.'
+		],
+		period: '2026-04',
+		people: [
+			citizen('wen', 'Wen Chia-hsin', 50_000, all(45_800, 50_600), {
+				standing: {
+					LABOR_PENSION: dated(
+						'2024-02-01',
+						['', '2026-03-31', { kind: 'REGISTERED', elections: { voluntary_rate: 3 } }],
+						[
+							'2026-04-01',
+							null,
+							{
+								kind: 'REGISTERED',
+								elections: {
+									voluntary_rate: 6,
+									notification_reference: 'PROBE-VOLUNTARY-6-FILED-2026-03'
+								}
+							}
+						]
+					)
+				}
+			})
+		],
+		expected: {
+			wen: {
+				gross: 50_000,
+				net: 45_034,
+				employer_cost: 9554,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 785,
+				'NHI.employer': 2449,
+				'LABOR_PENSION.employee': 3036,
+				'LABOR_PENSION.employer': 3036,
+				'OCC_INJURY.employer': 61
+			}
+		}
+	}),
+	tw({
+		id: 'TW-PEN-08-2',
+		description:
+			'Back from a February of 育嬰留職停薪 on 1 March 2026: 勞保/就保/健保 continue, and 災保 and both 勞退 contributions resume at the prior 53,000 grade and the worker’s prior 6%.',
+		citation: [
+			...EVERY,
+			`${PENSION_ACT} §20(2): 勞工 … 復職時，雇主應以書面向勞保局申報開始提繳; BLI (https://www.bli.gov.tw/0006915.html): 115年起 育嬰留職停薪 期滿 BLI resumes insurance and pension at the prior grade and rates.`,
+			'53,000: 健保 2,740.10 × 30% = 822.03 → 822 / × 0.936 = 2,564.73 → 2,565; 勞退 3,180 each; 災保 63.60 → 64. The table withholds nothing.',
+			'Net 52,000 − (1,053 + 92 + 822 + 3,180) = 46,853; employer 3,687 + 321 + 2,565 + 3,180 + 64 = 9,817.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('hsieh2', 'Hsieh Yi-ling', 52_000, all(45_800, 53_000), {
+				gender: 'FEMALE',
+				hired: '2022-09-01',
+				elections: { LABOR_PENSION: { voluntary_rate: 6 } },
+				standing: Object.fromEntries([
+					...(['LI', 'EI', 'NHI'] as const).map(
+						(code) =>
+							[
+								code,
+								dated(
+									'2022-09-01',
+									['', '2026-01-31', { kind: 'REGISTERED' }],
+									[
+										'2026-02-01',
+										'2026-02-28',
+										{ kind: 'REGISTERED', elections: { parental_leave: 'CONTINUED' } }
+									],
+									['2026-03-01', null, { kind: 'REGISTERED' }]
+								)
+							] as const
+					),
+					...(['OCC_INJURY', 'LABOR_PENSION'] as const).map(
+						(code) =>
+							[
+								code,
+								dated(
+									'2022-09-01',
+									['', '2026-01-31', { kind: 'REGISTERED' }],
+									[
+										'2026-02-01',
+										'2026-02-28',
+										{ kind: 'NOT_REGISTERED', reason: '育嬰留職停薪: stopped' }
+									],
+									['2026-03-01', null, { kind: 'REGISTERED' }]
+								)
+							] as const
+					)
+				])
+			})
+		],
+		extra: (job) => [
+			leave(job('hsieh2'), 'PARENTAL_LEAVE', 'PARENTAL-TW-HSIEH2', '2026-02-01', '2026-02-28')
+		],
+		expected: {
+			hsieh2: {
+				gross: 52_000,
+				net: 46_853,
+				employer_cost: 9817,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 822,
+				'NHI.employer': 2565,
+				'LABOR_PENSION.employee': 3180,
+				'LABOR_PENSION.employer': 3180,
+				'OCC_INJURY.employer': 64
+			}
+		}
+	}),
+	tw({
+		id: 'TW-LEAVE-01-2',
+		description:
+			'The 年度終結 cash-out: four unused 特別休假 days at 31 December 2026 on NT$60,000 are paid at November’s normal wage ÷ 30.',
+		citation: [
+			...EVERY,
+			`${SRC.lsa} §38(4): 勞工之特別休假，因年度終結或契約終止而未休之日數，雇主應發給工資; 勞動基準法施行細則 §24-1(2)(1)(2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030002&flno=24-1): 計月者 為年度終結 … 前最近一個月正常工作時間所得之工資除以三十 — 60,000 ÷ 30 × 4 = 8,000.`,
+			'Grades 45,800 / 60,800 as TW-LEAVE-01-1 (still employed): net 68,000 − (1,053 + 92 + 943) = 65,912; employer 10,671. The table withholds nothing.'
+		],
+		period: '2026-12',
+		people: [
+			citizen('kang2', 'Kang Yu-chen', 60_000, all(45_800, 60_800), { hired: '2024-01-02' })
+		],
+		extra: (job) => [
+			wageMonth(job('kang2'), '2026-11', '2026-11-30', 60_000),
+			leave(job('kang2'), 'ANNUAL_LEAVE', 'YEAREND-TW-KANG2', '2026-01-01', '2026-12-31', {
+				days: 4,
+				encash_days: 4,
+				effective_on: '2026-12-31',
+				due_on: '2026-12-31'
+			})
+		],
+		expected: {
+			kang2: {
+				gross: 68_000,
+				net: 65_912,
+				employer_cost: 10_671,
+				ANNUAL_LEAVE_ENCASHMENT: 8000,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 943,
+				'NHI.employer': 2942,
+				'LABOR_PENSION.employer': 3648,
+				'OCC_INJURY.employer': 73
+			}
+		}
+	})
+);
+
+// ── Round 9b (2026-09-30): further branches the tracker names as unproven ─────────────────────────
+const PR_EI_EXCLUDED: Standing = {
+	kind: 'NOT_REGISTERED',
+	reason: 'Non-professional PR, not an ROC spouse: outside 就業保險法 §5',
+	declaration_reference: 'PROBE-PR-NONPROFESSIONAL-NONSPOUSE-BLI-CLASS',
+	elections: { pr_nonprofessional_excluded: true }
+};
+const FP_EI_EXCLUDED: Standing = {
+	kind: 'NOT_REGISTERED',
+	reason: 'Foreigner without permanent residence: outside 就業保險法 §5',
+	declaration_reference: 'PROBE-ARC-NO-APRC',
+	elections: { foreign_worker_excluded: true }
+};
+const NHI_FORMULA =
+	'全民健康保險保險費負擔金額表(三) (115.1.1生效, https://www.nhi.gov.tw/ch/cp-19418-9eefb-2576-1.html): 本人 = 投保金額 × 5.17% × 30%, 投保單位 = 投保金額 × 5.17% × 60% × (1 + 0.56), each to the 元 — the formula that reproduces every cell the cases above cite (50,600: 785 / 2,449; 72,800: 1,129 / 3,523; 80,200: 1,244 / 3,881)';
+
+register(
+	tw({
+		id: 'TW-EXIT-03-2',
+		description:
+			'An old-system worker at a unit declaring a 16% reserve rate: outside the §56(1) 2–15% range, the run is refused rather than priced.',
+		citation: [
+			`${SRC.lsa} §56(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=56): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內，按月提撥勞工退休準備金 — 16% is not a rate the authority can approve.`,
+			'Worker as TW-EXIT-03-1 (citizen since 2004, old system retained).'
+		],
+		company: { facts: { pension_reserve_rate: 16 } },
+		period: '2026-03',
+		refused: 'owes the monthly 勞工退休準備金 at the rate the authority approved',
+		people: [
+			citizen(
+				'ku2',
+				'Ku Wen-hsien',
+				50_000,
+				{ LI: 45_800, EI: 45_800, NHI: 50_600, OCC_INJURY: 50_600 },
+				{ born: '1975-11-20', hired: '2004-03-01', standing: { LABOR_PENSION: OLD_SYSTEM } }
+			)
+		],
+		expected: {}
+	}),
+	tw({
+		id: 'TW-TAX-05-2',
+		description:
+			'The table on the month’s whole regular salary: NT$90,100 alone withholds 0, but with a NT$3,500 meal allowance the 500 above NT$3,000 joins it — 90,600 falls in the 90,501–91,000 cell, 2,020.',
+		citation: [
+			...EVERY,
+			SRC.table,
+			NHI_FORMULA,
+			'MOF NM11BZY (https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/withheld-rule/rule/NM11BZY): 固定薪資 withholds on the month’s whole regular salary per the table; 營利事業所得稅查核準則 §88(2)(1) (https://law-out.mof.gov.tw/LawContent.aspx?id=FL006027): meal allowance over NT$3,000 a month is salary — 90,100 + 500 = 90,600 → 2,020.',
+			'Grades on 93,600 of 工資: 勞保/就保 ceiling 1,053 / 3,687, 92 / 321; 健保 96,600: 4,994.22 × 30% = 1,498.27 → 1,498 / × 93.6% = 4,674.59 → 4,675; 勞退 96,600 × 6% = 5,796; 災保 72,800 → 87.',
+			'Net 93,600 − (1,053 + 92 + 1,498 + 2,020) = 88,937; employer 3,687 + 321 + 4,675 + 5,796 + 87 = 14,566.'
+		],
+		period: '2026-03',
+		people: [
+			citizen('fang', 'Fang Chih-wei', 90_100, all(45_800, 96_600, 96_600, 72_800), {
+				terms: {
+					allowances: [{ catalogue_id: '@law:allowance_catalogue:MEAL_ALLOWANCE', amount: 3500 }]
+				}
+			})
+		],
+		expected: {
+			fang: {
+				gross: 93_600,
+				net: 88_937,
+				employer_cost: 14_566,
+				BASIC: 90_100,
+				MEAL_ALLOWANCE: 3500,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 1498,
+				'NHI.employer': 4675,
+				'LABOR_PENSION.employer': 5796,
+				'OCC_INJURY.employer': 87,
+				'INCOME_TAX.employee': 2020
+			}
+		}
+	}),
+	tw({
+		id: 'TW-ADMIN-11-1',
+		description:
+			'墊償 on the unit total: a whole-month worker on 42,000 and a joiner on 16 March on 45,800 (15 of 30 days) — 64,900 × 0.025% = 16.225 → 16, not 11 + 6 = 17 rounded per worker.',
+		citation: [
+			...EVERY,
+			SRC.fivePercent,
+			ARREARS,
+			'BLI 積欠工資墊償基金 FAQ (https://www.bli.gov.tw/0110180.html, read 2026-09-30): 墊償提繳薪資 = 勞保投保薪資 × 在職天數 ÷ 30, summed for the unit, × 0.025%, 角以下四捨五入 on the total (its example: 140,970 → 35). 42,000 + 45,800 × 15/30 = 64,900 → 16.225 → 16.',
+			'Worker 1, 42,000 on 42,000: 966 / 3,381; 84 / 294; 651 / 2,032; 勞退 2,520; 災保 50 — net 40,299; employer 8,277. Worker 2 as TW-WAGE-05-1: 24,000, net 22,717; employer 5,620.',
+			`${NHI_EMPLOYER}: 66,000 paid is below the 87,800 insured, so no line.`
+		],
+		period: '2026-03',
+		people: [
+			citizen('tseng', 'Tseng Po-han', 42_000, all(42_000)),
+			citizen('lee2', 'Lee Kuan-ting', 45_000, all(45_800), { hired: '2026-03-16', tax: FIVE })
+		],
+		companyLines: { 'WAGE_ARREARS_FUND.employer': 16 },
+		expected: {
+			tseng: {
+				gross: 42_000,
+				net: 40_299,
+				employer_cost: 8277,
+				'LI.employee': 966,
+				'LI.employer': 3381,
+				'EI.employee': 84,
+				'EI.employer': 294,
+				'NHI.employee': 651,
+				'NHI.employer': 2032,
+				'LABOR_PENSION.employer': 2520,
+				'OCC_INJURY.employer': 50
+			},
+			lee2: {
+				gross: 24_000,
+				net: 22_717,
+				employer_cost: 5620,
+				'LI.employee': 527,
+				'LI.employer': 1843,
+				'EI.employee': 46,
+				'EI.employer': 160,
+				'NHI.employee': 710,
+				'NHI.employer': 2216,
+				'LABOR_PENSION.employer': 1374,
+				'OCC_INJURY.employer': 27
+			}
+		}
+	}),
+	tw({
+		id: 'TW-NHI-05-2',
+		description:
+			'A part-timer at work every workday for two hours (10 a week, under 12) at NT$8,000 is still enrolled in 健保 by the employer at the 29,500 floor; 勞保/就保 at 11,100, 勞退 on 8,700.',
+		citation: [
+			...EVERY,
+			'NHIA Q&A (https://www.nhi.gov.tw/ch/cp-2981-5ed58-3150-1.html, read 2026-09-30): 部分工時者 視同專任員工，應由雇主為其投保 when (1) 每個工作日到工者(不論工作時數) or (2) 每週工作時數滿12小時.',
+			'Floor 29,500 × 10/40 = 7,375 < 8,000. 11,100: 勞保 255 / 894; 就保 22 / 78. 勞退 8,700 (7,501–8,700) × 6% = 522. 健保 458 / 1,428. 災保 35.',
+			'Net 8,000 − (255 + 22 + 458) = 7,265; employer 894 + 78 + 1,428 + 522 + 35 = 2,957.'
+		],
+		period: '2026-03',
+		people: [
+			citizen(
+				'yu',
+				'Yu Hsiao-ling',
+				8000,
+				{ LI: 11_100, EI: 11_100, NHI: 29_500, LABOR_PENSION: 8700, OCC_INJURY: 29_500 },
+				{
+					gender: 'FEMALE',
+					terms: {
+						employment_type: 'PART_TIME',
+						ordinary_hours_per_week: 10,
+						working_days_per_week: 5
+					}
+				}
+			)
+		],
+		expected: {
+			yu: {
+				gross: 8000,
+				net: 7265,
+				employer_cost: 2957,
+				'LI.employee': 255,
+				'LI.employer': 894,
+				'EI.employee': 22,
+				'EI.employer': 78,
+				'NHI.employee': 458,
+				'NHI.employer': 1428,
+				'LABOR_PENSION.employer': 522,
+				'OCC_INJURY.employer': 35
+			}
+		}
+	}),
+	...(['2026-06-30', '2026-07-01'] as const).map((electedOn) =>
+		tw({
+			id: electedOn === '2026-06-30' ? 'TW-PEN-02-2' : 'TW-PEN-02-3',
+			description:
+				electedOn === '2026-06-30'
+					? 'A non-PR foreign professional employed since 2023 elects the old system in writing on 30 June 2026, the last day: July 2026 has no 勞退 6%; the unit’s §56 reserve at 5%.'
+					: 'The same professional electing on 1 July 2026, after the window: the run is refused, not zero-charged (the unit owes 勞退 from 1 January 2026).',
+			citation: [
+				...EVERY,
+				SRC.fivePercent,
+				'BLI 2026 notice (https://www.bli.gov.tw/0109916.html, read 2026-09-30): 修法前已受僱者 應於修法施行之日起6個月內(即115年6月30日前)，以書面向雇主表明 選擇繼續適用舊制; otherwise 雇主 應於115年7月15日前 向勞保局申報，溯自115年1月1日起提繳 (外國專業人才延攬及僱用法 §11, https://theme.ndc.gov.tw/lawout/LawContent.aspx?id=GL000273).',
+				electedOn === '2026-06-30'
+					? '勞動基準法 §56(1) reserve 70,000 × 5% = 3,500. 勞保 ceiling 1,053 / 3,687; no 就保 (就業保險法 §5); 健保 72,800: 1,129 / 3,523; 災保 72,800 → 87. 5% × 70,000 = 3,500. Net 70,000 − (1,053 + 1,129 + 3,500) = 64,318; employer 3,687 + 3,523 + 87 + 3,500 = 10,797.'
+					: 'Tracker TW-SCOPE-02: NOT_REGISTERED without a lawful exclusion refuses the run.'
+			],
+			company: { facts: { pension_reserve_rate: 5 } },
+			period: '2026-07',
+			...(electedOn === '2026-07-01'
+				? { refused: 'NOT_REGISTERED does not establish an old-system' }
+				: {}),
+			people: [
+				citizen(
+					'smith',
+					'Emma Smith',
+					70_000,
+					{ LI: 45_800, NHI: 72_800, OCC_INJURY: 72_800 },
+					{
+						gender: 'FEMALE',
+						nationality: 'Canadian',
+						born: '1985-04-12',
+						hired: '2023-04-03',
+						tax: FIVE,
+						terms: { residency_status: 'FOREIGNER', pass_type: 'EMPLOYMENT_PASS' },
+						standing: {
+							EI: FP_EI_EXCLUDED,
+							LABOR_PENSION: {
+								kind: 'NOT_REGISTERED',
+								reason: 'LSA old system elected in writing',
+								declaration_reference: `PROBE-WRITTEN-OLD-ELECTION-${electedOn}-FOREIGN-PROFESSIONAL`,
+								elections: {
+									professional_work_class: 'FOREIGN_PROFESSIONAL',
+									professional_old_election_on: electedOn
+								}
+							}
+						}
+					}
+				)
+			],
+			expected:
+				electedOn === '2026-06-30'
+					? {
+							smith: {
+								gross: 70_000,
+								net: 64_318,
+								employer_cost: 10_797,
+								'LI.employee': 1053,
+								'LI.employer': 3687,
+								'NHI.employee': 1129,
+								'NHI.employer': 3523,
+								'OCC_INJURY.employer': 87,
+								'LABOR_PENSION_RESERVE.employer': 3500,
+								'INCOME_TAX.employee': 3500
+							}
+						}
+					: {}
+		})
+	),
+	...(['2024-08-31', '2024-09-01'] as const).map((electedOn) =>
+		tw({
+			id: electedOn === '2024-08-31' ? 'TW-PEN-15-1' : 'TW-PEN-15-2',
+			description:
+				electedOn === '2024-08-31'
+					? 'A foreign worker serving the unit since 2017 is granted permanent residence on 1 March 2024 and elects the old system in writing on 31 August 2024: no 勞退 6%, the reserve at 6%, no 就保.'
+					: 'The same worker electing on 1 September 2024, six months after the grant: the run is refused.',
+			citation: [
+				...EVERY,
+				`${PENSION_ACT} §8-1 (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=8-1): (1)(3) 於各該修正條文施行後始取得各該身分者，為取得身分之日; (2) 施行前已受僱且仍服務於同一事業單位者，於適用本條例之日起六個月內，得以書面向雇主表明選擇繼續適用勞動基準法之退休金規定 — the 108-04-26 amendment took effect 2019-05-17; the recorded default window is [grant, grant + 6 months).`,
+				'就業保險法 §5(1) (https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=N0050021): a non-professional permanent resident who is not an ROC spouse is outside 就保.',
+				electedOn === '2024-08-31'
+					? '40,100: 922 / 3,228, 622 / 1,940, 災保 48; §56(1) reserve 6% × 40,000 = 2,400. Net 40,000 − 1,544 = 38,456; employer 7,616.'
+					: 'Tracker TW-SCOPE-02: NOT_REGISTERED without a lawful exclusion refuses the run.'
+			],
+			company: { facts: { pension_reserve_rate: 6 } },
+			period: '2026-03',
+			...(electedOn === '2024-09-01'
+				? { refused: 'NOT_REGISTERED does not establish an old-system' }
+				: {}),
+			people: [
+				citizen(
+					'nguyen',
+					'Nguyen Van An',
+					40_000,
+					{ LI: 40_100, NHI: 40_100, OCC_INJURY: 40_100 },
+					{
+						nationality: 'Vietnamese',
+						born: '1984-06-06',
+						hired: '2017-01-01',
+						terms: {
+							residency_status: 'PERMANENT_RESIDENT',
+							residency_since: '2024-03-01',
+							pass_type: 'OTHER'
+						},
+						standing: {
+							EI: PR_EI_EXCLUDED,
+							LABOR_PENSION: {
+								kind: 'NOT_REGISTERED',
+								reason: 'LSA old system elected in writing after a later PR grant',
+								declaration_reference: `PROBE-PR-2024-03-01-WRITTEN-OLD-ELECTION-${electedOn}-SAME-UNIT`,
+								elections: {
+									pr_old_transition_class: 'FOREIGN_LATER_PR_GRANT',
+									pr_old_election_on: electedOn
+								}
+							}
+						}
+					}
+				)
+			],
+			expected:
+				electedOn === '2024-08-31'
+					? {
+							nguyen: {
+								gross: 40_000,
+								net: 38_456,
+								employer_cost: 7616,
+								'LI.employee': 922,
+								'LI.employer': 3228,
+								'NHI.employee': 622,
+								'NHI.employer': 1940,
+								'OCC_INJURY.employer': 48,
+								'LABOR_PENSION_RESERVE.employer': 2400
+							}
+						}
+					: {}
+		})
+	)
 );

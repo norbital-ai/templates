@@ -19,6 +19,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -822,6 +827,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -1624,6 +1634,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -2426,6 +2441,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -3232,6 +3252,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -4036,6 +4061,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -4839,6 +4869,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -5642,6 +5677,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -6449,6 +6489,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -7254,6 +7299,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -8058,6 +8108,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -8862,6 +8917,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -9670,6 +9730,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -10480,6 +10545,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -11290,6 +11360,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -12104,6 +12179,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -12910,6 +12990,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -13721,6 +13806,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -14532,6 +14622,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -15347,6 +15442,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -16163,6 +16263,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -16984,6 +17089,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -17822,6 +17932,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
