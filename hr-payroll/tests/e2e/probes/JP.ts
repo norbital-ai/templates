@@ -161,6 +161,10 @@ type Person = {
 	exitFacts?: Row;
 	/** The exit reason where the person leaves; RESIGNATION when omitted. */
 	exitReason?: string;
+	/** MALE when omitted. */
+	gender?: 'MALE' | 'FEMALE';
+	/** Extra employee fields (`children`). */
+	person?: Row;
 };
 
 function personInputs(p: Person): ProbeInput[] {
@@ -190,8 +194,9 @@ function personInputs(p: Person): ProbeInput[] {
 			values: {
 				name: p.name,
 				date_of_birth: p.born ?? '1990-05-10',
-				gender: 'MALE',
-				nationality: 'Japanese'
+				gender: p.gender ?? 'MALE',
+				nationality: 'Japanese',
+				...p.person
 			}
 		},
 		{
@@ -280,6 +285,21 @@ const NOTICE: Row = {
 	resident_tax_monthly_amount: 15_000,
 	resident_tax_notice_reference: '新宿区 令和8年度 特別徴収税額の決定通知書'
 };
+
+/** The ordinary lines of a 30 September 2026 leaver on the 300,000 wage and grade with no 扶養控除等申告書 (JP-TAX-25-1). */
+const SEPTEMBER_LEAVER = {
+	'HEALTH.employee': 29_550,
+	'HEALTH.employer': 29_550,
+	'CHILD_SUPPORT.employee': 690,
+	'CHILD_SUPPORT.employer': 690,
+	'PENSION.employee': 54_900,
+	'PENSION.employer': 54_900,
+	'CHILD_CONTRIBUTION.employer': 2_160,
+	'EMPLOYMENT_INSURANCE.employee': 1_500,
+	'EMPLOYMENT_INSURANCE.employer': 2_550,
+	'WORKERS_COMP.employer': 900,
+	'INCOME_TAX.employee': 24_100
+} as const;
 
 /** A clocked day in Tokyo (+09:00): `[start, end]` pairs of HH:MM. */
 const worked = (
@@ -1665,7 +1685,7 @@ register(
 			'Ordinary lines as JP-TAX-25-1 (September leaver on the 300,000 grade and wage, 乙欄 24,100). Each: 1 April 2014 – 30 September 2026, 13 years (recorded), 400,000 × 13 = 5,200,000.',
 			'Matsumoto, 3 overlapping years: 5,200,000 − 1,200,000 = 4,000,000; (6,000,000 − 4,000,000) ÷ 2 = 1,000,000 × 5% = 50,000 × 102.1% = 51,050. 退職所得割 60,000 + 40,000 = 100,000.',
 			'Inoue, 12 overlapping years: 5,200,000 − 4,800,000 = 400,000 < 800,000 → 800,000; (2,000,000 − 800,000) ÷ 2 = 600,000 × 5% = 30,000 × 102.1% = 30,630. 退職所得割 36,000 + 24,000 = 60,000.',
-			'Kimura Aoi, no overlap, a 2,000,000 GENERAL allowance already paid this year (20,420 income tax, 40,000 退職所得割 withheld): (6,000,000 + 2,000,000 − 5,200,000) ÷ 2 = 1,400,000 × 5% = 70,000 × 102.1% = 71,470 − 20,420 = 51,050; 退職所得割 84,000 + 56,000 = 140,000 − 40,000 = 100,000.'
+			'Ogawa, no overlap, a 2,000,000 GENERAL allowance already paid this year (20,420 income tax, 40,000 退職所得割 withheld): (6,000,000 + 2,000,000 − 5,200,000) ÷ 2 = 1,400,000 × 5% = 70,000 × 102.1% = 71,470 − 20,420 = 51,050; 退職所得割 84,000 + 56,000 = 140,000 − 40,000 = 100,000.'
 		],
 		period: '2026-09',
 		people: (
@@ -1673,8 +1693,8 @@ register(
 				['matsumoto', 'Matsumoto Hina', { retirement_deduction_reduction_years: 3 }],
 				['inoue', 'Inoue Sora', { retirement_deduction_reduction_years: 12 }],
 				[
-					'kimura',
-					'Kimura Aoi',
+					'ogawa',
+					'Ogawa Aoi',
 					{
 						retirement_prior_same_year_amount: 2_000_000,
 						retirement_prior_same_year_income_tax: 20_420,
@@ -1697,14 +1717,14 @@ register(
 		extra: (job) => [
 			retirementAllowance(job('matsumoto'), 6_000_000, '2026-09-30'),
 			retirementAllowance(job('inoue'), 2_000_000, '2026-09-30'),
-			retirementAllowance(job('kimura'), 6_000_000, '2026-09-30')
+			retirementAllowance(job('ogawa'), 6_000_000, '2026-09-30')
 		],
 		expected: Object.fromEntries(
 			(
 				[
 					['matsumoto', 51_050, 100_000],
 					['inoue', 30_630, 60_000],
-					['kimura', 51_050, 100_000]
+					['ogawa', 51_050, 100_000]
 				] as const
 			).map(([ref, incomeTax, localTax]) => [
 				ref,
@@ -1770,7 +1790,7 @@ register(
 					'EMPLOYMENT_INSURANCE.employer': 2_550,
 					'WORKERS_COMP.employer': 900,
 					'INCOME_TAX.employee': 37_600,
-					'RESIDENT_TAX.employee': residentTax
+					...(residentTax === 0 ? {} : { 'RESIDENT_TAX.employee': residentTax })
 				}
 			])
 		)
@@ -1880,7 +1900,7 @@ const REGIONS = [
 ] as const;
 
 /** A leave entry for the whole days `from`–`to`. */
-const leave = (job: string, code: string, from: string, to: string): ProbeInput => ({
+const leave = (job: string, code: string, from: string, to: string, event: Row = {}): ProbeInput => ({
 	collection: 'leave_entries',
 	values: {
 		employment_id: job,
@@ -1890,7 +1910,8 @@ const leave = (job: string, code: string, from: string, to: string): ProbeInput 
 		to_date: to,
 		half_day_start: false,
 		half_day_end: false,
-		reason: code
+		reason: code,
+		...event
 	}
 });
 
@@ -2148,6 +2169,93 @@ register(
 		}
 	}),
 	jp({
+		id: 'JP-LS09-1',
+		description:
+			'A worker on 300,000 gives birth on Monday 15 June 2026 and takes 産前産後休業 from that day to 10 August: the employer does not pay the leave (出産手当金 is the insurer’s), so June pays the 10 days worked of 22.',
+		citation: [
+			'労働基準法 §65(1)–(2) (https://laws.e-gov.go.jp/law/322AC0000000049): prenatal leave on request, no work for eight weeks after the birth — the birth day falls in the prenatal part, so 15 June plus the 56 days 16 June – 10 August. The Act does not make the leave paid; 健康保険法 §102 (https://laws.e-gov.go.jp/law/211AC0000000070) pays 出産手当金 outside payroll — docs/inventory/japan.csv JP-LS09 (paid_by FUND).',
+			'Unworked scheduled days are deducted at the JP-PRO-01 rate: June 2026 has 22 Monday–Friday days, 1–12 June (10) worked; 300,000 × 10 ÷ 22 = 136,363.64 → 136,364 (通貨の単位及び貨幣の発行等に関する法律 §3).',
+			...SI,
+			'June pay collects May on the 300,000 grade; the 健康保険法 §159-3 (厚生年金保険法 §81-2-2) maternity exemption starts with the June insurance month, collected from July pay: 14,775 each, 支援金 345 each, 厚生年金 27,450 each, 拠出金 1,080.',
+			'136,364: 雇用保険 令和8年度 × 5/1,000 = 681.82 → 682 (over 50 sen up), employer × 8.5/1,000 = 1,159.094 → 1,159; 労災 × 3/1,000 = 409.092 → 409.',
+			SRC.tax,
+			'源泉所得税 乙欄: 136,364 − (14,775 + 345 + 27,450 + 682) = 93,112, under 105,000 → 3.063% = 2,852.02 → 2,852 (sub-yen dropped, recorded default).'
+		],
+		period: '2026-06',
+		people: [sato({ ref: 'mori', name: 'Mori Yui', wage: 300_000, grade: 300_000, gender: 'FEMALE' })],
+		extra: (job) => [
+			leave(job('mori'), 'MATERNITY_LEAVE', '2026-06-15', '2026-08-10', {
+				event_kind: 'BIRTH',
+				event_date: '2026-06-15'
+			})
+		],
+		expected: {
+			mori: {
+				gross: 136_364,
+				'HEALTH.employee': 14_775,
+				'HEALTH.employer': 14_775,
+				'CHILD_SUPPORT.employee': 345,
+				'CHILD_SUPPORT.employer': 345,
+				'PENSION.employee': 27_450,
+				'PENSION.employer': 27_450,
+				'CHILD_CONTRIBUTION.employer': 1_080,
+				'EMPLOYMENT_INSURANCE.employee': 682,
+				'EMPLOYMENT_INSURANCE.employer': 1_159,
+				'WORKERS_COMP.employer': 409,
+				'INCOME_TAX.employee': 2_852
+			}
+		}
+	}),
+	jp({
+		id: 'JP-WG-02-1',
+		description:
+			'An employer-caused shutdown on Tuesday 9 and Wednesday 10 June 2026 for a worker on 300,000: the two days come off the wage and 休業手当 pays 60% of the 平均賃金 for each.',
+		citation: [
+			'労働基準法 §26 (https://laws.e-gov.go.jp/law/322AC0000000049): at least 60% of the 平均賃金 for each day of a shutdown attributable to the employer.',
+			'労働基準法 §12(1)–(2): the three months before the event’s month, March–May 2026, 300,000 × 3 = 900,000 over 31 + 30 + 31 = 92 days, recorded on the request as 900,000 ÷ 92 = 9,782.6086…; Kanagawa Labour Bureau (https://jsite.mhlw.go.jp/kanagawa-roudoukyoku/hourei_seido_tetsuzuki/saiteichingin_chinginseido/heikinchi.html): below one sen dropped → 9,782.60; 9,782.60 × 60% × 2 = 11,739.12 → 11,739.',
+			'The two unworked scheduled days are deducted at the JP-PRO-01 rate: 300,000 × 20 ÷ 22 = 272,727.27 → 272,727; gross 272,727 + 11,739 = 284,466.',
+			...SI,
+			'June pay collects May on the 300,000 grade: 14,775 each, 支援金 345 each, 厚生年金 27,450 each, 拠出金 1,080.',
+			'Kanagawa Labour Bureau 賃金早見表 (https://jsite.mhlw.go.jp/kanagawa-roudoukyoku/hourei_seido_tetsuzuki/roudou_hoken/hourei_seido/rouho_hayami.html): 休業手当 is 賃金 — 284,466 × 5/1,000 = 1,422.33 → 1,422, employer × 8.5/1,000 = 2,417.961 → 2,417; 労災 × 3/1,000 = 853.398 → 853.',
+			SRC.tax,
+			'所得税法 §28(1): 休業手当 is 給与. 乙欄: 284,466 − (14,775 + 345 + 27,450 + 1,422) = 240,474 → 月額表 令和8年分 乙欄 239,000–242,000 → 32,600.'
+		],
+		period: '2026-06',
+		people: [sato({ ref: 'ono', name: 'Ono Riku', wage: 300_000, grade: 300_000 })],
+		extra: (job) => [
+			worked(job('ono'), '2026-06-09'),
+			worked(job('ono'), '2026-06-10'),
+			{
+				collection: 'adhoc_requests',
+				values: {
+					employment_id: job('ono'),
+					catalogue_id: '@law:adhoc_catalogue:SHUTDOWN_ALLOWANCE',
+					amount: 0,
+					event_date: '2026-06-10',
+					reason: '休業手当',
+					facts: { shutdown_days: 2, wages_paid: 0, average_wage: 900_000 / 92 }
+				}
+			}
+		],
+		expected: {
+			ono: {
+				gross: 284_466,
+				SHUTDOWN_ALLOWANCE: 11_739,
+				'HEALTH.employee': 14_775,
+				'HEALTH.employer': 14_775,
+				'CHILD_SUPPORT.employee': 345,
+				'CHILD_SUPPORT.employer': 345,
+				'PENSION.employee': 27_450,
+				'PENSION.employer': 27_450,
+				'CHILD_CONTRIBUTION.employer': 1_080,
+				'EMPLOYMENT_INSURANCE.employee': 1_422,
+				'EMPLOYMENT_INSURANCE.employer': 2_417,
+				'WORKERS_COMP.employer': 853,
+				'INCOME_TAX.employee': 32_600
+			}
+		}
+	}),
+	jp({
 		id: 'JP-TAX-07-BANDS-1',
 		description:
 			'September 2026: 300,000 plus a 20,000 通勤手当 for a 20 km one-way car commute with 3,000 of parking: 16,500 is untaxed, the whole 20,000 bears 雇用保険 and 労災.',
@@ -2261,6 +2369,199 @@ register(
 				'EMPLOYMENT_INSURANCE.employer': 1_599,
 				'WORKERS_COMP.employer': 564,
 				'INCOME_TAX.employee': 10_100
+			}
+		}
+	})
+);
+
+/** A 300,000 wage and grade in May or June 2026, born 1990: the previous month's premium and the month's 労働保険. */
+const MONTH_300 = {
+	'HEALTH.employee': 14_775,
+	'HEALTH.employer': 14_775,
+	'CHILD_SUPPORT.employee': 345,
+	'CHILD_SUPPORT.employer': 345,
+	'PENSION.employee': 27_450,
+	'PENSION.employer': 27_450,
+	'CHILD_CONTRIBUTION.employer': 1_080,
+	'EMPLOYMENT_INSURANCE.employee': 1_500,
+	'EMPLOYMENT_INSURANCE.employer': 2_550,
+	'WORKERS_COMP.employer': 900
+} as const;
+const MONTH_300_CITE =
+	'May 2026 pay collects April 2026 on the 300,000 grade (born 1990, no care): 健康保険 東京都 300,000 × 9.85% ÷ 2 = 14,775; 支援金 300,000 × 0.23% ÷ 2 = 345; 厚生年金 300,000 × 9.15% = 27,450; 拠出金 300,000 × 0.36% = 1,080; 雇用保険 令和8年度 300,000 × 5/1,000 = 1,500, employer × 8.5/1,000 = 2,550; 労災 × 3/1,000 = 900.';
+
+/** An ad hoc line of the month by catalogue code. */
+const adhoc = (job: string, code: string, amount: number, date: string): ProbeInput => ({
+	collection: 'adhoc_requests',
+	values: {
+		employment_id: job,
+		catalogue_id: `@law:adhoc_catalogue:${code}`,
+		amount,
+		event_date: date,
+		reason: code
+	}
+});
+
+register(
+	jp({
+		id: 'JP-TAX-08-1',
+		description:
+			'May 2026 meals in kind worth 13,000: a worker paying 6,000 (under half) is taxed on the 7,000 difference; one paying 7,000 (half or more, 6,000 ≤ 7,500 left) is not.',
+		citation: [
+			...SI,
+			MONTH_300_CITE,
+			'NTA No.2594 (https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2594.htm, read 2026-09-30) and 令和8年度改正 (https://www.nta.go.jp/users/gensen/2026shokuji/index.htm): meals are untaxed where the worker bears half their value or more and the value less the charge (sub-JPY10 dropped) is JPY7,500 a month or less; its own example: 13,000 with 6,000 borne → 7,000 is 給与.',
+			'Neither meal is 賃金 for 労働保険 or 報酬 on this payslip: the worker pays over a third of the cost (Kanagawa Labour Bureau 賃金早見表, https://jsite.mhlw.go.jp/kanagawa-roudoukyoku/hourei_seido_tetsuzuki/roudou_hoken/hourei_seido/rouho_hayami.html), and the collected premium is the recorded grade.',
+			SRC.tax,
+			'源泉所得税 乙欄: Kondo 300,000 + 7,000 − (14,775 + 345 + 27,450 + 1,500) = 262,930 → 月額表 令和8年分 乙欄 260,000–263,000 → 39,600; Sakai 300,000 − 44,070 = 255,930 → 254,000–257,000 → 37,600.'
+		],
+		period: '2026-05',
+		people: [
+			sato({ ref: 'kondo', name: 'Kondo Yuna', wage: 300_000, grade: 300_000 }),
+			sato({ ref: 'sakai', name: 'Sakai Taichi', wage: 300_000, grade: 300_000 })
+		],
+		extra: (job) => [
+			adhoc(job('kondo'), 'MEAL_IN_KIND', 13_000, '2026-05-29'),
+			adhoc(job('kondo'), 'MEAL_CHARGE', 6_000, '2026-05-29'),
+			adhoc(job('sakai'), 'MEAL_IN_KIND', 13_000, '2026-05-29'),
+			adhoc(job('sakai'), 'MEAL_CHARGE', 7_000, '2026-05-29')
+		],
+		expected: {
+			kondo: { ...MONTH_300, 'INCOME_TAX.employee': 39_600 },
+			sakai: { ...MONTH_300, 'INCOME_TAX.employee': 37_600 }
+		}
+	}),
+	jp({
+		id: 'JP-TAX-13-1',
+		description:
+			'A company flat (building 固定資産税課税標準額 5,000,000, 66 m², land 3,000,000) has a 賃貸料相当額 of 16,840 a month: rent of 5,000 (under half) is taxed on 11,840; rent of 9,000 (half or more) is not.',
+		citation: [
+			...SI,
+			MONTH_300_CITE,
+			'NTA No.2597 (https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2597.htm, read 2026-09-30): 賃貸料相当額 = building × 0.2% + 12円 × floor area ÷ 3.3 m² + land × 0.22% = 10,000 + 240 + 6,600 = 16,840; rent of 50% (8,420) or more is untaxed, otherwise the difference is 給与: 16,840 − 5,000 = 11,840.',
+			'The flat is not 賃金 for 労働保険 (no 住宅手当 is paid to others in its place; Kanagawa Labour Bureau 賃金早見表, https://jsite.mhlw.go.jp/kanagawa-roudoukyoku/hourei_seido_tetsuzuki/roudou_hoken/hourei_seido/rouho_hayami.html) and the collected premium is the recorded grade.',
+			SRC.tax,
+			'源泉所得税 乙欄: Nishida 300,000 + 11,840 − 44,070 = 267,770 → 月額表 令和8年分 乙欄 266,000–269,000 → 41,700; Okada 255,930 → 254,000–257,000 → 37,600.'
+		],
+		period: '2026-05',
+		people: (
+			[
+				['nishida', 'Nishida Kou', 5_000],
+				['okada', 'Okada Hana', 9_000]
+			] as const
+		).map(([ref, name, rent]) =>
+			sato({
+				ref,
+				name,
+				wage: 300_000,
+				grade: 300_000,
+				terms: {
+					housing_provided: true,
+					housing_building_tax_base: 5_000_000,
+					housing_floor_area_m2: 66,
+					housing_land_tax_base: 3_000_000,
+					housing_employee_rent: rent
+				}
+			})
+		),
+		expected: {
+			nishida: { ...MONTH_300, 'INCOME_TAX.employee': 41_700 },
+			okada: { ...MONTH_300, 'INCOME_TAX.employee': 37_600 }
+		}
+	}),
+	jp({
+		id: 'JP-TAX-16-1',
+		description:
+			'The JP-TAX-15-1 joiner also files a 保険料控除申告書 claiming 150,000 of 生命保険料控除: the claim stops at the 120,000 total, and the December 年末調整 refunds 19,300.',
+		citation: [
+			SRC.ei,
+			SRC.wc,
+			'Enrolled 1 December 2026: December carries only 雇用保険 1,500 / 2,550 and 労災 900 (as JP-TAX-15-1).',
+			SRC.tax,
+			'所得税法 §76 (https://laws.e-gov.go.jp/law/340AC0000000033); NTA No.1140 (https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1140.htm): the 一般・介護医療・個人年金 deductions together are at most 120,000; the 2026 under-23 general-life bands (NTA 令和8年分 年末調整のしかた, https://www.nta.go.jp/publication/pamph/gensen/nencho2026/pdf/102.pdf) raise one part but not that total. 150,000 claimed → 120,000.',
+			'As JP-TAX-15-1: 給与所得 2,440,000, 社会保険料控除 481,500, 基礎控除 1,040,000. 課税給与所得金額 2,440,000 − 481,500 − 120,000 − 1,040,000 = 798,500 → 798,000; §89 5% = 39,900; × 102.1% = 40,737.9 → 40,700 (100円未満切捨て); 40,700 − 60,000 withheld = −19,300.'
+		],
+		period: '2026-12',
+		people: [
+			sato({
+				ref: 'hoken',
+				name: 'Hoken Mai',
+				hired: '2026-12-01',
+				wage: 300_000,
+				grade: 300_000,
+				terms: { withholding_column: 'KOU', withholding_dependants: 0 },
+				incomeTax: {
+					elections: { yearend_basic_declaration: true },
+					opening: [
+						{ year: '2026', base: 3_300_000, employee: 60_000, employer: 0, months: 11, reference: '前職 源泉徴収票' }
+					],
+					deduction_claims: [
+						{
+							period: '2026-11',
+							category: 'SOCIAL_INSURANCE',
+							amount: 480_000,
+							source: 'PRIOR_EMPLOYER',
+							reference: '前職 源泉徴収票 社会保険料等の金額'
+						},
+						{
+							period: '2026-12',
+							category: 'LIFE_INSURANCE',
+							amount: 150_000,
+							source: 'EMPLOYEE',
+							reference: '令和8年分 保険料控除申告書 生命保険料控除'
+						}
+					]
+				}
+			})
+		],
+		expected: {
+			hoken: {
+				gross: 300_000,
+				'EMPLOYMENT_INSURANCE.employee': 1_500,
+				'EMPLOYMENT_INSURANCE.employer': 2_550,
+				'WORKERS_COMP.employer': 900,
+				'INCOME_TAX.employee': -19_300
+			}
+		}
+	}),
+	jp({
+		id: 'JP-HR-22-1',
+		description:
+			'Two unpaid 子の看護等休暇 days (Tuesday 9 and Wednesday 10 June 2026) for a worker with one child born 2020, on 300,000: 2 of June’s 22 scheduled working days are not paid.',
+		citation: [
+			'育児休業、介護休業等育児又は家族介護を行う労働者の福祉に関する法律 §16-2(1) (https://laws.e-gov.go.jp/law/403AC0000000076): 5 working days a year for one child to the end of grade 3; the Act does not make them paid — docs/inventory/japan.csv JP-HR-22 records the default, unpaid.',
+			'Unworked scheduled days are deducted at the JP-PRO-01 rate (owner rule 2026-09-28): 300,000 × 20 ÷ 22 = 272,727.27 → 272,727.',
+			...SI,
+			'June pay collects May on the 300,000 grade: 14,775 each, 支援金 345 each, 厚生年金 27,450 each, 拠出金 1,080. 272,727: 雇用保険 × 5/1,000 = 1,363.635 → 1,364, employer × 8.5/1,000 = 2,318.18 → 2,318; 労災 × 3/1,000 = 818.18 → 818.',
+			SRC.tax,
+			'源泉所得税 乙欄: 272,727 − (14,775 + 345 + 27,450 + 1,364) = 228,793 → 月額表 令和8年分 乙欄 227,000–230,000 → 28,500.'
+		],
+		period: '2026-06',
+		people: [
+			sato({
+				ref: 'kodomo',
+				name: 'Kodomo Rika',
+				wage: 300_000,
+				grade: 300_000,
+				gender: 'FEMALE',
+				person: { children: [{ child_birthdate: '2020-05-12', relationship: 'CHILD' }] }
+			})
+		],
+		extra: (job) => [leave(job('kodomo'), 'CHILD_NURSING_LEAVE', '2026-06-09', '2026-06-10')],
+		expected: {
+			kodomo: {
+				gross: 272_727,
+				'HEALTH.employee': 14_775,
+				'HEALTH.employer': 14_775,
+				'CHILD_SUPPORT.employee': 345,
+				'CHILD_SUPPORT.employer': 345,
+				'PENSION.employee': 27_450,
+				'PENSION.employer': 27_450,
+				'CHILD_CONTRIBUTION.employer': 1_080,
+				'EMPLOYMENT_INSURANCE.employee': 1_364,
+				'EMPLOYMENT_INSURANCE.employer': 2_318,
+				'WORKERS_COMP.employer': 818,
+				'INCOME_TAX.employee': 28_500
 			}
 		}
 	})
