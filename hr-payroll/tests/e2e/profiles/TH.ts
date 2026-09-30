@@ -275,6 +275,19 @@ export function generateProfiles(): Scenario[] {
 		employee: { birthDate: '2009-06-01', hireDate: '2025-07-01', pay: monthly(12000) },
 		time: { holidayWork: { kind: 'WEEKLY', hours: 4, overtimeHours: 0 } }
 	});
+	// s.48 age seam (DEFAULT: age read on the period end, as the oracle does)
+	add('minor-turns-18-after-period', ['TH-HR-07', 'TH-WORK-07'], ['17 on the period end: OT refused'], {
+		employee: { birthDate: '2008-04-01', hireDate: '2025-07-01', pay: monthly(12000) },
+		time: { overtimeHours: 1 }
+	});
+	add('minor-turned-18-period-start', ['TH-HR-07', 'TH-WORK-06'], ['18 on the 1st: OT paid'], {
+		employee: { birthDate: '2008-03-01', hireDate: '2025-07-01', pay: monthly(12000) },
+		time: { overtimeHours: 1 }
+	});
+	add('minor-turned-19', ['TH-HR-07', 'TH-WORK-06'], ['19: holiday work paid'], {
+		employee: { birthDate: '2007-03-01', hireDate: '2025-07-01', pay: monthly(12000) },
+		time: { holidayWork: { kind: 'WEEKLY', hours: 4, overtimeHours: 0 } }
+	});
 	add('minor-17-ordinary', ['TH-HR-07', 'TH-SS-12'], ['17-year-old ordinary pay'], {
 		employee: { birthDate: '2009-06-01', hireDate: '2025-07-01', pay: monthly(12000) }
 	});
@@ -410,6 +423,15 @@ export function generateProfiles(): Scenario[] {
 		add(`ewf-${hc}-${pf ? 'pf' : 'nopf'}-${m}-${period}`, ['TH-EWF-01', 'TH-EWF-02'], [
 			period < '2026-10' ? 'before commencement' : hc < 10 ? 'nine: not covered' : pf ? 'provident-fund member excluded' : '0.25% each side'
 		], { period, company: { headcount: hc }, employee: { pay: monthly(m), providentFundMember: pf } });
+	// later SSO ceilings (MR B.E.2568 cl.3(2)–(3)) and the 0.50% EWF step
+	for (const [period, m] of [
+		['2029-01', 19999.99], ['2029-01', 20000], ['2029-01', 20000.01], ['2031-09', 30000],
+		['2031-10', 30000], ['2031-10', 15001], ['2032-01', 22999.99], ['2032-01', 23000], ['2032-01', 23000.01]
+	] as const)
+		add(`sso-ewf-${period}-${m}`, ['TH-SS-01', 'TH-SS-11', 'TH-EWF-02'], [
+			period < '2031-10' ? '0.25% EWF' : '0.50% EWF',
+			period < '2032-01' ? '20,000 ceiling' : '23,000 ceiling'
+		], { period, employee: { pay: monthly(m) } });
 	add('ewf-with-ot', ['TH-EWF-02', 'TH-SS-13'], ['OT outside the wage'], {
 		period: '2026-10',
 		employee: { pay: monthly(20000) },

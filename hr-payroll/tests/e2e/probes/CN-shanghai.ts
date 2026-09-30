@@ -2077,3 +2077,103 @@ register(
 		]
 	}
 );
+
+// ─────────────────────────── Round 10 (30 Sep 2026): exempt receipts and the taxable compensation excess ──
+
+register(
+	{
+		id: 'CN-N55-1',
+		profile: 'CN-shanghai',
+		description:
+			'January 2026, a resident citizen on CNY20,000 is also paid 独生子女补贴 100, 托儿补助费 200, 差旅费津贴 300 and 误餐补助 50: all paid, none in the IIT base.',
+		citation: [
+			'国税发〔1994〕89号 item 2 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html): 独生子女补贴, 托儿补助费, 差旅费津贴 and 误餐补助 不属于工资、薪金性质的补贴、津贴, 不征税 (CN-N55); travel and meal need their trip / meal evidence',
+			`${SOURCES.iitResident}: the wage alone, 20,000 − 3,500 − 5,000 = 11,500 × 3% = 345`,
+			`${SOURCES.si2025}; ${SOURCES.pension}: 1,600 / 3,200; ${SOURCES.medical2025}: 400 / 1,800; ${SOURCES.unemployment2026}: 100 / 100; ${SOURCES.injury}: 40; housing fund 1,400 each side on the declared base`,
+			'Gross 20,000 + 650 = 20,650; net 20,650 − 3,500 − 345 = 16,805; employer 6,540'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2025-06-02'),
+			...hire('gu', {
+				name: 'Gu Lan',
+				from: '2025-06-02',
+				wages: [[20000, '2025-06-02', null]],
+				si: 20000,
+				hf: { contribution_base: 20000 }
+			}),
+			bonus('gu', 'ONE_CHILD_SUBSIDY', 100, '2026-01-10'),
+			bonus('gu', 'CHILDCARE_SUBSIDY', 200, '2026-01-10'),
+			{ ...bonus('gu', 'TRAVEL_ALLOWANCE', 300, '2026-01-10'), files: { evidence_file: 'trip-record.pdf' } },
+			{ ...bonus('gu', 'MISSED_MEAL_SUBSIDY', 50, '2026-01-10'), files: { evidence_file: 'meal-record.pdf' } }
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 'gu_job',
+				lines: {
+					gross: 20650,
+					net: 16805,
+					employer_cost: 6540,
+					BASIC: 20000,
+					ONE_CHILD_SUBSIDY: 100,
+					CHILDCARE_SUBSIDY: 200,
+					TRAVEL_ALLOWANCE: 300,
+					MISSED_MEAL_SUBSIDY: 50,
+					...si([1600, 3200], [400, 1800], [100, 100], 40, 1400),
+					'IIT.employee': 345
+				}
+			}
+		]
+	},
+	{
+		id: 'CN-N39-1',
+		profile: 'CN-shanghai',
+		description:
+			'A resident citizen on CNY50,000, transferred in on Monday 1 June 2026 with 180 months carried, is unlawfully dismissed on Tuesday 30 June: art.87 damages at twice the capped art.47 compensation, the part above three times the average annual wage taxed alone on the annual table.',
+		citation: [
+			'LCL arts.47, 87 (https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2023/art_0abfdd261c03417b949df19d869add8d.html) and Implementing Regulation art.10 (carried service, CN-N41): 180 + 1 = 181 months = 15 years 1 month → 15.5, capped at 12 because 50,000 > 3 × 12,577 (2025 average, HRSS 18 Aug 2026, https://rsj.sh.gov.cn/tgsgg_17341/20260818/t0035_1443203.html; owner-rule prior calendar year, CN-SH50): 12 × 37,731 = 452,772; art.87 二倍: 905,544',
+			'财税〔2018〕164号 item 5(1) (STA copy https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202364/content.html, re-read 30 Sep 2026): within 3 × the local average annual wage exempt, 36 × 12,577 = 452,772; the excess 452,772 单独适用综合所得税率表: 30% − 52,920 (STA 2018 No.61 annex table 1) = 82,911.60 (IIT_SEVERANCE; the golden prices the rule this version shares, CN-N39)',
+			`${SOURCES.si2025}: June 2026 is still the 2025 year, 50,000 → 37,302: ${SOURCES.pension} 2,984.16 / 5,968.32; ${SOURCES.medical2026} 746.04 / 3,357.18; ${SOURCES.unemployment2026} 186.51 / 186.51; ${SOURCES.injury} 74.60; ${SOURCES.hf2025}: 2,611 each side (a transferred account contributes from the first month)`,
+			`${SOURCES.iitResident}: one month employed here in 2026: 50,000 − 6,527.71 − 5,000 = 38,472.29 × 10% − 2,520 = 1,327.23`,
+			'Net 955,544 − 6,527.71 − 1,327.23 − 82,911.60 = 864,777.46; employer 12,197.61'
+		],
+		company: { facts: FACTS },
+		inputs: [
+			...cnWeek('2026-06-01'),
+			...hire('su', {
+				name: 'Su Ming',
+				from: '2026-06-01',
+				to: '2026-06-30',
+				wages: [[50000, '2026-06-01', '2026-06-30']],
+				si: 50000,
+				hf: { contribution_base: 50000, first_ever_account: false },
+				employment: {
+					exit_reason: 'DISMISSAL',
+					exit_facts: {
+						lcl_termination_ground: 'ART_87',
+						renewal_offer_refused: false,
+						lcl10_transferred_service_months: 180
+					}
+				}
+			}),
+			bonus('su', 'SEVERANCE_PAY', 0, '2026-06-30')
+		],
+		period: '2026-06',
+		expected: [
+			{
+				employment: 'su_job',
+				lines: {
+					gross: 955544,
+					net: 864777.46,
+					employer_cost: 12197.61,
+					BASIC: 50000,
+					SEVERANCE_PAY: 905544,
+					...si([2984.16, 5968.32], [746.04, 3357.18], [186.51, 186.51], 74.6, 2611),
+					'IIT.employee': 1327.23,
+					'IIT_SEVERANCE.employee': 82911.6
+				}
+			}
+		]
+	}
+);

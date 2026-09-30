@@ -151,20 +151,18 @@ const minimumDaily = (w: Worksite, s: Sector) => {
 		? Math.max(geo, 400)
 		: geo;
 };
-/** SSA s.46 + 2026 base regulation: floor 1,650; ceiling 15,000 to Dec 2025, 17,500 Jan 2026–Dec 2028. */
+/** SSA s.46 + base regulation (MR B.E.2568 cl.3(1)–(3)): floor 1,650; ceiling 15,000 to Dec 2025, 17,500
+ *  Jan 2026–Dec 2028, 20,000 Jan 2029–Dec 2031, 23,000 from Jan 2032 (TH-SS-01). */
 const ssoBase = (period: string) => {
-	if (period < '2025-12' || period > '2028-12') throw new Error(`no TH SSO base transcribed for ${period}`);
-	return { floor: 1650, ceiling: period <= '2025-12' ? 15000 : 17500 };
+	if (period < '2025-12') throw new Error(`no TH SSO base transcribed for ${period}`);
+	const ceiling = period <= '2025-12' ? 15000 : period <= '2028-12' ? 17500 : period <= '2031-12' ? 20000 : 23000;
+	return { floor: 1650, ceiling };
 };
 /** 2565 rate regulation Schedule B 5% each side; flood notice cl.1: 3% each side Dec 2025–May 2026 in the area. */
 const ssoRate = (period: string, flood: boolean) =>
 	flood && period >= '2025-12' && period <= '2026-05' ? 0.03 : 0.05;
-/** EWF rate regulation B.E.2568 cl.3: 0.25% from 1 Oct 2026 (0.50% from 1 Oct 2031 needs SSO steps not transcribed). */
-const ewfRate = (period: string) => {
-	if (period < '2026-10') return 0;
-	if (period >= '2031-10') throw new Error('EWF 0.50% period needs the 2029 SSO ceiling, not transcribed');
-	return 0.0025;
-};
+/** EWF rate regulation B.E.2568 cl.3: 0.25% each side from 1 Oct 2026, 0.50% from 1 Oct 2031; no cap (TH-EWF-02). */
+const ewfRate = (period: string) => (period < '2026-10' ? 0 : period < '2031-10' ? 0.0025 : 0.005);
 /** RC s.48(1) table with the first 150,000 exempt (Royal Decree 470 s.4), RATES page. */
 const BANDS: [number, number][] = [
 	[150_000, 0],

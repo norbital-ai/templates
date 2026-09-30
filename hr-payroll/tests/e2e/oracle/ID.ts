@@ -70,8 +70,11 @@ export type Scenario = {
 	/** branch names within those rows */
 	branches: string[];
 	description: string;
-	/** YYYY-MM, one calendar month */
+	/** YYYY-MM, one calendar month: the payslip the expected lines describe */
 	period: string;
+	/** every period the harness runs, in order, ending with `period` (earlier months of the year feed a last-period
+	 * reckoning, PMK168 art 15(1)(b)); `periodsToRun` */
+	runs: string[];
 	company: {
 		workplace: Workplace;
 		/** worksite KBLI (five digits) */
@@ -143,6 +146,8 @@ export type Payslip = {
 	total_deductions: number;
 	net: number;
 	employer_cost: number;
+	/** PPh 21 due this month before any government-borne (DTP) share */
+	taxDue: number;
 	notes: string[];
 };
 
@@ -171,6 +176,21 @@ export const completedMonths = (from: string, to: string) => {
 	const [fy, fm, fd] = from.split('-').map(Number);
 	const [ty, tm, td] = to.split('-').map(Number);
 	return (ty! - fy!) * 12 + (tm! - fm!) - (td! < fd! ? 1 : 0);
+};
+/** The earlier periods of this calendar year in which the employment was on the books (the harness runs them first). */
+export const priorPeriods = (s: Pick<Scenario, 'period' | 'employment'>) => {
+	const out: string[] = [];
+	const [y, m] = s.period.split('-').map(Number);
+	for (let k = 1; k < m!; k++) {
+		const p = `${y}-${String(k).padStart(2, '0')}`;
+		if (s.employment.hireDate <= monthEnd(p)) out.push(p);
+	}
+	return out;
+};
+/** Every period the probe must run, in order; the expected lines are the last one's. */
+export const periodsToRun = (s: Scenario) => {
+	const last = s.period.endsWith('-12') || (s.employment.exitDate !== null && s.employment.exitDate.startsWith(s.period));
+	return last && s.employment.type !== 'NON_EMPLOYEE' ? [...priorPeriods(s), s.period] : [s.period];
 };
 export const ageOn = (birth: string, on: string) => Math.floor(completedMonths(birth, on) / 12);
 const between = (d: string, a: string, b: string) => a <= d && d <= b;
@@ -500,7 +520,7 @@ export function computePayslip(s: Scenario): Payslip {
 		const base = r2(em.serviceFee * 0.5);
 		const tax = r0(art17(base) * (ee.hasTaxId ? 1 : 1.2));
 		statutory.PPH21 = { employee: tax, employer: 0, base };
-		return finish(components, statutory, notes);
+		return { ...finish(components, statutory, notes), taxDue: tax };
 	}
 
 	// PP36 art 16 / ID-169: hourly only for part-time, at least the monthly floor ÷ 126.
@@ -631,6 +651,7 @@ export function computePayslip(s: Scenario): Payslip {
 	}
 
 	// ----- income tax -----
+	let taxDue = 0;
 	const employerPremiums = ['JKK', 'JKM', 'KESEHATAN'].reduce(
 		(sum, c) => sum + (statutory[c]?.employer ?? 0),
 		0
@@ -653,21 +674,45 @@ export function computePayslip(s: Scenario): Payslip {
 		const lastPeriod = s.period.endsWith('-12') || exiting; // PMK168 art 1(18)
 		let tax: number;
 		if (lastPeriod) {
-			// PMK168 arts 8(3)–(5), 10, 15(1)(b): the year's income from this employer is this payslip alone.
-			const biayaJabatan = Math.min(0.05 * taxGross, 500_000);
+			// PMK168 arts 8(3)–(5), 10, 15(1)(b): the year's income from this employer — the earlier months of this
+			// calendar year (priced on the same terms, TER withheld each month) plus this payslip; the tax due here is
+			// the year's art 17 tax less the TER already withheld (PMK 105/2025 annex B example 1 counts DTP months as
+			// withheld).
+			const prior = priorPeriods(s).map((p) =>
+				computePayslip({
+					...s,
+					period: p,
+					employment: { ...em, exitDate: null, exitCause: null },
+					inputs: { ...inp, unpaidDates: [], overtime: [], thrHolidayDate: null, bonus: 0, wageDeduction: 0, uangPisah: 0, reducedPay: null }
+				})
+			);
+			const blocked = prior.find((p) => p.refused !== null);
+			if (blocked !== undefined) return refuse(`an earlier month of the year: ${blocked.refused}`);
+			const yearGross = r2(prior.reduce((a, p) => a + (p.statutory.PPH21?.base ?? 0), 0) + taxGross);
+			const months = prior.length + 1;
+			// art 10(2): 5%, at most Rp6,000,000 a year or Rp500,000 a month (500,000 × the months of the year worked)
+			const biayaJabatan = Math.min(0.05 * yearGross, 500_000 * months);
+			const own = (c: string, list: Payslip[]) => list.reduce((a, p) => a + (p.statutory[c]?.employee ?? 0), 0);
 			const neto =
-				taxGross -
+				yearGross -
 				biayaJabatan -
+				own('JHT', prior) -
+				own('JP', prior) -
 				(statutory.JHT?.employee ?? 0) -
 				(statutory.JP?.employee ?? 0) -
 				ee.zakat;
 			const pkp = Math.max(0, Math.floor((neto - ptkpAmount(ee.ptkp)) / 1000) * 1000); // art 8(4)
-			tax = r0(art17(pkp) * (ee.hasTaxId ? 1 : 1.2));
-			notes.push(`last period: neto ${r2(neto)}, PKP ${pkp}`);
+			const withheld = prior.reduce((a, p) => a + p.taxDue, 0);
+			// ponytail: a year that over-withheld yields a negative figure here; the refund is ID-21's open branch.
+			tax = r0(art17(pkp) * (ee.hasTaxId ? 1 : 1.2)) - withheld;
+			notes.push(`last period: ${months} month(s), neto ${r2(neto)}, PKP ${pkp}, TER withheld ${withheld}`);
 		} else {
 			tax = r0(((taxGross * terRateBp(ee.ptkp, taxGross)) / 10_000) * (ee.hasTaxId ? 1 : 1.2));
 		}
-		// PMK 105/2025: 2026 regular gross ≤ Rp10,000,000 at an annex KLU employer is borne by government.
+		taxDue = tax;
+		// PMK 105/2025 arts 2–4 (signed text read 2026-09-30): at an annex-KLU employer, a permanent employee with an
+	// NPWP/NIK whose fixed regular gross — salary and fixed allowances, art 4(4)(a) — is "tidak lebih dari"
+	// Rp10,000,000 has all 2026 PPh 21 borne by government (art 2(2)); severance stays final-taxed (art 4(6)).
 		const dtp = co.dtpKlu && ee.hasTaxId && s.period.startsWith('2026-') && monthly <= 10_000_000;
 		if (dtp) notes.push(`PPh 21 ${tax} borne by government (DTP), paid in cash`);
 		statutory.PPH21 = { employee: dtp ? 0 : tax, employer: 0, base: taxGross };
@@ -686,7 +731,7 @@ export function computePayslip(s: Scenario): Payslip {
 		return refuse('ID-06: deductions above half of the wage payment');
 	if (inp.wageDeduction > 0) components.WAGE_DEDUCTION = -inp.wageDeduction;
 
-	return finish(components, statutory, notes);
+	return { ...finish(components, statutory, notes), taxDue };
 }
 
 function finish(
@@ -713,6 +758,7 @@ function finish(
 		total_deductions,
 		net: r2(gross - total_deductions),
 		employer_cost: r2(gross + erSum),
+		taxDue: 0,
 		notes
 	};
 }

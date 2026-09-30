@@ -4,13 +4,16 @@
  * Every scenario is tagged with the docs/inventory/indonesia.csv row ids and branch names it exercises. The shape
  * maps onto a probe case (tests/e2e/payroll-probe.ts): `id`, `profile`, `description`, `period`; `company` becomes
  * the company row, `employee`/`employment` the employees/employments/terms inputs, `inputs` the leave, timesheet,
- * holiday and adhoc rows; `expected` comes from `computePayslip(scenario)` via `probeLines`.
+ * holiday and adhoc rows; `expected` comes from `computePayslip(scenario)` via `probeLines`. `runs` lists every
+ * period the harness must run in order (earlier months of the year feed a December or exit reckoning); the expected
+ * lines are the last run's.
  *
  * Seeded (mulberry32, fixed seed); no Math.random, no clock.
  */
 import {
 	computePayslip,
 	floorOn,
+	periodsToRun,
 	TER,
 	type ExitCause,
 	type Ptkp,
@@ -47,13 +50,16 @@ export function generateProfiles(): Scenario[] {
 		branches: string[],
 		description: string,
 		p: Patch = {}
-	): Scenario => ({
+	): Scenario => {
+		const period = p.period ?? '2026-02';
+		const s: Scenario = {
 		id: `ID-O-${id}`,
 		profile: 'ID',
 		rows,
 		branches,
 		description,
-		period: p.period ?? '2026-02',
+		period,
+		runs: [],
 		company: {
 			workplace: 'DKI',
 			kbli: '62019',
@@ -81,7 +87,8 @@ export function generateProfiles(): Scenario[] {
 			type: 'PKWTT',
 			payBasis: 'MONTHLY',
 			partTime: false,
-			hireDate: '2025-06-02',
+			// a December (last-period) case joins that month unless it names a hire date: one run reckons the year
+			hireDate: period.endsWith('-12') ? `${period}-01` : '2025-06-02',
 			contractEnd: null,
 			exitDate: null,
 			exitCause: null,
@@ -102,7 +109,10 @@ export function generateProfiles(): Scenario[] {
 			reducedPay: null,
 			...p.inputs
 		}
-	});
+		};
+		s.runs = periodsToRun(s);
+		return s;
+	};
 	const make = (...a: Parameters<typeof build>) => {
 		const s = build(...a);
 		out.push(s);
@@ -242,6 +252,51 @@ export function generateProfiles(): Scenario[] {
 		{
 			period: '2025-12',
 			employment: { basic: 31_000_000, hireDate: '2025-12-31' }
+		}
+	);
+
+	// ---- 4b. Last-period reckoning over earlier months of the year (ID-21 open branch: TER withheld netted).
+	make(
+		'DEC-fullyear',
+		['ID-21', 'ID-122', 'ID-127', ...BPJS],
+		['December reckoning less TER withheld January–November'],
+		'A whole 2025 on one wage: runs January to December',
+		{
+			period: '2025-12',
+			employee: { ptkp: 'K/1' },
+			employment: { basic: 15_000_000, hireDate: '2024-03-01' }
+		}
+	);
+	make(
+		'DEC-fullyear-2026-dtp',
+		['ID-21', 'ID-122', 'ID-84', 'ID-23'],
+		['December 2026 reckoning, every month borne by government'],
+		'PMK 105/2025 annex B example 1 shape (8,000,000 TK/0)',
+		{
+			period: '2026-12',
+			company: { dtpKlu: true, kbli: '13111' },
+			employment: { basic: 8_000_000, hireDate: '2023-01-02' }
+		}
+	);
+	make(
+		'LEAVE-midyear',
+		['ID-21', 'ID-122', 'ID-28', 'ID-106'],
+		['exit reckoning less TER withheld January–May'],
+		'Resignation on 15 June 2026: runs January to June',
+		{
+			period: '2026-06',
+			employment: { basic: 12_000_000, hireDate: '2023-07-03', exitDate: '2026-06-15', exitCause: 'RESIGNATION' },
+			inputs: { uangPisah: 2_000_000 }
+		}
+	);
+	make(
+		'DEC-joined-oct',
+		['ID-21', 'ID-122', 'ID-106'],
+		['reckoning from a mid-October joiner'],
+		'Joined 16 October 2025: runs October to December',
+		{
+			period: '2025-12',
+			employment: { basic: 20_000_000, hireDate: '2025-10-16' }
 		}
 	);
 

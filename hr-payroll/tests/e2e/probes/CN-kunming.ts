@@ -1622,3 +1622,134 @@ register(
 		{ gross: 21750, BASIC: 21750, total_deductions: 5162.24, net: 16587.76, 'IIT.employee': 311.99 }
 	)
 );
+
+// ─────────────────────────── Round 10 (30 Sep 2026): exempt receipts, deductions, early retirement, fund floors ──
+
+const iit = (claims: Row[]): ProbeInput => ({
+	collection: 'employment_statutory_facts',
+	values: {
+		employee_id: '@w',
+		employment_id: '@w_job',
+		statutory_contribution_id: '@law:statutory_contributions:IIT',
+		effective_range: { from: SINCE, to: null },
+		status: { kind: 'REGISTERED', reference_number: 'PROBE-IIT-w', deduction_claims: claims }
+	}
+});
+
+/** One Wuhua worker on 10,000 whose run the housing-fund scheme must refuse. */
+const fundRefused = (id: string, description: string, citation: string[], w: Partial<Worker>, refused: string): ProbeCase => ({
+	id,
+	profile: 'CN-kunming',
+	description,
+	citation,
+	company: { facts: FACTS_2026 },
+	inputs: [...officeWeek(SINCE), ...worker({ ref: 'hf', name: `Fund ${id}`, wage: 10000, ...w })],
+	period: '2026-01',
+	refused,
+	expected: []
+});
+
+register(
+	jan21750(
+		'CN-N55-2',
+		'January 2026, the 21,750 Kunming worker is also paid 独生子女补贴 100, 托儿补助费 200, 差旅费津贴 300 and 误餐补助 50: all paid, none in the IIT base.',
+		[
+			'国税发〔1994〕89号 item 2 (https://fgk.chinatax.gov.cn/zcfgk/c100011/c5216297/content.html): these four are 不属于工资、薪金性质的补贴、津贴, 不征税 (CN-N55); travel and meal carry their evidence.',
+			'IIT on the wage alone: 21,750 − 4,850.25 − 5,000 = 11,899.75 × 3% = 356.9925 → 356.99. Gross 22,400; net 22,400 − 5,207.24 = 17,192.76.'
+		],
+		[
+			adhoc('w', 'ONE_CHILD_SUBSIDY', 100, '2026-01-10', 'CN-N55-2'),
+			adhoc('w', 'CHILDCARE_SUBSIDY', 200, '2026-01-10', 'CN-N55-2'),
+			{ ...adhoc('w', 'TRAVEL_ALLOWANCE', 300, '2026-01-10', 'CN-N55-2'), files: { evidence_file: 'trip-record.pdf' } },
+			{ ...adhoc('w', 'MISSED_MEAL_SUBSIDY', 50, '2026-01-10', 'CN-N55-2'), files: { evidence_file: 'meal-record.pdf' } }
+		],
+		{
+			gross: 22400,
+			BASIC: 21750,
+			ONE_CHILD_SUBSIDY: 100,
+			CHILDCARE_SUBSIDY: 200,
+			TRAVEL_ALLOWANCE: 300,
+			MISSED_MEAL_SUBSIDY: 50,
+			total_deductions: 5207.24,
+			net: 17192.76,
+			'IIT.employee': 356.99
+		}
+	),
+	jan21750(
+		'CN-N16-2',
+		'January 2026, a Kunming resident declares 3岁以下婴幼儿照护 for one child (2,000) and 学历继续教育 (400): both deducted as declared.',
+		[
+			'MOF/STA 2023 No.14 (https://fgk.chinatax.gov.cn/zcfgk/c100012/c5213592/content.html, re-read 30 Sep 2026): 3岁以下婴幼儿照护 每个婴幼儿每月2000元 from 1 January 2023; 国发〔2018〕41号 (continuing-education article): 学历（学位）继续教育 每月400元定额扣除; the agent deducts as declared (STA 2022 No.7 arts.25–26; CN-N16).',
+			'IIT: 21,750 − 4,850.25 − 5,000 − 2,000 − 400 = 9,499.75 × 3% = 284.9925 → 284.99. Net 21,750 − 5,135.24 = 16,614.76.'
+		],
+		[
+			iit([
+				{ period: '2026-01', category: 'INFANT_CARE', amount: 2000, source: 'EMPLOYEE', reference: 'INFANT-2026-01' },
+				{ period: '2026-01', category: 'CONTINUING_EDUCATION', amount: 400, source: 'EMPLOYEE', reference: 'EDU-2026-01' }
+			])
+		],
+		{ gross: 21750, BASIC: 21750, total_deductions: 5135.24, net: 16614.76, 'IIT.employee': 284.99 }
+	),
+	{
+		id: 'CN-N39-2',
+		profile: 'CN-kunming',
+		description:
+			'A Kunming worker (21,750, hired Monday 5 January 2026) takes approved early retirement on Friday 16 January with a CNY500,000 one-off subsidy, four actual years before statutory age: the subsidy is spread over the four years and taxed alone.',
+		citation: [
+			'财税〔2018〕164号 item 5(2) (STA copy https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202364/content.html, re-read 30 Sep 2026): 应纳税额＝{［（一次性补贴收入÷办理提前退休手续至法定退休年龄的实际年度数）－费用扣除标准］×适用税率－速算扣除数}×实际年度数, 单独适用综合所得税率表; 费用扣除标准 60,000 (IIT Law art.6(1)): (500,000 ÷ 4 − 60,000) = 65,000 × 10% − 2,520 = 3,980 × 4 = 15,920 (IIT_EARLY_RETIREMENT; the years are the recorded exit fact iit164_early_retirement_years, CN-N39).',
+			'Final pay 21,750 ÷ 21.75 × 10 working days = 10,000 (CN-N02); insurance and fund on the declared 21,750 (4,850.25 / 8,004); IIT on the wage 10,000 − 4,850.25 − 5,000 = 149.75 × 3% = 4.49.',
+			'Gross 510,000; deductions 4,850.25 + 4.49 + 15,920 = 20,774.74; net 489,225.26.'
+		],
+		company: { facts: FACTS_2026 },
+		inputs: [
+			...officeWeek(SINCE),
+			...worker({
+				ref: 're',
+				name: 'Early Retiree',
+				wage: 21750,
+				from: '2026-01-05',
+				to: '2026-01-16',
+				employment: {
+					exit_reason: 'RETIREMENT',
+					exit_facts: { lcl_termination_ground: 'ART_44_2_3', iit164_early_retirement_years: 4 }
+				}
+			}),
+			adhoc('re', 'EARLY_RETIREMENT_SUBSIDY', 500000, '2026-01-16', 'CN-N39-2')
+		],
+		period: '2026-01',
+		expected: [
+			{
+				employment: 're_job',
+				lines: {
+					...SI_21750,
+					gross: 510000,
+					BASIC: 10000,
+					EARLY_RETIREMENT_SUBSIDY: 500000,
+					total_deductions: 20774.74,
+					net: 489225.26,
+					employer_cost: 8004,
+					'IIT.employee': 4.49,
+					'IIT_EARLY_RETIREMENT.employee': 15920
+				}
+			}
+		]
+	},
+	fundRefused(
+		'CN-KM05-1',
+		'January 2026, a Wuhua worker declares a housing-fund base of 2,100, under the class I floor 2,170, and the floor of an unchanged account is unsettled: the run is refused.',
+		[
+			'Kunming fund centre interim notice of 4 January 2026 (https://zfgjj.km.gov.cn/c/2026-01-04/5047947.shtml): floor 2,170 (category I) / 2,020 pending the final 2026 data; the floor of an unchanged existing account is not stated, so a base below it refuses rather than guessing (CN-KM05).'
+		],
+		{ hfBase: 2100 },
+		'The declared housing-fund base is below the published floor'
+	),
+	fundRefused(
+		'CN-KM05-2',
+		'January 2026, a worker at the Mo Han worksite (category III): the fund-centre category III floor is not authenticated, so the housing-fund charge refuses the run.',
+		[
+			'Mo Han–Mo Ding category III wage floor 1,870 (云人社发〔2025〕19号 appendix, https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf; CN-KM01) — 10,000 clears it; the fund floor rests only on centre-attributed reproductions (CN-KM05), so the seeded rule refuses until the issuer notice is read.'
+		],
+		{ worksite: '云南省/西双版纳傣族自治州/勐腊县/磨憨镇' },
+		'Mo Han housing-fund category-III floor'
+	)
+);
