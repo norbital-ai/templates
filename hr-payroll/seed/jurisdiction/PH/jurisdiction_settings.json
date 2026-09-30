@@ -818,6 +818,28 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -1641,6 +1663,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -2467,6 +2511,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -3298,6 +3364,28 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -4125,6 +4213,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -4957,6 +5067,28 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -5777,6 +5909,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -6601,6 +6755,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -7427,6 +7603,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -8258,6 +8456,28 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -9085,6 +9305,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -9917,6 +10159,28 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -10742,6 +11006,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -11571,6 +11857,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -12402,6 +12710,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -13238,6 +13568,28 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -14070,6 +14422,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -14906,6 +15280,28 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -19697,6 +20093,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -24522,6 +24938,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -29347,6 +29783,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -34172,6 +34628,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -39001,6 +39477,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -43830,6 +44326,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -48659,6 +49175,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -53489,6 +54025,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -58319,6 +58875,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -63151,6 +63727,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -67983,6 +68579,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -72813,6 +73429,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -77643,6 +78279,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -82473,6 +83129,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -87303,6 +87979,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -92134,6 +92830,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -96965,6 +97681,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -101796,6 +102532,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -106627,6 +107383,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -111462,6 +112238,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -116297,6 +117093,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -121132,6 +121948,26 @@
 					"when": "case.type == \"MATERNITY_LEAVE\" && trigger.ref == \"APPLICATION\""
 				},
 				"due": "add_days(trigger.date, 30)"
+			},
+			{
+				"code": "THIRTEENTH_MONTH_PAY_OWED",
+				"label": "An employee's 13th month pay of the year",
+				"authority": "PD 851 s.1; Revised Guidelines on PD 851 (DOLE Handbook 2024 ch.13 §E): not later than 24 December of each year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			},
+			{
+				"code": "SIL_CONVERSION_OWED",
+				"label": "Unused service incentive leave converted at the year end",
+				"authority": "Labor Code art.95; Omnibus Rules Book III Rule V s.5: unused service incentive leave is commutable to its money equivalent at the end of the year.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [

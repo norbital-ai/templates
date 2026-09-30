@@ -1291,7 +1291,7 @@ export default messages({
 	'component.adhoc_reason': '原因',
 	'component.raised_by': '发起方',
 	'component.raised_by_hint':
-		'手动：人力资源人员在事项页面创建记录。离职：离职流程提交符合条件的款项供审批。',
+		'手动：人力资源人员在事项页面创建记录。离职：离职流程提交符合条件的款项供审批。按期：在排程列明的每个到期日之前提交供审批。',
 	'app.adhoc.title': '临时项目',
 	'app.settings.adhoc_catalogue': '临时付款目录',
 	'app.settings.adhoc_catalogue_description':
@@ -1655,6 +1655,7 @@ export default messages({
 	'models.adhoc_catalogue.fields.evidence.REQUIRED': '必需',
 	'models.adhoc_catalogue.fields.raised_by.MANUAL': '手动',
 	'models.adhoc_catalogue.fields.raised_by.SEPARATION': '离职',
+	'models.adhoc_catalogue.fields.raised_by.SCHEDULED': '按期',
 	'models.adhoc_requests.label': '临时申请',
 	'models.adhoc_requests.singular': '临时申请',
 	'models.allowance_catalogue.label': '津贴目录',

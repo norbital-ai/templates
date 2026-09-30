@@ -1526,6 +1526,16 @@
 						"min_length": 1
 					}
 				]
+			},
+			{
+				"code": "THR_OWED",
+				"label": "An employee's religious holiday allowance (THR)",
+				"authority": "Permenaker 6/2016 art.5(4): THR is paid at the latest seven days before the religious holiday.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -3778,6 +3788,16 @@
 						"min_length": 1
 					}
 				]
+			},
+			{
+				"code": "THR_OWED",
+				"label": "An employee's religious holiday allowance (THR)",
+				"authority": "Permenaker 6/2016 art.5(4): THR is paid at the latest seven days before the religious holiday.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -6023,6 +6043,16 @@
 						"min_length": 1
 					}
 				]
+			},
+			{
+				"code": "THR_OWED",
+				"label": "An employee's religious holiday allowance (THR)",
+				"authority": "Permenaker 6/2016 art.5(4): THR is paid at the latest seven days before the religious holiday.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	}

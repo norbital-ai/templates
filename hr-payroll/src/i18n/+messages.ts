@@ -1399,7 +1399,7 @@ export default messages({
 	'component.adhoc_reason': 'Reason',
 	'component.raised_by': 'Raised by',
 	'component.raised_by_hint':
-		'Manual: HR creates an entry from Events. Separation: offboarding submits eligible payments for HR approval.',
+		'Manual: HR creates an entry from Events. Separation: offboarding submits eligible payments for HR approval. Scheduled: submitted for HR approval before each due day its schedule names.',
 	'app.adhoc.title': 'Ad hoc',
 	'app.settings.adhoc_catalogue': 'Ad hoc catalogue',
 	'app.settings.adhoc_catalogue_description':
@@ -1785,6 +1785,7 @@ export default messages({
 	'models.adhoc_catalogue.fields.evidence.REQUIRED': 'Required',
 	'models.adhoc_catalogue.fields.raised_by.MANUAL': 'Manual',
 	'models.adhoc_catalogue.fields.raised_by.SEPARATION': 'Separation',
+	'models.adhoc_catalogue.fields.raised_by.SCHEDULED': 'Scheduled',
 	'models.adhoc_requests.label': 'Ad hoc requests',
 	'models.adhoc_requests.singular': 'Ad hoc request',
 	'models.allowance_catalogue.label': 'Allowance catalogue',

@@ -56,6 +56,7 @@ export function payrollRunPrecheck(options: {
 	readonly bundles: readonly Pick<
 		EmploymentBundle,
 		| 'employment'
+		| 'employee'
 		| 'termsHistory'
 		| 'workDays'
 		| 'rosters'
@@ -151,7 +152,12 @@ export function payrollRunPrecheck(options: {
 					shift_definition_id: day.shift_definition_id
 				})),
 				holidayDates: new Set(
-					atWorksite(options.configuration, bundle.termsHistory, bundle.workDays).holidays.keys()
+					atWorksite(
+						options.configuration,
+						bundle.termsHistory,
+						bundle.workDays,
+						bundle.employee
+					).holidays.keys()
 				)
 			})),
 			...rosteredWorkCodeMaps([...options.configuration.shiftById.values()])

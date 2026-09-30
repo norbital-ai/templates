@@ -3351,7 +3351,12 @@ export function validateWorkInputs(options: {
 						shift_definition_id: day.shift_definition_id
 					})),
 					holidayDates: new Set(
-						atWorksite(configuration, bundle.termsHistory, bundle.workDays).holidays.keys()
+						atWorksite(
+							configuration,
+							bundle.termsHistory,
+							bundle.workDays,
+							bundle.employee
+						).holidays.keys()
 					)
 				})),
 			...rosteredWorkCodeMaps(

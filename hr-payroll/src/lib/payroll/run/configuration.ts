@@ -12,8 +12,10 @@ import {
 	scalarFacts,
 	type DatedCompany,
 	type DatedEmployee,
-	type PersonContext
+	type PersonContext,
+	type PersonInput
 } from './eligibility.js';
+import { personCondition } from '../../scheduled/entries.js';
 import {
 	referenceCodes,
 	referenceRowOf,
@@ -41,6 +43,7 @@ import { prepareContributionCatalogue } from '../contribution.js';
 import { prepareLeaveCatalogue } from '../../leave/payroll.js';
 import { daysBetween, monthBounds, monthKey, type IsoDate } from './dates.js';
 import {
+	conditionOf,
 	resolveHolidayInputs,
 	resolveHolidays,
 	type HolidayRow,
@@ -551,20 +554,25 @@ export function withDeclaredFacts(
  * (a work day's own worksite over its terms'):
  *
  * - the company's holidays plus the local days of that worksite (PH RA 12271, Navotas): a local row
- *   names the terms' recorded worksite text or the worksite revision's region;
+ *   names the terms' recorded worksite text or the worksite revision's region; a row with
+ *   `applies_when` (a religion's own day) reaches the days `employee` meets it;
  * - where the version declares overlays, a day whose `when` holds reads the overlay version's work
  *   rules, leave rows and tables (`onDay`, and `table()` through the company's dated inputs). The
  *   top-level fields are the run's pick day's; schemes are always the base's.
  *
- * Unchanged when no row is local and nothing is overlaid.
+ * Unchanged when no row is local or conditioned and nothing is overlaid.
  */
 export function atWorksite<T extends Configuration>(
 	configuration: T,
 	terms: readonly WorkspaceRow<'employment_terms'>[],
-	workDays: readonly Pick<WorkspaceRow<'work_days'>, 'work_date' | 'worksite_id'>[] = []
+	workDays: readonly Pick<WorkspaceRow<'work_days'>, 'work_date' | 'worksite_id'>[] = [],
+	/** Whose `applies_when` holidays (a religion's own day) to read; none reaches nobody. */
+	employee: PersonInput['employee'] = null
 ): T {
 	const overlay = configuration.overlay;
-	const local = configuration.holidayRows.some((row) => row.worksite?.trim());
+	const local = configuration.holidayRows.some(
+		(row) => row.worksite?.trim() || conditionOf(row) != null
+	);
 	if (overlay == null && !local) return configuration;
 	const termsOn = (date: string) => terms.find((term) => coversDate(term.effective_range, date));
 	const dayWorksite = new Map(
@@ -582,7 +590,16 @@ export function atWorksite<T extends Configuration>(
 				configuration.company.id,
 				configuration.holidayWindow.start,
 				configuration.holidayWindow.end,
-				(date) => termsOn(date)?.worksite?.trim() || siteOn(date)?.region?.trim() || undefined
+				(date) => termsOn(date)?.worksite?.trim() || siteOn(date)?.region?.trim() || undefined,
+				personCondition((date) =>
+					personContext({
+						employee,
+						employment: { service_start: '', exit_date: null },
+						terms: termsOn(date) ?? null,
+						company: configuration.company,
+						asOf: date
+					})
+				)
 			)
 		: configuration.holidays;
 	if (overlay == null) return { ...configuration, holidays };

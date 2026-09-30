@@ -1172,7 +1172,12 @@ export function calculateFamilyAssessments(options: {
 			gathered.paidWagesByMonth.get(bundle.employment.employee_id) ?? new Map();
 		const wages = calculateFamilies({
 			bundle,
-			configuration: atWorksite(configuration, bundle.termsHistory, bundle.workDays),
+			configuration: atWorksite(
+				configuration,
+				bundle.termsHistory,
+				bundle.workDays,
+				bundle.employee
+			),
 			period,
 			salary: bundle.window.salary,
 			periodsRemaining: projection.payslipsRemaining,

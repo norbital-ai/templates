@@ -9,25 +9,63 @@
  * Scenarios with the same company, shared rows and run list share one company; a batch of up to `DIFF_BATCH` of them
  * is one `runCase` (one company, every employee, each period of `runs` in order, the last judged). A batch whose
  * writes or run are refused is split in halves until the refusing scenario stands alone. A scenario the oracle
- * refuses, or one whose law reads the company's headcount, runs alone.
+ * refuses runs alone; one whose law reads the company's headcount runs in a company padded to that headcount.
  *
  * A scenario field with no production-path precedent in `tests/e2e/probes/<profile>.ts` (or a collection shape no
  * probe writes) is not guessed: the adapter throws `Unmapped` and the scenario is reported as unmapped, not judged.
  *
- * Judgement: every key the oracle prices, plus every saved statutory key, to 0.01 (a missing key is 0); the oracle's
- * own unpriced keys are skipped. Company-assessed charges (`companyLines`) and run warnings are not judged.
+ * Judgement, to 0.01 (a missing key is 0): the totals and every statutory key either side carries, and each
+ * component code both sides name (oracles name some components differently, e.g. SALARY for BASIC; the totals carry
+ * that money). The oracle's own unpriced keys are skipped. Company-assessed charges and run warnings are not judged.
+ *
+ * Where a separation request needs the payment's presence (a catalogue refuses a payment that is not owed), the
+ * adapter raises it at 0 (priced by the catalogue formula) exactly when the oracle prices it, and an exit leave
+ * encashment carries the oracle's day count: the engine values those days, it does not choose them.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { runCase, type Host, type ProbeCase, type ProbeInput, type Row } from './payroll-probe.ts';
+import {
+	officeWeek,
+	runCase,
+	type Host,
+	type ProbeCase,
+	type ProbeInput,
+	type Row
+} from './payroll-probe.ts';
+import * as sgOracle from './oracle/SG.ts';
+import { generateProfiles as sgScenarios } from './profiles/SG.ts';
+import * as thOracle from './oracle/TH.ts';
+import { generateProfiles as thScenarios } from './profiles/TH.ts';
+import * as twOracle from './oracle/TW.ts';
+import { generateProfiles as twScenarios } from './profiles/TW.ts';
+import * as vnOracle from './oracle/VN.ts';
+import { generateProfiles as vnScenarios } from './profiles/VN.ts';
+import * as myOracle from './oracle/MY.ts';
+import { generateProfiles as myScenarios, type Scenario as MyScenario } from './profiles/MY.ts';
+import * as phOracle from './oracle/PH.ts';
+import { generateProfiles as phScenarios, type PHScenario } from './profiles/PH.ts';
+import * as jpOracle from './oracle/JP.ts';
+import { generateProfiles as jpScenarios } from './profiles/JP.ts';
+import * as idOracle from './oracle/ID.ts';
+import { generateProfiles as idScenarios } from './profiles/ID.ts';
+import * as shOracle from './oracle/CN-shanghai.ts';
+import {
+	generateProfiles as shScenarios,
+	type Scenario as ShScenario
+} from './profiles/CN-shanghai.ts';
+import * as kmOracle from './oracle/CN-kunming.ts';
+import {
+	generateProfiles as kmScenarios,
+	type Scenario as KmScenario
+} from './profiles/CN-kunming.ts';
 
 type Json = Row[string];
 
 export class Unmapped extends Error {}
 /** The scenario carries a branch this adapter cannot express on the production path. */
-export const unmapped = (what: string): never => {
+export function unmapped(what: string): never {
 	throw new Unmapped(what);
-};
+}
 
 /** One scenario as probe inputs. */
 export type Mapped = {
@@ -41,10 +79,10 @@ export type Mapped = {
 	employment: string;
 	/** every period run, in order; the last is judged */
 	runs: readonly string[];
-	/** local employment refs `leave_encashment_on_exit` settles before the judged run */
-	exits?: readonly string[];
-	/** run alone: the law reads the company as a whole (headcount) */
-	solo?: boolean;
+	/** the company's headcount the law reads: batches are capped at it and padded with `filler` people to it */
+	headcount?: number;
+	/** one filler person's rows (local refs), active through the judged period */
+	filler?: readonly ProbeInput[];
 };
 /** What the oracle says the judged slip is. */
 export type Verdict = {
@@ -103,7 +141,8 @@ export const verdictOf = (
 ): Verdict => ({
 	lines: probe ?? flatLines((result.lines ?? {}) as Record<string, number | OracleLine>),
 	refused: reason(result.refused),
-	unjudged
+	// a code the oracle leaves unpriced leaves its statutory shares unpriced too
+	unjudged: unjudged.flatMap((k) => [k, `${k}.employee`, `${k}.employer`])
 });
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -161,13 +200,17 @@ export const workDay = (
 		...extra
 	}
 });
-export const holidayRow = (date: string, name = 'Public holiday'): ProbeInput => ({
+export const holidayRow = (
+	date: string,
+	name = 'Public holiday',
+	kind = 'PUBLIC_HOLIDAY'
+): ProbeInput => ({
 	collection: 'jurisdiction_holidays',
 	values: {
 		company_id: '@company',
 		date,
 		name,
-		kind: 'PUBLIC_HOLIDAY',
+		kind,
 		source: 'differential probe',
 		published_at: '2024-01-01T00:00:00.000Z'
 	}
@@ -228,14 +271,17 @@ export const registration = (
 		status
 	}
 });
-/** Sorted dates as inclusive ranges, joined across days `skip` accepts (weekends, holidays). */
+/**
+ * Sorted dates as inclusive ranges, joined across days `skip` accepts (weekends, holidays), never across a month end:
+ * a time-off entry settles in the period holding all its days (tests/e2e/probes/MY.ts maternity entries).
+ */
 export function ranges(dates: readonly string[], skip: (d: string) => boolean = () => false) {
 	const out: [string, string][] = [];
 	for (const d of [...dates].sort()) {
 		const last = out.at(-1);
 		let gap = last === undefined ? null : addDays(last[1], 1);
 		while (gap !== null && gap < d && skip(gap)) gap = addDays(gap, 1);
-		if (last !== undefined && gap === d) last[1] = d;
+		if (last !== undefined && gap === d && d.slice(0, 7) === last[0].slice(0, 7)) last[1] = d;
 		else out.push([d, d]);
 	}
 	return out;
@@ -249,7 +295,8 @@ export function ranges(dates: readonly string[], skip: (d: string) => boolean = 
 export function prefixInputs(inputs: readonly ProbeInput[], p: string): ProbeInput[] {
 	const local = new Set(inputs.flatMap((i) => (i.ref === undefined ? [] : [i.ref])));
 	const rename = (v: Json): Json => {
-		if (typeof v === 'string' && v.startsWith('@') && local.has(v.slice(1))) return `@${p}${v.slice(1)}`;
+		if (typeof v === 'string' && v.startsWith('@') && local.has(v.slice(1)))
+			return `@${p}${v.slice(1)}`;
 		if (Array.isArray(v)) return (v as readonly Json[]).map(rename);
 		if (typeof v === 'object' && v !== null)
 			return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, rename(x)]));
@@ -297,14 +344,17 @@ export function judge(
 		return 'refused' in saved ? [] : [at('run', 'paid', `refused: ${verdict.refused}`)];
 	if ('refused' in saved) return [at('run', `refused: ${saved.refused}`, 'paid')];
 	const skip = new Set(verdict.unjudged);
+	const statutory = (k: string) => /\.(employee|employer)$/.test(k);
 	const keys = new Set([
-		...TOTALS,
 		...Object.keys(verdict.lines),
-		...Object.keys(saved.lines).filter((k) => /\.(employee|employer)$/.test(k))
+		...Object.keys(saved.lines).filter(statutory)
 	]);
 	const out: Disagreement[] = [];
 	for (const key of [...keys].sort()) {
-		if (skip.has(key) || (TOTALS.includes(key) && !(key in verdict.lines))) continue;
+		// totals and statutory charges always; a component only where both sides name its code (an oracle's
+		// SALARY is the engine's BASIC net of deductions or not: the totals carry the money either way)
+		const judged = TOTALS.includes(key) || statutory(key) || key in saved.lines;
+		if (skip.has(key) || !judged) continue;
 		const engine = saved.lines[key] ?? 0;
 		const oracle = verdict.lines[key] ?? 0;
 		if (Math.abs(engine - oracle) > 0.01 + 1e-9) out.push(at(key, engine, oracle));
@@ -316,7 +366,12 @@ type Job = { tags: Tagged; mapped: Mapped; verdict: Verdict };
 type Outcome = { job: Job; disagreements: Disagreement[] };
 
 /** One batch as one company: its rows, every run, the judged slips; a refused batch is split in halves. */
-async function runBatch(host: Host, code: string, jobs: readonly Job[], n: string): Promise<Outcome[]> {
+async function runBatch(
+	host: Host,
+	code: string,
+	jobs: readonly Job[],
+	n: string
+): Promise<Outcome[]> {
 	const head = jobs[0]!.mapped;
 	const probe: ProbeCase = {
 		id: `diff-${code}-${n}`,
@@ -326,14 +381,14 @@ async function runBatch(host: Host, code: string, jobs: readonly Job[], n: strin
 		company: { effective_range: { from: COMPANY_FROM, to: null }, ...head.company },
 		inputs: [
 			...(head.shared ?? []),
-			...jobs.flatMap((job, k) => prefixInputs(job.mapped.inputs, `s${k}_`))
+			...jobs.flatMap((job, k) => prefixInputs(job.mapped.inputs, `s${k}_`)),
+			...Array.from({ length: Math.max(0, (head.headcount ?? 0) - jobs.length) }, (_, k) =>
+				prefixInputs(head.filler ?? [], `f${k}_`)
+			).flat()
 		],
 		history: head.runs.slice(0, -1).map((period) => ({ period })),
 		period: head.runs.at(-1)!,
 		expected: jobs.map((job, k) => ({ employment: `s${k}_${job.mapped.employment}`, lines: {} })),
-		...(jobs.some((job) => job.mapped.exits !== undefined)
-			? { exits: jobs.flatMap((job, k) => (job.mapped.exits ?? []).map((ref) => `s${k}_${ref}`)) }
-			: {}),
 		// a refusal the oracle expects is attempted, not thrown (runs alone, see `groups`)
 		...(jobs.length === 1 && jobs[0]!.verdict.refused !== null ? { refused: '' } : {})
 	};
@@ -349,7 +404,9 @@ async function runBatch(host: Host, code: string, jobs: readonly Job[], n: strin
 			];
 		}
 		const text = error instanceof Error ? error.message : String(error);
-		return [{ job: jobs[0]!, disagreements: judge(jobs[0]!.tags, jobs[0]!.verdict, { refused: text }) }];
+		return [
+			{ job: jobs[0]!, disagreements: judge(jobs[0]!.tags, jobs[0]!.verdict, { refused: text }) }
+		];
 	}
 	return jobs.map((job, k) => {
 		if (probe.refused !== undefined) {
@@ -370,18 +427,26 @@ async function runBatch(host: Host, code: string, jobs: readonly Job[], n: strin
 	});
 }
 
-/** Scenarios grouped by company shape and run list, in batches; refused and company-wide ones alone. */
+/** Scenarios grouped by company shape, run list and headcount, in batches; the ones the oracle refuses alone. */
 function groups(jobs: readonly Job[], size: number): Job[][] {
 	const by = new Map<string, Job[]>();
 	for (const job of jobs) {
 		const m = job.mapped;
-		const alone = m.solo === true || job.verdict.refused !== null;
-		const key = JSON.stringify([m.company ?? {}, m.shared ?? [], m.runs, alone ? job.tags.id : ''])
+		const alone = job.verdict.refused !== null;
+		const key = JSON.stringify([
+			m.company ?? {},
+			m.shared ?? [],
+			m.runs,
+			m.headcount ?? null,
+			alone ? job.tags.id : ''
+		]);
 		by.set(key, [...(by.get(key) ?? []), job]);
 	}
 	const out: Job[][] = [];
-	for (const list of by.values())
-		for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+	for (const list of by.values()) {
+		const n = Math.max(1, Math.min(size, list[0]!.mapped.headcount ?? size));
+		for (let i = 0; i < list.length; i += n) out.push(list.slice(i, i + n));
+	}
 	return out;
 }
 
@@ -442,7 +507,11 @@ export async function differential(
 		)
 	).flat();
 	const agreement: ProfileReport['agreement'] = { rows: {}, branches: {} };
-	const tally = (into: Record<string, { agreed: number; disagreed: number }>, key: string, ok: boolean) => {
+	const tally = (
+		into: Record<string, { agreed: number; disagreed: number }>,
+		key: string,
+		ok: boolean
+	) => {
 		const t = (into[key] ??= { agreed: 0, disagreed: 0 });
 		if (ok) t.agreed++;
 		else t.disagreed++;
@@ -480,17 +549,11 @@ export function writeReports(dir: string, reports: readonly ProfileReport[]) {
 // ---------------------------------------------------------------------------------------------------------------
 // The office roster every adapter shares: a Monday-anchored week, 5 × OFFICE, OFF, REST (see `officeWeek`)
 // ---------------------------------------------------------------------------------------------------------------
-import { officeWeek } from './payroll-probe.ts';
 const OFFICE = officeWeek(ANCHOR);
-/** Mon–Fri of `period` that are not in `holidays`. */
-export const workingDays = (period: string, holidays: readonly string[] = []) =>
-	monthDays(period).filter((d) => weekday(d) >= 1 && weekday(d) <= 5 && !holidays.includes(d));
 
 // ---------------------------------------------------------------------------------------------------------------
 // SG (precedents: tests/e2e/probes/SG.ts `hire`, `registration`, `workDay`, `holiday`, `bonus`, `encash`, `deduct`)
 // ---------------------------------------------------------------------------------------------------------------
-import * as sgOracle from './oracle/SG.ts';
-import { generateProfiles as sgScenarios } from './profiles/SG.ts';
 
 const SG_PASS = { EP: 'EMPLOYMENT_PASS', S_PASS: 'S_PASS', WORK_PERMIT: 'WORK_PERMIT' } as const;
 const SG_EXIT: Record<string, Row> = {
@@ -526,7 +589,8 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 	];
 	const starts = [...new Set(cuts)].sort();
 	const salaryOn = (day: string) =>
-		[...(job.rate_changes ?? [])].reverse().find((c) => c.from <= day)?.monthly_basic ?? job.monthly_basic;
+		[...(job.rate_changes ?? [])].reverse().find((c) => c.from <= day)?.monthly_basic ??
+		job.monthly_basic;
 	const terms = starts.map((from, i): ProbeInput => {
 		const st = status(from);
 		const next = starts[i + 1];
@@ -536,7 +600,9 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 				employment_id: '@job',
 				residency_status: st === 'SPR' ? 'PERMANENT_RESIDENT' : st,
 				...(st === 'SPR' ? { residency_since: e.spr_granted_on! } : {}),
-				...(st === 'CITIZEN' && e.citizen_on !== undefined ? { residency_since: e.citizen_on } : {}),
+				...(st === 'CITIZEN' && e.citizen_on !== undefined
+					? { residency_since: e.citizen_on }
+					: {}),
 				...(st === 'FOREIGNER' ? { pass_type: SG_PASS[e.pass ?? 'EP'] } : {}),
 				tax_residency: 'RESIDENT',
 				currency: 'SGD',
@@ -562,7 +628,8 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 	const regs: ProbeInput[] = [];
 	const reg = (scheme: string, from: string, status: Row) =>
 		regs.push(registration('person', 'job', scheme, from, status));
-	const sprFrom = e.spr_granted_on !== undefined && e.spr_granted_on > job.start ? e.spr_granted_on : job.start;
+	const sprFrom =
+		e.spr_granted_on !== undefined && e.spr_granted_on > job.start ? e.spr_granted_on : job.start;
 	if (s.employer_unregistered)
 		for (const scheme of ['CPF', ...funds])
 			reg(scheme, job.start, { kind: 'NOT_REGISTERED', reason: 'Registration pending' });
@@ -692,7 +759,10 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 		),
 		...(m.paid_leave ?? []).map((l) =>
 			l.kind === 'ANNUAL'
-				? leaveRow('job', 'ANNUAL_LEAVE', l.date, l.date, { half_day_start: false, half_day_end: false })
+				? leaveRow('job', 'ANNUAL_LEAVE', l.date, l.date, {
+						half_day_start: false,
+						half_day_end: false
+					})
 				: leaveRow(
 						'job',
 						l.kind === 'OUTPATIENT' ? 'SICK_LEAVE' : 'HOSPITALIZATION_LEAVE',
@@ -705,13 +775,23 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 		...(m.bonus === undefined ? [] : [adhocRow('job', 'bonus', m.bonus, mid, 'Bonus')]),
 		...(m.retrenchment_benefit === undefined
 			? []
-			: [adhocRow('job', 'RETRENCHMENT_BENEFIT', m.retrenchment_benefit, last, 'Retrenchment benefit')]),
+			: [
+					adhocRow(
+						'job',
+						'RETRENCHMENT_BENEFIT',
+						m.retrenchment_benefit,
+						last,
+						'Retrenchment benefit'
+					)
+				]),
 		...(m.damage_recovery === undefined
 			? []
 			: [
 					adhocRow(
 						'job',
-						m.damage_recovery.commissioner_permitted ? 'APPROVED_DAMAGE_RECOVERY' : 'DAMAGE_RECOVERY',
+						m.damage_recovery.commissioner_permitted
+							? 'APPROVED_DAMAGE_RECOVERY'
+							: 'DAMAGE_RECOVERY',
 						m.damage_recovery.loss,
 						mid,
 						'Damage recovery, inquiry held',
@@ -724,7 +804,11 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 					adhocRow(
 						'job',
 						'SALARY_IN_LIEU_OF_NOTICE',
-						sgOracle.noticePayInLieu(gross, m.notice_in_lieu_weeks ?? 0, m.notice_in_lieu_days ?? 0),
+						sgOracle.noticePayInLieu(
+							gross,
+							m.notice_in_lieu_weeks ?? 0,
+							m.notice_in_lieu_days ?? 0
+						),
 						last,
 						'Salary in lieu of notice'
 					)
@@ -788,4 +872,2568 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 		runs: [s.period]
 	};
 }
-const sg = profile('SG', sgScenarios, sgMap, (s) => verdictOf({ lines: sgOracle.computePayslip(s).lines }));
+const sg = profile('SG', sgScenarios, sgMap, (s) =>
+	verdictOf({ lines: sgOracle.computePayslip(s).lines })
+);
+
+// ---------------------------------------------------------------------------------------------------------------
+// A roster of `days` ('W' work, 'OFF', 'REST', 'STAT' a statutory rest day), Monday first, anchored on ANCHOR
+// ---------------------------------------------------------------------------------------------------------------
+type Day = 'W' | 'OFF' | 'REST' | 'STAT';
+const DAY_REF: Record<Day, [ref: string, name: string, variant: Row]> = {
+	W: ['rw', 'Work day', { kind: 'WORK' }],
+	OFF: ['roff', 'Off day', { kind: 'OFF' }],
+	REST: ['rrest', 'Rest day', { kind: 'REST' }],
+	STAT: ['rstat', 'Statutory rest day', { kind: 'REST', statutory: true }]
+};
+/** Shift definitions and the week pattern `rweek` of `days` (Monday first), the work day `work`. */
+export function week(days: readonly Day[], work: Row, code = 'DIFF'): ProbeInput[] {
+	const range = { from: ANCHOR, to: null };
+	return [
+		...[...new Set(days)].map((d): ProbeInput => {
+			const [ref, name, variant] = DAY_REF[d];
+			return {
+				collection: 'shift_definitions',
+				ref,
+				values: {
+					company_id: '@company',
+					code: `${code}-${d}`,
+					name,
+					variant: d === 'W' ? { ...variant, ...work } : variant,
+					effective_range: range
+				}
+			};
+		}),
+		{
+			collection: 'shift_patterns',
+			ref: 'rweek',
+			values: {
+				company_id: '@company',
+				code: `${code}-WEEK`,
+				name: days.join(' '),
+				pattern: { days: days.map((d) => ({ roster_code_id: `@${DAY_REF[d][0]}` })) },
+				effective_range: range
+			}
+		}
+	];
+}
+const hhmm = (minutes: number) =>
+	`${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
+/** A day `hours` long from 09:00, an hour's break at 13:00 once past four hours. */
+const dayVariant = (hours: number): Row => ({
+	start_time: '09:00',
+	end_time: hhmm(9 * 60 + Math.round(hours * 60) + (hours > 4 ? 60 : 0)),
+	break_minutes: hours > 4 ? 60 : 0,
+	...(hours > 4 ? { break_start_time: '13:00' } : {})
+});
+/** Free working days of a month handed out in order, so leave and overtime never share a day. */
+function days(pool: readonly string[]) {
+	let i = 0;
+	return (n: number) => {
+		if (i + n > pool.length) unmapped(`${n} more working days than the month holds`);
+		const out = pool.slice(i, i + n);
+		i += n;
+		return out;
+	};
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// TH (precedents: tests/e2e/probes/TH.ts `person`, `week`, `workDay`, `timeOff`, `encashOnExit`, `adhoc`, `statutory`)
+// ---------------------------------------------------------------------------------------------------------------
+
+const TH_SITE: Record<thOracle.Worksite, string> = {
+	BANGKOK: 'Bangkok',
+	CHONBURI: 'Chon Buri',
+	PHUKET: 'Phuket',
+	SURAT_THANI_KO_SAMUI: 'Surat Thani/Ko Samui',
+	CHIANG_MAI_MUEANG: 'Chiang Mai/Mueang Chiang Mai',
+	SONGKHLA_HAT_YAI: 'Songkhla/Hat Yai',
+	NONTHABURI: 'Nonthaburi',
+	NAKHON_RATCHASIMA: 'Nakhon Ratchasima',
+	SAMUT_SONGKHRAM: 'Samut Songkhram',
+	CHIANG_MAI: 'Chiang Mai',
+	LOPBURI: 'Lop Buri',
+	NONG_KHAI: 'Nong Khai',
+	KRABI: 'Krabi',
+	SONGKHLA: 'Songkhla',
+	SURAT_THANI: 'Surat Thani',
+	CHUMPHON: 'Chumphon',
+	LAMPHUN: 'Lamphun',
+	ROI_ET: 'Roi Et',
+	ANG_THONG: 'Ang Thong',
+	UDON_THANI: 'Udon Thani',
+	NAN: 'Nan',
+	YALA: 'Yala'
+};
+const TH_CLASS: Record<thOracle.WorkClass, Row> = {
+	ORDINARY: { work_classification: 'EA_COVERED' },
+	S65_1_AUTHORITY: { work_classification: 'MANAGERIAL' },
+	S65_2_COMMISSION_SALES: { work_classification: 'COMMISSION_SALES' },
+	S65_3_9_HOURLY: { work_classification: 'OVERTIME_AT_HOURLY_RATE' },
+	GUARD: { work_classification: 'EA_COVERED', statutory_work_category: 'GUARD_DUTY' }
+};
+const TH_EXIT: Record<thOracle.ExitCause, (x: NonNullable<thOracle.Scenario['exit']>) => Row> = {
+	RESIGNATION: () => ({ exit_ground: 'RESIGNATION' }),
+	EMPLOYER_TERMINATION: (x) => ({
+		exit_ground: 'RETRENCHMENT',
+		...(x.noticeGivenOn === null ? {} : { exit_facts: { notice_given_on: x.noticeGivenOn } })
+	}),
+	DISMISSAL_S119: () => ({ exit_ground: 'DISMISSAL', exit_facts: { dismissed_for_cause: true } }),
+	RETIREMENT: () => ({ exit_ground: 'RETIREMENT' }),
+	CONTRACT_EXPIRY: () => ({
+		exit_ground: 'END_OF_CONTRACT',
+		exit_facts: { fixed_term_project_exempt: false }
+	}),
+	FIXED_TERM_PROJECT_EXEMPT: () => ({
+		exit_ground: 'END_OF_CONTRACT',
+		exit_facts: { fixed_term_project_exempt: true }
+	}),
+	RELOCATION_OBJECTION: (x) => ({
+		exit_ground: 'RESIGNATION',
+		exit_facts: { relocation_objection: true, relocation_notice_posted: x.relocationNoticePosted }
+	}),
+	TECHNOLOGY_RESTRUCTURING: (x) => ({
+		exit_ground: 'RETRENCHMENT',
+		exit_facts: {
+			technology_restructuring: true,
+			technology_notice_60_days: x.technologyNotice60Days
+		}
+	})
+};
+const TH_TZ = '+07:00';
+
+function thMap(s: thOracle.Scenario): Mapped {
+	const e = s.employee;
+	const x = s.exit;
+	const lv = s.leave;
+	if (e.normalDailyHours > 8)
+		unmapped('a normal day over 8 hours (needs the split-break agreement)');
+	const oracle = thOracle.computePayslip(s).lines;
+	const pay = e.pay;
+	const first = `${s.period}-01`;
+	const lastWorked =
+		x !== null && x.date < thOracle.monthEnd(s.period) ? x.date : thOracle.monthEnd(s.period);
+	// holidays: the last weekdays of the month, one per paid traditional holiday (or one to work on)
+	const weekdays = monthDays(s.period).filter((d) => weekday(d) >= 1 && weekday(d) <= 5);
+	const nHolidays = Math.max(
+		pay.basis === 'DAILY' ? pay.paidTraditionalHolidays : 0,
+		s.time.holidayWork?.kind === 'TRADITIONAL' ? 1 : 0
+	);
+	const holidays = weekdays.slice(weekdays.length - nHolidays);
+	const free = weekdays.filter((d) => !holidays.includes(d) && d >= e.hireDate && d <= lastWorked);
+	const take = days(free);
+	const job = 'job';
+	const inputs: ProbeInput[] = [];
+	const leave = (code: string, dates: readonly string[], extra: Row = {}, cert = false) =>
+		inputs.push(
+			...ranges(dates).map(([from, to]) =>
+				leaveRow(
+					job,
+					code,
+					from,
+					to,
+					extra,
+					cert ? { certificate_file: 'medical-certificate.pdf' } : undefined
+				)
+			)
+		);
+	if (pay.basis === 'DAILY') {
+		// worked: the first `workedDays` free weekdays; the rest absent (unpaid)
+		const worked = take(pay.workedDays);
+		for (const d of free.filter((d) => !worked.includes(d)))
+			inputs.push(workDay(job, d, [], TH_TZ));
+	}
+	// prior leave this year: working days before the period, latest first
+	const before = (n: number) => {
+		const pool: string[] = [];
+		for (
+			let d = addDays(first, -1);
+			pool.length < n && d >= `${s.period.slice(0, 4)}-01-01`;
+			d = addDays(d, -1)
+		)
+			if (weekday(d) >= 1 && weekday(d) <= 5 && d >= e.hireDate) pool.push(d);
+		if (pool.length < n) unmapped(`${n} prior leave days before ${s.period} this year`);
+		return pool.sort();
+	};
+	leave('UNPAID_LEAVE', take(lv.unpaidDays));
+	leave('SICK_LEAVE', [...before(lv.sick.prior), ...take(lv.sick.days)], {}, true);
+	leave('PERSONAL_BUSINESS_LEAVE', [...before(lv.personal.prior), ...take(lv.personal.days)]);
+	leave('MILITARY_LEAVE', [...before(lv.military.prior), ...take(lv.military.days)]);
+	leave('ANNUAL_LEAVE', take(lv.annualLeaveDays));
+	leave(
+		'CHILD_CARE_LEAVE',
+		take(lv.childCareDays),
+		{ facts: { event_kind: 'BIRTH', event_date: addDays(first, -40) } },
+		true
+	);
+	leave('CHILD_BIRTH_LEAVE', take(lv.spouseBirthDays), {
+		facts: { event_kind: 'BIRTH', event_relationship: 'SPOUSE', event_date: addDays(first, -1) }
+	});
+	if (lv.maternityStart !== null) {
+		// 120 calendar days from the start, one entry per month (as the probe records it)
+		const end = addDays(lv.maternityStart, 119);
+		for (let from = lv.maternityStart; from <= end; from = addDays(lastDay(from.slice(0, 7)), 1)) {
+			const to = lastDay(from.slice(0, 7)) < end ? lastDay(from.slice(0, 7)) : end;
+			inputs.push(
+				leaveRow(job, 'MATERNITY_LEAVE', from, to, {
+					facts: { event_kind: 'BIRTH', event_date: lv.maternityStart }
+				})
+			);
+		}
+	}
+	// overtime: at most three hours a day on successive free weekdays, after s.27's 20 minutes' rest from two hours
+	const normalEnd = 9 * 60 + e.normalDailyHours * 60 + 60;
+	const otDay = (d: string, ot: number) =>
+		workDay(
+			job,
+			d,
+			[
+				['09:00', '13:00'],
+				['14:00', hhmm(normalEnd)],
+				...(ot > 0
+					? [
+							[
+								hhmm(normalEnd + (ot >= 2 ? 20 : 0)),
+								hhmm(normalEnd + (ot >= 2 ? 20 : 0) + Math.round(ot * 60))
+							] as [string, string]
+						]
+					: [])
+			],
+			TH_TZ,
+			{ approved_overtime_hours: ot, overtime_consented_at: `${d}T00:00:00${TH_TZ}` }
+		);
+	for (let left = s.time.overtimeHours; left > 0; left -= 3)
+		inputs.push(otDay(take(1)[0]!, Math.min(3, left)));
+	const hw = s.time.holidayWork;
+	if (hw !== null) {
+		const d =
+			hw.kind === 'TRADITIONAL'
+				? holidays[0]!
+				: monthDays(s.period).find((d) => weekday(d) === 6 && d >= e.hireDate && d <= lastWorked)!;
+		const pairs = clock(hw.hours);
+		const endMin = Number(pairs.at(-1)![1].slice(0, 2)) * 60 + Number(pairs.at(-1)![1].slice(3));
+		if (hw.overtimeHours > 0) {
+			const from = endMin + (hw.overtimeHours >= 2 ? 20 : 0);
+			if (hw.overtimeHours >= 2)
+				pairs.push([hhmm(from), hhmm(from + Math.round(hw.overtimeHours * 60))]);
+			else
+				pairs[pairs.length - 1] = [
+					pairs.at(-1)![0],
+					hhmm(endMin + Math.round(hw.overtimeHours * 60))
+				];
+		}
+		inputs.push(
+			workDay(job, d, pairs, TH_TZ, {
+				approved_overtime_hours: hw.hours + hw.overtimeHours,
+				overtime_consented_at: `${d}T00:00:00${TH_TZ}`
+			})
+		);
+	}
+	if (s.bonus > 0)
+		inputs.push(
+			adhocRow(
+				job,
+				'BONUS',
+				s.bonus,
+				lastWorked < `${s.period}-15` ? lastWorked : `${s.period}-15`,
+				'Bonus'
+			)
+		);
+	if (x !== null) {
+		for (const code of ['SEVERANCE_PAY', 'NOTICE_IN_LIEU'])
+			if (oracle[code] !== undefined)
+				inputs.push(adhocRow(job, code, 0, x.date, code.toLowerCase()));
+		const encash = oracle.LEAVE_ENCASHMENT?.base;
+		if (encash !== undefined)
+			inputs.push(
+				leaveRow(
+					job,
+					'ANNUAL_LEAVE',
+					`${x.date.slice(0, 4)}-01-01`,
+					`${x.date.slice(0, 4)}-12-31`,
+					{
+						reference: 'DIFF-EXIT-ANNUAL',
+						days: encash,
+						encash_days: encash,
+						effective_on: x.date,
+						due_on: x.date
+					}
+				)
+			);
+	}
+	const regs: ProbeInput[] = [];
+	if (e.providentFundMember)
+		regs.push(
+			registration('person', job, 'EWF', e.hireDate, {
+				kind: 'REGISTERED',
+				reference_number: 'DIFF-EWF',
+				elections: {
+					provident_fund_member: true,
+					provident_fund_registration_reference: 'DIFF-PF-REG',
+					provident_fund_membership_reference: 'DIFF-PF-MEMBER'
+				}
+			})
+		);
+	if (e.ly01 > 0)
+		regs.push(
+			registration(
+				'person',
+				job,
+				'PIT',
+				`${s.period.slice(0, 4)}-01-01` > e.hireDate ? `${s.period.slice(0, 4)}-01-01` : e.hireDate,
+				{
+					kind: 'REGISTERED',
+					reference_number: 'DIFF-PIT',
+					elections: { ly01_deductions: e.ly01 }
+				}
+			)
+		);
+	const person: ProbeInput[] = [
+		{
+			collection: 'employees',
+			ref: 'person',
+			values: {
+				name: `Differential ${s.id}`,
+				date_of_birth: e.birthDate,
+				gender:
+					e.pregnant || lv.maternityStart !== null || lv.childCareDays > 0 ? 'FEMALE' : 'MALE',
+				nationality: e.citizenship === 'TH' ? 'Thai' : 'Foreign'
+			}
+		},
+		{
+			collection: 'employments',
+			ref: job,
+			values: {
+				employee_id: '@person',
+				company_id: '@company',
+				employee_number: 'TH',
+				effective_range: { from: e.hireDate, to: x?.date ?? null },
+				...(x === null ? {} : TH_EXIT[x.cause](x))
+			}
+		},
+		{
+			collection: 'employment_terms',
+			values: {
+				employment_id: `@${job}`,
+				residency_status: e.citizenship === 'TH' ? 'CITIZEN' : 'FOREIGNER',
+				tax_residency: e.taxResident ? 'RESIDENT' : 'NON_RESIDENT',
+				currency: 'THB',
+				base_salary: pay.basis === 'MONTHLY' ? pay.monthly : pay.daily,
+				pay_frequency: pay.basis,
+				statutory_work_category: 'NON_MANUAL',
+				...TH_CLASS[e.workClass],
+				employment_type: 'PERMANENT',
+				worksite: TH_SITE[s.company.worksite],
+				...(s.company.sector === 'GENERAL' || s.company.sector === 'HOTEL_TYPE_1'
+					? {}
+					: { worksite_sector: s.company.sector }),
+				facts: {
+					hazardous_work: e.hazardous,
+					pregnancy_status: e.pregnant ? 'PREGNANT' : 'NOT_PREGNANT'
+				},
+				shift_pattern_id: '@rweek',
+				effective_range: { from: e.hireDate, to: x?.date ?? null }
+			}
+		}
+	];
+	// the Employee Welfare Fund (from October 2026) reads the company's headcount: ten or more, or the count itself
+	const ewf = s.period >= '2026-10';
+	return {
+		company: { facts: { sso_flood_relief_area: s.company.floodReliefArea } },
+		shared: [
+			...week(['W', 'W', 'W', 'W', 'W', 'REST', 'REST'], dayVariant(e.normalDailyHours), 'TH'),
+			...holidays.map((d) => holidayRow(d, 'Traditional holiday'))
+		],
+		inputs: [...person, ...regs, ...inputs],
+		employment: job,
+		runs: s.steadyYear
+			? periodsFrom(
+					e.hireDate.slice(0, 4) === s.period.slice(0, 4)
+						? e.hireDate.slice(0, 7)
+						: `${s.period.slice(0, 4)}-01`,
+					s.period
+				)
+			: [s.period],
+		...(ewf
+			? {
+					headcount: Math.min(10, s.company.headcount),
+					filler: thFiller
+				}
+			: {})
+	};
+}
+const thFiller: ProbeInput[] = [
+	{
+		collection: 'employees',
+		ref: 'person',
+		values: { name: 'Filler', date_of_birth: '1990-01-01', gender: 'MALE' }
+	},
+	{
+		collection: 'employments',
+		ref: 'job',
+		values: {
+			employee_id: '@person',
+			company_id: '@company',
+			employee_number: 'TH-F',
+			effective_range: { from: '2020-01-01', to: null }
+		}
+	},
+	{
+		collection: 'employment_terms',
+		values: {
+			employment_id: '@job',
+			residency_status: 'CITIZEN',
+			tax_residency: 'RESIDENT',
+			currency: 'THB',
+			base_salary: 30000,
+			pay_frequency: 'MONTHLY',
+			work_classification: 'EA_COVERED',
+			statutory_work_category: 'NON_MANUAL',
+			employment_type: 'PERMANENT',
+			worksite: 'Bangkok',
+			facts: { hazardous_work: false, pregnancy_status: 'NOT_PREGNANT' },
+			shift_pattern_id: '@rweek',
+			effective_range: { from: '2020-01-01', to: null }
+		}
+	}
+];
+const th = profile('TH', thScenarios, thMap, (s) => verdictOf(thOracle.computePayslip(s)));
+
+/** Working days before `first` in its year (and from `from`), `n` of them, earliest first. */
+function priorWeekdays(first: string, n: number, from: string, what: string) {
+	const pool: string[] = [];
+	for (
+		let d = addDays(first, -1);
+		pool.length < n && d >= `${first.slice(0, 4)}-01-01`;
+		d = addDays(d, -1)
+	)
+		if (weekday(d) >= 1 && weekday(d) <= 5 && d >= from) pool.push(d);
+	if (pool.length < n) unmapped(`${n} prior ${what} days before ${first} this year`);
+	return pool.sort();
+}
+const weekendSkip = (d: string) => weekday(d) === 0 || weekday(d) === 6;
+
+// ---------------------------------------------------------------------------------------------------------------
+// TW (precedents: tests/e2e/probes/TW.ts `twWeek`, `personInputs`, `worked`/`asked`, `leave`, `wageMonth`, `adhoc`)
+// ---------------------------------------------------------------------------------------------------------------
+
+const TW_RISK: Record<number, string> = { 0.0012: '42', 0.0057: '25', 0.0022: '4', 0.0096: '3' };
+const TW_TZ = '+08:00';
+const TW_SUBSIDY = { MILD: 25, MODERATE: 50, SEVERE: 100 } as const;
+
+function twMap(s: twOracle.Scenario): Mapped {
+	const e = s.employee;
+	const x = s.exit;
+	const lv = s.leave;
+	if (!s.company.liUnit) unmapped('liUnit false (an establishment under five without an LI unit)');
+	const risk = TW_RISK[s.company.occRate] ?? unmapped(`occRate ${s.company.occRate}`);
+	if (
+		e.citizenship !== 'ROC' &&
+		e.citizenship !== 'MIGRANT_WORKER' &&
+		e.citizenship !== 'FOREIGN_PROFESSIONAL'
+	)
+		unmapped(`citizenship ${e.citizenship}`);
+	if (e.prGrantedOn !== null) unmapped('prGrantedOn');
+	if (e.pay.basis !== 'MONTHLY') unmapped('hourly pay');
+	if (e.pay.raise !== null) unmapped('mid-month raise');
+	const monthly = e.pay.monthly;
+	if (e.partTimeWeeklyHours !== null) unmapped('part-time');
+	if (e.shortTermHire) unmapped('shortTermHire');
+	if (e.oldSystemServiceMonths > 0 || e.pension.system !== 'NEW') unmapped('old pension system');
+	if (e.pension.rateChange !== undefined) unmapped('voluntary rate change');
+	if (s.time.restDayEmergencyDays > 0) unmapped('restDayEmergencyDays');
+	if (lv.maternityDays + lv.paternityDays + lv.occInjuryDays > 0 || lv.parentalWholeMonth)
+		unmapped('maternity / paternity / occupational-injury / parental leave');
+	if (s.occInjuryMedical > 0) unmapped('occInjuryMedical');
+	if (s.bonus.priorThisYear > 0) unmapped('an earlier bonus this year');
+	const oracle = twOracle.computePayslip(s).lines;
+	const first = `${s.period}-01`;
+	const last = lastDay(s.period);
+	const lastWorked = x !== null && x.date < last ? x.date : last;
+	// the declared insured grades are the insurer's facts: the oracle's grade of each scheme
+	const base = (code: string) =>
+		oracle[code]?.base ??
+		oracle.LI?.base ??
+		oracle.OCC_INJURY?.base ??
+		oracle.NHI?.base ??
+		oracle.LABOR_PENSION?.base ??
+		monthly;
+	const disability = e.disability === null ? {} : { disability_subsidy: TW_SUBSIDY[e.disability] };
+	const dep = (level: 'MILD' | 'MODERATE' | 'SEVERE') =>
+		e.dependantDisability.filter((d) => d === level).length;
+	const elections: Record<string, Row> = {
+		LI: { insured_amount: base('LI'), ...disability },
+		EI: { insured_amount: base('EI'), ...disability },
+		NHI: {
+			insured_amount: base('NHI'),
+			enrolled_dependants: e.nhiDependants,
+			...disability,
+			...(e.dependantDisability.some((d) => d !== null)
+				? {
+						dependants_subsidised_full: dep('SEVERE'),
+						dependants_subsidised_half: dep('MODERATE'),
+						dependants_subsidised_quarter: dep('MILD')
+					}
+				: {})
+		},
+		OCC_INJURY: { insured_amount: base('OCC_INJURY') },
+		LABOR_PENSION: {
+			insured_amount: base('LABOR_PENSION'),
+			voluntary_rate: e.pension.voluntaryRate * 100
+		},
+		WAGE_ARREARS_BASE: { insured_amount: base('LI') },
+		INCOME_TAX:
+			e.taxMethod === 'FLAT5'
+				? { five_percent_withholding: true }
+				: { table_declaration_reference: 'DIFF-TW-TABLE', table_dependants: e.taxDependants }
+	};
+	const range = { from: e.hireDate, to: x?.date ?? null };
+	const regs = Object.entries(elections).map(([code, el]) => ({
+		collection: 'employment_statutory_facts',
+		values: {
+			employee_id: '@person',
+			employment_id: '@job',
+			statutory_contribution_id: `@law:statutory_contributions:${code}`,
+			effective_range: range,
+			status: {
+				kind: 'REGISTERED',
+				elections: el,
+				reference_number: `DIFF-${code}`,
+				since: e.hireDate,
+				first_contribution_due_on: e.hireDate
+			}
+		}
+	}));
+	const free = monthDays(s.period).filter(
+		(d) => !weekendSkip(d) && d >= e.hireDate && d <= lastWorked
+	);
+	// §37 holidays worked: weekdays from the end of the month, published for this company
+	const holidays = free.slice(free.length - s.time.holidayWork.length);
+	const take = days(free.filter((d) => !holidays.includes(d)));
+	const saturdays = monthDays(s.period).filter(
+		(d) => weekday(d) === 6 && d >= e.hireDate && d <= lastWorked
+	);
+	if (saturdays.length < s.time.restDayWork.length) unmapped('more 休息日 work than Saturdays');
+	const time: ProbeInput[] = [
+		...s.time.weekdayOvertime.map((h) =>
+			workDay('job', take(1)[0]!, clock(8 + h), TW_TZ, { approved_overtime_hours: h })
+		),
+		...s.time.restDayWork.map((h, i) =>
+			workDay('job', saturdays[i]!, clock(h), TW_TZ, { approved_overtime_hours: h })
+		),
+		...s.time.holidayWork.map((h, i) =>
+			workDay('job', holidays[i]!, clock(h), TW_TZ, { approved_overtime_hours: h })
+		)
+	];
+	const leave = (code: string, dates: readonly string[]) =>
+		ranges(dates).map(([from, to]) =>
+			leaveRow('job', code, from, to, { half_day_start: false, half_day_end: false })
+		);
+	const leaves = [
+		...leave('PERSONAL_LEAVE', take(lv.personalDays)),
+		...leave('SICK_LEAVE', [
+			...priorWeekdays(first, lv.sickPriorDays, e.hireDate, 'sick'),
+			...take(lv.sickDays)
+		]),
+		...leave('MENSTRUAL_LEAVE', [
+			...priorWeekdays(first, lv.menstrualPriorDays, e.hireDate, 'menstrual'),
+			...take(lv.menstrualDays)
+		])
+	];
+	const pay: ProbeInput[] = [
+		...(s.bonus.amount > 0
+			? [
+					adhocRow(
+						'job',
+						'bonus',
+						s.bonus.amount,
+						`${s.period}-10` < lastWorked ? `${s.period}-10` : lastWorked,
+						'Bonus'
+					)
+				]
+			: []),
+		...(s.garnishment > 0
+			? [
+					adhocRow(
+						'job',
+						'COURT_GARNISHMENT',
+						s.garnishment,
+						`${s.period}-10` < lastWorked ? `${s.period}-10` : lastWorked,
+						'強制執行法 §115-1',
+						{
+							files: { evidence_file: 'garnishment-order.pdf' }
+						}
+					)
+				]
+			: [])
+	];
+	let exitFacts: Row = {};
+	if (x !== null) {
+		const avg = { average_daily_wage: x.averageMonthlyWage / 30, old_system_service_months: 0 };
+		const byCause: Record<twOracle.ExitCause, Row> = {
+			RESIGNATION: { exit_ground: 'RESIGNATION', exit_facts: { lsa_termination_ground: 'OTHER' } },
+			DISMISSAL_S12: { exit_ground: 'DISMISSAL', exit_facts: { lsa_termination_ground: 'OTHER' } },
+			LAYOFF_S11: {
+				exit_ground: 'REDUNDANCY',
+				exit_facts: {
+					lsa_termination_ground: 'ARTICLE_11',
+					notice_days_given: x.noticeDaysGiven,
+					...avg
+				}
+			},
+			WORKER_S14: {
+				exit_ground: 'RESIGNATION',
+				exit_facts: {
+					lsa_termination_ground: 'ARTICLE_14',
+					notice_days_given: x.noticeDaysGiven,
+					...avg
+				}
+			},
+			RETIREMENT: {
+				exit_ground: 'RETIREMENT',
+				exit_facts: { ...avg, retirement_disability_duty_caused: x.dutyDisability }
+			}
+		};
+		exitFacts = byCause[x.cause];
+		for (const code of ['SEVERANCE_PAY', 'RETIREMENT_PAY'])
+			if (oracle[code] !== undefined)
+				pay.push(adhocRow('job', code, 0, x.date, `${code} on departure`));
+		// the last whole month's normal wage (施行細則 §24-1) and the unused annual leave the oracle pays
+		const prev = addDays(first, -1).slice(0, 7);
+		pay.push({
+			collection: 'employment_wage_periods',
+			values: {
+				employment_id: '@job',
+				period: { from: `${prev}-01`, to: lastDay(prev) },
+				currency: 'TWD',
+				normal_wages: e.pay.monthly,
+				due_on: lastDay(prev),
+				paid_on: lastDay(prev),
+				reference: `${prev} payslip`
+			}
+		});
+		const payout = oracle.ANNUAL_LEAVE_PAYOUT?.amount;
+		if (payout !== undefined) {
+			const d =
+				Math.round(
+					(payout / (Math.max(e.pay.monthly, twOracle.lawFor(s.period).mwMonthly) / 30)) * 1000
+				) / 1000;
+			pay.push(
+				leaveRow(
+					'job',
+					'ANNUAL_LEAVE',
+					`${x.date.slice(0, 4)}-01-01`,
+					`${x.date.slice(0, 4)}-12-31`,
+					{
+						reference: 'DIFF-EXIT-ANNUAL',
+						days: d,
+						encash_days: d,
+						effective_on: x.date,
+						due_on: x.date
+					}
+				)
+			);
+		}
+	}
+	const foreign = e.citizenship !== 'ROC';
+	return {
+		company: { risk_class: risk, facts: {} },
+		shared: [
+			...week(['W', 'W', 'W', 'W', 'W', 'REST', 'STAT'], dayVariant(8), 'TW'),
+			...holidays.map((d) => holidayRow(d))
+		],
+		inputs: [
+			{
+				collection: 'employees',
+				ref: 'person',
+				values: {
+					name: `Differential ${s.id}`,
+					date_of_birth: e.birthDate,
+					gender: lv.menstrualDays + lv.menstrualPriorDays > 0 ? 'FEMALE' : 'MALE',
+					nationality: foreign ? 'Foreign' : 'Taiwanese'
+				}
+			},
+			{
+				collection: 'employments',
+				ref: 'job',
+				values: {
+					employee_id: '@person',
+					company_id: '@company',
+					employee_number: 'TW',
+					effective_range: range,
+					...exitFacts
+				}
+			},
+			{
+				collection: 'employment_terms',
+				values: {
+					employment_id: '@job',
+					residency_status: foreign ? 'FOREIGNER' : 'CITIZEN',
+					...(foreign
+						? { pass_type: e.citizenship === 'MIGRANT_WORKER' ? 'WORK_PERMIT' : 'EMPLOYMENT_PASS' }
+						: {}),
+					tax_residency: e.taxResident ? 'RESIDENT' : 'NON_RESIDENT',
+					currency: 'TWD',
+					base_salary: e.pay.monthly,
+					...(e.mealAllowance > 0
+						? {
+								allowances: [
+									{
+										catalogue_id: '@law:allowance_catalogue:MEAL_ALLOWANCE',
+										amount: e.mealAllowance
+									}
+								]
+							}
+						: {}),
+					pay_frequency: 'MONTHLY',
+					work_classification: 'EA_COVERED',
+					statutory_work_category: 'NON_MANUAL',
+					employment_type: 'PERMANENT',
+					shift_pattern_id: '@rweek',
+					facts: {},
+					effective_range: range
+				}
+			},
+			...regs,
+			...time,
+			...leaves,
+			...pay
+		],
+		employment: 'job',
+		runs: [s.period]
+	};
+}
+const tw = profile('TW', twScenarios, twMap, (s) => verdictOf(twOracle.computePayslip(s)));
+
+// ---------------------------------------------------------------------------------------------------------------
+// VN (precedents: tests/e2e/probes/VN.ts `company`, `hire`, `worked`, `leave`, `registered`, `adhoc`)
+// ---------------------------------------------------------------------------------------------------------------
+
+const VN_TZ = '+07:00';
+function vnMap(s: vnOracle.Scenario): Mapped {
+	const e = s.employee;
+	const k = s.contract;
+	const t = s.time;
+	const x = s.exit;
+	if (k.partTime !== null) unmapped('part-time hourly contract');
+	if (e.voluntaryPension > 0) unmapped('voluntary pension premium (a PIT deduction claim)');
+	if (Object.values(t.night).some((h) => h > 0)) unmapped('night work');
+	if (x?.cause === 'ABANDONMENT') unmapped('ABANDONMENT exit');
+	const oracle = vnOracle.computePayslip(s).lines;
+	const first = `${s.period}-01`;
+	const last = lastDay(s.period);
+	const end = x !== null && x.date < last ? x.date : last;
+	const free = monthDays(s.period).filter((d) => !weekendSkip(d) && d >= k.start && d <= end);
+	const holidays = t.ot.holiday > 0 ? [free.at(-1)!] : [];
+	const take = days(free.filter((d) => !holidays.includes(d)));
+	const sundays = monthDays(s.period).filter((d) => weekday(d) === 0 && d >= k.start && d <= end);
+	const inputs: ProbeInput[] = [];
+	const fact = (code: string, from: string, status: Row, to: string | null = null): ProbeInput => ({
+		collection: 'employment_statutory_facts',
+		values: {
+			employee_id: '@person',
+			employment_id: '@job',
+			statutory_contribution_id: `@law:statutory_contributions:${code}`,
+			effective_range: { from, to },
+			status: { kind: 'REGISTERED', reference_number: `DIFF-${code}`, ...status }
+		}
+	});
+	// overtime: weekday hours at most four a day, rest-day (Sunday) and holiday hours at most eight a day
+	for (let left = t.ot.weekday; left > 0; left -= 4) {
+		const h = Math.min(4, left);
+		inputs.push(workDay('job', take(1)[0]!, clock(8 + h), VN_TZ, { approved_overtime_hours: h }));
+	}
+	let sunday = 0;
+	for (let left = t.ot.rest; left > 0; left -= 8) {
+		const d = sundays[sunday++] ?? unmapped('more rest-day overtime than Sundays');
+		inputs.push(
+			workDay('job', d, clock(Math.min(8, left)), VN_TZ, {
+				approved_overtime_hours: Math.min(8, left)
+			})
+		);
+	}
+	if (t.ot.holiday > 0) {
+		if (t.ot.holiday > 8) unmapped('holiday overtime over one day');
+		inputs.push(
+			workDay('job', holidays[0]!, clock(t.ot.holiday), VN_TZ, {
+				approved_overtime_hours: t.ot.holiday
+			})
+		);
+	}
+	for (const [from, to] of ranges(take(t.unpaidDays)))
+		inputs.push(
+			leaveRow('job', 'UNPAID_LEAVE', from, to, {
+				reason: 'Agreed unpaid leave (Labour Code art.115(3))'
+			})
+		);
+	if (t.unpaidDays >= 14)
+		inputs.push(fact('SI', first, { elections: { continue_si_unpaid: false } }, last));
+	if (t.sickDays > 0) {
+		inputs.push(
+			fact(
+				'SI',
+				first,
+				{
+					elections: {
+						sickness_benefit_eligible: true,
+						long_term_sickness: false,
+						first_return_month: false
+					}
+				},
+				last
+			)
+		);
+		for (const [from, to] of ranges(take(t.sickDays)))
+			inputs.push(
+				leaveRow(
+					'job',
+					'SICK_LEAVE',
+					from,
+					to,
+					{},
+					{ certificate_file: 'sick-leave-certificate.pdf' }
+				)
+			);
+	}
+	if (s.bonus > 0)
+		inputs.push(
+			adhocRow('job', 'BONUS', s.bonus, `${s.period}-10` < end ? `${s.period}-10` : end, 'Bonus')
+		);
+	if (x !== null) {
+		for (const code of ['SEVERANCE_ALLOWANCE', 'JOB_LOSS_ALLOWANCE'])
+			if (oracle[code] !== undefined)
+				inputs.push(adhocRow('job', code, 0, x.date, 'Separation payment on departure'));
+		const untaken = oracle.ENCASHMENT?.base;
+		if (untaken !== undefined)
+			inputs.push(
+				leaveRow(
+					'job',
+					'ANNUAL_LEAVE',
+					`${x.date.slice(0, 4)}-01-01`,
+					`${x.date.slice(0, 4)}-12-31`,
+					{
+						reference: 'DIFF-EXIT-ANNUAL',
+						days: untaken,
+						encash_days: untaken,
+						effective_on: x.date,
+						due_on: x.date
+					}
+				)
+			);
+	}
+	const foreign = e.citizenship === 'FOREIGN';
+	// a fixed term ends on its last day: the contract's length is its range (tests/e2e/probes/VN.ts P-VN-161)
+	const range = { from: k.start, to: x?.date ?? k.fixedEnd };
+	return {
+		company: {
+			region: s.company.region,
+			facts: s.company.oaReduced ? { occupational_accident_reduced: true } : {}
+		},
+		shared: [...OFFICE, ...holidays.map((d) => holidayRow(d))],
+		inputs: [
+			{
+				collection: 'employees',
+				ref: 'person',
+				values: {
+					name: `Differential ${s.id}`,
+					date_of_birth: e.birthDate,
+					gender: e.sex === 'F' ? 'FEMALE' : 'MALE',
+					nationality: foreign ? 'Japanese' : 'Vietnamese',
+					receiving_pension: e.receivingPension
+				}
+			},
+			{
+				collection: 'employments',
+				ref: 'job',
+				values: {
+					employee_id: '@person',
+					company_id: '@company',
+					employee_number: 'VN',
+					effective_range: range,
+					...(x === null
+						? {}
+						: { exit_ground: x.cause, exit_facts: { pension_eligible: x.pensionEligible } })
+				}
+			},
+			{
+				collection: 'employment_terms',
+				values: {
+					employment_id: '@job',
+					residency_status: foreign ? 'FOREIGNER' : 'CITIZEN',
+					...(foreign ? { pass_type: 'WORK_PERMIT' } : {}),
+					tax_residency: e.taxResident ? 'RESIDENT' : 'NON_RESIDENT',
+					currency: 'VND',
+					base_salary: k.monthly,
+					...(k.allowance > 0
+						? {
+								allowances: [
+									{
+										catalogue_id: '@law:allowance_catalogue:INSURANCE_EQUIVALENT',
+										amount: k.allowance
+									}
+								]
+							}
+						: {}),
+					pay_frequency: 'MONTHLY',
+					work_classification: 'EA_COVERED',
+					statutory_work_category: 'NON_MANUAL',
+					employment_type: k.probation
+						? 'PROBATION'
+						: k.fixedEnd !== null
+							? 'CONTRACT'
+							: 'PERMANENT',
+					facts:
+						k.start <= '2025-12-31'
+							? { prior_floor_region: s.company.region, prior_floor_reclassified: false }
+							: {},
+					shift_pattern_id: '@week',
+					effective_range: range
+				}
+			},
+			...(k.uiFrom === null
+				? []
+				: [
+						fact('UI', k.uiFrom < k.start ? k.start : k.uiFrom, {
+							since: k.uiFrom,
+							elections: { pension_qualified: e.receivingPension }
+						})
+					]),
+			fact('UNION_DUES', k.start, { elections: { union_member: e.unionMember } }),
+			fact('PIT', k.start, {
+				elections: {
+					eligible_dependents: e.dependants,
+					...(e.dependants > 0 ? { dependents_registration_reference: 'DIFF-DEP' } : {})
+				}
+			}),
+			...inputs
+		],
+		employment: 'job',
+		runs: [s.period]
+	};
+}
+const vn = profile('VN', vnScenarios, vnMap, (s) => verdictOf(vnOracle.computePayslip(s)));
+
+// ---------------------------------------------------------------------------------------------------------------
+// MY (precedents: tests/e2e/probes/MY.ts `hrd`, `hire`, `worked`, `holiday`, `adhoc`, `leave`, `retrenched`,
+// `exitLeave`, the TP3 openings and child claims)
+// ---------------------------------------------------------------------------------------------------------------
+
+const MY_TZ = '+08:00';
+function myMap(s: MyScenario): Mapped {
+	const e = s.employee;
+	const j = s.employment;
+	const m = s.month;
+	const x = j.exit;
+	if (j.payBasis !== 'MONTHLY' || j.employmentType !== 'FULL_TIME')
+		unmapped('daily, hourly or part-time pay');
+	if (e.presence !== undefined) unmapped('recorded presence periods');
+	if (e.sch6Para21EmploymentDays !== undefined) unmapped('Sch.6 para 21 claim');
+	if (x !== null && x.cause === 'RESIGNATION' && !x.noticeServed)
+		unmapped('a resignation without notice (the employee owes)');
+	const oracle = myOracle.computePayslip(s).lines;
+	const last = lastDay(s.period);
+	const end = x !== null && x.date < last ? x.date : last;
+	const foreign = e.citizenship === 'FOREIGNER';
+	const range = { from: j.hireDate, to: x?.date ?? j.contractEnd };
+	const fact = (code: string, extra: Row = {}, from = j.hireDate): ProbeInput => ({
+		collection: 'employment_statutory_facts',
+		values: {
+			employee_id: '@person',
+			employment_id: '@job',
+			statutory_contribution_id: `@law:statutory_contributions:${code}`,
+			effective_range: { from, to: range.to },
+			status: { kind: 'REGISTERED', reference_number: `DIFF-${code}`, ...extra }
+		}
+	});
+	const year = s.period.slice(0, 4);
+	const tp3Months = Math.max(0, Number(j.hireDate.slice(5, 7)) - 1);
+	const half = e.childrenHalf ?? 0;
+	const pcb: Row = {
+		elections: { zakat: e.zakat },
+		...(e.children > 0
+			? {
+					child_claims: [
+						{
+							year,
+							relief_class: 'UNDER_18',
+							full_count: e.children - half,
+							half_count: half,
+							reference: 'TP1 child relief'
+						}
+					]
+				}
+			: {}),
+		...(e.tp3 === undefined
+			? {}
+			: {
+					opening: [
+						{
+							year,
+							base: e.tp3.remuneration,
+							employee: e.tp3.mtd,
+							employer: 0,
+							...(e.tp3.zakat > 0 ? { rebate: e.tp3.zakat } : {}),
+							months: tp3Months,
+							reference: 'TP3'
+						}
+					]
+				})
+	};
+	const facts: ProbeInput[] = [
+		fact('EPF', {
+			elections: foreign ? { member_before_1998: false } : {},
+			...(e.tp3 === undefined
+				? {}
+				: {
+						opening: [
+							{ year, base: e.tp3.remuneration, employee: e.tp3.epf, employer: 0, reference: 'TP3' }
+						]
+					})
+		}),
+		fact('SOCSO', { elections: {}, first_contribution_due_on: e.firstContributionDate }),
+		fact('EIS', {
+			elections: foreign ? { mykas_resident: false } : {},
+			first_contribution_due_on: e.firstContributionDate
+		}),
+		fact('PCB', pcb),
+		...(e.skbbkReleased
+			? [
+					fact(
+						'SKBBK',
+						{ elections: { skbbk_liability_released: true } },
+						`${s.period}-01` > j.hireDate ? `${s.period}-01` : j.hireDate
+					)
+				]
+			: [])
+	];
+	const holidays = new Set(m.holidays);
+	const time: ProbeInput[] = [
+		...m.work.map((w) => {
+			const off = holidays.has(w.date) || weekendSkip(w.date);
+			return workDay('job', w.date, clock(w.hours), MY_TZ, {
+				approved_overtime_hours: off ? w.hours : Math.max(0, w.hours - 8)
+			});
+		}),
+		...ranges(m.unpaidLeave).map(([from, to]) =>
+			leaveRow('job', 'UNPAID_LEAVE', from, to, { half_day_start: false, half_day_end: false })
+		),
+		...ranges(m.sickLeave ?? []).map(([from, to]) =>
+			leaveRow(
+				'job',
+				'MEDICAL_LEAVE',
+				from,
+				to,
+				{ half_day_start: false, half_day_end: false },
+				{
+					certificate_file: 'medical_leave-certificate.pdf'
+				}
+			)
+		),
+		...(m.paternityLeave === undefined || m.paternityLeave.length === 0
+			? []
+			: [
+					leaveRow(
+						'job',
+						'PATERNITY_LEAVE',
+						m.paternityLeave[0]!,
+						m.paternityLeave.at(-1)!,
+						{
+							half_day_start: false,
+							half_day_end: false,
+							facts: { event_kind: 'BIRTH', event_date: m.paternityLeave[0]! }
+						},
+						{ certificate_file: 'paternity_leave-certificate.pdf' }
+					)
+				])
+	];
+	if (m.maternityFrom !== undefined) {
+		// 98 consecutive days from confinement, one entry per month continuing the first as its episode
+		const stop = addDays(m.maternityFrom, 97);
+		for (
+			let from = m.maternityFrom, n = 0;
+			from <= stop;
+			from = addDays(lastDay(from.slice(0, 7)), 1), n++
+		) {
+			const to = lastDay(from.slice(0, 7)) < stop ? lastDay(from.slice(0, 7)) : stop;
+			const row = leaveRow(
+				'job',
+				'MATERNITY_LEAVE',
+				from,
+				to,
+				{
+					half_day_start: false,
+					half_day_end: false,
+					facts: { event_kind: 'BIRTH', event_date: m.maternityFrom },
+					...(n > 0 ? { episode_id: '@maternity' } : {})
+				},
+				{ certificate_file: 'maternity_leave-certificate.pdf' }
+			);
+			time.push(n === 0 ? { ...row, ref: 'maternity' } : row);
+		}
+	}
+	const pay: ProbeInput[] = [
+		...(j.travelAllowanceOfficial > 0
+			? [
+					adhocRow(
+						'job',
+						'TRAVEL_OFFICIAL',
+						j.travelAllowanceOfficial,
+						`${s.period}-15` < end ? `${s.period}-15` : end,
+						'Official travel'
+					)
+				]
+			: []),
+		...(m.bonus > 0
+			? [
+					adhocRow(
+						'job',
+						'BONUS',
+						m.bonus,
+						`${s.period}-15` < end ? `${s.period}-15` : end,
+						'Bonus'
+					)
+				]
+			: [])
+	];
+	let exit: Row = {};
+	if (x !== null) {
+		const given = x.noticeServed
+			? { notice_given: true, notice_given_on: addDays(x.date, -60) }
+			: { notice_given: false };
+		const notice = (party: string) => ({
+			leaving_malaysia: false,
+			wages_12m: x.wages12m,
+			notice_termination_party: party,
+			notice_approved_apprenticeship: false,
+			notice_exception: 'NONE',
+			notice_waived_days: 0,
+			...given
+		});
+		const byCause: Record<NonNullable<MyScenario['employment']['exit']>['cause'], Row> = {
+			RESIGNATION: {
+				exit_ground: 'RESIGNATION',
+				exit_facts: { terminated_without_notice: false, ...notice('EMPLOYEE') }
+			},
+			EMPLOYER_TERMINATION: {
+				exit_ground: 'RETRENCHMENT',
+				exit_facts: {
+					...notice('EMPLOYER'),
+					notice_structural_ground: 'REDUCED_WORK',
+					notice_exception_reference: 'DIFF retrenchment'
+				}
+			},
+			MISCONDUCT_DISMISSAL: {
+				exit_ground: 'DISMISSAL',
+				exit_facts: { misconduct_dismissal: true, leaving_malaysia: false, wages_12m: x.wages12m }
+			},
+			CONTRACT_RETIREMENT: {
+				exit_ground: 'RETIREMENT',
+				exit_facts: {
+					leaving_malaysia: false,
+					wages_12m: x.wages12m,
+					notice_termination_party: 'NEITHER'
+				}
+			},
+			FIXED_TERM_EXPIRY: {
+				exit_ground: 'END_OF_CONTRACT',
+				exit_facts: {
+					leaving_malaysia: false,
+					wages_12m: x.wages12m,
+					notice_termination_party: 'NEITHER'
+				}
+			}
+		};
+		exit = byCause[x.cause];
+		for (const code of ['TERMINATION_BENEFIT', 'NOTICE_INDEMNITY'])
+			if (oracle[code] !== undefined)
+				pay.push(adhocRow('job', code, 0, x.date, `${code} on departure`));
+		const encash = oracle.ENCASHMENT?.amount;
+		if (encash !== undefined) {
+			const d = Math.round((encash / ((j.rate + j.fixedAllowance) / 26)) * 1000) / 1000;
+			pay.push(
+				leaveRow(
+					'job',
+					'ANNUAL_LEAVE',
+					`${x.date.slice(0, 4)}-01-01`,
+					`${x.date.slice(0, 4)}-12-31`,
+					{
+						reference: 'DIFF-EXIT-ANNUAL',
+						days: d,
+						encash_days: d,
+						effective_on: x.date,
+						due_on: x.date
+					}
+				)
+			);
+		}
+	}
+	const c = s.company;
+	const hrdFacts: Row =
+		c.hrd === 'NOT_LIABLE'
+			? {
+					hrd_scope: 'PART_I',
+					hrd_registration_class: 'NOT_REGISTERED',
+					hrd_form2_count: c.hrdHeadcount ?? 0
+				}
+			: {
+					hrd_scope: 'PART_I',
+					hrd_registration_class: c.hrd,
+					hrd_form2_count: c.hrdHeadcount ?? (c.hrd === 'COMPULSORY' ? 12 : 7),
+					...(c.hrd === 'OPTIONAL' ? { hrd_optional_last_high_year: c.hrdHighRateYear ?? 0 } : {})
+				};
+	const married = e.pcbCategory !== 1;
+	return {
+		company: {
+			facts: { ...hrdFacts, hrd_education_schedule_code: c.msic === '85302' ? '85302' : 'NONE' }
+		},
+		shared: [
+			...week(['W', 'W', 'W', 'W', 'W', 'REST', 'REST'], dayVariant(8), 'MY'),
+			...m.holidays.map((d) => holidayRow(d))
+		],
+		inputs: [
+			{
+				collection: 'employees',
+				ref: 'person',
+				values: {
+					name: `Differential ${s.id}`,
+					date_of_birth: e.birthDate,
+					gender: e.gender === 'F' || m.maternityFrom !== undefined ? 'FEMALE' : 'MALE',
+					nationality: foreign ? 'Indonesian' : 'Malaysian',
+					marital_status: married ? 'MARRIED' : 'SINGLE',
+					spouse_status:
+						e.pcbCategory === 2 ? 'WITHOUT_INCOME' : e.pcbCategory === 3 ? 'WITH_INCOME' : 'NONE',
+					children: Array.from({ length: e.children }, () => ({
+						child_birthdate: '2015-04-01',
+						relationship: 'CHILD'
+					}))
+				}
+			},
+			{
+				collection: 'employments',
+				ref: 'job',
+				values: {
+					employee_id: '@person',
+					company_id: '@company',
+					employee_number: 'MY',
+					effective_range: range,
+					...exit
+				}
+			},
+			{
+				collection: 'employment_terms',
+				values: {
+					employment_id: '@job',
+					residency_status: e.citizenship,
+					...(e.taxResidency === 'UNKNOWN' ? {} : { tax_residency: e.taxResidency }),
+					currency: 'MYR',
+					base_salary: j.rate,
+					...(j.fixedAllowance > 0
+						? {
+								allowances: [
+									{ catalogue_id: '@law:allowance_catalogue:SUA', amount: j.fixedAllowance }
+								]
+							}
+						: {}),
+					pay_frequency: 'MONTHLY',
+					work_classification: 'EA_COVERED',
+					statutory_work_category: 'NON_MANUAL',
+					employment_type: j.contractEnd === null ? 'PERMANENT' : 'CONTRACT',
+					facts: { worksite_state: 'SELANGOR' },
+					shift_pattern_id: '@rweek',
+					effective_range: range
+				}
+			},
+			...facts,
+			...time,
+			...pay
+		],
+		employment: 'job',
+		runs: [s.period]
+	};
+}
+const my = profile('MY', myScenarios, myMap, (s) => {
+	const r = myOracle.computePayslip(s);
+	return verdictOf(
+		r,
+		myOracle.probeLines(r),
+		r.unresolved.map((u) => u.key)
+	);
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// PH (precedents: tests/e2e/probes/PH.ts `company`, `hire`, `separation`, the published holidays, work days)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** The 2026 national days the PH oracle prices (tests/e2e/oracle/PH.ts REGULAR_HOLIDAYS / SPECIAL_DAYS, [PROC]). */
+const PH_REGULAR = [
+	'2026-01-01',
+	'2026-03-20',
+	'2026-04-02',
+	'2026-04-03',
+	'2026-04-09',
+	'2026-05-01',
+	'2026-05-27',
+	'2026-06-12',
+	'2026-08-31',
+	'2026-11-30',
+	'2026-12-25',
+	'2026-12-30'
+];
+const PH_SPECIAL = [
+	'2026-02-17',
+	'2026-04-04',
+	'2026-08-21',
+	'2026-11-01',
+	'2026-11-02',
+	'2026-12-08',
+	'2026-12-24',
+	'2026-12-31'
+];
+const PH_TZ = '+08:00';
+const PH_EXIT: Record<NonNullable<PHScenario['exitCause']>, Row> = {
+	RESIGNATION: { exit_ground: 'RESIGNATION' },
+	JUST_CAUSE: { exit_ground: 'DISMISSAL' },
+	REDUNDANCY: { exit_ground: 'REDUNDANCY', exit_facts: { termination_cause: 'REDUNDANCY' } },
+	LABOUR_SAVING: {
+		exit_ground: 'REDUNDANCY',
+		exit_facts: { termination_cause: 'LABOR_SAVING_DEVICES' }
+	},
+	RETRENCHMENT: { exit_ground: 'RETRENCHMENT', exit_facts: { termination_cause: 'RETRENCHMENT' } },
+	CLOSURE: {
+		exit_ground: 'RETRENCHMENT',
+		exit_facts: { termination_cause: 'CLOSURE_NOT_DUE_TO_SERIOUS_LOSSES' }
+	},
+	DISEASE: {
+		exit_ground: 'DISMISSAL',
+		exit_facts: { termination_cause: 'DISEASE', terminated_for_disease: true }
+	},
+	RETIREMENT: { exit_ground: 'RETIREMENT' },
+	KASAMBAHAY_UNJUST_DISMISSAL: {
+		exit_ground: 'DISMISSAL',
+		exit_facts: { kasambahay_unjust_dismissal: true }
+	},
+	KASAMBAHAY_UNJUSTIFIED_DEPARTURE: {
+		exit_ground: 'RESIGNATION',
+		exit_facts: { kasambahay_unjustified_departure: true }
+	}
+};
+const PH_TAX: Record<PHScenario['employee']['residency'], string> = {
+	CITIZEN: 'RESIDENT',
+	RESIDENT_ALIEN: 'RESIDENT',
+	NRA_ETB: 'NON_RESIDENT',
+	NRA_NETB: 'NON_RESIDENT_NETB'
+};
+function phMap(s: PHScenario): Mapped {
+	const e = s.employee;
+	const j = s.employment;
+	if (s.sector !== 'NON_AGRICULTURE')
+		unmapped('a retail/service establishment of 15 or fewer (evidenced sector facts)');
+	if (j.type === 'PART_TIME' || j.hoursPerDay !== 8) unmapped('part-time four-hour days');
+	if (e.sssMemberBeforeSixty) unmapped('SSS membership before sixty');
+	const oracle = phOracle.computePayslip(s).lines;
+	const last = lastDay(s.period);
+	const exit = j.exitDate ?? null;
+	const end = exit !== null && exit < last ? exit : last;
+	const mid = `${s.period}-15` < end ? `${s.period}-15` : end;
+	const minutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+	const time: ProbeInput[] = s.work.map((w) => {
+		const worked = (minutes(w.end) - minutes(w.start) - w.breakMinutes) / 60;
+		const off =
+			weekday(w.date) === 0 ||
+			weekday(w.date) === 6 ||
+			PH_REGULAR.includes(w.date) ||
+			PH_SPECIAL.includes(w.date);
+		return workDay('job', w.date, [[w.start, w.end]], PH_TZ, {
+			...(weekday(w.date) >= 1 && weekday(w.date) <= 5 ? { shift_definition_id: '@office' } : {}),
+			approved_overtime_hours: off ? worked : Math.max(0, worked - 8)
+		});
+	});
+	for (const [from, to] of ranges(s.unpaidLeave))
+		time.push(
+			leaveRow('job', `UNPAID_LEAVE@${from}`, from, to, {
+				half_day_start: false,
+				half_day_end: false
+			})
+		);
+	if (s.commission !== undefined)
+		time.push(adhocRow('job', `COMMISSION@${mid}`, s.commission, mid, 'Commission'));
+	if (s.performanceBonus !== undefined)
+		time.push(adhocRow('job', `bonus@${mid}`, s.performanceBonus, mid, 'Performance bonus'));
+	// separation classes and the 13th month are raised at 0 and priced by their catalogue formula
+	const on = exit ?? (s.period.endsWith('-12') ? `${s.period}-15` : mid);
+	for (const code of [
+		'SEPARATION_PAY',
+		'RETIREMENT_PAY',
+		'KASAMBAHAY_INDEMNITY',
+		'KASAMBAHAY_FORFEITURE',
+		'THIRTEENTH_MONTH_PAY'
+	])
+		if (oracle[code] !== undefined)
+			time.push(adhocRow('job', `${code}@${on}`, 0, on, `${code} on ${on}`));
+	if (s.silDaysToEncash !== undefined && exit !== null)
+		time.push(
+			leaveRow(
+				'job',
+				`ANNUAL_LEAVE@${exit}`,
+				`${exit.slice(0, 4)}-01-01`,
+				`${exit.slice(0, 4)}-12-31`,
+				{
+					reference: 'DIFF-EXIT-SIL',
+					days: s.silDaysToEncash,
+					encash_days: s.silDaysToEncash,
+					effective_on: exit,
+					due_on: exit
+				}
+			)
+		);
+	const holidays = [
+		...PH_REGULAR.filter((d) => d.startsWith(s.period)).map((d) =>
+			holidayRow(d, 'Regular holiday')
+		),
+		...PH_SPECIAL.filter((d) => d.startsWith(s.period)).map((d) =>
+			holidayRow(d, 'Special day', 'SPECIAL_HOLIDAY')
+		)
+	];
+	const domestic = j.type === 'DOMESTIC';
+	const foreign = e.citizenship === 'FOREIGN';
+	const first =
+		j.hireDate.slice(0, 4) === s.period.slice(0, 4)
+			? j.hireDate.slice(0, 7)
+			: `${s.period.slice(0, 4)}-01`;
+	return {
+		company: {
+			facts: {
+				small_establishment: false,
+				retirement_exempt_establishment: false,
+				minimum_wage_exemption_approved: j.minimumWageExemption
+			}
+		},
+		shared: [...OFFICE, ...holidays],
+		inputs: [
+			{
+				collection: 'employees',
+				ref: 'person',
+				values: {
+					name: `Differential ${s.id}`,
+					...(e.birthDate === null ? {} : { date_of_birth: e.birthDate }),
+					gender: domestic ? 'FEMALE' : 'MALE',
+					nationality: foreign ? 'Foreign' : 'Filipino'
+				}
+			},
+			{
+				collection: 'employments',
+				ref: 'job',
+				values: {
+					employee_id: '@person',
+					company_id: '@company',
+					employee_number: 'PH',
+					effective_range: { from: j.hireDate, to: exit },
+					...(s.exitCause === undefined ? {} : PH_EXIT[s.exitCause])
+				}
+			},
+			{
+				collection: 'employment_terms',
+				values: {
+					employment_id: '@job',
+					residency_status: foreign ? 'FOREIGNER' : 'CITIZEN',
+					tax_residency: PH_TAX[e.residency],
+					currency: 'PHP',
+					base_salary: j.monthlyBasic,
+					pay_frequency: 'MONTHLY',
+					work_classification: j.managerial ? 'MANAGERIAL' : 'EA_COVERED',
+					statutory_work_category: 'NON_MANUAL',
+					employment_type: domestic
+						? 'DOMESTIC'
+						: j.type === 'APPRENTICE'
+							? 'APPRENTICE'
+							: 'PERMANENT',
+					worksite: 'NCR/Manila',
+					...(domestic ? {} : { worksite_sector: 'OTHER_NONAGRI' }),
+					shift_pattern_id: '@week',
+					effective_range: { from: j.hireDate, to: exit }
+				}
+			},
+			...time
+		],
+		employment: 'job',
+		runs: s.history === 'CONSTANT_BASIC' ? periodsFrom(first, s.period) : [s.period]
+	};
+}
+const ph = profile('PH', phScenarios, phMap, (s) => {
+	const r = phOracle.computePayslip(s);
+	return verdictOf(r, r.refused === undefined ? phOracle.probeLines(r) : {});
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// JP (precedents: tests/e2e/probes/JP.ts `jpWeek`, `personInputs`, `bonus`, `retirementAllowance`, `noticePay`,
+// `worked`/`asked`, the company LABOUR facts)
+// ---------------------------------------------------------------------------------------------------------------
+
+const JP_TZ = '+09:00';
+const JP_EXIT: Record<jpOracle.ExitCause, string> = {
+	RESIGNATION: 'RESIGNATION',
+	DISMISSAL: 'DISMISSAL',
+	CONTRACT_END: 'END_OF_CONTRACT',
+	RETIREMENT_AGE: 'RETIREMENT'
+};
+/** Completed service years, a part year counting as one (JP-TAX-25). */
+const jpServiceYears = (hire: string, last: string) => {
+	const end = addDays(last, 1);
+	let y = 0;
+	while (`${Number(hire.slice(0, 4)) + y + 1}${hire.slice(4)}` <= end) y += 1;
+	return `${Number(hire.slice(0, 4)) + y}${hire.slice(4)}` < end ? y + 1 : y;
+};
+function jpMap(s: jpOracle.Scenario): Mapped {
+	const e = s.employee;
+	const x = s.exit;
+	if (e.pensionCertificate) unmapped('a social-security agreement certificate');
+	if (e.premiumExemptMonths.length > 0) unmapped('premium-exempt insurance months');
+	const result = jpOracle.computePayslip(s);
+	const last = lastDay(s.period);
+	const end = x !== null && x.date < last ? x.date : last;
+	const range = { from: e.hireDate, to: x?.date ?? null };
+	const fact = (code: string, elections: Row): ProbeInput => ({
+		collection: 'employment_statutory_facts',
+		values: {
+			employee_id: '@person',
+			employment_id: '@job',
+			statutory_contribution_id: `@law:statutory_contributions:${code}`,
+			effective_range: range,
+			status: {
+				kind: 'REGISTERED',
+				reference_number: `DIFF-${code}`,
+				since: e.hireDate,
+				first_contribution_due_on: e.hireDate,
+				elections
+			}
+		}
+	});
+	const c = e.commuting;
+	const terms: Row = {
+		annual_scheduled_hours: e.annualScheduledHours,
+		withholding_column: e.withholding.column,
+		withholding_dependants: e.withholding.dependants,
+		...(e.residentTax === null
+			? {}
+			: {
+					resident_tax_collection: 'SPECIAL',
+					resident_tax_fiscal_year:
+						Number(s.period.slice(0, 4)) - (Number(s.period.slice(5, 7)) < 6 ? 1 : 0),
+					resident_tax_june_amount: e.residentTax.june,
+					resident_tax_monthly_amount: e.residentTax.monthly,
+					resident_tax_notice_reference: 'DIFF 特別徴収税額の決定通知書'
+				}),
+		...(c === null
+			? {}
+			: {
+					...(c.mode === 'TRANSIT' ? { commute_transit_fare: c.amount } : {}),
+					...(c.mode === 'MIXED' ? { commute_transit_fare: c.transitFare ?? 0 } : {}),
+					...(c.mode === 'TRANSIT' ? {} : { commute_vehicle_km: c.km }),
+					...(c.parking === undefined ? {} : { commute_parking_fee: c.parking })
+				})
+	};
+	const facts: ProbeInput[] = [
+		...(e.health.registered
+			? [fact('HEALTH', { standard_monthly_remuneration: e.health.grade })]
+			: []),
+		...(e.employmentInsurance.registered
+			? [
+					fact(
+						'EMPLOYMENT_INSURANCE',
+						e.employmentInsurance.category === 'GENERAL'
+							? {}
+							: { insured_category: e.employmentInsurance.category }
+					)
+				]
+			: [])
+	];
+	const time: ProbeInput[] = [
+		...s.time.unpaidLeaveDays.map((d) => workDay('job', d, [], JP_TZ)),
+		...ranges(s.time.paidLeaveDays).map(([from, to]) =>
+			leaveRow('job', 'ANNUAL_LEAVE', from, to, { half_day_start: false, half_day_end: false })
+		),
+		...s.time.work.map((w) => {
+			const min = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
+			const at = (m: number) =>
+				new Date(Date.parse(`${w.date}T00:00:00${JP_TZ}`) + m * 60_000).toISOString();
+			const [a, b] = [min(w.start), min(w.end)];
+			const noon = 12 * 60;
+			const spans =
+				w.breakMinutes > 0 && a < noon && noon + w.breakMinutes < b
+					? [
+							[a, noon],
+							[noon + w.breakMinutes, b]
+						]
+					: [[a, b - w.breakMinutes]];
+			const hours = (b - a - w.breakMinutes) / 60;
+			const off = weekendSkip(w.date);
+			return {
+				collection: 'work_days',
+				values: {
+					employment_id: '@job',
+					work_date: w.date,
+					worked_intervals: spans.map(([f, t]) => ({ start: at(f!), end: at(t!) })),
+					approved_overtime_hours: off ? hours : Math.max(0, hours - e.dailyHours)
+				}
+			} satisfies ProbeInput;
+		})
+	];
+	const pay: ProbeInput[] = [];
+	const mid = `${s.period}-15` < end ? `${s.period}-15` : end;
+	if (s.bonus !== null) {
+		pay.push(
+			adhocRow('job', 'BONUS', s.bonus.amount, mid, '賞与'),
+			fact('HEALTH_BONUS', {
+				standard_bonus_fiscal_year_prior: s.bonus.priorFiscalStandardBonus,
+				...(s.bonus.exempt ? { premium_exempt: true } : {})
+			}),
+			fact('INCOME_TAX_BONUS', { prior_month_net_pay: jpOracle.priorMonthNetPay(s) })
+		);
+	}
+	let exit: Row = {};
+	if (x !== null) {
+		const mm = Number(x.date.slice(5, 7));
+		exit = {
+			exit_ground: JP_EXIT[x.cause],
+			exit_facts: {
+				retirement_income_declaration: x.retirementDeclaration,
+				retirement_service_years: jpServiceYears(e.hireDate, x.date),
+				...(e.residentTax === null
+					? {}
+					: {
+							resident_tax_exit_collection:
+								x.residentTaxLumpRequested || mm <= 4 ? 'LUMP_SUM' : 'ORDINARY'
+						})
+			}
+		};
+		if (x.retirementAllowance > 0)
+			pay.push(adhocRow('job', 'RETIREMENT_ALLOWANCE', x.retirementAllowance, x.date, '退職手当'));
+		const notice = result.lines.NOTICE_PAY?.amount ?? 0;
+		if (notice > 0) {
+			const row = adhocRow('job', 'DISMISSAL_NOTICE_PAY', 0, x.date, '解雇予告手当');
+			// the recorded 平均賃金 is the oracle's art.12 average: the engine prices the days short of 30 on it
+			const average_wage = notice / (30 - x.noticeDays);
+			pay.push({
+				...row,
+				values: { ...row.values, facts: { notice_days_given: x.noticeDays, average_wage } }
+			});
+		}
+	}
+	return {
+		company: {
+			region: s.company.prefecture,
+			facts: {
+				employment_insurance_class: s.company.eiClass,
+				workers_comp_business_type: s.company.wcBusinessType,
+				...(s.company.wcMeritRate === null
+					? {}
+					: { workers_comp_merit_rate: s.company.wcMeritRate }),
+				...(e.withholding.method === 'ELECTRONIC' ? { gensen_electronic_calculation: true } : {})
+			}
+		},
+		shared: week(['W', 'W', 'W', 'W', 'W', 'REST', 'STAT'], dayVariant(e.dailyHours), 'JP'),
+		inputs: [
+			{
+				collection: 'employees',
+				ref: 'person',
+				values: {
+					name: `Differential ${s.id}`,
+					date_of_birth: e.birthDate,
+					gender: 'MALE',
+					nationality: e.nationality === 'JP' ? 'Japanese' : 'Foreign'
+				}
+			},
+			{
+				collection: 'employments',
+				ref: 'job',
+				values: {
+					employee_id: '@person',
+					company_id: '@company',
+					employee_number: 'JP',
+					effective_range: range,
+					...exit
+				}
+			},
+			{
+				collection: 'employment_terms',
+				values: {
+					employment_id: '@job',
+					residency_status: e.nationality === 'JP' ? 'CITIZEN' : 'FOREIGNER',
+					tax_residency: e.taxResident ? 'RESIDENT' : 'NON_RESIDENT',
+					currency: 'JPY',
+					base_salary: e.monthlySalary,
+					pay_frequency: 'MONTHLY',
+					work_classification: 'LSA_COVERED',
+					employment_type: e.dailyHours < 8 ? 'PART_TIME' : 'PERMANENT',
+					worksite: s.company.prefecture,
+					shift_pattern_id: '@rweek',
+					facts: terms,
+					...(c === null
+						? {}
+						: {
+								allowances: [
+									{ catalogue_id: '@law:allowance_catalogue:COMMUTING', amount: c.amount }
+								]
+							}),
+					effective_range: range
+				}
+			},
+			...facts,
+			...time,
+			...pay
+		],
+		employment: 'job',
+		runs: [s.period]
+	};
+}
+const jp = profile('JP', jpScenarios, jpMap, (s) => {
+	const r = jpOracle.computePayslip(s);
+	const star = r.unsupported.find((u) => u.startsWith('*'));
+	if (star !== undefined) unmapped(`the oracle declines the slip: ${star}`);
+	// "INCOME_TAX (…)" / "RETIREMENT_INCOME_TAX, RESIDENT_TAX_RETIREMENT (…)": those codes are not priced
+	const codes = r.unsupported.flatMap((u) => u.split(' (')[0]!.split(', '));
+	return verdictOf(r, r.refused === null ? jpOracle.probeLines(r) : {}, codes);
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// ID (precedents: tests/e2e/probes/ID.ts `week`, `sixDayWeek`, `worker`, `registered`, `adhoc`, `punch`/`ordered`,
+// `leave`, `company`, `departure`)
+// ---------------------------------------------------------------------------------------------------------------
+
+const ID_TZ = '+07:00';
+const ID_PLACE: Record<idOracle.Workplace, string> = {
+	DKI: 'Provinsi DKI Jakarta',
+	KOTA_BEKASI: 'Provinsi Jawa Barat/Kota Bekasi',
+	KAB_BEKASI: 'Provinsi Jawa Barat/Kabupaten Bekasi',
+	KOTA_BANJAR: 'Provinsi Jawa Barat/Kota Banjar',
+	SURABAYA: 'Provinsi Jawa Timur/Kota Surabaya',
+	SEMARANG: 'Provinsi Jawa Tengah/Kota Semarang',
+	DENPASAR: 'Provinsi Bali/Kota Denpasar',
+	BADUNG: 'Provinsi Bali/Kabupaten Badung'
+};
+const ID_EXIT: Partial<Record<idOracle.ExitCause, [ground: string, cause: string | null]>> = {
+	MERGER: ['REDUNDANCY', 'MERGER_CONSOLIDATION_SEPARATION'],
+	TAKEOVER: ['REDUNDANCY', 'ACQUISITION'],
+	TAKEOVER_TERMS_REFUSED: ['RESIGNATION', 'ACQUISITION_TERMS_CHANGE_REJECTED'],
+	EFFICIENCY_LOSS: ['REDUNDANCY', 'EFFICIENCY_ACTUAL_LOSS'],
+	EFFICIENCY_PREVENT_LOSS: ['REDUNDANCY', 'EFFICIENCY_PREVENT_LOSS'],
+	CLOSURE_LOSS: ['RETRENCHMENT', 'CLOSURE_LOSS'],
+	CLOSURE_NO_LOSS: ['RETRENCHMENT', 'CLOSURE_NO_LOSS'],
+	FORCE_MAJEURE_CLOSURE: ['RETRENCHMENT', 'FORCE_MAJEURE_CLOSURE'],
+	FORCE_MAJEURE_NO_CLOSURE: ['RETRENCHMENT', 'FORCE_MAJEURE_NO_CLOSURE'],
+	PKPU_LOSS: ['RETRENCHMENT', 'DEBT_SUSPENSION_LOSS'],
+	PKPU_NO_LOSS: ['RETRENCHMENT', 'DEBT_SUSPENSION_NO_LOSS'],
+	BANKRUPTCY: ['RETRENCHMENT', 'BANKRUPTCY'],
+	EMPLOYER_MISCONDUCT_REQUEST: ['RESIGNATION', 'EMPLOYEE_REQUEST_EMPLOYER_MISCONDUCT'],
+	MISCONDUCT_CLAIM_REJECTED: ['DISMISSAL', 'EMPLOYEE_REQUEST_REJECTED'],
+	RESIGNATION: ['RESIGNATION', 'VOLUNTARY_RESIGNATION'],
+	ABSENT_FIVE_DAYS: ['DISMISSAL', 'UNEXCUSED_ABSENCE'],
+	WARNED_VIOLATION: ['DISMISSAL', 'VIOLATION_AFTER_WARNINGS'],
+	URGENT_VIOLATION: ['DISMISSAL', 'URGENT_VIOLATION'],
+	LONG_ILLNESS: ['DISMISSAL', 'LONG_ILLNESS_OR_WORK_ACCIDENT_DISABILITY'],
+	RETIREMENT: ['RETIREMENT', 'RETIREMENT'],
+	DEATH: ['DEATH', 'DEATH'],
+	CONTRACT_END: ['END_OF_CONTRACT', null]
+};
+const ID_UMSP: Record<idOracle.UmspCondition, Row> = {
+	EXPORT: { umsp_export_oriented: true },
+	ASSETS_OVER_1T: { umsp_assets_over_1_trillion: true },
+	ASTRA_GROUP: { umsp_astra_group: true },
+	HOTEL_4_5_STAR: { umsp_hotel_star: 5 }
+};
+function idMap(s: idOracle.Scenario): Mapped {
+	const co = s.company;
+	const ee = s.employee;
+	const em = s.employment;
+	const inp = s.inputs;
+	if (em.type === 'NON_EMPLOYEE') unmapped('a non-employee service fee');
+	if (em.payBasis !== 'MONTHLY' || em.partTime) unmapped('an hourly, daily or part-time wage');
+	if (co.padatKarya) unmapped('PP 7/2025 labour-intensive JKK relief');
+	if (co.dtpKlu) unmapped('PMK 105/2025 DTP incentive');
+	if (ee.foreignWorkMonths > 0 || ee.subjectivePartYear || ee.jpDeferral || ee.zakat > 0)
+		unmapped('foreign prior work, a part-year subject, a JP deferral or zakat');
+	if (em.nonFixedAllowance > 0 || inp.bonus > 0 || inp.reducedPay !== null)
+		unmapped('a non-fixed allowance, a bonus or reduced pay');
+	if (em.exitCause !== null && ID_EXIT[em.exitCause] === undefined)
+		unmapped(`exit ${em.exitCause}`);
+	const verdict = idOracle.computePayslip(s);
+	const period = s.period;
+	const last = lastDay(period);
+	const end = em.exitDate !== null && em.exitDate < last ? em.exitDate : last;
+	const holidaysNeeded = inp.overtime
+		.filter((o) => o.kind === 'HOLIDAY' || o.kind === 'HOLIDAY_SHORT_DAY')
+		.map((o) => o.date);
+	const married = ee.ptkp.startsWith('K/');
+	const dependants = Number(ee.ptkp.slice(-1));
+	const citizen = ee.citizen;
+	const range = { from: em.hireDate, to: em.exitDate ?? em.contractEnd };
+	const segments =
+		em.raise === null
+			? [{ wage: em.basic, from: em.hireDate, to: range.to }]
+			: [
+					{ wage: em.basic, from: em.hireDate, to: addDays(em.raise.from, -1) },
+					{ wage: em.raise.basic, from: em.raise.from, to: range.to }
+				];
+	const reg = (code: string, elections: Row, employment = true): ProbeInput => ({
+		collection: 'employment_statutory_facts',
+		values: {
+			employee_id: '@person',
+			...(employment ? { employment_id: '@job' } : {}),
+			statutory_contribution_id: `@law:statutory_contributions:${code}`,
+			effective_range: { from: em.hireDate, to: null },
+			status: { kind: 'REGISTERED', reference_number: `DIFF-${code}`, elections }
+		}
+	});
+	const rows: ProbeInput[] = [
+		...(ee.taxResident
+			? [
+					reg(
+						'PPH21',
+						{
+							recipient_class: 'REGULAR_EMPLOYEE',
+							ptkp_marital_status: married ? 'MARRIED' : 'SINGLE',
+							ptkp_dependants: dependants,
+							no_tax_id: !ee.hasTaxId
+						},
+						false
+					)
+				]
+			: []),
+		...(ee.jpRegistered ? [reg('JP', {})] : []),
+		...(ee.kesehatanExtraMembers > 0
+			? [reg('KESEHATAN', { extra_members: ee.kesehatanExtraMembers })]
+			: [])
+	];
+	const time: ProbeInput[] = [
+		...ranges(inp.unpaidDates).map(([from, to]) => leaveRow('job', 'UNPAID_LEAVE', from, to)),
+		...inp.paidLeave.flatMap((l) =>
+			ranges(l.dates).map(([from, to]) =>
+				leaveRow(
+					'job',
+					`${l.kind}_LEAVE`,
+					from,
+					to,
+					{},
+					l.kind === 'MENSTRUAL' ? { certificate_file: 'menstrual-leave.pdf' } : undefined
+				)
+			)
+		),
+		...inp.overtime.map((o) => {
+			const weekdayOt = o.kind === 'ORDINARY';
+			const hours = weekdayOt ? (co.workWeek === 6 ? 7 : 8) + o.hours : o.hours;
+			return workDay('job', o.date, clock(hours, co.workWeek === 6 ? '08:00' : '09:00'), ID_TZ, {
+				approved_overtime_hours: o.hours
+			});
+		})
+	];
+	const oracleCodes = verdict.components;
+	const pay: ProbeInput[] = [];
+	if (inp.wageDeduction > 0)
+		pay.push(
+			adhocRow(
+				'job',
+				'DEDUCTION',
+				inp.wageDeduction,
+				`${period}-15` < end ? `${period}-15` : end,
+				'PP 36/2021 art.63 deduction'
+			)
+		);
+	const thr = inp.thrHolidayDate;
+	if (oracleCodes.THR !== undefined && thr !== null) {
+		const due = addDays(thr, -11) < end ? addDays(thr, -11) : end;
+		pay.push(adhocRow('job', 'THR', 0, due < `${period}-01` ? `${period}-01` : due, 'THR'));
+	}
+	let exit: Row = {};
+	if (em.exitCause !== null && em.exitDate !== null) {
+		const [ground, cause] = ID_EXIT[em.exitCause]!;
+		exit = {
+			exit_ground: ground,
+			exit_facts: {
+				micro_small_enterprise: co.microSmall,
+				pension_offset_applies: false,
+				thr_holiday_date: thr ?? '2026-03-21',
+				...(cause === null ? {} : { termination_cause: cause }),
+				separation_wage_basis: 'MONTHLY',
+				...(inp.uangPisah > 0
+					? {
+							separation_pay_amount: inp.uangPisah,
+							separation_pay_reference: 'DIFF-PKB-UANG-PISAH'
+						}
+					: {})
+			}
+		};
+		for (const code of ['PESANGON', 'UPMK', 'UANG_PISAH', 'PKWT_COMPENSATION'])
+			if (oracleCodes[code] !== undefined)
+				pay.push(adhocRow('job', code, 0, em.exitDate, `${code} on departure`));
+	}
+	const sixDay = co.workWeek === 6;
+	return {
+		company: {
+			region: ID_PLACE[co.workplace],
+			...(co.jkkRiskGroup === null ? {} : { risk_class: co.jkkRiskGroup }),
+			facts: {
+				enterprise_size_class: co.microSmall ? 'MICRO_OR_SMALL' : 'OTHER',
+				...Object.assign({}, ...co.umspConditions.map((c) => ID_UMSP[c]))
+			}
+		},
+		shared: [
+			...(sixDay
+				? week(
+						['W', 'W', 'W', 'W', 'W', 'W', 'REST'],
+						{ start_time: '08:00', end_time: '16:00', break_minutes: 60 },
+						'ID6'
+					)
+				: week(['W', 'W', 'W', 'W', 'W', 'REST', 'REST'], dayVariant(8), 'ID')),
+			...holidaysNeeded.map((d) => holidayRow(d))
+		],
+		inputs: [
+			{
+				collection: 'employees',
+				ref: 'person',
+				values: {
+					name: `Differential ${s.id}`,
+					date_of_birth: ee.birthDate,
+					gender: inp.paidLeave.some((l) => l.kind === 'MENSTRUAL') ? 'FEMALE' : 'MALE',
+					marital_status: married ? 'MARRIED' : 'SINGLE',
+					spouse_status: married ? 'WITHOUT_INCOME' : 'NONE',
+					dependents_count: dependants,
+					nationality: citizen ? 'Indonesian' : 'Malaysian',
+					...(thr === null ? {} : { religion: thr.endsWith('12-25') ? 'CHRISTIAN' : 'ISLAM' })
+				}
+			},
+			{
+				collection: 'employments',
+				ref: 'job',
+				values: {
+					employee_id: '@person',
+					company_id: '@company',
+					employee_number: 'ID',
+					effective_range: range,
+					...exit
+				}
+			},
+			...segments.map((seg): ProbeInput => ({
+				collection: 'employment_terms',
+				values: {
+					employment_id: '@job',
+					residency_status: citizen ? 'CITIZEN' : 'FOREIGNER',
+					tax_residency: ee.taxResident ? 'RESIDENT' : 'NON_RESIDENT',
+					currency: 'IDR',
+					base_salary: seg.wage,
+					pay_frequency: 'MONTHLY',
+					work_classification: 'EA_COVERED',
+					statutory_work_category: 'NON_MANUAL',
+					employment_type: em.type === 'PKWT' ? 'CONTRACT' : 'PERMANENT',
+					worksite: ID_PLACE[co.workplace],
+					worksite_sector: co.kbli,
+					facts: { worksite_sector_edition: '2020' },
+					...(em.fixedAllowance > 0
+						? {
+								allowances: [
+									{
+										catalogue_id: '@law:allowance_catalogue:HOUSE_ALLOWANCE',
+										amount: em.fixedAllowance
+									}
+								]
+							}
+						: {}),
+					shift_pattern_id: '@rweek',
+					effective_range: { from: seg.from, to: seg.to }
+				}
+			})),
+			...rows,
+			...time,
+			...pay
+		],
+		employment: 'job',
+		runs: s.runs
+	};
+}
+const id = profile('ID', idScenarios, idMap, (s) => {
+	const r = idOracle.computePayslip(s);
+	const refused = r.refused ?? (r.inputsRefused.length > 0 ? r.inputsRefused.join('; ') : null);
+	return { ...verdictOf({ refused }, refused === null ? idOracle.probeLines(r) : {}) };
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// CN-shanghai (precedents: tests/e2e/probes/CN-shanghai.ts `cnWeek`, `hire`, `iitRegistration`, `bonus`, `run`, the
+// published holidays, the paid-leave and exit rows)
+// ---------------------------------------------------------------------------------------------------------------
+
+const CN_TZ = '+08:00';
+const SH_EXIT: Partial<Record<NonNullable<ShScenario['exit']>['ground'], [string, string]>> = {
+	ART36_EMPLOYER: ['MUTUAL', 'ART_36_EMPLOYER'],
+	ART36_EMPLOYEE: ['MUTUAL', 'ART_36_WORKER'],
+	ART37: ['RESIGNATION', 'ART_37'],
+	ART38: ['RESIGNATION', 'ART_38'],
+	ART39: ['DISMISSAL', 'ART_39'],
+	ART40: ['DISMISSAL', 'ART_40'],
+	ART41: ['REDUNDANCY', 'ART_41'],
+	ART44_EXPIRY: ['END_OF_CONTRACT', 'ART_44_1'],
+	ART87: ['DISMISSAL', 'ART_87']
+};
+/** A statutory paid leave's event facts by catalogue code (tests/e2e/probes/CN-shanghai.ts paid-leave rows). */
+const cnLeaveFacts = (code: string, from: string, detail?: string): Row =>
+	code === 'MARRIAGE_LEAVE'
+		? { event_kind: 'MARRIAGE', event_date: addDays(from, -2) }
+		: code === 'FUNERAL_LEAVE'
+			? { event_kind: 'DEATH', event_relationship: 'PARENT', event_date: addDays(from, -2) }
+			: code === 'FAMILY_PLANNING_PROCEDURE_LEAVE'
+				? { event_kind: (detail ?? '').toUpperCase().replaceAll(' ', '_'), event_date: from }
+				: {};
+/** One overtime entry on the CN calendar: extended hours on a working day, whole hours on a rest day or holiday. */
+function cnOvertime(
+	o: { date: string; hours: number; compensatoryRest?: boolean },
+	type: string,
+	weekend: boolean
+) {
+	if (o.compensatoryRest) unmapped('rest-day work with compensatory rest');
+	if ((type === 'WORKDAY' && weekend) || (type === 'REST' && !weekend))
+		unmapped(`overtime on a 调休 day ${o.date}`);
+	return workDay('job', o.date, clock(type === 'WORKDAY' ? 8 + o.hours : o.hours), CN_TZ, {
+		approved_overtime_hours: o.hours
+	});
+}
+function shMap(s: ShScenario): Mapped {
+	const w = s.worker;
+	const e = s.employment;
+	const m = s.month;
+	const x = s.exit;
+	if (e.kind !== 'FULL_TIME') unmapped('part-time hourly work');
+	if (m.maternity !== undefined || m.internalRetirement !== undefined)
+		unmapped('maternity or internal retirement');
+	if (Object.keys(s.claims).length > 0)
+		unmapped('contract claims (probation, written contract, open-ended)');
+	if (x?.earlyRetirement !== undefined || (x !== null && SH_EXIT[x.ground] === undefined))
+		unmapped('early retirement');
+	if (s.tax.annualBonusSeparateUsedThisYear)
+		unmapped('a separate annual bonus already used this year');
+	const result = shOracle.computePayslip(s);
+	const runs = shOracle.runsFor(s);
+	const range = { from: e.hireDate, to: e.exitDate };
+	const holidays = runs.flatMap((ym) =>
+		monthDays(ym).filter((d) => shOracle.dayType(d) === 'HOLIDAY')
+	);
+	const workdays = monthDays(s.period).filter(
+		(d) =>
+			shOracle.dayType(d) === 'WORKDAY' &&
+			d >= e.hireDate &&
+			(e.exitDate === null || d <= e.exitDate)
+	);
+	const take = days(workdays);
+	const last = lastDay(s.period);
+	const end = e.exitDate !== null && e.exitDate < last ? e.exitDate : last;
+	const mid = `${s.period}-15` < end ? `${s.period}-15` : end;
+	const inputs: ProbeInput[] = [
+		...ranges(take(m.unpaidLeaveDays)).map(([from, to]) =>
+			leaveRow('job', 'UNPAID_LEAVE', from, to)
+		),
+		...m.overtime.map((o) => cnOvertime(o, shOracle.dayType(o.date), weekendSkip(o.date))),
+		...s.earlier.flatMap((x) => [
+			...(x.overtime ?? []).map((o) =>
+				cnOvertime(o, shOracle.dayType(o.date), weekendSkip(o.date))
+			),
+			...(x.bonus ? [adhocRow('job', 'BONUS', x.bonus, `${x.ym}-15`, 'Bonus')] : [])
+		]),
+		...(m.bonus > 0 ? [adhocRow('job', 'BONUS', m.bonus, mid, 'Bonus')] : []),
+		...(m.annualBonusSeparate > 0
+			? [adhocRow('job', 'ANNUAL_BONUS_SEPARATE', m.annualBonusSeparate, mid, 'Annual bonus')]
+			: []),
+		...Object.entries(m.nonWage).map(([code, amount]) =>
+			adhocRow('job', code, amount ?? 0, mid, code)
+		),
+		...m.paidLeave.map((l) =>
+			leaveRow(
+				'job',
+				l.code,
+				l.from,
+				l.to,
+				{ facts: cnLeaveFacts(l.code, l.from, l.detail) },
+				['FAMILY_PLANNING_PROCEDURE_LEAVE', 'SICK_LEAVE', 'WORK_INJURY_LEAVE'].includes(l.code)
+					? { certificate_file: `${l.code.toLowerCase()}.pdf` }
+					: undefined
+			)
+		)
+	];
+	let exit: Row = {};
+	if (x !== null && e.exitDate !== null) {
+		const [ground, lcl] = SH_EXIT[x.ground]!;
+		exit = {
+			exit_ground: ground,
+			exit_facts: {
+				lcl_termination_ground: lcl,
+				notice_days_given: x.noticeDaysGiven,
+				renewal_offer_refused: x.renewalOfferRefused
+			}
+		};
+		if (result.components.SEVERANCE_PAY !== undefined)
+			inputs.push(adhocRow('job', 'SEVERANCE_PAY', 0, e.exitDate, 'Economic compensation'));
+		const encash = result.components.ANNUAL_LEAVE_ENCASHMENT;
+		if (encash !== undefined) {
+			// the payable days: the encashment is days × 200% of the 21.75-day wage
+			const d = Math.round((encash * 21.75) / (2 * e.monthlyWage));
+			inputs.push(
+				leaveRow(
+					'job',
+					'ANNUAL_LEAVE',
+					`${e.exitDate.slice(0, 4)}-01-01`,
+					`${e.exitDate.slice(0, 4)}-12-31`,
+					{
+						reference: 'DIFF-EXIT-ANNUAL',
+						encash_days: d,
+						effective_on: e.exitDate,
+						due_on: e.exitDate
+					}
+				)
+			);
+		}
+	}
+	const sd = s.tax.specialDeductions;
+	const claims = runs.flatMap((ym) =>
+		(
+			[
+				['CHILD_EDUCATION', 2000 * sd.childEducationChildren],
+				['INFANT_CARE', 2000 * sd.infantCareChildren],
+				['ELDERLY_SUPPORT', sd.elderSupport],
+				['HOUSING_RENT', sd.rent ? 1500 : 0],
+				['HOUSING_LOAN_INTEREST', sd.loanInterest ? 1000 : 0]
+			] as const
+		)
+			.filter(([, amount]) => amount > 0)
+			.map(([category, amount]) => ({
+				period: ym,
+				category,
+				amount,
+				source: 'EMPLOYEE',
+				reference: `${category}-${ym}`
+			}))
+	);
+	const reg = (code: string, status: Row): ProbeInput => ({
+		collection: 'employment_statutory_facts',
+		values: {
+			employee_id: '@person',
+			employment_id: '@job',
+			statutory_contribution_id: `@law:statutory_contributions:${code}`,
+			effective_range: { from: e.hireDate, to: null },
+			status: { kind: 'REGISTERED', reference_number: `DIFF-${code}`, ...status }
+		}
+	});
+	const c = s.contributions;
+	const pct = (r: number) => Math.round(r * 1e6) / 1e4;
+	return {
+		company: {
+			facts: {
+				injury_rate: pct(c.injuryRate),
+				unemployment_employer_rate: pct(c.unemploymentEmployerRate2026),
+				unemployment_employee_rate: 0.5,
+				housing_fund_rate: pct(c.hfRate),
+				housing_fund_supplementary_rate: pct(c.hfSupplementaryRate)
+			}
+		},
+		shared: [
+			...week(['W', 'W', 'W', 'W', 'W', 'REST', 'REST'], dayVariant(8), 'CN'),
+			...holidays.map((d) => holidayRow(d, '法定节假日'))
+		],
+		inputs: [
+			{
+				collection: 'employees',
+				ref: 'person',
+				values: {
+					name: `Differential ${s.id}`,
+					date_of_birth: w.birthDate,
+					gender: w.sex === 'F' ? 'FEMALE' : 'MALE',
+					nationality: w.citizenship === 'CN' ? 'Chinese' : 'Foreign',
+					receiving_pension: w.pensionRecipient
+				}
+			},
+			{
+				collection: 'employments',
+				ref: 'job',
+				values: {
+					employee_id: '@person',
+					company_id: '@company',
+					employee_number: 'SH',
+					effective_range: range,
+					...(w.priorServiceMonths > 0 ? { prior_service_months: w.priorServiceMonths } : {}),
+					...exit
+				}
+			},
+			{
+				collection: 'employment_terms',
+				values: {
+					employment_id: '@job',
+					residency_status: w.citizenship === 'CN' ? 'CITIZEN' : 'FOREIGNER',
+					tax_residency: w.taxResident ? 'RESIDENT' : 'NON_RESIDENT',
+					currency: 'CNY',
+					base_salary: e.monthlyWage,
+					pay_frequency: 'MONTHLY',
+					work_classification: 'EA_COVERED',
+					statutory_work_category: 'NON_MANUAL',
+					employment_type: x?.ground === 'ART44_EXPIRY' ? 'CONTRACT' : 'PERMANENT',
+					worksite: 'SHANGHAI',
+					...(m.heatExposed
+						? {
+								allowances: [
+									{
+										catalogue_id: '@law:allowance_catalogue:HEAT_ALLOWANCE',
+										amount: Math.max(300, m.heatAllowanceContract)
+									}
+								]
+							}
+						: {}),
+					shift_pattern_id: '@rweek',
+					effective_range: range
+				}
+			},
+			...(w.pensionRecipient
+				? []
+				: [
+						reg('PENSION', { elections: { contribution_base: c.siBase } }),
+						reg('HOUSING_FUND', {
+							elections: {
+								contribution_base: c.hfBase,
+								first_ever_account: c.hfFirstEver,
+								...(w.citizenship === 'CN' ? {} : { voluntary_agreement: w.housingFundAgreement })
+							}
+						})
+					]),
+			reg('IIT', {
+				elections: {
+					first_wage_income_this_year: s.tax.firstWageIncomeThisYear,
+					annual_60000_from_january: s.tax.annual60kElection
+				},
+				...(claims.length > 0 ? { deduction_claims: claims } : {})
+			}),
+			...inputs
+		],
+		employment: 'job',
+		runs
+	};
+}
+const sh = profile('CN-shanghai', shScenarios, shMap, (s) => {
+	const r = shOracle.computePayslip(s);
+	// an unpriced item names its code first ("INJURY for a pensioned retiree …")
+	return verdictOf(
+		r,
+		undefined,
+		r.unpriced.map((u) => u.what.split(' ')[0]!)
+	);
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// CN-kunming (precedents: tests/e2e/probes/CN-kunming.ts `worker`, `adhoc`, `leave`, `punch`, the company facts)
+// ---------------------------------------------------------------------------------------------------------------
+
+const KM_SITE: Record<string, string> = {
+	'Wuhua District': '云南省/昆明市/五华区',
+	'Fumin County': '云南省/昆明市/富民县',
+	'Mo Han': '云南省/西双版纳傣族自治州/勐腊县/磨憨镇'
+};
+const KM_EXIT: Record<NonNullable<KmScenario['exit']>['cause'], [string, string]> = {
+	RESIGNATION: ['RESIGNATION', 'ART_37'],
+	MISCONDUCT: ['DISMISSAL', 'ART_39'],
+	MUTUAL_EMPLOYER: ['MUTUAL', 'ART_36_EMPLOYER'],
+	ART40: ['DISMISSAL', 'ART_40'],
+	ART41: ['REDUNDANCY', 'ART_41'],
+	EXPIRY: ['END_OF_CONTRACT', 'ART_44_1'],
+	UNLAWFUL: ['DISMISSAL', 'ART_87'],
+	RETIREMENT: ['RETIREMENT', 'ART_44_2_3']
+};
+function kmMap(s: KmScenario): Mapped {
+	const ee = s.employee;
+	const em = s.employment;
+	const f = s.facts;
+	const t = s.time;
+	const p = s.pay;
+	const x = s.exit;
+	if (em.partTime !== undefined || em.agreedRegion !== undefined || em.probationWage !== undefined)
+		unmapped('part-time, an agreed region or a probation wage');
+	if (ee.chinaWorkDays !== undefined) unmapped('non-resident China workdays');
+	if (f.siWaiverSigned || f.treatyExempt !== undefined)
+		unmapped('an SI waiver or treaty exemption');
+	if (s.contract !== undefined) unmapped('contract-formation claims');
+	if (
+		s.tax.specialDeductionsMonthly !== undefined ||
+		s.tax.personalPensionMonthly !== undefined ||
+		s.tax.commercialHealthMonthly !== undefined
+	)
+		unmapped('a declared monthly deduction total, personal pension or commercial health');
+	if (s.tax.special?.continuingEducation !== undefined) unmapped('continuing education');
+	if (t.stoppageDays !== undefined || t.nightHours !== undefined || t.leave !== undefined)
+		unmapped('stoppage, night work or statutory leave');
+	if (t.overtime?.restDayCompensatoryRest) unmapped('rest-day work with compensatory rest');
+	if (p.bonus?.kind === 'MULTI_MONTH_NONRESIDENT' || p.bonus?.usedThisYear)
+		unmapped('a multi-month non-resident bonus or a used separate bonus');
+	if (
+		p.maternity !== undefined ||
+		p.heatDays !== undefined ||
+		p.earlyRetirement !== undefined ||
+		p.internalRetirement !== undefined ||
+		p.courtOrder !== undefined ||
+		p.lossClaim !== undefined
+	)
+		unmapped('maternity, heat days, retirement subsidies, a court order or a loss claim');
+	if (x?.pre2008Compensation !== undefined) unmapped('pre-2008 compensation');
+	const result = kmOracle.computePayslip(s);
+	const runs = periodsFrom(s.runsFrom, s.period);
+	const range = { from: em.hireDate, to: em.exitDate };
+	const last = lastDay(s.period);
+	const end = em.exitDate !== null && em.exitDate < last ? em.exitDate : last;
+	const mid = `${s.period}-15` < end ? `${s.period}-15` : end;
+	const holidays = runs.flatMap((ym) =>
+		monthDays(ym).filter((d) => shOracle.dayType(d) === 'HOLIDAY')
+	);
+	const free = monthDays(s.period).filter(
+		(d) => shOracle.dayType(d) === 'WORKDAY' && !weekendSkip(d) && d >= em.hireDate && d <= end
+	);
+	const take = days(free);
+	const inputs: ProbeInput[] = [];
+	for (const [from, to] of ranges(take(t.unpaidDays ?? 0)))
+		inputs.push(
+			leaveRow('job', 'UNPAID_LEAVE', from, to, { half_day_start: false, half_day_end: false })
+		);
+	const ot = t.overtime;
+	if (ot !== undefined) {
+		const daily = ot.maxDailyWeekdayHours ?? 3;
+		for (let left = ot.weekdayHours ?? 0; left > 0; left -= daily) {
+			const h = Math.min(daily, left);
+			inputs.push(
+				workDay('job', take(1)[0]!, clock(8 + h), CN_TZ, {
+					approved_overtime_hours: h,
+					time_off_in_lieu: false
+				})
+			);
+		}
+		const rest = monthDays(s.period).filter(
+			(d) => shOracle.dayType(d) === 'REST' && weekendSkip(d) && d >= em.hireDate && d <= end
+		);
+		let r = 0;
+		for (let left = ot.restDayHours ?? 0; left > 0; left -= 8) {
+			const d = rest[r++] ?? unmapped('more rest-day overtime than rest days');
+			inputs.push(
+				workDay('job', d, clock(Math.min(8, left)), CN_TZ, {
+					approved_overtime_hours: Math.min(8, left),
+					time_off_in_lieu: false
+				})
+			);
+		}
+		let h = 0;
+		const own = holidays.filter((d) => d.startsWith(s.period) && d >= em.hireDate && d <= end);
+		for (let left = ot.holidayHours ?? 0; left > 0; left -= 8) {
+			const d = own[h++] ?? unmapped('holiday overtime without a statutory holiday in the month');
+			inputs.push(
+				workDay('job', d, clock(Math.min(8, left)), CN_TZ, {
+					approved_overtime_hours: Math.min(8, left),
+					time_off_in_lieu: false
+				})
+			);
+		}
+	}
+	if (p.bonus !== undefined)
+		inputs.push(adhocRow('job', p.bonus.kind, p.bonus.amount, mid, p.bonus.kind.toLowerCase()));
+	if (p.priorBonus !== undefined)
+		inputs.push(
+			adhocRow('job', 'BONUS', p.priorBonus.amount, `${p.priorBonus.period}-15`, 'bonus')
+		);
+	for (const sub of p.subsidies ?? [])
+		inputs.push(adhocRow('job', sub.code, sub.amount, mid, sub.code));
+	let exit: Row = {};
+	if (x !== undefined && em.exitDate !== null) {
+		const [ground, lcl] = KM_EXIT[x.cause];
+		exit = {
+			exit_ground: ground,
+			exit_facts: {
+				lcl_termination_ground: lcl,
+				renewal_offer_refused: x.renewalOfferRefused ?? false,
+				...(x.noticeDaysGiven === undefined ? {} : { notice_days_given: x.noticeDaysGiven }),
+				...(x.transferredServiceMonths === undefined
+					? {}
+					: { lcl10_transferred_service_months: x.transferredServiceMonths })
+			}
+		};
+		if (result.lines.SEVERANCE_PAY !== undefined)
+			inputs.push(adhocRow('job', 'SEVERANCE_PAY', 0, em.exitDate, 'LCL art.47 经济补偿'));
+		const encash = result.lines.ANNUAL_LEAVE_ENCASHMENT;
+		if (encash !== undefined) {
+			const d = Math.round((encash * 21.75) / (2 * em.monthlyWage));
+			inputs.push(
+				leaveRow(
+					'job',
+					'ANNUAL_LEAVE',
+					`${em.exitDate.slice(0, 4)}-01-01`,
+					`${em.exitDate.slice(0, 4)}-12-31`,
+					{
+						reference: 'DIFF-EXIT-ANNUAL',
+						encash_days: d,
+						effective_on: em.exitDate,
+						due_on: em.exitDate
+					}
+				)
+			);
+		}
+	}
+	const d = s.tax.special;
+	const claims =
+		d === undefined
+			? []
+			: runs
+					.filter((ym) => d.from === undefined || ym >= d.from)
+					.flatMap((ym) =>
+						(
+							[
+								['CHILD_EDUCATION', (d.children ?? 0) * 2000 * (d.childShare ?? 1)],
+								['INFANT_CARE', (d.infants ?? 0) * 2000 * (d.childShare ?? 1)],
+								['ELDERLY_SUPPORT', d.elderlyOnlyChild ? 3000 : (d.elderlyShare ?? 0)],
+								['HOUSING_RENT', d.rent ? 1500 : 0],
+								['HOUSING_LOAN_INTEREST', d.loanInterest ? 1000 : 0]
+							] as const
+						)
+							.filter(([, amount]) => amount > 0)
+							.map(([category, amount]) => ({
+								period: ym,
+								category,
+								amount,
+								source: 'EMPLOYEE',
+								reference: `${category}-${ym}`
+							}))
+					);
+	const siBase = f.siBase ?? em.monthlyWage;
+	const status = (code: string, st: Row, employment = true): ProbeInput => ({
+		collection: 'employment_statutory_facts',
+		values: {
+			employee_id: '@person',
+			...(employment ? { employment_id: '@job' } : {}),
+			statutory_contribution_id: `@law:statutory_contributions:${code}`,
+			effective_range: { from: em.hireDate, to: null },
+			status: st
+		}
+	});
+	const pensioner = ee.pensionRecipient === true;
+	const regs: ProbeInput[] = [
+		...(pensioner
+			? []
+			: [
+					status(
+						'PENSION',
+						f.siRegistered
+							? {
+									kind: 'REGISTERED',
+									reference_number: 'DIFF-SI',
+									elections: { contribution_base: siBase }
+								}
+							: { kind: 'NOT_REGISTERED', reason: 'Registration pending' },
+						false
+					)
+				]),
+		...(f.fundRate === null || pensioner
+			? []
+			: [
+					status(
+						'HOUSING_FUND',
+						{
+							kind: 'REGISTERED',
+							reference_number: 'DIFF-HF',
+							elections:
+								f.fundAccount === 'FIRST_EVER'
+									? { first_ever_account: true }
+									: {
+											contribution_base:
+												f.fundAccount === 'EXISTING' ? (f.fundBase ?? siBase) : siBase
+										}
+						},
+						f.fundAccount === 'FIRST_EVER'
+					)
+				]),
+		status('IIT', {
+			kind: 'REGISTERED',
+			reference_number: 'DIFF-IIT',
+			elections: {
+				first_wage_income_this_year: s.tax.firstIncomeThisYear ?? false,
+				annual_60000_from_january: s.tax.basic60kElection ?? false
+			},
+			...(claims.length > 0 ? { deduction_claims: claims } : {})
+		})
+	];
+	const segments =
+		em.raise === undefined
+			? [{ wage: em.monthlyWage, from: em.hireDate, to: em.exitDate }]
+			: [
+					{ wage: em.monthlyWage, from: em.hireDate, to: addDays(em.raise.from, -1) },
+					{ wage: em.raise.monthlyWage, from: em.raise.from, to: em.exitDate }
+				];
+	const u = f.unemploymentRates ?? { employer: 0.007, employee: 0.003 };
+	const pct = (r: number) => Math.round(r * 1e6) / 1e4;
+	return {
+		company: {
+			facts: {
+				injury_rate: pct(f.injuryRate),
+				housing_fund_rate: pct(f.fundRate ?? 0.12),
+				...(s.period >= '2026-01'
+					? {
+							unemployment_employer_rate: pct(u.employer),
+							unemployment_employee_rate: pct(u.employee)
+						}
+					: {})
+			}
+		},
+		shared: [
+			...week(['W', 'W', 'W', 'W', 'W', 'REST', 'REST'], dayVariant(8), 'KM'),
+			...holidays.map((d) => holidayRow(d, '法定节假日'))
+		],
+		inputs: [
+			{
+				collection: 'employees',
+				ref: 'person',
+				values: {
+					name: ee.name,
+					date_of_birth: ee.birthDate,
+					gender: 'MALE',
+					nationality: ee.citizenship === 'CN' ? 'Chinese' : 'Foreign',
+					receiving_pension: pensioner
+				}
+			},
+			{
+				collection: 'employments',
+				ref: 'job',
+				values: {
+					employee_id: '@person',
+					company_id: '@company',
+					employee_number: 'KM',
+					prior_service_months: ee.priorServiceMonths ?? 0,
+					effective_range: range,
+					...exit
+				}
+			},
+			...segments.map((seg): ProbeInput => ({
+				collection: 'employment_terms',
+				values: {
+					employment_id: '@job',
+					residency_status: ee.citizenship === 'CN' ? 'CITIZEN' : 'FOREIGNER',
+					...(ee.taxResident === null
+						? {}
+						: { tax_residency: ee.taxResident ? 'RESIDENT' : 'NON_RESIDENT' }),
+					currency: 'CNY',
+					base_salary: seg.wage,
+					pay_frequency: 'MONTHLY',
+					work_classification: 'EA_COVERED',
+					statutory_work_category: 'NON_MANUAL',
+					employment_type: x?.cause === 'EXPIRY' ? 'CONTRACT' : 'PERMANENT',
+					worksite: KM_SITE[em.worksite] ?? unmapped(`worksite ${em.worksite}`),
+					shift_pattern_id: '@rweek',
+					effective_range: { from: seg.from, to: seg.to }
+				}
+			})),
+			...regs,
+			...inputs
+		],
+		employment: 'job',
+		runs
+	};
+}
+const km = profile('CN-kunming', kmScenarios, kmMap, (s) => {
+	const r = kmOracle.computePayslip(s);
+	return verdictOf(r, undefined, r.unpriced);
+});
+
+/** Every profile's adapter, by code. */
+export const PROFILES: readonly Profile[] = [sg, th, tw, vn, my, ph, jp, id, sh, km];

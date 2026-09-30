@@ -15,6 +15,7 @@ import { dateKey } from '../iso-day.js';
 import { caseSite, caseTypesOf, evidenceOf } from '../benefit-cases/benefit.js';
 import { pointNumber, type HalfDayRange } from '../half-day.js';
 import { resolveHolidays } from '../holiday-calendar.js';
+import { personCondition } from '../scheduled/entries.js';
 import { patternAnchor, patternRosterCodeId, termPatternRow } from '../scheduling/work-pattern.js';
 import { rosterCodeKind, workWindow, workWindowHalves } from '../scheduling/roster-code.js';
 import type { RosterCodeVariant } from '../datatypes/roster_code_variant.js';
@@ -88,7 +89,8 @@ export function measureLeaveDay(
 		() =>
 			context.terms.find(
 				(row) => row.employment_id === rules.employment.id && coversDate(row.effective_range, date)
-			)?.worksite
+			)?.worksite,
+		personCondition(rules.personOn)
 	);
 	const evidence = {
 		company_id: rules.company.id,

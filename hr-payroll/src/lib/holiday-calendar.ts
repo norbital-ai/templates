@@ -31,7 +31,8 @@ const RANK: Record<HolidayRow['kind'], number> = {
 const siteOf = (worksite: string | null | undefined) => worksite?.trim() || null;
 
 /** A row's person condition (`applies_when`); blank is none. */
-export const conditionOf = (row: Pick<HolidayRow, 'applies_when'>) => row.applies_when?.trim() || null;
+export const conditionOf = (row: Pick<HolidayRow, 'applies_when'>) =>
+	row.applies_when?.trim() || null;
 
 /** The row exactly as a run captures it. An unpublished pin is still evidence, so it is not refused. */
 function holidaySnapshot(row: HolidayRow): HolidaySnapshot {

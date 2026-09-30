@@ -549,6 +549,36 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "b342b7bb-0184-5ac9-9ca4-0ce5b4feeb65",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"code": "THR_HOLIDAY",
+		"eligibility": "employment.service_months >= 1",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "BLOCK",
+					"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0) * (entry.religious_holidays > 1.0 ? entry.religious_holidays : 1.0)"
+				}
+			}
+		],
+		"authority": "Permenaker 6/2016 art.2(1): a worker of one month’s continuous service or more is owed THR; art.5(1): once a year, on the worker’s own religious holiday (art.1(2): Idul Fitri for ISLAM, Natal for CHRISTIAN and CATHOLIC, Nyepi for HINDU, Waisak for BUDDHIST, Imlek for CONFUCIAN — `jurisdiction_holidays.religion`); art.5(2): each occurrence where the holiday falls twice in a year; art.5(4): paid at the latest seven days before the holiday. Raised by its schedule three weeks ahead of that day for everyone in service; a leaver in the thirty days before the holiday is settled by THR (SEPARATION, art.7). A worker with no recorded religion is owed nothing this class can date.",
+		"name": "THR (religious holiday, in service)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26", "PPH21_DAILY"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "holidays.filter(h, employee.religion in h.religions).map(h, add_days(h.date, -7))",
+			"raise_days_before": 21,
+			"population": "employment.service_months >= 1",
+			"duty": "THR_OWED"
+		}
+	},
+	{
 		"id": "d21a02ca-669c-5295-8f16-124fa8d4143d",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"code": "THR",
@@ -573,6 +603,36 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "c0a2440b-1e52-58b4-a810-563932c1eb88",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"code": "THR_HOLIDAY",
+		"eligibility": "employment.service_months >= 1",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "BLOCK",
+					"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0) * (entry.religious_holidays > 1.0 ? entry.religious_holidays : 1.0)"
+				}
+			}
+		],
+		"authority": "Permenaker 6/2016 art.2(1): a worker of one month’s continuous service or more is owed THR; art.5(1): once a year, on the worker’s own religious holiday (art.1(2): Idul Fitri for ISLAM, Natal for CHRISTIAN and CATHOLIC, Nyepi for HINDU, Waisak for BUDDHIST, Imlek for CONFUCIAN — `jurisdiction_holidays.religion`); art.5(2): each occurrence where the holiday falls twice in a year; art.5(4): paid at the latest seven days before the holiday. Raised by its schedule three weeks ahead of that day for everyone in service; a leaver in the thirty days before the holiday is settled by THR (SEPARATION, art.7). A worker with no recorded religion is owed nothing this class can date.",
+		"name": "THR (religious holiday, in service)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26", "PPH21_DAILY"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "holidays.filter(h, employee.religion in h.religions).map(h, add_days(h.date, -7))",
+			"raise_days_before": 21,
+			"population": "employment.service_months >= 1",
+			"duty": "THR_OWED"
+		}
+	},
+	{
 		"id": "6905cf49-a5ed-5833-ad3d-d08074b60c4e",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"code": "THR",
@@ -595,6 +655,36 @@
 		"name": "THR (religious holiday allowance)",
 		"counts_toward": ["PPH21.ADDITIONAL", "PPH26", "PPH21_DAILY"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "645f6a01-06d5-5189-a948-c6b32aaffffc",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"code": "THR_HOLIDAY",
+		"eligibility": "employment.service_months >= 1",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0)",
+				"limit": {
+					"period": "CALENDAR_YEAR",
+					"on_exceed": "BLOCK",
+					"amount": "(person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? person.employment.earned_monthly_average(12) : person.terms.monthly_wage) * (person.employment.service_months >= 12 ? 1.0 : person.employment.service_months / 12.0) * (entry.religious_holidays > 1.0 ? entry.religious_holidays : 1.0)"
+				}
+			}
+		],
+		"authority": "Permenaker 6/2016 art.2(1): a worker of one month’s continuous service or more is owed THR; art.5(1): once a year, on the worker’s own religious holiday (art.1(2): Idul Fitri for ISLAM, Natal for CHRISTIAN and CATHOLIC, Nyepi for HINDU, Waisak for BUDDHIST, Imlek for CONFUCIAN — `jurisdiction_holidays.religion`); art.5(2): each occurrence where the holiday falls twice in a year; art.5(4): paid at the latest seven days before the holiday. Raised by its schedule three weeks ahead of that day for everyone in service; a leaver in the thirty days before the holiday is settled by THR (SEPARATION, art.7). A worker with no recorded religion is owed nothing this class can date.",
+		"name": "THR (religious holiday, in service)",
+		"counts_toward": ["PPH21.ADDITIONAL", "PPH26", "PPH21_DAILY"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "holidays.filter(h, employee.religion in h.religions).map(h, add_days(h.date, -7))",
+			"raise_days_before": 21,
+			"population": "employment.service_months >= 1",
+			"duty": "THR_OWED"
+		}
 	},
 	{
 		"id": "2cbb52d9-ae7d-5bb4-a459-731cc93799c1",

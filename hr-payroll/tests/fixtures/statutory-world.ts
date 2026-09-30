@@ -1085,7 +1085,12 @@ function keyClockOverruns(prepared: PreparedRun): void {
 	for (const bundle of prepared.gathered.bundles) {
 		const punched = bundle.workDays.filter((entry) => entry.worked_intervals != null);
 		if (punched.length === 0) continue;
-		const configuration = atWorksite(prepared.configuration, bundle.termsHistory, bundle.workDays);
+		const configuration = atWorksite(
+			prepared.configuration,
+			bundle.termsHistory,
+			bundle.workDays,
+			bundle.employee
+		);
 		const work = prepareWorkContext({
 			bundle,
 			configuration,

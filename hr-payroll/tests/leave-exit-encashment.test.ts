@@ -118,7 +118,14 @@ const harness = (
 			rows:
 				collection === 'payment_holds'
 					? (rows[collection] ?? []).filter((row) => matches(rows, collection, row, query.where))
-					: (rows[collection] ?? []),
+					: collection === 'adhoc_catalogue'
+						? // a row that declares its `raised_by` answers only its own read
+							(rows[collection] ?? []).filter(
+								(row) =>
+									row.raised_by == null ||
+									row.raised_by === (query.where as { raised_by?: { eq?: string } })?.raised_by?.eq
+							)
+						: (rows[collection] ?? []),
 			next: null
 		}),
 		act: async (callable: string, input: unknown) => {
@@ -300,6 +307,81 @@ test('off-boarding raises the separation payments the version owes the leaver, o
 		{ ...thr[0], eligibility: 'employment.exit_date >= "2026-07-01"' }
 	]);
 	assert.deepEqual(outside.raisedAdhoc, []);
+});
+
+test('a December leaver whose year-end 13th month stands is not raised the separation 13th month again', async () => {
+	// PD 851 (DOLE Handbook 2024 ch.13 §§E, G): one 13th month a year. THIRTEENTH_MONTH_PAY_YEAR_END is raised from
+	// 24 November for the 24 December occurrence; a leaver on 28 December is settled by it, not also by
+	// THIRTEENTH_MONTH_PAY (SEPARATION), whether it is still held or already paid.
+	const exit = '2026-12-28';
+	const december = () => {
+		const context = leaveContext();
+		context.employments[0]!.effective_range = { start: '2025-01-01', end: exit };
+		return context;
+	};
+	const bands = [
+		{ when: '', amount: '(year.earned.BASIC - year.earned.ABSENCE) / 12.0', limit: null }
+	];
+	const rows = [
+		{ id: id(98), code: 'THIRTEENTH_MONTH_PAY', eligibility: '', bands, raised_by: 'SEPARATION' },
+		{
+			id: id(99),
+			settings_id: id(6),
+			code: 'THIRTEENTH_MONTH_PAY_YEAR_END',
+			eligibility: '',
+			bands,
+			raised_by: 'SCHEDULED',
+			schedule: {
+				due: '[string(year) + "-12-24"]',
+				raise_days_before: 30,
+				duty: 'THIRTEENTH_MONTH_PAY_OWED'
+			}
+		}
+	];
+	const at = `${exit}T12:00:00.000Z`;
+	const raised = async (standing: readonly Record<string, unknown>[]) =>
+		(await run(december(), 'RESIGNATION', rows, standing, at)).raisedAdhoc.map(
+			(row) => row.catalogue_id
+		);
+	const yearEnd = { catalogue_id: id(99), event_date: '2026-12-24' };
+	assert.deepEqual(await raised([yearEnd]), []);
+	assert.deepEqual(await raised([{ ...yearEnd, payslip_id: id(50) }]), []);
+	// No year-end on file, or only last year's: the leaver's pro-rata share is raised on departure.
+	assert.deepEqual(await raised([]), [id(98)]);
+	assert.deepEqual(await raised([{ ...yearEnd, event_date: '2025-12-24' }]), [id(98)]);
+	// A 10 January leaver is owed this year's share: last December's year-end does not settle it.
+	const january = leaveContext();
+	january.employments[0]!.effective_range = { start: '2025-01-01', end: '2027-01-10' };
+	assert.deepEqual(
+		(
+			await run(january, 'RESIGNATION', rows, [yearEnd], '2027-01-10T12:00:00.000Z')
+		).raisedAdhoc.map((row) => row.catalogue_id),
+		[id(98)]
+	);
+	// ID THR: a permanent worker leaving 10 March after THR_HOLIDAY was raised for the 20 March holiday.
+	const thr = [
+		{ ...rows[0], id: id(96), code: 'THR' },
+		{
+			...rows[1],
+			id: id(97),
+			code: 'THR_HOLIDAY',
+			schedule: { ...rows[1].schedule, raise_days_before: 21 }
+		}
+	];
+	const march = leaveContext();
+	march.employments[0]!.effective_range = { start: '2025-01-01', end: '2026-03-10' };
+	assert.deepEqual(
+		(
+			await run(
+				march,
+				'RESIGNATION',
+				thr,
+				[{ catalogue_id: id(97), event_date: '2026-03-13' }],
+				'2026-03-10T12:00:00.000Z'
+			)
+		).raisedAdhoc,
+		[]
+	);
 });
 
 test('departure automation validates the final-day input declaration before creating requests', async () => {

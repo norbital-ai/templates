@@ -1,5 +1,6 @@
 import { collection, type TransformRow } from '@norbital-ai/bolt';
 import { dateKey } from '../../../lib/iso-day.js';
+import { conditionOf } from '../../../lib/holiday-calendar.js';
 import { addDays, monthBounds } from '../../../lib/payroll/run/dates.js';
 import { coversDate, readRange } from '../../../lib/payroll/run/effective.js';
 import { ABSENCE_DECISION_FACTS, leaveWindowOf } from '../../../lib/leave/entitlement.js';
@@ -509,7 +510,13 @@ c.transform(async (inputs, ctx) => {
 
 	const employments = await db.read('employments', {
 		where: { id: { in: ids } },
-		select: { id: true, company_id: true, employee_number: true, effective_range: true },
+		select: {
+			id: true,
+			company_id: true,
+			employee_id: true,
+			employee_number: true,
+			effective_range: true
+		},
 		all: true
 	});
 	const companyIds = [...new Set(employments.rows.map((row) => String(row.company_id)))];
@@ -710,6 +717,19 @@ c.transform(async (inputs, ctx) => {
 		replaces: holiday.replaces == null ? null : day(holiday.replaces),
 		published_at: holiday.published_at == null ? null : String(holiday.published_at)
 	}));
+	// A holiday with `applies_when` (a religion's own day) reads the person: only then are they read.
+	const employeeById = new Map(
+		holidays.some((row) => conditionOf(row) != null)
+			? (
+					await db.read('employees', {
+						where: {
+							id: { in: [...new Set(employments.rows.map((row) => row.employee_id))] as never[] }
+						},
+						all: true
+					})
+				).rows.map((row) => [String(row.id), row])
+			: []
+	);
 	const windowsByCompany = new Map(
 		[...Map.groupBy(runs.rows, (run) => String(run.company_id))].map(([companyId, grouped]) => [
 			companyId,
@@ -924,7 +944,15 @@ c.transform(async (inputs, ctx) => {
 				worksiteOn: (date) =>
 					termsByEmployment
 						.get(employmentId)
-						?.find((candidate) => coversDate(candidate.effective_range, date))?.worksite
+						?.find((candidate) => coversDate(candidate.effective_range, date))?.worksite,
+				personOn: (date) =>
+					personContext({
+						employee:
+							employeeById.get(String(employmentById.get(employmentId)?.employee_id)) ?? null,
+						employment: { service_start: '' },
+						terms: null,
+						asOf: date
+					})
 			});
 			const headroomOf = (written: boolean) =>
 				overtimeHeadroom({

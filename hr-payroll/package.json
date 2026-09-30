@@ -11,6 +11,7 @@
 		"test": "bolt build --bank=${SEED_BANK:-../../seed_bank} && bolt test && pnpm test:node",
 		"test:node": "node --experimental-strip-types --import ./scripts/ts-source-resolve.mjs --test 'tests/*.test.ts'",
 		"test:probe": "pnpm build && vitest run tests/e2e/payroll-probe.integration.test.ts",
+		"test:differential": "pnpm build && vitest run tests/e2e/differential.integration.test.ts",
 		"format": "prettier --write .",
 		"lint": "prettier --check .",
 		"generate:import-templates": "node scripts/generate-import-templates.mjs"

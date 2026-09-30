@@ -231,6 +231,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "deea7299-ee52-5a5f-9425-037348eaab92",
+		"settings_id": "6a4dd28b-bfe0-5513-9e05-1fd42c33668c",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "4fddc3cc-7bf8-42c4-8f43-7d9ef87605d6",
 		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
 		"code": "THIRTEENTH_MONTH_PAY",
@@ -249,6 +275,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "31f8e3d2-e710-5cd4-b089-175d80555aab",
+		"settings_id": "bb5137fd-d7fd-4a26-8eae-77211521f892",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "617ae8c6-9874-5f5b-808e-f6bc96bedf7a",
@@ -516,6 +568,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "2a548d76-2677-58b8-90ef-e0a0763bb9aa",
+		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "3e3639ae-6d60-5882-921f-a7b4abedd26a",
 		"settings_id": "81c0ae8c-42d6-5392-be7b-b006158a221c",
 		"code": "SEPARATION_PAY",
@@ -714,6 +792,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "41ef0de7-1c56-5e36-b989-4b56510bd426",
+		"settings_id": "288c7099-5797-59d8-9944-85197f09b4fb",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "6c4cfb63-a114-5de3-a5ef-d47f792589bc",
@@ -916,6 +1020,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "5a70ed4b-4883-5113-b348-6b8c5b27779f",
+		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "7f977770-1cfe-5ebe-9265-75b7ab38aef6",
 		"settings_id": "b585862c-5438-5a97-a36d-44e55ceb5498",
 		"code": "SEPARATION_PAY",
@@ -1114,6 +1244,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "7d9c0aab-51ba-57d0-93a1-bcdde091fed1",
+		"settings_id": "1da55ea0-a1d9-5963-b75d-05aa3d828037",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "f1f01afc-7f7f-5976-ae53-b6cea9d70a3f",
@@ -2132,6 +2288,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "a53f59b9-2784-50ab-9ba5-81e13f4af31e",
+		"settings_id": "af3692ce-d4ed-5346-9389-d8591570f31c",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "5c5037d1-345b-5f71-b46c-a429af9cc09d",
 		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
 		"code": "THIRTEENTH_MONTH_PAY",
@@ -2150,6 +2332,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "113856b1-beb5-5652-8faf-b70c43212446",
+		"settings_id": "a95c3177-0abc-57c9-8305-43bda71d2bb6",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "02521b5b-428e-5d2b-9a39-a36a8779f77e",
@@ -2417,6 +2625,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "50821979-43d4-54c4-9ca9-ce539083e8e6",
+		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "e7453ba1-6199-5a42-86b9-f57665466558",
 		"settings_id": "6e74b01c-72bc-5a68-887d-b85f91772e9d",
 		"code": "SEPARATION_PAY",
@@ -2615,6 +2849,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "b70c9664-261a-5e1a-9fa9-0e3590b2c63b",
+		"settings_id": "8d960d86-e08a-51e1-a119-d47f305f402f",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "29a89582-bd64-54b7-bf72-6e2c5a3c9e59",
@@ -2817,6 +3077,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "a6d9a838-8235-574a-a872-df96528eeffd",
+		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "cfcbdde2-5a9e-563e-9845-17b9dc3167c1",
 		"settings_id": "fcaab992-93c2-54fb-aa4e-4045d90ef991",
 		"code": "SEPARATION_PAY",
@@ -3015,6 +3301,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "a4c9f9a0-057e-5896-bcec-e2e729fd21ba",
+		"settings_id": "9013ec7d-3c02-590e-a77b-9be86e4dff45",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "52c254b5-6fb5-5b71-83e9-65d4393b8bbd",
@@ -4033,6 +4345,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "cf826c9b-95b0-5a78-bd3d-9c6795ab5774",
+		"settings_id": "acae0aa6-6b4c-59ef-bbf9-bf730fc5daec",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "7fe2ba18-f30e-5ec1-a8a4-0a43c2d3a808",
 		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
 		"code": "THIRTEENTH_MONTH_PAY",
@@ -4051,6 +4389,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "d200f49a-0e0e-5d03-a845-22484660402c",
+		"settings_id": "2c73b4b2-022a-5921-8ffc-f1d3c5b79627",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "9de97594-1586-5905-8c6b-f38dc6f8c194",
@@ -4318,6 +4682,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "2e27dd68-fcf2-5150-86c8-04cb0d93a86c",
+		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "13560789-5cf1-5666-9f8a-528e8365932c",
 		"settings_id": "65e620f4-b2b6-5608-89ae-6e9a9eb8765c",
 		"code": "SEPARATION_PAY",
@@ -4516,6 +4906,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "5f67601c-a026-5ff7-ac90-94e27520760a",
+		"settings_id": "e34343fa-5622-51bd-a483-092b75f82b61",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "034b5fdb-79e9-574b-b668-bb97c71ac426",
@@ -4718,6 +5134,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "bd965f6c-b638-5dc4-956c-db4e85a812c4",
+		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "5ab8410f-c26f-5210-8d6b-c6173533b3c1",
 		"settings_id": "4394347a-1b36-5080-8aee-1c2a3ebfff37",
 		"code": "SEPARATION_PAY",
@@ -4916,6 +5358,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "bdeed912-9946-5937-997f-57be5d03d26b",
+		"settings_id": "2db3f852-ffd0-5a6c-9801-31b763846bd7",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "6a516ab4-fe5b-5675-9748-efeb3d305f9d",
@@ -5934,6 +6402,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "61a6cb83-3682-5f58-9c63-4414a6b7ea6e",
+		"settings_id": "a67a4e2c-0488-5724-bc5c-2cdc7ec70878",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "d50e9354-8e95-5470-985a-20cd0576236a",
 		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
 		"code": "THIRTEENTH_MONTH_PAY",
@@ -5952,6 +6446,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "004ca813-82bc-579b-82e2-8f9e8d97b4af",
+		"settings_id": "42192a1f-4f4a-5172-ab20-38904eae68d7",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "19f7dfd5-83af-5035-b73a-47473237f12a",
@@ -6219,6 +6739,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "b115624b-6bc3-51e1-9d40-6e873d7c25d1",
+		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "f2926497-d2c9-56c6-a890-32270408b6fe",
 		"settings_id": "c126d85c-d038-5a2f-b5d4-0cecb6340234",
 		"code": "SEPARATION_PAY",
@@ -6417,6 +6963,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "cd7ff70b-f7bf-5cdc-9f13-705c03f0b138",
+		"settings_id": "26161747-a02d-5028-b9c8-dd81b9a6baf0",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "d515eab4-678a-5326-a145-1d5292dbf877",
@@ -6619,6 +7191,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "e828c322-d91d-502d-87ce-82b7f9ac8b93",
+		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "6272bd44-e677-52f1-8d12-3ba7645e7237",
 		"settings_id": "eb8a11b1-8914-5940-b3ab-37ba62f66fbf",
 		"code": "SEPARATION_PAY",
@@ -6817,6 +7415,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "7b3382c5-1c66-564c-b2a2-0604c4a94d95",
+		"settings_id": "37a41753-0090-5187-b41a-473bbd8cedf6",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "3e575c87-41a1-552e-b7d8-52bcf1e6db22",
@@ -8682,6 +9306,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "875c2bc0-7876-5fc3-8d1d-ff88bfea4277",
+		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "cb605a06-23bb-5604-94a6-391d8abf8e7c",
 		"settings_id": "6a239037-fc04-5260-91d9-78179afacc80",
 		"code": "SEPARATION_PAY",
@@ -9065,6 +9715,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "25f98394-c7b8-5680-a6c1-88f563ef0aea",
+		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "c42b3623-bb4b-5b99-9b0a-5861b6236a77",
 		"settings_id": "e2e0ea60-5a98-5e93-b69d-556fc7e37a7d",
 		"code": "SEPARATION_PAY",
@@ -9407,6 +10083,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "375831b2-eee0-5ce0-ac42-84c08a09c29d",
+		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "4fb79fca-9ec3-5a51-8ce5-94bc0a4eb574",
 		"settings_id": "6a7e1d6a-6053-5ac6-9fe9-e86e156a85ce",
 		"code": "SEPARATION_PAY",
@@ -9747,6 +10449,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "ce6acff6-ec22-53a3-b8c1-84660b1c0769",
+		"settings_id": "ea78f642-6e5e-5eb0-8f91-a2fe2431fa1a",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "51c09b1c-fba1-546f-b5c9-c8b9c4ec0b8e",
@@ -10110,6 +10838,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "e70e82f6-d3be-59ba-8ea6-a0e7692539f7",
+		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "aa9e20d1-4f71-57dd-9ec6-cb780613a48b",
 		"settings_id": "68a1b186-d4c1-516e-8f3c-28dd0dae8c74",
 		"code": "SEPARATION_PAY",
@@ -10469,6 +11223,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "2e3cc6d8-9a81-5268-ae12-09b9da866c76",
+		"settings_id": "9039d6cb-4a75-5d27-afea-c6e2039276b9",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "ae73861e-2c32-54e2-a833-5bf749156737",
@@ -10832,6 +11612,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "88bb8b47-8ec4-5c02-b70e-0974efc090ec",
+		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "3288f18d-5b3d-51b0-9b41-4c7e719c453d",
 		"settings_id": "46187691-d8ad-555a-992e-de1e41a40b21",
 		"code": "SEPARATION_PAY",
@@ -11191,6 +11997,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "9ee6ce0c-2401-5d2e-aaf0-46f52e0b0dae",
+		"settings_id": "cab627d7-dc87-58e7-be0a-729ab2bdb635",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "44103125-5435-5dba-b4c9-0908b81a1f50",
@@ -11554,6 +12386,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "c744807d-1f3e-555a-bb4e-ef63faf79586",
+		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "f9132224-b05f-59a1-b28b-61f5e1975951",
 		"settings_id": "15939f51-926d-5832-91ae-d43b7ce26b22",
 		"code": "SEPARATION_PAY",
@@ -11913,6 +12771,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "191a217c-b4e3-533a-a907-c6fa6725a5e6",
+		"settings_id": "bab3c8cc-e210-54de-bed2-cbe673a9a090",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "2825b8a8-17ae-5c68-a2b6-6241893f4ad6",
@@ -12276,6 +13160,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "d4db3f76-be95-5a14-9239-0438bb0aa106",
+		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "2b165096-e5a1-59df-a907-d09fa0860c93",
 		"settings_id": "779720a0-4d48-5780-9e51-30935ab4f33a",
 		"code": "SEPARATION_PAY",
@@ -12635,6 +13545,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "87fc0d72-e5b8-59a4-8fe5-391f9ddfc130",
+		"settings_id": "f49a33d1-be59-599d-aec7-4924d81689dc",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "3c68f769-e75a-57c7-9c67-c1230000bae0",
@@ -12998,6 +13934,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "a268be02-1bdf-5fdd-b701-f3deb1fc17ca",
+		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "c65432e5-f697-57b7-a072-346336741793",
 		"settings_id": "9a30b807-edeb-516a-802c-c375c04f7d5e",
 		"code": "SEPARATION_PAY",
@@ -13357,6 +14319,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "40113968-8ffa-54c7-80bf-ae626245b961",
+		"settings_id": "d64cbb12-c32b-5a93-af74-ac2640336da9",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "d2fdca3f-2bba-5fc2-881b-19618966929b",
@@ -13720,6 +14708,32 @@
 		"raised_by": "SEPARATION"
 	},
 	{
+		"id": "dd691cae-65d7-5fc8-8d41-914e3a5ec284",
+		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
+	},
+	{
 		"id": "d1040c88-0a58-5be1-b9ff-1a40fb4c7aac",
 		"settings_id": "e40993a5-4484-5d48-978f-6849efc4cfb5",
 		"code": "SEPARATION_PAY",
@@ -14079,6 +15093,32 @@
 		"name": "13th month pay",
 		"counts_toward": ["WTAX.SPECIAL"],
 		"raised_by": "SEPARATION"
+	},
+	{
+		"id": "4bc1088e-18dd-5248-b6a7-c4a4d56fa4c2",
+		"settings_id": "bb17827a-fe49-5ab1-96f1-fb4d527bafb6",
+		"code": "THIRTEENTH_MONTH_PAY_YEAR_END",
+		"eligibility": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "ADD",
+		"bands": [
+			{
+				"when": "",
+				"amount": "(year.earned.BASIC - year.earned.ABSENCE) / 12.0",
+				"limit": null
+			}
+		],
+		"authority": "PD 851 s.1 and its Revised Guidelines (DOLE Handbook 2024 ch.13 §E): the 13th month pay of a rank-and-file employee in service is paid not later than 24 December of each year; a twelfth of the basic salary earned in the calendar year (§§A–D, F). Raised by its schedule from 24 November for everyone the class covers; a leaver before the day is settled by THIRTEENTH_MONTH_PAY (SEPARATION, §G).",
+		"name": "13th month pay (year end)",
+		"counts_toward": ["WTAX.SPECIAL"],
+		"raised_by": "SCHEDULED",
+		"schedule": {
+			"due": "[string(year) + \"-12-24\"]",
+			"raise_days_before": 30,
+			"population": "employment.classification != \"MANAGERIAL\" && terms.statutory_work_category != \"TASK_BASIS\"",
+			"duty": "THIRTEENTH_MONTH_PAY_OWED"
+		}
 	},
 	{
 		"id": "d818c3d6-e7c0-5555-b715-5ce869c93f16",

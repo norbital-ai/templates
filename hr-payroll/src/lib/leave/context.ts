@@ -14,6 +14,7 @@ import { coversDate } from '../../lib/payroll/run/effective.js';
 import { addDays, daysBetween, inclusiveDays, monthDay } from '../../lib/payroll/run/dates.js';
 import { rosterCodeKind, workWindow } from '../scheduling/roster-code.js';
 import { resolveHolidays } from '../holiday-calendar.js';
+import { personCondition } from '../scheduled/entries.js';
 import {
 	patternAnchor,
 	patternDaysPerWeek,
@@ -983,7 +984,8 @@ export function leaveRules(
 			company.id,
 			window.start,
 			window.end,
-			(date) => terms.find((row) => coversDate(row.effective_range, date))?.worksite
+			(date) => terms.find((row) => coversDate(row.effective_range, date))?.worksite,
+			personCondition(personOn)
 		);
 		let withoutHolidays = 0;
 		let withHolidays = 0;

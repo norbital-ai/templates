@@ -4,7 +4,7 @@
 		"settings_id": "99d794f9-3bec-57dd-baa7-116fc7b14df4",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -104,7 +104,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "6cce70cf-cc38-53b3-8f34-e3fcbb5c2957",
@@ -618,7 +624,7 @@
 		"settings_id": "1fcfa66f-40da-5792-b925-7c2fcaa8f92c",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -718,7 +724,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "a43e72ab-e989-57d0-af5f-5772a2445293",
@@ -1236,7 +1248,7 @@
 		"settings_id": "8caf6804-9d5d-5809-90f9-02b500fb3fff",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1336,7 +1348,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "2e8e5194-82fc-5b4b-b181-dd85edacfacb",
@@ -1854,7 +1872,7 @@
 		"settings_id": "404e0c4d-5b94-5910-886a-48af36fc0485",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -1954,7 +1972,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "42bce39c-008c-52bd-b34c-87514acfb70c",
@@ -2468,7 +2492,7 @@
 		"settings_id": "4fb50f3e-155a-5bbd-8e25-da2908233239",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -2568,7 +2592,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "c5af8dba-5a7f-5c2c-9452-caa7e71696cc",
@@ -3086,7 +3116,7 @@
 		"settings_id": "b8667608-27ac-545e-badb-3329536018dd",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -3186,7 +3216,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "75620427-e994-5164-837b-fca28a64f641",
@@ -3704,7 +3740,7 @@
 		"settings_id": "2d5e2dab-3775-528a-88e0-3a3c7af2fe3e",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -3804,7 +3840,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "87b8fc62-de7b-5e98-8ce5-85e9c70b597d",
@@ -4318,7 +4360,7 @@
 		"settings_id": "4fe40130-9b44-5676-9796-f8166a96d1f0",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -4418,7 +4460,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "d0e5eb45-da3d-5733-bbc9-794b1a8782a0",
@@ -4936,7 +4984,7 @@
 		"settings_id": "cd6b9aaf-545d-5349-be36-e1fdf6ed65c3",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -5036,7 +5084,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "e9174237-ad38-57c6-bc05-035af5cf1ebe",
@@ -5554,7 +5608,7 @@
 		"settings_id": "cfb5775a-2d04-58d4-81c7-482c600056d5",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -5654,7 +5708,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "599731ff-213a-5755-94ea-58d3fb8fcde0",
@@ -6171,7 +6231,7 @@
 		"settings_id": "adb9da2f-7d14-50bd-abbb-5f6f21a1a02a",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -6271,7 +6331,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "93c33b38-860d-5a6f-888d-c746d0f90c81",
@@ -6788,7 +6854,7 @@
 		"settings_id": "d0adaad7-6875-5dcb-b39a-e7645791512a",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -6888,7 +6954,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "bcc04fb0-661d-564a-bb61-ab9d41893306",
@@ -7402,7 +7474,7 @@
 		"settings_id": "c0662f63-462e-553e-94fc-b91f789ec5f1",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -7502,7 +7574,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "4a35610b-736f-587f-b8f2-fb5c83663c65",
@@ -8019,7 +8097,7 @@
 		"settings_id": "71627130-016e-5aee-9293-4a6bcfd0c99d",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave (特別休假)",
-		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute.",
+		"authority": "勞動基準法第38條 — 3 days after six months' continuous service, 7 after one year, 10 after two, 14 after three, 15 after five and one further day for every year beyond ten, capped at 30; the worker schedules the days and any unused day is paid out at the year end or on termination. Applied 2026-09-23 (round 2): 僱用部分時間工作勞工應行注意事項 (MOL, amended 2022-03-14) 三(三)–(四): a part-timer’s 特別休假 is their normal hours a year over a full-timer’s × the LSA §38 days, and 婚喪事病假 hours are their average weekly hours ÷ 40 × the days × 8. `entitlement.scale` states both in the part-timer’s own days (× 8 ÷ their hours a day), so a part-timer working the full-timer’s five days on shorter hours keeps the §38 days, as the guideline’s proviso requires. The guideline says “得參考” (may be referred to): it is MOL guidance, not a statute. Applied 2026-10-01: 勞動基準法第38條第4項: 特別休假因年度終結而未休之日數，雇主應發給工資; 施行細則第24條之1第2項第1款: 年度終結者於契約約定之工資給付日發給或於年度終結後三十日內發給. The unused days are raised by its schedule on the leave year’s last day; a deferral the parties agreed under §38(4) is HR’s to record by rejecting the request and waiving the duty with its reason.",
 		"eligibility": "",
 		"entitlement": {
 			"availability": "UPFRONT",
@@ -8119,7 +8197,13 @@
 		},
 		"is_npl": false,
 		"can_encash": true,
-		"encash_on_exit": true
+		"encash_on_exit": true,
+		"schedule": {
+			"due": "add_days(leave_year.end, 30)",
+			"raise_days_before": 30,
+			"population": "",
+			"duty": "ANNUAL_LEAVE_UNUSED_PAY"
+		}
 	},
 	{
 		"id": "e7a22a98-2897-5426-94bb-e8a0284e612a",

@@ -315,7 +315,7 @@ function assertWorksiteCoverage(configuration: Configuration, gathered: Gathered
 		const who = bundle.employment.employee_number;
 		const { hire, exit } = employmentDates(bundle.employment);
 		// A day an overlay routes is covered by the overlay lineage, not refused (E8).
-		const seen = atWorksite(configuration, bundle.termsHistory, bundle.workDays);
+		const seen = atWorksite(configuration, bundle.termsHistory, bundle.workDays, bundle.employee);
 		const routed = (day: string) =>
 			seen.onDay != null && seen.onDay(day).jurisdiction !== configuration.jurisdiction;
 		const employed = (span: { readonly start: string; readonly end: string } | null | undefined) =>
@@ -370,7 +370,12 @@ function runChecks(options: {
 	readonly payDate: string;
 }): RunIssue[] {
 	const { bundle } = options.measured;
-	const configuration = atWorksite(options.configuration, bundle.termsHistory, bundle.workDays);
+	const configuration = atWorksite(
+		options.configuration,
+		bundle.termsHistory,
+		bundle.workDays,
+		bundle.employee
+	);
 	const { exit } = employmentDates(bundle.employment);
 	const salaryEnd = bundle.window.salary.end;
 	const date = exit != null && exit < salaryEnd ? exit : salaryEnd;

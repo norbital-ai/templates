@@ -25,6 +25,7 @@ import { resolveSchedule, type ScheduledDay } from '../../lib/payroll/run/schedu
 import type { ShiftDefinition } from '../../lib/payroll/run/configuration.js';
 import type { WorkRules } from '../datatypes/work_rules.js';
 import { resolveHolidays, type HolidayRow } from '../holiday-calendar.js';
+import { personCondition } from '../scheduled/entries.js';
 import type { ShiftPatternLike } from './work-pattern.js';
 import { rosterCodeKind, workWindow } from './roster-code.js';
 import type { RosterCodeVariant } from '../datatypes/roster_code_variant.js';
@@ -647,6 +648,8 @@ function resolvedDays(options: {
 	) => { readonly pattern: ShiftPatternLike['pattern']; readonly anchor: string | null } | null;
 	/** The worksite the person's terms record on a date: a local day reaches only that site's staff. */
 	readonly worksiteOn: (date: string) => string | null | undefined;
+	/** The person on a date, for a holiday's `applies_when` (a religion's own day); none reaches nobody. */
+	readonly personOn?: ((date: string) => PersonContext) | undefined;
 }): ReadonlyMap<string, ScheduledDay> {
 	const resolved = new Map<string, ScheduledDay>();
 	const precedence = options.work?.holiday_rest_precedence;
@@ -681,7 +684,8 @@ function resolvedDays(options: {
 					options.companyId,
 					window.start,
 					window.end,
-					options.worksiteOn
+					options.worksiteOn,
+					options.personOn == null ? undefined : personCondition(options.personOn)
 				),
 				shiftById,
 				holidayRestPrecedence: precedence,

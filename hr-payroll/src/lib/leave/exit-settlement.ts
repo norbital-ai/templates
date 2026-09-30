@@ -5,6 +5,8 @@ import { settingsInForce } from '../jurisdiction_settings.js';
 import { dateKey } from '../iso-day.js';
 import { isEligible, scalarFacts } from '../../lib/payroll/run/eligibility.js';
 import { defaultPayPeriod } from '../../lib/payroll/run/period.js';
+import { addDays } from '../../lib/payroll/run/dates.js';
+import { CATCH_UP_DAYS } from '../scheduled/entries.js';
 import { coversDate, readRange } from '../../lib/payroll/run/effective.js';
 import { exitFactsMissing, resolveExitFacts } from '../declared-facts.js';
 import { plain, plainRows } from '../wire.js';
@@ -241,6 +243,12 @@ export async function settleExit(ctx: Ctx, employmentId: string): Promise<ExitSe
 /**
  * The separation payments the version owes this leaver: each eligible `SEPARATION` class not already raised in the
  * departure's calendar year. An annual class (PH 13th month, ID THR) raised in an earlier year does not settle this one.
+ *
+ * Nor is one raised where its scheduled sibling — the `SCHEDULED` class of the version pricing the same bands (PH
+ * THIRTEENTH_MONTH_PAY_YEAR_END, ID THR_HOLIDAY) — already stands, raised or paid, for the occurrence the departure
+ * falls in: its raise window had opened by the last day (`due - raise_days_before <= exit`), the last day is within
+ * the catch-up (`exit <= due + CATCH_UP_DAYS`), and the occurrence is the departure's own year or still ahead of it.
+ * A held sibling is priced whole at the final pay over the year earned, so nothing is left to true up.
  */
 async function separationPayments(
 	ctx: Ctx,
@@ -253,13 +261,21 @@ async function separationPayments(
 	const employment = context.employments.find((row) => row.id === employmentId);
 	const company = context.companies.find((row) => row.id === employment?.company_id);
 	if (company == null) return [];
-	const [catalogue, standing] = await Promise.all([
+	const lineage = context.versions.flatMap((row) =>
+		row.code === company.settings_code ? [row.id as Id<'jurisdiction_settings'>] : []
+	);
+	const [catalogue, scheduled, standing] = await Promise.all([
 		ctx.read('adhoc_catalogue', {
 			where: {
 				settings_id: { eq: versionId as Id<'jurisdiction_settings'> },
 				raised_by: { eq: 'SEPARATION' }
 			},
-			select: { code: true, eligibility: true },
+			select: { code: true, eligibility: true, bands: true },
+			all: true
+		}),
+		ctx.read('adhoc_catalogue', {
+			where: { settings_id: { in: lineage }, raised_by: { eq: 'SCHEDULED' } },
+			select: { settings_id: true, code: true, bands: true, raised_by: true, schedule: true },
 			all: true
 		}),
 		ctx.read('adhoc_requests', {
@@ -268,6 +284,45 @@ async function separationPayments(
 			all: true
 		})
 	]);
+	type Scheduled = {
+		readonly id: string;
+		readonly settings_id: string;
+		readonly code: string;
+		readonly bands?: unknown;
+		readonly raised_by?: string;
+		readonly schedule?: { readonly raise_days_before?: number | null } | null;
+	};
+	const siblings = plainRows<Scheduled>(scheduled).filter(
+		(row) => row.raised_by === 'SCHEDULED' && row.schedule != null
+	);
+	const year = exitDate.slice(0, 4);
+	// ponytail: a sibling already paid by an earlier payslip also settles the class, so a PH leaver's basic
+	// earned between that payslip and the last day gets no 1/12 true-up (PD 851 ¶6). Paying the difference
+	// needs the SEPARATION band to subtract `year.earned.<sibling code>`; that is a law-data change.
+	/** A sibling of the version pricing `bands` already stands for the occurrence the departure falls in. */
+	const settledBySibling = (bands: unknown) => {
+		const priced = JSON.stringify(bands ?? null);
+		const codes = new Map(
+			siblings.flatMap((row) =>
+				row.settings_id === versionId && JSON.stringify(row.bands ?? null) === priced
+					? [[row.code, row.schedule?.raise_days_before ?? 0] as const]
+					: []
+			)
+		);
+		const ids = new Map(
+			siblings.flatMap((row) => (codes.has(row.code) ? [[row.id, row.code] as const] : []))
+		);
+		return standing.rows.some((s) => {
+			const code = ids.get(String(s.catalogue_id));
+			if (code == null) return false;
+			const due = dateKey(String(s.event_date));
+			return (
+				addDays(due, -codes.get(code)!) <= exitDate &&
+				exitDate <= addDays(due, CATCH_UP_DAYS) &&
+				(due.slice(0, 4) === year || exitDate <= due)
+			);
+		});
+	};
 	// The final period: the one the last day's own salary month settles in, in the grammar the leaver is paid in.
 	const terms = context.terms.find(
 		(row) => row.employment_id === employmentId && coversDate(row.effective_range, exitDate)
@@ -276,12 +331,14 @@ async function separationPayments(
 		company,
 		payFrequency: terms?.pay_frequency ?? company.pay_frequency
 	});
-	return plainRows<{ id: string; code: string; eligibility: string }>(catalogue).flatMap((row) =>
+	return plainRows<{ id: string; code: string; eligibility: string; bands?: unknown }>(
+		catalogue
+	).flatMap((row) =>
 		standing.rows.some(
-			(s) =>
-				s.catalogue_id === row.id &&
-				dateKey(String(s.event_date)).slice(0, 4) === exitDate.slice(0, 4)
-		) || !isEligible(row.eligibility, person)
+			(s) => s.catalogue_id === row.id && dateKey(String(s.event_date)).slice(0, 4) === year
+		) ||
+		settledBySibling(row.bands) ||
+		!isEligible(row.eligibility, person)
 			? []
 			: [
 					{

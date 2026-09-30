@@ -705,6 +705,18 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -1421,6 +1433,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -2139,6 +2163,18 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -2847,6 +2883,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -3566,6 +3614,18 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -4284,6 +4344,18 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -4994,6 +5066,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -5715,6 +5799,18 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -6434,6 +6530,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -7165,6 +7273,18 @@
 				"keys": ["code"],
 				"columns": []
 			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
+			}
 		]
 	},
 	{
@@ -7894,6 +8014,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	},
@@ -8990,6 +9122,16 @@
 						"min_length": 1
 					}
 				]
+			},
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -10185,6 +10327,16 @@
 						"min_length": 1
 					}
 				]
+			},
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		],
 		"checks": [
@@ -11005,6 +11157,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "ANNUAL_LEAVE_UNUSED_PAY",
+				"label": "Wages for 特別休假 unused at the leave year’s end",
+				"authority": "勞動基準法第38條第4項; 施行細則第24條之1第2項第1款: within thirty days after the end of the leave year (or on the agreed pay day).",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "SCHEDULED"
+				},
+				"due": "trigger.date"
 			}
 		]
 	}
