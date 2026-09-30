@@ -125,7 +125,7 @@ test('presence counts: whole entry and exit days, clipped to the rule date, by c
 	assert.equal(on('2026-03-31', history).employment_days, 0);
 });
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	test(`${code} — presence alone proves no employment day; sixty recorded employment days are exempt, sixty-one are not (ITA Sch.6 paras 21–22)`, () => {
 		const claiming = (key: string) => ({
 			...foreigner(key),
@@ -164,7 +164,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		expectStatutory(pcb('2026-01', '2026-03-01', foreigner('NR')), 'NR', 'PCB', 1500.3, 0);
 	});
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	test(`${code} — a stay linked to 182 consecutive days of the previous year is resident; 181 is not (ITA s.7(1)(b))`, () => {
 		// Both in Malaysia without a break since 2025, 31 days in January 2026. From 3 July 2025,
 		// 3–31 July (29) + 31 + 30 + 31 + 30 + 31 = 182 consecutive days in 2025: resident for 2026
@@ -219,7 +219,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		assert.equal(notes('U-181', '2025-07-04'), 1);
 	});
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	test(`${code} — 90 days this year and 90 in three of the four preceding years is resident; two of four is not (ITA s.7(1)(c)(ii))`, () => {
 		// March 2026, 5,001, both recorded NON_RESIDENT. P3: 1 January – 31 March in 2022, 2023, 2025
 		// (90 days each) and 2026 (90 by the 31st); 2024 to 29 March, 89 (leap year). P2: the same

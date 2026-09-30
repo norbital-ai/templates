@@ -154,7 +154,7 @@ for (const code of ['MY'] as const)
 		}
 	});
 
-test('MY-nihon: the hour is basic × 12 ÷ (52 × the contract week), whatever week the roster measured', () => {
+test('MY: the hour is basic × 12 ÷ (52 × the contract week), whatever week the roster measured', () => {
 	// The customer's own basis, owner-accepted: ÷ 195 for the 45-hour 6D group, ÷ 184.17 for the
 	// 42.5-hour 5D office group. The divisor states it over the roster-measured week the engine
 	// divides by, so a 9-hour five-day roster, a 7.5-hour six-day one and a short transition month
@@ -167,7 +167,7 @@ test('MY-nihon: the hour is basic × 12 ÷ (52 × the contract week), whatever w
 		...terms(hours, days, 1_700),
 		pay_frequency: 'MONTHLY'
 	});
-	for (const version of settingsVersions('MY-nihon'))
+	for (const version of settingsVersions('MY'))
 		for (const [group, week, hours, days] of [
 			['6D', 45, 45, 5],
 			['6D', 45, 45, 6],

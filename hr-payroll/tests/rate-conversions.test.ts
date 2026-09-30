@@ -20,7 +20,6 @@ const LINEAGES = [
 	'SG',
 	'PH',
 	'MY',
-	'MY-nihon',
 	'ID',
 	'TH',
 	'VN',

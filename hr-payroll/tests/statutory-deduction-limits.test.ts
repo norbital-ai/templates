@@ -60,7 +60,7 @@ test('SG EA s.27(1)(f): overpaid salary can be recovered in full, unlike a loan 
 });
 
 test('MY EA s.24(9)(a): deductions FROM employer-paid notice indemnity are uncapped, up to that payment', () => {
-	for (const code of ['MY', 'MY-nihon'])
+	for (const code of ['MY'])
 		for (const version of settingsVersions(code)) {
 			const ceiling = version.payroll.deduction_ceiling;
 			// 2,000 earned wages permits 1,000 deductions; 2,000 employer-paid indemnity permits another 2,000.
@@ -81,7 +81,7 @@ test('MY EA s.24(9)(a): deductions FROM employer-paid notice indemnity are uncap
 });
 
 test('MY EA s.24(9)(c): approved housing adds at most a quarter, solely for housing recovery', () => {
-	for (const code of ['MY', 'MY-nihon'])
+	for (const code of ['MY'])
 		for (const version of settingsVersions(code)) {
 			const ceiling = version.payroll.deduction_ceiling;
 			// 4,000 wages, statutory 400 + ordinary 1,600 use the half. Approved housing gets 1,000 more.
@@ -148,7 +148,7 @@ const build = (world, period) =>
 	buildPayrollRun(gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period }));
 
 test('MY housing exception requires the permission on the actual loan before any recovery', () => {
-	for (const code of ['MY', 'MY-nihon']) {
+	for (const code of ['MY']) {
 		const world = withLoan(code, '2026-01', 'APPROVED_HOUSING_LOAN');
 		assert.throws(() => build(world, '2026-01'), /written permission/);
 		world.loans[0].approval_reference = 'DG written permission / synthetic fixture';
@@ -224,7 +224,7 @@ test('loan recoveries cannot bypass net deduction limits by reducing gross wages
 });
 
 test('MY and VN monthly deduction limits retain unused room and prior deductions across payslips', () => {
-	for (const code of ['MY', 'MY-nihon', 'VN']) {
+	for (const code of ['MY', 'VN']) {
 		for (const version of settingsVersions(code)) {
 			const ceiling = version.payroll.deduction_ceiling;
 			const prior = {
@@ -298,7 +298,7 @@ test('SG damage and accommodation limits remain independent of the final-pay agg
 });
 
 test('a lawful percentage limit never rounds upward to a currency unit the law does not allow', () => {
-	for (const code of ['MY', 'MY-nihon']) {
+	for (const code of ['MY']) {
 		assert.equal(
 			run(
 				settingsVersions(code)[0].payroll.deduction_ceiling,
@@ -341,7 +341,7 @@ test('SG each damage incident has its own quarter limit; Commissioner-approved d
 });
 
 test('MY payroll reads the first half payslip when recovering a lawful second-half instalment', () => {
-	for (const code of ['MY', 'MY-nihon']) {
+	for (const code of ['MY']) {
 		const world = createStatutoryWorld({
 			code,
 			period: '2026-01-1',

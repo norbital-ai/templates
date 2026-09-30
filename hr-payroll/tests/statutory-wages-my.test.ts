@@ -21,7 +21,7 @@ const work = (world: PayrollWorld, key: string) => {
 	});
 };
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	test(`${code} — First Schedule wage classes govern the RM4,000 overtime coverage threshold`, () => {
 		const version = settingsVersions(code).find(
 			(row) =>
@@ -104,8 +104,8 @@ for (const code of ['MY', 'MY-nihon'] as const)
 // gated by that seeded expression, and the engine judges it against the run's citizen count.
 const HRD_TEST = 'employee.citizenship == "CITIZEN" && company.headcount_citizens >= 5';
 
-test('MY/MY-nihon — every version seeds the HRD results-pay refusal test', () => {
-	for (const code of ['MY', 'MY-nihon'] as const)
+test('MY — every version seeds the HRD results-pay refusal test', () => {
+	for (const code of ['MY'] as const)
 		for (const version of settingsVersions(code))
 			assert.equal(
 				version.work_rules.wages?.results_pay?.applies_when,

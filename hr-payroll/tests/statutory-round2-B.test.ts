@@ -1,7 +1,7 @@
 /**
  * Round 2, letter B: earnings history on the person.
  *
- * - MY / MY-nihon termination benefit on the wages actually paid (Termination and Lay-Off Benefits
+ * - MY termination benefit on the wages actually paid (Termination and Lay-Off Benefits
  *   Regulations 1980 reg.6(2), EA s.2 wages).
  * - TW 平均工資 from the payslips, the 施行細則 §2 periods left out (勞基法 §2(4); 勞動部
  *   台(83)勞動二字第25564號 for the month).
@@ -89,7 +89,7 @@ const paidLine = (
 	code: string
 ) => slip.adjustments.find((row) => row.component_code === code)?.amount;
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	test(`${code} — the termination benefit's day is twelve months' wages paid ÷ 365 (reg.6(2))`, () => {
 		// Hired 15 May 2023, made redundant 31 January 2026: 993 days ≈ 32.6 months → 33 to the
 		// nearest month (reg.6(1)), two years or more → fifteen days a year: 15 × 33/12 = 41.25 days.
@@ -287,7 +287,7 @@ test('ID — a daily BPJS run refuses before an unsealed Kesehatan monthly basis
 	);
 });
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	test(`${code} — unpaid leave over thirty days in twelve months is out of the annual-leave service (s.60E(3B))`, () => {
 		const rule = leaveCatalogue(code).find(
 			(row) => row.code === 'ANNUAL_LEAVE' && row.settings_id === versionOn(code, '2026-01-15').id

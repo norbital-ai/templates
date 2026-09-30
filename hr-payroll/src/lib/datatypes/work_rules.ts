@@ -149,7 +149,7 @@ const workRateBandValueSchema = Schema.Struct({
 	/**
 	 * Inert: nothing reads it. It once named the day limit above which planned OT became incentive;
 	 * every overtime limit now splits (`splitsOvertime`). Kept, and still compiled, only because
-	 * sealed versions (MY-nihon, VN) store it.
+	 * sealed versions (MY, VN) store it.
 	 */
 	funnel_above_hours: Schema.optionalKey(Schema.NullOr(cel))
 });

@@ -1008,7 +1008,7 @@ test('a per-event entry saved without its event date is named, and repairs by re
 		),
 		/PATERNITY entry NO-DATE names no event date/
 	);
-	// Two rows loaded as the MY-nihon bank rows were: no event, and a debit per day in the leave
+	// Two rows loaded as the MY bank rows were: no event, and a debit per day in the leave
 	// year that the planner never writes for a per-event grant (Mon–Tue and Wed–Thu, 2 days each).
 	const legacy = (from: string, to: string, reference: string, number: number) => {
 		const plan = planLeaveActivity(context, birth(from, to, reference), id(number));

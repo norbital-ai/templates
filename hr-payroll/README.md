@@ -2,6 +2,8 @@
 
 ![HR & Payroll workspace thumbnail](assets/thumbnail.svg)
 
+The user guide, with screens of every app, is [docs/README.md](docs/README.md).
+
 A Bolt workspace for employment records, scheduling, leave, payroll and statutory contributions.
 Approved inputs produce a payslip for each employment contract, with calculation details and links
 to the records settled by that payslip.

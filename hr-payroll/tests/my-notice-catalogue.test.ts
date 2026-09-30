@@ -80,7 +80,7 @@ function person(
 	};
 }
 
-for (const code of ['MY', 'MY-nihon']) {
+for (const code of ['MY']) {
 	const versions: Version[] = JSON.parse(
 		readFileSync(
 			new URL(`../seed/jurisdiction/${code}/jurisdiction_settings.json`, import.meta.url),

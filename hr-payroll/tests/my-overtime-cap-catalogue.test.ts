@@ -21,7 +21,7 @@ type Settings = {
 	};
 };
 
-for (const lineage of ['MY', 'MY-nihon']) {
+for (const lineage of ['MY']) {
 	const versions: Settings[] = JSON.parse(
 		readFileSync(
 			new URL(`../seed/jurisdiction/${lineage}/jurisdiction_settings.json`, import.meta.url),
@@ -38,18 +38,14 @@ for (const lineage of ['MY', 'MY-nihon']) {
 			assert.equal((limit.counts_day_when ?? '').trim(), '');
 			assert.equal((limit.counts_beyond_normal_when ?? '').trim(), '');
 		});
-	// EA 1955 s.59(1): of two weekly rest days only the last is the Part XII rest day. MY resolves
-	// the earlier as an OFF day; MY-nihon, whose contract pays 2.0× on both, refuses paid work on
-	// the earlier until the 104-hour count and the contract rate are priced together.
+	// EA 1955 s.59(1): of two weekly rest days only the last is the Part XII rest day. The MY
+	// lineage's company term (Nihon Pigment's contract, owner-approved 2026-09-23) pays 2.0× on
+	// every coded rest day — at or above the s.60(3) floor — so it refuses paid work on the earlier
+	// until the 104-hour count and the contract rate are priced together.
 	for (const version of versions)
 		test(`${lineage} ${version.id}: earlier rest-day work`, () => {
 			const rules = version.work_rules;
-			if (lineage === 'MY') {
-				assert.equal(rules.last_rest_day_only, true);
-				assert.equal(rules.earlier_rest_day_work ?? null, null);
-			} else {
-				assert.equal(rules.earlier_rest_day_work, 'REFUSE');
-				assert.equal(rules.last_rest_day_only ?? null, null);
-			}
+			assert.equal(rules.earlier_rest_day_work, 'REFUSE');
+			assert.equal(rules.last_rest_day_only ?? null, null);
 		});
 }

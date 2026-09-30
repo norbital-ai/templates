@@ -13,7 +13,7 @@ const otherSchemes = {
 
 // Act 4 First Schedule 12(i); Act 800 First Schedule 9; PERKESO Circular 3/2024.
 // The test uses first contribution liability, including earlier employers, rather than payment.
-for (const code of ['MY', 'MY-nihon'] as const) {
+for (const code of ['MY'] as const) {
 	test(`${code}: missing liability history is allowed when it cannot change the age category`, () => {
 		const cases = [
 			{ key: 'SOCSO-54', age: 54, scheme: 'SOCSO', employee: 14.75, employer: 51.65 },

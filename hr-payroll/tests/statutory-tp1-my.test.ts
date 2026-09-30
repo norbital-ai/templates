@@ -88,7 +88,7 @@ const person = (
 	}
 });
 
-for (const code of ['MY', 'MY-nihon'] as const) {
+for (const code of ['MY'] as const) {
 	for (const voluntary of [0, 2000])
 		test(`${code} — bonus EPF retains normal-pay relief with RM${voluntary} voluntary contributions`, () => {
 			// LHDN D(b), E(13): prior EPF 500, normal K1=220, bonus Kt=440, n=5.
@@ -307,7 +307,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 	});
 }
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	test(`${code} — TP1 reduces normal and additional remuneration tax in a bonus month`, () => {
 		// EPF 3,999.93 (K2 312.63) + personal 9,000 + TP1 2,500; no SOCSO/EIS relief without a
 		// TP1 claim. Normal P=44,512.07: tax=1,170.7242; normal MTD=97.56 → 97.60.
@@ -340,7 +340,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 		expectStatutory(book, 'BONUS', 'PCB', 1142.75, 0);
 	});
 
-for (const code of ['MY', 'MY-nihon'] as const) {
+for (const code of ['MY'] as const) {
 	test(`${code} — direct TP1 rebates affect tax without adding a payslip deduction`, () => {
 		const levy = { ...claim('DEPARTURE_LEVY', 40), event_reference: 'Journey A' };
 		const people = [
@@ -442,7 +442,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 	});
 }
 
-for (const code of ['MY', 'MY-nihon'] as const) {
+for (const code of ['MY'] as const) {
 	const profile = (kind: string, first = 2026, last = 2030) => ({
 		pcb_tax_profile: kind,
 		pcb_approval_first_year: first,
@@ -602,7 +602,7 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 	});
 }
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	test(`${code} — every PCB version declares each relief category its rules read, and the child-claim rule`, () => {
 		for (const scheme of contributionSchemes(code).filter((row) => row.code === 'PCB')) {
 			const declared = new Set(

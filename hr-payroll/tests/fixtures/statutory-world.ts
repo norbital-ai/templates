@@ -51,7 +51,6 @@ export const LINEAGES = readdirSync(jurisdictionRoot, { withFileTypes: true })
 
 export type Lineage =
 	| 'MY'
-	| 'MY-nihon'
 	| 'PH'
 	| 'SG'
 	| 'VN'
@@ -121,7 +120,7 @@ function termsFacts(
 					prior_floor_reclassified:
 						person.prior_floor_reclassified === undefined ? false : person.prior_floor_reclassified
 				}
-			: code === 'MY' || code === 'MY-nihon'
+			: code === 'MY'
 				? {
 						worksite_state:
 							person.worksite_state === undefined ? 'KUALA_LUMPUR' : person.worksite_state
@@ -356,7 +355,7 @@ function exitFactsFor(
 ): { exit_facts?: Record<string, string | number | boolean> } {
 	const reason = person.exit_reason;
 	const facts: Record<string, string | number | boolean> = {};
-	if (code === 'MY' || code === 'MY-nihon') {
+	if (code === 'MY') {
 		facts.notice_termination_party =
 			reason === 'RESIGNATION'
 				? 'EMPLOYEE'
@@ -399,7 +398,7 @@ function exitFactsFor(
 		if (['DISMISSAL', 'REDUNDANCY', 'RETRENCHMENT', 'UNILATERAL'].includes(reason ?? ''))
 			facts.final_pay_not_possible = false;
 	}
-	if ((code === 'MY' || code === 'MY-nihon' || code === 'SG') && reason === 'DISMISSAL')
+	if ((code === 'MY' || code === 'SG') && reason === 'DISMISSAL')
 		facts.misconduct_dismissal = false;
 	return Object.keys(facts).length === 0 ? {} : { exit_facts: facts };
 }
@@ -416,7 +415,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		(_, index) => ({
 			key: `PAD-${index}`,
 			// Thailand's Notice 14 blocks a token wage: 12,000 is Bangkok's THB400 × 30.
-			wage: code === 'TH' ? 12_000 : code === 'MY' || code === 'MY-nihon' ? 1_700 : 1,
+			wage: code === 'TH' ? 12_000 : code === 'MY' ? 1_700 : 1,
 			citizenship: 'CITIZEN'
 		})
 	);
@@ -565,7 +564,6 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		tax_residency:
 			person.tax_residency === undefined &&
 			(code === 'MY' ||
-				code === 'MY-nihon' ||
 				code === 'TW' ||
 				code === 'PH' ||
 				code === 'VN' ||
@@ -674,7 +672,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 									sdl_student_class: 'NONE'
 								}
 							: {}),
-						...((code === 'MY' || code === 'MY-nihon') && person.citizenship === 'FOREIGNER'
+						...((code === 'MY') && person.citizenship === 'FOREIGNER'
 							? scheme.code === 'EIS'
 								? { mykas_resident: false }
 								: scheme.code === 'EPF' || scheme.code === 'EPF_NON_CITIZEN'
@@ -786,7 +784,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				risk_class: options.riskClass ?? null,
 				// PH declares both establishment-size exemptions as required entity facts.
 				facts:
-					code === 'MY' || code === 'MY-nihon'
+					code === 'MY'
 						? {
 								hrd_scope: 'PART_I',
 								hrd_registration_class:

@@ -9,7 +9,7 @@ import { Environment } from '@marcbachmann/cel-js';
 const engine = new Environment({ unlistedVariablesAreDyn: true });
 type Row = { id: string; code: string; eligibility: string };
 
-for (const lineage of ['MY', 'MY-nihon']) {
+for (const lineage of ['MY']) {
 	const rows: Row[] = JSON.parse(
 		readFileSync(
 			new URL(`../seed/jurisdiction/${lineage}/leave_catalogue.json`, import.meta.url),

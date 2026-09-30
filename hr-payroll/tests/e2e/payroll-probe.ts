@@ -83,7 +83,6 @@ export type ProbeCase = {
 
 export const PROFILES = [
 	'MY',
-	'MY-nihon',
 	'ID',
 	'TH',
 	'PH',

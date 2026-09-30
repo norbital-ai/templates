@@ -19,7 +19,7 @@ import {
 	type Person
 } from './fixtures/statutory-world.ts';
 
-// D07 — YA2025 TP1 in the MY / MY-nihon version of 1 December 2025. LHDN "Amendment to Specification
+// D07 — YA2025 TP1 in the MY version of 1 December 2025. LHDN "Amendment to Specification
 // for MTD Calculations Using Computerized Calculation for 2025" (1 January 2025), part E list of
 // deductions a–p: the same caps as 2026 except learning-disability intervention (amendment 1.C:
 // "increased from RM4,000 to RM6,000", raised to RM10,000 only from YA2026). No tourism relief and no
@@ -59,7 +59,7 @@ const december = (
 	}
 });
 
-for (const code of ['MY', 'MY-nihon'] as const) {
+for (const code of ['MY'] as const) {
 	test(`${code} — D07 YA2025 TP1 claims price in December 2025 with the 2025 caps`, () => {
 		const book = assessStatutory({
 			code,
@@ -187,7 +187,7 @@ test('MY s.24(9)(b): only amounts due to the employer leave the half on the fina
 	// Act 265 s.24(9)(b): the limit does not apply to "deductions from the final payment of the wages
 	// of an employee for any amount due to the employer and remaining unpaid". Wages 3,000 → half
 	// 1,500; statutory 400 (s.24(2)(d), counted) leaves 1,100.
-	for (const code of ['MY', 'MY-nihon']) {
+	for (const code of ['MY']) {
 		// A 1,300 loan recovery is owed to the employer: outside the limit, taken whole, nothing over.
 		for (const slip of finalSlip(code, 3000, 400, [line('LOAN', 'AIR', 1300)])) {
 			assert.deepEqual(slip.shortfalls, [], code);
@@ -356,9 +356,9 @@ test('D19 SG: weekly, daily and hourly contracts price a leave day at the EA s.2
 	assert.equal(sgCashDay('DAILY', 120, 260), 132);
 });
 
-// ─── D15 / D16: every MY, MY-nihon and SG key is required, conditionally required or defaulted ──
+// ─── D15 / D16: every MY and SG key is required, conditionally required or defaulted ──
 
-test('D15 MY, MY-nihon, SG: every declared election and fact names its requirement or a statutory default — every version', () => {
+test('D15 MY, SG: every declared election and fact names its requirement or a statutory default — every version', () => {
 	// Keys whose absence is itself the statutory state are listed with the reason: SG
 	// `shg_monthly_amount` (absent = the Schedule amount; presence is read by key), MY `wages_12m`
 	// (read only for months no payslip covers, refused where neither exists), and the PCB
@@ -376,7 +376,7 @@ test('D15 MY, MY-nihon, SG: every declared election and fact names its requireme
 		)
 			unsettled.push(`${where} ${String(field.key)}`);
 	};
-	for (const code of ['MY', 'MY-nihon', 'SG'] as const) {
+	for (const code of ['MY', 'SG'] as const) {
 		for (const version of settingsVersions(code)) {
 			const at = `${code} ${String(version.effective_range.start).slice(0, 10)}`;
 			for (const field of (version.facts ?? []) as Record<string, unknown>[])

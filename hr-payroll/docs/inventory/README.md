@@ -4,7 +4,7 @@ One CSV tracker per jurisdiction, `docs/inventory/<jurisdiction>.csv`:
 
 | Jurisdiction              | Tracker           |
 | ------------------------- | ----------------- |
-| Malaysia (incl. MY-nihon) | `malaysia.csv`    |
+| Malaysia                  | `malaysia.csv`    |
 | Indonesia                 | `indonesia.csv`   |
 | Thailand                  | `thailand.csv`    |
 | Philippines               | `philippines.csv` |
@@ -37,7 +37,7 @@ newline (`""` escapes a quote). The first line is the header, exactly these colu
 | Column           | Content                                                                                                                                                      |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `id`             | Stable row id, unique across **all** trackers (e.g. `MY-EPF-001`). Never reused or renumbered.                                                               |
-| `profile`        | Jurisdiction or locality/employer/worker profile the row applies to (`MY`, `MY-nihon`, `CN-shanghai`, `CN-kunming`, …).                                      |
+| `profile`        | Jurisdiction or locality/employer/worker profile the row applies to (`MY`, `CN-shanghai`, `CN-kunming`, …).                                                  |
 | `area`           | One of the areas below.                                                                                                                                      |
 | `provision`      | The legal result in one sentence: amount, entitlement, deadline, report, or sourced exclusion.                                                               |
 | `citation`       | Instrument and section (e.g. `Employment Act 1955 s.60A(3)`).                                                                                                |

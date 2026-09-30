@@ -1,6 +1,6 @@
 /**
- * MY-nihon independent audit (2026-09-23): the Malaysian statute on Nihon Pigment's own rows,
- * and the company terms that separate the fork from `MY` — the customer's overtime pricing.
+ * MY independent audit (2026-09-23): the Malaysian statute on the lineage's own rows (Nihon
+ * Pigment's, promoted to `MY` on 2026-09-30), and its company terms — the customer's overtime pricing.
  *
  * Every figure below is derived by hand from the instrument named beside it. Nothing here was
  * read off the engine. Sources, all fetched for this audit:
@@ -88,9 +88,9 @@ const sum = (slip: BuiltPayslip, prefix: string, field: 'quantity' | 'amount') =
 
 // ─── EPF: KWSP's own worked examples and the RM5,000 / age-60 boundaries ─────────────────────
 
-test('MY-nihon EPF reproduces KWSP’s published examples and the RM5,000 and age-60 seams', () => {
+test('MY EPF reproduces KWSP’s published examples and the RM5,000 and age-60 seams', () => {
 	const book = assessStatutory({
-		code: 'MY-nihon',
+		code: 'MY',
 		period: '2026-01',
 		people: [
 			{ key: 'A-3250', wage: 3250, citizenship: 'CITIZEN', registrations: LOCAL },
@@ -137,9 +137,9 @@ test('MY-nihon EPF reproduces KWSP’s published examples and the RM5,000 and ag
 
 // ─── SOCSO / EIS / HRDF / PCB at the printed rows and the MTD boundaries ─────────────────────
 
-test('MY-nihon SOCSO, EIS, HRDF and PCB at the table seams (2025-12-01 version)', () => {
+test('MY SOCSO, EIS, HRDF and PCB at the table seams (2025-12-01 version)', () => {
 	const book = assessStatutory({
-		code: 'MY-nihon',
+		code: 'MY',
 		period: '2026-01',
 		headcount: 16,
 		people: [
@@ -192,7 +192,7 @@ test('MY-nihon SOCSO, EIS, HRDF and PCB at the table seams (2025-12-01 version)'
 	expectStatutory(book, 'W-3900', 'PCB', 13.7, 0);
 });
 
-test('MY-nihon SKBBK on the fork’s own June and July 2026 versions', () => {
+test('MY SKBBK on the fork’s own June and July 2026 versions', () => {
 	const people = [
 		{ key: 'F-3900', wage: 3900, citizenship: 'FOREIGNER', registrations: FOREIGN },
 		{ key: 'F-6000.01', wage: 6000.01, citizenship: 'FOREIGNER', registrations: FOREIGN }
@@ -200,7 +200,7 @@ test('MY-nihon SKBBK on the fork’s own June and July 2026 versions', () => {
 	// ACT4 NON-EMPLOYMENT INJURY column, employee only: row 43 (3,800–3,900) 28.85; row 65 (above
 	// the RM6,000 ceiling) 44.65. Foreign workers stay mandatory after the 8 July 2026 decision.
 	for (const period of ['2026-06', '2026-07']) {
-		const book = assessStatutory({ code: 'MY-nihon', period, people });
+		const book = assessStatutory({ code: 'MY', period, people });
 		expectStatutory(book, 'F-3900', 'SKBBK', 28.85, 0);
 		expectStatutory(book, 'F-6000.01', 'SKBBK', 44.65, 0);
 	}
@@ -211,10 +211,10 @@ test('MY-nihon SKBBK on the fork’s own June and July 2026 versions', () => {
 // RM2,600 on the 45-hour 6D week: 2,600 × 12 ÷ (52 × 45) = 13.333… → 13.33 an hour, to the sen.
 // Off day 10 × 13.33 × 1.5 = 199.95; rest day 12 × 13.33 × 2 = 319.92; holiday 9 × 13.33 × 2 =
 // 239.94 and 2 × 13.33 × 3 = 79.98.
-test('MY-nihon — a weekday’s overtime is hours × round(basic ÷ 195) × 1.5, with no company incentive boundary', () => {
+test('MY — a weekday’s overtime is hours × round(basic ÷ 195) × 1.5, with no company incentive boundary', () => {
 	const { slips } = buildStatutory(
 		{
-			code: 'MY-nihon',
+			code: 'MY',
 			period: '2026-01',
 			people: [{ key: 'N', wage: 2600, citizenship: 'CITIZEN', registrations: LOCAL }]
 		},
@@ -239,12 +239,12 @@ test('MY-nihon — a weekday’s overtime is hours × round(basic ÷ 195) × 1.5
 	assert.ok(slip.statutory.find((row) => row.scheme_code === 'EPF')!.base_amount <= 2600);
 });
 
-test('MY-nihon — every planned hour at its column multiple: 1.5 off day, 2.0 rest day, 2.0 then 3.0 holiday', () => {
+test('MY — every planned hour at its column multiple: 1.5 off day, 2.0 rest day, 2.0 then 3.0 holiday', () => {
 	// The bands alone, on the planned hours a day carries (`overtime_hours`): the customer's sheet
 	// pays an off day's hours at 1.5, every rest-day hour at 2.0, and a holiday's normal hours at 2.0
 	// with the hours beyond at 3.0. With no contract terms the Act's day awards floor them at
 	// nothing; `statutory-golden-my` proves the floor.
-	const version = settingsVersions('MY-nihon')[0]!;
+	const version = settingsVersions('MY')[0]!;
 	const person = personContext({
 		employee: null,
 		employment: { service_start: '2020-01-01' },
@@ -283,7 +283,7 @@ test('MY-nihon — every planned hour at its column multiple: 1.5 off day, 2.0 r
 	]);
 });
 
-test('MY-nihon — the 104-hour ceiling is still reported (EA s.60A(4)(a), OTR reg.2)', () => {
+test('MY — the 104-hour ceiling is still reported (EA s.60A(4)(a), OTR reg.2)', () => {
 	// s.60A(3)(b): overtime is work beyond the normal hours per day; s.60A(4)(a) proviso: rest-day
 	// and public-holiday work "shall not be construed as overtime work" for the ceiling. January
 	// 1–20 2026, Saturday OFF (an off day's hours are all beyond the normal day), Sunday REST:
@@ -294,7 +294,7 @@ test('MY-nihon — the 104-hour ceiling is still reported (EA s.60A(4)(a), OTR r
 	// 239.94 a Saturday.
 	const { slips, warnings } = buildStatutory(
 		{
-			code: 'MY-nihon',
+			code: 'MY',
 			period: '2026-01',
 			people: [{ key: 'CAP', wage: 2600, citizenship: 'CITIZEN', registrations: LOCAL }]
 		},
@@ -328,14 +328,14 @@ test('MY-nihon — the 104-hour ceiling is still reported (EA s.60A(4)(a), OTR r
 	);
 });
 
-test('MY-nihon — work after the ten-hour spread-over is overtime (EA s.60A(3)(b) proviso)', () => {
+test('MY — work after the ten-hour spread-over is overtime (EA s.60A(3)(b) proviso)', () => {
 	// Split shift 08:00–12:00 and 16:00–22:00: 10 h worked, 2 h past the normal eight. The spread-over
 	// that began at 08:00 ends at 18:00, and "the whole period beginning from the time that the said
 	// spread over period ends up to the time that the employee ceases work for the day shall be deemed
 	// to be overtime": 18:00–22:00 = 4 h × 13.33 × 1.5 = 79.98. The employer approved the four hours.
 	const { slips } = buildStatutory(
 		{
-			code: 'MY-nihon',
+			code: 'MY',
 			period: '2026-01',
 			people: [{ key: 'SPLIT', wage: 2600, citizenship: 'CITIZEN', registrations: LOCAL }]
 		},
@@ -359,7 +359,7 @@ test('MY-nihon — work after the ten-hour spread-over is overtime (EA s.60A(3)(
 
 // ─── Final wages: EA s.20 / s.21 (the fork's payroll.final_pay_deadlines) ─────────────────────
 
-test('MY-nihon — final wages are due on the last day unless the employee left without notice (EA ss.20–21)', () => {
+test('MY — final wages are due on the last day unless the employee left without notice (EA ss.20–21)', () => {
 	// A monthly run pays on the month's last day, 31 January 2026.
 	//   NOTICE:   resigned with notice (s.12) on 29 Jan → s.20: due by 29 Jan → paid 31 Jan is late.
 	//   WALKOUT:  left without notice (s.13(2)) on 29 Jan → s.21(2): third day after = 1 Feb → on time.
@@ -375,7 +375,7 @@ test('MY-nihon — final wages are due on the last day unless the employee left 
 		citizenship: 'CITIZEN',
 		registrations: LOCAL
 	}));
-	const { warnings } = buildStatutory({ code: 'MY-nihon', period: '2026-01', people }, (world) => {
+	const { warnings } = buildStatutory({ code: 'MY', period: '2026-01', people }, (world) => {
 		for (const key of ['WALKOUT', 'WALKOUT2'])
 			for (const row of world.employments.filter((row) => row.employee_number === key))
 				row.exit_facts = { ...(row.exit_facts ?? {}), terminated_without_notice: true };

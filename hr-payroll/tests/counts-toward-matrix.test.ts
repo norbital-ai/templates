@@ -343,7 +343,6 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		DISMISSAL_NOTICE_PAY: ['RESIDENT_TAX', 'RESIDENT_TAX_RETIREMENT', 'RETIREMENT_INCOME_TAX']
 	}
 };
-MATRIX['MY-nihon'] = MATRIX.MY;
 MATRIX['CN-kunming'] = MATRIX['CN-shanghai'];
 
 /** The classes the law owes on separation, raised by off-boarding for an eligible leaver. */

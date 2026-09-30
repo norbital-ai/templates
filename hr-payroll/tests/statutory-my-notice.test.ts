@@ -6,7 +6,7 @@ import { buildStatutory, settingsVersions } from './fixtures/statutory-world.ts'
 // interval at a constant RM3,000 monthly wage, not the catalogue's old /30 premise.
 const facts = { notice_given: false, notice_waived_days: 0 };
 function notice(
-	code: 'MY' | 'MY-nihon',
+	code: 'MY',
 	declarations: Record<string, string | number | boolean>,
 	options: {
 		exit?: string;
@@ -79,7 +79,7 @@ function notice(
 	);
 }
 
-for (const code of ['MY', 'MY-nihon'] as const) {
+for (const code of ['MY'] as const) {
 	test(`${code}: manual employee notice recovery is calculated from declarations, not the entered amount`, () => {
 		assert.equal(
 			notice(

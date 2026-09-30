@@ -3,6 +3,8 @@ import { officeWeek, register, type ProbeInput, type Row } from '../payroll-prob
 /**
  * MY cases: see the case shape at the top of payroll-probe.ts. Every figure is worked by hand from the
  * instrument cited beside it; `docs/inventory/malaysia.csv` names each case in its `probe` column.
+ * Since 2026-09-30 the `MY` lineage carries Nihon Pigment's company overtime, rest-day and holiday
+ * terms (formerly its own fork); cases whose statute-only figures those terms change were removed.
  */
 
 // ── Sources ────────────────────────────────────────────────────────────────────────────────────
@@ -510,61 +512,6 @@ register(
 		]
 	},
 
-	// ── Age 75 and above, and rest-day work ──────────────────────────────────────────────────────
-	{
-		id: 'MY-EPF-01-5',
-		profile: 'MY',
-		description:
-			'A citizen aged 76 on RM2,600 who works three Sundays in January 2026: no EPF at 75 or over, SOCSO Second Category on the rest-day pay too, and s.60(3)(b) and (c) rest-day pay at the s.60I ordinary rate (RM100 a day, RM12.50 an hour).',
-		citation: [
-			'EPF: KWSP, Employer mandatory contribution: employees aged 14 to under 75 contribute (https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution); EPF Act 1991 First Schedule para 13 (AGC text as at 1 July 2022) excludes a person who has attained seventy-five: no EPF',
-			`${EA} s.60I(1)(a), (1A), (1)(b): ordinary rate 2,600 / 26 = 100.00, hourly 100 / 8 = 12.50 (the contract's 09:00–18:00 day less its hour). s.59(1): of the Saturday off and the Sunday rest, the Sunday is the rest day. s.60(3)(b)(i): 11 Jan, 4 hours (not over half the normal hours), half a day's wages = 50.00; s.60(3)(b)(ii): 18 Jan, 8 hours, one day's wages = 100.00; 25 Jan, 10 hours: one day's wages for the first 8 = 100.00 and s.60(3)(c) 2 × 12.50 × 2 = 50.00. Total 300.00`,
-			`${SOCSO}: Act 4 wages include payment for work on rest days and overtime; RM2,900 is row 33 (RM2,800–2,900): Second Category employer RM35.60`,
-			'EIS: none from sixty (Act 800 First Schedule)',
-			`${PCB}: P = 2,900 × 12 − 9,000 = 25,800; 5,800 × 3% − 250 < 0, no MTD`,
-			'Net: 2,900; employer cost 35.60'
-		],
-		company: NO_HRD,
-		inputs: [
-			...officeWeek('2024-01-01'),
-			...citizen('elder', 'Tan Boon Huat', 2600, { born: '1949-11-20' }),
-			worked('elder_job', '2026-01-11', [['09:00', '13:00']], 4),
-			worked(
-				'elder_job',
-				'2026-01-18',
-				[
-					['09:00', '13:00'],
-					['14:00', '18:00']
-				],
-				8
-			),
-			worked(
-				'elder_job',
-				'2026-01-25',
-				[
-					['08:00', '12:00'],
-					['13:00', '17:00'],
-					['17:30', '19:30']
-				],
-				10
-			)
-		],
-		period: '2026-01',
-		expected: [
-			{
-				employment: 'elder_job',
-				lines: {
-					gross: 2900,
-					net: 2900,
-					employer_cost: 35.6,
-					BASIC: 2600,
-					'SOCSO.employee': 0,
-					'SOCSO.employer': 35.6
-				}
-			}
-		]
-	},
-
 	// ── A bonus month, resident ──────────────────────────────────────────────────────────────────
 	{
 		id: 'MY-WAGEBASE-01-1',
@@ -1060,242 +1007,6 @@ register(
 					'EIS.employee': 11.9,
 					'EIS.employer': 11.9,
 					'PCB.employee': 867.5
-				}
-			}
-		]
-	},
-
-	// ── Ordinary-day overtime, and HRD’s wage base ───────────────────────────────────────────────
-	{
-		id: 'MY-EA31-1',
-		profile: 'MY',
-		description:
-			'A citizen on RM2,600 at an HRD-liable company works 10 hours on Monday 5 and 11 hours on Tuesday 6 January 2026: s.60A(3) overtime at 1.5 × RM12.50; EPF and HRD levy on the salary, SOCSO and EIS on the overtime too.',
-		citation: [
-			`${EA} s.60A(3)(a)–(c): overtime is the hours in excess of the normal hours (the contract's eight), at not less than 1.5 × the hourly rate; s.60I(1A), (1)(b): 2,600 / 26 / 8 = 12.50. Monday 09:00–13:00, 14:00–18:00, 18:30–20:30 = 10 h, 2 h over; Tuesday to 21:30 = 11 h, 3 h over: 5 × 12.50 × 1.5 = 93.75. First Schedule para 1A–2: the wages are within RM4,000`,
-			`${EPF_WAGES}: base 2,600, "2,580.01 to 2,600.00" RM338 / RM286`,
-			`${SOCSO}; Act 4 and Act 800 wages include overtime: base 2,693.75, row 31 (RM2,600–2,700) RM46.35 / RM13.25`,
-			`${EIS}: row 31 RM5.30 each`,
-			`${HRD}: citizen at a compulsory (count 12) Part I employer, 1% × 2,600 = 26.00`,
-			`${PCB}: P below RM20,000 after relief, nil`,
-			'Net: 2,693.75 − 286 − 13.25 − 5.30 = 2,389.20; employer cost 338 + 46.35 + 5.30 + 26 = 415.65'
-		],
-		company: hrd('COMPULSORY', 12),
-		inputs: [
-			...officeWeek('2024-01-01'),
-			...citizen('overtime', 'Ah Hock Overtime', 2600),
-			worked(
-				'overtime_job',
-				'2026-01-05',
-				[
-					['09:00', '13:00'],
-					['14:00', '18:00'],
-					['18:30', '20:30']
-				],
-				2
-			),
-			worked(
-				'overtime_job',
-				'2026-01-06',
-				[
-					['09:00', '13:00'],
-					['14:00', '18:00'],
-					['18:30', '21:30']
-				],
-				3
-			)
-		],
-		period: '2026-01',
-		expected: [
-			{
-				employment: 'overtime_job',
-				lines: {
-					gross: 2693.75,
-					net: 2389.2,
-					employer_cost: 415.65,
-					BASIC: 2600,
-					'EPF.employee': 286,
-					'EPF.employer': 338,
-					'SOCSO.employee': 13.25,
-					'SOCSO.employer': 46.35,
-					'EIS.employee': 5.3,
-					'EIS.employer': 5.3,
-					'HRDF.employer': 26
-				}
-			}
-		]
-	},
-
-	// ── First Schedule: who is owed Part XII overtime ─────────────────────────────────────────────
-	{
-		id: 'MY-EA01-1',
-		profile: 'MY',
-		description:
-			'Two non-resident foreign workers on RM5,200 each work 10 hours on Monday 5 January 2026: the non-manual one is over RM4,000 and owed no statutory overtime; the manual labourer is owed it whatever the wage.',
-		citation: [
-			`${EA} First Schedule para 1A: for an employee earning over RM4,000 a month, s.60A(3) and the other overtime provisions do not apply; para 2(1): an employee engaged in manual labour is covered irrespective of wages. Manual: 5,200 / 26 / 8 = 25.00 an hour; 2 h × 25 × 1.5 = 75.00`,
-			`${EPF_F}; overtime is not EPF wages: 2% × 5,200 = 104 each`,
-			`${SOCSO}: non-manual base 5,200, row 56 (RM5,100–5,200) RM90.15 / RM25.75; manual base 5,275, row 57 (RM5,200–5,300) RM91.85 / RM26.25`,
-			'EIS: Act 800 First Schedule para 10: no foreign employee',
-			`${PCB}, D(a): 30% of remuneration: 5,200 × 30% = 1,560.00; 5,275 × 30% = 1,582.50`,
-			'Net: 5,200 − 104 − 25.75 − 1,560 = 3,510.25 (employer 194.15); 5,275 − 104 − 26.25 − 1,582.50 = 3,562.25 (employer 195.85)'
-		],
-		company: NO_HRD,
-		inputs: [
-			...officeWeek('2024-01-01'),
-			...hire({
-				ref: 'engineer',
-				name: 'Arjun Engineer',
-				born: '1988-03-03',
-				nationality: 'Indian',
-				standing: 'FOREIGNER',
-				salary: 5200,
-				from: '2024-01-02'
-			}),
-			...hire({
-				ref: 'rigger',
-				name: 'Joko Rigger',
-				born: '1989-04-04',
-				standing: 'FOREIGNER',
-				salary: 5200,
-				from: '2024-01-02',
-				category: 'MANUAL_LABOUR'
-			}),
-			...['engineer_job', 'rigger_job'].map((job) =>
-				worked(
-					job,
-					'2026-01-05',
-					[
-						['09:00', '13:00'],
-						['14:00', '18:00'],
-						['18:30', '20:30']
-					],
-					2
-				)
-			)
-		],
-		period: '2026-01',
-		expected: [
-			{
-				employment: 'engineer_job',
-				lines: {
-					gross: 5200,
-					net: 3510.25,
-					employer_cost: 194.15,
-					'EPF_NON_CITIZEN.employee': 104,
-					'EPF_NON_CITIZEN.employer': 104,
-					'SOCSO.employee': 25.75,
-					'SOCSO.employer': 90.15,
-					'PCB.employee': 1560
-				}
-			},
-			{
-				employment: 'rigger_job',
-				lines: {
-					gross: 5275,
-					net: 3562.25,
-					employer_cost: 195.85,
-					'EPF_NON_CITIZEN.employee': 104,
-					'EPF_NON_CITIZEN.employer': 104,
-					'SOCSO.employee': 26.25,
-					'SOCSO.employer': 91.85,
-					'PCB.employee': 1582.5
-				}
-			}
-		]
-	},
-
-	// ── A holiday on the rest day, substituted and worked ─────────────────────────────────────────
-	{
-		id: 'MY-EA32-1',
-		profile: 'MY',
-		description:
-			'Federal Territory Day falls on Sunday 1 February 2026, the rest day of a Kuala Lumpur citizen on RM2,600: Monday 2 February is the paid substitute, and working it eight hours earns two days’ wages on top of the month. Holiday work within the normal hours is EPF wages.',
-		citation: [
-			`${EA} s.60D(1)(a)(iii) (Federal Territory Day for an employee wholly or mainly working in the Federal Territory) and its proviso: a holiday on a rest day moves to the next working day; s.60D(3)(a)(i): working it earns two days' wages at the ordinary rate in addition to the holiday pay: 2 × 2,600/26 = 200.00; s.60D(2A): the month's salary is the holiday pay`,
-			`${EPF_WAGES}; KWSP Employer FAQ 21: wages for work during public holidays are subject to EPF unless the work is overtime (https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution); overtime is only the hours beyond the normal hours (EA s.60A(3)(b)): base 2,800, "2,780.01 to 2,800.00" RM364 / RM308`,
-			`${SOCSO}; Act 800 s.2 wages include extra work on holidays: row 32 (RM2,700–2,800) RM48.15 / RM13.75`,
-			`${EIS}: row 32 RM5.50 each`,
-			`${PCB}: nil at this wage`,
-			'Net: 2,800 − 308 − 13.75 − 5.50 = 2,472.75; employer cost 364 + 48.15 + 5.50 = 417.65'
-		],
-		company: NO_HRD,
-		inputs: [
-			...officeWeek('2024-01-01'),
-			...citizen('ftday', 'Farhan Wilayah', 2600, { state: 'KUALA_LUMPUR' }),
-			holiday('2026-02-01', 'Federal Territory Day'),
-			worked(
-				'ftday_job',
-				'2026-02-02',
-				[
-					['09:00', '13:00'],
-					['14:00', '18:00']
-				],
-				8
-			)
-		],
-		period: '2026-02',
-		expected: [
-			{
-				employment: 'ftday_job',
-				lines: {
-					gross: 2800,
-					net: 2472.75,
-					employer_cost: 417.65,
-					BASIC: 2600,
-					'EPF.employee': 308,
-					'EPF.employer': 364,
-					'SOCSO.employee': 13.75,
-					'SOCSO.employer': 48.15,
-					'EIS.employee': 5.5,
-					'EIS.employer': 5.5
-				}
-			}
-		]
-	},
-
-	// ── The 2026 additional Peninsular holiday ────────────────────────────────────────────────────
-	{
-		id: 'MY-PEN-HOL-01-1',
-		profile: 'MY',
-		description:
-			'Hari Raya Puasa fell on Saturday 21 March 2026, so Friday 20 March was an additional Peninsular public holiday under Holidays Act s.8; a Selangor citizen on RM2,600 who works it eight hours earns two days’ wages.',
-		citation: [
-			'P.U.(B) 111/2026, Holidays Act 1951 s.8 (https://www.kabinet.gov.my/storage/2026/03/PUB-111_2026.pdf): 20 March 2026 is a public holiday in Peninsular Malaysia if Hari Raya Puasa falls on 21 March 2026; the Keeper of the Rulers’ Seal declared 21 March 2026 (reported: https://www.buletintv3.my/nasional/terkini-umat-islam-malaysia-sambut-aidilfitri-pada-21-mac-2026/)',
-			`${EA} s.60D(1)(b): a day appointed under Holidays Act s.8 is a paid holiday; s.60D(3)(a)(i): 2 × 2,600/26 = 200.00`,
-			`${EPF_WAGES}; KWSP Employer FAQ 21 (holiday work is EPF wages unless overtime): base 2,800, RM364 / RM308`,
-			`${SOCSO}: row 32 RM48.15 / RM13.75; ${EIS}: row 32 RM5.50 each; ${PCB}: nil`,
-			'Net: 2,800 − 308 − 13.75 − 5.50 = 2,472.75; employer cost 417.65'
-		],
-		company: NO_HRD,
-		inputs: [
-			...officeWeek('2024-01-01'),
-			...citizen('raya', 'Zainab Raya', 2600, { gender: 'FEMALE' }),
-			holiday('2026-03-20', 'Additional Hari Raya Puasa holiday (P.U.(B) 111/2026)'),
-			worked(
-				'raya_job',
-				'2026-03-20',
-				[
-					['09:00', '13:00'],
-					['14:00', '18:00']
-				],
-				8
-			)
-		],
-		period: '2026-03',
-		expected: [
-			{
-				employment: 'raya_job',
-				lines: {
-					gross: 2800,
-					net: 2472.75,
-					employer_cost: 417.65,
-					'EPF.employee': 308,
-					'EPF.employer': 364,
-					'SOCSO.employee': 13.75,
-					'SOCSO.employer': 48.15,
-					'EIS.employee': 5.5,
-					'EIS.employer': 5.5
 				}
 			}
 		]
@@ -2110,7 +1821,10 @@ register(
 		inputs: [...officeWeek('2024-01-01'), ...citizen('returned', 'Aina Returned', 3000)],
 		period: '2026-01',
 		expected: [
-			{ employment: 'returned_job', lines: { ...PLAIN_3000, employer_cost: 462.55, 'HRDF.employer': 15 } }
+			{
+				employment: 'returned_job',
+				lines: { ...PLAIN_3000, employer_cost: 462.55, 'HRDF.employer': 15 }
+			}
 		]
 	},
 
@@ -2130,7 +1844,10 @@ register(
 		inputs: [...officeWeek('2024-01-01'), ...citizen('grew', 'Grew Again', 3000)],
 		period: '2026-02',
 		expected: [
-			{ employment: 'grew_job', lines: { ...PLAIN_3000, employer_cost: 477.55, 'HRDF.employer': 30 } }
+			{
+				employment: 'grew_job',
+				lines: { ...PLAIN_3000, employer_cost: 477.55, 'HRDF.employer': 30 }
+			}
 		]
 	},
 
@@ -2453,7 +2170,13 @@ register(
 
 // ── Round 2026-09-30 (batch 9): leave with pay, Schedule 6 para 22, the aged non-citizen, SKBBK release ──
 /** A time-off entry; a per-event leave names its event. */
-const leave = (job: string, code: string, from: string, to: string, event?: string): ProbeInput => ({
+const leave = (
+	job: string,
+	code: string,
+	from: string,
+	to: string,
+	event?: string
+): ProbeInput => ({
 	collection: 'leave_entries',
 	values: {
 		employment_id: `@${job}`,
@@ -2586,7 +2309,9 @@ register(
 		company: NO_HRD,
 		inputs: [
 			...officeWeek('2024-01-01'),
-			...citizen('father', 'Faizal Bapa', 3000, { person: { marital_status: 'MARRIED', spouse_status: 'WITH_INCOME' } }),
+			...citizen('father', 'Faizal Bapa', 3000, {
+				person: { marital_status: 'MARRIED', spouse_status: 'WITH_INCOME' }
+			}),
 			leave('father_job', 'PATERNITY_LEAVE', '2026-01-12', '2026-01-18', '2026-01-12')
 		],
 		period: '2026-01',
@@ -2724,22 +2449,20 @@ register(
 				salary: 3000,
 				from: '2024-01-02'
 			}),
-			...['released', 'foreign_release'].map(
-				(ref): ProbeInput => ({
-					collection: 'employment_statutory_facts',
-					values: {
-						employee_id: `@${ref}`,
-						employment_id: `@${ref}_job`,
-						statutory_contribution_id: '@law:statutory_contributions:SKBBK',
-						effective_range: { from: '2026-09-01', to: null },
-						status: {
-							kind: 'REGISTERED',
-							reference_number: `PROBE-SKBBK-RELEASE-${ref}`,
-							elections: { skbbk_liability_released: true }
-						}
+			...['released', 'foreign_release'].map((ref): ProbeInput => ({
+				collection: 'employment_statutory_facts',
+				values: {
+					employee_id: `@${ref}`,
+					employment_id: `@${ref}_job`,
+					statutory_contribution_id: '@law:statutory_contributions:SKBBK',
+					effective_range: { from: '2026-09-01', to: null },
+					status: {
+						kind: 'REGISTERED',
+						reference_number: `PROBE-SKBBK-RELEASE-${ref}`,
+						elections: { skbbk_liability_released: true }
 					}
-				})
-			)
+				}
+			}))
 		],
 		period: '2026-09',
 		expected: [
@@ -3000,7 +2723,10 @@ register(
 		inputs: [...officeWeek('2024-01-01'), ...citizen('fifth', 'Lima Optional', 3000)],
 		period: '2026-01',
 		expected: [
-			{ employment: 'fifth_job', lines: { ...PLAIN_3000, employer_cost: 462.55, 'HRDF.employer': 15 } }
+			{
+				employment: 'fifth_job',
+				lines: { ...PLAIN_3000, employer_cost: 462.55, 'HRDF.employer': 15 }
+			}
 		]
 	},
 

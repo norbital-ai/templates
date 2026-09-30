@@ -250,7 +250,7 @@ test('SG round 2 — s.88(1)(c)/(4A): an employer that gives time off pays no ho
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
-// MY / MY-nihon — the s.60A(7) daily limit counts worked hours (s.60A(9)).
+// MY — the s.60A(7) daily limit counts worked hours (s.60A(9)).
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 test('MY round 2 — s.60A(7): twelve hours of work a day are twelve worked hours, breaks excluded', () => {
@@ -260,7 +260,7 @@ test('MY round 2 — s.60A(7): twelve hours of work a day are twelve worked hour
 	//   09:00–21:30 is 12.5 clock hours less 1 hour = 11.5 worked → no breach (a clock reading
 	//   of 12 less the break, 11, reported it);
 	//   09:00–22:30 is 13.5 − 1 = 12.5 worked → breach.
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const { warnings } = buildStatutory(
 			{
 				code,
@@ -551,7 +551,7 @@ test('MY round 2 — a part-timer’s annual and sick leave are reg.7–8’s ow
 	// reg.7(1): 6 days under two years, 8 from two to under five, 11 from five; reg.8(1): 10,
 	// 13, 15. The windows are calendar years; a 1 January hire has whole years.
 	const week = { hours: 20, days: 5 };
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const id = settingsVersions(code).find(
 			(row) => row.voided_at == null && String(row.effective_range.start).startsWith('2026-07')
 		)!.id;

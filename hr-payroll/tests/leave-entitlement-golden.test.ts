@@ -207,7 +207,7 @@ const MARRIED_MALE = { gender: 'MALE', marital_status: 'MARRIED' } as const;
 // leave row) and the leave ladder does not move across any seam.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-for (const lineage of ['MY', 'MY-nihon'] as const)
+for (const lineage of ['MY'] as const)
 	test(`${lineage} — the Employment Act leave ladders, on every sealed version`, () => {
 		for (const version of settingsVersions(lineage).keys()) {
 			// s.60E(1): eight days under two years, twelve under five, sixteen at five or more.

@@ -19,7 +19,7 @@ const cases = [
 	{ category: 'NON_MANUAL', wages: 3000, type: 'DOMESTIC', expected: false }
 ];
 
-for (const lineage of ['MY', 'MY-nihon']) {
+for (const lineage of ['MY']) {
 	const rows: Row[] = JSON.parse(
 		readFileSync(
 			new URL(`../seed/jurisdiction/${lineage}/adhoc_catalogue.json`, import.meta.url),

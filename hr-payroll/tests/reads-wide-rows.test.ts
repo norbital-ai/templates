@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { readAll } from '../src/lib/reads.ts';
 
-// F19 (probe FINDINGS #11): MY-nihon's second run read the first run's 84 payslips (1.6 MB of
+// F19 (probe FINDINGS #11): MY's second run read the first run's 84 payslips (1.6 MB of
 // JSON) and its calculation trace in whole-row, unpaged crossings, past the 4 MiB answer wall at
 // reads.ts. A whole-row read of a run-history collection now pages; a narrowed read does not.
 const fake = (total) => {
