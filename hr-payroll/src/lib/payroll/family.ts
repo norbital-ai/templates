@@ -1,4 +1,16 @@
 import type { CatalogueBand } from '../datatypes/catalogue_band.js';
+import type { FactKey } from '../datatypes/fact_keys.js';
+
+/**
+ * A class's `request_requirements`: the event date no later than the exit, dated terms in force on
+ * it, and person-site conditions that must each hold, refused with their own message where one does not.
+ */
+export type RequestRequirements = {
+	readonly event_within_employment?: boolean | null | undefined;
+	readonly requires_terms?: boolean | null | undefined;
+	readonly required_when?:
+		readonly { readonly when: string; readonly message: string }[] | null | undefined;
+};
 
 /** Where a line settles. `EMPLOYER` and `DISPLAY` carry no direction. */
 export type SettlementDestination = 'PAY' | 'NET' | 'EMPLOYER' | 'DISPLAY';
@@ -67,6 +79,10 @@ export type FamilyPayItem = {
 	readonly evidence?: 'NONE' | 'OPTIONAL' | 'REQUIRED' | undefined;
 	/** Optional entry-level admission rule. A false result refuses rather than consuming a request. */
 	readonly qualifies_when?: string | null | undefined;
+	/** What a request of this class needs before it is priced (ad hoc and claim classes). */
+	readonly request_requirements?: RequestRequirements | null | undefined;
+	/** The inputs each request of this class records, read as `entry.facts`. */
+	readonly request_facts?: readonly FactKey[] | null | undefined;
 	readonly family: 'WORK' | 'LEAVE' | 'CLAIM' | 'ADHOC' | 'ALLOWANCE' | 'LOAN';
 	/** The schemes/parts and reserved wage-definition marks this class counts toward. */
 	readonly counts_toward?: readonly string[] | undefined;

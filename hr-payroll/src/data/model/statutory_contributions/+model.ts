@@ -54,6 +54,42 @@ export default model({
 		parts: { kind: 'custom', of: 'code_list' },
 		/** The ordinary part of the base, where a ceiling splits it. */
 		ordinary_on: { kind: 'text', default: '' },
+		/**
+		 * When a cumulative method starts: a prior period of this scheme triggers it when its ordinary
+		 * base, less the employee shares of `less_employee_of`, is at most the cadence's threshold and
+		 * supplementary pay exists, or when supplementary pay is at least that ordinary base. Read as
+		 * `history.<code>.triggered`; absent, that is false.
+		 */
+		history_trigger: {
+			kind: 'json',
+			shape: {
+				kind: 'object',
+				fields: {
+					less_employee_of: { kind: 'list', of: { kind: 'text' } },
+					ordinary_threshold: {
+						kind: 'object',
+						fields: {
+							MONTHLY: { kind: 'number' },
+							SEMI_MONTHLY: { kind: 'number' },
+							WEEKLY: { kind: 'number' }
+						}
+					},
+					authority: { kind: 'text' }
+				}
+			},
+			optional: true
+		},
+		/** The relief categories an employee declares against this scheme, in display order; absent when none. */
+		deduction_categories: {
+			kind: 'json',
+			shape: {
+				kind: 'list',
+				of: { kind: 'object', fields: { code: { kind: 'text' }, label: { kind: 'text' } } }
+			},
+			optional: true
+		},
+		/** The authority's rule for child relief claims, shown beside them; absent when none. */
+		child_claims_hint: { kind: 'text', optional: true },
 		/** The listing: short name, position, and the column it folds into. */
 		short_name: { kind: 'text', optional: true },
 		listing_order: { kind: 'int', optional: true },

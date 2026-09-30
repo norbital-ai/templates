@@ -5,14 +5,14 @@ import { standard } from '../../../lib/datatypes/fact_keys.js';
 // `default_value` and `options` hold a boolean, a number or a string (an untagged union): `json`, checked below.
 const f = customField({
 	description:
-		'Versioned input declarations: keys, labels, types, constraints, required values and statutory defaults.',
+		'Versioned input declarations: keys, labels, types, constraints, required values, statutory defaults and the evidence a value needs.',
 	shape: {
 		kind: 'list',
 		of: {
 			kind: 'object',
 			fields: {
 				key: { kind: 'text' },
-				type: { kind: 'enum', values: ['boolean', 'number', 'string'] },
+				type: { kind: 'enum', values: ['boolean', 'number', 'string', 'date', 'instant'] },
 				label: { kind: 'text', optional: true },
 				description: { kind: 'text', optional: true },
 				scope: { kind: 'enum', values: ['EMPLOYMENT'], optional: true },
@@ -30,7 +30,16 @@ const f = customField({
 				minimum: { kind: 'number', optional: true },
 				maximum: { kind: 'number', optional: true },
 				integer: { kind: 'bool', optional: true },
-				min_length: { kind: 'int', min: 0, optional: true }
+				min_length: { kind: 'int', min: 0, optional: true },
+				import: { kind: 'bool', optional: true },
+				evidence: {
+					kind: 'object',
+					optional: true,
+					fields: {
+						kind: { kind: 'enum', values: ['REFERENCE', 'FILE', 'REFERENCE_AND_FILE'] },
+						when: { kind: 'text', optional: true }
+					}
+				}
 			}
 		}
 	}

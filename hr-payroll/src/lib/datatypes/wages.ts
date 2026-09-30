@@ -26,8 +26,21 @@ export const wagesValueSchema = Schema.Struct({
 	weekly_monthly_factor: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThan(1))),
 	/** Weekly/daily pay may satisfy either the monthly or hourly converted floor (VN art. 4(3)). */
 	weekly_daily_hourly_alternative: Schema.optionalKey(Schema.Boolean),
-	/** Incumbents retain the higher floor on this day after a locality reassignment (VN art. 5(5)). */
-	protected_prior_floor_on: Schema.optionalKey(calendarDay),
+	/**
+	 * A worker employed on `on` whose worksite was reclassified to a lower region keeps the higher
+	 * floor of the version in force that day (VN Decree 293/2025 art.5(5)). The terms facts
+	 * `region_fact` (that day's region) and `reclassified_fact` (boolean) record the worksite.
+	 */
+	protected_prior_floor: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				on: calendarDay,
+				region_fact: Schema.String.check(Schema.isMinLength(1)),
+				reclassified_fact: Schema.String.check(Schema.isMinLength(1)),
+				authority: Schema.optionalKey(Schema.NullOr(Schema.String))
+			})
+		)
+	),
 	/** A monthly-paid part-timer's share of the monthly floor, where the jurisdiction states it. */
 	part_time_monthly_full_time_week_hours: Schema.optionalKey(
 		Schema.Finite.check(Schema.isGreaterThan(0))
@@ -67,7 +80,11 @@ export const wagesValueSchema = Schema.Struct({
 						employment_type: Schema.optionalKey(Schema.String.check(Schema.isMinLength(1))),
 						min_workers: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
 						max_workers: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
-						rate_key: Schema.String.check(Schema.isMinLength(1))
+						rate_key: Schema.String.check(Schema.isMinLength(1)),
+						/** Terms fact keys whose recorded evidence must exist before this class prices a wage. */
+						requires_evidence: Schema.optionalKey(
+							Schema.Array(Schema.String.check(Schema.isMinLength(1)))
+						)
 					})
 				)
 			})
@@ -94,35 +111,47 @@ export const wagesValueSchema = Schema.Struct({
 	standalone_workplaces: Schema.optionalKey(
 		Schema.NullOr(Schema.Array(Schema.String.check(Schema.isMinLength(1))))
 	),
-	/** KBLI edition used by the ID sector rows and ordinary-sector attestations below. */
-	kbli_edition: Schema.optionalKey(Schema.Union([Schema.Literal('2020'), Schema.Literal('2025')])),
-	/** First day a 2025 classification can be asserted (PerBPS 7/2025 art.7). */
-	kbli_2025_from: Schema.optionalKey(calendarDay),
-	/** Verified KBLI 2025 codes with exactly one corresponding 2020 sector class. */
-	kbli_2025_to_2020: Schema.optionalKey(
-		Schema.NullOr(
-			Schema.Record(
-				Schema.String.check(Schema.isPattern(/^[0-9]{5}$/)),
-				Schema.String.check(Schema.isPattern(/^[0-9]{5}$/))
-			)
-		)
+	/**
+	 * The sector classification a sector row, an ordinary-sector attestation and a worksite code are
+	 * stated in (ID: KBLI, PerBPS 7/2025): every code matches `sector_code_pattern`; a worksite
+	 * attests its edition in `terms.facts.worksite_sector_edition`, one of `sector_editions`; the
+	 * rows are in `sector_edition`. Present, it classifies every worksite sector before pricing.
+	 */
+	sector_code_pattern: Schema.optionalKey(
+		Schema.NullOr(Schema.String.check(Schema.isMinLength(1)))
+	),
+	sector_editions: Schema.optionalKey(
+		Schema.NullOr(Schema.Array(Schema.String.check(Schema.isMinLength(1))))
+	),
+	sector_edition: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isMinLength(1)))),
+	/** First day the last of `sector_editions` can be asserted (ID: PerBPS 7/2025 art.7). */
+	sector_edition_from: Schema.optionalKey(calendarDay),
+	/** Verified codes of the last of `sector_editions` with exactly one `sector_edition` class. */
+	sector_edition_map: Schema.optionalKey(
+		Schema.NullOr(Schema.Record(Schema.String, Schema.String))
 	),
 	/**
 	 * Sector minimum wages by place (ID PP 36/2021 as amended by PP 49/2025 art.35D; DKI Kep.33/2026,
 	 * Jawa Tengah Kep.100.3.3.1/505/2025): a row binds a covered person whose worksite is at or
-	 * inside `place`, whose `terms.worksite_sector` is one of `kbli` and for whom `when` holds. The
-	 * monthly floor is the higher of the place's and every binding row's; `wage_floor` stays the
-	 * place's (Perpres 82/2018 art.32(2)–(3) floors Kesehatan at the UMK or UMP, never a sector's).
+	 * inside `place`, whose classified worksite sector is one of `sector_codes` and for whom `when`
+	 * holds. The monthly floor is the higher of the place's and every binding row's; `wage_floor`
+	 * stays the place's (Perpres 82/2018 art.32(2)–(3) floors Kesehatan at the UMK or UMP, never a
+	 * sector's). A matched row whose `valid_when` (over the person, `company.facts` dated) is false
+	 * refuses with its `validation_message`.
 	 */
 	monthly_by_sector: Schema.optionalKey(
 		Schema.NullOr(
 			Schema.Array(
 				Schema.Struct({
 					place: Schema.String.check(Schema.isMinLength(1)),
-					kbli: Schema.Array(Schema.String.check(Schema.isPattern(/^[0-9]{5}$/))).check(
+					sector_codes: Schema.Array(Schema.String.check(Schema.isMinLength(1))).check(
 						Schema.isMinLength(1)
 					),
 					when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+					valid_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+					validation_message: Schema.optionalKey(
+						Schema.NullOr(Schema.String.check(Schema.isPattern(/\S/)))
+					),
 					amount: Schema.Finite.check(Schema.isGreaterThan(0))
 				})
 			)
@@ -132,13 +161,13 @@ export const wagesValueSchema = Schema.Struct({
 	strict_sector_places: Schema.optionalKey(
 		Schema.NullOr(Schema.Array(Schema.String.check(Schema.isMinLength(1))))
 	),
-	/** Place and KBLI pairs checked against the applicable order and confirmed to owe only the ordinary floor. */
+	/** Place and sector code pairs checked against the applicable order and confirmed to owe only the ordinary floor. */
 	verified_ordinary_sectors: Schema.optionalKey(
 		Schema.NullOr(
 			Schema.Array(
 				Schema.Struct({
 					place: Schema.String.check(Schema.isMinLength(1)),
-					kbli: Schema.String.check(Schema.isPattern(/^[0-9]{5}$/))
+					sector_code: Schema.String.check(Schema.isMinLength(1))
 				})
 			)
 		)
@@ -171,10 +200,66 @@ export const wagesValueSchema = Schema.Struct({
 	terms_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/** Refuse a payroll run whose covered contract fails `terms_when`. */
 	block_terms_when: Schema.optionalKey(Schema.Boolean),
+	/**
+	 * Named rules a covered contract must meet, judged where `terms_when` is on each floor segment:
+	 * where `when` holds of the person and `holds` does not, the run raises `message` at `severity`
+	 * (a BLOCKER refuses the run). Both are booleans over the person as of the segment's last day,
+	 * `employment.rule_date` its first (ID PP 36/2021 arts.20–24: a wage scale from one year's service).
+	 */
+	contract_rules: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Array(
+				Schema.Struct({
+					key: Schema.String.check(Schema.isMinLength(1)),
+					when: Schema.String.check(Schema.isMinLength(1)),
+					holds: Schema.String.check(Schema.isMinLength(1)),
+					severity: Schema.Union([Schema.Literal('BLOCKER'), Schema.Literal('WARNING')]),
+					message: Schema.String.check(Schema.isMinLength(1)),
+					authority: Schema.optionalKey(Schema.NullOr(Schema.String))
+				})
+			)
+		)
+	),
+	/**
+	 * An hourly wage's floor is the monthly floor over `from_monthly_divisor` (ID PP 36/2021 art.16:
+	 * ÷ 126), and an hourly wage is permitted only where `allowed_when` holds of the person; elsewhere
+	 * the run refuses with `refusal`. Absent, an hourly rate meets `hourly_by_region`.
+	 */
+	hourly_floor: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				from_monthly_divisor: Schema.Finite.check(Schema.isGreaterThan(0)),
+				allowed_when: Schema.String.check(Schema.isMinLength(1)),
+				refusal: Schema.String.check(Schema.isMinLength(1)),
+				authority: Schema.optionalKey(Schema.NullOr(Schema.String))
+			})
+		)
+	),
 	/** Include fixed allowances when comparing the monthly contract to its wage floor. */
 	floor_includes_fixed_allowances: Schema.optionalKey(Schema.Boolean),
 	/** Refuse results-based terms whose monthly earned pay is not measured in the wage assessment. */
 	block_unmeasured_results_pay: Schema.optionalKey(Schema.Boolean),
+	/** How results (piece, task, trip, commission) wages are measured and when they are refused. */
+	results_pay: Schema.optionalKey(
+		Schema.Struct({
+			/** A PIECE_RATE salary is the recorded units × unit rate, whatever the base salary. */
+			measure_piece_from_units: Schema.optionalKey(Schema.Boolean),
+			/**
+			 * Leave charged to a calendar-day catalogue (`entitlement.calendar_days`): piece-paid, it
+			 * refuses (TH LPA s.60's preceding-period average is absent); on a DAILY or HOURLY contract
+			 * its non-work days are paid a normal day.
+			 */
+			piece_calendar_leave_refused: Schema.optionalKey(Schema.Boolean),
+			/** Weeks of prior piece workdays read for a PIECE_RATE leaver (TH s.118: up to 400 workdays). */
+			piece_history_weeks: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThan(0))),
+			/** Ad hoc catalogue codes priced from that piece history, with unrecorded scheduled days. */
+			piece_history_catalogues: Schema.optionalKey(Schema.Array(Schema.String)),
+			/** Zero-base TASK_BASIS pay with leave, holiday, clocked work or overtime refuses. */
+			task_only_time_events_refused: Schema.optionalKey(Schema.Boolean),
+			/** Scheme code whose levy refuses zero-basic results wages it cannot classify (MY HRDF). */
+			levy_scheme: Schema.optionalKey(Schema.String)
+		})
+	),
 	/**
 	 * Scheme codes whose employee share the monthly floor is net of: the contract less the month's
 	 * employee charges of these schemes must meet it (CN-SH 沪人社规〔2025〕10号 item 4 excludes the
@@ -193,12 +278,47 @@ export const wagesValueSchema = Schema.Struct({
 	authority: Schema.optionalKey(Schema.NullOr(Schema.String))
 }).check(
 	Schema.makeFilter((wages) => {
+		const keys = (wages.contract_rules ?? []).map((rule) => rule.key);
+		if (new Set(keys).size !== keys.length) return 'Each contract rule needs its own key.';
+		if (
+			wages.sector_edition != null &&
+			!(wages.sector_editions ?? []).includes(wages.sector_edition)
+		)
+			return 'The sector edition must be one of the sector editions.';
+		if (wages.sector_code_pattern != null) {
+			let pattern: RegExp;
+			try {
+				pattern = new RegExp(wages.sector_code_pattern);
+			} catch {
+				return 'The sector code pattern is not a valid regular expression.';
+			}
+			const codes = [
+				...(wages.monthly_by_sector ?? []).flatMap((row) => row.sector_codes),
+				...(wages.verified_ordinary_sectors ?? []).map((row) => row.sector_code),
+				...Object.entries(wages.sector_edition_map ?? {}).flat()
+			];
+			const bad = codes.find((code) => !pattern.test(code));
+			if (bad != null) return `Sector code ${bad} does not match the sector code pattern.`;
+		}
+		if (
+			(wages.monthly_by_sector ?? []).some(
+				(row) => (row.valid_when == null) !== (row.validation_message == null)
+			)
+		)
+			return 'A sector row states valid_when and validation_message together.';
+		const person = (expression: string) =>
+			compileExpression({ expression, site: 'person', type: 'boolean' });
 		const fault =
+			(wages.contract_rules ?? [])
+				.map((rule) => person(rule.when) ?? person(rule.holds))
+				.find((fault) => fault != null) ??
+			(wages.hourly_floor == null ? null : person(wages.hourly_floor.allowed_when)) ??
 			(wages.monthly_by_sector ?? [])
-				.map((row) =>
-					row.when == null || row.when.trim() === ''
+				.flatMap((row) => [row.when, row.valid_when])
+				.map((expression) =>
+					expression == null || expression.trim() === ''
 						? null
-						: compileExpression({ expression: row.when, site: 'person', type: 'boolean' })
+						: compileExpression({ expression, site: 'person', type: 'boolean' })
 				)
 				.find((fault) => fault != null) ??
 			compileExpression({

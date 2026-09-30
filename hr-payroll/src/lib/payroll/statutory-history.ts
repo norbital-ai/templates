@@ -113,38 +113,49 @@ export function buildStatutoryHistory(options: {
 	);
 }
 
-/** RR 11-2018 cumulative history, converted to the cadence of the assessment being calculated. */
-export function philippinesCumulativeHistory(options: {
+type HistoryTrigger = NonNullable<WorkspaceRow<'statutory_contributions'>['history_trigger']>;
+
+/**
+ * Cumulative history, converted to the cadence of the assessment being calculated. `triggered` is
+ * set only for a scheme that declares a `history_trigger`, from that scheme's own prior charges.
+ */
+export function cumulativeHistory(options: {
 	readonly periods: readonly StatutoryPeriodHistory[];
 	readonly openings: ReadonlyMap<string, Opening>;
 	readonly frequency: AssessmentFrequency;
 	/** Codes whose `history.<code>.periods` the catalogue reads; their openings must state a cadence. */
 	readonly requirePeriodsFor?: ReadonlySet<string> | undefined;
+	/** The schemes that declare a trigger, by code. */
+	readonly triggers?: ReadonlyMap<string, HistoryTrigger> | undefined;
 }): ReadonlyMap<string, StatutoryHistorySummary> {
 	const codes = new Set([
 		...options.openings.keys(),
 		...options.periods.flatMap((period) => Object.keys(period.charges))
 	]);
-	let triggered = false;
-	for (const period of options.periods) {
-		const tax = period.charges.WTAX;
-		if (tax == null) continue;
-		const frequency = period.frequency;
-		if (frequency == null)
-			refuse(`${period.period}: record the payroll cadence on the settled statutory assessment.`);
-		const deductions = ['SSS', 'SSS_MPF', 'PHIC', 'HDMF'].reduce(
-			(total, code) => total + (period.charges[code]?.employee ?? 0),
-			0
-		);
-		const total = Math.max(0, tax.base - deductions);
-		const ordinary = Math.max(0, (tax.ordinary ?? tax.base) - deductions);
-		const supplementary = Math.max(0, total - ordinary);
-		const threshold =
-			frequency === 'MONTHLY' ? 20_833 : frequency === 'SEMI_MONTHLY' ? 10_417 : 4_808;
-		triggered ||=
-			(ordinary <= threshold && supplementary > 0) ||
-			(supplementary > 0 && supplementary >= ordinary);
-	}
+	const triggeredFor = (code: string): boolean => {
+		const trigger = options.triggers?.get(code);
+		if (trigger == null) return false;
+		let triggered = false;
+		for (const period of options.periods) {
+			const charge = period.charges[code];
+			if (charge == null) continue;
+			const frequency = period.frequency;
+			if (frequency == null)
+				refuse(`${period.period}: record the payroll cadence on the settled statutory assessment.`);
+			const deductions = trigger.less_employee_of.reduce(
+				(total, other) => total + (period.charges[other]?.employee ?? 0),
+				0
+			);
+			const total = Math.max(0, charge.base - deductions);
+			const ordinary = Math.max(0, (charge.ordinary ?? charge.base) - deductions);
+			const supplementary = Math.max(0, total - ordinary);
+			const threshold = trigger.ordinary_threshold[frequency];
+			triggered ||=
+				(ordinary <= threshold && supplementary > 0) ||
+				(supplementary > 0 && supplementary >= ordinary);
+		}
+		return triggered;
+	};
 	return new Map(
 		[...codes].map((code) => {
 			const opening = options.openings.get(code);
@@ -187,7 +198,7 @@ export function philippinesCumulativeHistory(options: {
 					ordinary,
 					employee,
 					employer,
-					triggered,
+					triggered: triggeredFor(code),
 					hasOpening: opening != null,
 					periodsRecorded
 				}

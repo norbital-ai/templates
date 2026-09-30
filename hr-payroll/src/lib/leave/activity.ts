@@ -12,7 +12,7 @@ import {
 } from '../../lib/payroll/run/dates.js';
 import { coversDate } from '../../lib/payroll/run/effective.js';
 import { dateKey } from '../iso-day.js';
-import { hasPhSoloParentDocument } from '../ph/maternity-reconciliation.js';
+import { caseSite, caseTypesOf, evidenceOf } from '../benefit-cases/benefit.js';
 import { pointNumber, type HalfDayRange } from '../half-day.js';
 import { resolveHolidays } from '../holiday-calendar.js';
 import { patternAnchor, patternRosterCodeId, termPatternRow } from '../scheduling/work-pattern.js';
@@ -490,30 +490,39 @@ export function planLeaveActivity(
 		if (first == null) return false;
 		const rule = rules.catalogueOn(first.date).entitlement;
 		if (rule.availability === 'PER_EVENT') {
+			// A leave code the version declares a benefit case for grants what its event's case facts
+			// decide (`event.case.facts`): an extension counts once the case proves it.
+			const caseType = caseTypesOf(rules.settingsOn(first.date)).find(
+				(row) => row.case_type === rules.selected.code
+			);
+			const benefitCase =
+				caseType == null || fields.event_date == null
+					? undefined
+					: context.benefitCases?.find(
+							(row) =>
+								row.employment_id === input.employment_id &&
+								row.case_type === caseType.case_type &&
+								row.event_kind === (fields.event_kind ?? null) &&
+								dateKey(row.event_on) === dateKey(fields.event_date)
+						);
 			const person = rules.personOn(first.date, {
 				kind: fields.event_kind,
 				relationship: fields.event_relationship,
 				child_index: fields.event_child_index,
 				wife_prior_living_biological_children: fields.event_wife_prior_living_biological_children,
-				date: fields.event_date
+				date: fields.event_date,
+				case:
+					caseType == null || benefitCase == null
+						? null
+						: {
+								facts: caseSite(
+									caseType,
+									benefitCase,
+									evidenceOf(context.benefitEvidence ?? [], benefitCase.id)
+								).facts
+							}
 			});
-			const phMaternityBirth =
-				rules.company.settings_code === 'PH' &&
-				rules.selected.code === 'MATERNITY_LEAVE' &&
-				fields.event_kind === 'BIRTH';
-			const documentedCase = phMaternityBirth
-				? context.maternityCases?.find(
-						(row) =>
-							row.employment_id === input.employment_id &&
-							row.event_kind === 'BIRTH' &&
-							dateKey(row.event_on) === dateKey(fields.event_date)
-					)
-				: null;
-			const granted = phMaternityBirth
-				? documentedCase != null && hasPhSoloParentDocument(documentedCase)
-					? 120
-					: 105
-				: grantedDays(rule, person);
+			const granted = grantedDays(rule, person);
 			// The grant is the event's, not the entry's: a second entry for the same event — the
 			// twin's, or the rest of a grant filed in two blocks — draws on what the first left.
 			// Twins are one birth (MSF: multiple births carry one entitlement), so the event is its
@@ -521,7 +530,7 @@ export function planLeaveActivity(
 			const sameEvent = (row: LeaveActivity) =>
 				fields.event_date != null &&
 				row.event_kind === (fields.event_kind ?? null) &&
-				(phMaternityBirth || row.event_relationship === (fields.event_relationship ?? null)) &&
+				(caseType != null || row.event_relationship === (fields.event_relationship ?? null)) &&
 				dateKey(row.event_date) === dateKey(fields.event_date);
 			const eventCharges = activeTimeOff(sameLeave)
 				.filter(
@@ -630,19 +639,11 @@ export function planLeaveActivity(
 		case 'TIME_OFF': {
 			const range = timeOffRangeOf(fields);
 			if (range == null) refuse('Time off needs a start and end date.');
-			if (
-				rules.company.settings_code === 'SG' &&
-				rules.selected.is_npl === true &&
-				fields.no_pay_origin == null
-			)
-				refuse('SG no-pay leave needs its employee-request origin recorded.');
-			if (
-				rules.company.settings_code === 'SG' &&
-				rules.selected.is_npl === true &&
-				fields.no_pay_origin === 'OTHER'
-			)
+			if (rules.selected.requires_no_pay_origin === true && fields.no_pay_origin == null)
+				refuse(`${rules.selected.code} needs its employee-request origin recorded.`);
+			if (rules.selected.requires_no_pay_origin === true && fields.no_pay_origin === 'OTHER')
 				refuse(
-					'SG no-pay leave without an employee request needs its lawful pay and service basis assessed.'
+					`${rules.selected.code} without an employee request needs its lawful pay and service basis assessed.`
 				);
 			if (
 				fields.event_date == null &&
@@ -742,22 +743,24 @@ export function planLeaveActivity(
 				});
 			}
 			if (charges.length === 0) refuse('The range contains no eligible scheduled work time.');
-			if (
-				rules.company.settings_code === 'TH' &&
-				rules.selected.code === 'MATERNITY_LEAVE' &&
-				fields.event_date != null
-			) {
+			if (fields.event_date != null) {
 				const eventDates = [
 					...charges.map((charge) => charge.date),
 					...activeTimeOff(sameLeave)
 						.filter((row) => dateKey(row.event_date) === dateKey(fields.event_date))
 						.flatMap((row) => row.charges.map((charge) => charge.date))
 				];
-				if (
-					eventDates.some((date) => date < '2025-12-07') &&
-					eventDates.some((date) => date >= '2025-12-07')
-				)
-					refuse('MATERNITY_LEAVE across 2025-12-07 requires transition review.');
+				for (const charge of charges) {
+					const rule = rules.catalogueOn(charge.date).entitlement;
+					const on = rule.transition_review_on;
+					if (
+						rule.availability === 'PER_EVENT' &&
+						on != null &&
+						eventDates.some((date) => date < on) &&
+						eventDates.some((date) => date >= on)
+					)
+						refuse(`${rules.selected.code} across ${on} requires transition review.`);
+				}
 			}
 			const quantity = charges.reduce((sum, row) => sum + row.days, 0);
 			judgeLifetimeDays(charges);
@@ -1015,26 +1018,29 @@ export function planLeaveActivity(
 			pools.pool.rules.carryFrom
 		);
 	}
-	if (
+	// A full requested no-pay day shortens the service of every leave that counts it net
+	// (`entitlement.replans_on_no_pay`): that leave's balances are re-planned without it.
+	const replanned =
 		activity === 'TIME_OFF' &&
-		rules.company.settings_code === 'SG' &&
 		rules.selected.is_npl === true &&
 		fields.no_pay_origin === 'EMPLOYEE_REQUESTED' &&
 		fields.half_day_start !== true &&
 		fields.half_day_end !== true &&
 		charges.every((charge) => charge.days >= 1 - 1e-9)
-	) {
-		const annual = context.catalogues.find(
-			(row) =>
-				row.settings_id === rules.settingsOn(fields.from_date!).id && row.code === 'ANNUAL_LEAVE'
-		);
-		if (annual == null) refuse('SG no-pay leave needs a dated annual-leave rule.');
+			? context.catalogues.filter(
+					(row) =>
+						row.settings_id === rules.settingsOn(fields.from_date!).id &&
+						row.entitlement.replans_on_no_pay === true
+				)
+			: [];
+	for (const annual of replanned) {
 		const annualEntries = entries.filter(
-			(row) => row.employment_id === input.employment_id && row.leave_code === 'ANNUAL_LEAVE'
+			(row) => row.employment_id === input.employment_id && row.leave_code === annual.code
 		);
 		const annualRules = leaveRules(
 			{
 				...context,
+				projected: true,
 				entries: [
 					...entries,
 					{
@@ -1065,7 +1071,7 @@ export function planLeaveActivity(
 				carryFrom: annualRules.carryFrom
 			});
 			if ((balance.balance ?? 0) < -1e-9 || (balance.available ?? 0) < -1e-9)
-				refuse('SG no-pay leave reduces an annual-leave balance below existing usage.');
+				refuse(`${rules.selected.code} reduces the ${annual.code} balance below existing usage.`);
 		}
 	}
 	return {

@@ -11,12 +11,13 @@ const HOURS_LIMIT = {
 	when: { kind: 'text', optional: true },
 	counts_day_when: { kind: 'text', optional: true },
 	counts_beyond_normal_when: { kind: 'text', optional: true },
+	enforced_at_payroll: { kind: 'bool', optional: true },
 	authority: { kind: 'text', optional: true }
 } as const;
 // `ordinary_add`/`overtime_add` are a number or an expression (an untagged union): `json`, checked below.
 const f = customField({
 	description:
-		'One version’s work rules: proration, the ordinary-rate divisor and overtime eligibility as expressions over the person, the ordered bands that price a day (and the limits above which planned OT is recorded as incentive hours), the limits schedules must respect (hours, and the consecutive-work-days rest rule), the breaks the law owes, the minimum wage by region, the night premium and holiday/rest precedence.',
+		'One version’s work rules: proration, the ordinary-rate divisor and overtime eligibility as expressions over the person, the ordered bands that price a day (and the limits above which planned OT is recorded as incentive hours), the limits schedules must respect (hours, and the consecutive-work-days rest rule), the breaks the law owes, the minimum wage by region, the night premium and holiday/rest precedence, and the person-day protections payroll judges (consent, night window, day rules).',
 	shape: {
 		kind: 'object',
 		fields: {
@@ -63,6 +64,8 @@ const f = customField({
 			wage_excluded_allowances: { kind: 'list', of: { kind: 'text' }, optional: true },
 			overtime_when: { kind: 'text' },
 			normal_hours: { kind: 'text', optional: true },
+			shift_day_hours: { kind: 'text', optional: true },
+			redistributed_hours: { kind: 'text', optional: true },
 			rate_week_hours: { kind: 'number', optional: true },
 			part_time_week_hours_below: { kind: 'number', min: 1, optional: true },
 			part_time_comparator_when: { kind: 'text', optional: true },
@@ -75,6 +78,7 @@ const f = customField({
 						when: { kind: 'text' },
 						take_hours: { kind: 'text' },
 						price_amount: { kind: 'text' },
+						component: { kind: 'text', optional: true },
 						funnel_above_hours: { kind: 'text', optional: true }
 					}
 				}
@@ -105,6 +109,7 @@ const f = customField({
 								}
 							},
 							when: { kind: 'text', optional: true },
+							enforced_at_payroll: { kind: 'bool', optional: true },
 							authority: { kind: 'text', optional: true }
 						}
 					}
@@ -147,7 +152,40 @@ const f = customField({
 				kind: 'enum',
 				values: ['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE']
 			},
-			last_rest_day_only: { kind: 'bool', optional: true }
+			last_rest_day_only: { kind: 'bool', optional: true },
+			earlier_rest_day_work: {
+				kind: 'enum',
+				optional: true,
+				values: ['RESOLVE_AS_OFF', 'REFUSE']
+			},
+			incentive_hours_allowed: { kind: 'bool', optional: true },
+			overtime_consent: {
+				kind: 'object',
+				optional: true,
+				fields: {
+					required_when: { kind: 'text' },
+					exception_fact: { kind: 'text' },
+					authority: { kind: 'text', optional: true }
+				}
+			},
+			night_window: {
+				kind: 'object',
+				optional: true,
+				fields: { start: { kind: 'text' }, end: { kind: 'text' } }
+			},
+			day_rules: {
+				kind: 'list',
+				optional: true,
+				of: {
+					kind: 'object',
+					fields: {
+						key: { kind: 'text' },
+						when: { kind: 'text' },
+						message: { kind: 'text' },
+						authority: { kind: 'text', optional: true }
+					}
+				}
+			}
 		}
 	}
 });

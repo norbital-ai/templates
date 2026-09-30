@@ -72,6 +72,26 @@
 						label={t('component.exit_facts')}
 						help={t('component.exit_facts_hint')}
 					/>
+					<Field
+						name="terms_facts"
+						label={t('component.terms_facts')}
+						help={t('component.terms_facts_declaration_hint')}
+					/>
+					<Field
+						name="work_day_facts"
+						label={t('component.work_day_facts')}
+						help={t('component.work_day_facts_declaration_hint')}
+					/>
+					<Field
+						name="payment_facts"
+						label={t('component.payment_facts')}
+						help={t('component.payment_facts_declaration_hint')}
+					/>
+					<Field
+						name="settlement_facts"
+						label={t('component.settlement_facts')}
+						help={t('component.settlement_facts_declaration_hint')}
+					/>
 				</Grid>
 			</FormSection>
 			<FormSection title={t('component.obligations')} hint={t('component.obligations_hint')}>

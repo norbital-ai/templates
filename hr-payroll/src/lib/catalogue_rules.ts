@@ -33,6 +33,7 @@ type CatalogueRowLike = {
 	readonly code?: unknown | undefined;
 	readonly eligibility?: string | null | undefined;
 	readonly qualifies_when?: string | null | undefined;
+	readonly request_facts?: readonly DeclaredKey[] | null | undefined;
 };
 
 /** settings version id → family → code → name. */
@@ -164,6 +165,8 @@ export function schemeFault(
 	)
 		return 'Per-unit rules require a PAY_PERIOD employment scheme without an ordinary split, except dated payment occasions.';
 	for (const field of elections) {
+		if (field.evidence != null)
+			return `${field.key}: evidence is declared on terms, work-day, payment and settlement inputs.`;
 		for (const [kind, expression] of [
 			['requirement', field.required_when],
 			['validation', field.valid_when]
@@ -291,11 +294,25 @@ export const admitCatalogueRow = <TInput extends CatalogueRowLike>(
 	);
 	const problem = compileEligibility(row.eligibility);
 	if (problem != null) refuse(problem);
+	// A request input's conditions and the claim qualification read `entry.facts`, typed by this row.
+	const requestFacts = row.request_facts ?? [];
+	for (const field of requestFacts) {
+		if (field.evidence != null)
+			refuse(`${field.key}: a request input is evidenced by the request's own evidence file.`);
+		for (const [kind, expression] of [
+			['requirement', field.required_when],
+			['validation', field.valid_when]
+		] as const) {
+			const fault = compileExpression({ expression, site: 'entry', type: 'boolean', requestFacts });
+			if (fault != null) refuse(`${field.key} request ${kind}: ${fault}`);
+		}
+	}
 	if ((row.qualifies_when ?? '').trim() !== '') {
 		const qualification = compileExpression({
 			expression: row.qualifies_when!,
 			site: 'entry',
-			type: 'boolean'
+			type: 'boolean',
+			requestFacts
 		});
 		if (qualification != null) refuse(`Claim qualification: ${qualification}`);
 	}

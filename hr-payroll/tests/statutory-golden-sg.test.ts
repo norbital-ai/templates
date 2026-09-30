@@ -2877,6 +2877,13 @@ test('Singapore — IR8A, IR21 and CPF late interest are dated external obligati
 		assert.match(obligation('TAX_CLEARANCE_AND_WITHHOLDING').timing, /one month before/);
 		assert.match(obligation('TAX_CLEARANCE_AND_WITHHOLDING').authority, /s\.68\(5\)–\(7\)/);
 		assert.equal(version.payroll.tax_clearance.max_withhold_days, 30);
+		// s.68(7) releases on the Comptroller's directive or 30 days after notice; an amended IR21
+		// reopens the clearance (IRAS step-by-step guide).
+		assert.deepEqual(version.payroll.tax_clearance.release, {
+			bases: ['RELEASE_NOTICE', 'PAY_TAX_DIRECTIVE', 'NOTICE_EXPIRY'],
+			evidence_required: true,
+			amended_notice_resets: true
+		});
 		const cpf = obligation('CPF_MONTHLY_SUBMISSION_AND_PAYMENT');
 		assert.match(cpf.timing, /1\.5% a month/);
 		assert.match(cpf.timing, /first day of the following month/);

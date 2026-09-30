@@ -7,13 +7,16 @@
 	import EmploymentField from '../EmploymentField.svelte';
 	import { t } from '../t.js';
 	import type { Id } from '@norbital-ai/bolt';
-	import { Field, Picker, useForm } from '@norbital-ai/ui';
+	import { Combobox, Field, Picker, useForm } from '@norbital-ai/ui';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import ContractAllowancesEditor from '../contract-allowances-editor.svelte';
+	import DeclaredFactsField from '../declared-facts-field.svelte';
 	import type { ContractAllowance } from '../../datatypes/contract_allowances.js';
 	import { hrCreateScope } from '../create-scope.js';
 	import FormSection from '../form-section.svelte';
 	import * as Predicate from 'effect/Predicate';
+	import type { VocabularyField } from '../../datatypes/payroll_settings.js';
+	import { vocabularyOptions } from './vocabulary-options.svelte.js';
 
 	let {
 		employmentScoped,
@@ -32,7 +35,26 @@
 		const from = range?.from;
 		return Predicate.isString(from) && from !== '' ? from : undefined;
 	});
+	/** The classification codes the version in force on the first day declares. */
+	const optionsOf = vocabularyOptions(
+		() => settingsCode,
+		() => firstDay
+	);
 </script>
+
+{#snippet coded(name: VocabularyField, label: string, optional: boolean)}
+	<Field {name} {label}>
+		{#snippet editor(field)}
+			<Combobox
+				clearable={optional}
+				options={optionsOf(name)}
+				value={typeof field.value === 'string' && field.value !== '' ? field.value : null}
+				disabled={field.disabled}
+				onChange={(next) => field.onChange((next ?? (optional ? null : '')) as never)}
+			/>
+		{/snippet}
+	</Field>
+{/snippet}
 
 <Stack gap="lg">
 	<FormSection
@@ -114,69 +136,41 @@
 			<Field name="employment_type" label={t('component.employment_type')} />
 			<Field name="residency_status" label={t('component.residency_status')} />
 			<Field name="residency_since" label={t('component.residency_since')} />
-			<Field name="work_classification" label={t('component.classification')} />
-			<Field name="statutory_work_category" label={t('component.statutory_work_category')} />
-			<Field name="hazardous_work" label={t('component.hazardous_work')} />
-			<Field name="th_pregnancy_status" label="Thai pregnancy status (dated terms)" />
+			{@render coded('work_classification', t('component.classification'), false)}
+			{@render coded('statutory_work_category', t('component.statutory_work_category'), false)}
 			<Field name="weather_dependent_piece" label={t('component.weather_dependent_piece')} />
 			<Field name="grade" label={t('component.grade')} />
-			{#if settingsCode === 'ID'}
-				<Field name="id_wage_scale_grade" label={t('component.id_wage_scale_grade')} />
-				<Field
-					name="id_wage_scale_basic_minimum"
-					label={t('component.id_wage_scale_basic_minimum')}
-				/>
-				<Field
-					name="id_wage_scale_effective_on"
-					label={t('component.id_wage_scale_effective_on')}
-				/>
-				<Field name="id_wage_scale_notice_on" label={t('component.id_wage_scale_notice_on')} />
-				<Field name="id_wage_scale_reference" label={t('component.id_wage_scale_reference')} />
-				<Field
-					name="id_wage_scale_evidence_file"
-					label={t('component.id_wage_scale_evidence_file')}
-				/>
-				<Field
-					name="id_foreign_prior_indonesia_work"
-					label={t('component.id_foreign_prior_indonesia_work')}
-				/>
-				<Field
-					name="id_foreign_prior_work_reviewed_on"
-					label={t('component.id_foreign_prior_work_reviewed_on')}
-				/>
-				<Field
-					name="id_foreign_prior_work_reference"
-					label={t('component.id_foreign_prior_work_reference')}
-				/>
-			{/if}
-			<Field name="pass_type" label={t('component.pass_type')} />
-			<Field name="tax_residency" label={t('component.tax_residency')} />
+			{@render coded('pass_type', t('component.pass_type'), true)}
+			{@render coded('tax_residency', t('component.tax_residency'), true)}
 			<Field name="notice_days" label={t('component.notice_days')} />
-			<!-- CN LCL arts.14, 19–20, 82–83: the probation, the wage after it and an overdue open-ended contract -->
-			<Field name="probation_end" label={t('component.probation_end')} />
-			<Field name="post_probation_wage" label={t('component.post_probation_wage')} />
-			<Field name="open_ended_due_on" label={t('component.open_ended_due_on')} />
 			<Field name="paid_rest_days" label={t('component.paid_rest_days')} />
 			<Field name="proration" label={t('component.proration')} />
-			<!-- VN Decree 293/2025 art. 5(5): the worksite's 2025 region and whether 2026 reclassified it lower -->
-			<Field name="minimum_wage_2025_region" label={t('component.minimum_wage_2025_region')} />
-			<Field
-				name="minimum_wage_2026_area_reclassified"
-				label={t('component.minimum_wage_2026_area_reclassified')}
-			/>
 			<!-- TH Minimum Wage Notice 14: the worksite and sector the daily rate is read at -->
 			<Field name="worksite" label={t('component.worksite')} />
-			{#if settingsCode === 'PH'}
-				<Field name="ph_worksite_source_reference" label="Worksite municipality source reference" />
-				<Field name="ph_worksite_source_file" label="Worksite municipality source file" />
-			{/if}
-			<Field name="worksite_state" label={t('component.worksite_state')} />
 			<Field name="worksite_sector" label={t('component.worksite_sector')} />
-			{#if settingsCode === 'PH'}
-				<Field name="ph_sector_source_reference" label="Wage sector source reference" />
-				<Field name="ph_sector_source_file" label="Wage sector source file" />
-			{/if}
-			<Field name="worksite_sector_edition" label={t('component.worksite_sector_edition')} />
+			<!-- The jurisdiction inputs the lineage declares for contract terms (`terms_facts`) -->
+			<Column span="all">
+				<Field
+					name="facts"
+					label={t('component.terms_facts')}
+					help={t('component.terms_facts_hint')}
+				>
+					{#snippet editor(field)}
+						<DeclaredFactsField
+							view={{
+								mode: 'edit',
+								name: field.name,
+								value: field.value as never,
+								disabled: field.disabled,
+								onChange: field.onChange as never
+							}}
+							{settingsCode}
+							schema="terms_facts"
+							day={firstDay}
+						/>
+					{/snippet}
+				</Field>
+			</Column>
 		</Grid>
 	</FormSection>
 

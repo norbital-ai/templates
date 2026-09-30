@@ -18,7 +18,7 @@ import {
 import { payrollRunPrecheck } from '../../../lib/payroll/run/precheck.js';
 import { describeIssues } from '../../../lib/payroll/run/validate.js';
 import { refuse } from '../../../lib/refuse.js';
-import { assertPhMaternityPayrollCashSafe } from '../../../lib/ph/maternity-payroll-guard.js';
+import { assertBenefitCasePayrollCashSafe } from '../../../lib/benefit-cases/payroll-guard.js';
 
 /**
  * A run is one write: a person chooses a company, a period, and optionally its contractual pay due
@@ -137,7 +137,7 @@ c.transform(async (inputs, ctx) => {
 				period: run.period,
 				payDueDate: run.payDueDate
 			});
-			await assertPhMaternityPayrollCashSafe(
+			await assertBenefitCasePayrollCashSafe(
 				ctx.db,
 				world,
 				facts.gathered.bundles.flatMap((bundle) =>

@@ -18,7 +18,9 @@ export default model({
 		gross_amount: { kind: 'money', currency: 'currency' },
 		non_event_deduction_amount: { kind: 'money', currency: 'currency' },
 		cash_amount: { kind: 'money', currency: 'currency' },
-		statutory: { kind: 'custom', of: 'payslip_statutory' }
+		statutory: { kind: 'custom', of: 'payslip_statutory' },
+		/** Jurisdiction inputs the lineage declares in `payment_facts`; `payment.facts.<key>`. */
+		facts: { kind: 'custom', of: 'entity_facts', default: {} }
 	},
 	unique: [
 		{ fields: ['company_id', 'employee_id', 'paid_on', 'reference'] },

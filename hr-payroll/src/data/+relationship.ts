@@ -82,35 +82,35 @@ export default relationship({
 		to: 'statutory_contributions',
 		inverse: 'employment_statutory_facts'
 	},
-	'sss_contribution_months.employee_id': {
+	'contribution_statement_months.employee_id': {
 		to: 'employees',
-		inverse: 'sss_contribution_months',
+		inverse: 'contribution_statement_months',
 		owned: true
 	},
-	'ph_maternity_cases.employee_id': { to: 'employees', inverse: 'ph_maternity_cases' },
-	'ph_maternity_cases.employment_id': { to: 'employments', inverse: 'ph_maternity_cases' },
-	'ph_maternity_movements.ph_maternity_case_id': {
-		to: 'ph_maternity_cases',
-		inverse: 'ph_maternity_movements'
+	'benefit_cases.employee_id': { to: 'employees', inverse: 'benefit_cases' },
+	'benefit_cases.employment_id': { to: 'employments', inverse: 'benefit_cases' },
+	'benefit_case_movements.benefit_case_id': {
+		to: 'benefit_cases',
+		inverse: 'benefit_case_movements'
 	},
-	'ph_maternity_movements.ph_maternity_pay_plan_id': {
-		to: 'ph_maternity_pay_plans',
-		inverse: 'ph_maternity_movements',
+	'benefit_case_movements.benefit_case_plan_id': {
+		to: 'benefit_case_plans',
+		inverse: 'benefit_case_movements',
 		optional: true
 	},
-	'ph_maternity_pay_plans.ph_maternity_case_id': {
-		to: 'ph_maternity_cases',
-		inverse: 'ph_maternity_pay_plans',
+	'benefit_case_plans.benefit_case_id': {
+		to: 'benefit_cases',
+		inverse: 'benefit_case_plans',
 		owned: true
 	},
-	'ph_maternity_pay_plans.supersedes_plan_id': {
-		to: 'ph_maternity_pay_plans',
+	'benefit_case_plans.supersedes_plan_id': {
+		to: 'benefit_case_plans',
 		inverse: 'superseded_by',
 		optional: true
 	},
-	'ph_maternity_pay_cutoffs.ph_maternity_pay_plan_id': {
-		to: 'ph_maternity_pay_plans',
-		inverse: 'ph_maternity_pay_cutoffs',
+	'benefit_case_cutoffs.benefit_case_plan_id': {
+		to: 'benefit_case_plans',
+		inverse: 'benefit_case_cutoffs',
 		owned: true
 	},
 	'employment_wage_periods.employment_id': {
@@ -189,17 +189,17 @@ export default relationship({
 		inverse: 'completed_payslips',
 		optional: true
 	},
-	'vn_noncontract_settlements.company_id': {
+	'noncontract_settlements.company_id': {
 		to: 'companies',
-		inverse: 'vn_noncontract_settlements'
+		inverse: 'noncontract_settlements'
 	},
-	'vn_noncontract_settlements.employee_id': {
+	'noncontract_settlements.employee_id': {
 		to: 'employees',
-		inverse: 'vn_noncontract_settlements'
+		inverse: 'noncontract_settlements'
 	},
 	/** Exactly one priced obligation owns a tranche; settled cash keeps its source alive. */
 	'payable_tranches.settlement': {
-		to: ['payslips', 'vn_noncontract_settlements'],
+		to: ['payslips', 'noncontract_settlements'],
 		inverse: 'payable_tranches',
 		owned: true
 	},
@@ -214,9 +214,17 @@ export default relationship({
 		to: 'payable_tranches',
 		inverse: 'payment_allocations'
 	},
-	'vn_payment_tax_facts.payment_event_id': {
-		to: 'payment_events',
-		inverse: 'vn_payment_tax_facts',
+	/** One declared fact's evidence; it goes with the fact revision, terms, day, payment, settlement or benefit case it evidences. */
+	'fact_evidence.subject': {
+		to: [
+			'company_facts',
+			'employment_terms',
+			'work_days',
+			'payment_events',
+			'noncontract_settlements',
+			'benefit_cases'
+		],
+		inverse: 'fact_evidence',
 		owned: true
 	},
 	'payslip_wage_periods.payslip_id': {

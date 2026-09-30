@@ -49,7 +49,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -255,6 +259,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -360,6 +365,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -413,7 +419,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -619,6 +629,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -742,7 +753,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -948,6 +963,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -1071,7 +1087,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1277,6 +1297,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -1382,6 +1403,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -1417,6 +1439,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -1452,6 +1475,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -1505,7 +1529,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1711,6 +1739,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -1816,6 +1845,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -1869,7 +1899,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2075,6 +2109,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -2180,6 +2215,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -2233,7 +2269,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2439,6 +2479,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -2562,7 +2603,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2768,6 +2813,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -2891,7 +2937,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3097,6 +3147,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -3202,6 +3253,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -3237,6 +3289,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -3272,6 +3325,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -3325,7 +3379,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3531,6 +3589,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -3636,6 +3695,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -3689,7 +3749,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3895,6 +3959,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -4000,6 +4065,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -4053,7 +4119,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4259,6 +4329,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -4382,7 +4453,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4588,6 +4663,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -4711,7 +4787,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4917,6 +4997,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -5022,6 +5103,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -5057,6 +5139,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -5092,6 +5175,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -5145,7 +5229,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5351,6 +5439,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -5456,6 +5545,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -5509,7 +5599,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5715,6 +5809,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -5820,6 +5915,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -5873,7 +5969,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6079,6 +6179,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -6202,7 +6303,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6408,6 +6513,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -6531,7 +6637,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6737,6 +6847,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -6842,6 +6953,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -6877,6 +6989,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -6912,6 +7025,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -6965,7 +7079,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -7171,6 +7289,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -7276,6 +7395,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -7329,7 +7449,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -7535,6 +7659,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -7640,6 +7765,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -7693,7 +7819,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -7899,6 +8029,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -8022,7 +8153,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -8228,6 +8363,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -8351,7 +8487,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -8557,6 +8697,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -8662,6 +8803,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -8697,6 +8839,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -8732,6 +8875,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -8785,7 +8929,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -8991,6 +9139,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -9096,6 +9245,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -9149,7 +9299,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -9355,6 +9509,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -9460,6 +9615,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -9513,7 +9669,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -9719,6 +9879,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -9842,7 +10003,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -10048,6 +10213,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -10171,7 +10337,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -10377,6 +10547,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -10482,6 +10653,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -10517,6 +10689,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -10552,6 +10725,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -10605,7 +10779,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -10811,6 +10989,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -10916,6 +11095,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -10969,7 +11149,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -11175,6 +11359,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -11280,6 +11465,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -11333,7 +11519,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -11539,6 +11729,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -11662,7 +11853,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -11868,6 +12063,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -11991,7 +12187,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -12197,6 +12397,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -12302,6 +12503,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -12337,6 +12539,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -12372,6 +12575,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -12425,7 +12629,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -12631,6 +12839,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -12736,6 +12945,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -12789,7 +12999,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -12995,6 +13209,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -13100,6 +13315,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -13153,7 +13369,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -13359,6 +13579,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -13482,7 +13703,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -13688,6 +13913,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -13811,7 +14037,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -14017,6 +14247,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -14122,6 +14353,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -14157,6 +14389,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -14192,6 +14425,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -14245,7 +14479,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -14451,6 +14689,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -14556,6 +14795,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -14609,7 +14849,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -14815,6 +15059,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -14920,6 +15165,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -14973,7 +15219,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -15179,6 +15429,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -15302,7 +15553,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -15508,6 +15763,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -15631,7 +15887,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -15837,6 +16097,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -15942,6 +16203,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -15977,6 +16239,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -16012,6 +16275,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -16065,7 +16329,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -16271,6 +16539,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -16376,6 +16645,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -16429,7 +16699,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -16635,6 +16909,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -16740,6 +17015,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -16793,7 +17069,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -16999,6 +17279,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -17122,7 +17403,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -17328,6 +17613,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -17451,7 +17737,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -17657,6 +17947,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -17762,6 +18053,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -17797,6 +18089,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -17832,6 +18125,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -17885,7 +18179,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -18091,6 +18389,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -18196,6 +18495,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -18249,7 +18549,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -18455,6 +18759,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -18560,6 +18865,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -18613,7 +18919,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -18819,6 +19129,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -18942,7 +19253,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -19148,6 +19463,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -19271,7 +19587,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -19477,6 +19797,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -19582,6 +19903,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -19617,6 +19939,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -19652,6 +19975,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -19705,7 +20029,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -19911,6 +20239,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -20016,6 +20345,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -20069,7 +20399,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -20275,6 +20609,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -20380,6 +20715,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -20433,7 +20769,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -20639,6 +20979,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -20744,6 +21085,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -20797,7 +21139,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -21003,6 +21349,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -21108,6 +21455,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -21161,7 +21509,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -21367,6 +21719,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -21472,6 +21825,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -21525,7 +21879,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -21731,6 +22089,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -21836,6 +22195,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -21889,7 +22249,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -22095,6 +22459,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -22200,6 +22565,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -22253,7 +22619,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -22459,6 +22829,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -22564,6 +22935,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -22617,7 +22989,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -22823,6 +23199,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -22928,6 +23305,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -22981,7 +23359,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -23187,6 +23569,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -23292,6 +23675,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -23345,7 +23729,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -23551,6 +23939,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -23656,6 +24045,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -23709,7 +24099,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -23915,6 +24309,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -24020,6 +24415,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -24073,7 +24469,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -24279,6 +24679,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -24384,6 +24785,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -24437,7 +24839,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -24643,6 +25049,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -24748,6 +25155,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -24801,7 +25209,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -25007,6 +25419,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -25112,6 +25525,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -25165,7 +25579,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -25371,6 +25789,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -25476,6 +25895,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -25529,7 +25949,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -25735,6 +26159,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -25840,6 +26265,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -25893,7 +26319,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -26099,6 +26529,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -26204,6 +26635,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -26257,7 +26689,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -26463,6 +26899,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -26568,6 +27005,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -26621,7 +27059,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -26827,6 +27269,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -26932,6 +27375,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -26985,7 +27429,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -27191,6 +27639,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -27296,6 +27745,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -27349,7 +27799,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -27555,6 +28009,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -27660,6 +28115,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -27713,7 +28169,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -27919,6 +28379,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -28024,6 +28485,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -28077,7 +28539,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -28283,6 +28749,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -28388,6 +28855,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -28441,7 +28909,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -28647,6 +29119,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -28752,6 +29225,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -28805,7 +29279,11 @@
 			],
 			"rounding": "WHOLE_DAY",
 			"encash_on_exit_when": "!(employment.exit_reason == \"DISMISSAL\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true)",
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 44.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"service_excludes_no_pay": "EMPLOYEE_REQUESTED_FULL_DAYS",
+			"replans_on_no_pay": true,
+			"locks_attendance_after_use": true,
+			"forfeit_above_absence_share": 0.2
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -29011,6 +29489,7 @@
 			]
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	},
@@ -29116,6 +29595,7 @@
 			"bands": []
 		},
 		"is_npl": true,
+		"requires_no_pay_origin": true,
 		"can_encash": false,
 		"encash_on_exit": false
 	}

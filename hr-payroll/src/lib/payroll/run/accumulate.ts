@@ -100,7 +100,9 @@ function reservedOf(item: PricedItem): ReservedLine | null {
 	if (
 		component.output === 'salary' ||
 		component.output === 'salary_top_up' ||
-		component.output === 'guard_normal_supplement'
+		// A normal-day band's additional normal-time wages (`bands[].component`).
+		(component as { readonly definition?: { readonly source?: string } }).definition?.source ===
+			'DERIVED_NORMAL'
 	)
 		return 'BASE';
 	if (component.output === 'absence') return 'ABSENCE';

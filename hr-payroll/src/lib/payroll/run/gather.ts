@@ -27,7 +27,6 @@ import {
 	completedMonths,
 	completedYears,
 	addDays,
-	daysBetween,
 	monthBounds,
 	monthKey,
 	periodMonth,
@@ -349,12 +348,18 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 		end: monthBounds(monthKey(attendanceSpan.end)).end
 	};
 	const weeklyNormalHours = configuration.limits.some(
-		(limit) => limit.measure === 'NORMAL_HOURS' && limit.period === 'WEEK'
+		(limit) =>
+			limit.period === 'WEEK' &&
+			(limit.measure === 'NORMAL_HOURS' || limit.enforced_at_payroll === true)
 	);
-	const restDays =
-		configuration.jurisdiction.jurisdiction_code === 'TH'
-			? Math.max(0, ...configuration.work.limits.filter(isRestLimit).map((limit) => limit.max_days))
-			: 0;
+	// A rest limit payroll re-judges reads back its run of worked days (`enforced_at_payroll`).
+	const restDays = Math.max(
+		0,
+		...configuration.work.limits
+			.filter(isRestLimit)
+			.filter((limit) => limit.enforced_at_payroll === true)
+			.map((limit) => limit.max_days)
+	);
 	const firstWeek = weeklyNormalHours
 		? weekStart(monthlyComplianceSpan.start)
 		: monthlyComplianceSpan.start;
@@ -457,42 +462,6 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			deferral: settlement.deferral
 		});
 	}
-	if (configuration.jurisdiction.jurisdiction_code === 'CN') {
-		const covered = configuration.jurisdiction.work_rules.wages?.by_region ?? {};
-		for (const bundle of bundles) {
-			const { hire, exit } = employmentDates(bundle.employment);
-			// A worker's cadence can differ from the company's, and the attendance cutoff can
-			// bring last month's overtime into this run. Both spans need the selected wage law.
-			for (const span of [bundle.window.salary, bundle.attendance, bundle.arrearsFor?.days]) {
-				if (span == null) continue;
-				for (const day of daysBetween(span.start, span.end)) {
-					if (day < hire || (exit != null && day > exit)) continue;
-					const site = bundle.termsHistory
-						.find((row) => coversDate(row.effective_range, day))
-						?.worksite?.trim();
-					if (site != null && Object.hasOwn(covered, site)) continue;
-					refuse(
-						`${bundle.employment.employee_number}: ${configuration.jurisdiction.code} cannot price ${day} ` +
-							`at ${site ? `worksite "${site}"` : 'an unrecorded worksite'}. Record the dated ` +
-							'contract performance place under the correct city wage profile.'
-					);
-				}
-			}
-			if (exit == null || exit >= bundle.window.salary.start) continue;
-			for (const day of daysBetween(hire, exit)) {
-				const site = bundle.termsHistory
-					.find((row) => coversDate(row.effective_range, day))
-					?.worksite?.trim();
-				if (site != null && Object.hasOwn(covered, site)) continue;
-				refuse(
-					`${bundle.employment.employee_number}: ${configuration.jurisdiction.code} cannot price a post-exit payment ` +
-						`with ${site ? `worksite "${site}"` : 'an unrecorded worksite'} on ${day}; ` +
-						'record the dated contract performance place under the correct city wage profile.'
-				);
-			}
-		}
-	}
-
 	return { bundles, headcount, headcountCitizens, ...prior };
 }
 

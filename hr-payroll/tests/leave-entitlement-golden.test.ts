@@ -71,6 +71,8 @@ type Facts = {
 		readonly child_index?: number;
 		readonly wife_prior_living_biological_children?: number;
 		readonly date?: string;
+		/** The event's benefit case facts (`event.case.facts`), as its case type resolves them. */
+		readonly case?: { readonly facts: Readonly<Record<string, string | number | boolean>> };
 	};
 	/**
 	 * Completed years of age. It defaults to 40 rather than being left unrecorded, because an
@@ -314,11 +316,17 @@ test('Philippines — service incentive leave and the special statutory leaves',
 	]);
 	// RA 11210: 105 days per birth, 120 for a qualified solo parent — the most specific band is
 	// first — and 60 for a miscarriage or emergency termination. SSS contributions qualify the
-	// cash benefit, not the private-sector leave entitlement (RA 11210 s.5).
+	// cash benefit, not the private-sector leave entitlement (RA 11210 s.5). The solo parent is the
+	// birth's benefit case proving it (`event.case.facts`), not the employee's current flag.
 	const SSS = { registrations: [{ code: 'SSS', since: '2020-01-01' }] } as const;
+	const DOCUMENTED = { case: { facts: { solo_parent_documented: true } } } as const;
+	assert.deepEqual(
+		ladder('PH', 0, 'MATERNITY_LEAVE', { ...FEMALE, ...SSS, event: { ...BIRTH, ...DOCUMENTED } }),
+		[120, 120, 120]
+	);
 	assert.deepEqual(
 		ladder('PH', 0, 'MATERNITY_LEAVE', { ...FEMALE, ...SSS, solo_parent: true, event: BIRTH }),
-		[120, 120, 120]
+		[105, 105, 105]
 	);
 	assert.deepEqual(
 		ladder('PH', 0, 'MATERNITY_LEAVE', { ...FEMALE, ...SSS, event: BIRTH }),

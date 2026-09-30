@@ -273,7 +273,7 @@ test('SG IR21 hold release requires a dated IRAS directive or 30 days after rece
 		/after the release/
 	);
 	await assert.rejects(
-		hold({ ...notice, release_directive_on: '2026-01-31', amended_ir21_filed_on: '2026-02-01' }),
+		hold({ ...notice, release_directive_on: '2026-01-31', amended_notice_filed_on: '2026-02-01' }),
 		/amended IR21/
 	);
 	await hold({ ...notice, release_directive_on: '2026-02-01' });
@@ -299,7 +299,7 @@ test('SG IR21 hold release requires a dated IRAS directive or 30 days after rece
 	await assert.rejects(hold({ ...payTax, released_amount: 900 }), /reconcile/);
 	assert.equal((await hold(payTax))[0].tax_remittance_due_on, '2026-02-11');
 	await hold({ ...payTax, tax_remitted_on: '2026-02-12' });
-	await assert.rejects(hold({ ...payTax, amended_ir21_filed_on: '2026-02-02' }), /amended IR21/);
+	await assert.rejects(hold({ ...payTax, amended_notice_filed_on: '2026-02-02' }), /amended IR21/);
 	const [openTax] = await runTransform(
 		holds,
 		[
@@ -310,7 +310,7 @@ test('SG IR21 hold release requires a dated IRAS directive or 30 days after rece
 				held_on: '2026-01-05',
 				release_basis: 'PAY_TAX_DIRECTIVE',
 				release_directive_on: '2026-02-01',
-				amended_ir21_filed_on: '2026-02-02',
+				amended_notice_filed_on: '2026-02-02',
 				directive_tax_amount: 200,
 				evidence_file: { path: 'iras-pay-tax.pdf' }
 			}
@@ -325,12 +325,12 @@ test('SG IR21 hold release requires a dated IRAS directive or 30 days after rece
 		tax_remittance_reference: null
 	});
 	const expiry = {
-		release_basis: 'THIRTY_DAY_EXPIRY',
+		release_basis: 'NOTICE_EXPIRY',
 		evidence_file: { path: 'iras-receipt.pdf' },
-		iras_notice_received_on: '2026-01-05'
+		authority_notice_received_on: '2026-01-05'
 	};
 	await assert.rejects(hold({ ...expiry, released_on: '2026-02-03' }), /30 days/);
-	await assert.rejects(hold({ ...expiry, amended_ir21_filed_on: '2026-01-20' }), /amended IR21/);
+	await assert.rejects(hold({ ...expiry, amended_notice_filed_on: '2026-01-20' }), /amended IR21/);
 	await hold(expiry);
 });
 
@@ -398,9 +398,9 @@ test('SG IR21 remittance query distinguishes upcoming, overdue, on-time and late
 	};
 	const read = memoryDb(tables).read;
 	const status = (as_of) =>
-		holds.bodies.queries.ir21_remittance_status({ company_id: 'c1', as_of }, { read });
+		holds.bodies.queries.tax_clearance_remittance_status({ company_id: 'c1', as_of }, { read });
 	assert.deepEqual(
-		await holds.bodies.queries.ir21_remittance_status(
+		await holds.bodies.queries.tax_clearance_remittance_status(
 			{ company_id: 'c2', as_of: '2026-02-12' },
 			{ read }
 		),

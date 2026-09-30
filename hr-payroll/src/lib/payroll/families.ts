@@ -297,6 +297,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		dueThrough: options.salary.end,
 		currency,
 		absenceRate: work.absenceRate,
+		absenceCeiling: work.absenceCeiling,
 		absenceHourlyRate: work.absenceHourlyRate,
 		outpatientSickExcludedRate: work.outpatientSickExcludedRate,
 		encashmentRate: (entry) =>

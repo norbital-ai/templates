@@ -4,40 +4,88 @@ import test from 'node:test';
 import registrations from '../src/data/collection/employment_statutory_facts/+collection.ts';
 import payslips from '../src/data/collection/payslips/+collection.ts';
 import paymentEvents from '../src/data/collection/payment_events/+collection.ts';
-import noncontractSettlements from '../src/data/collection/vn_noncontract_settlements/+collection.ts';
+import noncontractSettlements from '../src/data/collection/noncontract_settlements/+collection.ts';
 import { statutoryFactStatusFault } from '../src/lib/datatypes/statutory_fact_status.ts';
 import {
-	assessVnPaymentWithholding,
-	type VnPaymentWithholdingInput
-} from '../src/lib/vn/payment-withholding.ts';
+	assessPaymentWithholding,
+	paymentSite,
+	type PaymentWithholdingInput
+} from '../src/lib/payroll/payment-withholding.ts';
+import { factValuesFault, resolveFactValues } from '../src/lib/declared-facts.ts';
+import { evaluateBoolean, expressionEngine } from '../src/lib/expressions/evaluate.ts';
+import type { FactKey } from '../src/lib/datatypes/fact_keys.ts';
 import { transform } from './helpers/bodies.ts';
 import { assessStatutory, expectStatutory } from './fixtures/statutory-world.ts';
 
-const vnPitRows = JSON.parse(
-	readFileSync(
-		new URL('../seed/jurisdiction/VN/statutory_contributions.json', import.meta.url),
-		'utf8'
-	)
-) as (VnPaymentWithholdingInput['pit'] & { settings_id: string })[];
-const eventPit = (settingsId: string) => {
-	const pit = vnPitRows.find((row) => row.code === 'PIT' && row.settings_id === settingsId);
-	assert.ok(pit);
-	return pit;
+const seed = (file: string) =>
+	JSON.parse(
+		readFileSync(new URL(`../seed/jurisdiction/VN/${file}`, import.meta.url), 'utf8')
+	) as unknown;
+const vnPitRows = seed('statutory_contributions.json') as (PaymentWithholdingInput['scheme'] & {
+	settings_id: string;
+})[];
+type SeedVersion = {
+	readonly id: string;
+	readonly payroll: { readonly currency: string; readonly payment_occasion_scheme?: string };
+	readonly payment_facts: readonly FactKey[];
+	readonly settlement_facts: readonly FactKey[];
 };
-const junePit = eventPit('2b556ee6-e9e1-5b07-bfba-e91625653f0a');
-const julyPit = eventPit('9b1cb22a-d399-52cc-adef-8e72ec084b78');
+const vnVersions = seed('jurisdiction_settings.json') as SeedVersion[];
+const JUNE = '2b556ee6-e9e1-5b07-bfba-e91625653f0a';
+const JULY = '9b1cb22a-d399-52cc-adef-8e72ec084b78';
+const version = (id: string) => vnVersions.find((row) => row.id === id)!;
+/** The scheme `payroll.payment_occasion_scheme` names in the sealed version. */
+const eventScheme = (settingsId: string) => {
+	const code = version(settingsId).payroll.payment_occasion_scheme;
+	assert.equal(code, 'PIT');
+	const scheme = vnPitRows.find((row) => row.code === code && row.settings_id === settingsId);
+	assert.ok(scheme);
+	return scheme;
+};
+const juneScheme = eventScheme(JUNE);
+const julyScheme = eventScheme(JULY);
+/** A payment's declared facts as the payment event resolves them for `scheme.elections`. */
+const declared = (settingsId: string, facts: Record<string, string | number | boolean> = {}) =>
+	resolveFactValues(version(settingsId).payment_facts, facts, 'Payment', false);
+/** The version's `payment_facts` judgement of one payment, as the payment event makes it. */
+const judge = (
+	settingsId: string,
+	paidOn: string,
+	facts: Record<string, string | number | boolean>,
+	taxResidency = 'RESIDENT'
+) => {
+	const fields = version(settingsId).payment_facts;
+	const context = paymentSite(
+		{
+			kind: 'CASH',
+			paid_on: paidOn,
+			currency: 'VND',
+			facts: declared(settingsId, facts),
+			fact_keys: Object.keys(facts)
+		},
+		{ tax_residency: taxResidency, facts: {}, fact_keys: [] }
+	);
+	return factValuesFault(
+		fields,
+		facts,
+		true,
+		(expression) => evaluateBoolean(expressionEngine, expression, context),
+		() => true
+	);
+};
 
 const noncontractEvent = (
 	paidOn: string,
 	gross: number,
 	options: {
-		pit?: VnPaymentWithholdingInput['pit'];
+		scheme?: PaymentWithholdingInput['scheme'];
+		settingsId?: string;
 		settingsRange?: unknown;
 		cash?: number;
-		facts?: Partial<VnPaymentWithholdingInput['facts']>;
+		facts?: Record<string, string | number | boolean>;
 		taxTreatment?: 'TAXABLE' | 'EXEMPT';
 	} = {}
-): VnPaymentWithholdingInput => ({
+): PaymentWithholdingInput => ({
 	event: {
 		company_id: 'VN-COMPANY',
 		employee_id: 'PERSON',
@@ -54,9 +102,9 @@ const noncontractEvent = (
 			non_event_deduction_amount: 0,
 			tranche: {
 				id: 'TRANCHE-1',
-				settlement: { collection: 'vn_noncontract_settlements', id: 'SETTLEMENT-1' },
+				settlement: { collection: 'noncontract_settlements', id: 'SETTLEMENT-1' },
 				source_category: 'NONCONTRACT_REMUNERATION',
-				source_kind: 'VN_NONCONTRACT_SETTLEMENT',
+				source_kind: 'NONCONTRACT_SETTLEMENT',
 				source_id: 'SETTLEMENT-1',
 				reference: 'AGREEMENT-FEE-1',
 				tax_treatment: options.taxTreatment ?? 'TAXABLE',
@@ -66,21 +114,18 @@ const noncontractEvent = (
 			}
 		}
 	],
-	facts: { withhold_below_threshold_requested: false, ...options.facts },
+	facts: declared(options.settingsId ?? JULY, options.facts),
 	settlement: {
 		id: 'SETTLEMENT-1',
 		company_id: 'VN-COMPANY',
 		employee_id: 'PERSON',
 		currency: 'VND',
-		relationship_reviewed_on: '2026-01-01',
-		relationship_reference: 'ENGAGEMENT-1',
-		income_nature_reference: 'REMUNERATION-1',
 		tax_residency: 'RESIDENT',
-		tax_residency_range: { from: '2026-01-01', to: '2026-12-31' },
-		tax_residency_reference: 'TAX-RESIDENCE-1'
+		tax_residency_range: { from: '2026-01-01', to: '2026-12-31' }
 	},
-	pit: options.pit ?? julyPit,
-	settingsRange: options.settingsRange ?? { from: '2026-07-01', to: '9999-12-31' }
+	scheme: options.scheme ?? julyScheme,
+	settingsRange: options.settingsRange ?? { from: '2026-07-01', to: '9999-12-31' },
+	settingsCurrency: 'VND'
 });
 
 const occasions = (
@@ -227,31 +272,39 @@ test('VN consultant payroll refuses an unproved no-contract PIT classification',
 });
 
 test('VN no-contract recipient is a separate evidenced person and payer record', async () => {
+	const facts = {
+		relationship_reference: 'ENGAGEMENT-1',
+		relationship_reviewed_on: '2026-07-01',
+		income_nature_reference: 'REMUNERATION-1',
+		tax_residency_reference: 'TAX-RESIDENCE-1'
+	};
 	const row = {
 		company_id: 'VN-COMPANY',
 		employee_id: 'PERSON',
 		reference: 'FEE-2026-07',
-		agreed_gross_vnd: 8_000_000,
+		currency: 'VND',
+		agreed_gross: 8_000_000,
 		agreed_due_on: '2026-07-31',
-		agreement_amount_reference: 'AGREEMENT-FEE-1',
-		relationship_reference: 'ENGAGEMENT-1',
-		relationship_reviewed_on: '2026-07-01',
-		income_nature_reference: 'REMUNERATION-1',
 		tax_residency: 'RESIDENT',
 		tax_residency_range: { from: '2026-07-01', to: '2026-07-31' },
-		tax_residency_reference: 'TAX-RESIDENCE-1',
-		currency: 'VND'
+		facts,
+		fact_evidence: {
+			create: Object.entries(facts).map(([fact_key, reference]) => ({ fact_key, reference }))
+		}
 	};
-	const tables = { companies: [{ id: 'VN-COMPANY', settings_code: 'VN' }] };
+	const tables = {
+		companies: [{ id: 'VN-COMPANY', settings_code: 'VN' }],
+		jurisdiction_settings: vnVersions
+	};
 	const [saved] = await transform(noncontractSettlements, [row], { tables });
 	assert.equal(saved.employee_id, 'PERSON');
 	assert.equal(saved.reference, 'FEE-2026-07');
 	assert.deepEqual(saved.payable_tranches.create, [
 		{
 			source_category: 'NONCONTRACT_REMUNERATION',
-			source_kind: 'VN_NONCONTRACT_SETTLEMENT',
+			source_kind: 'NONCONTRACT_SETTLEMENT',
 			source_id: saved.id,
-			reference: 'AGREEMENT-FEE-1',
+			reference: 'FEE-2026-07',
 			due_on: '2026-07-31',
 			currency: 'VND',
 			gross_amount: 8_000_000,
@@ -261,63 +314,81 @@ test('VN no-contract recipient is a separate evidenced person and payer record',
 	]);
 	await assert.rejects(
 		transform(noncontractSettlements, [{ ...row, currency: 'USD' }], { tables }),
-		/needs VND payment amounts/
+		/settings currency VND/
 	);
 	await assert.rejects(
-		transform(noncontractSettlements, [{ ...row, relationship_reference: '' }], { tables }),
-		/relationship_reference needs an evidence reference/
+		transform(
+			noncontractSettlements,
+			[{ ...row, facts: { ...facts, relationship_reference: '' } }],
+			{ tables }
+		),
+		/Engagement reference must contain at least 1 characters/
 	);
 	await assert.rejects(
-		transform(noncontractSettlements, [{ ...row, agreed_gross_vnd: 0 }], { tables }),
-		/positive whole VND amount/
+		transform(noncontractSettlements, [{ ...row, agreed_gross: 0 }], { tables }),
+		/positive amount in VND precision/
+	);
+	await assert.rejects(
+		transform(
+			noncontractSettlements,
+			[{ ...row, fact_evidence: { create: [{ fact_key: 'relationship_reference' }] } }],
+			{ tables }
+		),
+		/needs reference/
 	);
 });
 
 test('VN no-contract actual events apply the dated threshold to each partial payment', () => {
-	const june = { pit: junePit, settingsRange: { from: '2026-05-16', to: '2026-06-30' } };
+	const june = {
+		scheme: juneScheme,
+		settingsId: JUNE,
+		settingsRange: { from: '2026-05-16', to: '2026-06-30' }
+	};
 	assert.equal(
-		assessVnPaymentWithholding(noncontractEvent('2026-06-30', 1_900_000, june))[0]?.employee_amount,
+		assessPaymentWithholding(noncontractEvent('2026-06-30', 1_900_000, june))[0]?.employee_amount,
 		0
 	);
 	assert.equal(
-		assessVnPaymentWithholding(
+		assessPaymentWithholding(
 			noncontractEvent('2026-06-30', 2_000_000, { ...june, cash: 1_800_000 })
 		)[0]?.employee_amount,
 		200_000
 	);
 	assert.equal(
-		assessVnPaymentWithholding(noncontractEvent('2026-07-01', 4_900_000))[0]?.employee_amount,
+		assessPaymentWithholding(noncontractEvent('2026-07-01', 4_900_000))[0]?.employee_amount,
 		0
 	);
 	assert.equal(
-		assessVnPaymentWithholding(noncontractEvent('2026-07-01', 5_000_000, { cash: 4_500_000 }))[0]
+		assessPaymentWithholding(noncontractEvent('2026-07-01', 5_000_000, { cash: 4_500_000 }))[0]
 			?.employee_amount,
 		500_000
 	);
-	const requested = noncontractEvent('2026-07-02', 4_000_000, {
-		cash: 3_600_000,
-		facts: {
-			withhold_below_threshold_requested: true,
-			request_received_on: '2026-07-01',
-			request_reference: 'REQUEST-1'
-		}
-	});
-	assert.equal(assessVnPaymentWithholding(requested)[0]?.employee_amount, 400_000);
+	const request = {
+		withhold_below_threshold_requested: true,
+		request_received_on: '2026-07-01',
+		request_reference: 'REQUEST-1'
+	};
+	assert.equal(judge(JULY, '2026-07-02', request), null);
+	const requested = noncontractEvent('2026-07-02', 4_000_000, { cash: 3_600_000, facts: request });
+	assert.equal(assessPaymentWithholding(requested)[0]?.employee_amount, 400_000);
+	const commitment = {
+		commitment_form: true,
+		commitment_form_reference: 'FORM-08',
+		commitment_received_on: '2026-06-29',
+		commitment_tax_year: 2026,
+		commitment_tax_id: 'TAX-ID',
+		commitment_sole_income_declared: true,
+		commitment_below_taxable_threshold_declared: true
+	};
+	assert.equal(judge(JUNE, '2026-06-30', commitment), null);
 	const preJulyCommitment = noncontractEvent('2026-06-30', 4_000_000, {
 		...june,
-		facts: {
-			commitment_form_reference: 'FORM-08',
-			commitment_received_on: '2026-06-29',
-			commitment_tax_year: 2026,
-			commitment_tax_id: 'TAX-ID',
-			commitment_sole_income_declared: true,
-			commitment_below_taxable_threshold_declared: true
-		}
+		facts: commitment
 	});
-	assert.equal(assessVnPaymentWithholding(preJulyCommitment)[0]?.employee_amount, 0);
+	assert.equal(assessPaymentWithholding(preJulyCommitment)[0]?.employee_amount, 0);
 	const nonresident = noncontractEvent('2026-07-02', 4_000_000, { cash: 3_200_000 });
 	assert.equal(
-		assessVnPaymentWithholding({
+		assessPaymentWithholding({
 			...nonresident,
 			settlement: { ...nonresident.settlement, tax_residency: 'NON_RESIDENT' }
 		})[0]?.employee_amount,
@@ -325,7 +396,7 @@ test('VN no-contract actual events apply the dated threshold to each partial pay
 	);
 	assert.throws(
 		() =>
-			assessVnPaymentWithholding({
+			assessPaymentWithholding({
 				...requested,
 				event: { ...requested.event, cash_amount: 4_000_000 }
 			}),
@@ -335,12 +406,12 @@ test('VN no-contract actual events apply the dated threshold to each partial pay
 
 test('VN no-contract event refuses a stale version, unsupported exemption and July commitment', () => {
 	assert.throws(
-		() => assessVnPaymentWithholding(noncontractEvent('2026-06-30', 5_000_000)),
-		/sealed PIT version/
+		() => assessPaymentWithholding(noncontractEvent('2026-06-30', 5_000_000)),
+		/sealed payment-occasion scheme version/
 	);
 	assert.throws(
 		() =>
-			assessVnPaymentWithholding(
+			assessPaymentWithholding(
 				noncontractEvent('2026-07-01', 5_000_000, {
 					taxTreatment: 'EXEMPT',
 					cash: 4_500_000
@@ -348,22 +419,53 @@ test('VN no-contract event refuses a stale version, unsupported exemption and Ju
 			),
 		/evidenced exemption category/
 	);
-	assert.throws(
-		() =>
-			assessVnPaymentWithholding(
-				noncontractEvent('2026-07-01', 5_000_000, {
-					facts: {
-						commitment_form_reference: 'FORM-08',
-						commitment_received_on: '2026-06-30',
-						commitment_tax_year: 2026,
-						commitment_tax_id: 'TAX-ID',
-						commitment_sole_income_declared: true,
-						commitment_below_taxable_threshold_declared: true
-					}
-				})
-			),
+	const commitment = {
+		commitment_form: true,
+		commitment_form_reference: 'FORM-08',
+		commitment_received_on: '2026-06-30',
+		commitment_tax_year: 2026,
+		commitment_tax_id: 'TAX-ID',
+		commitment_sole_income_declared: true,
+		commitment_below_taxable_threshold_declared: true
+	};
+	assert.match(
+		judge(JULY, '2026-07-01', commitment) ?? '',
 		/commitment waiver lacks current primary authority/
 	);
+	// The declared payment facts carry the old event checks: a dated resident July request, a
+	// commitment only with its form, dated, of the payment's year, from a resident.
+	const request = {
+		withhold_below_threshold_requested: true,
+		request_received_on: '2026-06-01',
+		request_reference: 'REQUEST-1'
+	};
+	for (const [id, day, facts, residency] of [
+		[JUNE, '2026-06-30', request, 'RESIDENT'],
+		[JULY, '2026-07-02', request, 'NON_RESIDENT'],
+		[JULY, '2026-07-02', { ...request, request_received_on: '2026-07-03' }, 'RESIDENT']
+	] as const)
+		assert.match(
+			judge(id, day, facts, residency) ?? '',
+			/below-threshold withholding request needs dated resident evidence/
+		);
+	assert.match(
+		judge(JULY, '2026-07-02', { request_reference: 'REQUEST-1' }) ?? '',
+		/request evidence must agree/
+	);
+	assert.match(
+		judge(JUNE, '2026-06-30', { ...commitment, commitment_form: false }) ?? '',
+		/must include its form reference/
+	);
+	for (const [facts, residency] of [
+		[{ ...commitment, commitment_tax_year: 2025 }, 'RESIDENT'],
+		[{ ...commitment, commitment_received_on: '2026-07-01' }, 'RESIDENT'],
+		[{ ...commitment, commitment_sole_income_declared: false }, 'RESIDENT'],
+		[commitment, 'NON_RESIDENT']
+	] as const)
+		assert.match(
+			judge(JUNE, '2026-06-30', facts, residency) ?? '',
+			/pre-July commitment needs dated Form 08/
+		);
 });
 
 test('VN saved employment payment refuses a frozen upfront PIT amount on partial disbursement', async () => {
@@ -393,13 +495,13 @@ test('VN saved employment payment refuses a frozen upfront PIT amount on partial
 				statutory: [{ scheme_code: 'PIT', employee_amount: 800_000, payment_occasion: true }]
 			}
 		],
-		vn_noncontract_settlements: [],
+		noncontract_settlements: [],
 		payment_allocations: [],
 		employments: [{ id: 'EMPLOYMENT-1', company_id: 'VN-COMPANY', employee_id: 'PERSON' }],
 		payroll_runs: [{ id: 'RUN-1', company_id: 'VN-COMPANY', period: '2026-07' }],
 		companies: [{ id: 'VN-COMPANY', settings_code: 'VN' }],
-		ph_maternity_movements: [],
-		ph_maternity_cases: []
+		benefit_case_movements: [],
+		benefit_cases: []
 	};
 	await assert.rejects(
 		paymentEvents.bodies.transform(

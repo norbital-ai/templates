@@ -18,6 +18,8 @@ export default model({
 		as_adjustment_entry: { kind: 'bool', default: false },
 		/** A wage paid late: the amount is the late sum, priced by the class (VN LC art.97(4)). */
 		late_wage: { kind: 'custom', of: 'late_wage', optional: true },
+		/** Inputs the catalogue row declares in `request_facts`; `entry.facts.<key>`. */
+		facts: { kind: 'custom', of: 'entity_facts', default: {} },
 		pay_period: { kind: 'text', optional: true }
 	},
 	index: [

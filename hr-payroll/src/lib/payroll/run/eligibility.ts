@@ -7,7 +7,7 @@
 
 import { programFor } from '../../../lib/expressions/evaluate.js';
 import { decodeNumber } from '../../wire.js';
-import { addDays, completedMonths, completedYears, inclusiveDays, monthDay } from './dates.js';
+import { addDays, completedMonths, completedYears, exactMonths, inclusiveDays } from './dates.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import { coversDate, readRange } from './effective.js';
 import { compileExpression } from '../../../lib/expressions/compile.js';
@@ -90,6 +90,8 @@ export type PersonContext = {
 		readonly service_years: number;
 		/** First day of the stint as `YYYY-MM-DD`; `employee.age_on(employment.service_start)` is the age at hire. */
 		readonly service_start: string;
+		/** The rule date as `YYYY-MM-DD`; a contract rule reads the first day of its floor segment. */
+		readonly rule_date: string;
 		/** Last day of work, or empty while the stint is open. */
 		readonly exit_date: string;
 		/** Calendar days from the rule date to `exit_date`: 0 on the exit day, after it, or while open. */
@@ -136,21 +138,14 @@ export type PersonContext = {
 		readonly gross_monthly: number;
 		/** The same wage averaged over the last six months of the employment (VN art.46 severance). */
 		readonly monthly_wage_6m_average: number;
-		readonly workman: boolean;
-		/** The statutory work category itself, for an overtime predicate that names one. */
+		/** The statutory work category: a code of the version's `payroll.vocabularies`. */
 		readonly statutory_work_category: string;
-		readonly hazardous_work: boolean;
 		readonly weather_dependent_piece: boolean;
 		/** Basic plus every other cash payment for work settling in the run; 0 outside payroll. */
 		readonly statutory_wages: number;
 		/** The worksite and its sector (a five-digit KBLI in ID) the terms record, or empty. */
 		readonly worksite: string;
 		readonly worksite_sector: string;
-		readonly ph_worksite_source_reference: string;
-		readonly ph_worksite_source_file_recorded: boolean;
-		readonly ph_sector_source_reference: string;
-		readonly ph_sector_source_file_recorded: boolean;
-		readonly worksite_sector_edition: string;
 		/** Department and grade: an employer's own catalogue row may tier on them; no statute does. */
 		readonly department: string;
 		readonly payroll_group: string;
@@ -159,20 +154,14 @@ export type PersonContext = {
 		readonly grade: string;
 		/** `MONTHLY` | `SEMI_MONTHLY` | `WEEKLY` | `DAILY` | `HOURLY`: a day factor or a rest-day rule that turns on the pay basis reads this. */
 		readonly pay_frequency: string;
-		/** The foreigner's work pass (`employment_terms.pass_type`), or empty. */
+		/** The foreigner's work pass: a code of the version's `payroll.vocabularies`, or empty. */
 		readonly pass_type: string;
-		/** `RESIDENT` | `NON_RESIDENT` where declared on the contract, else empty for the scheme's statutory default. */
+		/** A code of the version's `payroll.vocabularies` where declared on the contract, else empty for the scheme's statutory default. */
 		readonly tax_residency: string;
 		/** The date residency began, or empty when unrecorded. */
 		readonly residency_since: string;
 		/** Notice days the contract states, 0 when none. */
 		readonly notice_days: number;
-		/** Months of the agreed probation served, hire through its last day or the rule date inclusive, a part month by its days; 0 without one (CN LCL arts.19, 83). */
-		readonly probation_months: number;
-		/** The wage the contract agrees for after the probation; 0 unrecorded (CN LCL arts.20, 83). */
-		readonly post_probation_wage: number;
-		/** Months from the day an open-ended contract fell due through the rule date inclusive, a part month by its days; 0 unrecorded or not yet due (CN LCL art.82 para.2). */
-		readonly open_ended_overdue_months: number;
 		/**
 		 * The working week this contract actually works, derived from the roster rather than typed.
 		 *
@@ -185,6 +174,10 @@ export type PersonContext = {
 		readonly comparable_full_time_daily_hours: number;
 		readonly comparable_full_time_presence: string;
 		readonly working_days_per_week: number;
+		/** The version's `terms_facts` as the terms record them, defaults filled where the caller resolved them. */
+		readonly facts: Readonly<Record<string, string | number | boolean>>;
+		/** The keys the terms actually record, before defaults. */
+		readonly fact_keys: readonly string[];
 	};
 	readonly children: {
 		/** Every recorded child revision, retained so an event can be judged on its own date. */
@@ -293,6 +286,8 @@ export type PersonContext = {
 		readonly estimated_delivery_date: string;
 		/** The eligibility date of the application to adopt the named child (CDCA s.2), or empty. */
 		readonly adoption_eligibility_date: string;
+		/** The benefit case this event opened: its facts and qualifications; empty without one. */
+		readonly case: { readonly facts: Readonly<Record<string, string | number | boolean>> };
 	};
 	/** The terms row's own part-month basis (`employment_terms.proration`); not an expression member. */
 	readonly contract_proration?: ProrationBasis | undefined;
@@ -350,15 +345,9 @@ export type PersonInput = {
 		readonly allowances?:
 			readonly { readonly catalogue_id: string; readonly amount: number }[] | null | undefined;
 		readonly statutory_work_category?: string | null | undefined;
-		readonly hazardous_work?: boolean | null | undefined;
 		readonly weather_dependent_piece?: boolean | null | undefined;
 		readonly worksite?: string | null | undefined;
 		readonly worksite_sector?: string | null | undefined;
-		readonly ph_worksite_source_reference?: string | null | undefined;
-		readonly ph_worksite_source_file?: unknown;
-		readonly ph_sector_source_reference?: string | null | undefined;
-		readonly ph_sector_source_file?: unknown;
-		readonly worksite_sector_edition?: string | null | undefined;
 		readonly department?: string | null | undefined;
 		readonly payroll_group?: string | null | undefined;
 		readonly paid_rest_days?: boolean | null | undefined;
@@ -368,12 +357,12 @@ export type PersonInput = {
 		readonly pass_type?: string | null | undefined;
 		readonly tax_residency?: string | null | undefined;
 		readonly notice_days?: unknown | undefined;
-		readonly probation_end?: string | null | undefined;
-		readonly post_probation_wage?: unknown | undefined;
-		readonly open_ended_due_on?: string | null | undefined;
 		readonly comparable_full_time_daily_hours?: unknown | undefined;
 		readonly comparable_full_time_presence?: string | null | undefined;
 		readonly proration?: unknown | undefined;
+		readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
+		/** The recorded keys, where `facts` carries resolved defaults. */
+		readonly fact_keys?: readonly string[] | undefined;
 	} | null;
 	/**
 	 * The working week the roster produced, where one has been measured. Separate from `terms`
@@ -439,6 +428,9 @@ export type PersonInput = {
 		readonly child_index?: unknown | undefined;
 		readonly wife_prior_living_biological_children?: number | null | undefined;
 		readonly date?: string | null | undefined;
+		readonly case?: {
+			readonly facts: Readonly<Record<string, string | number | boolean>>;
+		} | null;
 	} | null;
 	/** The version's ordinary-rate divisor over this person, where the caller has evaluated it; it turns a daily, hourly or weekly rate into `terms.monthly_basic`. */
 	readonly divisorDays?: number | null | undefined;
@@ -478,17 +470,6 @@ function monthlyBasic(
 		default:
 			return basic;
 	}
-}
-
-/** Completed months from `start` to the morning of `end`, plus the part month's elapsed share of its days. */
-function exactMonths(start: string, end: string): number {
-	const months = completedMonths(start, end);
-	const year = Number.parseInt(start.slice(0, 4), 10);
-	const month = Number.parseInt(start.slice(5, 7), 10) - 1;
-	const day = Number.parseInt(start.slice(8, 10), 10);
-	const from = monthDay(year, month + months, day);
-	const to = monthDay(year, month + months + 1, day);
-	return months + (inclusiveDays(from, end) - 1) / (inclusiveDays(from, to) - 1);
 }
 
 /** Whole calendar months between two days: the year and month difference, days ignored. */
@@ -561,13 +542,6 @@ export function personContext(input: PersonInput): PersonContext {
 	// resignation, dismissal or other early exit ends an indefinite contract without giving it a
 	// term (Labour Code 2019 art.20(1)(a)), and the model records no other term.
 	const reason = input.employment.exit_reason ?? '';
-	const probationEnd = dateKey(input.terms?.probation_end);
-	// Hire through the probation's last day, or through the rule date where that comes first.
-	const probationThrough = addDays(
-		probationEnd !== '' && probationEnd < day ? probationEnd : day,
-		1
-	);
-	const openEndedDue = dateKey(input.terms?.open_ended_due_on);
 	const fixedTerm =
 		exit !== '' &&
 		start !== '' &&
@@ -627,6 +601,7 @@ export function personContext(input: PersonInput): PersonContext {
 			prior_service_months: decodeNumber(input.employment.prior_service_months ?? 0),
 			service_years: start === '' ? 0 : completedYears(start, through),
 			service_start: start,
+			rule_date: day,
 			days_to_exit: exit === '' || exit <= day ? 0 : inclusiveDays(day, exit) - 1,
 			exit_date: exit,
 			open_ended: !fixedTerm,
@@ -664,20 +639,11 @@ export function personContext(input: PersonInput): PersonContext {
 				monthlyBasic(basic, input.terms?.pay_frequency, input.week, input.divisorDays) +
 				decodeNumber(input.grossAllowances ?? fixed),
 			monthly_wage_6m_average: decodeNumber(input.monthlyWage6mAverage ?? basic + fixed),
-			workman: (input.terms?.statutory_work_category ?? '').startsWith('MANUAL_LABOUR'),
 			statutory_work_category: input.terms?.statutory_work_category ?? '',
-			hazardous_work: input.terms?.hazardous_work === true,
 			weather_dependent_piece: input.terms?.weather_dependent_piece === true,
 			statutory_wages: decodeNumber(input.statutoryWages ?? 0),
 			worksite: input.terms?.worksite?.trim() ?? '',
 			worksite_sector: input.terms?.worksite_sector?.trim() ?? '',
-			ph_worksite_source_reference: input.terms?.ph_worksite_source_reference?.trim() ?? '',
-			ph_worksite_source_file_recorded:
-				input.terms?.ph_worksite_source_file != null && input.terms.ph_worksite_source_file !== '',
-			ph_sector_source_reference: input.terms?.ph_sector_source_reference?.trim() ?? '',
-			ph_sector_source_file_recorded:
-				input.terms?.ph_sector_source_file != null && input.terms.ph_sector_source_file !== '',
-			worksite_sector_edition: input.terms?.worksite_sector_edition?.trim() ?? '',
 			department: input.terms?.department ?? '',
 			payroll_group: input.terms?.payroll_group ?? '',
 			paid_rest_days: input.terms?.paid_rest_days ?? false,
@@ -687,19 +653,14 @@ export function personContext(input: PersonInput): PersonContext {
 			tax_residency: input.terms?.tax_residency ?? '',
 			residency_since: residency,
 			notice_days: decodeNumber(input.terms?.notice_days ?? 0),
-			probation_months:
-				probationEnd === '' || start === '' || probationThrough <= start
-					? 0
-					: exactMonths(start, probationThrough),
-			post_probation_wage: decodeNumber(input.terms?.post_probation_wage ?? 0),
-			open_ended_overdue_months:
-				openEndedDue === '' || openEndedDue > day ? 0 : exactMonths(openEndedDue, addDays(day, 1)),
 			ordinary_hours_per_week: input.week?.ordinary_hours_per_week ?? 0,
 			comparable_full_time_daily_hours: decodeNumber(
 				input.terms?.comparable_full_time_daily_hours ?? 0
 			),
 			comparable_full_time_presence: input.terms?.comparable_full_time_presence ?? '',
-			working_days_per_week: input.week?.working_days_per_week ?? 0
+			working_days_per_week: input.week?.working_days_per_week ?? 0,
+			facts: scalarFacts(input.terms?.facts),
+			fact_keys: input.terms?.fact_keys ?? Object.keys(input.terms?.facts ?? {})
 		},
 		children: {
 			records: (input.children ?? []).map((child) => {
@@ -778,7 +739,8 @@ export function personContext(input: PersonInput): PersonContext {
 			child_shared_weeks: named?.shared_parental_weeks ?? -1,
 			prior_employment_days: named?.prior_employment_days ?? 0,
 			estimated_delivery_date: dateKey(named?.estimated_delivery_date),
-			adoption_eligibility_date: dateKey(named?.adoption_eligibility_date)
+			adoption_eligibility_date: dateKey(named?.adoption_eligibility_date),
+			case: { facts: input.event?.case?.facts ?? {} }
 		},
 		contract_proration:
 			input.terms?.proration == null

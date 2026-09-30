@@ -21,7 +21,10 @@ function partTimeWeek(
 		(pattern == null
 			? 0
 			: (patternWorkload(pattern, rosterCodes)?.average_weekly_paid_minutes ?? 0) / 60);
-	if (!(hours > 0)) refuse('Singapore statutory leave needs contracted weekly working hours.');
+	if (!(hours > 0))
+		refuse(
+			'This leave is granted in hours to part-time employees, so the employment needs contracted weekly working hours.'
+		);
 	if ((term.employment_type === 'PART_TIME') !== hours < 35)
 		refuse('Employment part-time status conflicts with contracted weekly hours.');
 	return hours;

@@ -51,8 +51,16 @@ type OvertimeImportRow = {
 	readonly work_date: string;
 	readonly overtime_hours: number;
 	readonly overtime_consented_at?: string;
-	readonly normal_hours_redistribution_agreed_at?: string;
+	/** The declared work-day inputs the sheet carries, one column each (`work_day_facts[].import`). */
+	readonly facts?: Readonly<Record<string, string>>;
 };
+
+const LONG_FORM_OVERTIME_COLUMNS = [
+	'employee_number',
+	'work_date',
+	'overtime_hours',
+	'overtime_consented_at'
+];
 
 /** The whole workbook. A sheet the file does not carry is absent; an empty sheet is `[]`. */
 type SchedulingImportPayload = {
@@ -160,10 +168,7 @@ function longFormAttendanceRows(table: SheetTable): readonly AttendanceImportRow
 
 /** Blank overtime is no approval; a stated figure is kept, in the half-hour steps the write path enforces. */
 function longFormOvertimeRows(table: SheetTable): readonly OvertimeImportRow[] {
-	const evidence = (
-		reader: RowReader,
-		field: 'overtime_consented_at' | 'normal_hours_redistribution_agreed_at'
-	) => {
+	const evidence = (reader: RowReader, field: string) => {
 		const value = reader.text(field);
 		if (value == null) return undefined;
 		if (
@@ -175,20 +180,26 @@ function longFormOvertimeRows(table: SheetTable): readonly OvertimeImportRow[] {
 		}
 		return new Date(value).toISOString();
 	};
+	// Every other column is a declared work-day input; one holding a date-time is an instant.
+	const factColumns = table.headers.filter(
+		(header) => header.trim() !== '' && !LONG_FORM_OVERTIME_COLUMNS.includes(header)
+	);
 	const parsed = readRows(table, identifyPersonDay, (reader) => {
 		const employee_number = reader.requiredText('employee_number') ?? '';
 		const work_date = reader.calendarDate('work_date') ?? '';
 		const text = reader.text('overtime_hours');
 		const overtime_consented_at = evidence(reader, 'overtime_consented_at');
-		const normal_hours_redistribution_agreed_at = evidence(
-			reader,
-			'normal_hours_redistribution_agreed_at'
+		const inputs = Object.fromEntries(
+			factColumns.flatMap((column) => {
+				const value = reader.text(column);
+				if (value == null) return [];
+				const instant = /^\d{4}-\d{2}-\d{2}T/.test(value) ? evidence(reader, column) : value;
+				return instant == null ? [] : [[column, instant] as const];
+			})
 		);
 		const facts = {
 			...(overtime_consented_at == null ? {} : { overtime_consented_at }),
-			...(normal_hours_redistribution_agreed_at == null
-				? {}
-				: { normal_hours_redistribution_agreed_at })
+			...(Object.keys(inputs).length === 0 ? {} : { facts: inputs })
 		};
 		if (text == null) return { employee_number, work_date, overtime_hours: 0, ...facts };
 		const value = decodeNumber(text);
@@ -198,9 +209,7 @@ function longFormOvertimeRows(table: SheetTable): readonly OvertimeImportRow[] {
 		}
 		return { employee_number, work_date, overtime_hours: value, ...facts };
 	});
-	return parsed.filter(
-		(row) => row.overtime_hours > 0 || row.normal_hours_redistribution_agreed_at != null
-	);
+	return parsed.filter((row) => row.overtime_hours > 0 || row.facts != null);
 }
 
 /**

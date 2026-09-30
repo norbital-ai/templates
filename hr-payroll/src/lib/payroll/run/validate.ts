@@ -45,17 +45,23 @@ export function validateConfiguration(configuration: Configuration): RunIssue[] 
 
 	// Every rate band must settle under a pay item of its own (line:label), or the run has no
 	// component to price the hours it produces.
+	// A normal-day band (`component`) settles under the item it names.
 	for (const band of configuration.work.bands) {
-		const outputs = [OVERTIME_LINE, ...(paysIncentive(configuration.work) ? [INCENTIVE_LINE] : [])];
-		for (const line of outputs)
+		const outputs =
+			band.component != null
+				? [band.component]
+				: [OVERTIME_LINE, ...(paysIncentive(configuration.work) ? [INCENTIVE_LINE] : [])].map(
+						(line) => `${line}:${band.label}`
+					);
+		for (const output of outputs)
 			if (
 				!configuration.catalogueComponents.some(
-					(component) => component.family === 'WORK' && component.output === `${line}:${band.label}`
+					(component) => component.family === 'WORK' && component.output === output
 				)
 			)
 				blocker(
 					'WORK_BAND_COMPONENT_MISSING',
-					`${configuration.company.name} has no ${line} ${band.label} Work pay item, so the band ` +
+					`${configuration.company.name} has no ${output.replace(':', ' ')} Work pay item, so the band ` +
 						'has nothing to settle under.',
 					'companies',
 					configuration.company.id

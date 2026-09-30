@@ -11,5 +11,10 @@
 <CatalogueForm collection="claim_catalogue" {view}>
 	{#snippet limitFields()}
 		<Field name="evidence" label={bolt.t('component.evidence')} />
+		<Field
+			name="request_facts"
+			label={bolt.t('component.request_facts')}
+			help={bolt.t('component.request_facts_declaration_hint')}
+		/>
 	{/snippet}
 </CatalogueForm>

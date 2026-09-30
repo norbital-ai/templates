@@ -37,8 +37,7 @@ for (const lineage of ['MY', 'MY-nihon']) {
 					},
 					terms: {
 						statutory_wages: example.wages,
-						statutory_work_category: example.category,
-						workman: example.category.startsWith('MANUAL_LABOUR')
+						statutory_work_category: example.category
 					}
 				});
 				assert.equal(actual, example.expected);

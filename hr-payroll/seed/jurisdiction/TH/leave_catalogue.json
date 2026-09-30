@@ -118,6 +118,7 @@
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
+			"transition_review_on": "2025-12-07",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"calendar_days": true,
@@ -313,6 +314,7 @@
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
+			"transition_review_on": "2025-12-07",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"calendar_days": true,
@@ -557,6 +559,7 @@
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
+			"transition_review_on": "2025-12-07",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"calendar_days": true,
@@ -801,6 +804,7 @@
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
+			"transition_review_on": "2025-12-07",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"calendar_days": true,
@@ -1045,6 +1049,7 @@
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
+			"transition_review_on": "2025-12-07",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"calendar_days": true,
@@ -1399,6 +1404,7 @@
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
+			"transition_review_on": "2025-12-07",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"calendar_days": true,
@@ -1425,6 +1431,7 @@
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
+			"transition_review_on": "2025-12-07",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"calendar_days": true,
@@ -1777,6 +1784,7 @@
 		"eligibility": "employee.gender == \"FEMALE\"",
 		"entitlement": {
 			"availability": "PER_EVENT",
+			"transition_review_on": "2025-12-07",
 			"year_start_month": 1,
 			"proration": "NONE",
 			"calendar_days": true,

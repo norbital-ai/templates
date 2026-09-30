@@ -43,6 +43,9 @@ const c = collection('statutory_contributions', {
 				'rules',
 				'assessed_on',
 				'ordinary_on',
+				'history_trigger',
+				'deduction_categories',
+				'child_claims_hint',
 				'parts',
 				'short_name',
 				'listing_order',
@@ -70,6 +73,9 @@ const c = collection('statutory_contributions', {
 				'rules',
 				'assessed_on',
 				'ordinary_on',
+				'history_trigger',
+				'deduction_categories',
+				'child_claims_hint',
 				'parts',
 				'short_name',
 				'listing_order',
@@ -91,6 +97,11 @@ type Scheme = {
 	readonly remittance_rounding_when?: string;
 	readonly assessed_on?: string;
 	readonly ordinary_on?: string;
+	readonly history_trigger?: {
+		readonly less_employee_of: readonly string[];
+		readonly ordinary_threshold: Readonly<Record<'MONTHLY' | 'SEMI_MONTHLY' | 'WEEKLY', number>>;
+		readonly authority: string;
+	} | null;
 	readonly elections?: readonly DeclaredKey[];
 	readonly parts?: readonly string[];
 };
@@ -173,11 +184,29 @@ c.transform(async (inputs, ctx) => {
 			});
 			if (fault != null) ctx.refuse(`${what} remittance-rounding condition: ${fault}`);
 		}
+		const trigger = row.history_trigger;
+		if (trigger != null) {
+			if (trigger.authority.trim() === '')
+				ctx.refuse(`${what}: a history trigger cites the law that states it.`);
+			if (
+				!Object.values(trigger.ordinary_threshold).every(
+					(value) => Number.isFinite(value) && value >= 0
+				)
+			)
+				ctx.refuse(`${what}: a history trigger states a non-negative threshold for every cadence.`);
+		}
 		const assessedOn = row.assessed_on ?? '';
 		const others = siblings.filter(
 			(other) =>
 				other.settings_id === row.settings_id && other.id !== row.id && other.code !== row.code
 		);
+		const schemeCodes = new Set([
+			...others.map((other) => other.code),
+			...pending.filter((other) => other.settings_id === row.settings_id).map((other) => other.code)
+		]);
+		for (const code of trigger?.less_employee_of ?? [])
+			if (!schemeCodes.has(code))
+				ctx.refuse(`${what}: the history trigger deducts ${code}, not a scheme of this version.`);
 		const fault = schemeFault(
 			{
 				rules,

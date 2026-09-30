@@ -19,44 +19,10 @@ export default model({
 			shape: { kind: 'list', of: { kind: 'period', of: 'instant' } },
 			optional: true
 		},
-		/** SG EA s.88A(5): the employer's dated permission decision for an absence. */
-		sg_absence_permission: { kind: 'enum', values: ['YES', 'NO'], optional: true },
-		/** SG EA s.88A(5): whether a reasonable excuse was established for that absence. */
-		sg_absence_reasonable_excuse: { kind: 'enum', values: ['YES', 'NO'], optional: true },
-		/** The dated absence/permission/excuse decision's supporting record. */
-		sg_absence_decision_reference: { kind: 'text', optional: true },
-		/** A shorter-than-scheduled absence cannot be counted as a whole working day. */
-		sg_partial_absence: { kind: 'bool', optional: true },
 		/** Planned overtime within the statutory limits, in half-hour steps; the transform refuses more than the headroom. */
 		approved_overtime_hours: { kind: 'decimal', scale: 2, min: 0, optional: true },
-		/** The worker's consent to this particular overtime or holiday-work occasion (LPA ss.24–25). */
+		/** The worker's consent to this particular overtime or holiday-work occasion (`work_rules.overtime_consent`). */
 		overtime_consented_at: { kind: 'instant', optional: true },
-		/** TH LPA ss.24–25: a recorded reason that dispenses with consent for this occasion. */
-		th_consent_exception: {
-			kind: 'enum',
-			values: [
-				'CONTINUOUS_DAMAGE_IF_STOPPED',
-				'EMERGENCY',
-				'HOLIDAY_HOTEL',
-				'HOLIDAY_ENTERTAINMENT',
-				'HOLIDAY_TRANSPORT',
-				'HOLIDAY_FOOD_SHOP',
-				'HOLIDAY_DRINK_SHOP',
-				'HOLIDAY_CLUB',
-				'HOLIDAY_ASSOCIATION',
-				'HOLIDAY_MEDICAL_FACILITY'
-			],
-			optional: true
-		},
-		/** Document proving the continuous-work necessity, emergency or s.25 business classification. */
-		th_consent_exception_reference: { kind: 'text', optional: true },
-		/** TH LPA s.27: the prior agreement to split the day's one-hour rest into shorter breaks. */
-		th_split_break_agreed_at: { kind: 'instant', optional: true },
-		/** TH LPA s.47: the prior written Director-General permission for under-18 night work. */
-		th_minor_night_permission_granted_at: { kind: 'instant', optional: true },
-		th_minor_night_permission_reference: { kind: 'text', optional: true },
-		/** Agreement to redistribute this normal day above eight hours (LPA s.23). */
-		normal_hours_redistribution_agreed_at: { kind: 'instant', optional: true },
 		/** Similar full-time employee's normal hours on this day, overriding the terms' usual day. */
 		comparable_full_time_daily_hours: {
 			kind: 'decimal',
@@ -78,7 +44,9 @@ export default model({
 		/** Extra hours forced by a disaster, accident or emergency (TW 勞基法 §32(4)). */
 		emergency_cause: { kind: 'bool', optional: true },
 		/** The worker elected time off in lieu of the day's overtime pay (TW 勞基法 §32-1). */
-		time_off_in_lieu: { kind: 'bool', optional: true }
+		time_off_in_lieu: { kind: 'bool', optional: true },
+		/** Jurisdiction inputs the lineage declares in `work_day_facts`; `day_facts.<key>`. */
+		facts: { kind: 'custom', of: 'entity_facts', default: {} }
 	},
 	unique: [{ fields: ['employment_id', 'work_date'] }],
 	index: ['work_date']

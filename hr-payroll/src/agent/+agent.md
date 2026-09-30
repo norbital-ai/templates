@@ -64,7 +64,7 @@ What they ask of you:
 - **Handing out a period:** `automation.payroll_export` with the runs' ids and a `kind`
   (`bank-files`, `payslip-pdfs`, `payroll-report-xlsx`, `catalogue-entries-xlsx`,
   `income-tax-returns`).
-- **IR21 remittances:** `payment_holds.ir21_remittance_status` for an entity as of a day.
+- **Tax-clearance remittances:** `payment_holds.tax_clearance_remittance_status` for an entity as of a day.
 - **Turnover** is employments ending in a month over the month's average headcount (the People
   page's chart). A leaver is an `employments` row whose `effective_range` ends in that month;
   `exit_reason` says why. Answer with one `aggregate` over `employments` filtered by the month and

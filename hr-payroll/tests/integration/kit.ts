@@ -41,10 +41,14 @@ export async function recordNihonBirthDates(t: Awaited<ReturnType<typeof workspa
 		});
 }
 
-/** A declared Peninsular worksite for Nihon's otherwise state-less sample terms. */
+/**
+ * A declared Peninsular worksite (`terms.facts.worksite_state`) for Nihon's otherwise state-less
+ * sample terms.
+ */
 export async function recordNihonWorksites(t: Awaited<ReturnType<typeof workspace>>) {
 	await t.db.write({
-		text: `UPDATE employment_terms SET worksite_state = $1
+		text: `UPDATE employment_terms
+		       SET facts = COALESCE(facts, '{}'::jsonb) || jsonb_build_object('worksite_state', $1::text)
 		       WHERE employment_id IN (SELECT id FROM employments WHERE company_id = $2)`,
 		params: ['SELANGOR', NIHON_MY]
 	});

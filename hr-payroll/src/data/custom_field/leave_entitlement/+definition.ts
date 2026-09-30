@@ -27,6 +27,7 @@ const f = customField({
 			calendar_days: { kind: 'bool', optional: true },
 			calendar_months: { kind: 'bool', optional: true },
 			lifetime_events: { kind: 'int', min: 1, optional: true },
+			transition_review_on: { kind: 'text', optional: true },
 			consumes_after_days: { kind: 'number', min: 0, optional: true },
 			lifetime_days: { kind: 'json', optional: true },
 			child_lifetime: {
@@ -48,6 +49,14 @@ const f = customField({
 			encash_carry_on_exit_when: { kind: 'text', optional: true },
 			scale: { kind: 'text', optional: true },
 			outpatient_sick_excludes_shift_allowance: { kind: 'bool', optional: true },
+			service_excludes_no_pay: {
+				kind: 'enum',
+				values: ['EMPLOYEE_REQUESTED_FULL_DAYS'],
+				optional: true
+			},
+			replans_on_no_pay: { kind: 'bool', optional: true },
+			locks_attendance_after_use: { kind: 'bool', optional: true },
+			forfeit_above_absence_share: { kind: 'number', min: 0, max: 1, optional: true },
 			bands: {
 				kind: 'list',
 				of: { kind: 'object', fields: { eligibility: { kind: 'text' }, days: { kind: 'json' } } }

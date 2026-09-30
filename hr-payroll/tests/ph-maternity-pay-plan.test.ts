@@ -1,20 +1,28 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import cases from '../src/data/collection/ph_maternity_cases/+collection.ts';
-import cutoffs from '../src/data/collection/ph_maternity_pay_cutoffs/+collection.ts';
-import plans from '../src/data/collection/ph_maternity_pay_plans/+collection.ts';
-import monthsCollection from '../src/data/collection/sss_contribution_months/+collection.ts';
-import movements from '../src/data/collection/ph_maternity_movements/+collection.ts';
+import cases from '../src/data/collection/benefit_cases/+collection.ts';
+import cutoffs from '../src/data/collection/benefit_case_cutoffs/+collection.ts';
+import plans from '../src/data/collection/benefit_case_plans/+collection.ts';
+import monthsCollection from '../src/data/collection/contribution_statement_months/+collection.ts';
+import movements from '../src/data/collection/benefit_case_movements/+collection.ts';
 import { caller, query, transform } from './helpers/bodies.ts';
+import { lineageTables } from './fixtures/benefit-cases.ts';
+
+const lineage = lineageTables({
+	id: 'employment-1',
+	employee_id: 'mother',
+	company_id: 'company-1'
+});
 
 const caseRow = {
 	id: 'case-1',
 	employee_id: 'mother',
 	employment_id: 'employment-1',
+	case_type: 'MATERNITY_LEAVE',
 	case_reference: 'MBA-2026-1',
 	application_on: '2026-09-01',
-	expected_delivery_on: '2026-10-05',
+	expected_event_on: '2026-10-05',
 	leave_from: '2026-10-05',
 	leave_through: '2027-01-17'
 };
@@ -23,15 +31,16 @@ const months = Array.from({ length: 12 }, (_, index) => {
 	return {
 		id: `sss-${day}`,
 		employee_id: 'mother',
+		scheme_code: 'SSS',
 		coverage_month: day,
-		regular_msc: '20000.00',
+		credited_amount: '20000.00',
 		paid_on: '2026-06-30',
 		source_reference: `SSS-STATEMENT-${day}`,
 		evidence_file: { path: `sss-statement-${day}.pdf` }
 	};
 });
 const planInput = {
-	ph_maternity_case_id: 'case-1',
+	benefit_case_id: 'case-1',
 	basis_method: 'DOCUMENTED_MONTHLY_EQUIVALENT',
 	monthly_full_pay_basis: '31300.00',
 	qualifying_allowances_assessed: true,
@@ -42,12 +51,12 @@ const planInput = {
 test('prebirth PH plan freezes twelve paid SSS months and reports overdue or actual-award true-up', async () => {
 	const [created] = await transform(plans, [planInput], {
 		now: '2026-09-20T00:00:00.000Z',
-		tables: { ph_maternity_cases: [caseRow], sss_contribution_months: months }
+		tables: { ...lineage, benefit_cases: [caseRow], contribution_statement_months: months }
 	});
-	assert.equal(created.contingency_basis_kind, 'EXPECTED_BIRTH');
-	assert.equal(created.candidate_sss_amount, 70000);
+	assert.equal(created.event_basis_kind, 'EXPECTED_EVENT');
+	assert.equal(created.candidate_amount, 70000);
 	assert.equal(created.advance_due_on, '2026-10-01');
-	assert.equal(JSON.parse(created.sss_history_snapshot).length, 12);
+	assert.equal(JSON.parse(created.history_snapshot).length, 12);
 	const plan = { id: 'plan-1', ...created };
 	const overdue = await query(
 		plans,
@@ -55,9 +64,10 @@ test('prebirth PH plan freezes twelve paid SSS months and reports overdue or act
 		{ plan_id: 'plan-1', as_of: '2026-10-02' },
 		caller({
 			tables: {
-				ph_maternity_pay_plans: [plan],
-				ph_maternity_cases: [caseRow],
-				sss_contribution_months: months
+				...lineage,
+				benefit_case_plans: [plan],
+				benefit_cases: [caseRow],
+				contribution_statement_months: months
 			}
 		})
 	);
@@ -68,13 +78,15 @@ test('prebirth PH plan freezes twelve paid SSS months and reports overdue or act
 		{ plan_id: 'plan-1', as_of: '2026-10-02' },
 		caller({
 			tables: {
-				ph_maternity_pay_plans: [plan],
-				ph_maternity_cases: [caseRow],
-				sss_contribution_months: months,
-				ph_maternity_movements: [
+				...lineage,
+				benefit_case_plans: [plan],
+				benefit_cases: [caseRow],
+				contribution_statement_months: months,
+				benefit_case_movements: [
 					{
-						ph_maternity_case_id: 'case-1',
+						benefit_case_id: 'case-1',
 						kind: 'SSS_ADVANCE',
+						direction: 'EMPLOYEE_PAYMENT',
 						paid_on: '2026-09-30',
 						amount: '70000.00'
 					}
@@ -88,8 +100,8 @@ test('prebirth PH plan freezes twelve paid SSS months and reports overdue or act
 		...caseRow,
 		event_kind: 'BIRTH',
 		event_on: '2026-10-05',
-		solo_parent_claimed: false,
-		sss_award_amount: '71000.00'
+		facts: { solo_parent_claimed: false },
+		award_amount: '71000.00'
 	};
 	const paid = await query(
 		plans,
@@ -97,14 +109,16 @@ test('prebirth PH plan freezes twelve paid SSS months and reports overdue or act
 		{ plan_id: 'plan-1', as_of: '2026-10-25' },
 		caller({
 			tables: {
-				ph_maternity_pay_plans: [plan],
-				ph_maternity_cases: [awarded],
-				sss_contribution_months: months,
-				ph_maternity_movements: [
+				...lineage,
+				benefit_case_plans: [plan],
+				benefit_cases: [awarded],
+				contribution_statement_months: months,
+				benefit_case_movements: [
 					{
-						ph_maternity_case_id: 'case-1',
-						ph_maternity_pay_plan_id: 'plan-1',
+						benefit_case_id: 'case-1',
+						benefit_case_plan_id: 'plan-1',
 						kind: 'SSS_ADVANCE',
+						direction: 'EMPLOYEE_PAYMENT',
 						paid_on: '2026-09-30',
 						amount: '70000.00',
 						evidence_file: { path: 'bank-credit.pdf' }
@@ -126,8 +140,9 @@ test('PH plan refuses incomplete SSS history and freezes referenced source month
 		transform(plans, [planInput], {
 			now: '2026-09-20T00:00:00.000Z',
 			tables: {
-				ph_maternity_cases: [caseRow],
-				sss_contribution_months: [{ ...months[0], evidence_file: null }, ...months.slice(1)]
+				...lineage,
+				benefit_cases: [caseRow],
+				contribution_statement_months: [{ ...months[0], evidence_file: null }, ...months.slice(1)]
 			}
 		}),
 		/attached contribution statement/
@@ -135,13 +150,17 @@ test('PH plan refuses incomplete SSS history and freezes referenced source month
 	await assert.rejects(
 		transform(plans, [planInput], {
 			now: '2026-09-20T00:00:00.000Z',
-			tables: { ph_maternity_cases: [caseRow], sss_contribution_months: months.slice(1) }
+			tables: {
+				...lineage,
+				benefit_cases: [caseRow],
+				contribution_statement_months: months.slice(1)
+			}
 		}),
-		/all twelve SSS contribution months/
+		/all 12 SSS contribution months/
 	);
 	const [created] = await transform(plans, [planInput], {
 		now: '2026-09-20T00:00:00.000Z',
-		tables: { ph_maternity_cases: [caseRow], sss_contribution_months: months }
+		tables: { ...lineage, benefit_cases: [caseRow], contribution_statement_months: months }
 	});
 	const first = { id: 'plan-1', ...created };
 	const [revision] = await transform(
@@ -150,9 +169,10 @@ test('PH plan refuses incomplete SSS history and freezes referenced source month
 		{
 			now: '2026-09-20T00:00:00.000Z',
 			tables: {
-				ph_maternity_cases: [caseRow],
-				sss_contribution_months: months,
-				ph_maternity_pay_plans: [first]
+				...lineage,
+				benefit_cases: [caseRow],
+				contribution_statement_months: months,
+				benefit_case_plans: [first]
 			}
 		}
 	);
@@ -165,52 +185,61 @@ test('PH plan refuses incomplete SSS history and freezes referenced source month
 			{ plan_id: 'plan-1', as_of: '2026-09-20' },
 			caller({
 				tables: {
-					ph_maternity_cases: [caseRow],
-					ph_maternity_pay_plans: [first, { id: 'plan-2', ...revision }],
-					sss_contribution_months: months
+					...lineage,
+					benefit_cases: [caseRow],
+					benefit_case_plans: [first, { id: 'plan-2', ...revision }],
+					contribution_statement_months: months
 				}
 			})
 		),
 		/superseded before cash/
 	);
 	const tables = {
-		ph_maternity_cases: [caseRow],
-		ph_maternity_pay_plans: [first, { id: 'plan-2', ...revision }],
-		ph_maternity_movements: [
-			{ ph_maternity_case_id: 'case-1', ph_maternity_pay_plan_id: 'plan-2', kind: 'SSS_ADVANCE' }
+		...lineage,
+		benefit_cases: [caseRow],
+		benefit_case_plans: [first, { id: 'plan-2', ...revision }],
+		benefit_case_movements: [
+			{
+				benefit_case_id: 'case-1',
+				benefit_case_plan_id: 'plan-2',
+				kind: 'SSS_ADVANCE',
+				direction: 'EMPLOYEE_PAYMENT'
+			}
 		]
 	};
 	await assert.rejects(
 		transform(plans, [{ ...planInput, basis_reference: 'TOO-LATE' }], {
 			now: '2026-09-20T00:00:00.000Z',
-			tables: { ...tables, sss_contribution_months: months }
+			tables: { ...tables, contribution_statement_months: months }
 		}),
 		/cannot be created or superseded after employee cash/
 	);
 	await assert.rejects(
-		transform(monthsCollection, [{ regular_msc: '19000.00' }], { existing: [months[0]], tables }),
-		/used by a frozen PH maternity advance plan cannot change/
+		transform(monthsCollection, [{ credited_amount: '19000.00' }], {
+			existing: [months[0]],
+			tables
+		}),
+		/used by a frozen advance plan cannot change/
 	);
 	await assert.rejects(
-		transform(cases, [{ expected_delivery_on: '2026-10-06' }], {
+		transform(cases, [{ expected_event_on: '2026-10-06' }], {
 			existing: [caseRow],
 			tables: {
-				...tables,
-				employments: [{ id: 'employment-1', employee_id: 'mother', company_id: 'company-1' }],
-				companies: [{ id: 'company-1', settings_code: 'PH' }]
+				...lineage,
+				...tables
 			}
 		}),
-		/funded maternity expected contingency cannot change/
+		/funded benefit expected event cannot change/
 	);
 });
 
 test('PH cash cannot pin an active candidate after its sourced SSS months changed', async () => {
 	const [created] = await transform(plans, [planInput], {
 		now: '2026-09-20T00:00:00.000Z',
-		tables: { ph_maternity_cases: [caseRow], sss_contribution_months: months }
+		tables: { ...lineage, benefit_cases: [caseRow], contribution_statement_months: months }
 	});
 	const cash = {
-		ph_maternity_case_id: 'case-1',
+		benefit_case_id: 'case-1',
 		kind: 'SSS_ADVANCE',
 		paid_on: '2026-09-30',
 		amount: '70000.00',
@@ -218,49 +247,49 @@ test('PH cash cannot pin an active candidate after its sourced SSS months change
 		evidence_file: { path: 'bank-credit.pdf' }
 	};
 	const tables = {
-		ph_maternity_cases: [caseRow],
-		ph_maternity_pay_plans: [{ id: 'plan-1', ...created }],
-		sss_contribution_months: months
+		...lineage,
+		benefit_cases: [caseRow],
+		benefit_case_plans: [{ id: 'plan-1', ...created }],
+		contribution_statement_months: months
 	};
 	const [pinned] = await transform(movements, [cash], { tables });
-	assert.equal(pinned.ph_maternity_pay_plan_id, 'plan-1');
-	const staleMonths = [{ ...months[0], regular_msc: '19000.00' }, ...months.slice(1)];
+	assert.equal(pinned.benefit_case_plan_id, 'plan-1');
+	const staleMonths = [{ ...months[0], credited_amount: '19000.00' }, ...months.slice(1)];
 	await assert.rejects(
 		query(
 			plans,
 			'advance_status',
 			{ plan_id: 'plan-1', as_of: '2026-09-30' },
-			caller({ tables: { ...tables, sss_contribution_months: staleMonths } })
+			caller({ tables: { ...tables, contribution_statement_months: staleMonths } })
 		),
-		/stale SSS source months/
+		/stale contribution-statement months/
 	);
 	await assert.rejects(
 		transform(movements, [cash], {
 			tables: {
+				...lineage,
 				...tables,
-				sss_contribution_months: staleMonths
+				contribution_statement_months: staleMonths
 			}
 		}),
-		/stale SSS source months/
+		/stale contribution-statement months/
 	);
 });
 
 test('PH sourced cutoff rows refuse overlapping leave slices and unproved premium shares', async () => {
 	const input = {
-		ph_maternity_pay_plan_id: 'plan-1',
+		benefit_case_plan_id: 'plan-1',
 		cutoff_reference: 'OCT-2026',
 		payroll_period: '2026-10',
 		salary_window: { from: '2026-10-01', to: '2026-10-31' },
 		leave_slice: { from: '2026-10-05', to: '2026-10-31' },
 		pay_on: '2026-10-31',
 		premium_basis: 'STATUTORY_PROJECTION',
-		employee_sss_share: '700.00',
-		employee_philhealth_share: '400.00',
-		employee_pagibig_share: '100.00',
+		premium_shares: { SSS: 700, PHIC: 400, HDMF: 100 },
 		premium_reference: 'CONTRIBUTION-PROJECTION-1',
 		premium_file: { path: 'premium-projection.pdf' }
 	};
-	const tables = { ph_maternity_pay_plans: [{ id: 'plan-1' }] };
+	const tables = { benefit_case_plans: [{ id: 'plan-1' }] };
 	await transform(cutoffs, [input], { tables });
 	await assert.rejects(
 		transform(cutoffs, [input, { ...input, cutoff_reference: 'OVERLAP' }], { tables }),

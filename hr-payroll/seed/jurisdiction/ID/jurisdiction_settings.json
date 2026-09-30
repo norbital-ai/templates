@@ -294,9 +294,11 @@
 				},
 				"workplace_keyed": true,
 				"standalone_workplaces": ["Provinsi DKI Jakarta"],
-				"kbli_edition": "2020",
-				"kbli_2025_from": "2025-12-18",
-				"kbli_2025_to_2020": {
+				"sector_code_pattern": "^[0-9]{5}$",
+				"sector_editions": ["2020", "2025"],
+				"sector_edition": "2020",
+				"sector_edition_from": "2025-12-18",
+				"sector_edition_map": {
 					"01262": "01262",
 					"07221": "07301",
 					"07293": "07293",
@@ -542,13 +544,13 @@
 				"verified_ordinary_sectors": [
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": "62019"
+						"sector_code": "62019"
 					}
 				],
 				"monthly_by_sector": [
 					{
 						"place": "Provinsi Bali",
-						"kbli": [
+						"sector_codes": [
 							"55110",
 							"55120",
 							"55130",
@@ -573,53 +575,57 @@
 							"56306"
 						],
 						"when": "employment.service_years < 1",
+						"valid_when": "!(terms.facts.worksite_sector_edition == \"2025\" && terms.worksite_sector in [\"55101\", \"55102\", \"55103\", \"55104\", \"55105\"]) || (terms.worksite_sector == \"55101\" && company.facts.umsp_hotel_star == 5) || (terms.worksite_sector == \"55102\" && company.facts.umsp_hotel_star == 4) || (terms.worksite_sector == \"55103\" && company.facts.umsp_hotel_star == 3) || (terms.worksite_sector == \"55104\" && company.facts.umsp_hotel_star == 2) || (terms.worksite_sector == \"55105\" && company.facts.umsp_hotel_star == 1)",
+						"validation_message": "KBLI 2025 hotel star class conflicts with the dated employer hotel-star evidence.",
 						"amount": 3052834
 					},
 					{
 						"place": "Provinsi Bali/Kabupaten Badung",
-						"kbli": ["55110"],
+						"sector_codes": ["55110"],
 						"when": "employment.service_years < 1 && company.facts.umsp_hotel_star == 5",
+						"valid_when": "!(terms.facts.worksite_sector_edition == \"2025\" && terms.worksite_sector in [\"55101\", \"55102\", \"55103\", \"55104\", \"55105\"]) || (terms.worksite_sector == \"55101\" && company.facts.umsp_hotel_star == 5) || (terms.worksite_sector == \"55102\" && company.facts.umsp_hotel_star == 4) || (terms.worksite_sector == \"55103\" && company.facts.umsp_hotel_star == 3) || (terms.worksite_sector == \"55104\" && company.facts.umsp_hotel_star == 2) || (terms.worksite_sector == \"55105\" && company.facts.umsp_hotel_star == 1)",
+						"validation_message": "KBLI 2025 hotel star class conflicts with the dated employer hotel-star evidence.",
 						"amount": 3569682.27
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kota Semarang",
-						"kbli": ["42930", "43905"],
+						"sector_codes": ["42930", "43905"],
 						"when": "employment.service_years < 1",
 						"amount": 3627568
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kota Semarang",
-						"kbli": ["29300", "14111", "22220", "22291", "15202", "15203"],
+						"sector_codes": ["29300", "14111", "22220", "22291", "15202", "15203"],
 						"when": "employment.service_years < 1",
 						"amount": 3541198
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kota Semarang",
-						"kbli": ["12012", "12019"],
+						"sector_codes": ["12012", "12019"],
 						"when": "employment.service_years < 1",
 						"amount": 3472101
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Jepara",
-						"kbli": ["29300"],
+						"sector_codes": ["29300"],
 						"when": "employment.service_years < 1 && company.facts.umsp_large_business",
 						"amount": 2701582
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Jepara",
-						"kbli": ["14111", "15121", "15201", "15202", "15203"],
+						"sector_codes": ["14111", "15121", "15201", "15202", "15203"],
 						"when": "employment.service_years < 1 && company.facts.umsp_large_business",
 						"amount": 2675480
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Jepara",
-						"kbli": ["12012", "12019"],
+						"sector_codes": ["12012", "12019"],
 						"when": "employment.service_years < 1 && company.facts.umsp_large_business",
 						"amount": 2636326
 					},
 					{
 						"place": "Provinsi Kalimantan Barat",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 2884500
 					}
@@ -627,6 +633,38 @@
 				"applies_when": "",
 				"terms_when": "terms.monthly_basic >= 0.75 * (terms.monthly_basic + terms.fixed_allowances)",
 				"block_terms_when": true,
+				"contract_rules": [
+					{
+						"key": "wage_scale_recorded",
+						"when": "employment.service_years >= 1",
+						"holds": "terms.facts.wage_scale_grade != \"\" && terms.facts.wage_scale_reference != \"\" && terms.facts.wage_scale_effective_on != \"\" && terms.facts.wage_scale_effective_on <= employment.rule_date && terms.facts.wage_scale_notice_on != \"\" && terms.facts.wage_scale_notice_on <= employment.rule_date && terms.facts.wage_scale_basic_minimum > 0.0",
+						"severity": "BLOCKER",
+						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum before pricing service of one year or more.",
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts)."
+					},
+					{
+						"key": "wage_scale_minimum",
+						"when": "employment.service_years >= 1",
+						"holds": "round_cent(terms.monthly_basic) >= round_cent(terms.facts.wage_scale_basic_minimum)",
+						"severity": "BLOCKER",
+						"message": "basic wage is below the company's wage-scale grade minimum.",
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: the basic wage is at least the basic-wage minimum of the worker's grade in the company scale."
+					},
+					{
+						"key": "output_wage_valued",
+						"when": "terms.statutory_work_category in [\"PIECE_RATE\", \"TASK_BASIS\"]",
+						"holds": "terms.basic_salary > 0.0",
+						"severity": "BLOCKER",
+						"message": "pure output wages need the agreed result rate, recorded units and twelve months of paid wages before the statutory monthly wage can be verified (PP 36/2021 arts.18–19).",
+						"authority": "PP 36/2021 arts.18–19"
+					}
+				],
+				"hourly_floor": {
+					"from_monthly_divisor": 126,
+					"allowed_when": "employment.type == \"PART_TIME\"",
+					"refusal": "PP 36/2021 art.16 permits an hourly wage only for part-time work.",
+					"authority": "PP 36/2021 art.16"
+				},
 				"block_below_when": "true",
 				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.798-Kesra/2024, effective 1 January 2025. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. Applied 2026-09-28 (round 3): the 2025 UMP, each in force from 1 January 2025, for the provinces whose own decree or government publication states it: Provinsi Kepulauan Bangka Belitung Rp3,876,600 — Kep. Gubernur Babel 188.44/628/DISNAKER/2024, signed copy on Disnaker Babel (diktum KEDUA, KEENAM); Provinsi Sulawesi Tenggara Rp3,073,551.70 — Kep. Gubernur Sultra 100.3.3.1/470 Tahun 2024, per the Pemprov Sultra portal; Provinsi Banten Rp2,905,119.90, Provinsi Sumatera Utara Rp2,992,559, Provinsi Kepulauan Riau Rp3,623,654 and Provinsi Gorontalo Rp3,221,731 — each the 2025 figure the provincial government states in its own 2026 announcement; Provinsi Papua Barat Rp3,615,000 — Pemprov Papua Barat announcement of 17 Dec 2024 (from 1 January 2025); Provinsi Sulawesi Tengah Rp2,915,000 — Pemprov Sulteng announcement of the 2025 wage council decision; Provinsi Papua Rp4,285,850 — the Pemprov Papua 2026 announcement’s Rp4,436,283 less its stated Rp150,433 rise, matching the Kemnaker 2025 compilation. A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency with no UMK (Perpres 82/2018 art.32(3); Permenaker 16/2024 art.12); a province not listed, or a city or regency with its own UMK, refuses rather than falls back. Applied 2026-09-28 (round 4): Provinsi Nusa Tenggara Timur Rp2,328,969.69 — Kep. Gubernur NTT 430/KEP/HK/2024 of 11 Dec 2024, 1 January–31 December 2025, per the Biro Administrasi Pimpinan Setda NTT announcement of 12 Dec 2024 (Kota Kupang has its own UMK and refuses). The other 2025 provincial decrees were not read (register ID-128–ID-160). Applied 2026-09-28 (engine defect 6/20): `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, read at the worksite the terms record (`employment_terms.worksite`), else the company’s region; a locality key overrides its province and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). Bali from 1 January 2025: UMP Rp2,996,561 (Kep.939/03-M/HK/2024, Bali Disnaker announcement B.21.500.15/17565/IV/DISNAKER.ESDM); UMKs Badung Rp3,534,338.88, Denpasar Rp3,298,116.50, Gianyar Rp3,119,080, Tabanan Rp3,102,520.45 (Kep.946/03-M/HK/2024, Disnaker announcement B.21.500.15/18055/IV/DISNAKER.ESDM). That announcement expressly assigns Bangli, Buleleng, Jembrana, Karangasem and Klungkung to the UMP/UMSP; the named sector rows are seeded, with KBLI and hotel-star applicability requiring affirmative classification. Banten from 1 January 2025: all eight city/regency UMKs of Kep. Gubernur Banten 471 Tahun 2024 (17 Dec 2024), as enumerated by the provincial government on 18 Dec 2024; their exact values are also the 2025 comparison column in signed Kep.703 Tahun 2025 Lampiran. All eight localities have their own UMK; UMSP/UMSK selectors remain unseeded. UU 13/2003 art.22(1)–(3): a lawful apprenticeship needs a written apprenticeship agreement with rights, duties and duration; absent it, the participant becomes the company’s worker. The law does not exempt an employee labelled INTERN or APPRENTICE from the worker minimum wage. The floor therefore covers every employment row (`applies_when` empty); a genuine nonemployee apprenticeship and its stipend require verified legal-status facts and a separate path, not a label-based payroll exemption. Added 2026-09-29 from official provincial instruments, effective 1 January 2025 unless specified: Kepri seven named locality floors from the province's 2025 comparison table (Tanjungpinang and Lingga equal the UMP); Jawa Timur all 38 UMKs from signed Kep.775/2024; Jawa Tengah all 35 UMKs and Semarang UMSK from signed Kep.561/45/2024, plus the Jepara large-business UMSK amendment Kep.100.3.3.1/45/2025 effective 10 February 2025; Riau all 12 locality floors from Pemprov Media Center's exact-sen 2025 comparison; DIY all five UMKs from Disnakertrans; Lampung UMP Rp2,893,070, five UMKs and ten named UMP-floor regencies from Lampung JDIH and Disnakertrans. Bali 2025 UMSP is KBLI-2020 category I at Rp3,052,834; Badung five-star hotel KBLI 55110 UMSK is Rp3,569,682.27. Applicability of hotel star and Jepara large-business conditions must be affirmatively classified; an unknown fact cannot default to a nonbinding condition."
 			},
@@ -643,6 +681,12 @@
 			}
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "IDR",
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
@@ -716,7 +760,21 @@
 				"https://ppid.bps.go.id/upload/doc/Klasifikasi_Baku_Lapangan_Usaha_Indonesia_2020_1715047727.pdf",
 				"https://www.setneg.go.id/"
 			],
-			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only.\n\nFinding changes (read these before comparing, every run):\nLabour: open https://jdih.kemnaker.go.id/peraturan?keyword=<term>&sort=terbaru (terms: upah, pengupahan, cuti bersama, libur, jaminan, lembur, THR, pesangon) and read the top rows (type, nomor, 'Ditetapkan' date). The detail page links the PDF under /asset/data_puu/. Tax: https://www.pajak.go.id/id/peraturan (newest first, &page=N) and https://jdih.kemenkeu.go.id/search?q=<term>&order=desc (q works; 'keyword' does not). Open /dok/pmk-<n>-tahun-<yyyy>. BPJS TK: berita.html for JP-ceiling SEs; peraturan.html for PPs. BPJS Kesehatan is an Angular shell, so find Perpres JKN changes via Kemnaker JDIH/setneg news and cite the Perpres PDF. UMP/UMK: Kemnaker announces by 1 Nov (UMP) / ~Dec; open jdih.jakarta.go.id homepage for the Kepgub. jdih.jabarprov.go.id and peraturan.bpk.go.id 403 to readers — use Wayback id_ copies or the Kemnaker/BPJS copy. Holidays: kemenkopmk.go.id/pengumuman SKB PDF is a scan; the date list is in the setneg.go.id news text. Discovery only: DDTC News, Ortax, PwC Indonesia Tax Alerts."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only.\n\nFinding changes (read these before comparing, every run):\nLabour: open https://jdih.kemnaker.go.id/peraturan?keyword=<term>&sort=terbaru (terms: upah, pengupahan, cuti bersama, libur, jaminan, lembur, THR, pesangon) and read the top rows (type, nomor, 'Ditetapkan' date). The detail page links the PDF under /asset/data_puu/. Tax: https://www.pajak.go.id/id/peraturan (newest first, &page=N) and https://jdih.kemenkeu.go.id/search?q=<term>&order=desc (q works; 'keyword' does not). Open /dok/pmk-<n>-tahun-<yyyy>. BPJS TK: berita.html for JP-ceiling SEs; peraturan.html for PPs. BPJS Kesehatan is an Angular shell, so find Perpres JKN changes via Kemnaker JDIH/setneg news and cite the Perpres PDF. UMP/UMK: Kemnaker announces by 1 Nov (UMP) / ~Dec; open jdih.jakarta.go.id homepage for the Kepgub. jdih.jabarprov.go.id and peraturan.bpk.go.id 403 to readers — use Wayback id_ copies or the Kemnaker/BPJS copy. Holidays: kemenkopmk.go.id/pengumuman SKB PDF is a scan; the date list is in the setneg.go.id news text. Discovery only: DDTC News, Ortax, PwC Indonesia Tax Alerts.",
+			"research_domains": [
+				"https://peraturan.bpk.go.id",
+				"https://jdih.kemnaker.go.id",
+				"https://jdih.kemenkeu.go.id",
+				"https://www.setneg.go.id",
+				"https://setneg.go.id",
+				"https://pajak.go.id",
+				"https://www.pajak.go.id",
+				"https://www.bpjsketenagakerjaan.go.id",
+				"https://bpjs-kesehatan.go.id",
+				"https://jdih.jakarta.go.id",
+				"https://jdih.jabarprov.go.id",
+				"https://www.kemenkopmk.go.id"
+			]
 		},
 		"facts": [
 			{
@@ -913,6 +971,65 @@
 				"required_when": "employment.service_months >= 1",
 				"valid_when": "employment.exit_facts.thr_holiday_date.matches(\"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\")",
 				"validation_message": "Religious holiday the THR is judged against must be a date written YYYY-MM-DD."
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "wage_scale_grade",
+				"type": "string",
+				"label": "Company wage-scale grade",
+				"description": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: this worker's grade in the company wage structure and scale, read once service reaches one year."
+			},
+			{
+				"key": "wage_scale_basic_minimum",
+				"type": "number",
+				"minimum": 0,
+				"label": "Wage-scale basic-wage minimum",
+				"description": "The basic-wage minimum of that grade in the company scale (not the government UMP/UMK), in the terms' currency."
+			},
+			{
+				"key": "wage_scale_effective_on",
+				"type": "date",
+				"label": "Wage scale effective on",
+				"description": "The day the company wage structure and scale took effect."
+			},
+			{
+				"key": "wage_scale_notice_on",
+				"type": "date",
+				"label": "Grade notice given on",
+				"description": "The day this worker was notified of the grade."
+			},
+			{
+				"key": "wage_scale_reference",
+				"type": "string",
+				"label": "Wage scale and grade notice reference",
+				"description": "The company scale and this worker's individual grade notice; the file is its evidence.",
+				"evidence": {
+					"kind": "FILE"
+				}
+			},
+			{
+				"key": "foreign_prior_work",
+				"type": "string",
+				"label": "Prior work in Indonesia",
+				"description": "A short-contract foreigner's prior work in Indonesia, checked for the BPJS Kesehatan six-month work condition.",
+				"options": ["NONE", "ANY"]
+			},
+			{
+				"key": "foreign_prior_work_reviewed_on",
+				"type": "date",
+				"label": "Prior work reviewed on",
+				"description": "The day the prior-work record was reviewed; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "worksite_sector_edition",
+				"type": "string",
+				"label": "Worksite KBLI edition",
+				"description": "The KBLI edition the worksite sector code is stated in.",
+				"options": ["2020", "2025"]
 			}
 		],
 		"obligations": [
@@ -1475,9 +1592,11 @@
 				},
 				"workplace_keyed": true,
 				"standalone_workplaces": ["Provinsi DKI Jakarta"],
-				"kbli_edition": "2020",
-				"kbli_2025_from": "2025-12-18",
-				"kbli_2025_to_2020": {
+				"sector_code_pattern": "^[0-9]{5}$",
+				"sector_editions": ["2020", "2025"],
+				"sector_edition": "2020",
+				"sector_edition_from": "2025-12-18",
+				"sector_edition_map": {
 					"01262": "01262",
 					"07221": "07301",
 					"07293": "07293",
@@ -1733,85 +1852,89 @@
 				"verified_ordinary_sectors": [
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Banten/Kabupaten Lebak",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Banten/Kabupaten Tangerang",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Banten/Kabupaten Serang",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Banten/Kota Tangerang",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Banten/Kota Cilegon",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Kubu Raya",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Sambas",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Bengkayang",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Landak",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Ketapang",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Kayong Utara",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Jawa Barat/Kabupaten Bekasi",
-						"kbli": "62019"
+						"sector_code": "62019"
 					}
 				],
 				"monthly_by_sector": [
 					{
 						"place": "Provinsi Bali",
-						"kbli": ["55110"],
+						"sector_codes": ["55110"],
 						"when": "employment.service_years < 1",
+						"valid_when": "!(terms.facts.worksite_sector_edition == \"2025\" && terms.worksite_sector in [\"55101\", \"55102\", \"55103\", \"55104\", \"55105\"]) || (terms.worksite_sector == \"55101\" && company.facts.umsp_hotel_star == 5) || (terms.worksite_sector == \"55102\" && company.facts.umsp_hotel_star == 4) || (terms.worksite_sector == \"55103\" && company.facts.umsp_hotel_star == 3) || (terms.worksite_sector == \"55104\" && company.facts.umsp_hotel_star == 2) || (terms.worksite_sector == \"55105\" && company.facts.umsp_hotel_star == 1)",
+						"validation_message": "KBLI 2025 hotel star class conflicts with the dated employer hotel-star evidence.",
 						"amount": 3267693
 					},
 					{
 						"place": "Provinsi Bali/Kabupaten Badung",
-						"kbli": ["55110"],
+						"sector_codes": ["55110"],
 						"when": "employment.service_years < 1 && company.facts.umsp_hotel_star >= 4",
+						"valid_when": "!(terms.facts.worksite_sector_edition == \"2025\" && terms.worksite_sector in [\"55101\", \"55102\", \"55103\", \"55104\", \"55105\"]) || (terms.worksite_sector == \"55101\" && company.facts.umsp_hotel_star == 5) || (terms.worksite_sector == \"55102\" && company.facts.umsp_hotel_star == 4) || (terms.worksite_sector == \"55103\" && company.facts.umsp_hotel_star == 3) || (terms.worksite_sector == \"55104\" && company.facts.umsp_hotel_star == 2) || (terms.worksite_sector == \"55105\" && company.facts.umsp_hotel_star == 1)",
+						"validation_message": "KBLI 2025 hotel star class conflicts with the dated employer hotel-star evidence.",
 						"amount": 3828912.6
 					},
 					{
 						"place": "Provinsi Lampung",
-						"kbli": ["10434"],
+						"sector_codes": ["10434"],
 						"when": "employment.service_years < 1",
 						"amount": 3108689
 					},
 					{
 						"place": "Provinsi Jawa Timur",
-						"kbli": ["52107", "51204", "20113", "12013", "12012", "46446", "46643"],
+						"sector_codes": ["52107", "51204", "20113", "12013", "12012", "46446", "46643"],
 						"when": "employment.service_years < 1",
 						"amount": 2571426.91
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kota Surabaya",
-						"kbli": [
+						"sector_codes": [
 							"10412",
 							"10422",
 							"10423",
@@ -1872,7 +1995,7 @@
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Sidoarjo",
-						"kbli": [
+						"sector_codes": [
 							"46691",
 							"15112",
 							"24202",
@@ -1903,7 +2026,7 @@
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Gresik",
-						"kbli": [
+						"sector_codes": [
 							"55112",
 							"24102",
 							"20221",
@@ -1927,7 +2050,7 @@
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Pasuruan",
-						"kbli": [
+						"sector_codes": [
 							"10520",
 							"10801",
 							"20115",
@@ -1968,55 +2091,64 @@
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Mojokerto",
-						"kbli": ["32202", "11031", "22230", "17011", "23955", "10795"],
+						"sector_codes": ["32202", "11031", "22230", "17011", "23955", "10795"],
 						"when": "employment.service_years < 1",
 						"amount": 5328887
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Tuban",
-						"kbli": ["23941", "35111", "19211", "19214", "35121"],
+						"sector_codes": ["23941", "35111", "19211", "19214", "35121"],
 						"when": "employment.service_years < 1",
 						"amount": 3380572
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Madiun",
-						"kbli": ["30200", "29200"],
+						"sector_codes": ["30200", "29200"],
 						"when": "employment.service_years < 1",
 						"amount": 2686460
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Malang",
-						"kbli": ["21012", "20112", "20232", "17021", "12012", "12013"],
+						"sector_codes": ["21012", "20112", "20232", "17021", "12012", "12013"],
 						"when": "employment.service_years < 1",
 						"amount": 3938160
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Banyuwangi",
-						"kbli": ["07301"],
+						"sector_codes": ["07301"],
 						"when": "employment.service_years < 1",
 						"amount": 3145131
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Bangkalan",
-						"kbli": ["30111", "33111"],
+						"sector_codes": ["30111", "33111"],
 						"when": "employment.service_years < 1",
 						"amount": 2670819
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Probolinggo",
-						"kbli": ["35111", "35115", "35129", "35121", "43211"],
+						"sector_codes": ["35111", "35115", "35129", "35121", "43211"],
 						"when": "employment.service_years < 1",
 						"amount": 3317559
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["10437", "10213", "10520", "10616", "10740", "24201", "25992", "42205"],
+						"sector_codes": [
+							"10437",
+							"10213",
+							"10520",
+							"10616",
+							"10740",
+							"24201",
+							"25992",
+							"42205"
+						],
 						"when": "employment.service_years < 1",
 						"amount": 5741201
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": [
+						"sector_codes": [
 							"10734",
 							"10801",
 							"10802",
@@ -2037,19 +2169,19 @@
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["14111"],
+						"sector_codes": ["14111"],
 						"when": "employment.service_years < 1 && company.facts.umsp_export_oriented",
 						"amount": 5831497
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["15201"],
+						"sector_codes": ["15201"],
 						"when": "employment.service_years < 1 && company.facts.umsp_export_oriented",
 						"amount": 5872985
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": [
+						"sector_codes": [
 							"20118",
 							"20119",
 							"20114",
@@ -2067,79 +2199,81 @@
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["21012"],
+						"sector_codes": ["21012"],
 						"when": "employment.service_years < 1 && company.facts.umsp_assets_over_1_trillion",
 						"amount": 5741201
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["24101", "24310", "25991", "25940"],
+						"sector_codes": ["24101", "24310", "25991", "25940"],
 						"when": "employment.service_years < 1",
 						"amount": 5744066
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["27201"],
+						"sector_codes": ["27201"],
 						"when": "employment.service_years < 1",
 						"amount": 5759723
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["32202"],
+						"sector_codes": ["32202"],
 						"when": "employment.service_years < 1",
 						"amount": 5759015
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["27111", "27320", "27510"],
+						"sector_codes": ["27111", "27320", "27510"],
 						"when": "employment.service_years < 1",
 						"amount": 5812808
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["29200", "29300", "30912"],
+						"sector_codes": ["29200", "29300", "30912"],
 						"when": "employment.service_years < 1 && company.facts.umsp_astra_group",
 						"amount": 5904114
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["30911", "28160", "29101"],
+						"sector_codes": ["30911", "28160", "29101"],
 						"when": "employment.service_years < 1 && company.facts.umsp_astra_group",
 						"amount": 5943938
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["33151"],
+						"sector_codes": ["33151"],
 						"when": "employment.service_years < 1",
 						"amount": 5741336
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["58200", "61921", "61922"],
+						"sector_codes": ["58200", "61921", "61922"],
 						"when": "employment.service_years < 1",
 						"amount": 5754720
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["64121", "64122"],
+						"sector_codes": ["64121", "64122"],
 						"when": "employment.service_years < 1 && company.facts.umsp_assets_over_1_trillion",
 						"amount": 5872985
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["55110"],
+						"sector_codes": ["55110"],
 						"when": "employment.service_years < 1 && company.facts.umsp_hotel_star >= 4",
+						"valid_when": "!(terms.facts.worksite_sector_edition == \"2025\" && terms.worksite_sector in [\"55101\", \"55102\", \"55103\", \"55104\", \"55105\"]) || (terms.worksite_sector == \"55101\" && company.facts.umsp_hotel_star == 5) || (terms.worksite_sector == \"55102\" && company.facts.umsp_hotel_star == 4) || (terms.worksite_sector == \"55103\" && company.facts.umsp_hotel_star == 3) || (terms.worksite_sector == \"55104\" && company.facts.umsp_hotel_star == 2) || (terms.worksite_sector == \"55105\" && company.facts.umsp_hotel_star == 1)",
+						"validation_message": "KBLI 2025 hotel star class conflicts with the dated employer hotel-star evidence.",
 						"amount": 5803839
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Cilacap",
-						"kbli": ["35111"],
+						"sector_codes": ["35111"],
 						"when": "employment.service_years < 1",
 						"amount": 2800916
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Demak",
-						"kbli": [
+						"sector_codes": [
 							"25920",
 							"30911",
 							"25120",
@@ -2166,49 +2300,49 @@
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Semarang",
-						"kbli": ["08109"],
+						"sector_codes": ["08109"],
 						"when": "employment.service_years < 1",
 						"amount": 2955088
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Semarang",
-						"kbli": ["46610"],
+						"sector_codes": ["46610"],
 						"when": "employment.service_years < 1",
 						"amount": 2950088
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kota Semarang",
-						"kbli": ["42930", "43905"],
+						"sector_codes": ["42930", "43905"],
 						"when": "employment.service_years < 1",
 						"amount": 3721126
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kota Semarang",
-						"kbli": ["15201", "15203"],
+						"sector_codes": ["15201", "15203"],
 						"when": "employment.service_years < 1",
 						"amount": 3707534
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kota Semarang",
-						"kbli": ["22220", "22291", "29300"],
+						"sector_codes": ["22220", "22291", "29300"],
 						"when": "employment.service_years < 1",
 						"amount": 3703651
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Tegal",
-						"kbli": ["15201", "33151"],
+						"sector_codes": ["15201", "33151"],
 						"when": "employment.service_years < 1",
 						"amount": 2495993
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Tegal",
-						"kbli": ["31009"],
+						"sector_codes": ["31009"],
 						"when": "employment.service_years < 1",
 						"amount": 2490077
 					},
 					{
 						"place": "Provinsi Banten/Kabupaten Serang",
-						"kbli": [
+						"sector_codes": [
 							"20111",
 							"20112",
 							"20113",
@@ -2280,7 +2414,7 @@
 					},
 					{
 						"place": "Provinsi Banten/Kabupaten Serang",
-						"kbli": [
+						"sector_codes": [
 							"10130",
 							"10411",
 							"10412",
@@ -2330,7 +2464,7 @@
 					},
 					{
 						"place": "Provinsi Banten/Kota Cilegon",
-						"kbli": [
+						"sector_codes": [
 							"20111",
 							"20114",
 							"20117",
@@ -2381,7 +2515,7 @@
 					},
 					{
 						"place": "Provinsi Banten/Kota Cilegon",
-						"kbli": [
+						"sector_codes": [
 							"10415",
 							"10432",
 							"10437",
@@ -2410,19 +2544,19 @@
 					},
 					{
 						"place": "Provinsi Banten/Kota Cilegon",
-						"kbli": ["68130", "78200", "86103"],
+						"sector_codes": ["68130", "78200", "86103"],
 						"when": "employment.service_years < 1",
 						"amount": 5499553.85
 					},
 					{
 						"place": "Provinsi Banten/Kota Tangerang Selatan",
-						"kbli": ["21012", "46631", "41012", "23923", "09900", "63111", "63122"],
+						"sector_codes": ["21012", "46631", "41012", "23923", "09900", "63111", "63122"],
 						"when": "employment.service_years < 1",
 						"amount": 5297813
 					},
 					{
 						"place": "Provinsi Banten/Kota Tangerang Selatan",
-						"kbli": [
+						"sector_codes": [
 							"46900",
 							"46339",
 							"47111",
@@ -2441,55 +2575,55 @@
 					},
 					{
 						"place": "Provinsi Kalimantan Barat",
-						"kbli": ["01262", "08101", "10431"],
+						"sector_codes": ["01262", "08101", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3062552
 					},
 					{
 						"place": "Provinsi Kalimantan Barat",
-						"kbli": ["07293"],
+						"sector_codes": ["07293"],
 						"when": "employment.service_years < 1",
 						"amount": 3108007
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Kubu Raya",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3108000
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Sambas",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3250702
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Bengkayang",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3520700
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Landak",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3321879
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Landak",
-						"kbli": ["07293"],
+						"sector_codes": ["07293"],
 						"when": "employment.service_years < 1",
 						"amount": 3339706
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Ketapang",
-						"kbli": ["01262", "07293", "10431", "24202"],
+						"sector_codes": ["01262", "07293", "10431", "24202"],
 						"when": "employment.service_years < 1",
 						"amount": 3570105
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Kayong Utara",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3404291
 					}
@@ -2497,6 +2631,38 @@
 				"applies_when": "",
 				"terms_when": "terms.monthly_basic >= 0.75 * (terms.monthly_basic + terms.fixed_allowances)",
 				"block_terms_when": true,
+				"contract_rules": [
+					{
+						"key": "wage_scale_recorded",
+						"when": "employment.service_years >= 1",
+						"holds": "terms.facts.wage_scale_grade != \"\" && terms.facts.wage_scale_reference != \"\" && terms.facts.wage_scale_effective_on != \"\" && terms.facts.wage_scale_effective_on <= employment.rule_date && terms.facts.wage_scale_notice_on != \"\" && terms.facts.wage_scale_notice_on <= employment.rule_date && terms.facts.wage_scale_basic_minimum > 0.0",
+						"severity": "BLOCKER",
+						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum before pricing service of one year or more.",
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts)."
+					},
+					{
+						"key": "wage_scale_minimum",
+						"when": "employment.service_years >= 1",
+						"holds": "round_cent(terms.monthly_basic) >= round_cent(terms.facts.wage_scale_basic_minimum)",
+						"severity": "BLOCKER",
+						"message": "basic wage is below the company's wage-scale grade minimum.",
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: the basic wage is at least the basic-wage minimum of the worker's grade in the company scale."
+					},
+					{
+						"key": "output_wage_valued",
+						"when": "terms.statutory_work_category in [\"PIECE_RATE\", \"TASK_BASIS\"]",
+						"holds": "terms.basic_salary > 0.0",
+						"severity": "BLOCKER",
+						"message": "pure output wages need the agreed result rate, recorded units and twelve months of paid wages before the statutory monthly wage can be verified (PP 36/2021 arts.18–19).",
+						"authority": "PP 36/2021 arts.18–19"
+					}
+				],
+				"hourly_floor": {
+					"from_monthly_divisor": 126,
+					"allowed_when": "employment.type == \"PART_TIME\"",
+					"refusal": "PP 36/2021 art.16 permits an hourly wage only for part-time work.",
+					"authority": "PP 36/2021 art.16"
+				},
 				"block_below_when": "true",
 				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. Applied 2026-09-28: UMP 2026 for the provinces whose own decree or government publication was read, each applying from 1 January 2026 (PP 49/2025 art.II): Provinsi Aceh Rp3,932,552 — Kep. Gubernur Aceh 500.15.14.1/1488/2025 (30 Dec 2025), signed copy; Provinsi Sumatera Utara Rp3,228,971 — the Pemprov Sumut announcement of 19 Dec 2025 (decree number not stated there); Provinsi Bengkulu Rp2,827,250.9 — Kep. Gubernur Bengkulu K.646.DKKTRANS Tahun 2025 (22 Dec 2025), signed copy on the provincial data portal; Provinsi Kepulauan Riau Rp3,879,520 — SK Gubernur Kepri 1327/2025, per the Pemprov Kepri announcement; Provinsi Lampung Rp3,047,734 — Kep. Gubernur Lampung G/865/V.08/HK/2025, signed copy on JDIH Lampung (dictum KELIMA excepts micro and small enterprises); Provinsi Banten Rp3,100,881.4 — Kep. Gubernur Banten 701/2025 (24 Dec 2025), per the Pemprov Banten announcement; Provinsi DI Yogyakarta Rp2,417,495 — Kep. Gubernur DIY 442/2025, per the DIY Disnakertrans announcement; Provinsi Bali Rp3,207,459 — Kep. Gubernur Bali 1011/2025, published with its announcement by the Bali labour office; Provinsi Nusa Tenggara Barat Rp2,673,861 — Kep. Gubernur NTB 100.3.3.1-683/2025 (22 Dec 2025), per the NTB Disnakertrans announcement; Provinsi Kalimantan Tengah Rp3,686,138 — SK Gubernur Kalteng 188.44/477/2025 (19 Dec 2025), per the Pemprov Kalteng media centre; Provinsi Kalimantan Selatan Rp3,725,000 — the Pemprov Kalsel media-centre announcement of 25 Dec 2025 (decree number not stated there); Provinsi Kalimantan Timur Rp3,762,431 — Pengumuman Gubernur Kaltim 500.15.14.1/5097/DTKT.Srk-IV/2025 (24 Dec 2025); Provinsi Gorontalo Rp3,405,144 — the Pemprov Gorontalo announcement of 22 Dec 2025 (decree number not stated there). A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency that has no UMK (Perpres 82/2018 art.32(3), and as Permenaker 16/2024 art.12 provided for 2025); where the city or regency sets a UMK, select it instead — a UMK is not seeded for these provinces, so such a workplace must refuse, not fall back. West Java and Central Java carry no province key because every city and regency there has a UMK. Applied 2026-09-28 (round 3), each from 1 January 2026: Provinsi Kepulauan Bangka Belitung Rp4,035,000 — Kep. Gubernur Babel 100.3.3.1/…/DISNAKER/2025 (the handwritten serial reads 654 or 684), signed copy on Disnaker Babel, diktum KEDUA and KEENAM; Provinsi Sulawesi Selatan Rp3,921,088.79 — Kep. Gubernur Sulsel 2129/XII/TAHUN 2025 (22 Dec 2025), signed copy on the Sulsel open-data portal, diktum KESATU and KESEPULUH (KELIMA excepts micro and small enterprises); Provinsi Sulawesi Tenggara Rp3,306,496.18 — Kep. Gubernur Sultra 110.3.3.1/581 (24 Dec 2025), per the Pemprov Sultra portal (1 January to 31 December 2026); Provinsi Papua Rp4,436,283 — Kep. Gubernur Papua 100.3.3.1/KEP.409/2025, per the Pemprov Papua portal (effective 1 January 2026); Provinsi Papua Barat Rp3,841,000 — SK Gubernur Papua Barat 343 Tahun 2025, per the provincial archives and library office (Disarpus Papua Barat) of 23 Dec 2025; Provinsi Papua Tengah Rp4,285,848 — SK Gubernur Papua Tengah 100.3.3.1/334 Tahun 2025, per the Pemprov Papua Tengah portal of 24 Dec 2025 (unchanged from 2025). The Kemnaker compilation (satudata.kemnaker.go.id, UMP 2026) is not an authority here: it truncates sen (Bengkulu 2,827,250 against the decree’s 2,827,250.90; Sulsel 3,921,088 against 3,921,088.79) and lists Sumatera Utara at 3,228,949 against the Pemprov Sumut 3,228,971 (2,992,559 × 1.079). The other 14 provincial 2026 decrees were not read from an official source (register ID-128–ID-160; Riau from round 6). Applied 2026-09-28 (engine defect 6/20): `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, and the floor is read at the worksite the terms record (`employment_terms.worksite`), the company’s region where none is; a locality key overrides its province, a locality with no key of its own owes the province’s UMP, and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). DKI Jakarta has one UMP and no UMK (Kep. Gubernur 1142/2025). Jawa Tengah: the 35 UMKs of Kep. Gubernur Jawa Tengah 100.3.3.1/505 Tahun 2025 (24 Dec 2025, in force 1 January 2026, Lampiran I; PPID Kota Semarang copy of the BSrE-signed decree) — no province key, since every regency and city has a UMK. Sector minimum wages (`monthly_by_sector`; PP 36/2021 as amended by PP 49/2025 art.35D(1), which the DKI decree cites): DKI Kep. Gubernur 33 Tahun 2026 (20 Jan 2026, retroactive to 1 January 2026, diktum KETUJUH), Lampiran rows 1–57 and 60, each for its five-digit KBLI, with the Keterangan conditions as company facts; Jawa Tengah Kep.100.3.3.1/505/2025 Lampiran II, the UMSK of Kabupaten Cilacap, Demak, Semarang, Tegal and Kota Semarang. Both bind a worker with less than one year’s service only (DKI diktum KETIGA; Jawa Tengah diktum KETIGA). The worksite sector is `employment_terms.worksite_sector`, the five-digit KBLI. Not seeded: DKI rows 58–59 (KBLI 49214, 49219, bus drivers and mechanics of private companies) and 61 (KBLI 86103, class A private hospitals, nursing, midwifery and medical-support services), which bind named job types the terms do not record; an operator adds them with a `when` over their own label (e.g. `terms.department`). The sector floor raises the MINIMUM_WAGE_BELOW comparison only: Perpres 82/2018 art.32(2)–(3) as amended by Perpres 64/2020 floors BPJS Kesehatan at the UMK, or the UMP where none is set, never a sector wage, so `wage_floor` stays the place’s. Applied 2026-09-28 (round 6): Riau, from 1 January 2026, the 12 UMKs the Pemerintah Provinsi Riau Media Center states for the Governor's 2026 decisions (“UMK dan UMP Riau Tahun 2026 Resmi Ditetapkan”, 23 Dec 2025, mediacenter.riau.go.id/arsip/94797): Kota Dumai Rp4,431,174.69, Kabupaten Bengkalis Rp4,155,317.75, Kabupaten Siak Rp4,001,327.33, Kota Pekanbaru Rp3,998,179.46, Kabupaten Indragiri Hulu Rp3,988,406.31, Kabupaten Kuantan Singingi Rp3,949,466.98, Kabupaten Kampar Rp3,898,260.70, Kabupaten Pelalawan Rp3,894,260.58, Kabupaten Rokan Hulu Rp3,819,353.01, Kabupaten Rokan Hilir Rp3,783,052.90, and Kabupaten Kepulauan Meranti and Kabupaten Indragiri Hilir each Rp3,780,495.85, the UMP. No province key: every regency and city has a UMK, so a bare Riau workplace refuses. The Riau sector wages (migas, plantation, pulp and paper) are not seeded. Bali from 1 January 2026: UMKs Badung Rp3,791,002.57, Denpasar Rp3,499,878.78, Gianyar Rp3,316,798.48, Tabanan Rp3,287,678.87 (Kep.1021/03-M/HK/2025, Bali Disnaker announcement B.21.500.15/17641/IV/DISNAKER.ESDM). That announcement expressly assigns Bangli, Buleleng, Jembrana, Karangasem and Klungkung to the UMP/UMSP; the named sector rows are seeded, with KBLI and hotel-star applicability requiring affirmative classification. Banten from 1 January 2026: all eight city/regency UMKs of signed Kep. Gubernur Banten 703 Tahun 2025 (24 Dec 2025), Lampiran, with values exact to sen; all eight localities have their own UMK. The annex lists 2025 comparative figures, agreeing with Kep.471/2024 as published by the province. UMSP/UMSK selectors remain unseeded. Kepulauan Riau from 1 January 2026: seven city/regency UMKs stated by the Pemprov Kepri Disnaker press release 832/PR/XII/2025 of 24 Dec 2025, each naming its governor decision: Tanjungpinang Rp3,879,520, Batam Rp5,357,982, Bintan Rp4,583,221, Karimun Rp4,241,935, Lingga Rp3,879,520, Natuna Rp3,879,520 and Kepulauan Anambas Rp4,279,851. The PPID copy headed Batam calls itself Kep.1331/2025 whereas that release calls Batam Kep.1332/2025 and Tanjungpinang Kep.1331/2025; the amount is consistent but document-number metadata needs reconciliation. Kepri sector rates remain unseeded. UU 13/2003 art.22(1)–(3): a lawful apprenticeship needs a written apprenticeship agreement with rights, duties and duration; absent it, the participant becomes the company’s worker. The law does not exempt an employee labelled INTERN or APPRENTICE from the worker minimum wage. The floor therefore covers every employment row (`applies_when` empty); a genuine nonemployee apprenticeship and its stipend require verified legal-status facts and a separate path, not a label-based payroll exemption. Added 2026-09-29, effective 1 January 2026: Jawa Timur 38 UMKs from signed Kep.937/2025, UMSP seven KBLI from Kep.935/2025, and 11 locality UMSK schedules with 156 KBLI entries from Kep.938/2025; DIY five UMKs from the provincial announcement of Kep.443/2025; Lampung five UMKs from JDIH Kep.877–881/2025 and UMSP KBLI 10434 Rp3,108,689 from Kep.865/2025; Bali star-hotel UMSP KBLI 55110 Rp3,267,693 and Badung four/five-star UMSK Rp3,828,912.60 from Bali Disnaker announcements. The Lampung ten other localities and condition classification require explicit admission evidence; unknown KBLI, hotel star, and employer facts must block sector selection rather than silently select the lower floor."
 			},
@@ -2513,6 +2679,12 @@
 			}
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "IDR",
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
@@ -2584,7 +2756,21 @@
 				"https://jdih.lampungprov.go.id/product-hukum/provinsi/11566/pdf/penetapan-upah-minimum-kota-metro-tahun-2026",
 				"https://www.setneg.go.id/"
 			],
-			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only.\n\nFinding changes (read these before comparing, every run):\nLabour: open https://jdih.kemnaker.go.id/peraturan?keyword=<term>&sort=terbaru (terms: upah, pengupahan, cuti bersama, libur, jaminan, lembur, THR, pesangon) and read the top rows (type, nomor, 'Ditetapkan' date). The detail page links the PDF under /asset/data_puu/. Tax: https://www.pajak.go.id/id/peraturan (newest first, &page=N) and https://jdih.kemenkeu.go.id/search?q=<term>&order=desc (q works; 'keyword' does not). Open /dok/pmk-<n>-tahun-<yyyy>. BPJS TK: berita.html for JP-ceiling SEs; peraturan.html for PPs. BPJS Kesehatan is an Angular shell, so find Perpres JKN changes via Kemnaker JDIH/setneg news and cite the Perpres PDF. UMP/UMK: Kemnaker announces by 1 Nov (UMP) / ~Dec; open jdih.jakarta.go.id homepage for the Kepgub. jdih.jabarprov.go.id and peraturan.bpk.go.id 403 to readers — use Wayback id_ copies or the Kemnaker/BPJS copy. Holidays: kemenkopmk.go.id/pengumuman SKB PDF is a scan; the date list is in the setneg.go.id news text. Discovery only: DDTC News, Ortax, PwC Indonesia Tax Alerts."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only.\n\nFinding changes (read these before comparing, every run):\nLabour: open https://jdih.kemnaker.go.id/peraturan?keyword=<term>&sort=terbaru (terms: upah, pengupahan, cuti bersama, libur, jaminan, lembur, THR, pesangon) and read the top rows (type, nomor, 'Ditetapkan' date). The detail page links the PDF under /asset/data_puu/. Tax: https://www.pajak.go.id/id/peraturan (newest first, &page=N) and https://jdih.kemenkeu.go.id/search?q=<term>&order=desc (q works; 'keyword' does not). Open /dok/pmk-<n>-tahun-<yyyy>. BPJS TK: berita.html for JP-ceiling SEs; peraturan.html for PPs. BPJS Kesehatan is an Angular shell, so find Perpres JKN changes via Kemnaker JDIH/setneg news and cite the Perpres PDF. UMP/UMK: Kemnaker announces by 1 Nov (UMP) / ~Dec; open jdih.jakarta.go.id homepage for the Kepgub. jdih.jabarprov.go.id and peraturan.bpk.go.id 403 to readers — use Wayback id_ copies or the Kemnaker/BPJS copy. Holidays: kemenkopmk.go.id/pengumuman SKB PDF is a scan; the date list is in the setneg.go.id news text. Discovery only: DDTC News, Ortax, PwC Indonesia Tax Alerts.",
+			"research_domains": [
+				"https://peraturan.bpk.go.id",
+				"https://jdih.kemnaker.go.id",
+				"https://jdih.kemenkeu.go.id",
+				"https://www.setneg.go.id",
+				"https://setneg.go.id",
+				"https://pajak.go.id",
+				"https://www.pajak.go.id",
+				"https://www.bpjsketenagakerjaan.go.id",
+				"https://bpjs-kesehatan.go.id",
+				"https://jdih.jakarta.go.id",
+				"https://jdih.jabarprov.go.id",
+				"https://www.kemenkopmk.go.id"
+			]
 		},
 		"facts": [
 			{
@@ -2795,6 +2981,65 @@
 				"required_when": "employment.service_months >= 1",
 				"valid_when": "employment.exit_facts.thr_holiday_date.matches(\"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\")",
 				"validation_message": "Religious holiday the THR is judged against must be a date written YYYY-MM-DD."
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "wage_scale_grade",
+				"type": "string",
+				"label": "Company wage-scale grade",
+				"description": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: this worker's grade in the company wage structure and scale, read once service reaches one year."
+			},
+			{
+				"key": "wage_scale_basic_minimum",
+				"type": "number",
+				"minimum": 0,
+				"label": "Wage-scale basic-wage minimum",
+				"description": "The basic-wage minimum of that grade in the company scale (not the government UMP/UMK), in the terms' currency."
+			},
+			{
+				"key": "wage_scale_effective_on",
+				"type": "date",
+				"label": "Wage scale effective on",
+				"description": "The day the company wage structure and scale took effect."
+			},
+			{
+				"key": "wage_scale_notice_on",
+				"type": "date",
+				"label": "Grade notice given on",
+				"description": "The day this worker was notified of the grade."
+			},
+			{
+				"key": "wage_scale_reference",
+				"type": "string",
+				"label": "Wage scale and grade notice reference",
+				"description": "The company scale and this worker's individual grade notice; the file is its evidence.",
+				"evidence": {
+					"kind": "FILE"
+				}
+			},
+			{
+				"key": "foreign_prior_work",
+				"type": "string",
+				"label": "Prior work in Indonesia",
+				"description": "A short-contract foreigner's prior work in Indonesia, checked for the BPJS Kesehatan six-month work condition.",
+				"options": ["NONE", "ANY"]
+			},
+			{
+				"key": "foreign_prior_work_reviewed_on",
+				"type": "date",
+				"label": "Prior work reviewed on",
+				"description": "The day the prior-work record was reviewed; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "worksite_sector_edition",
+				"type": "string",
+				"label": "Worksite KBLI edition",
+				"description": "The KBLI edition the worksite sector code is stated in.",
+				"options": ["2020", "2025"]
 			}
 		],
 		"obligations": [
@@ -3357,9 +3602,11 @@
 				},
 				"workplace_keyed": true,
 				"standalone_workplaces": ["Provinsi DKI Jakarta"],
-				"kbli_edition": "2020",
-				"kbli_2025_from": "2025-12-18",
-				"kbli_2025_to_2020": {
+				"sector_code_pattern": "^[0-9]{5}$",
+				"sector_editions": ["2020", "2025"],
+				"sector_edition": "2020",
+				"sector_edition_from": "2025-12-18",
+				"sector_edition_map": {
 					"01262": "01262",
 					"07221": "07301",
 					"07293": "07293",
@@ -3615,85 +3862,89 @@
 				"verified_ordinary_sectors": [
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Banten/Kabupaten Lebak",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Banten/Kabupaten Tangerang",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Banten/Kabupaten Serang",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Banten/Kota Tangerang",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Banten/Kota Cilegon",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Kubu Raya",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Sambas",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Bengkayang",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Landak",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Ketapang",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Kayong Utara",
-						"kbli": "62019"
+						"sector_code": "62019"
 					},
 					{
 						"place": "Provinsi Jawa Barat/Kabupaten Bekasi",
-						"kbli": "62019"
+						"sector_code": "62019"
 					}
 				],
 				"monthly_by_sector": [
 					{
 						"place": "Provinsi Bali",
-						"kbli": ["55110"],
+						"sector_codes": ["55110"],
 						"when": "employment.service_years < 1",
+						"valid_when": "!(terms.facts.worksite_sector_edition == \"2025\" && terms.worksite_sector in [\"55101\", \"55102\", \"55103\", \"55104\", \"55105\"]) || (terms.worksite_sector == \"55101\" && company.facts.umsp_hotel_star == 5) || (terms.worksite_sector == \"55102\" && company.facts.umsp_hotel_star == 4) || (terms.worksite_sector == \"55103\" && company.facts.umsp_hotel_star == 3) || (terms.worksite_sector == \"55104\" && company.facts.umsp_hotel_star == 2) || (terms.worksite_sector == \"55105\" && company.facts.umsp_hotel_star == 1)",
+						"validation_message": "KBLI 2025 hotel star class conflicts with the dated employer hotel-star evidence.",
 						"amount": 3267693
 					},
 					{
 						"place": "Provinsi Bali/Kabupaten Badung",
-						"kbli": ["55110"],
+						"sector_codes": ["55110"],
 						"when": "employment.service_years < 1 && company.facts.umsp_hotel_star >= 4",
+						"valid_when": "!(terms.facts.worksite_sector_edition == \"2025\" && terms.worksite_sector in [\"55101\", \"55102\", \"55103\", \"55104\", \"55105\"]) || (terms.worksite_sector == \"55101\" && company.facts.umsp_hotel_star == 5) || (terms.worksite_sector == \"55102\" && company.facts.umsp_hotel_star == 4) || (terms.worksite_sector == \"55103\" && company.facts.umsp_hotel_star == 3) || (terms.worksite_sector == \"55104\" && company.facts.umsp_hotel_star == 2) || (terms.worksite_sector == \"55105\" && company.facts.umsp_hotel_star == 1)",
+						"validation_message": "KBLI 2025 hotel star class conflicts with the dated employer hotel-star evidence.",
 						"amount": 3828912.6
 					},
 					{
 						"place": "Provinsi Lampung",
-						"kbli": ["10434"],
+						"sector_codes": ["10434"],
 						"when": "employment.service_years < 1",
 						"amount": 3108689
 					},
 					{
 						"place": "Provinsi Jawa Timur",
-						"kbli": ["52107", "51204", "20113", "12013", "12012", "46446", "46643"],
+						"sector_codes": ["52107", "51204", "20113", "12013", "12012", "46446", "46643"],
 						"when": "employment.service_years < 1",
 						"amount": 2571426.91
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kota Surabaya",
-						"kbli": [
+						"sector_codes": [
 							"10412",
 							"10422",
 							"10423",
@@ -3754,7 +4005,7 @@
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Sidoarjo",
-						"kbli": [
+						"sector_codes": [
 							"46691",
 							"15112",
 							"24202",
@@ -3785,7 +4036,7 @@
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Gresik",
-						"kbli": [
+						"sector_codes": [
 							"55112",
 							"24102",
 							"20221",
@@ -3809,7 +4060,7 @@
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Pasuruan",
-						"kbli": [
+						"sector_codes": [
 							"10520",
 							"10801",
 							"20115",
@@ -3850,55 +4101,64 @@
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Mojokerto",
-						"kbli": ["32202", "11031", "22230", "17011", "23955", "10795"],
+						"sector_codes": ["32202", "11031", "22230", "17011", "23955", "10795"],
 						"when": "employment.service_years < 1",
 						"amount": 5328887
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Tuban",
-						"kbli": ["23941", "35111", "19211", "19214", "35121"],
+						"sector_codes": ["23941", "35111", "19211", "19214", "35121"],
 						"when": "employment.service_years < 1",
 						"amount": 3380572
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Madiun",
-						"kbli": ["30200", "29200"],
+						"sector_codes": ["30200", "29200"],
 						"when": "employment.service_years < 1",
 						"amount": 2686460
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Malang",
-						"kbli": ["21012", "20112", "20232", "17021", "12012", "12013"],
+						"sector_codes": ["21012", "20112", "20232", "17021", "12012", "12013"],
 						"when": "employment.service_years < 1",
 						"amount": 3938160
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Banyuwangi",
-						"kbli": ["07301"],
+						"sector_codes": ["07301"],
 						"when": "employment.service_years < 1",
 						"amount": 3145131
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Bangkalan",
-						"kbli": ["30111", "33111"],
+						"sector_codes": ["30111", "33111"],
 						"when": "employment.service_years < 1",
 						"amount": 2670819
 					},
 					{
 						"place": "Provinsi Jawa Timur/Kabupaten Probolinggo",
-						"kbli": ["35111", "35115", "35129", "35121", "43211"],
+						"sector_codes": ["35111", "35115", "35129", "35121", "43211"],
 						"when": "employment.service_years < 1",
 						"amount": 3317559
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["10437", "10213", "10520", "10616", "10740", "24201", "25992", "42205"],
+						"sector_codes": [
+							"10437",
+							"10213",
+							"10520",
+							"10616",
+							"10740",
+							"24201",
+							"25992",
+							"42205"
+						],
 						"when": "employment.service_years < 1",
 						"amount": 5741201
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": [
+						"sector_codes": [
 							"10734",
 							"10801",
 							"10802",
@@ -3919,19 +4179,19 @@
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["14111"],
+						"sector_codes": ["14111"],
 						"when": "employment.service_years < 1 && company.facts.umsp_export_oriented",
 						"amount": 5831497
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["15201"],
+						"sector_codes": ["15201"],
 						"when": "employment.service_years < 1 && company.facts.umsp_export_oriented",
 						"amount": 5872985
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": [
+						"sector_codes": [
 							"20118",
 							"20119",
 							"20114",
@@ -3949,79 +4209,81 @@
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["21012"],
+						"sector_codes": ["21012"],
 						"when": "employment.service_years < 1 && company.facts.umsp_assets_over_1_trillion",
 						"amount": 5741201
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["24101", "24310", "25991", "25940"],
+						"sector_codes": ["24101", "24310", "25991", "25940"],
 						"when": "employment.service_years < 1",
 						"amount": 5744066
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["27201"],
+						"sector_codes": ["27201"],
 						"when": "employment.service_years < 1",
 						"amount": 5759723
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["32202"],
+						"sector_codes": ["32202"],
 						"when": "employment.service_years < 1",
 						"amount": 5759015
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["27111", "27320", "27510"],
+						"sector_codes": ["27111", "27320", "27510"],
 						"when": "employment.service_years < 1",
 						"amount": 5812808
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["29200", "29300", "30912"],
+						"sector_codes": ["29200", "29300", "30912"],
 						"when": "employment.service_years < 1 && company.facts.umsp_astra_group",
 						"amount": 5904114
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["30911", "28160", "29101"],
+						"sector_codes": ["30911", "28160", "29101"],
 						"when": "employment.service_years < 1 && company.facts.umsp_astra_group",
 						"amount": 5943938
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["33151"],
+						"sector_codes": ["33151"],
 						"when": "employment.service_years < 1",
 						"amount": 5741336
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["58200", "61921", "61922"],
+						"sector_codes": ["58200", "61921", "61922"],
 						"when": "employment.service_years < 1",
 						"amount": 5754720
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["64121", "64122"],
+						"sector_codes": ["64121", "64122"],
 						"when": "employment.service_years < 1 && company.facts.umsp_assets_over_1_trillion",
 						"amount": 5872985
 					},
 					{
 						"place": "Provinsi DKI Jakarta",
-						"kbli": ["55110"],
+						"sector_codes": ["55110"],
 						"when": "employment.service_years < 1 && company.facts.umsp_hotel_star >= 4",
+						"valid_when": "!(terms.facts.worksite_sector_edition == \"2025\" && terms.worksite_sector in [\"55101\", \"55102\", \"55103\", \"55104\", \"55105\"]) || (terms.worksite_sector == \"55101\" && company.facts.umsp_hotel_star == 5) || (terms.worksite_sector == \"55102\" && company.facts.umsp_hotel_star == 4) || (terms.worksite_sector == \"55103\" && company.facts.umsp_hotel_star == 3) || (terms.worksite_sector == \"55104\" && company.facts.umsp_hotel_star == 2) || (terms.worksite_sector == \"55105\" && company.facts.umsp_hotel_star == 1)",
+						"validation_message": "KBLI 2025 hotel star class conflicts with the dated employer hotel-star evidence.",
 						"amount": 5803839
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Cilacap",
-						"kbli": ["35111"],
+						"sector_codes": ["35111"],
 						"when": "employment.service_years < 1",
 						"amount": 2800916
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Demak",
-						"kbli": [
+						"sector_codes": [
 							"25920",
 							"30911",
 							"25120",
@@ -4048,49 +4310,49 @@
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Semarang",
-						"kbli": ["08109"],
+						"sector_codes": ["08109"],
 						"when": "employment.service_years < 1",
 						"amount": 2955088
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Semarang",
-						"kbli": ["46610"],
+						"sector_codes": ["46610"],
 						"when": "employment.service_years < 1",
 						"amount": 2950088
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kota Semarang",
-						"kbli": ["42930", "43905"],
+						"sector_codes": ["42930", "43905"],
 						"when": "employment.service_years < 1",
 						"amount": 3721126
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kota Semarang",
-						"kbli": ["15201", "15203"],
+						"sector_codes": ["15201", "15203"],
 						"when": "employment.service_years < 1",
 						"amount": 3707534
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kota Semarang",
-						"kbli": ["22220", "22291", "29300"],
+						"sector_codes": ["22220", "22291", "29300"],
 						"when": "employment.service_years < 1",
 						"amount": 3703651
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Tegal",
-						"kbli": ["15201", "33151"],
+						"sector_codes": ["15201", "33151"],
 						"when": "employment.service_years < 1",
 						"amount": 2495993
 					},
 					{
 						"place": "Provinsi Jawa Tengah/Kabupaten Tegal",
-						"kbli": ["31009"],
+						"sector_codes": ["31009"],
 						"when": "employment.service_years < 1",
 						"amount": 2490077
 					},
 					{
 						"place": "Provinsi Banten/Kabupaten Serang",
-						"kbli": [
+						"sector_codes": [
 							"20111",
 							"20112",
 							"20113",
@@ -4162,7 +4424,7 @@
 					},
 					{
 						"place": "Provinsi Banten/Kabupaten Serang",
-						"kbli": [
+						"sector_codes": [
 							"10130",
 							"10411",
 							"10412",
@@ -4212,7 +4474,7 @@
 					},
 					{
 						"place": "Provinsi Banten/Kota Cilegon",
-						"kbli": [
+						"sector_codes": [
 							"20111",
 							"20114",
 							"20117",
@@ -4263,7 +4525,7 @@
 					},
 					{
 						"place": "Provinsi Banten/Kota Cilegon",
-						"kbli": [
+						"sector_codes": [
 							"10415",
 							"10432",
 							"10437",
@@ -4292,19 +4554,19 @@
 					},
 					{
 						"place": "Provinsi Banten/Kota Cilegon",
-						"kbli": ["68130", "78200", "86103"],
+						"sector_codes": ["68130", "78200", "86103"],
 						"when": "employment.service_years < 1",
 						"amount": 5499553.85
 					},
 					{
 						"place": "Provinsi Banten/Kota Tangerang Selatan",
-						"kbli": ["21012", "46631", "41012", "23923", "09900", "63111", "63122"],
+						"sector_codes": ["21012", "46631", "41012", "23923", "09900", "63111", "63122"],
 						"when": "employment.service_years < 1",
 						"amount": 5297813
 					},
 					{
 						"place": "Provinsi Banten/Kota Tangerang Selatan",
-						"kbli": [
+						"sector_codes": [
 							"46900",
 							"46339",
 							"47111",
@@ -4323,55 +4585,55 @@
 					},
 					{
 						"place": "Provinsi Kalimantan Barat",
-						"kbli": ["01262", "08101", "10431"],
+						"sector_codes": ["01262", "08101", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3062552
 					},
 					{
 						"place": "Provinsi Kalimantan Barat",
-						"kbli": ["07293"],
+						"sector_codes": ["07293"],
 						"when": "employment.service_years < 1",
 						"amount": 3108007
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Kubu Raya",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3108000
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Sambas",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3250702
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Bengkayang",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3520700
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Landak",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3321879
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Landak",
-						"kbli": ["07293"],
+						"sector_codes": ["07293"],
 						"when": "employment.service_years < 1",
 						"amount": 3339706
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Ketapang",
-						"kbli": ["01262", "07293", "10431", "24202"],
+						"sector_codes": ["01262", "07293", "10431", "24202"],
 						"when": "employment.service_years < 1",
 						"amount": 3570105
 					},
 					{
 						"place": "Provinsi Kalimantan Barat/Kabupaten Kayong Utara",
-						"kbli": ["01262", "10431"],
+						"sector_codes": ["01262", "10431"],
 						"when": "employment.service_years < 1",
 						"amount": 3404291
 					}
@@ -4379,6 +4641,38 @@
 				"applies_when": "",
 				"terms_when": "terms.monthly_basic >= 0.75 * (terms.monthly_basic + terms.fixed_allowances)",
 				"block_terms_when": true,
+				"contract_rules": [
+					{
+						"key": "wage_scale_recorded",
+						"when": "employment.service_years >= 1",
+						"holds": "terms.facts.wage_scale_grade != \"\" && terms.facts.wage_scale_reference != \"\" && terms.facts.wage_scale_effective_on != \"\" && terms.facts.wage_scale_effective_on <= employment.rule_date && terms.facts.wage_scale_notice_on != \"\" && terms.facts.wage_scale_notice_on <= employment.rule_date && terms.facts.wage_scale_basic_minimum > 0.0",
+						"severity": "BLOCKER",
+						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum before pricing service of one year or more.",
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts)."
+					},
+					{
+						"key": "wage_scale_minimum",
+						"when": "employment.service_years >= 1",
+						"holds": "round_cent(terms.monthly_basic) >= round_cent(terms.facts.wage_scale_basic_minimum)",
+						"severity": "BLOCKER",
+						"message": "basic wage is below the company's wage-scale grade minimum.",
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: the basic wage is at least the basic-wage minimum of the worker's grade in the company scale."
+					},
+					{
+						"key": "output_wage_valued",
+						"when": "terms.statutory_work_category in [\"PIECE_RATE\", \"TASK_BASIS\"]",
+						"holds": "terms.basic_salary > 0.0",
+						"severity": "BLOCKER",
+						"message": "pure output wages need the agreed result rate, recorded units and twelve months of paid wages before the statutory monthly wage can be verified (PP 36/2021 arts.18–19).",
+						"authority": "PP 36/2021 arts.18–19"
+					}
+				],
+				"hourly_floor": {
+					"from_monthly_divisor": 126,
+					"allowed_when": "employment.type == \"PART_TIME\"",
+					"refusal": "PP 36/2021 art.16 permits an hourly wage only for part-time work.",
+					"authority": "PP 36/2021 art.16"
+				},
 				"block_below_when": "true",
 				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. Applied 2026-09-28: UMP 2026 for the provinces whose own decree or government publication was read, each applying from 1 January 2026 (PP 49/2025 art.II): Provinsi Aceh Rp3,932,552 — Kep. Gubernur Aceh 500.15.14.1/1488/2025 (30 Dec 2025), signed copy; Provinsi Sumatera Utara Rp3,228,971 — the Pemprov Sumut announcement of 19 Dec 2025 (decree number not stated there); Provinsi Bengkulu Rp2,827,250.9 — Kep. Gubernur Bengkulu K.646.DKKTRANS Tahun 2025 (22 Dec 2025), signed copy on the provincial data portal; Provinsi Kepulauan Riau Rp3,879,520 — SK Gubernur Kepri 1327/2025, per the Pemprov Kepri announcement; Provinsi Lampung Rp3,047,734 — Kep. Gubernur Lampung G/865/V.08/HK/2025, signed copy on JDIH Lampung (dictum KELIMA excepts micro and small enterprises); Provinsi Banten Rp3,100,881.4 — Kep. Gubernur Banten 701/2025 (24 Dec 2025), per the Pemprov Banten announcement; Provinsi DI Yogyakarta Rp2,417,495 — Kep. Gubernur DIY 442/2025, per the DIY Disnakertrans announcement; Provinsi Bali Rp3,207,459 — Kep. Gubernur Bali 1011/2025, published with its announcement by the Bali labour office; Provinsi Nusa Tenggara Barat Rp2,673,861 — Kep. Gubernur NTB 100.3.3.1-683/2025 (22 Dec 2025), per the NTB Disnakertrans announcement; Provinsi Kalimantan Tengah Rp3,686,138 — SK Gubernur Kalteng 188.44/477/2025 (19 Dec 2025), per the Pemprov Kalteng media centre; Provinsi Kalimantan Selatan Rp3,725,000 — the Pemprov Kalsel media-centre announcement of 25 Dec 2025 (decree number not stated there); Provinsi Kalimantan Timur Rp3,762,431 — Pengumuman Gubernur Kaltim 500.15.14.1/5097/DTKT.Srk-IV/2025 (24 Dec 2025); Provinsi Gorontalo Rp3,405,144 — the Pemprov Gorontalo announcement of 22 Dec 2025 (decree number not stated there). A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency that has no UMK (Perpres 82/2018 art.32(3), and as Permenaker 16/2024 art.12 provided for 2025); where the city or regency sets a UMK, select it instead — a UMK is not seeded for these provinces, so such a workplace must refuse, not fall back. West Java and Central Java carry no province key because every city and regency there has a UMK. Applied 2026-09-28 (round 3), each from 1 January 2026: Provinsi Kepulauan Bangka Belitung Rp4,035,000 — Kep. Gubernur Babel 100.3.3.1/…/DISNAKER/2025 (the handwritten serial reads 654 or 684), signed copy on Disnaker Babel, diktum KEDUA and KEENAM; Provinsi Sulawesi Selatan Rp3,921,088.79 — Kep. Gubernur Sulsel 2129/XII/TAHUN 2025 (22 Dec 2025), signed copy on the Sulsel open-data portal, diktum KESATU and KESEPULUH (KELIMA excepts micro and small enterprises); Provinsi Sulawesi Tenggara Rp3,306,496.18 — Kep. Gubernur Sultra 110.3.3.1/581 (24 Dec 2025), per the Pemprov Sultra portal (1 January to 31 December 2026); Provinsi Papua Rp4,436,283 — Kep. Gubernur Papua 100.3.3.1/KEP.409/2025, per the Pemprov Papua portal (effective 1 January 2026); Provinsi Papua Barat Rp3,841,000 — SK Gubernur Papua Barat 343 Tahun 2025, per the provincial archives and library office (Disarpus Papua Barat) of 23 Dec 2025; Provinsi Papua Tengah Rp4,285,848 — SK Gubernur Papua Tengah 100.3.3.1/334 Tahun 2025, per the Pemprov Papua Tengah portal of 24 Dec 2025 (unchanged from 2025). The Kemnaker compilation (satudata.kemnaker.go.id, UMP 2026) is not an authority here: it truncates sen (Bengkulu 2,827,250 against the decree’s 2,827,250.90; Sulsel 3,921,088 against 3,921,088.79) and lists Sumatera Utara at 3,228,949 against the Pemprov Sumut 3,228,971 (2,992,559 × 1.079). The other 14 provincial 2026 decrees were not read from an official source (register ID-128–ID-160; Riau from round 6). Applied 2026-09-28 (engine defect 6/20): `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, and the floor is read at the worksite the terms record (`employment_terms.worksite`), the company’s region where none is; a locality key overrides its province, a locality with no key of its own owes the province’s UMP, and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). DKI Jakarta has one UMP and no UMK (Kep. Gubernur 1142/2025). Jawa Tengah: the 35 UMKs of Kep. Gubernur Jawa Tengah 100.3.3.1/505 Tahun 2025 (24 Dec 2025, in force 1 January 2026, Lampiran I; PPID Kota Semarang copy of the BSrE-signed decree) — no province key, since every regency and city has a UMK. Sector minimum wages (`monthly_by_sector`; PP 36/2021 as amended by PP 49/2025 art.35D(1), which the DKI decree cites): DKI Kep. Gubernur 33 Tahun 2026 (20 Jan 2026, retroactive to 1 January 2026, diktum KETUJUH), Lampiran rows 1–57 and 60, each for its five-digit KBLI, with the Keterangan conditions as company facts; Jawa Tengah Kep.100.3.3.1/505/2025 Lampiran II, the UMSK of Kabupaten Cilacap, Demak, Semarang, Tegal and Kota Semarang. Both bind a worker with less than one year’s service only (DKI diktum KETIGA; Jawa Tengah diktum KETIGA). The worksite sector is `employment_terms.worksite_sector`, the five-digit KBLI. Not seeded: DKI rows 58–59 (KBLI 49214, 49219, bus drivers and mechanics of private companies) and 61 (KBLI 86103, class A private hospitals, nursing, midwifery and medical-support services), which bind named job types the terms do not record; an operator adds them with a `when` over their own label (e.g. `terms.department`). The sector floor raises the MINIMUM_WAGE_BELOW comparison only: Perpres 82/2018 art.32(2)–(3) as amended by Perpres 64/2020 floors BPJS Kesehatan at the UMK, or the UMP where none is set, never a sector wage, so `wage_floor` stays the place’s. Applied 2026-09-28 (round 6): Riau, from 1 January 2026, the 12 UMKs the Pemerintah Provinsi Riau Media Center states for the Governor's 2026 decisions (“UMK dan UMP Riau Tahun 2026 Resmi Ditetapkan”, 23 Dec 2025, mediacenter.riau.go.id/arsip/94797): Kota Dumai Rp4,431,174.69, Kabupaten Bengkalis Rp4,155,317.75, Kabupaten Siak Rp4,001,327.33, Kota Pekanbaru Rp3,998,179.46, Kabupaten Indragiri Hulu Rp3,988,406.31, Kabupaten Kuantan Singingi Rp3,949,466.98, Kabupaten Kampar Rp3,898,260.70, Kabupaten Pelalawan Rp3,894,260.58, Kabupaten Rokan Hulu Rp3,819,353.01, Kabupaten Rokan Hilir Rp3,783,052.90, and Kabupaten Kepulauan Meranti and Kabupaten Indragiri Hilir each Rp3,780,495.85, the UMP. No province key: every regency and city has a UMK, so a bare Riau workplace refuses. The Riau sector wages (migas, plantation, pulp and paper) are not seeded. Bali from 1 January 2026: UMKs Badung Rp3,791,002.57, Denpasar Rp3,499,878.78, Gianyar Rp3,316,798.48, Tabanan Rp3,287,678.87 (Kep.1021/03-M/HK/2025, Bali Disnaker announcement B.21.500.15/17641/IV/DISNAKER.ESDM). That announcement expressly assigns Bangli, Buleleng, Jembrana, Karangasem and Klungkung to the UMP/UMSP; the named sector rows are seeded, with KBLI and hotel-star applicability requiring affirmative classification. Banten from 1 January 2026: all eight city/regency UMKs of signed Kep. Gubernur Banten 703 Tahun 2025 (24 Dec 2025), Lampiran, with values exact to sen; all eight localities have their own UMK. The annex lists 2025 comparative figures, agreeing with Kep.471/2024 as published by the province. UMSP/UMSK selectors remain unseeded. Kepulauan Riau from 1 January 2026: seven city/regency UMKs stated by the Pemprov Kepri Disnaker press release 832/PR/XII/2025 of 24 Dec 2025, each naming its governor decision: Tanjungpinang Rp3,879,520, Batam Rp5,357,982, Bintan Rp4,583,221, Karimun Rp4,241,935, Lingga Rp3,879,520, Natuna Rp3,879,520 and Kepulauan Anambas Rp4,279,851. The PPID copy headed Batam calls itself Kep.1331/2025 whereas that release calls Batam Kep.1332/2025 and Tanjungpinang Kep.1331/2025; the amount is consistent but document-number metadata needs reconciliation. Kepri sector rates remain unseeded. UU 13/2003 art.22(1)–(3): a lawful apprenticeship needs a written apprenticeship agreement with rights, duties and duration; absent it, the participant becomes the company’s worker. The law does not exempt an employee labelled INTERN or APPRENTICE from the worker minimum wage. The floor therefore covers every employment row (`applies_when` empty); a genuine nonemployee apprenticeship and its stipend require verified legal-status facts and a separate path, not a label-based payroll exemption. Added 2026-09-29, effective 1 January 2026: Jawa Timur 38 UMKs from signed Kep.937/2025, UMSP seven KBLI from Kep.935/2025, and 11 locality UMSK schedules with 156 KBLI entries from Kep.938/2025; DIY five UMKs from the provincial announcement of Kep.443/2025; Lampung five UMKs from JDIH Kep.877–881/2025 and UMSP KBLI 10434 Rp3,108,689 from Kep.865/2025; Bali star-hotel UMSP KBLI 55110 Rp3,267,693 and Badung four/five-star UMSK Rp3,828,912.60 from Bali Disnaker announcements. The Lampung ten other localities and condition classification require explicit admission evidence; unknown KBLI, hotel star, and employer facts must block sector selection rather than silently select the lower floor."
 			},
@@ -4395,6 +4689,12 @@
 			}
 		},
 		"payroll": {
+			"vocabularies": {
+				"statutory_work_category": ["NON_MANUAL", "PIECE_RATE", "TASK_BASIS"],
+				"work_classification": ["EA_COVERED", "NON_EA", "MANAGERIAL"],
+				"pass_type": [],
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
+			},
 			"currency": "IDR",
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
@@ -4466,7 +4766,21 @@
 				"https://jdih.lampungprov.go.id/product-hukum/provinsi/11566/pdf/penetapan-upah-minimum-kota-metro-tahun-2026",
 				"https://www.setneg.go.id/"
 			],
-			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only.\n\nFinding changes (read these before comparing, every run):\nLabour: open https://jdih.kemnaker.go.id/peraturan?keyword=<term>&sort=terbaru (terms: upah, pengupahan, cuti bersama, libur, jaminan, lembur, THR, pesangon) and read the top rows (type, nomor, 'Ditetapkan' date). The detail page links the PDF under /asset/data_puu/. Tax: https://www.pajak.go.id/id/peraturan (newest first, &page=N) and https://jdih.kemenkeu.go.id/search?q=<term>&order=desc (q works; 'keyword' does not). Open /dok/pmk-<n>-tahun-<yyyy>. BPJS TK: berita.html for JP-ceiling SEs; peraturan.html for PPs. BPJS Kesehatan is an Angular shell, so find Perpres JKN changes via Kemnaker JDIH/setneg news and cite the Perpres PDF. UMP/UMK: Kemnaker announces by 1 Nov (UMP) / ~Dec; open jdih.jakarta.go.id homepage for the Kepgub. jdih.jabarprov.go.id and peraturan.bpk.go.id 403 to readers — use Wayback id_ copies or the Kemnaker/BPJS copy. Holidays: kemenkopmk.go.id/pengumuman SKB PDF is a scan; the date list is in the setneg.go.id news text. Discovery only: DDTC News, Ortax, PwC Indonesia Tax Alerts."
+			"instructions": "Sources are the primary instrument first — the statute or regulation in the national law database, the gazette, or the table the authority itself publishes — one page per fact the version seals, never a news article or a commentary. A historical version lists the instruments in force on its own effective date. Where the primary host refuses the reader (sso.agc.gov.sg, officialgazette.gov.ph, peraturan.bpk.go.id, kwsp.gov.my, hrdcorp.gov.my answer 403 to Norbital-Public-Page-Reader) the authority’s own published table is listed instead, or the Wayback Machine’s dated copy of the authority’s own page or PDF (web.archive.org/web/<timestamp>id_/<url>) — never a host the reader cannot open.\nperaturan.bpk.go.id — JDIH BPK, the most complete national legal database. /Details/<id>/<slug> is the instrument page (abstract, status, amendments); /Download/<id>/<file>.pdf the text (Perpres 64/2020 0.5 MB reads; Perpres 59/2024 3.2 MB does not — cite the Details page and the Kemenkeu copy instead). Search is /Search?keywords=<number>.\njdih.kemnaker.go.id — Ministry of Manpower: /peraturan/detail/<id>/<slug> pages and /asset/data_puu/<file>.pdf texts. PP 35/2021 (PP352021.pdf, 2.4 MB) and PP 6/2025 (2025pp006.pdf, 4.3 MB) exceed the reader limit: read the detail page and quote the Kemnaker summary, or the BPK Details page.\njdih.kemenkeu.go.id — /api/download/FullText/<year>/<file>.pdf (Perpres 82/2018 at 1.3 MB reads).\npajak.go.id — PMK 168/2023 TER tables at /sites/default/files/2024-02/PMK 168 Tahun 2023 Tentang PPh Pasal 21 TER.pdf (2.9 MB, over the limit): the Details page on peraturan.bpk.go.id carries the same annex.\nsetneg.go.id — /baca/index/inilah_skb_3_menteri_libur_nasional_dan_cuti_bersama_<year>: the SKB 3 Menteri holiday and cuti bersama list, HTML.\nbpjsketenagakerjaan.go.id — /assets/uploads/peraturan/<file>.pdf hold PP 44/45/46 of 2015; /artikel/<id>/… states the JHT/JKK/JKM/JP/JKP rates; the JP ceiling circular (SE) is announced under /berita/<id>/….\njdih.jakarta.go.id — /dokumen/detail/<id>: the DKI Kepgub UMP for the year. jdih.jabarprov.go.id — /page/eksekusi_download/32/<file>.pdf: the Jawa Barat UMK decree.\nhukumonline, pasal.id, kontan and other press are corroboration only.\n\nFinding changes (read these before comparing, every run):\nLabour: open https://jdih.kemnaker.go.id/peraturan?keyword=<term>&sort=terbaru (terms: upah, pengupahan, cuti bersama, libur, jaminan, lembur, THR, pesangon) and read the top rows (type, nomor, 'Ditetapkan' date). The detail page links the PDF under /asset/data_puu/. Tax: https://www.pajak.go.id/id/peraturan (newest first, &page=N) and https://jdih.kemenkeu.go.id/search?q=<term>&order=desc (q works; 'keyword' does not). Open /dok/pmk-<n>-tahun-<yyyy>. BPJS TK: berita.html for JP-ceiling SEs; peraturan.html for PPs. BPJS Kesehatan is an Angular shell, so find Perpres JKN changes via Kemnaker JDIH/setneg news and cite the Perpres PDF. UMP/UMK: Kemnaker announces by 1 Nov (UMP) / ~Dec; open jdih.jakarta.go.id homepage for the Kepgub. jdih.jabarprov.go.id and peraturan.bpk.go.id 403 to readers — use Wayback id_ copies or the Kemnaker/BPJS copy. Holidays: kemenkopmk.go.id/pengumuman SKB PDF is a scan; the date list is in the setneg.go.id news text. Discovery only: DDTC News, Ortax, PwC Indonesia Tax Alerts.",
+			"research_domains": [
+				"https://peraturan.bpk.go.id",
+				"https://jdih.kemnaker.go.id",
+				"https://jdih.kemenkeu.go.id",
+				"https://www.setneg.go.id",
+				"https://setneg.go.id",
+				"https://pajak.go.id",
+				"https://www.pajak.go.id",
+				"https://www.bpjsketenagakerjaan.go.id",
+				"https://bpjs-kesehatan.go.id",
+				"https://jdih.jakarta.go.id",
+				"https://jdih.jabarprov.go.id",
+				"https://www.kemenkopmk.go.id"
+			]
 		},
 		"facts": [
 			{
@@ -4670,6 +4984,65 @@
 				"required_when": "employment.service_months >= 1",
 				"valid_when": "employment.exit_facts.thr_holiday_date.matches(\"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\")",
 				"validation_message": "Religious holiday the THR is judged against must be a date written YYYY-MM-DD."
+			}
+		],
+		"terms_facts": [
+			{
+				"key": "wage_scale_grade",
+				"type": "string",
+				"label": "Company wage-scale grade",
+				"description": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: this worker's grade in the company wage structure and scale, read once service reaches one year."
+			},
+			{
+				"key": "wage_scale_basic_minimum",
+				"type": "number",
+				"minimum": 0,
+				"label": "Wage-scale basic-wage minimum",
+				"description": "The basic-wage minimum of that grade in the company scale (not the government UMP/UMK), in the terms' currency."
+			},
+			{
+				"key": "wage_scale_effective_on",
+				"type": "date",
+				"label": "Wage scale effective on",
+				"description": "The day the company wage structure and scale took effect."
+			},
+			{
+				"key": "wage_scale_notice_on",
+				"type": "date",
+				"label": "Grade notice given on",
+				"description": "The day this worker was notified of the grade."
+			},
+			{
+				"key": "wage_scale_reference",
+				"type": "string",
+				"label": "Wage scale and grade notice reference",
+				"description": "The company scale and this worker's individual grade notice; the file is its evidence.",
+				"evidence": {
+					"kind": "FILE"
+				}
+			},
+			{
+				"key": "foreign_prior_work",
+				"type": "string",
+				"label": "Prior work in Indonesia",
+				"description": "A short-contract foreigner's prior work in Indonesia, checked for the BPJS Kesehatan six-month work condition.",
+				"options": ["NONE", "ANY"]
+			},
+			{
+				"key": "foreign_prior_work_reviewed_on",
+				"type": "date",
+				"label": "Prior work reviewed on",
+				"description": "The day the prior-work record was reviewed; its reference is the evidence.",
+				"evidence": {
+					"kind": "REFERENCE"
+				}
+			},
+			{
+				"key": "worksite_sector_edition",
+				"type": "string",
+				"label": "Worksite KBLI edition",
+				"description": "The KBLI edition the worksite sector code is stated in.",
+				"options": ["2020", "2025"]
 			}
 		],
 		"obligations": [

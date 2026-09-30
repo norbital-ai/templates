@@ -139,7 +139,7 @@ const HOLDS = [
 		employmentId: 'emp-B',
 		amount: 3000,
 		noWithholdingReason: null,
-		irasNoticeReceivedOn: '2026-06-10'
+		noticeReceivedOn: '2026-06-10'
 	}
 ];
 const build = (extra = {}) =>
@@ -161,18 +161,40 @@ test('Singapore — every sealed version maps the IR8A items and the MUIS MBMF a
 		const income = row.payroll.income_return;
 		assert.equal(income.form, 'IR8A', row.name);
 		assert.match(income.authority, /s\.68\(2\)/);
-		const item = (code) => income.items.find((entry) => entry.code === code)?.item;
-		assert.equal(item('bonus'), 'B_NON_CONTRACTUAL_BONUS');
-		assert.equal(item('SALARY_IN_LIEU_OF_NOTICE'), 'D3_LUMP_SUM');
-		assert.equal(item('RETRENCHMENT_BENEFIT'), 'COMPENSATION_FOR_LOSS_OF_OFFICE');
-		assert.equal(income.compulsory_scheme, 'CPF');
-		assert.deepEqual([...income.donation_schemes].sort(), ['CDAC', 'ECF', 'SINDA']);
+		const item = (code) => income.classes.find((entry) => entry.code === code)?.item;
+		assert.equal(item('bonus'), 'b_bonus_non_contractual');
+		assert.equal(item('SALARY_IN_LIEU_OF_NOTICE'), 'd3_lump_sum');
+		assert.equal(item('RETRENCHMENT_BENEFIT'), 'd3_compensation_for_loss_of_office');
 		assert.deepEqual(
-			income.mosque_fund.allocation.map((band) => [
-				band.total,
-				band.mosque,
-				band.total - band.mosque
-			]),
+			[income.default_earning_item, income.default_allowance_item, income.remission_item],
+			['a_gross_salary', 'd1_allowances', 'e1_remission']
+		);
+		assert.deepEqual(income.items.find((entry) => entry.key === 'd_total').sum_of.toSorted(), [
+			'd1_allowances',
+			'd2_commission',
+			'd3_lump_sum',
+			'd4_pension',
+			'd5_overseas_pension_fund',
+			'd6_excess_voluntary_cpf',
+			'd7_gains_s10_1_b',
+			'd7_gains_s10_1_g',
+			'd8_benefits_in_kind'
+		]);
+		assert.deepEqual(
+			income.identity_patterns.map((entry) => [entry.type, entry.pattern]),
+			[
+				['NRIC', '^[ST]\\d{7}[A-Z]$'],
+				['FIN', '^[FGM]\\d{7}[A-Z]$']
+			]
+		);
+		assert.deepEqual(income.cessation_return, { form: 'IR21', due_months_before_cessation: 1 });
+		assert.equal(income.compulsory_scheme, 'CPF');
+		assert.equal(income.compulsory_item, 'deduction_cpf_employee');
+		assert.deepEqual([...income.donation_schemes].sort(), ['CDAC', 'ECF', 'SINDA']);
+		assert.equal(income.split_fund.part_item, 'deduction_mosque_building_fund');
+		assert.equal(income.split_fund.rest_item, 'deduction_donations');
+		assert.deepEqual(
+			income.split_fund.allocation.map((band) => [band.total, band.part, band.total - band.part]),
 			[
 				[3, 1.75, 1.25],
 				[4.5, 3, 1.5],
@@ -191,15 +213,15 @@ test('Singapore — every sealed version maps the IR8A items and the MUIS MBMF a
 			.map(Number);
 		assert.deepEqual(
 			rungs.toSorted((a, b) => a - b),
-			income.mosque_fund.allocation.map((band) => band.total)
+			income.split_fund.allocation.map((band) => band.total)
 		);
 		assert.ok(row.exit_facts.some((fact) => fact.key === 'departure_on'));
 	}
 });
 
 test('Singapore — the IR8A of a full year: salary, bonus, compulsory CPF and the MBMF split', () => {
-	const { ir8a } = build();
-	const a = ir8a.find((row) => row.employee.id_number === 'S1234567D');
+	const { annual } = build();
+	const a = annual.find((row) => row.employee.id_number === 'S1234567D');
 	assert.deepEqual(a.employee, {
 		id_type: 'NRIC',
 		id_number: 'S1234567D',
@@ -213,6 +235,7 @@ test('Singapore — the IR8A of a full year: salary, bonus, compulsory CPF and t
 		commencement_on: null,
 		cessation_on: null
 	});
+	assert.equal(a.form, 'IR8A');
 	assert.equal(a.employer.taxReference, '201912345K');
 	assert.deepEqual(a.authorised, SIGNER);
 	// a: 12 × 5,000 + 200 OT − 100 no-pay leave = 60,100. b: the 10,000 ad hoc bonus, declared on
@@ -232,7 +255,7 @@ test('Singapore — the IR8A of a full year: salary, bonus, compulsory CPF and t
 });
 
 test('Singapore — a notified MBMF amount is reported whole as Mosque Building Fund; an allowance is d1', () => {
-	const c = build().ir8a.find((row) => row.employee.id_number === 'T0123456G');
+	const c = build().annual.find((row) => row.employee.id_number === 'T0123456G');
 	assert.equal(c.employee.commencement_on, '2026-01-02');
 	assert.equal(c.employee.cessation_on, '2026-01-31');
 	assert.equal(c.amounts.a_gross_salary, 3000);
@@ -244,13 +267,14 @@ test('Singapore — a notified MBMF amount is reported whole as Mosque Building 
 });
 
 test('Singapore — a cleared foreign leaver files IR21, not IR8A, with both years and the withheld moneys', () => {
-	const { ir8a, ir21 } = build();
+	const { annual, cessation } = build();
 	assert.equal(
-		ir8a.some((row) => row.employee.id_number === 'G1234567X'),
+		annual.some((row) => row.employee.id_number === 'G1234567X'),
 		false
 	);
-	assert.equal(ir21.length, 1);
-	const b = ir21[0];
+	assert.equal(cessation.length, 1);
+	const b = cessation[0];
+	assert.equal(b.form, 'IR21');
 	assert.equal(b.employee.id_type, 'FIN');
 	assert.equal(b.employee.commencement_on, null);
 	assert.equal(b.employee.cessation_on, '2026-06-30');
@@ -266,24 +290,24 @@ test('Singapore — a cleared foreign leaver files IR21, not IR8A, with both yea
 	// 2025: November and December, 12,000.
 	assert.deepEqual([b.previous_year.year, b.previous_year.amounts.a_gross_salary], [2025, 12000]);
 	assert.equal(b.withheld_amount, 3000);
-	assert.equal(b.iras_notice_received_on, '2026-06-10');
+	assert.equal(b.notice_received_on, '2026-06-10');
 	// s.68(7): 30 days after IRAS received the notice.
 	assert.equal(b.release_by, '2026-07-10');
 });
 
 test('Singapore — an AIS amendment submits only the differences; a revision restates the record', () => {
-	const corrected = build().ir8a.find((row) => row.employee.id_number === 'S1234567D').amounts;
+	const corrected = build().annual.find((row) => row.employee.id_number === 'S1234567D').amounts;
 	const submitted = { ...corrected, a_gross_salary: 60000, deduction_donations: 80 };
 	const amended = build({
 		submission: 'AMENDMENT',
 		submitted: new Map([['S1234567D', submitted]])
-	}).ir8a.find((row) => row.employee.id_number === 'S1234567D');
+	}).annual.find((row) => row.employee.id_number === 'S1234567D');
 	assert.equal(amended.submission, 'AMENDMENT');
 	assert.equal(amended.amounts.a_gross_salary, 100);
 	assert.equal(amended.amounts.deduction_donations, -5.5);
 	assert.equal(amended.amounts.b_bonus_non_contractual, null);
 	assert.deepEqual(amendmentOf(corrected, corrected).deduction_cpf_employee, null);
-	const revised = build({ submission: 'REVISION' }).ir8a.find(
+	const revised = build({ submission: 'REVISION' }).annual.find(
 		(row) => row.employee.id_number === 'S1234567D'
 	);
 	assert.deepEqual(revised.amounts, corrected);

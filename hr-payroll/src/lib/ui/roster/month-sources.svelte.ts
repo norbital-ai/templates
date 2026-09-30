@@ -134,7 +134,8 @@ export function monthSources(scope: {
 						approval_id: true,
 						effective_range: true,
 						payroll: true,
-						work_rules: true
+						work_rules: true,
+						work_day_facts: true
 					},
 					where: onLineage(settingsCode),
 					limit: HOLIDAY_QUERY_LIMIT

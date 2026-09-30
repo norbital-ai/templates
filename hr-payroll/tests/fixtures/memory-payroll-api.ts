@@ -36,6 +36,8 @@ export type PayrollWorld = {
 	readonly work_days: PayrollRow[];
 	/** Rosters of record; a world that states none has no rostered cycle. */
 	readonly rosters?: PayrollRow[];
+	/** Evidence of declared facts; a world that states none has no evidence recorded. */
+	readonly fact_evidence?: PayrollRow[];
 	readonly payroll_runs: PayrollRow[];
 	readonly payslips: PayrollRow[];
 };
@@ -66,6 +68,7 @@ const COLLECTIONS = [
 	'loan_repayments',
 	'work_days',
 	'rosters',
+	'fact_evidence',
 	'payroll_runs',
 	'payslips'
 ] as const;
@@ -78,7 +81,48 @@ export function payrollWorld(world: PayrollWorld) {
 	// A stored payslip always carries its `adjustments` array; a test that files one without it
 	// reads it back the way the database would.
 	rows.payslips = world.payslips.map((row) => ({ adjustments: [], ...row }));
+	rows.fact_evidence = [...rows.fact_evidence, ...copiedTermsEvidence(world)];
 	return rows;
+}
+
+/**
+ * Evidence is keyed by its subject row. A test that spreads one terms row into a successor of the
+ * same employment copies its evidenced values; the copy carries that row's evidence for each value
+ * it records unchanged and has no evidence of its own for, as recording the successor would.
+ */
+function copiedTermsEvidence(world: PayrollWorld): PayrollRow[] {
+	const evidence = world.fact_evidence ?? [];
+	const subjectOf = (row: PayrollRow) => row.subject as { collection: string; id: string };
+	const rows = world.employment_terms ?? [];
+	const terms = new Map(rows.map((row) => [String(row.id), row]));
+	const has = new Set(
+		evidence.map((row) => `${subjectOf(row).collection}:${subjectOf(row).id}:${row.fact_key}`)
+	);
+	return rows.flatMap((row) =>
+		evidence.flatMap((source) => {
+			const from = terms.get(subjectOf(source).id);
+			const key = String(source.fact_key);
+			const facts = (row.facts ?? {}) as Record<string, unknown>;
+			if (
+				subjectOf(source).collection !== 'employment_terms' ||
+				from == null ||
+				from === row ||
+				from.employment_id !== row.employment_id ||
+				!Object.hasOwn(facts, key) ||
+				facts[key] !== ((from.facts ?? {}) as Record<string, unknown>)[key] ||
+				has.has(`employment_terms:${row.id}:${key}`)
+			)
+				return [];
+			has.add(`employment_terms:${row.id}:${key}`);
+			return [
+				{
+					...source,
+					id: `${source.id}:${row.id}`,
+					subject: { collection: 'employment_terms', id: row.id }
+				}
+			];
+		})
+	);
 }
 
 export function refusalMessage(error: unknown): string {

@@ -46,11 +46,11 @@ const artefact = {
  */
 const payroll_export = automation({
 	description:
-		'Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment file, one PDF payslip per employee, the payroll report workbook, and the catalogue entries workbook (allowances, claims and loans only, with totals); asked for by kind, the employment-income returns of each selected year (SG Form IR8A per employee, IR21 per cleared leaver).',
+		"Turns the selected payroll runs into the artefacts a settled period hands out: a bank payment file, one PDF payslip per employee, the payroll report workbook, and the catalogue entries workbook (allowances, claims and loans only, with totals); asked for by kind, the employment-income returns of each selected year (the version's annual return per employee, its cessation return per cleared leaver).",
 	input: {
 		ids: { kind: 'list', of: { kind: 'id', of: 'payroll_runs' }, min: 1 },
 		kind: { kind: 'enum', values: KINDS, optional: true },
-		/** Form IR8A/IR21: who signs the return, and the day they sign it. */
+		/** The income returns: who signs them, and the day they sign. */
 		authorised_person: {
 			kind: 'object',
 			optional: true,
@@ -63,7 +63,7 @@ const payroll_export = automation({
 		},
 		/** ORIGINAL; REVISION restates whole records; AMENDMENT submits differences from `submitted`. */
 		submission: { kind: 'enum', values: ['ORIGINAL', 'AMENDMENT', 'REVISION'], optional: true },
-		/** The amounts already submitted, one per identity number and IR8A amount key. */
+		/** The amounts already submitted, one per identity number and declared return item key. */
 		submitted: {
 			kind: 'list',
 			optional: true,
@@ -211,7 +211,7 @@ payroll_export.run(async ({ ids, kind, authorised_person, submission, submitted 
 		});
 	if (kind === 'income-tax-returns') {
 		if (authorised_person == null)
-			refuse('Form IR8A and IR21 name the authorised person, their designation, contact and date.');
+			refuse('An income return names the authorised person, their designation, contact and date.');
 		const returns = await loadIncomeReturns(ctx, runs, {
 			authorised: { ...authorised_person, date: dateKey(authorised_person.date) },
 			submission: submission ?? 'ORIGINAL',
@@ -224,15 +224,12 @@ payroll_export.run(async ({ ids, kind, authorised_person, submission, submitted 
 		});
 		for (const filing of returns) {
 			const files = [];
-			for (const [form, records] of [
-				['ir8a', filing.ir8a],
-				['ir21', filing.ir21]
-			] as const)
+			for (const records of [filing.annual, filing.cessation])
 				if (records.length > 0)
 					files.push(
 						await put(
 							encode(recordsCsv(records)),
-							`${form}_${filing.year}_${filing.label.replaceAll(/\W+/g, '_')}.csv`,
+							`${records[0]!.form.toLowerCase()}_${filing.year}_${filing.label.replaceAll(/\W+/g, '_')}.csv`,
 							'text/csv'
 						)
 					);

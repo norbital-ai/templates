@@ -583,3 +583,23 @@ for (const code of ['MY', 'MY-nihon'] as const) {
 		);
 	});
 }
+
+for (const code of ['MY', 'MY-nihon'] as const)
+	test(`${code} — every PCB version declares each relief category its rules read, and the child-claim rule`, () => {
+		for (const scheme of contributionSchemes(code).filter((row) => row.code === 'PCB')) {
+			const declared = new Set(
+				(scheme.deduction_categories as { code: string; label: string }[]).map((row) => row.code)
+			);
+			const read = new Set(
+				[
+					...JSON.stringify(scheme.rules).matchAll(/deductions(?:_prior|_current)?\.([A-Z_0-9]+)/g)
+				].map((match) => match[1]!)
+			);
+			assert.deepEqual(
+				[...read].filter((category) => !declared.has(category)),
+				[],
+				scheme.settings_id
+			);
+			assert.match(String(scheme.child_claims_hint), /section 48\(4\)/);
+		}
+	});

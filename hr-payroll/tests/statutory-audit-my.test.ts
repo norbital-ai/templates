@@ -1321,9 +1321,10 @@ test('MY audit — each salary day needs a typed Peninsular or Labuan worksite s
 			() => run(null),
 			/record a supported Peninsular Malaysia or Labuan worksite state/
 		);
+		// A value outside the declared `terms_facts` options is refused when the terms are resolved.
 		assert.throws(
 			() => run('UNKNOWN'),
-			/record a supported Peninsular Malaysia or Labuan worksite state/
+			/Worksite state or federal territory must be one of: JOHOR/
 		);
 		for (const state of ['SABAH', 'SARAWAK'])
 			assert.throws(
@@ -1343,7 +1344,7 @@ test('MY audit — each salary day needs a typed Peninsular or Labuan worksite s
 			...first,
 			id: 'b0000000-0000-4000-8000-000000000099',
 			effective_range: { start: '2026-01-16', end: null },
-			worksite_state: null
+			facts: {}
 		});
 		assert.throws(
 			() =>

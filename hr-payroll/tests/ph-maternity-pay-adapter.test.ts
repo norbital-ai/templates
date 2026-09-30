@@ -3,24 +3,39 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { daysBetween } from '../src/lib/payroll/run/dates.ts';
 import {
-	maternityCashConflictsWithPayroll,
-	unallocatedPhMaternityLeave
-} from '../src/lib/ph/maternity-payroll-guard.ts';
-import { planPhMaternityPayslips } from '../src/lib/ph/maternity-pay-adapter.ts';
+	benefitCashConflictsWithPayroll,
+	unallocatedBenefitLeave
+} from '../src/lib/benefit-cases/payroll-guard.ts';
+import { planBenefitCasePayslips } from '../src/lib/benefit-cases/pay.ts';
+import { MATERNITY } from './fixtures/benefit-cases.ts';
+
+/** The saved case priced through the seeded PH maternity case type, in PHP. */
+const planPhMaternityPayslips = ({ maternity_case, cutoffs, ...rest }) =>
+	planBenefitCasePayslips({
+		case_type: MATERNITY,
+		currency: 'PHP',
+		benefit_case: maternity_case,
+		cutoffs: cutoffs.map(({ employee_premiums: { sss, philhealth, pagibig }, ...cutoff }) => ({
+			...cutoff,
+			employee_premiums: { SSS: sss, PHIC: philhealth, HDMF: pagibig }
+		})),
+		...rest
+	});
 
 const caseRow = {
 	id: 'case-1',
 	employment_id: 'employment-1',
+	case_type: 'MATERNITY_LEAVE',
 	application_on: '2026-09-01',
 	event_kind: 'BIRTH',
 	event_on: '2026-10-05',
-	solo_parent_claimed: false,
+	facts: { solo_parent_claimed: false },
 	leave_from: '2026-10-05',
 	leave_through: '2027-01-17',
-	sss_award_amount: '70000.00',
-	sss_awarded_on: '2026-10-20',
-	sss_award_reference: 'SSS-AWARD-001',
-	sss_award_file: { path: 'sss-award.pdf' }
+	award_amount: '70000.00',
+	awarded_on: '2026-10-20',
+	award_reference: 'SSS-AWARD-001',
+	award_file: { path: 'sss-award.pdf' }
 };
 const spans = [
 	['2026-10-05', '2026-10-31'],
@@ -52,19 +67,19 @@ const cutoffs = spans.map(([start, end], index) => ({
 }));
 const movements = [
 	{
-		ph_maternity_case_id: 'case-1',
+		benefit_case_id: 'case-1',
 		kind: 'SSS_ADVANCE',
 		paid_on: '2026-09-30',
 		amount: '70000.00'
 	},
 	{
-		ph_maternity_case_id: 'case-1',
+		benefit_case_id: 'case-1',
 		kind: 'SALARY_DIFFERENTIAL',
 		paid_on: '2026-10-01',
 		amount: '34893.69'
 	},
 	{
-		ph_maternity_case_id: 'case-1',
+		benefit_case_id: 'case-1',
 		kind: 'SSS_REIMBURSEMENT',
 		paid_on: '2026-12-01',
 		amount: '70000.00'
@@ -110,7 +125,8 @@ test('PH saved case adapter proposes four immutable cutoff allocations while pay
 		34893.69
 	);
 	assert.equal(
-		maternityCashConflictsWithPayroll({
+		benefitCashConflictsWithPayroll({
+			case_types: [MATERNITY],
 			entries,
 			cases: [caseRow],
 			movements,
@@ -121,7 +137,8 @@ test('PH saved case adapter proposes four immutable cutoff allocations while pay
 		true
 	);
 	assert.equal(
-		unallocatedPhMaternityLeave({
+		unallocatedBenefitLeave({
+			case_types: [MATERNITY],
 			entries,
 			paying: [
 				{ employment_id: 'employment-1', salary: { start: '2026-10-01', end: '2026-10-31' } }
@@ -141,7 +158,7 @@ test('PH saved case adapter refuses unsupported wage evidence, paid overlap and 
 					full_span_wage_period: { ...evidence.full_span_wage_period, normal_wages: '109549.99' }
 				}
 			}),
-		/disagree with the DOLE monthly-salary formula/
+		/disagree with the monthly-salary full-pay formula/
 	);
 	assert.throws(
 		() =>
@@ -156,7 +173,7 @@ test('PH saved case adapter refuses unsupported wage evidence, paid overlap and 
 					}
 				]
 			}),
-		/Prior paid salary overlaps maternity leave/
+		/Prior paid salary overlaps benefit leave/
 	);
 	assert.throws(
 		() =>
@@ -176,7 +193,7 @@ test('PH saved case adapter refuses unsupported wage evidence, paid overlap and 
 	);
 	assert.throws(
 		() => planPhMaternityPayslips({ ...saved, as_of: '2026-10-19' }),
-		/current actual SSS award/
+		/current actual award/
 	);
 	assert.throws(
 		() =>
@@ -184,7 +201,7 @@ test('PH saved case adapter refuses unsupported wage evidence, paid overlap and 
 				...saved,
 				entries: [{ ...entries[0], payslip_id: 'missing-paid-slip' }, ...entries.slice(1)]
 			}),
-		/existing maternity payslip/
+		/existing benefit payslip/
 	);
 	assert.throws(
 		() =>
@@ -192,11 +209,11 @@ test('PH saved case adapter refuses unsupported wage evidence, paid overlap and 
 				...saved,
 				entries: [...entries, { ...entries[0], id: 'other-event', event_date: '2026-10-06' }]
 			}),
-		/Every maternity charge in the case span/
+		/Every benefit leave charge in the case span/
 	);
 	assert.throws(
 		() => planPhMaternityPayslips({ ...saved, movements: [movements[0], movements[2]] }),
-		/full SSS advance and salary differential/
+		/full award advance and salary differential/
 	);
 	assert.throws(
 		() =>
@@ -204,6 +221,6 @@ test('PH saved case adapter refuses unsupported wage evidence, paid overlap and 
 				...saved,
 				movements: [{ ...movements[0], paid_on: '2026-10-02' }, movements[1], movements[2]]
 			}),
-		/full SSS advance and salary differential/
+		/full award advance and salary differential/
 	);
 });

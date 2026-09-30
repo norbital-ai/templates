@@ -13,9 +13,9 @@ import { addDays } from '../../../lib/payroll/run/dates.js';
 const c = collection('payment_holds', {
 	read: { fields: 'all' },
 	queries: {
-		ir21_remittance_status: {
+		tax_clearance_remittance_status: {
 			description:
-				'IR21 directive tax remittance due, overdue, paid on time or paid late for one entity as of a calendar day.',
+				'Tax-clearance directive tax remittance due, overdue, paid on time or paid late for one entity as of a calendar day.',
 			input: {
 				company_id: { kind: 'id', of: 'companies' },
 				as_of: { kind: 'date' }
@@ -35,9 +35,9 @@ const c = collection('payment_holds', {
 				'released_on',
 				'released_amount',
 				'release_basis',
-				'iras_notice_received_on',
+				'authority_notice_received_on',
 				'release_directive_on',
-				'amended_ir21_filed_on',
+				'amended_notice_filed_on',
 				'directive_tax_amount',
 				'tax_remitted_amount',
 				'tax_remitted_on',
@@ -59,9 +59,9 @@ const c = collection('payment_holds', {
 				'released_on',
 				'released_amount',
 				'release_basis',
-				'iras_notice_received_on',
+				'authority_notice_received_on',
 				'release_directive_on',
-				'amended_ir21_filed_on',
+				'amended_notice_filed_on',
 				'directive_tax_amount',
 				'tax_remitted_amount',
 				'tax_remitted_on',
@@ -75,6 +75,7 @@ const c = collection('payment_holds', {
 	delete: {}
 });
 
+type Basis = 'RELEASE_NOTICE' | 'PAY_TAX_DIRECTIVE' | 'NOTICE_EXPIRY';
 type Hold = {
 	readonly employment_id?: string | null;
 	readonly directive_reference?: string | null;
@@ -82,10 +83,10 @@ type Hold = {
 	readonly held_on?: string | null;
 	readonly released_on?: string | null;
 	readonly released_amount?: unknown;
-	readonly release_basis?: 'RELEASE_NOTICE' | 'PAY_TAX_DIRECTIVE' | 'THIRTY_DAY_EXPIRY' | null;
-	readonly iras_notice_received_on?: string | null;
+	readonly release_basis?: Basis | null;
+	readonly authority_notice_received_on?: string | null;
 	readonly release_directive_on?: string | null;
-	readonly amended_ir21_filed_on?: string | null;
+	readonly amended_notice_filed_on?: string | null;
 	readonly directive_tax_amount?: unknown;
 	readonly tax_remittance_due_on?: string | null;
 	readonly tax_remitted_amount?: unknown;
@@ -103,6 +104,11 @@ type Version = Parameters<typeof settingsInForce>[0][number] & {
 			readonly reference_label?: string;
 			readonly max_withhold_days?: number;
 			readonly tax_payment_days?: number;
+			readonly release?: {
+				readonly bases: readonly Basis[];
+				readonly evidence_required: boolean;
+				readonly amended_notice_resets: boolean;
+			} | null;
 		} | null;
 	} | null;
 };
@@ -203,24 +209,35 @@ c.transform(async (inputs, ctx) => {
 		const currency = version?.payroll?.currency;
 		if (currency == null)
 			refuse('A payment hold requires sealed jurisdiction settings on the day it was placed.');
+		const clearance = version?.payroll?.tax_clearance;
+		const rule = clearance?.release;
 		if (
-			version?.payroll?.tax_clearance?.reference_label === 'IR21' &&
+			clearance != null &&
+			rule != null &&
 			(row.category ?? 'TAX_CLEARANCE') === 'TAX_CLEARANCE'
 		) {
-			const clearance = version?.payroll?.tax_clearance;
+			const label = clearance.reference_label ?? 'Tax clearance';
+			const basis = row.release_basis;
 			const directive = dateKey(row.release_directive_on);
-			const amended = dateKey(row.amended_ir21_filed_on);
-			let taxDue: number | null = null;
-			if (row.release_basis === 'PAY_TAX_DIRECTIVE') {
-				if (directive === '')
-					refuse('An IRAS release requires the directive date.', { field: 'release_directive_on' });
-				if (row.evidence_file == null)
-					refuse('Singapore tax clearance release requires IRAS evidence.', {
+			const amended = rule.amended_notice_resets ? dateKey(row.amended_notice_filed_on) : '';
+			const evidence = () => {
+				if (rule.evidence_required && row.evidence_file == null)
+					refuse(`${label} tax clearance release requires the authority's evidence.`, {
 						field: 'evidence_file'
 					});
-				const paymentDays = clearance?.tax_payment_days;
+			};
+			if (basis != null && !rule.bases.includes(basis))
+				refuse(`${label} tax clearance is not released by ${basis}.`, { field: 'release_basis' });
+			let taxDue: number | null = null;
+			if (basis === 'PAY_TAX_DIRECTIVE') {
+				if (directive === '')
+					refuse(`A ${label} release requires the directive date.`, {
+						field: 'release_directive_on'
+					});
+				evidence();
+				const paymentDays = clearance.tax_payment_days;
 				if (paymentDays == null)
-					refuse('Singapore tax clearance requires a sealed tax-payment deadline.');
+					refuse(`${label} tax clearance requires a sealed tax-payment deadline.`);
 				remittanceDue.set(index, PlainDate(addDays(directive, paymentDays)));
 				taxDue = row.directive_tax_amount == null ? null : decodeNumber(row.directive_tax_amount);
 				if (taxDue == null || !(taxDue > 0) || cents(taxDue, currency) !== taxDue)
@@ -229,7 +246,7 @@ c.transform(async (inputs, ctx) => {
 					row.tax_remitted_amount == null ? null : decodeNumber(row.tax_remitted_amount);
 				const remittedOn = dateKey(row.tax_remitted_on);
 				if (remitted != null && remittedOn === '')
-					refuse('Recorded IRAS tax remittance requires the tax remittance date.', {
+					refuse('Recorded tax remittance requires the tax remittance date.', {
 						field: 'tax_remitted_on'
 					});
 				if (remittedOn !== '' && remittedOn < directive)
@@ -241,63 +258,65 @@ c.transform(async (inputs, ctx) => {
 					(remitted !== taxDue || !(row.tax_remittance_reference ?? '').trim())
 				)
 					refuse('Tax remittance must reconcile with the directive and have a payment reference.');
-				if (remittedOn !== '' && row.tax_remittance_evidence_file == null)
-					refuse('Recorded IRAS tax remittance requires remittance evidence.');
+				if (remittedOn !== '' && rule.evidence_required && row.tax_remittance_evidence_file == null)
+					refuse('Recorded tax remittance requires remittance evidence.');
 			}
 			if (released != null) {
-				const waitDays = clearance?.max_withhold_days;
-				if (waitDays == null) refuse('Singapore tax clearance requires a sealed release rule.');
-				if (row.release_basis == null)
-					refuse('Singapore tax clearance release requires a release basis.', {
+				const waitDays = clearance.max_withhold_days;
+				if (waitDays == null)
+					refuse(`${label} tax clearance requires a sealed withholding period.`);
+				if (basis == null)
+					refuse(`${label} tax clearance release requires a release basis.`, {
 						field: 'release_basis'
 					});
-				if (row.evidence_file == null)
-					refuse('Singapore tax clearance release requires IRAS evidence.', {
-						field: 'evidence_file'
-					});
+				evidence();
 				if (amount == null)
-					refuse('Singapore tax clearance release requires the amount withheld.', {
+					refuse(`${label} tax clearance release requires the amount withheld.`, {
 						field: 'amount'
 					});
-				if (row.release_basis === 'THIRTY_DAY_EXPIRY') {
-					const received = dateKey(row.iras_notice_received_on);
+				if (basis === 'NOTICE_EXPIRY') {
+					const received = dateKey(row.authority_notice_received_on);
 					if (received === '')
-						refuse('The day IRAS received the IR21 notice is required for 30-day expiry.', {
-							field: 'iras_notice_received_on'
-						});
+						refuse(
+							`The day the authority received the ${label} notice is required for its expiry.`,
+							{
+								field: 'authority_notice_received_on'
+							}
+						);
 					if (amended !== '' && amended <= released)
-						refuse('An amended IR21 requires a fresh clearance directive before release.');
+						refuse(`An amended ${label} requires a fresh clearance directive before release.`);
 					if (released < addDays(received, waitDays))
-						refuse('The IR21 hold cannot expire before 30 days after IRAS received notice.');
+						refuse(
+							`The ${label} hold cannot expire before ${waitDays} days after the authority received notice.`
+						);
 					if (
 						row.release_directive_on != null ||
 						row.directive_tax_amount != null ||
 						row.tax_remitted_amount != null
 					)
-						refuse('A directive or tax remittance cannot be used as a 30-day expiry.');
+						refuse('A directive or tax remittance cannot be used as a notice expiry.');
 				} else {
 					if (directive === '')
-						refuse('An IRAS release requires the directive date.', {
+						refuse(`A ${label} release requires the directive date.`, {
 							field: 'release_directive_on'
 						});
-					if (directive > released) refuse('The IRAS directive cannot be dated after the release.');
+					if (directive > released)
+						refuse(`The ${label} directive cannot be dated after the release.`);
 					if (amended !== '' && amended <= released && directive < amended)
-						refuse('An amended IR21 requires a fresh clearance directive before release.');
-					if (row.release_basis === 'PAY_TAX_DIRECTIVE') {
+						refuse(`An amended ${label} requires a fresh clearance directive before release.`);
+					if (basis === 'PAY_TAX_DIRECTIVE') {
 						if (releasedAmount !== cents(Math.max(0, amount - taxDue!), currency))
 							refuse('The release must reconcile withheld money less the directive tax amount.');
-					} else if (row.release_basis === 'RELEASE_NOTICE') {
-						if (
-							row.directive_tax_amount != null ||
-							row.tax_remitted_amount != null ||
-							row.tax_remitted_on != null
-						)
-							refuse('A release notice cannot record a tax remittance.');
-					} else refuse('Unknown Singapore tax clearance release basis.');
+					} else if (
+						row.directive_tax_amount != null ||
+						row.tax_remitted_amount != null ||
+						row.tax_remitted_on != null
+					)
+						refuse('A release notice cannot record a tax remittance.');
 				}
-				if (row.release_basis !== 'PAY_TAX_DIRECTIVE' && releasedAmount !== amount)
+				if (basis !== 'PAY_TAX_DIRECTIVE' && releasedAmount !== amount)
 					refuse('The released amount must reconcile with all money withheld.');
-				if (row.release_basis !== 'PAY_TAX_DIRECTIVE') remittanceDue.set(index, null);
+				if (basis !== 'PAY_TAX_DIRECTIVE') remittanceDue.set(index, null);
 			}
 		}
 		for (const [label, value] of [
@@ -314,7 +333,7 @@ c.transform(async (inputs, ctx) => {
 	);
 });
 
-c.query('ir21_remittance_status', async ({ company_id, as_of }, ctx) => {
+c.query('tax_clearance_remittance_status', async ({ company_id, as_of }, ctx) => {
 	const companies = await ctx.read('companies', {
 		where: { id: { eq: company_id } },
 		all: true
@@ -354,7 +373,7 @@ c.query('ir21_remittance_status', async ({ company_id, as_of }, ctx) => {
 		.filter(
 			(row) =>
 				settingsInForce(versions.rows, code, dateKey(row.held_on))?.payroll?.tax_clearance
-					?.reference_label === 'IR21' &&
+					?.release != null &&
 				row.category === 'TAX_CLEARANCE' &&
 				row.release_basis === 'PAY_TAX_DIRECTIVE' &&
 				dateKey(row.release_directive_on) !== '' &&

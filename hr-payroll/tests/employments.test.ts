@@ -66,6 +66,27 @@ test('a first contract carries its first terms and their title derived', async (
 	});
 });
 
+test('a first contract’s nested terms record only the inputs its lineage declares', async () => {
+	const { id, ...hire } = contract('a', '2026-01-01');
+	const tables = world({
+		jurisdiction_settings: [
+			{
+				...law('2026-01-01', null, ['WARNINGS']),
+				terms_facts: [{ key: 'worksite_state', type: 'string', options: ['JOHOR'] }]
+			}
+		]
+	});
+	const hireWith = (facts) =>
+		transform(
+			employments,
+			[{ ...hire, employment_terms: { create: [{ job_title: 'Cook', facts }] } }],
+			{ tables }
+		);
+	await hireWith({ worksite_state: 'JOHOR' });
+	await assert.rejects(hireWith({ worksite_state: 'SABAH' }), /must be one of: JOHOR/);
+	await assert.rejects(hireWith({ typo: true }), /does not declare the entity fact typo/);
+});
+
 test('a referenced contract takes only its departure; a closed one never reopens; neither is deleted', async () => {
 	const open = contract('a', '2025-01-01');
 	const tables = world({

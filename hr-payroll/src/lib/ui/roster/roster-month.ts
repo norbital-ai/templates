@@ -1101,12 +1101,12 @@ export const ATTENDANCE_DRAFT_PROBLEM_KEY: Record<AttendanceDraftProblem, Messag
  * two things would always be hiding one of them.
  */
 export const HOLIDAY_PRESENTATION: {
-	readonly mark: string;
+	readonly markKey: MessageKey;
 	readonly labelKey: MessageKey;
 	readonly className: string;
 	readonly headerClassName: string;
 } = {
-	mark: 'PH',
+	markKey: 'roster.public_holiday_mark',
 	labelKey: 'roster.public_holiday',
 	/** Body cells: translucent, so the status chip sitting inside the cell stays legible through it. */
 	className: 'bg-brand/20',

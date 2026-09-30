@@ -141,8 +141,36 @@ export type DeclaredKey = FactKey;
 export const EMPTY_OF: Readonly<Record<DeclaredKey['type'], boolean | number | string>> = {
 	boolean: false,
 	number: 0,
-	string: ''
+	string: '',
+	date: '',
+	instant: ''
 };
+
+/** A subject's declared inputs: the open root they are read under and the option that types them. */
+type SubjectFacts = {
+	readonly termsFacts?: readonly DeclaredKey[] | undefined;
+	readonly workDayFacts?: readonly DeclaredKey[] | undefined;
+	readonly paymentFacts?: readonly DeclaredKey[] | undefined;
+	readonly settlementFacts?: readonly DeclaredKey[] | undefined;
+	/** A catalogue row's `request_facts`, read as `entry.facts` on the entry site. */
+	readonly requestFacts?: readonly DeclaredKey[] | undefined;
+};
+const SUBJECT_ROOTS = [
+	['termsFacts', 'terms', 'terms.facts'],
+	['workDayFacts', 'work-day', 'day_facts'],
+	['paymentFacts', 'payment', 'payment.facts'],
+	['settlementFacts', 'settlement', 'settlement.facts'],
+	['requestFacts', 'request', 'entry.facts']
+] as const;
+/** The site's spelling of a subject root: the person's own roots sit under `person.` off the person site. */
+const rootOf = (context: ExpressionContext, root: string): string | null =>
+	context.open.includes(root)
+		? root
+		: context.open.includes(`person.${root}`)
+			? `person.${root}`
+			: null;
+const typedMap = (fields: readonly DeclaredKey[]) =>
+	Object.fromEntries(fields.map((field) => [field.key, EMPTY_OF[field.type]]));
 
 /**
  * The blank, with a placeholder under every open key the expression names.
@@ -159,7 +187,8 @@ function openKeyBlank(
 	elections: readonly DeclaredKey[],
 	facts: readonly DeclaredKey[],
 	schemeElections: Readonly<Record<string, readonly DeclaredKey[]>>,
-	exitFacts: readonly DeclaredKey[]
+	exitFacts: readonly DeclaredKey[],
+	subjects: SubjectFacts
 ): Record<string, unknown> {
 	const blank = structuredClone(context.blank) as Record<string, any>;
 	const zeroMap = (parent: Record<string, unknown>, key: string, mentions: readonly string[]) => {
@@ -242,6 +271,7 @@ function openKeyBlank(
 		person.employment.exit_facts = Object.fromEntries(
 			exitFacts.map((field) => [field.key, EMPTY_OF[field.type]])
 		);
+		if (subjects.termsFacts != null) person.terms.facts = typedMap(subjects.termsFacts);
 		zeroMap(person.period, 'leave_days', openKeyMentions(expression, `${prefix}period.leave_days`));
 		zeroMap(person.period, 'leave_pay', openKeyMentions(expression, `${prefix}period.leave_pay`));
 		zeroMap(
@@ -260,6 +290,15 @@ function openKeyBlank(
 				)
 			};
 		}
+	}
+	if (subjects.requestFacts != null && context.site === 'entry')
+		blank.entry.facts = typedMap(subjects.requestFacts);
+	if (subjects.workDayFacts != null && context.site === 'work_day')
+		blank.day_facts = typedMap(subjects.workDayFacts);
+	if (context.site === 'payment') {
+		if (subjects.paymentFacts != null) blank.payment.facts = typedMap(subjects.paymentFacts);
+		if (subjects.settlementFacts != null)
+			blank.settlement.facts = typedMap(subjects.settlementFacts);
 	}
 	return blank;
 }
@@ -291,18 +330,20 @@ export function compileExpression(options: Parameters<typeof compileOnce>[0]): s
 }
 const judged = new Map<string, string | null>();
 
-function compileOnce(options: {
-	readonly expression: string | null | undefined;
-	readonly site: ExpressionSite;
-	readonly type: ExpressionType;
-	readonly elections?: readonly DeclaredKey[] | undefined;
-	readonly facts?: readonly DeclaredKey[] | undefined;
-	/** All scheme declarations in the governing version, for reads of another scheme's facts. */
-	readonly schemeElections?: Readonly<Record<string, readonly DeclaredKey[]>> | undefined;
-	readonly exitFacts?: readonly DeclaredKey[] | undefined;
-	/** The scheme's declared parts, each a root of the catalogue words: `ORDINARY.ALLOWANCES`. */
-	readonly parts?: readonly string[] | undefined;
-}): string | null {
+function compileOnce(
+	options: {
+		readonly expression: string | null | undefined;
+		readonly site: ExpressionSite;
+		readonly type: ExpressionType;
+		readonly elections?: readonly DeclaredKey[] | undefined;
+		readonly facts?: readonly DeclaredKey[] | undefined;
+		/** All scheme declarations in the governing version, for reads of another scheme's facts. */
+		readonly schemeElections?: Readonly<Record<string, readonly DeclaredKey[]>> | undefined;
+		readonly exitFacts?: readonly DeclaredKey[] | undefined;
+		/** The scheme's declared parts, each a root of the catalogue words: `ORDINARY.ALLOWANCES`. */
+		readonly parts?: readonly string[] | undefined;
+	} & SubjectFacts
+): string | null {
 	const expression = (options.expression ?? '').trim();
 	if (expression === '') return null;
 	const context = withParts(EXPRESSION_CONTEXTS[options.site], options.parts ?? []);
@@ -322,6 +363,21 @@ function compileOnce(options: {
 				return `The settings version does not declare departure input ${key}.`;
 	}
 	let needsSchemeDeclarations = exitKeys.length > 0 && options.exitFacts == null;
+	// A subject input is typed by its version's declaration: an undeclared key is refused where the
+	// caller holds the declarations; elsewhere the expression is parsed and member-checked only.
+	for (const [option, noun, root] of SUBJECT_ROOTS) {
+		const prefix = rootOf(context, root);
+		if (prefix == null) continue;
+		const keys = openKeyMentions(expression, prefix);
+		const declared = options[option];
+		if (declared == null) {
+			if (keys.length > 0) needsSchemeDeclarations = true;
+			continue;
+		}
+		for (const key of keys)
+			if (!declared.some((field) => field.key === key))
+				return `The settings version does not declare ${noun} input ${key}.`;
+	}
 	for (const code of factCodes) {
 		const keys = openKeyMentions(expression, `${factPrefix}.${code}.elections`);
 		if (keys.length > 0 && options.schemeElections == null) needsSchemeDeclarations = true;
@@ -380,7 +436,8 @@ function compileOnce(options: {
 		options.elections ?? [],
 		options.facts ?? [],
 		options.schemeElections ?? {},
-		options.exitFacts ?? []
+		options.exitFacts ?? [],
+		options
 	);
 	let value: unknown;
 	try {

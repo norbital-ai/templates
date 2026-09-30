@@ -21,6 +21,8 @@ const c = collection('adhoc_catalogue', {
 				'bands',
 				'eligibility',
 				'evidence',
+				'request_requirements',
+				'request_facts',
 				'raised_by',
 				'counts_toward'
 			]
@@ -37,6 +39,8 @@ const c = collection('adhoc_catalogue', {
 				'bands',
 				'eligibility',
 				'evidence',
+				'request_requirements',
+				'request_facts',
 				'raised_by',
 				'counts_toward'
 			]

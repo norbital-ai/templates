@@ -19,6 +19,18 @@ import {
 } from '../../lib/payroll/run/eligibility.js';
 import * as Predicate from 'effect/Predicate';
 
+/**
+ * The work-day inputs (`work_day_facts`) an absence decision records, which a leave that
+ * forfeits on absence (`forfeit_above_absence_share`) reads and a leave that
+ * `locks_attendance_after_use` protects.
+ */
+export const ABSENCE_DECISION_FACTS = [
+	'absence_permission',
+	'absence_reasonable_excuse',
+	'absence_decision',
+	'partial_absence'
+] as const;
+
 /** One inclusive window of leave days: the annual period a credit belongs to. */
 export const leaveWindowSchema = Schema.Struct({ start: calendarDay, end: calendarDay });
 export type LeaveWindow = Schema.Schema.Type<typeof leaveWindowSchema>;
@@ -228,11 +240,13 @@ export function computedEntitlement(options: {
 						.length / 12
 				);
 			case 'HALF_MONTHS': {
-				// A month is counted once it has ended and at least half its days were eligible.
+				// A month is counted once it has ended and at least half its days were eligible; a
+				// leaver's last month has ended for them on the exit day (VN Decree 145/2020 art.66(2)).
+				const last = options.exitDate != null && to >= end ? end.slice(0, 7) : null;
 				let months = 0;
 				for (
 					let month = window.start.slice(0, 7);
-					monthBounds(month).end <= to;
+					monthBounds(month).end <= to || month === last;
 					month = addDays(monthBounds(month).end, 1).slice(0, 7)
 				) {
 					const days = daysBetween(monthBounds(month).start, monthBounds(month).end);

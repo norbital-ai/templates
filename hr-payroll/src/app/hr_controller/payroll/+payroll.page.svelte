@@ -221,13 +221,13 @@
 					]}
 				/>
 			</Cover>
-			<Cover as="section" gap="md" aria-label={t('app.payroll.vn_noncontract_obligations')}>
+			<Cover as="section" gap="md" aria-label={t('app.payroll.noncontract_obligations')}>
 				<Table
-					of="vn_noncontract_settlements"
-					toolbar={{ title: t('app.payroll.vn_noncontract_obligations'), new: true }}
+					of="noncontract_settlements"
+					toolbar={{ title: t('app.payroll.noncontract_obligations'), new: true }}
 					where={{ company_id: { eq: scope.id } }}
 					orderBy={{ created_at: 'desc' }}
-					columns={['employee_id', 'reference', 'currency', 'agreed_gross_vnd', 'agreed_due_on']}
+					columns={['employee_id', 'reference', 'currency', 'agreed_gross', 'agreed_due_on']}
 				/>
 			</Cover>
 		</Stack>

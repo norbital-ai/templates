@@ -6,12 +6,17 @@ import { EMPTY_OF } from './expressions/compile.js';
 import { evaluateBoolean, expressionEngine } from './expressions/evaluate.js';
 import * as Predicate from 'effect/Predicate';
 
-/** Validate supplied values without inventing a declaration for missing data. */
+/**
+ * Validate supplied values without inventing a declaration for missing data. `complete` is the
+ * calculation's check: a required value must be present, and a value whose declaration demands
+ * evidence counts only where `evidenced` says its evidence is recorded (no answer is none).
+ */
 export function factValuesFault(
 	fields: readonly FactKey[],
 	values: Readonly<Record<string, unknown>>,
 	complete = false,
-	when?: (expression: string) => boolean
+	when?: (expression: string) => boolean,
+	evidenced?: (key: string) => boolean
 ): string | null {
 	for (const field of fields) {
 		const value = Object.hasOwn(values, field.key) ? values[field.key] : undefined;
@@ -29,6 +34,13 @@ export function factValuesFault(
 					field.validation_message?.trim() ||
 					`${field.label?.trim() || field.key} is not valid in this context.`
 				);
+			if (
+				complete &&
+				field.evidence != null &&
+				(field.evidence.when == null || when?.(field.evidence.when) !== false) &&
+				evidenced?.(field.key) !== true
+			)
+				return `${field.label?.trim() || field.key} counts only once its evidence (${field.evidence.kind.toLowerCase().replaceAll('_', ' ')}) is recorded.`;
 		}
 	}
 	return null;
@@ -38,19 +50,40 @@ export function requireFactValues(
 	fields: readonly FactKey[],
 	values: Readonly<Record<string, unknown>>,
 	scope: string,
-	when?: (expression: string) => boolean
+	when?: (expression: string) => boolean,
+	evidenced?: (key: string) => boolean
 ): void {
-	const fault = factValuesFault(fields, values, true, when);
+	const fault = factValuesFault(fields, values, true, when, evidenced);
 	if (fault != null) refuse(`${scope}: ${fault}`);
 }
 
-/** One dated revision of an entity's declared facts. */
+/**
+ * One dated revision of an entity's declared facts. `evidence_keys` are the keys its `fact_evidence`
+ * rows evidence; a rule that relies on an evidenced entity fact reads them (the writer judges the row).
+ */
 export type CompanyFactRevision = {
 	readonly facts: Readonly<Record<string, unknown>>;
 	readonly effective_range: unknown;
-	readonly ph_wage_class_source_reference?: string | null | undefined;
-	readonly ph_wage_class_source_file?: unknown;
+	readonly evidence_keys?: readonly string[] | undefined;
 };
+
+/**
+ * A subject's recorded declared input (`terms.facts.<key>` on a terms row), or undefined where it
+ * records none: a declared default filled in by the run is not a record.
+ */
+export function recordedFact(
+	row:
+		| {
+				readonly facts?: Readonly<Record<string, unknown>> | null;
+				readonly fact_keys?: readonly string[];
+		  }
+		| null
+		| undefined,
+	key: string
+): unknown {
+	const facts = row?.facts ?? {};
+	return (row?.fact_keys ?? Object.keys(facts)).includes(key) ? facts[key] : undefined;
+}
 
 /**
  * Keep raw presence separate from expression defaults when checking entity requirements.
@@ -88,8 +121,13 @@ export function resolveCompanyFacts(
 			fact_keys: Object.keys(raw)
 		}
 	};
-	requireFactValues(fields, raw, scope, (expression) =>
-		evaluateBoolean(expressionEngine, expression, context)
+	// Entity-fact evidence is the dated revision's: a rule relying on it reads `evidence_keys`.
+	requireFactValues(
+		fields,
+		raw,
+		scope,
+		(expression) => evaluateBoolean(expressionEngine, expression, context),
+		() => true
 	);
 	return facts;
 }
@@ -101,7 +139,8 @@ export function resolveFactValues(
 	scope: string,
 	complete = true
 ): Record<string, string | number | boolean> {
-	const fault = factValuesFault(fields, values, complete);
+	// Evidence is the caller's to judge (`requireFactValues`); resolution reads the values alone.
+	const fault = factValuesFault(fields, values, complete, undefined, () => true);
 	if (fault != null) refuse(`${scope}: ${fault}`);
 	return Object.fromEntries(
 		fields.map((field) => [

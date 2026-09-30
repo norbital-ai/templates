@@ -6,13 +6,25 @@ import { cents, fromMinorUnits, toMinorUnits } from '../../../lib/payroll/run/ro
 import { governed, settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import { coversDate, readRange } from '../../../lib/payroll/run/effective.js';
 import { isEligible, personContext, scalarFacts } from '../../../lib/payroll/run/eligibility.js';
-import { resolveExitFacts } from '../../../lib/declared-facts.js';
 import {
-	assessVnPaymentWithholding,
-	type VnPaymentWithholdingInput
-} from '../../../lib/vn/payment-withholding.js';
+	requireFactValues,
+	resolveExitFacts,
+	resolveFactValues
+} from '../../../lib/declared-facts.js';
+import { entityFactsFault, evidenceFault } from '../../../lib/entity-facts.js';
+import { evaluateBoolean, expressionEngine } from '../../../lib/expressions/evaluate.js';
+import {
+	assessPaymentWithholding,
+	paymentSite,
+	type PaymentWithholdingInput
+} from '../../../lib/payroll/payment-withholding.js';
 import type { PayslipStatutory } from '../../../lib/datatypes/payslip_statutory.js';
 import type { WorkspaceRow } from '../../../lib/rows.js';
+import {
+	benefitCaseTypeOf,
+	CASE_SETTINGS_SELECT,
+	type CaseSettingsVersion
+} from '../../../lib/benefit-cases/benefit.js';
 import * as Predicate from 'effect/Predicate';
 
 /** An actual payment and every source allocation commit together; no update or delete is exposed. */
@@ -30,27 +42,15 @@ const c = collection('payment_events', {
 				'external_source_kind',
 				'external_source_id',
 				'currency',
-				'cash_amount'
+				'cash_amount',
+				'facts'
 			],
 			with: {
+				/** Evidence of the declared payment inputs, recorded with the payment it evidences. */
+				fact_evidence: { create: { columns: ['fact_key', 'reference', 'file', 'received_on'] } },
 				payment_allocations: {
 					create: {
 						columns: ['payable_tranche_id', 'gross_amount', 'non_event_deduction_amount']
-					}
-				},
-				vn_payment_tax_facts: {
-					create: {
-						columns: [
-							'withhold_below_threshold_requested',
-							'request_received_on',
-							'request_reference',
-							'commitment_form_reference',
-							'commitment_received_on',
-							'commitment_tax_year',
-							'commitment_tax_id',
-							'commitment_sole_income_declared',
-							'commitment_below_taxable_threshold_declared'
-						]
 					}
 				},
 				/** The transform alone adds completed slips after validating the whole committed ledger. */
@@ -108,18 +108,7 @@ type Employment = {
 };
 type Run = { readonly id: string; readonly company_id: string; readonly period: string };
 type Company = { readonly id: string; readonly settings_code: string };
-type VnSettlement = {
-	readonly id: string;
-	readonly company_id: string;
-	readonly employee_id: string;
-	readonly currency: string;
-	readonly tax_residency: string;
-	readonly tax_residency_range: unknown;
-	readonly tax_residency_reference: string;
-	readonly relationship_reviewed_on: string;
-	readonly relationship_reference: string;
-	readonly income_nature_reference: string;
-};
+type Settlement = PaymentWithholdingInput['settlement'];
 type Version = {
 	readonly id: string;
 	readonly code: string;
@@ -128,9 +117,13 @@ type Version = {
 	readonly voided_at: string | null;
 	readonly approval_id: string | null;
 	readonly payroll: {
+		readonly currency: string;
 		readonly tax_clearance?: { readonly when: string; readonly category: string };
+		readonly payment_occasion_scheme?: string | null;
 	};
 	readonly exit_facts: readonly unknown[];
+	readonly payment_facts: readonly object[];
+	readonly settlement_facts: readonly object[];
 };
 type Hold = {
 	readonly employment_id: string;
@@ -140,17 +133,18 @@ type Hold = {
 };
 type Movement = {
 	readonly id: string;
-	readonly ph_maternity_case_id: string;
+	readonly benefit_case_id: string;
 	readonly kind: string;
 	readonly amount: unknown;
 	readonly paid_on: string;
 	readonly payment_reference: string;
 	readonly evidence_file: unknown | null;
 };
-type MaternityCase = {
+type BenefitCase = {
 	readonly id: string;
 	readonly employee_id: string;
 	readonly employment_id: string;
+	readonly case_type: string;
 };
 
 c.transform(async (inputs, ctx) => {
@@ -178,7 +172,7 @@ c.transform(async (inputs, ctx) => {
 	const externalId = String(input.external_source_id ?? '');
 	if ((externalKind === '') !== (externalId === ''))
 		refuse('An external cash source needs both its kind and id.');
-	if (externalKind !== '' && externalKind !== 'PH_MATERNITY_MOVEMENT')
+	if (externalKind !== '' && externalKind !== 'BENEFIT_CASE_MOVEMENT')
 		refuse('This external cash source is not supported.');
 	if (kind === 'NON_CASH_SETTLEMENT' && externalKind !== '')
 		refuse('An external cash credit must be a cash payment event.');
@@ -198,10 +192,10 @@ c.transform(async (inputs, ctx) => {
 			)
 		)
 	];
-	const vnIds = [
+	const settlementIds = [
 		...new Set(
 			requested.flatMap((row) =>
-				row.settlement.collection === 'vn_noncontract_settlements' ? [row.settlement.id] : []
+				row.settlement.collection === 'noncontract_settlements' ? [row.settlement.id] : []
 			)
 		)
 	];
@@ -209,58 +203,105 @@ c.transform(async (inputs, ctx) => {
 		requested.some(
 			(row) =>
 				row.settlement.collection !== 'payslips' &&
-				row.settlement.collection !== 'vn_noncontract_settlements'
+				row.settlement.collection !== 'noncontract_settlements'
 		)
 	)
 		refuse('A payable tranche needs a supported settlement parent.');
-	const [slips, vnParents, slipTranches, vnTranches] = await Promise.all([
-		readAll<Slip>(ctx.db, 'payslips', { id: { in: slipIds } }),
-		readAll<VnSettlement>(ctx.db, 'vn_noncontract_settlements', { id: { in: vnIds } }),
-		readAll<Tranche>(ctx.db, 'payable_tranches', { settlement: { payslips: { in: slipIds } } }),
-		readAll<Tranche>(ctx.db, 'payable_tranches', {
-			settlement: { vn_noncontract_settlements: { in: vnIds } }
-		})
-	]);
-	if (slips.length !== slipIds.length || vnParents.length !== vnIds.length)
+	const [slips, settlements, slipTranches, settlementTranches, settlementEvidence] =
+		await Promise.all([
+			readAll<Slip>(ctx.db, 'payslips', { id: { in: slipIds } }),
+			readAll<Settlement>(ctx.db, 'noncontract_settlements', { id: { in: settlementIds } }),
+			readAll<Tranche>(ctx.db, 'payable_tranches', { settlement: { payslips: { in: slipIds } } }),
+			readAll<Tranche>(ctx.db, 'payable_tranches', {
+				settlement: { noncontract_settlements: { in: settlementIds } }
+			}),
+			settlementIds.length === 0
+				? []
+				: readAll<{ readonly fact_key: string }>(ctx.db, 'fact_evidence', {
+						subject: { noncontract_settlements: { in: settlementIds } }
+					})
+		]);
+	if (slips.length !== slipIds.length || settlements.length !== settlementIds.length)
 		refuse('A payable tranche has a missing settlement parent.');
-	const allTranches = [...slipTranches, ...vnTranches];
+	const allTranches = [...slipTranches, ...settlementTranches];
 	const allIds = allTranches.map((row) => row.id);
-	const maternityCaseIds = [
+	const benefitCaseIds = [
 		...new Set(
-			requested.flatMap((row) => (row.source_category === 'MATERNITY_PAY' ? [row.source_id] : []))
+			requested.flatMap((row) =>
+				row.source_category === 'BENEFIT_CASE_PAY' ? [row.source_id] : []
+			)
 		)
 	];
-	const [prior, employments, runs, companies, movements, maternityCases] = await Promise.all([
+	const [prior, employments, runs, companies, movements, benefitCases] = await Promise.all([
 		readAll<PriorAllocation>(ctx.db, 'payment_allocations', { payable_tranche_id: { in: allIds } }),
 		readAll<Employment>(ctx.db, 'employments', {
 			id: { in: slips.map((row) => row.employment_id) }
 		}),
 		readAll<Run>(ctx.db, 'payroll_runs', { id: { in: slips.map((row) => row.payroll_run_id) } }),
 		readAll<Company>(ctx.db, 'companies', { id: String(input.company_id) }),
-		readAll<Movement>(ctx.db, 'ph_maternity_movements', {
+		readAll<Movement>(ctx.db, 'benefit_case_movements', {
 			id: { in: externalId === '' ? [] : [externalId] }
 		}),
-		readAll<MaternityCase>(ctx.db, 'ph_maternity_cases', { id: { in: maternityCaseIds } })
+		readAll<BenefitCase>(ctx.db, 'benefit_cases', { id: { in: benefitCaseIds } })
 	]);
 	const employmentById = new Map(employments.map((row) => [row.id, row]));
 	const runById = new Map(runs.map((row) => [row.id, row]));
 	const company = companies[0];
 	if (company == null)
 		refuse('An actual payment needs a paying company on file.', { field: 'company_id' });
-	if (maternityCaseIds.length > 0 && company.settings_code !== 'PH')
-		refuse('A Philippine maternity cash source needs a Philippine paying company.');
-	const caseById = new Map(maternityCases.map((row) => [row.id, row]));
-	for (const tranche of requested) {
-		if (tranche.source_category !== 'MATERNITY_PAY') continue;
-		const maternity = caseById.get(tranche.source_id);
+	// A benefit-case cash source is priced by a case type the paying entity's lineage declares.
+	const caseVersions =
+		benefitCaseIds.length === 0
+			? []
+			: await readAll<CaseSettingsVersion>(
+					ctx.db,
+					'jurisdiction_settings',
+					{ code: { eq: company.settings_code } },
+					undefined,
+					CASE_SETTINGS_SELECT
+				);
+	const caseById = new Map(benefitCases.map((row) => [row.id, row]));
+	const typeOfCase = (caseId: string) => {
+		const benefitCase = caseById.get(caseId);
+		return benefitCase == null
+			? null
+			: benefitCaseTypeOf(caseVersions, company.settings_code, benefitCase.case_type, paidOn);
+	};
+	if (slips.length > 0 && settlements.length > 0)
+		refuse('A payment cannot mix employment payslips and non-contract remuneration.');
+	if (settlements.length > 1)
+		refuse('One non-contract payment must name a single evidenced tax-residency settlement.');
+	const settlement = settlements[0];
+	for (const parent of settlements)
 		if (
-			tranche.source_kind !== 'PH_MATERNITY_CASE' ||
-			!['SSS_AWARD', 'EMPLOYER_DIFFERENTIAL'].includes(tranche.source_component ?? '') ||
-			maternity == null ||
-			maternity.employee_id !== input.employee_id ||
-			!slips.some((slip) => slip.employment_id === maternity.employment_id)
+			parent.company_id !== company.id ||
+			parent.employee_id !== input.employee_id ||
+			parent.currency !== currency
 		)
-			refuse('Maternity cash must name the evidenced case for this person and employment.');
+			refuse(
+				'Every allocated non-contract settlement must belong to the same paying company, person and currency.'
+			);
+	const { version: factsVersion, facts: paymentFacts } = await assertPaymentFacts(
+		company,
+		paidOn,
+		currency,
+		kind
+	);
+	for (const tranche of requested) {
+		if (tranche.source_category !== 'BENEFIT_CASE_PAY') continue;
+		const benefitCase = caseById.get(tranche.source_id);
+		const type = typeOfCase(tranche.source_id);
+		if (
+			tranche.source_kind !== 'BENEFIT_CASE' ||
+			benefitCase == null ||
+			type == null ||
+			![type.components.award, type.components.differential].includes(
+				tranche.source_component ?? ''
+			) ||
+			benefitCase.employee_id !== input.employee_id ||
+			!slips.some((slip) => slip.employment_id === benefitCase.employment_id)
+		)
+			refuse('Benefit-case cash must name the evidenced case for this person and employment.');
 	}
 	for (const slip of slips) {
 		const employment = employmentById.get(slip.employment_id);
@@ -282,49 +323,37 @@ c.transform(async (inputs, ctx) => {
 				'This payslip has payment-date statutory charges; recalculate them for the actual payment before allocating cash.'
 			);
 	}
-	for (const parent of vnParents)
-		if (
-			parent.company_id !== company.id ||
-			parent.employee_id !== input.employee_id ||
-			parent.currency !== currency
-		)
-			refuse(
-				'Every allocated non-contract settlement must belong to the same paying company, person and currency.'
-			);
-	if (slips.length > 0 && vnParents.length > 0)
-		refuse('A payment cannot mix employment payslips and non-contract remuneration.');
-	if (vnParents.length > 1)
-		refuse('One non-contract payment must name a single evidenced tax-residency settlement.');
-	if (externalKind === 'PH_MATERNITY_MOVEMENT') {
+	if (externalKind === 'BENEFIT_CASE_MOVEMENT') {
 		const movement = movements[0];
+		const type = movement == null ? null : typeOfCase(movement.benefit_case_id);
+		const declared = type?.movement_kinds.find((row) => row.code === movement?.kind);
 		if (
 			movement == null ||
-			movement.kind === 'SSS_REIMBURSEMENT' ||
+			declared?.direction !== 'EMPLOYEE_PAYMENT' ||
 			movement.evidence_file == null ||
-			vnParents.length > 0 ||
+			settlements.length > 0 ||
 			slipIds.length === 0
 		)
-			refuse('Only employee cash from an evidenced maternity movement can be credited.');
+			refuse('Only employee cash from an evidenced benefit-case movement can be credited.');
 		if (movement.paid_on !== paidOn || movement.payment_reference !== input.reference)
-			refuse('The credited maternity cash date and reference must match its movement.');
-		const component = movement.kind === 'SSS_ADVANCE' ? 'SSS_AWARD' : 'EMPLOYER_DIFFERENTIAL';
+			refuse('The credited benefit cash date and reference must match its movement.');
 		if (
 			requested.some(
 				(row) =>
-					row.source_category !== 'MATERNITY_PAY' ||
-					row.source_kind !== 'PH_MATERNITY_CASE' ||
-					row.source_id !== movement.ph_maternity_case_id ||
-					row.source_component !== component
+					row.source_category !== 'BENEFIT_CASE_PAY' ||
+					row.source_kind !== 'BENEFIT_CASE' ||
+					row.source_id !== movement.benefit_case_id ||
+					row.source_component !== declared.component
 			)
 		)
 			refuse(
-				'The credited maternity cash must settle the matching cash component of the same maternity case.'
+				'The credited benefit cash must settle the matching cash component of the same benefit case.'
 			);
 		if (
 			toMinorUnits(decodeNumber(movement.amount), currency) !==
 			money(input.cash_amount, currency, 'Cash amount')
 		)
-			refuse('The credited maternity cash must equal its recorded movement amount.');
+			refuse('The credited benefit cash must equal its recorded movement amount.');
 	}
 	const usedGross = new Map<string, bigint>();
 	const usedDeductions = new Map<string, bigint>();
@@ -427,32 +456,23 @@ c.transform(async (inputs, ctx) => {
 			);
 	}
 	let statutory: readonly PayslipStatutory[] = [];
-	if (vnParents.length > 0) {
+	if (settlement != null) {
 		if (kind !== 'CASH')
-			refuse('Vietnam no-contract payment-date withholding requires an actual cash payment.');
-		const facts = input.vn_payment_tax_facts?.create ?? [];
-		if (facts.length !== 1)
-			refuse('Vietnam non-contract withholding needs one payment-specific tax evidence row.');
-		if (externalKind !== '')
-			refuse('A Vietnam non-contract payment cannot use a maternity cash credit.');
-		const versions = await readAll<Version>(ctx.db, 'jurisdiction_settings', {
-			code: company.settings_code,
-			sealed_at: { isNull: false },
-			voided_at: { isNull: true },
-			approval_id: { isNull: true }
-		});
-		const version = settingsInForce(versions, company.settings_code, paidOn);
-		if (version == null || version.code !== 'VN')
-			refuse('Sealed Vietnam payment-date settings are missing.');
-		const schemes = await readAll<
-			{ readonly id: string; readonly settings_id: string } & VnPaymentWithholdingInput['pit']
-		>(ctx.db, 'statutory_contributions', { settings_id: version.id, code: 'PIT' });
-		const pit = schemes[0];
+			refuse('Non-contract payment-date withholding requires an actual cash payment.');
+		if (externalKind !== '') refuse('A non-contract payment cannot use an external cash credit.');
+		const version = factsVersion!;
+		const code = version.payroll.payment_occasion_scheme;
 		const range = governed(version.effective_range);
-		if (pit == null || range == null)
-			refuse('The sealed Vietnam PIT rule or its effective range is missing.');
+		if (code == null || range == null)
+			refuse(
+				`Sealed ${company.settings_code} settings on the paid-on day name no payment-occasion scheme.`
+			);
+		const [scheme] = await readAll<
+			{ readonly id: string; readonly settings_id: string } & PaymentWithholdingInput['scheme']
+		>(ctx.db, 'statutory_contributions', { settings_id: version.id, code });
+		if (scheme == null) refuse(`The sealed payment-occasion scheme ${code} is missing.`);
 		try {
-			statutory = assessVnPaymentWithholding({
+			statutory = assessPaymentWithholding({
 				event: {
 					company_id: String(input.company_id),
 					employee_id: String(input.employee_id),
@@ -475,26 +495,17 @@ c.transform(async (inputs, ctx) => {
 						}
 					};
 				}),
-				facts: {
-					...facts[0]!,
-					withhold_below_threshold_requested: facts[0]!.withhold_below_threshold_requested ?? false
-				},
-				settlement: {
-					...vnParents[0]!,
-					tax_residency: vnParents[0]!.tax_residency as 'RESIDENT' | 'NON_RESIDENT'
-				},
-				pit,
-				settingsRange: range
+				facts: paymentFacts,
+				settlement,
+				scheme,
+				settingsRange: range,
+				settingsCurrency: version.payroll.currency
 			});
 		} catch (error) {
 			refuse(
-				error instanceof Error
-					? error.message
-					: 'Vietnam payment-date withholding could not be calculated.'
+				error instanceof Error ? error.message : 'Payment-date withholding could not be calculated.'
 			);
 		}
-	} else if ((input.vn_payment_tax_facts?.create ?? []).length > 0) {
-		refuse('Vietnam payment tax facts belong only to non-contract remuneration.');
 	}
 	const cash = money(input.cash_amount, currency, 'Cash amount', kind === 'NON_CASH_SETTLEMENT');
 	if (kind === 'NON_CASH_SETTLEMENT' && cash !== 0n)
@@ -555,6 +566,80 @@ c.transform(async (inputs, ctx) => {
 					})
 		} as never
 	];
+
+	/**
+	 * The payment's declared inputs: every key some sealed live version of the lineage declares, with
+	 * a value it admits; against the version governing the paid-on day, required values present and
+	 * declared evidence recorded in this write. A settled non-contract obligation's own inputs are
+	 * judged there too, complete, with the evidence recorded on it. Answers that version and the
+	 * payment's facts resolved with their typed blanks.
+	 */
+	async function assertPaymentFacts(
+		payer: Company,
+		paymentDay: string,
+		unit: string,
+		paymentKind: string
+	): Promise<{
+		readonly version: Version | null;
+		readonly facts: Record<string, string | number | boolean>;
+	}> {
+		const facts = scalarFacts(input.facts);
+		const evidence = (input.fact_evidence?.create ?? []) as readonly {
+			readonly fact_key?: string | null;
+			readonly reference?: string | null;
+			readonly file?: unknown;
+		}[];
+		if (Object.keys(facts).length === 0 && evidence.length === 0 && settlement == null)
+			return { version: null, facts: {} };
+		const lineage = await readAll<Version>(ctx.db, 'jurisdiction_settings', {
+			code: payer.settings_code,
+			sealed_at: { isNull: false },
+			voided_at: { isNull: true },
+			approval_id: { isNull: true }
+		});
+		const declared = lineage.flatMap((version) => version.payment_facts ?? []);
+		const fault = entityFactsFault(payer.settings_code, facts, declared);
+		if (fault != null) refuse(fault, { field: 'facts' });
+		for (const row of evidence) {
+			const key = String(row.fact_key ?? '').trim();
+			if (!Object.hasOwn(facts, key)) refuse(`The payment records no fact ${key} to evidence.`);
+			const missing = evidenceFault(payer.settings_code, key, row, declared);
+			if (missing != null) refuse(missing);
+		}
+		const version = settingsInForce(lineage, payer.settings_code, paymentDay);
+		if (version == null)
+			refuse(`Sealed ${payer.settings_code} settings are missing on the paid-on day.`);
+		const paymentFields = (version.payment_facts ?? []) as never;
+		const settlementFields = (version.settlement_facts ?? []) as never;
+		const settled = scalarFacts(settlement?.facts);
+		const resolved = resolveFactValues(paymentFields, facts, 'Payment', false);
+		const context = paymentSite(
+			{
+				kind: paymentKind,
+				paid_on: paymentDay,
+				currency: unit,
+				facts: resolved,
+				fact_keys: Object.keys(facts)
+			},
+			settlement == null
+				? null
+				: {
+						tax_residency: settlement.tax_residency,
+						facts: resolveFactValues(settlementFields, settled, 'Settlement', false),
+						fact_keys: Object.keys(settled)
+					}
+		);
+		const when = (expression: string) => evaluateBoolean(expressionEngine, expression, context);
+		const evidenced = new Set(evidence.map((row) => String(row.fact_key ?? '').trim()));
+		requireFactValues(paymentFields, facts, 'Payment', when, (key) => evidenced.has(key));
+		if (settlement != null) {
+			const onSettlement = new Set(settlementEvidence.map((row) => row.fact_key));
+			requireFactValues(settlementFields, settled, 'Settlement', when, (key) =>
+				onSettlement.has(key)
+			);
+		}
+		return { version, facts: resolved };
+	}
 
 	function money(value: unknown, unit: string, label: string, zero = false): bigint {
 		const number = decodeNumber(value);

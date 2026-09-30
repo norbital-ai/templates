@@ -8,9 +8,9 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import statutoryDrift from '../src/automation/+statutory_drift.automation.ts';
-import { STATUTORY_SOURCES } from '../src/lib/statutory_sources.ts';
 import { LINEAGES, settingsVersions } from './fixtures/statutory-world.ts';
 
+const researchDomains = (code: string) => [`https://law.${code.toLowerCase()}.example`];
 const version = (code: string) => ({
 	id: `v-${code}`,
 	code,
@@ -20,7 +20,7 @@ const version = (code: string) => ({
 	voided_at: null,
 	approval_id: null,
 	effective_range: { from: '2026-01-01', to: null },
-	sources: { urls: [] }
+	sources: { urls: [], research_domains: researchDomains(code) }
 });
 const scheme = (code: string) => ({
 	id: `s-${code}`,
@@ -101,10 +101,7 @@ test(
 		for (const { code, request } of calls) {
 			assert.deepEqual(request.tools, ['browser_navigate', 'browser_snapshot', 'browser_act']);
 			assert.equal(request.model, 'strong');
-			assert.ok(
-				request.system.includes(JSON.stringify(STATUTORY_SOURCES[code])),
-				`${code} sources`
-			);
+			assert.ok(request.system.includes(JSON.stringify(researchDomains(code))), `${code} sources`);
 			const rows = JSON.parse(request.prompt.slice(request.prompt.indexOf('{')));
 			assert.equal(rows.jurisdiction_settings[0].id, `v-${code}`);
 			assert.deepEqual(rows.statutory_contributions[0].rules, scheme(code).rules);
@@ -114,11 +111,8 @@ test(
 
 test('every seeded jurisdiction has official sources to research', () => {
 	for (const lineage of LINEAGES)
-		for (const { jurisdiction_code } of settingsVersions(lineage))
-			assert.ok(
-				STATUTORY_SOURCES[jurisdiction_code]?.length,
-				`${lineage}: no sources for ${jurisdiction_code}`
-			);
+		for (const { id, sources } of settingsVersions(lineage))
+			assert.ok(sources.research_domains?.length, `${lineage} ${id}: no research_domains`);
 });
 
 test('SG research may read every official site the SG seed cites', () => {
@@ -133,12 +127,14 @@ test('SG research may read every official site the SG seed cites', () => {
 		)
 	);
 	assert.ok(cited.size > 0, 'no cited origins read from the SG seed');
-	const missing = [...cited].filter(
-		(origin) => !unofficial.has(origin) && !STATUTORY_SOURCES.SG.includes(origin)
-	);
-	assert.deepEqual(missing, []);
-	// Cited in prose, not as a URL: the ICA-sourced Myinfo RaceCode table (SG-SHG04(a)).
-	assert.ok(STATUTORY_SOURCES.SG.includes('https://public.cloud.myinfo.gov.sg'));
+	for (const { id, sources } of settingsVersions('SG')) {
+		const missing = [...cited].filter(
+			(origin) => !unofficial.has(origin) && !sources.research_domains.includes(origin)
+		);
+		assert.deepEqual(missing, [], `SG ${id}`);
+		// Cited in prose, not as a URL: the ICA-sourced Myinfo RaceCode table (SG-SHG04(a)).
+		assert.ok(sources.research_domains.includes('https://public.cloud.myinfo.gov.sg'), `SG ${id}`);
+	}
 });
 
 test('changes become one unsealed draft; no changes, no draft', { timeout: 2000 }, async () => {

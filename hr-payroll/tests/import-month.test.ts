@@ -215,14 +215,17 @@ test('an Overtime total is split at the statutory limits into approved and incen
 	assert.deepEqual([day.approved_overtime_hours, day.incentive_hours], [4, 2]);
 });
 
-test('Thai scheduling import writes the consent and redistribution facts with their person-day', async () => {
+test('a scheduling import writes the consent and the declared import inputs with their person-day', async () => {
 	const tables = world({
 		versions: [
 			{
 				...workDayTables().jurisdiction_settings[0],
 				code: 'TH',
 				jurisdiction_code: 'TH',
-				work_rules: { limits: [], bands: [] }
+				work_rules: { limits: [], bands: [] },
+				work_day_facts: [
+					{ key: 'normal_hours_redistribution_agreed_at', type: 'instant', import: true }
+				]
 			}
 		]
 	});
@@ -234,12 +237,27 @@ test('Thai scheduling import writes the consent and redistribution facts with th
 				work_date: '2026-01-20',
 				overtime_hours: 1,
 				overtime_consented_at: '2026-01-19T01:00:00.000Z',
-				normal_hours_redistribution_agreed_at: '2026-01-18T01:00:00.000Z'
+				facts: { normal_hours_redistribution_agreed_at: '2026-01-18T01:00:00.000Z' }
 			}
 		]
 	});
 	const day = (act(acts, 'work_days.create') ?? [])[0];
 	assert.equal(day.approved_overtime_hours, 1);
 	assert.equal(day.overtime_consented_at, '2026-01-19T01:00:00.000Z');
-	assert.equal(day.normal_hours_redistribution_agreed_at, '2026-01-18T01:00:00.000Z');
+	assert.deepEqual(day.facts, {
+		normal_hours_redistribution_agreed_at: '2026-01-18T01:00:00.000Z'
+	});
+	await assert.rejects(
+		run(tables, {
+			overtime: [
+				{
+					employee_number: 'PERSON',
+					work_date: '2026-01-20',
+					overtime_hours: 1,
+					facts: { split_break_agreed_at: '2026-01-18T01:00:00.000Z' }
+				}
+			]
+		}),
+		/columns these rules do not import/
+	);
 });

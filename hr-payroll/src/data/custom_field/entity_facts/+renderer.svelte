@@ -1,6 +1,10 @@
 <script lang="ts">
+	/**
+	 * A subject's recorded facts, edited against the declarations its caller names: a company's
+	 * `facts`, a departure's `exit_facts`, terms' `terms_facts`, a day's `work_day_facts`, a
+	 * payment's `payment_facts` (`lib/ui/declared-facts-field.svelte` picks the version in force).
+	 */
 	import { t } from '../../../lib/ui/t.js';
-	import { bolt } from '$bolt';
 
 	import { Button, Combobox, Input } from '@norbital-ai/ui';
 	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
@@ -10,42 +14,12 @@
 	import type f from './+definition.ts';
 
 	type Value = ValueOf<typeof f.spec.shape>;
-	import { liveRows } from '../../../lib/ui/live.svelte.js';
-	import { inForceSettings } from '../../../lib/ui/settings-scope.js';
-	import { todayKey } from '../../../lib/ui/calendar.js';
-	import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 
 	let {
 		view,
-		...props
-	}: { view: CustomFieldView<Value> } & {
-		declarations?: readonly FactKey[];
-		settingsCode?: string;
-	} = $props();
+		declarations: fields
+	}: { view: CustomFieldView<Value>; declarations: readonly FactKey[] } = $props();
 	const disabled = $derived(view.mode === 'edit' ? view.disabled : true);
-	const versions = liveRows<
-		Parameters<typeof settingsInForce>[0][number] & { facts: readonly FactKey[] }
-	>(() =>
-		props.settingsCode
-			? bolt.read('jurisdiction_settings', {
-					where: inForceSettings(props.settingsCode, todayKey()),
-					select: {
-						id: true,
-						code: true,
-						sealed_at: true,
-						voided_at: true,
-						effective_range: true,
-						facts: true
-					},
-					all: true
-				})
-			: null
-	);
-	const fields = $derived(
-		props.declarations ??
-			settingsInForce(versions.current ?? [], props.settingsCode ?? '', todayKey())?.facts ??
-			[]
-	);
 	const current = $derived(view.value ?? {});
 	const unused = $derived(
 		Object.keys(current).filter((key) => !fields.some((field) => field.key === key))
@@ -123,9 +97,21 @@
 												: Number(event.currentTarget.value)
 										)}
 								/>
+							{:else if field.type === 'date'}
+								<Input
+									type="date"
+									{disabled}
+									value={String(current[field.key] ?? '')}
+									oninput={(event) =>
+										edit(
+											field.key,
+											event.currentTarget.value === '' ? undefined : event.currentTarget.value
+										)}
+								/>
 							{:else}
 								<Input
 									{disabled}
+									placeholder={field.type === 'instant' ? 'YYYY-MM-DDTHH:mm:ss.sssZ' : undefined}
 									value={String(current[field.key] ?? '')}
 									oninput={(event) =>
 										edit(
@@ -147,6 +133,9 @@
 						</p>{/if}
 					{#if field.default_value !== undefined}<p class="text-xs text-muted-foreground">
 							{t('entity_facts.default', { value: String(field.default_value) })}
+						</p>{/if}
+					{#if field.evidence != null}<p class="text-xs text-muted-foreground">
+							{t('entity_facts.evidence')}
 						</p>{/if}
 				</Stack>
 			{/each}

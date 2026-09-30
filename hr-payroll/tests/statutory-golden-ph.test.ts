@@ -1109,7 +1109,11 @@ test('Philippines — the statutory leave ladder on every version', () => {
 			'employee.gender == "FEMALE" && event.kind in ["BIRTH", "MISCARRIAGE", "EMERGENCY_TERMINATION"]',
 			[
 				['event.kind in ["MISCARRIAGE", "EMERGENCY_TERMINATION"]', 60],
-				['employee.solo_parent', 120],
+				// The birth's benefit case proves the solo-parent claim (payroll.benefit_cases:MATERNITY_LEAVE).
+				[
+					'event.kind == "BIRTH" && has(event.case.facts.solo_parent_documented) && event.case.facts.solo_parent_documented',
+					120
+				],
 				['', 105]
 			]
 		],

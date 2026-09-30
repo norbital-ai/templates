@@ -28,19 +28,23 @@ test('ID: a worker past one year needs a dated company wage-scale grade and basi
 			gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
 		);
 	assert.doesNotThrow(build);
-	const terms = world.employment_terms[0]!;
-	terms.id_wage_scale_basic_minimum = 6_000_000.01;
-	assert.throws(build, /below the company's FIXTURE grade minimum/);
-	terms.id_wage_scale_basic_minimum = 6_000_000;
-	terms.id_wage_scale_evidence_file = null;
+	const facts = world.employment_terms[0]!.facts as Record<string, unknown>;
+	facts.wage_scale_basic_minimum = 6_000_000.01;
+	assert.throws(build, /basic wage is below the company's wage-scale grade minimum/);
+	facts.wage_scale_basic_minimum = 6_000_000;
+	// The scale reference counts only with its file (`terms_facts` evidence).
+	const [scaleFile] = world.fact_evidence!.splice(0, 1);
+	assert.throws(build, /reference counts only once its evidence \(file\) is recorded/);
+	world.fact_evidence!.unshift(scaleFile!);
+	delete facts.wage_scale_reference;
 	assert.throws(build, /record the dated company wage structure/);
-	terms.id_wage_scale_evidence_file = 'fixture-scale-and-grade-notice.pdf';
-	terms.id_wage_scale_effective_on = '2026-02-01';
+	facts.wage_scale_reference = 'FIXTURE-SCALE';
+	facts.wage_scale_effective_on = '2026-02-01';
 	assert.throws(build, /record the dated company wage structure/);
-	terms.id_wage_scale_effective_on = '2025-01-01';
-	terms.id_wage_scale_notice_on = '2026-02-01';
+	facts.wage_scale_effective_on = '2025-01-01';
+	facts.wage_scale_notice_on = '2026-02-01';
 	assert.throws(build, /record the dated company wage structure/);
-	terms.id_wage_scale_notice_on = '2025-01-01';
+	facts.wage_scale_notice_on = '2025-01-01';
 	assert.doesNotThrow(build);
 
 	const firstYear = createStatutoryWorld({
@@ -50,7 +54,9 @@ test('ID: a worker past one year needs a dated company wage-scale grade and basi
 		riskClass: 'I',
 		people: [{ key: 'FIRST', wage: 6_000_000, hire_date: '2026-01-01' }]
 	});
-	firstYear.employment_terms[0]!.id_wage_scale_evidence_file = null;
+	// In the first year no scale is read: the terms record none.
+	firstYear.employment_terms[0]!.facts = { worksite_sector_edition: '2020' };
+	firstYear.fact_evidence!.splice(0);
 	assert.doesNotThrow(() =>
 		buildPayrollRun(
 			gatherPayrollRun({ world: payrollWorld(firstYear), companyId: COMPANY_ID, period: '2026-01' })
@@ -168,18 +174,29 @@ test('ID: a short-contract foreigner needs dated no-prior-work evidence before K
 			gatherPayrollRun({ world: payrollWorld(world), companyId: COMPANY_ID, period: '2026-01' })
 		);
 	const terms = world.employment_terms[0]!;
-	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/);
-	terms.id_foreign_prior_indonesia_work = 'ANY';
-	terms.id_foreign_prior_work_reviewed_on = '2026-01-01';
-	terms.id_foreign_prior_work_reference = 'PRIOR-WORK-RECORD';
-	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/);
-	terms.id_foreign_prior_indonesia_work = 'NONE';
-	terms.id_foreign_prior_work_reviewed_on = '2026-02-01';
-	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/);
-	terms.id_foreign_prior_work_reviewed_on = '2026-01-01';
-	terms.id_foreign_prior_work_reference = null;
-	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/);
-	terms.id_foreign_prior_work_reference = 'NO-PRIOR-WORK-DECLARATION';
+	const facts = terms.facts as Record<string, unknown>;
+	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/i);
+	// The review's reference is its `terms_facts` evidence.
+	const review = (reference: string) =>
+		world.fact_evidence!.push({
+			id: uuid(990),
+			subject: { collection: 'employment_terms', id: terms.id },
+			fact_key: 'foreign_prior_work_reviewed_on',
+			reference,
+			file: null,
+			approval_id: null
+		});
+	facts.foreign_prior_work = 'ANY';
+	facts.foreign_prior_work_reviewed_on = '2026-01-01';
+	review('PRIOR-WORK-RECORD');
+	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/i);
+	facts.foreign_prior_work = 'NONE';
+	facts.foreign_prior_work_reviewed_on = '2026-02-01';
+	assert.throws(build, /verify dated prior work in Indonesia before excluding a foreign worker/i);
+	facts.foreign_prior_work_reviewed_on = '2026-01-01';
+	world.fact_evidence!.pop();
+	assert.throws(build, /reviewed on counts only once its evidence \(reference\) is recorded/);
+	review('NO-PRIOR-WORK-DECLARATION');
 	const built = build();
 	assert.equal(
 		built.payslip_payroll_run[0]?.statutory.some((row) => row.scheme_code === 'KESEHATAN'),
@@ -338,7 +355,10 @@ test('ID: dated KBLI editions convert only a verified one-to-one sector code', (
 			worksite_sector_edition: '2025'
 		}
 	])
-		assert.throws(() => assessStatutory({ ...options, people: [person] }), /No verified KBLI/);
+		assert.throws(
+			() => assessStatutory({ ...options, people: [person] }),
+			/No verified sector edition/
+		);
 	assert.throws(
 		() =>
 			assessStatutory({
@@ -347,7 +367,7 @@ test('ID: dated KBLI editions convert only a verified one-to-one sector code', (
 					{ key: 'CODE', wage: 6_000_000, worksite_sector: '62019', worksite_sector_edition: null }
 				]
 			}),
-		/supported worksite KBLI edition/
+		/supported worksite sector edition/
 	);
 	assert.throws(
 		() =>
@@ -362,7 +382,8 @@ test('ID: dated KBLI editions convert only a verified one-to-one sector code', (
 					}
 				]
 			}),
-		/supported worksite KBLI edition/
+		// An edition outside the declared `terms_facts` options is refused when the terms are resolved.
+		/Worksite KBLI edition must be one of: 2020, 2025/
 	);
 	assert.throws(
 		() =>
@@ -379,7 +400,7 @@ test('ID: dated KBLI editions convert only a verified one-to-one sector code', (
 					}
 				]
 			}),
-		/KBLI 2025 cannot classify this worksite/
+		/Sector edition 2025 cannot classify this worksite/
 	);
 });
 
@@ -458,7 +479,7 @@ test('ID: a dated one-to-one KBLI edition revision preserves the saved monthly w
 		...prior,
 		id: uuid(991),
 		worksite_sector: '62199',
-		worksite_sector_edition: '2025',
+		facts: { ...(prior.facts as Record<string, unknown>), worksite_sector_edition: '2025' },
 		effective_range: { start: '2026-01-16T00:00:00.000Z', end: null }
 	} as never);
 	const build = () =>
@@ -467,7 +488,7 @@ test('ID: a dated one-to-one KBLI edition revision preserves the saved monthly w
 		);
 	assert.doesNotThrow(build);
 	world.employment_terms[1]!.worksite_sector = '10437';
-	world.employment_terms[1]!.worksite_sector_edition = '2020';
+	(world.employment_terms[1]!.facts as Record<string, unknown>).worksite_sector_edition = '2020';
 	assert.throws(build, /A workplace or wage class change inside one pay window/);
 });
 

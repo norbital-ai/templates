@@ -18,7 +18,22 @@ const tables = {
 		version('sealed', true),
 		version('draft', false),
 		version('next-draft', false),
-		{ ...version('sg-draft', false), code: 'SG' }
+		{
+			...version('sg-draft', false),
+			code: 'SG',
+			payroll: {
+				leave_constraints: [
+					{
+						code: 'ANNUAL_LEAVE',
+						year_anchor: 'SERVICE_ANNIVERSARY',
+						auto_carry_one_year: true,
+						proration_in: ['COMPLETED_MONTHS', 'NONE'],
+						rounding: 'WHOLE_DAY',
+						authority: 'Employment Act 1968 s.88A'
+					}
+				]
+			}
+		}
 	],
 	statutory_contributions: []
 };
@@ -60,7 +75,7 @@ for (const [family, collection] of [
 	});
 }
 
-test('SG annual leave drafts preserve the service year and one-year carry', async () => {
+test('a version’s leave constraints hold its annual leave to the service year and one-year carry', async () => {
 	const annual = {
 		id: 'sg-annual',
 		settings_id: 'sg-draft',
@@ -77,19 +92,19 @@ test('SG annual leave drafts preserve the service year and one-year carry', asyn
 		runTransform(leaveCatalogue, [input], { tables, existing: [undefined] });
 	await assert.rejects(
 		mutate({ ...annual, entitlement: { ...annual.entitlement, year_anchor: 'CALENDAR' } }),
-		/service anniversary/
+		/SERVICE_ANNIVERSARY leave year/
 	);
 	await assert.rejects(
 		mutate({ ...annual, entitlement: { ...annual.entitlement, auto_carry_one_year: false } }),
-		/next service year/
+		/carry unused leave through the next leave year/
 	);
 	await assert.rejects(
 		mutate({ ...annual, entitlement: { ...annual.entitlement, proration: 'CALENDAR_MONTHS' } }),
-		/completed service months/
+		/proration must be one of COMPLETED_MONTHS, NONE/
 	);
 	await assert.rejects(
 		mutate({ ...annual, entitlement: { ...annual.entitlement, rounding: 'HALF_DAY' } }),
-		/whole day/
+		/round a partial-year grant as WHOLE_DAY/
 	);
 	assert.deepEqual((await mutate(annual))[0], annual);
 });

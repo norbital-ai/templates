@@ -9,15 +9,22 @@
 		type FormState,
 		type RecordView
 	} from '@norbital-ai/ui';
-	import { Grid, Inline, Stack } from '@norbital-ai/ui/layout';
+	import { Column, Grid, Inline, Stack } from '@norbital-ai/ui/layout';
 	import { t } from '../../../lib/ui/t.js';
 	import { decodeNumber } from '../../../lib/wire.js';
 	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/display-formatters.js';
 	import { liveRows } from '../../../lib/ui/live.svelte.js';
 	import { openCreated } from '../../../lib/ui/open-created.js';
 	import { createValues } from '../../../lib/ui/create-scope.js';
+	import DeclaredFactsField from '../../../lib/ui/declared-facts-field.svelte';
 
 	let { view }: { view: RecordView<'payment_events'> } = $props();
+	/** Each entity's lineage, so the payment's inputs render the declarations that govern it. */
+	const payers = liveRows<{ id: string; settings_code: string }>(() =>
+		bolt.read('companies', { select: { settings_code: true }, all: true })
+	);
+	const payerCode = (companyId: unknown): string =>
+		payers.current?.find((row) => row.id === String(companyId ?? ''))?.settings_code ?? '';
 	const record = $derived(view.mode === 'update' ? view.record : null);
 	const allocations = liveRows(() =>
 		record == null
@@ -49,16 +56,6 @@
 			non_event_deduction_amount: '0'
 		}
 	]);
-	let vnFacts = $state(false);
-	let vnRequest = $state(false);
-	let vnRequestOn = $state('');
-	let vnRequestRef = $state('');
-	let vnCommitment = $state('');
-	let vnCommitmentOn = $state('');
-	let vnCommitmentYear = $state('');
-	let vnCommitmentTaxId = $state('');
-	let vnSoleIncome = $state(false);
-	let vnBelowThreshold = $state(false);
 
 	function syncAllocations(form: FormState): void {
 		form.set('payment_allocations', {
@@ -79,31 +76,6 @@
 	): void {
 		drafts = drafts.map((row) => (row.id === id ? { ...row, [field]: value } : row));
 		syncAllocations(form);
-	}
-	function syncVn(form: FormState): void {
-		form.set('vn_payment_tax_facts', {
-			create: vnFacts
-				? [
-						{
-							withhold_below_threshold_requested: vnRequest,
-							...(vnRequestOn === '' ? {} : { request_received_on: vnRequestOn }),
-							...(vnRequestRef === '' ? {} : { request_reference: vnRequestRef }),
-							...(vnCommitment === '' ? {} : { commitment_form_reference: vnCommitment }),
-							...(vnCommitmentOn === '' ? {} : { commitment_received_on: vnCommitmentOn }),
-							...(vnCommitmentYear === ''
-								? {}
-								: { commitment_tax_year: decodeNumber(vnCommitmentYear) }),
-							...(vnCommitmentTaxId === '' ? {} : { commitment_tax_id: vnCommitmentTaxId }),
-							...(vnCommitment === ''
-								? {}
-								: {
-										commitment_sole_income_declared: vnSoleIncome,
-										commitment_below_taxable_threshold_declared: vnBelowThreshold
-									})
-						}
-					]
-				: []
-		});
 	}
 </script>
 
@@ -169,6 +141,30 @@
 						{/if}
 						<Field name="external_source_kind" label={t('component.payment_external_kind')} />
 						<Field name="external_source_id" label={t('component.payment_external_id')} />
+						<Column span="all">
+							<Field
+								name="facts"
+								label={t('component.payment_facts')}
+								help={t('component.payment_facts_hint')}
+							>
+								{#snippet editor(field)}
+									<DeclaredFactsField
+										view={{
+											mode: 'edit',
+											name: field.name,
+											value: field.value as never,
+											disabled: field.disabled,
+											onChange: field.onChange as never
+										}}
+										settingsCode={payerCode(form.get('company_id'))}
+										schema="payment_facts"
+										day={typeof form.get('paid_on') === 'string'
+											? (form.get('paid_on') as string)
+											: null}
+									/>
+								{/snippet}
+							</Field>
+						</Column>
 					</Grid>
 					<Stack gap="sm">
 						<h3 class="text-subhead">{t('component.payment_sources')}</h3>
@@ -248,120 +244,6 @@
 								syncAllocations(form);
 							}}>{t('component.payment_add_source')}</Button
 						>
-					</Stack>
-					<Stack gap="sm">
-						<label class="text-sm"
-							><input
-								type="checkbox"
-								checked={vnFacts}
-								onchange={(event) => {
-									vnFacts = event.currentTarget.checked;
-									syncVn(form);
-								}}
-							/>
-							{t('component.payment_vn_facts')}</label
-						>
-						{#if vnFacts}
-							<label class="text-sm"
-								><input
-									type="checkbox"
-									checked={vnRequest}
-									onchange={(event) => {
-										vnRequest = event.currentTarget.checked;
-										syncVn(form);
-									}}
-								/>
-								{t('component.payment_vn_request')}</label
-							>
-							{#if vnRequest}
-								<input
-									class="rounded border border-border bg-background px-2 py-1"
-									aria-label={t('component.payment_vn_request_on')}
-									type="date"
-									value={vnRequestOn}
-									oninput={(event) => {
-										vnRequestOn = event.currentTarget.value;
-										syncVn(form);
-									}}
-								/>
-								<input
-									class="rounded border border-border bg-background px-2 py-1"
-									aria-label={t('component.payment_vn_request_ref')}
-									placeholder={t('component.payment_vn_request_ref')}
-									value={vnRequestRef}
-									oninput={(event) => {
-										vnRequestRef = event.currentTarget.value;
-										syncVn(form);
-									}}
-								/>
-							{/if}
-							<input
-								class="rounded border border-border bg-background px-2 py-1"
-								aria-label={t('component.payment_vn_commitment')}
-								placeholder={t('component.payment_vn_commitment')}
-								value={vnCommitment}
-								oninput={(event) => {
-									vnCommitment = event.currentTarget.value;
-									syncVn(form);
-								}}
-							/>
-							{#if vnCommitment !== ''}
-								<input
-									class="rounded border border-border bg-background px-2 py-1"
-									aria-label={t('component.payment_vn_commitment_on')}
-									type="date"
-									value={vnCommitmentOn}
-									oninput={(event) => {
-										vnCommitmentOn = event.currentTarget.value;
-										syncVn(form);
-									}}
-								/>
-								<input
-									class="rounded border border-border bg-background px-2 py-1"
-									aria-label={t('component.payment_vn_commitment_year')}
-									type="number"
-									min="2000"
-									step="1"
-									value={vnCommitmentYear}
-									oninput={(event) => {
-										vnCommitmentYear = event.currentTarget.value;
-										syncVn(form);
-									}}
-								/>
-								<input
-									class="rounded border border-border bg-background px-2 py-1"
-									aria-label={t('component.payment_vn_commitment_tax_id')}
-									placeholder={t('component.payment_vn_commitment_tax_id')}
-									value={vnCommitmentTaxId}
-									oninput={(event) => {
-										vnCommitmentTaxId = event.currentTarget.value;
-										syncVn(form);
-									}}
-								/>
-								<label class="text-sm"
-									><input
-										type="checkbox"
-										checked={vnSoleIncome}
-										onchange={(event) => {
-											vnSoleIncome = event.currentTarget.checked;
-											syncVn(form);
-										}}
-									/>
-									{t('component.payment_vn_sole_income')}</label
-								>
-								<label class="text-sm"
-									><input
-										type="checkbox"
-										checked={vnBelowThreshold}
-										onchange={(event) => {
-											vnBelowThreshold = event.currentTarget.checked;
-											syncVn(form);
-										}}
-									/>
-									{t('component.payment_vn_below_threshold')}</label
-								>
-							{/if}
-						{/if}
 					</Stack>
 				</Stack>
 			{/snippet}

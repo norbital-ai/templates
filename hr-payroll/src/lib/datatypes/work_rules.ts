@@ -63,6 +63,12 @@ const workLimitValueSchema = Schema.Struct({
 	 * `counts_day_when` wins on a day both hold. Read by the ceiling report only; absent is none.
 	 */
 	counts_beyond_normal_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/**
+	 * Payroll judges the limit too, over the compliance span the run reads, and refuses a breach: a
+	 * weekly NORMAL_HOURS or ALL_OVERTIME_HOURS limit (TH LPA ss.23, 26). Absent is the roster gate
+	 * and the ceiling report only.
+	 */
+	enforced_at_payroll: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	authority: Schema.optionalKey(Schema.NullOr(Schema.String))
 });
 export type WorkHoursLimit = Schema.Schema.Type<typeof workLimitValueSchema>;
@@ -99,6 +105,8 @@ const workRestLimitValueSchema = Schema.Struct({
 		)
 	),
 	when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/** Payroll re-judges the run of worked days over the compliance span (TH LPA s.28). Absent is the roster gate only. */
+	enforced_at_payroll: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
 	authority: Schema.optionalKey(Schema.NullOr(Schema.String))
 });
 export type WorkRestLimit = Schema.Schema.Type<typeof workRestLimitValueSchema>;
@@ -125,6 +133,13 @@ const workRateBandValueSchema = Schema.Struct({
 	/** Money over the work day: what the whole slice earns; `hours` is the slice actually consumed. */
 	price_amount: cel,
 	/**
+	 * The Work pay item's output this band posts to, where it prices the normal day rather than
+	 * overtime: it is read on every ordinary scheduled day of the wage window, over the day's own
+	 * worked hours (the presumed shift where unclocked), with its own consumption, and settles as
+	 * additional normal-time wages. Absent is an overtime band.
+	 */
+	component: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isMinLength(1)))),
+	/**
 	 * Inert: nothing reads it. It once named the day limit above which planned OT became incentive;
 	 * every overtime limit now splits (`splitsOvertime`). Kept, and still compiled, only because
 	 * sealed versions (MY-nihon, VN) store it.
@@ -132,6 +147,21 @@ const workRateBandValueSchema = Schema.Struct({
 	funnel_above_hours: Schema.optionalKey(Schema.NullOr(cel))
 });
 export type WorkRateBand = Schema.Schema.Type<typeof workRateBandValueSchema>;
+
+const clockTime = Schema.String.check(Schema.isPattern(/^([01]\d|2[0-3]):[0-5]\d$/));
+
+/**
+ * One protection judged on a person-day: `when`, a boolean over the work day, is the breach. Judged
+ * at payroll on every scheduled or attended day of the run's windows, in order, the first that holds
+ * refusing with `message`; one that reads nothing but `day_facts` is judged when the day is saved too.
+ */
+const workDayRuleValueSchema = Schema.Struct({
+	key: Schema.String.check(Schema.isMinLength(1)),
+	when: cel,
+	message: Schema.String.check(Schema.isMinLength(1)),
+	authority: Schema.optionalKey(Schema.NullOr(Schema.String))
+});
+export type WorkDayRule = Schema.Schema.Type<typeof workDayRuleValueSchema>;
 
 /** One expression fault, named by the row it rides, or null when it compiles to its type. */
 const faultIn = (
@@ -253,6 +283,22 @@ export const workRulesValueSchema = Schema.Struct({
 	 */
 	normal_hours: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/**
+	 * Hours over the work day (`person`, `date`, `day_facts`, `stated_day_hours`): how long a
+	 * rostered shift's normal day may run before its hours are overtime, where the law lets an
+	 * agreement move it (TH LPA s.23: a redistributed day of nine hours; a guard's longer day).
+	 * `stated_day_hours` is the default — the statute's normal day, bounded by the contract's
+	 * stated day. Absent or empty is that default.
+	 */
+	shift_day_hours: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/**
+	 * Hours over the work day (`person`, `date`, `day_type`, `normal_hours`, `day_facts`): what an
+	 * ordinary rostered day moves within its week — positive above the normal day, negative on a
+	 * shorter one (TH LPA s.23: a redistributed day above eight is given back inside the week). A
+	 * week whose moves sum above zero refuses. Judged with the weekly NORMAL_HOURS limits payroll
+	 * enforces; absent or empty is none.
+	 */
+	redistributed_hours: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/**
 	 * The hours a week a full-time monthly-rated hour is built on, whatever the contract's week, where the
 	 * statute fixes it (SG EA Fourth Schedule: 12 × monthly ÷ (52 × 44)); a cap on other wage
 	 * bases' week. Absent where the hour is the day over the daily normal hours (MY s.60I(1)(b)).
@@ -291,19 +337,71 @@ export const workRulesValueSchema = Schema.Struct({
 	),
 	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE']),
 	/**
+	 * Whether planned hours beyond the limits may be kept as incentive hours; false refuses them at
+	 * write and at payroll (TH LPA s.26: work above the ceiling is unlawful, not priced). Absent is true.
+	 */
+	incentive_hours_allowed: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
+	 * Each occasion of overtime or holiday work needs the worker's prior consent
+	 * (`work_days.overtime_consented_at`) on a day `required_when` (boolean over the work day) holds,
+	 * unless the day records the `exception_fact` work-day input (TH LPA ss.24–25). Absent is none.
+	 */
+	overtime_consent: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				required_when: cel,
+				exception_fact: Schema.String.check(Schema.isMinLength(1)),
+				authority: Schema.optionalKey(Schema.NullOr(Schema.String))
+			})
+		)
+	),
+	/**
+	 * The statute's night, local wall times; an end at or before the start crosses midnight. Read by
+	 * `night_worked` and `first_night_at` (TH LPA s.47: 22:00–06:00). Absent: no day is a night day.
+	 */
+	night_window: Schema.optionalKey(
+		Schema.NullOr(Schema.Struct({ start: clockTime, end: clockTime }))
+	),
+	/** Person-day protections (see `workDayRuleValueSchema`); absent or empty is none. */
+	day_rules: Schema.optionalKey(Schema.NullOr(Schema.Array(workDayRuleValueSchema))),
+	/**
 	 * Where one Monday–Sunday week holds more than one REST day, only its last is the rest day and
 	 * the earlier ones resolve as OFF days (MY Employment Act 1955 s.59(1): "the last of such rest
 	 * days shall be the rest day for the purposes of this Part"). Absent: every REST day is one.
 	 */
-	last_rest_day_only: Schema.optionalKey(Schema.NullOr(Schema.Boolean))
+	last_rest_day_only: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/**
+	 * Work on a REST day with a later REST day in its Monday–Sunday week: `RESOLVE_AS_OFF` resolves
+	 * it as an OFF day (as `last_rest_day_only`); `REFUSE` refuses paid work on it at payroll, where
+	 * the statutory 104-hour count and the contract's rest-day rate are not priced together.
+	 * Absent: every REST day is one.
+	 */
+	earlier_rest_day_work: Schema.optionalKey(
+		Schema.NullOr(Schema.Literals(['RESOLVE_AS_OFF', 'REFUSE']))
+	)
 }).check(
 	Schema.makeFilter((rules) => {
+		if (rules.last_rest_day_only != null && rules.earlier_rest_day_work != null)
+			return 'Rest days: set last_rest_day_only or earlier_rest_day_work, not both.';
 		if (
 			rules.encashment?.include_allowances.some((code) =>
 				rules.encashment?.exclude_allowances.includes(code)
 			)
 		)
 			return 'Leave cash-out: an allowance cannot be both included and excluded.';
+		const enforcedFault = rules.limits.find(
+			(limit) =>
+				limit.enforced_at_payroll === true &&
+				!isRestLimit(limit) &&
+				!(
+					limit.period === 'WEEK' &&
+					(limit.measure === 'NORMAL_HOURS' || limit.measure === 'ALL_OVERTIME_HOURS')
+				)
+		);
+		if (enforcedFault != null)
+			return `Limit ${enforcedFault.key}: payroll enforces only a weekly NORMAL_HOURS or ALL_OVERTIME_HOURS limit, or the rest limit.`;
+		const ruleKeys = (rules.day_rules ?? []).map((rule) => rule.key);
+		if (new Set(ruleKeys).size !== ruleKeys.length) return 'Day rules: each key is declared once.';
 		const limitKeys = new Set(rules.limits.map((limit) => limit.key));
 		const expressions = [
 			rules.ordinary_divisor_days,
@@ -315,7 +413,11 @@ export const workRulesValueSchema = Schema.Struct({
 				band.price_amount,
 				band.funnel_above_hours ?? ''
 			]),
-			...rules.breaks.flatMap((brk) => [brk.when, brk.owed_minutes])
+			rules.shift_day_hours ?? '',
+			rules.redistributed_hours ?? '',
+			...rules.breaks.flatMap((brk) => [brk.when, brk.owed_minutes]),
+			rules.overtime_consent?.required_when ?? '',
+			...(rules.day_rules ?? []).map((rule) => rule.when)
 		];
 		// `limits.<key>` is an open prefix: the key is a code of this version, and the version is
 		// this row, so a key no limit declares is refused here rather than read as zero at payroll.
@@ -355,6 +457,12 @@ export const workRulesValueSchema = Schema.Struct({
 			(rules.normal_hours ?? '').trim() === ''
 				? null
 				: faultIn(rules.normal_hours ?? '', 'person', 'hours', 'Normal hours'),
+			(rules.shift_day_hours ?? '').trim() === ''
+				? null
+				: faultIn(rules.shift_day_hours ?? '', 'work_day', 'hours', 'Shift day hours'),
+			(rules.redistributed_hours ?? '').trim() === ''
+				? null
+				: faultIn(rules.redistributed_hours ?? '', 'work_day', 'hours', 'Redistributed hours'),
 			...rules.limits.map((limit) =>
 				(limit.when ?? '').trim() === ''
 					? null
@@ -377,6 +485,12 @@ export const workRulesValueSchema = Schema.Struct({
 						)
 			),
 
+			rules.overtime_consent == null
+				? null
+				: faultIn(rules.overtime_consent.required_when, 'work_day', 'boolean', 'Overtime consent'),
+			...(rules.day_rules ?? []).map((rule) =>
+				faultIn(rule.when, 'work_day', 'boolean', `Day rule ${rule.key}`)
+			),
 			rules.time_off_in_lieu == null
 				? null
 				: faultIn(

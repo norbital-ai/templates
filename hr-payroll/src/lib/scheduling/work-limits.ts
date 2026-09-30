@@ -623,7 +623,9 @@ function resolvedDays(options: {
 	readonly codes: readonly Pick<ShiftDefinition, 'id' | 'code' | 'variant' | 'effective_range'>[];
 	/** The version's work rules in force; none resolves nothing. */
 	readonly work:
-		Pick<WorkRules, 'holiday_rest_precedence' | 'last_rest_day_only'> | null | undefined;
+		| Pick<WorkRules, 'holiday_rest_precedence' | 'last_rest_day_only' | 'earlier_rest_day_work'>
+		| null
+		| undefined;
 	/** The person's stored plans: the explicit roster code of each dated row. */
 	readonly plans: readonly {
 		readonly work_date: string;
@@ -675,7 +677,9 @@ function resolvedDays(options: {
 				),
 				shiftById,
 				holidayRestPrecedence: precedence,
-				lastRestDayOnly: options.work?.last_rest_day_only === true
+				lastRestDayOnly:
+					options.work?.last_rest_day_only === true ||
+					options.work?.earlier_rest_day_work === 'RESOLVE_AS_OFF'
 			}
 		});
 		for (const day of schedule.values()) resolved.set(day.date, day);

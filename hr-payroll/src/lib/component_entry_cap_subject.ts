@@ -15,6 +15,8 @@ import { personContext, type PersonContext } from '../lib/payroll/run/eligibilit
 import { coversDate } from '../lib/payroll/run/effective.js';
 import { childrenOn, resolveEmployment, stint } from './employment-contract.js';
 import { dateKey } from './iso-day.js';
+import { settingsInForce } from './jurisdiction_settings.js';
+import { personFactsForVersion } from './payroll/facts.js';
 
 /** Later obligations use the final terms of their own closed contract; in-service gaps stay gaps. */
 export function payRequestTerms<T extends { readonly effective_range: unknown }>(
@@ -71,14 +73,48 @@ export async function capSubjects(
 			readonly currency: string | null;
 		}>(reads, 'employment_terms', { employment_id: { in: ids }, ...settled })
 	]);
-	const [employees, companies] = await Promise.all([
-		readAll<CapEmployee>(reads, 'employees', {
-			id: { in: [...new Set(employments.map((row) => row.employee_id))] }
-		}),
-		readAll<{ readonly id: string; readonly region?: string | null }>(reads, 'companies', {
+	const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
+	const [employees, companies, versions, facts] = await Promise.all([
+		readAll<CapEmployee>(reads, 'employees', { id: { in: employeeIds } }),
+		readAll<{
+			readonly id: string;
+			readonly region?: string | null;
+			readonly settings_code: string;
+		}>(reads, 'companies', {
 			id: { in: [...new Set(employments.map((row) => row.company_id))] }
-		})
+		}),
+		readAll<{
+			readonly id: string;
+			readonly code: string;
+			readonly sealed_at: unknown;
+			readonly voided_at: unknown;
+			readonly effective_range: unknown;
+			readonly approval_id: unknown;
+		}>(reads, 'jurisdiction_settings', settled, undefined, {
+			id: true,
+			code: true,
+			sealed_at: true,
+			voided_at: true,
+			effective_range: true,
+			approval_id: true
+		}),
+		readAll<Parameters<typeof personFactsForVersion>[0][number] & { readonly employee_id: string }>(
+			reads,
+			'employment_statutory_facts',
+			{ employee_id: { in: employeeIds }, ...settled }
+		)
 	]);
+	// The schemes name the codes a rule reads a fact under (`facts.UI.since_months`), as in the run.
+	const lineageIds = versions
+		.filter((row) => companies.some((company) => company.settings_code === row.code))
+		.map((row) => row.id);
+	const schemes = await readAll<Parameters<typeof personFactsForVersion>[1][number]>(
+		reads,
+		'statutory_contributions',
+		{ settings_id: { in: lineageIds }, ...settled },
+		undefined,
+		{ id: true, code: true, settings_id: true, elections: true }
+	);
 	const byId = new Map(employments.map((row) => [row.id, row]));
 	return (employmentId, asOf) => {
 		const employment = byId.get(employmentId);
@@ -96,6 +132,16 @@ export async function capSubjects(
 				terms: payRequestTerms(ownTerms, contract, date) as never,
 				children: childrenOn(employee?.children ?? [], date),
 				company: company as never,
+				facts:
+					company == null
+						? []
+						: personFactsForVersion(
+								facts.filter((row) => row.employee_id === employment.employee_id),
+								schemes,
+								settingsInForce(versions, company.settings_code, date)?.id ?? '',
+								date,
+								employmentId
+							),
 				asOf: date
 			});
 		return {
