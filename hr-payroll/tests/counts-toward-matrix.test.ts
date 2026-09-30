@@ -402,6 +402,9 @@ const SEPARATION = new Set([
 	'THIRTEENTH_MONTH_PAY'
 ]);
 
+/** The classes the law owes on a date, raised ahead of it by the scheduled-entries automation. */
+const SCHEDULED = new Set(['THIRTEENTH_MONTH_PAY_YEAR_END', 'THR_HOLIDAY']);
+
 for (const lineage of LINEAGES) {
 	test(`${lineage}: every version carries the membership matrix`, () => {
 		const expected = MATRIX[lineage];
@@ -436,11 +439,15 @@ for (const lineage of LINEAGES) {
 				})
 			);
 			assert.deepEqual(actual, wanted, `${lineage} ${version.code}`);
-			// The separation classes are the ones off-boarding raises; every other ad hoc class is HR's.
+			// Separation classes are raised by off-boarding, scheduled ones on their date; the rest are HR's.
 			for (const row of adhocCatalogue(lineage).filter((row) => row.settings_id === version.id))
 				assert.equal(
 					row.raised_by,
-					SEPARATION.has(row.code) ? 'SEPARATION' : 'MANUAL',
+					SEPARATION.has(row.code)
+						? 'SEPARATION'
+						: SCHEDULED.has(row.code)
+							? 'SCHEDULED'
+							: 'MANUAL',
 					`${lineage} ${row.code}`
 				);
 			// Every membership names a scheme of the same version, and a part the scheme declares.
