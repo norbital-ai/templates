@@ -1,0 +1,16 @@
+{
+	"schemaVersion": 1,
+	"key": "norbital_on_demand",
+	"name": "On-Demand Services",
+	"industry": "Home Services",
+	"description": "On-demand helper bookings: skill- and availability-matched helpers with travel buffers, preferred-helper scheduling, recurring visits, pre-shift checks with automatic reassignment, and GPS ETA alerts.",
+	"visibility": "public",
+	"counts": {
+		"collections": 11,
+		"apps": 7,
+		"automations": 6
+	},
+	"tags": ["Home services", "Scheduling", "Dispatch"],
+	"name_zh": "上门服务",
+	"description_zh": "按需上门服务预约：按技能与空档匹配帮手并预留车程，指定帮手排期，定期上门，班前确认与自动改派，以及 GPS 预计到达提醒。"
+}
