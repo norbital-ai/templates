@@ -5,21 +5,22 @@ import { workspace } from '@norbital-ai/bolt';
  * is matched to each visit, and dispatch watches every shift before it starts. Days and working hours are Singapore
  * wall time; money is in Singapore dollars.
  *
- * Customers sign up with their mobile number and a texted code — no invitation — and land bound to the customer record
- * with that number, so a guest who booked on the portal becomes a registered customer who sees their own visits. An
- * administrator can close sign-up in Settings.
+ * Customers book on the portal, which a site can embed: they verify their mobile number on the page with a texted code,
+ * which signs them up — no invitation — as a `customer` (the portal alone, and only their own records), bound to the
+ * customer record with that number. An administrator can close sign-up in Settings.
  */
 export default workspace({
 	tz: 'Asia/Singapore',
 	locale: 'en-SG',
 	currency: 'SGD',
+	// the warning letter
+	convert: { to: ['pdf'] },
 	apps: [
 		'scheduler/schedule',
 		'scheduler/helpers',
 		'scheduler/customers',
 		'scheduler/configurations',
 		'helper',
-		'my_visits',
 		'portal'
 	],
 	signup: {

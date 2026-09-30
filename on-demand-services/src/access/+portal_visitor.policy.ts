@@ -1,11 +1,11 @@
 import { policy } from '@norbital-ai/bolt';
 
 /**
- * A signed-out visitor on the booking portal: the active services, and filing a booking request. Nothing else — no
- * helper, visit or customer is visible, and a request is settled by the `portal_intake` run.
+ * Someone on the booking portal who has not verified their number yet: the active services and their open times.
+ * Nothing else; verifying signs them up as a `customer`.
  */
 export default policy({
-	description: 'Portal visitors: see the active services and file a booking request.',
+	description: 'Portal visitors: the active services and their open times.',
 	grants: {
 		services: {
 			read: {
@@ -13,11 +13,7 @@ export default policy({
 				fields: ['id', 'name', 'duration_minutes', 'price', 'description']
 			}
 		},
-		booking_requests: {
-			create: {
-				fields: ['name', 'email', 'phone', 'address', 'area', 'service', 'start', 'repeat', 'notes']
-			}
-		}
+		openings: { read: { fields: ['id', 'service', 'day', 'starts'] } }
 	},
-	limits: { register: { rate: '10/h', per: 'ip' } }
+	limits: { read: '120/min' }
 });

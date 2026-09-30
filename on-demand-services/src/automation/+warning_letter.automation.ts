@@ -32,26 +32,28 @@ warning_letter.run(async ({ ids }, ctx) => {
 			to: whatsapp(w.helper.phone),
 			text: `A warning has been filed on your record: you ${REASON[w.reason]}. Please answer every shift check, and send a medical certificate whenever you cannot work for medical reasons.`
 		});
-		const letter = await ctx.files.pdf.try(
+		const at =
+			w.visit === null
+				? 'your shift'
+				: `${when(w.visit.slot.start, ctx.tz)}, at ${w.visit.address} (visit ${w.visit.number})`;
+		const letter = await ctx.convert.document.try(
 			{
-				blocks: [
-					{ text: 'Warning letter', size: 18, bold: true },
-					{ text: when(w.issued_at, ctx.tz) },
-					{ spacer: 12 },
-					{ text: `Dear ${w.helper.name},` },
-					{
-						text: `On ${w.visit === null ? 'your shift' : `${when(w.visit.slot.start, ctx.tz)}, at ${w.visit.address} (visit ${w.visit.number})`}, you ${REASON[w.reason]}. The visit had to be given to another helper at short notice.`
-					},
-					{
-						text: `This is warning ${w.helper.warning_count} on your record. Please answer every shift check, and send a medical certificate whenever you cannot work for medical reasons.`
-					},
-					{ spacer: 12 },
-					{ text: 'Operations' }
-				]
+				markdown: [
+					'# Warning letter',
+					when(w.issued_at, ctx.tz),
+					`Dear ${w.helper.name},`,
+					`On ${at}, you ${REASON[w.reason]}. The visit had to be given to another helper at short notice.`,
+					`This is warning ${w.helper.warning_count} on your record. Please answer every shift check, and send a medical certificate whenever you cannot work for medical reasons.`,
+					'Operations'
+				].join('\n\n')
 			},
-			{ name: `warning-${w.helper.name.replace(/\W+/g, '-')}.pdf`, for: 'helper_warnings.letter' }
+			{
+				to: 'pdf',
+				name: `warning-${w.helper.name.replace(/\W+/g, '-')}.pdf`,
+				for: 'helper_warnings.letter'
+			}
 		);
-		// a host with no PDF renderer: the warning stands without its letter
+		// a host with no document converter: the warning stands without its letter
 		if (!('id' in letter)) continue;
 		set.push({ target: w.id, set: { letter } });
 	}

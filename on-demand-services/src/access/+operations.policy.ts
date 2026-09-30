@@ -8,6 +8,7 @@ export default policy({
 	grants: {
 		dispatch_settings: { read: true, create: true, update: true },
 		services: { read: true, create: true, update: true, delete: true },
+		openings: { read: true },
 		customers: { read: true, create: true, update: true, delete: true },
 		helpers: {
 			read: true,

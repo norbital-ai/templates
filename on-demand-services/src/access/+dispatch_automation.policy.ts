@@ -2,7 +2,8 @@ import { policy } from '@norbital-ai/bolt';
 
 /**
  * The dispatch runs: read the roster and the schedule, re-dispatch visits, file warnings and their letters, notify
- * customers, and book portal requests (filing a new customer) through the same `bookings.book` as the desk.
+ * customers, publish the portal's open times, and book portal requests (filing a new customer) through the same
+ * `bookings.book` as the desk.
  */
 export default policy({
 	description:
@@ -10,6 +11,7 @@ export default policy({
 	grants: {
 		dispatch_settings: { read: true },
 		services: { read: true },
+		openings: { read: true, create: true, update: true, delete: true },
 		helpers: { read: true },
 		helper_time_off: { read: true },
 		customers: { read: true, create: true },
