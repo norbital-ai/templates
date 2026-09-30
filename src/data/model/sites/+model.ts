@@ -26,5 +26,5 @@ export default model({
 		},
 		floor_area_sqm: { kind: 'decimal', scale: 2, optional: true }
 	},
-	search: { text: ['name', 'site_code', 'client_name'] }
+	search: { text: ['name', 'address', 'site_code', 'client_name'] }
 });
