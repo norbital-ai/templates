@@ -556,7 +556,8 @@
 				codeById,
 				observed,
 				limits,
-				cutoffDay
+				cutoffDay,
+				unitHours: rules?.overtime_unit_hours
 			}),
 			holiday: observed.holidays.has(date),
 			entitled:
@@ -914,7 +915,7 @@
 					type="number"
 					min="0"
 					max="24"
-					step="0.5"
+					step={settingsVersion?.work_rules?.overtime_unit_hours ?? 'any'}
 					class="w-28"
 					aria-label={t('roster.day_sheet_planned_overtime')}
 					value={draftOvertime ?? ''}

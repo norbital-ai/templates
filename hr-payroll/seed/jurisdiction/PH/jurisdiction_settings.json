@@ -160,6 +160,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -968,6 +969,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -1779,6 +1781,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -2592,6 +2595,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -3409,6 +3413,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -4224,6 +4229,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -5042,6 +5048,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -5850,6 +5857,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -6661,6 +6669,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -7474,6 +7483,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -8291,6 +8301,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -9106,6 +9117,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -9924,6 +9936,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -10737,6 +10750,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -11553,6 +11567,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -12371,6 +12386,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -13193,6 +13209,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -14013,6 +14030,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -14836,6 +14854,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -19272,6 +19291,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -23708,6 +23728,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -28144,6 +28165,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -32580,6 +32602,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -37020,6 +37043,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -41460,6 +41484,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -45900,6 +45925,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -50341,6 +50367,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -54782,6 +54809,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -59225,6 +59253,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -63668,6 +63697,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -68109,6 +68139,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -72550,6 +72581,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -76991,6 +77023,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -81432,6 +81465,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -85874,6 +85908,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -90316,6 +90351,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -94758,6 +94794,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -99200,6 +99237,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -103646,6 +103684,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",
@@ -108092,6 +108131,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"night_premium": {
 				"from": "22:00",

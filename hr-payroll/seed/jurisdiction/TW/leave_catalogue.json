@@ -96,7 +96,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -119,7 +123,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -489,7 +497,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -593,7 +602,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -616,7 +629,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -640,7 +657,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -836,7 +854,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -988,7 +1007,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -1092,7 +1112,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1115,7 +1139,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1139,7 +1167,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -1335,7 +1364,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -1487,7 +1517,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -1591,7 +1622,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1614,7 +1649,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1984,7 +2023,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -2088,7 +2128,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2111,7 +2155,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2135,7 +2183,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -2331,7 +2380,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -2483,7 +2533,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -2587,7 +2638,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2610,7 +2665,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2634,7 +2693,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -2830,7 +2890,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -2982,7 +3043,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -3086,7 +3148,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3109,7 +3175,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3479,7 +3549,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -3583,7 +3654,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3606,7 +3681,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3630,7 +3709,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -3826,7 +3906,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -3978,7 +4059,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -4082,7 +4164,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4105,7 +4191,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4129,7 +4219,8 @@
 					"eligibility": "",
 					"days": 14
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -4325,7 +4416,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -4477,7 +4569,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -4581,7 +4674,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4604,7 +4701,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4824,7 +4925,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -4976,7 +5078,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -5080,7 +5183,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5103,7 +5210,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5323,7 +5434,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -5475,7 +5587,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -5579,7 +5692,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5602,7 +5719,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5972,7 +6093,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -6076,7 +6198,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6099,7 +6225,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6319,7 +6449,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -6471,7 +6602,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,
@@ -6575,7 +6707,11 @@
 					"days": 0
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6598,7 +6734,11 @@
 					"days": 30
 				}
 			],
-			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0"
+			"scale": "employment.type == \"PART_TIME\" && terms.ordinary_hours_per_week > 0.0 && terms.working_days_per_week > 0.0 ? (terms.ordinary_hours_per_week / 40.0) * 8.0 / (terms.ordinary_hours_per_week / terms.working_days_per_week) : 1.0",
+			"scaled_rounding": {
+				"step": 0.5,
+				"mode": "UP"
+			}
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6818,7 +6958,8 @@
 					"eligibility": "",
 					"days": 7
 				}
-			]
+			],
+			"hour_share_step": 0.125
 		},
 		"is_npl": true,
 		"can_encash": false,
@@ -6970,7 +7111,8 @@
 			"availability": "UNLIMITED",
 			"year_start_month": 1,
 			"proration": "NONE",
-			"bands": []
+			"bands": [],
+			"hour_share_step": 0.125
 		},
 		"is_npl": false,
 		"can_encash": false,

@@ -3313,7 +3313,8 @@ export function validateWorkResult(options: {
 		...validateUnplannedOvertime({
 			employeeNumber: bundle.employment.employee_number,
 			days: ownDays,
-			plannedByWorkDayId
+			plannedByWorkDayId,
+			unitHours: configuration.work.overtime_unit_hours
 		})
 	);
 	for (const limit of measured.limits) {

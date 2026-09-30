@@ -8,6 +8,12 @@ import { Schema } from 'effect';
  * MONTHLY with proration releases earned annual leave at month end. A service
  * tier is `employment.service_months >= 24`; a grade tier is `terms.grade == "M1"`.
  */
+/** A stored rounding step: the multiple a figure rounds to, and the direction. */
+const stepRounding = Schema.Struct({
+	step: Schema.Finite.check(Schema.isGreaterThan(0)),
+	mode: Schema.Literals(['UP', 'DOWN', 'HALF_UP'])
+});
+
 export const leaveEntitlementValueSchema = Schema.Struct({
 	/**
 	 * `PER_EVENT` is a grant per occurrence rather than per year: every entry is its own pool of
@@ -114,6 +120,32 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 */
 	rounding: Schema.optionalKey(
 		Schema.NullOr(Schema.Literals(['HALF_DAY', 'WHOLE_DAY', 'WHOLE_DAY_DOWN', 'EXACT']))
+	),
+	/**
+	 * How a grant the `scale` moved rounds, in days: `{ step: 0.5, mode: 'UP' }` is up to the half
+	 * day, never below the hours owed. Absent is the exact figure.
+	 */
+	scaled_rounding: Schema.optionalKey(Schema.NullOr(stepRounding)),
+	/** How an hourly grant (`requires_hourly_for_part_time`) rounds, in hours. Absent is exact. */
+	hour_rounding: Schema.optionalKey(Schema.NullOr(stepRounding)),
+	/**
+	 * Of a `HALF_MONTHS` proration, the share of a calendar month's days that must be eligible for
+	 * the month to count (VN Decree 145/2020 art.66(2): `0.5`). Required by that proration.
+	 */
+	month_counts_when: Schema.optionalKey(
+		Schema.NullOr(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })))
+	),
+	/**
+	 * Of an hourly row (`unit: HOUR`), the step the share of the shift's paid hours rounds to,
+	 * half up, and the least share an hour charges (`0.125`: an hour of an eight-hour day). Absent
+	 * is the exact share.
+	 */
+	hour_share_step: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })).check(
+				Schema.isGreaterThan(0)
+			)
+		)
 	),
 	/**
 	 * The fewest days a prorated grant rounds to, however short the service in the leave year (SG

@@ -43,6 +43,24 @@ const f = customField({
 				values: ['HALF_DAY', 'WHOLE_DAY', 'WHOLE_DAY_DOWN', 'EXACT'],
 				optional: true
 			},
+			scaled_rounding: {
+				kind: 'object',
+				fields: {
+					step: { kind: 'number', min: 0 },
+					mode: { kind: 'enum', values: ['UP', 'DOWN', 'HALF_UP'] }
+				},
+				optional: true
+			},
+			hour_rounding: {
+				kind: 'object',
+				fields: {
+					step: { kind: 'number', min: 0 },
+					mode: { kind: 'enum', values: ['UP', 'DOWN', 'HALF_UP'] }
+				},
+				optional: true
+			},
+			month_counts_when: { kind: 'number', min: 0, max: 1, optional: true },
+			hour_share_step: { kind: 'number', min: 0, max: 1, optional: true },
 			minimum_days: { kind: 'number', min: 0, optional: true },
 			qualifies_window: { kind: 'bool', optional: true },
 			encash_on_exit_when: { kind: 'text', optional: true },

@@ -1,5 +1,5 @@
 import { refuse } from '../refuse.js';
-import { fromMinorUnits, toMinorUnits } from '../payroll/run/rounding.js';
+import { fromMinorUnits, roundToStep, toMinorUnits } from '../payroll/run/rounding.js';
 import type { LeaveActivity } from './pending.js';
 import type { LeaveAllocation } from '../datatypes/leave_allocations.js';
 import type { LeaveCharge } from '../datatypes/leave_charges.js';
@@ -724,7 +724,12 @@ export function planLeaveActivity(
 					chargedHours != null
 						? chargedHours / paidHours
 						: day.catalogue.unit === 'HOUR' && fields.hours != null
-							? hourlyShare(fields.hours, range, day.shift!.variant)
+							? hourlyShare(
+									fields.hours,
+									range,
+									day.shift!.variant,
+									day.catalogue.entitlement.hour_share_step
+								)
 							: halves === 2
 								? 1
 								: 0.5;
@@ -1097,15 +1102,26 @@ export function planLeaveActivity(
 
 /**
  * The share of a day some hours of leave are: the hours over the shift's paid hours, to the
- * eighth (an hour of an eight-hour day), never more than the day. One day at a time: hourly
- * leave over a range is refused, because the hours name one shift.
+ * row's `hour_share_step` (and never less than one step; absent is the exact share), never more
+ * than the day. One day at a time: hourly leave over a range is refused, because the hours name
+ * one shift, and a shift without paid hours has no day to share.
  */
-function hourlyShare(hours: number, range: HalfDayRange, variant: RosterCodeVariant): number {
+function hourlyShare(
+	hours: number,
+	range: HalfDayRange,
+	variant: RosterCodeVariant,
+	step: number | null | undefined
+): number {
 	if (range.start.date !== range.end.date)
 		refuse('Leave by the hour is taken one day at a time: name the day and its hours.');
 	if (!Number.isFinite(hours) || hours <= 0) refuse('Leave by the hour needs the hours.');
-	const paidHours = (workWindow(variant)?.paid_minutes ?? 480) / 60;
-	return Math.min(1, Math.max(0.125, Math.round((hours / paidHours) * 8) / 8));
+	const paidMinutes = workWindow(variant)?.paid_minutes ?? 0;
+	if (!(paidMinutes > 0)) refuse('Leave by the hour needs a shift with paid hours.');
+	const share = hours / (paidMinutes / 60);
+	return Math.min(
+		1,
+		step == null ? share : Math.max(step, roundToStep(share, { step, mode: 'HALF_UP' }))
+	);
 }
 
 /** The record label the ledger and pickers read: the activity and the day it turns on. */

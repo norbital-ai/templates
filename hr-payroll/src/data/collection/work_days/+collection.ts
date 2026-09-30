@@ -221,10 +221,16 @@ function workedIntervalsProblem(
 }
 
 /**
- * Approved overtime and incentive hours are each keyed in half-hour steps, and a day cannot hold more of them together
- * than a day has hours. They are not judged against the clock: the plan is the record.
+ * Approved overtime and incentive hours are each keyed in steps of the governing version's
+ * `work_rules.overtime_unit_hours`, and a day cannot hold more of them together than a day has hours. They are not
+ * judged against the clock: the plan is the record.
  */
-function plannedHoursProblem(approved: unknown, incentive: unknown): string | null {
+function plannedHoursProblem(
+	approved: unknown,
+	incentive: unknown,
+	unit: number | undefined,
+	workDate: string
+): string | null {
 	let sum = 0;
 	for (const [label, stated] of [
 		['Approved overtime', approved],
@@ -234,8 +240,8 @@ function plannedHoursProblem(approved: unknown, incentive: unknown): string | nu
 		const value = hours(stated);
 		if (!Number.isFinite(value) || value < 0)
 			return `${label} must be zero or a positive number of hours.`;
-		if (Math.round(value * 2) !== value * 2)
-			return `${label} is keyed in half-hour steps — 0.5, 1, 1.5, and so on.`;
+		if (unit != null && Math.abs(value / unit - Math.round(value / unit)) > 1e-9)
+			return `${label} of ${value} h on ${workDate} is not keyed in the ${unit}-hour steps the work rules state.`;
 		sum += value;
 	}
 	return sum > 24
@@ -932,7 +938,8 @@ c.transform(async (inputs, ctx) => {
 						};
 					}),
 					limits: applicable,
-					cutoffDay
+					cutoffDay,
+					unitHours: version.work_rules?.overtime_unit_hours
 				}).breaches;
 			// Only what this write puts over a limit refuses it: a day whose approved hours it changes, or a stored day it
 			// pushes over. A day already over before the write, left at the same figure, is not this write's to answer.
@@ -1047,7 +1054,9 @@ c.transform(async (inputs, ctx) => {
 				input.approved_overtime_hours !== undefined
 					? input.approved_overtime_hours
 					: stored?.approved_overtime_hours,
-				input.incentive_hours !== undefined ? input.incentive_hours : stored?.incentive_hours
+				input.incentive_hours !== undefined ? input.incentive_hours : stored?.incentive_hours,
+				versionOn(employmentId, workDate)?.work_rules?.overtime_unit_hours,
+				workDate
 			);
 		if (problem != null) ctx.refuse(problem);
 		// Recorded inputs are judged against every sealed live version of the entity's lineage.

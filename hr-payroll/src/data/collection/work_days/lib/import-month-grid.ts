@@ -199,9 +199,9 @@ export function expandRosterMonthGrid(
 }
 
 /**
- * `3` or `2.5` is approved hours; blank is no approval. The half hour is the keying unit and a day
- * cannot hold more hours than it has, so the same bounds the write path enforces are enforced here,
- * where the message can name the row and the day the operator must fix.
+ * `3` or `2.5` is approved hours; blank is no approval. A day cannot hold more hours than it has, so
+ * that bound is enforced here, where the message can name the row and the day the operator must fix.
+ * The keying step is the governing version's (`work_rules.overtime_unit_hours`), judged at the write.
  */
 export function parseOvertimeHours(raw: SheetCell, identity: string): number | undefined {
 	if (raw == null) return undefined;
@@ -214,10 +214,6 @@ export function parseOvertimeHours(raw: SheetCell, identity: string): number | u
 		);
 	if (value < 0)
 		throw new WorkbookImportError(`${identity}: approved overtime cannot be negative.`);
-	if (Math.round(value * 2) !== value * 2)
-		throw new WorkbookImportError(
-			`${identity}: approved overtime is keyed in half-hour steps — 0.5, 1, 1.5, and so on.`
-		);
 	if (value > 24)
 		throw new WorkbookImportError(
 			`${identity}: approved overtime cannot exceed the 24 hours a day has.`

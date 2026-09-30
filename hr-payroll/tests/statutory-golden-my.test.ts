@@ -1101,7 +1101,8 @@ test('Malaysia — s.59(1): the earlier of two rest days counts toward the 104-h
 	const split = splitPlannedOvertime({
 		days,
 		limits: applicableLimits(work.limits ?? [], null),
-		cutoffDay: 1
+		cutoffDay: 1,
+		unitHours: work.overtime_unit_hours
 	});
 	const row = (date: string) => {
 		const day = split.get(date)!;

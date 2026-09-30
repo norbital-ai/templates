@@ -1126,6 +1126,7 @@ function keyClockOverruns(prepared: PreparedRun): void {
 		if (planned.size === 0) continue;
 		const limits = applicableLimits(configuration.limits, work.subject);
 		const split = splitPlannedOvertime({
+			unitHours: configuration.work.overtime_unit_hours,
 			days: [...work.schedule.values()].map((day) => ({
 				date: day.date,
 				kind: day.restDay ? 'REST' : day.shift != null ? 'WORK' : 'OFF',

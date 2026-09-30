@@ -14,6 +14,7 @@ const WORK = {
 	limits: [],
 	wages: { by_region: {} },
 	breaks: [],
+	overtime_unit_hours: 0.5,
 	holiday_rest_precedence: 'REST_DAY'
 };
 const BASIC = {

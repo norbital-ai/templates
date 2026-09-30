@@ -11,7 +11,7 @@ import {
 	monthBounds,
 	monthDay
 } from '../../lib/payroll/run/dates.js';
-import { roundHalfDay } from '../../lib/payroll/run/rounding.js';
+import { roundToStep, type StepRounding } from '../../lib/payroll/run/rounding.js';
 import {
 	evaluatePersonNumber,
 	isEligible,
@@ -111,6 +111,17 @@ export function completedLeaveServiceMonths(start: string, serviceDays: number):
 	return months;
 }
 
+/**
+ * The named day roundings of a part-year grant: MY EA s.60E(1) and SG EA s.88A(3) disregard a
+ * fraction under a half and count a half or more as a day (`WHOLE_DAY`).
+ */
+const DAY_ROUNDING: Record<NonNullable<LeaveEntitlement['rounding']>, StepRounding | null> = {
+	HALF_DAY: { step: 0.5, mode: 'HALF_UP' },
+	WHOLE_DAY: { step: 1, mode: 'HALF_UP' },
+	WHOLE_DAY_DOWN: { step: 1, mode: 'DOWN' },
+	EXACT: null
+};
+
 /** An as-of query over effective rules and employment facts; this creates no records. */
 export function computedEntitlement(options: {
 	readonly rule: LeaveEntitlement;
@@ -209,8 +220,8 @@ export function computedEntitlement(options: {
 				: grantedDays(rule, person)
 		)
 	);
-	// A grant the scale moved is the regulation's hours in the person's own days, which no
-	// statute rounds: it rounds up to the half day, never below the hours owed.
+	// A grant the scale moved is the regulation's hours in the person's own days: it rounds by
+	// `scaled_rounding`, not by the day's `rounding`.
 	const scaled =
 		unit === 'DAY' &&
 		target !== Math.max(...people.map((person) => grantedDays({ ...rule, scale: null }, person)));
@@ -240,8 +251,11 @@ export function computedEntitlement(options: {
 						.length / 12
 				);
 			case 'HALF_MONTHS': {
-				// A month is counted once it has ended and at least half its days were eligible; a
-				// leaver's last month has ended for them on the exit day (VN Decree 145/2020 art.66(2)).
+				// A month is counted once it has ended and at least `month_counts_when` of its days were
+				// eligible; a leaver's last month has ended for them on the exit day.
+				const share = rule.month_counts_when;
+				if (share == null)
+					refuse('A HALF_MONTHS proration needs the share of days a month counts at.');
 				const last = options.exitDate != null && to >= end ? end.slice(0, 7) : null;
 				let months = 0;
 				for (
@@ -250,7 +264,8 @@ export function computedEntitlement(options: {
 					month = addDays(monthBounds(month).end, 1).slice(0, 7)
 				) {
 					const days = daysBetween(monthBounds(month).start, monthBounds(month).end);
-					if (days.filter((date) => eligible.has(date)).length * 2 >= days.length) months += 1;
+					if (days.filter((date) => eligible.has(date)).length >= share * days.length)
+						months += 1;
 				}
 				return months / 12;
 			}
@@ -286,9 +301,10 @@ export function computedEntitlement(options: {
 			}
 		}
 	};
-	// The statute's own rounding of a part-year grant: MY s.60E(1) and SG s.88A(3) disregard a
-	// fraction under a half and count a half or more as a day; elsewhere the half day stands.
-	// Never below the row's floor (SG CDCA s.12B(1)(i): 2 days however short the service).
+	// A part-year grant rounds by the row's stored steps: an hourly grant by `hour_rounding`, a
+	// grant the scale moved by `scaled_rounding` (absent is exact), any other by the named
+	// `rounding` mode. Never below the row's floor (SG CDCA s.12B(1)(i): 2 days however short the
+	// service).
 	const floor =
 		target > 0
 			? Math.min(
@@ -298,21 +314,14 @@ export function computedEntitlement(options: {
 						: (rule.minimum_days ?? 0)
 				)
 			: 0;
+	const step: StepRounding | null | undefined =
+		unit === 'HOUR'
+			? rule.hour_rounding
+			: scaled
+				? rule.scaled_rounding
+				: DAY_ROUNDING[rule.rounding ?? 'HALF_DAY'];
 	const round = (value: number): number =>
-		Math.max(
-			floor,
-			unit === 'HOUR'
-				? Math.ceil(value * 1000 - 1e-9) / 1000
-				: scaled
-					? Math.ceil(value * 2 - 1e-9) / 2
-					: rule.rounding === 'WHOLE_DAY'
-						? Math.floor(value + 0.5 + 1e-9)
-						: rule.rounding === 'WHOLE_DAY_DOWN'
-							? Math.floor(value + 1e-9)
-							: rule.rounding === 'EXACT'
-								? value
-								: roundHalfDay(value)
-		);
+		Math.max(floor, step == null ? value : roundToStep(value, step));
 	const entitlement = round(target * fraction(end));
 	const earned = round(target * fraction(through));
 	const releasedThrough =

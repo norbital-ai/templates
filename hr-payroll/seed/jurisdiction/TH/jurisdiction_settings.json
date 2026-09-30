@@ -135,6 +135,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"incentive_hours_allowed": false,
 			"overtime_consent": {
@@ -773,6 +774,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"incentive_hours_allowed": false,
 			"overtime_consent": {
@@ -1411,6 +1413,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"incentive_hours_allowed": false,
 			"overtime_consent": {
@@ -2049,6 +2052,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"incentive_hours_allowed": false,
 			"overtime_consent": {
@@ -2679,6 +2683,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"incentive_hours_allowed": false,
 			"overtime_consent": {
@@ -3323,6 +3328,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"incentive_hours_allowed": false,
 			"overtime_consent": {
@@ -3967,6 +3973,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"incentive_hours_allowed": false,
 			"overtime_consent": {
@@ -4611,6 +4618,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"incentive_hours_allowed": false,
 			"overtime_consent": {

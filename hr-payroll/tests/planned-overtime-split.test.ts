@@ -286,10 +286,11 @@ test('the month is the assessment window: with a 21st cutoff the 20th and the 21
 	]);
 });
 
-test('headroom is floored to the half hour, so both entries stay in half-hour steps', () => {
+test('headroom is floored to overtime_unit_hours, so both entries stay on the keying step', () => {
 	const split = splitPlannedOvertime({
 		days: [work(dayOf(1), 4, { paid_minutes: 555 })],
-		limits: [limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12)]
+		limits: [limit('daily_total', 'DAY', 'TOTAL_WORK_HOURS', 12)],
+		unitHours: 0.5
 	});
 	// 12 − 9.25 = 2.75 → 2.5 within, 1.5 incentive.
 	assert.deepEqual(pairs(split), [[dayOf(1), 2.5, 1.5]]);

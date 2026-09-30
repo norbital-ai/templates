@@ -233,8 +233,9 @@ export function validateDailyWorkLimit(options: {
 /**
  * A day whose clock ran past the hours planned for pay.
  *
- * Payroll pays the planned entries, not the clock, and planned hours are keyed in half-hour steps,
- * so a clock reading a minute or two past the shift is not a reconciliation failure. Historical
+ * Payroll pays the planned entries, not the clock, and planned hours are keyed in steps of
+ * `work_rules.overtime_unit_hours`, so clock hours past the plan below one step are not a
+ * reconciliation failure. Historical
  * months contain many such days, and refusing the whole run over them hides every other settlement.
  * The issue is a warning that names the person, the date and both figures.
  */
@@ -243,13 +244,15 @@ export function validateUnplannedOvertime(options: {
 	readonly days: readonly DailyOvertime[];
 	/** The planned overtime keyed on each work day, by its id. */
 	readonly plannedByWorkDayId: ReadonlyMap<string, number>;
+	/** `work_rules.overtime_unit_hours`: unplanned hours below one step are not reported. */
+	readonly unitHours: number;
 }): RunIssue[] {
 	return options.days
 		.filter((day) => day.dayType === 'ORDINARY')
 		.flatMap((day) => {
 			const planned = options.plannedByWorkDayId.get(day.workDayId) ?? 0;
 			const unplanned = Math.max(0, day.totalWorkHours - day.normalHours) - planned;
-			if (unplanned < 0.5 - 1e-9) return [];
+			if (unplanned <= 1e-9 || unplanned < options.unitHours - 1e-9) return [];
 			return [
 				{
 					code: 'UNPLANNED_OVERTIME' as const,

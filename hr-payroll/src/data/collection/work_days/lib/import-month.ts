@@ -752,7 +752,8 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 					};
 				}),
 				limits,
-				cutoffDay
+				cutoffDay,
+				unitHours: rules?.overtime_unit_hours
 			});
 			for (const date of monthDates) {
 				const at = personDayKey(employmentId, date);

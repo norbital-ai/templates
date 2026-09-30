@@ -159,6 +159,7 @@ const f = customField({
 					authority: { kind: 'text' }
 				}
 			},
+			overtime_unit_hours: { kind: 'number' },
 			holiday_rest_precedence: {
 				kind: 'enum',
 				values: ['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE']

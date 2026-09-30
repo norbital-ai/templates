@@ -19,6 +19,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { computedEntitlement, grantedDays, leaveWindowOf } from '../src/lib/leave/entitlement.ts';
 import { inclusiveDays, monthsEnd } from '../src/lib/payroll/run/dates.ts';
+import { planLeaveActivity } from '../src/lib/leave/activity.ts';
+import type { LeaveEntitlement } from '../src/lib/datatypes/leave_entitlement.ts';
+import { id, leaveContext, submission, timeOff } from './helpers/manual-leave-context.ts';
 import {
 	evaluateNumberOver,
 	isEligible,
@@ -1263,4 +1266,137 @@ test('every sealed version of every lineage has a leave golden', () => {
 		}
 	}
 	assert.deepEqual(missing, [], 'a sealed version with no leave golden is a law nothing checks');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// LIT-06 — the leave rounding and fraction steps are the row's stored configuration: the engine
+// reads `scaled_rounding`, `hour_rounding`, `month_counts_when` and `hour_share_step`, and each
+// lineage's seed carries the step it applied before the steps moved out of the engine.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
+/** A 2026 calendar-year grant for a 2025 hire, asked on 30 June, optionally measured in hours. */
+const grantOf = (
+	rule: LeaveEntitlement,
+	hourly?: { readonly grantHoursPerDay: number; readonly normalDailyHours: number }
+) =>
+	computedEntitlement({
+		rule,
+		window: { start: '2026-01-01', end: '2026-12-31' },
+		asOf: '2026-06-30',
+		hireDate: '2025-01-01',
+		exitDate: null,
+		servedOn: () => true,
+		eligibleOn: () => true,
+		personOn: (date) =>
+			personContext({
+				employee: { date_of_birth: '1990-01-01' },
+				employment: { service_start: '2025-01-01' },
+				terms: null,
+				asOf: date
+			}),
+		hourlyBasisOn: hourly == null ? undefined : () => hourly
+	}).entitlement;
+
+const UPFRONT_SEVEN: LeaveEntitlement = {
+	availability: 'UPFRONT',
+	proration: 'NONE',
+	year_start_month: 1,
+	bands: [{ eligibility: '', days: 7 }]
+};
+
+test('LIT-06 — a grant the scale moved rounds by the row’s scaled_rounding, not its day rounding', () => {
+	// 7 × 0.6 = 4.2 days. Up to the half day: 8.4 half days → 9 → 4.5. Down to the day: 4.
+	// Absent is the exact figure. The row's WHOLE_DAY (4.2 → 4) does not reach a scaled grant.
+	const scaled = { ...UPFRONT_SEVEN, scale: '0.6', rounding: 'WHOLE_DAY' } as const;
+	assert.equal(grantOf({ ...scaled, scaled_rounding: { step: 0.5, mode: 'UP' } }), 4.5);
+	assert.equal(grantOf({ ...scaled, scaled_rounding: { step: 1, mode: 'DOWN' } }), 4);
+	assert.ok(Math.abs(grantOf(scaled)! - 4.2) < 1e-9);
+	// Unscaled, the named day rounding stands: 4.2 whole days, a fraction under a half dropped.
+	assert.equal(
+		grantOf({ ...UPFRONT_SEVEN, rounding: 'WHOLE_DAY', bands: [{ eligibility: '', days: 4.2 }] }),
+		4
+	);
+});
+
+test('LIT-06 — an hourly grant rounds by the row’s hour_rounding', () => {
+	// 7 days × (20 / 44 × 8) hours = 1120 / 44 = 25.4545… hours. Up to the thousandth: 25.455.
+	// Down to the hour: 25. Absent is exact.
+	const hourly = { grantHoursPerDay: (20 / 44) * 8, normalDailyHours: 5 };
+	const rule = { ...UPFRONT_SEVEN, requires_hourly_for_part_time: true };
+	assert.equal(grantOf({ ...rule, hour_rounding: { step: 0.001, mode: 'UP' } }, hourly), 25.455);
+	assert.equal(grantOf({ ...rule, hour_rounding: { step: 1, mode: 'DOWN' } }, hourly), 25);
+	assert.ok(Math.abs(grantOf(rule, hourly)! - 1120 / 44) < 1e-9);
+});
+
+test('LIT-06 — a HALF_MONTHS month counts at the row’s month_counts_when share', () => {
+	const annual = leaveCatalogue('VN').find((row) => row.code === 'ANNUAL_LEAVE')!.entitlement;
+	const partYear = (rule: LeaveEntitlement) =>
+		computedEntitlement({
+			rule,
+			window: { start: '2026-01-01', end: '2026-12-31' },
+			asOf: '2026-12-31',
+			hireDate: '2026-01-15',
+			exitDate: null,
+			servedOn: () => true,
+			eligibleOn: () => true,
+			personOn: (date) =>
+				personContext({
+					employee: { date_of_birth: '1990-01-01' },
+					employment: { service_start: '2026-01-15' },
+					terms: null,
+					asOf: date
+				})
+		}).entitlement;
+	// A 15 January joiner holds 17 of January's 31 days: 17 ≥ 0.5 × 31 = 15.5 counts January (12
+	// months → 12 days); 17 < 0.6 × 31 = 18.6 does not (11 months → 11 days).
+	assert.equal(partYear(annual), 12);
+	assert.equal(partYear({ ...annual, month_counts_when: 0.6 }), 11);
+	assert.throws(
+		() => partYear({ ...annual, month_counts_when: null }),
+		/share of days a month counts at/
+	);
+});
+
+test('LIT-06 — leave by the hour charges the share of the shift to the row’s hour_share_step', () => {
+	// The fixture's shift is 09:00–18:00 with an hour's break: 480 paid minutes, 8 hours.
+	const share = (hours: number, step: number | null) => {
+		const context = leaveContext();
+		context.catalogues.push({
+			...context.catalogues[0]!,
+			id: id(90),
+			code: 'HOURLY',
+			unit: 'HOUR',
+			entitlement: { ...UPFRONT_SEVEN, hour_share_step: step }
+		});
+		return planLeaveActivity(
+			context,
+			{ ...submission({ ...timeOff('2026-02-03'), hours }, 'H1'), catalogue_id: id(90) },
+			id(91)
+		).days;
+	};
+	// 3.1 / 8 = 0.3875 = 3.1 eighths → 3 eighths = 0.375; absent, the exact 0.3875.
+	assert.equal(share(3.1, 0.125), 0.375);
+	assert.equal(share(3.1, null), 0.3875);
+	// 0.4 / 8 = 0.05 = 0.4 eighths → 0, held at one step: 0.125.
+	assert.equal(share(0.4, 0.125), 0.125);
+	// A quarter-day step: 3.1 / 8 = 1.55 quarters → 2 → 0.5.
+	assert.equal(share(3.1, 0.25), 0.5);
+});
+
+test('LIT-06 — every lineage seeds the step its rows applied before the steps were stored', () => {
+	for (const lineage of LINEAGES)
+		for (const row of leaveCatalogue(lineage)) {
+			const rule = row.entitlement;
+			const where = `${lineage} ${row.code}`;
+			// A scaled grant was rounded up to the half day, never below the hours owed.
+			if ((rule.scale ?? '').trim() !== '')
+				assert.deepEqual(rule.scaled_rounding, { step: 0.5, mode: 'UP' }, where);
+			// An hourly grant was rounded up to the thousandth of an hour.
+			if (rule.requires_hourly_for_part_time === true)
+				assert.deepEqual(rule.hour_rounding, { step: 0.001, mode: 'UP' }, where);
+			// VN Decree 145/2020 art.66(2): a part month counts at half its days.
+			if (rule.proration === 'HALF_MONTHS') assert.equal(rule.month_counts_when, 0.5, where);
+			// An hourly row charged to the eighth of the shift (an hour of an eight-hour day).
+			if (row.unit === 'HOUR') assert.equal(rule.hour_share_step, 0.125, where);
+		}
 });

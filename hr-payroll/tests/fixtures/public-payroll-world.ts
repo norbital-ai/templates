@@ -72,6 +72,7 @@ const WORK_RULES = {
 	// No region is named, so the wages map is empty and a scheme's `minimum_wage(region)` has
 	// nothing to read.
 	wages: { by_region: {} },
+	overtime_unit_hours: 0.5,
 	holiday_rest_precedence: 'REST_DAY'
 };
 

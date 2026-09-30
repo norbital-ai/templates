@@ -80,12 +80,23 @@ export function cents(value: number, currency?: string): number {
 	return Math.round((value + epsilon(value)) * scale) / scale;
 }
 
-/**
- * Round a day count to the nearest half day, half **up** at the 0.25 boundary — the plan's own
- * worked accrual, 21 × 3 / 12 = 5.25, must land on 5.5 (decision E8/L1).
- */
-export function roundHalfDay(value: number): number {
-	return Math.round((value + epsilon(value)) * 2) / 2;
+/** A stored rounding step: the multiple a figure rounds to, and the direction. */
+export type StepRounding = { readonly step: number; readonly mode: 'UP' | 'DOWN' | 'HALF_UP' };
+
+/** Round to a multiple of `step`: up, down, or to the nearest with a half up. */
+export function roundToStep(value: number, { step, mode }: StepRounding): number {
+	if (!Number.isFinite(value) || !(step > 0))
+		throw new Error('Rounding needs a finite value and a positive step.');
+	const per = 1 / step;
+	const scaled = value * per;
+	switch (mode) {
+		case 'UP':
+			return Math.ceil(scaled - epsilon(scaled)) / per;
+		case 'DOWN':
+			return Math.floor(scaled + epsilon(scaled)) / per;
+		case 'HALF_UP':
+			return Math.round((value + epsilon(value)) * per) / per;
+	}
 }
 
 /**

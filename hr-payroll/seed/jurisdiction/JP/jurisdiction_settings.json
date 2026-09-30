@@ -220,6 +220,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -890,6 +891,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -1560,6 +1562,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -2230,6 +2233,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -2900,6 +2904,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -3570,6 +3575,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -4240,6 +4246,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -4910,6 +4917,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -5580,6 +5588,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -6250,6 +6259,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -6920,6 +6930,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -7590,6 +7601,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -8260,6 +8272,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -8930,6 +8943,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -9600,6 +9614,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -10270,6 +10285,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -10940,6 +10956,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -11610,6 +11627,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -12280,6 +12298,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -12950,6 +12969,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -13620,6 +13640,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -14290,6 +14311,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -14960,6 +14982,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -15630,6 +15653,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -16300,6 +16324,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -16970,6 +16995,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -17640,6 +17666,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -18310,6 +18337,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -18980,6 +19008,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -19650,6 +19679,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -20320,6 +20350,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -20990,6 +21021,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -21660,6 +21692,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {
@@ -22330,6 +22363,7 @@
 				"ordinary_add": 25,
 				"overtime_add": 25
 			},
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY"
 		},
 		"payroll": {

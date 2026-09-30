@@ -27,7 +27,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -404,7 +405,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -781,7 +783,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1167,7 +1170,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1544,7 +1548,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1921,7 +1926,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2298,7 +2304,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2684,7 +2691,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3061,7 +3069,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3438,7 +3447,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3815,7 +3825,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4201,7 +4212,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4578,7 +4590,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4955,7 +4968,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5341,7 +5355,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5718,7 +5733,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6095,7 +6111,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6472,7 +6489,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6858,7 +6876,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -7235,7 +7254,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -7612,7 +7632,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -7989,7 +8010,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -8375,7 +8397,8 @@
 					"eligibility": "",
 					"days": "12.0 + floor_unit(employment.service_months / 60.0)"
 				}
-			]
+			],
+			"month_counts_when": 0.5
 		},
 		"is_npl": false,
 		"can_encash": true,

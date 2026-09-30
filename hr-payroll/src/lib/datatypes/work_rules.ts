@@ -365,6 +365,13 @@ export const workRulesValueSchema = Schema.Struct({
 			})
 		)
 	),
+	/**
+	 * The step planned overtime and incentive hours are keyed in, in hours: a direct write and an import
+	 * refuse a figure off the step, a binding limit floors the approved hours to it, and clock hours past
+	 * the plan below one step are not reported (`UNPLANNED_OVERTIME`). Where the law states no unit, the
+	 * recorded default is 0.5.
+	 */
+	overtime_unit_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
 	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE']),
 	/**
 	 * Whether planned hours beyond the limits may be kept as incentive hours; false refuses them at
