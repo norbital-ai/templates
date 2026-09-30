@@ -15,6 +15,7 @@
 	import { companyScope, employmentNames } from '../../../../lib/ui/company-scope.svelte.js';
 	import { formatNumeric } from '../../../../lib/ui/display-formatters.js';
 	import { liveRows } from '../../../../lib/ui/live.svelte.js';
+	import { decodeNumber } from '../../../../lib/wire.js';
 
 	const scope = companyScope();
 	const person = employmentNames(() => scope.id);
@@ -36,7 +37,7 @@
 	const byLoan = $derived(Map.groupBy(repayments.current ?? [], (row) => row.loan_id));
 	type LoanRow = {
 		readonly id: Id<'loans'>;
-		readonly principal: number;
+		readonly principal: unknown;
 		readonly recovery_rule: string | null;
 	};
 	function progress(row: LoanRow): string {
@@ -49,7 +50,7 @@
 		const p = repaymentProgress(
 			plan,
 			recovered,
-			(row.recovery_rule ?? '').trim() !== '' ? row.principal : undefined
+			(row.recovery_rule ?? '').trim() !== '' ? decodeNumber(row.principal) : undefined
 		);
 		if (p == null) return '—';
 		return p.settled

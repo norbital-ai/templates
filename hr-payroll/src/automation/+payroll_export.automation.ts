@@ -267,7 +267,7 @@ payroll_export.run(async ({ ids, kind, codes, authorised_person, submission, sub
 	}
 
 	if (kind === 'returns')
-		for (const filing of await loadReturns(ctx, runs, codes)) {
+		for (const filing of await loadReturns(ctx, runs, codes ?? undefined)) {
 			await ctx.progress({ text: `${filing.declaration.code} ${filing.period}` });
 			const file = await saveFile(filing.file);
 			artefacts.push({

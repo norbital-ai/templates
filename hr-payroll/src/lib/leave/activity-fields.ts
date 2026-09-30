@@ -1,6 +1,7 @@
 import type { PlainDate } from '@norbital-ai/std/date';
 import { dateKey } from '../iso-day.js';
 import type { LeaveCharge } from '../datatypes/leave_charges.js';
+import * as Predicate from 'effect/Predicate';
 
 /**
  * One manual Leave activity, flat.
@@ -59,9 +60,9 @@ export type LeaveEvent = {
 };
 
 const textFact = (value: unknown): string | null =>
-	typeof value === 'string' && value.trim() !== '' ? value : null;
+	Predicate.isString(value) && value.trim() !== '' ? value : null;
 const numberFact = (value: unknown): number | null =>
-	typeof value === 'number' && Number.isFinite(value) ? value : null;
+	Predicate.isNumber(value) && Number.isFinite(value) ? value : null;
 
 export function leaveEventOf(entry: {
 	readonly facts?: Readonly<Record<string, unknown>> | null | undefined;

@@ -73,7 +73,7 @@ export type LintTree = {
 	readonly [K in keyof SettingsVersionTree]: K extends 'source' ? object : readonly object[];
 };
 
-const get = (row: object, key: string): unknown => (row as Record<string, unknown>)[key];
+const get = (row: object, key: string): unknown => Reflect.get(row, key);
 const text = (row: object, key: string): string => {
 	const value = get(row, key);
 	return Predicate.isString(value) ? value : '';
@@ -83,7 +83,7 @@ const list = (row: object, key: string): readonly unknown[] => {
 	return Array.isArray(value) ? value : [];
 };
 const factsOf = (row: object, key: string): readonly FactKey[] =>
-	list(row, key).filter(Predicate.isObject) as readonly FactKey[];
+	list(row, key).filter((item): item is FactKey => Predicate.isObject(item));
 
 // ---------------------------------------------------------------------------------------------
 // What the contexts say about their members: dates, money, and codes of an engine-read table.
@@ -389,9 +389,8 @@ const bound = (value: unknown): number | null =>
 
 function tableRows(rows: readonly object[]): readonly TableRow[] {
 	return rows.map((row) => {
-		const values = (Predicate.isObject(get(row, 'values')) ? get(row, 'values') : {}) as Readonly<
-			Record<string, unknown>
-		>;
+		const stored = get(row, 'values');
+		const values = Predicate.isObject(stored) ? stored : {};
 		return {
 			table: text(row, 'table'),
 			code: text(row, 'code'),
@@ -437,9 +436,9 @@ export function lintSettingsVersion(tree: LintTree): readonly LintFinding[] {
 	const { expressions, strings, codeTables } = collect(tree);
 	const source = tree.source;
 	const versionDays = governed(get(source, 'effective_range'));
-	const declarations = list(source, 'tables').filter(
-		Predicate.isObject
-	) as readonly ReferenceTable[];
+	const declarations = list(source, 'tables').filter((item): item is ReferenceTable =>
+		Predicate.isObject(item)
+	);
 	const rows = tableRows(tree.referenceRows);
 	const schemes = new Map(tree.schemes.map((row) => [text(row, 'code'), row]));
 	const versionLists = new Map(VERSION_LISTS.map(([name]) => [name, factsOf(source, name)]));

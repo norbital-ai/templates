@@ -17,6 +17,8 @@ import { roundStep, type RoundMode } from '../payroll/run/rounding.js';
 import { tablesIn, type TableLookup, type TableRowMap } from '../expressions/functions/tables.js';
 import { expressionReads } from '../rule-map/reads.js';
 import { observeEvaluations, type EvaluationObserver } from './observer.js';
+import { getErrorMessage } from '../refuse.js';
+import * as Predicate from 'effect/Predicate';
 
 /** The payslip line a trace explains: an adjustment by component and source, or a scheme charge. */
 export type TracedLine = {
@@ -86,13 +88,12 @@ const CALL_CAP = 12;
 const TEXT_CAP = 160;
 
 const text = (value: unknown): string => {
-	const written =
-		typeof value === 'string'
-			? value
-			: typeof value === 'bigint'
-				? String(value)
-				: (JSON.stringify(value, (_key, item) => (typeof item === 'bigint' ? String(item) : item)) ??
-					String(value));
+	const written = Predicate.isString(value)
+		? value
+		: Predicate.isBigInt(value)
+			? String(value)
+			: (JSON.stringify(value, (_key, item) => (Predicate.isBigInt(item) ? String(item) : item)) ??
+				String(value));
 	return written.length > TEXT_CAP ? `${written.slice(0, TEXT_CAP - 1)}…` : written;
 };
 
@@ -102,10 +103,7 @@ function valueAt(context: object, path: string): unknown {
 		path
 			.split('.')
 			.reduce<unknown>(
-				(value, key) =>
-					value != null && typeof value === 'object'
-						? (value as Readonly<Record<string, unknown>>)[key]
-						: undefined,
+				(value, key) => (Predicate.isObjectOrArray(value) ? Reflect.get(value, key) : undefined),
 				root
 			);
 	const own = walk(context);
@@ -187,7 +185,12 @@ export function traceLine<T>(
 						},
 						bands: (name, keys) => {
 							const rows: readonly TableRowMap[] = lookup.bands(name, keys);
-							note({ fn: 'bands', name, keys: text(keys), row: rows.length === 0 ? '' : text(rows) });
+							note({
+								fn: 'bands',
+								name,
+								keys: text(keys),
+								row: rows.length === 0 ? '' : text(rows)
+							});
 							return rows;
 						}
 					};
@@ -226,7 +229,7 @@ export function traceLine<T>(
 			record(value, null);
 			return value;
 		} catch (cause) {
-			record(undefined, cause instanceof Error ? cause.message : String(cause));
+			record(undefined, getErrorMessage(cause));
 			throw cause;
 		}
 	};

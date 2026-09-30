@@ -244,6 +244,7 @@ export async function employmentCheckIssues(
 				)
 	]);
 	const stored = context.employments.find((row) => row.id === id);
+	// repository-health:allow R3b -- a candidate is a stored terms row merged with its validated input, so every terms field is there
 	const candidateTerms = (options.terms ?? []).map((row) => ({
 		...row,
 		id: String(row.id ?? NEW),

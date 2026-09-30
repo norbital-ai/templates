@@ -32,6 +32,7 @@ import { leaveRowCode } from '../../../lib/leave/codes.js';
 import { INCENTIVE_LINE } from '../../../lib/payroll/work-bands.js';
 import { CATALOGUE_WORDS, type CatalogueWord } from '../../../lib/expressions/contexts.js';
 import { decodeNumber } from '../../wire.js';
+import * as Predicate from 'effect/Predicate';
 
 /**
  * The reserved lines of the assessment site. `OVERTIME_PREMIUM` is not a line of its own: it is
@@ -459,9 +460,9 @@ export function dayFactTotals(
 	const totals: Record<string, number> = {};
 	for (const day of days) {
 		if (day.date < window.start || day.date > window.end) continue;
-		if (day.facts == null || typeof day.facts !== 'object') continue;
+		if (!Predicate.isObjectOrArray(day.facts)) continue;
 		for (const [key, value] of Object.entries(day.facts))
-			if (typeof value === 'number' && Number.isFinite(value))
+			if (Predicate.isNumber(value) && Number.isFinite(value))
 				totals[key] = (totals[key] ?? 0) + value;
 	}
 	return totals;

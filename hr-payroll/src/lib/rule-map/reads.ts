@@ -12,6 +12,7 @@
 import { EXPRESSION_CONTEXTS } from '../expressions/contexts.js';
 import { tableMentions } from '../expressions/functions/tables.js';
 import { producedMentionsOf } from '../payroll/run/mentions.js';
+import * as Predicate from 'effect/Predicate';
 
 /** The version's declared-input lists and the path prefix an expression reads each under. */
 export const DECLARED_FACT_PREFIXES = [
@@ -107,7 +108,11 @@ export function expressionReads(expression: string | null | undefined): Expressi
 		);
 		if (declared != null) {
 			const key = path.slice(declared[1].length + 1).split('.')[0]!;
-			push(facts, [declared[0], key] as [DeclaredFactList, string], (a, b) => a[0] === b[0] && a[1] === b[1]);
+			push(
+				facts,
+				[declared[0], key] as [DeclaredFactList, string],
+				(a, b) => a[0] === b[0] && a[1] === b[1]
+			);
 			push(paths, `${declared[1]}.${key}`);
 			continue;
 		}
@@ -164,9 +169,11 @@ export function expressionsIn(
 	value: unknown,
 	at = ''
 ): readonly { readonly field: string; readonly expression: string }[] {
-	if (typeof value === 'string') return value.trim() === '' ? [] : [{ field: at, expression: value }];
-	if (Array.isArray(value)) return value.flatMap((item, index) => expressionsIn(item, `${at}[${index}]`));
-	if (value == null || typeof value !== 'object') return [];
+	if (Predicate.isString(value))
+		return value.trim() === '' ? [] : [{ field: at, expression: value }];
+	if (Array.isArray(value))
+		return value.flatMap((item, index) => expressionsIn(item, `${at}[${index}]`));
+	if (!Predicate.isObjectOrArray(value)) return [];
 	return Object.entries(value).flatMap(([key, item]) =>
 		PROSE.has(key) ? [] : expressionsIn(item, at === '' ? key : `${at}.${key}`)
 	);

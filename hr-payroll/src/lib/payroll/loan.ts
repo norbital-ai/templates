@@ -455,7 +455,9 @@ export function settleWithOrders(
 	}
 ): { readonly settlement: Settlement; readonly issues: readonly RunIssue[] } {
 	const { bundle, configuration, ...settleOptions } = options;
-	const orders = new Map(bundle.loans.filter(isOrder).map((loan) => [loan.id, loan]));
+	const orders = new Map<string, (typeof bundle.loans)[number]>(
+		bundle.loans.filter(isOrder).map((loan) => [loan.id, loan])
+	);
 	const isOrderLine = (item: MeasuredAdjustment) =>
 		item.input.family === 'LOAN_REPAYMENT' && orders.has(item.input.id);
 	const lines = settleOptions.adjustments.filter(isOrderLine);
@@ -568,7 +570,7 @@ export function loanCaptures(options: {
 	readonly stale: readonly string[];
 } {
 	const { bundle } = options;
-	const orderIds = new Set(bundle.loans.filter(isOrder).map((loan) => loan.id));
+	const orderIds = new Set<string>(bundle.loans.filter(isOrder).map((loan) => loan.id));
 	const recovered = new Map(
 		options.settlement.adjustments
 			.filter((row) => row.input.family === 'LOAN_REPAYMENT')
@@ -622,7 +624,7 @@ export function thirdPartyWithheld(
 		loans.filter((loan) => loan.creditor === 'THIRD_PARTY').map((loan) => loan.id)
 	);
 	// An order's line names its loan; a scheduled recovery's names its repayment.
-	const thirdParty = new Set([
+	const thirdParty = new Set<string>([
 		...owed,
 		...repayments.filter((row) => owed.has(row.loan_id)).map((row) => row.id)
 	]);

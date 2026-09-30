@@ -29,6 +29,7 @@ import { live, readRange } from './run/effective.js';
 import type { FamilyPayItem } from './family.js';
 import type { PayrollWorld } from './world.js';
 import { externalHistory } from '../person-facts.js';
+import * as Predicate from 'effect/Predicate';
 
 export type ReferenceWagePeriod = {
 	readonly id: string;
@@ -782,7 +783,7 @@ export function historyAccess(input: {
 					if (from > window.to || (to !== '' && to < window.from)) return [];
 					const scalars = Object.entries(row).filter(
 						([, value]) =>
-							typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean'
+							Predicate.isString(value) || Predicate.isNumber(value) || Predicate.isBoolean(value)
 					) as [string, string | number | boolean][];
 					return [{ ...Object.fromEntries(scalars), from, to }];
 				})
@@ -814,7 +815,7 @@ export function personHistory(options: {
 	readonly daysFrom: IsoDate;
 }): HistoryAccess {
 	const { world } = options;
-	const employmentIds = new Set(
+	const employmentIds = new Set<string>(
 		live(world.employments)
 			.filter(
 				(row) => row.company_id === options.companyId && row.employee_id === options.employeeId

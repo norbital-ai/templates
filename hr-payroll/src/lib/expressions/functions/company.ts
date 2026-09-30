@@ -15,6 +15,7 @@
 import { monthBounds, monthKey, shiftPeriod } from '../../payroll/run/dates.js';
 import { isCalendarDate } from '../../iso-day.js';
 import type { ExpressionFunctionEntry } from './index.js';
+import * as Predicate from 'effect/Predicate';
 
 /** One employment of the entity, as the aggregates count it. `to` is null while open. */
 export type CompanyEmployment = {
@@ -33,7 +34,7 @@ export type CompanyAccess = {
 };
 
 const weightOf = (value: unknown): number =>
-	value === true ? 1 : typeof value === 'number' && Number.isFinite(value) ? value : 0;
+	value === true ? 1 : Predicate.isNumber(value) && Number.isFinite(value) ? value : 0;
 
 /** The heads on the books on `date`: each person once, at the largest weight of their contracts. */
 export function headcountOn(access: CompanyAccess, date: string, where = ''): number {

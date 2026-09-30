@@ -59,7 +59,9 @@ export function chainsOf(root: Node): readonly (readonly string[])[] {
 
 /** A literal's value (a negated number included), or undefined where the node is not a literal. */
 export function literalOf(node: Node): unknown {
-	if (node.op === 'value') return Predicate.isBigInt(node.args) ? Number(node.args) : node.args;
+	if (node.op === 'value')
+		// repository-health:allow COERCE1 -- a CEL int literal is a bigint; the linter compares it as the float the engine computes in
+		return Predicate.isBigInt(node.args) ? Number(node.args) : node.args;
 	if (node.op === '-_' && isNode(node.args)) {
 		const inner = literalOf(node.args);
 		return Predicate.isNumber(inner) ? -inner : undefined;

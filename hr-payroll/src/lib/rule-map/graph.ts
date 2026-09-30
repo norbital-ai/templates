@@ -14,6 +14,7 @@ import {
 	expressionsIn,
 	type DeclaredFactList
 } from './reads.js';
+import * as Predicate from 'effect/Predicate';
 
 export const NODE_KINDS = [
 	'fact',
@@ -66,13 +67,15 @@ type CatalogueRow = Row & {
 type Scheme = Row & {
 	readonly assessed_on?: string | null | undefined;
 	readonly ordinary_on?: string | null | undefined;
-	readonly base_when?: readonly { readonly when: string; readonly base: string }[] | null | undefined;
+	readonly base_when?:
+		readonly { readonly when: string; readonly base: string }[] | null | undefined;
 	readonly rules?: readonly Readonly<Record<string, unknown>>[] | null | undefined;
 	readonly elections?: readonly Readonly<Record<string, unknown>>[] | null | undefined;
 };
-type Declared = readonly ({ readonly key: string; readonly label?: string | null | undefined } & Readonly<
-	Record<string, unknown>
->)[];
+type Declared = readonly ({
+	readonly key: string;
+	readonly label?: string | null | undefined;
+} & Readonly<Record<string, unknown>>)[];
 
 export const CATALOGUE_COLLECTIONS = [
 	'allowance_catalogue',
@@ -113,14 +116,25 @@ export const tableId = (name: string) => `table:${name}`;
 const readsAnything = (expression: string) => {
 	const read = expressionReads(expression);
 	return (
-		read.paths.length + read.tables.length + read.lines.length + read.produced.length + read.limits.length > 0
+		read.paths.length +
+			read.tables.length +
+			read.lines.length +
+			read.produced.length +
+			read.limits.length >
+		0
 	);
 };
 
 export function ruleMap(input: RuleMapInput): RuleMap {
 	const nodes = new Map<
 		string,
-		{ id: string; kind: NodeKind; label: string; config: string[]; expressions: RuleNode['expressions'][number][] }
+		{
+			id: string;
+			kind: NodeKind;
+			label: string;
+			config: string[];
+			expressions: RuleNode['expressions'][number][];
+		}
 	>();
 	const edges = new Map<string, RuleEdge>();
 	const node = (id: string, kind: NodeKind, label: string, config?: string) => {
@@ -144,14 +158,18 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 		const read = expressionReads(expression);
 		if (quiet && !readsAnything(expression)) return;
 		found.expressions.push({ field, expression });
-		for (const [list, key] of read.facts) edge(node(factId(list, key), 'fact', key, `${list}:${key}`).id, target);
+		for (const [list, key] of read.facts)
+			edge(node(factId(list, key), 'fact', key, `${list}:${key}`).id, target);
 		for (const path of read.inputs) edge(node(`input:${path}`, 'input', path).id, target);
 		for (const name of read.tables)
 			edge(node(tableId(name), 'table', name, `tables:${name}`).id, target);
 		for (const code of read.lines) edge(node(lineId(code), 'line', code).id, target);
 		for (const code of read.produced) edge(node(schemeId(code), 'scheme', code).id, target);
 		if (read.limits.length > 0)
-			edge(node('rule:work_rules.limits', 'rule', 'work_rules.limits', 'work_rules.limits').id, target);
+			edge(
+				node('rule:work_rules.limits', 'rule', 'work_rules.limits', 'work_rules.limits').id,
+				target
+			);
 	};
 
 	const payslip = node(PAYSLIP, 'payslip', 'payslip').id;
@@ -163,7 +181,7 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 			for (const { field, expression } of expressionsIn(fact, `${list}[${index}]`))
 				reads(id, field, expression, true);
 			// a `code` input picks its value from a table
-			if (typeof fact.table === 'string')
+			if (Predicate.isString(fact.table))
 				edge(node(tableId(fact.table), 'table', fact.table, `tables:${fact.table}`).id, id);
 		}
 	for (const table of input.version.tables ?? [])
@@ -172,7 +190,7 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 	// Work rules and payroll settings: one rule node per top-level part; each band and derived line its own.
 	for (const root of ['work_rules', 'payroll'] as const) {
 		const value = input.version[root];
-		if (value == null || typeof value !== 'object') continue;
+		if (!Predicate.isObjectOrArray(value)) continue;
 		for (const [part, stored] of Object.entries(value)) {
 			if (root === 'work_rules' && part === 'bands' && Array.isArray(stored)) {
 				for (const [index, band] of (stored as Readonly<Record<string, unknown>>[]).entries()) {
@@ -191,7 +209,8 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 					const id = node(lineId(code), 'line', code, 'work_rules.derived_lines').id;
 					for (const { field, expression } of expressionsIn(line, `derived_lines[${index}]`))
 						reads(id, field, expression);
-					if (line.component != null) edge(id, node(lineId(String(line.component)), 'line', String(line.component)).id);
+					if (line.component != null)
+						edge(id, node(lineId(String(line.component)), 'line', String(line.component)).id);
 				}
 				continue;
 			}
@@ -213,7 +232,12 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 
 	for (const scheme of input.schemes) {
 		const base = node(baseId(scheme.code), 'base', scheme.code).id;
-		const charge = node(schemeId(scheme.code), 'scheme', scheme.code, `statutory_contributions:${scheme.code}`).id;
+		const charge = node(
+			schemeId(scheme.code),
+			'scheme',
+			scheme.code,
+			`statutory_contributions:${scheme.code}`
+		).id;
 		nodes.get(charge)!.label = scheme.name ?? scheme.code;
 		const baseExpressions: (readonly [string, string | null | undefined])[] = [
 			['assessed_on', scheme.assessed_on],
@@ -227,7 +251,8 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 			if (expression == null || expression.trim() === '') continue;
 			reads(base, field, expression);
 			const mentions = assessedOnMentions(expression);
-			for (const reserved of mentions.reserved) edge(node(lineId(reserved), 'line', reserved).id, base);
+			for (const reserved of mentions.reserved)
+				edge(node(lineId(reserved), 'line', reserved).id, base);
 			for (const written of mentions.words) {
 				const segments = written.split('.');
 				const word = segments.at(-1) as (typeof CATALOGUE_WORDS)[number];
@@ -245,7 +270,8 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 		}
 		edge(base, charge);
 		for (const [index, rule] of (scheme.rules ?? []).entries())
-			for (const { field, expression } of expressionsIn(rule, `rules[${index}]`)) reads(charge, field, expression);
+			for (const { field, expression } of expressionsIn(rule, `rules[${index}]`))
+				reads(charge, field, expression);
 		for (const [index, election] of (scheme.elections ?? []).entries())
 			for (const { field, expression } of expressionsIn(election, `elections[${index}]`))
 				reads(charge, field, expression);

@@ -153,11 +153,11 @@ export function overlayTables<T extends { readonly name: string }>(
 export function composeOverlay<
 	V extends { readonly work_rules: unknown; readonly tables?: unknown; readonly checks?: unknown }
 >(base: V, hit: OverlayHit<V>): V {
-	const own = hit.version.work_rules as Readonly<Record<string, unknown>>;
+	const own = Predicate.isObject(hit.version.work_rules) ? hit.version.work_rules : {};
 	return {
 		...base,
 		work_rules: {
-			...(base.work_rules as Readonly<Record<string, unknown>>),
+			...(Predicate.isObject(base.work_rules) ? base.work_rules : {}),
 			...Object.fromEntries(
 				hit.declaration.work_rules.filter((key) => key in own).map((key) => [key, own[key]])
 			)

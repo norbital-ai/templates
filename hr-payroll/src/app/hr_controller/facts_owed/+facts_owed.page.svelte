@@ -26,7 +26,7 @@
 	const companyId = $derived(company?.id ?? null);
 	const code = $derived(company?.settings_code ?? null);
 
-	const runs = liveRows<{ period: string }>(() =>
+	const runs = liveRows(() =>
 		companyId == null
 			? null
 			: bolt.read('payroll_runs', {
@@ -34,7 +34,7 @@
 					select: { period: true },
 					orderBy: { period: 'desc' },
 					limit: 1
-				} as never)
+				})
 	);
 	let chosen = $state<string | null>(null);
 	const month = $derived(
@@ -82,18 +82,24 @@
 			? null
 			: bolt.read('reference_rows', {
 					where: { settings_id: { in: versionIds } } as never,
-					select: { settings_id: true, table: true, code: true, parent_code: true, effective_range: true },
+					select: {
+						settings_id: true,
+						table: true,
+						code: true,
+						parent_code: true,
+						effective_range: true
+					},
 					all: true
 				})
 	);
-	const revisions = liveRows<{ id: string; facts: Record<string, unknown>; effective_range: unknown }>(() =>
+	const revisions = liveRows(() =>
 		companyId == null
 			? null
 			: bolt.read('company_facts', {
 					where: { company_id: { eq: companyId } },
-					select: { id: true, facts: true, effective_range: true },
+					select: { id: true, facts: true, effective_range: true, approval_id: true },
 					all: true
-				} as never)
+				})
 	);
 	const employments = liveRows(() =>
 		companyId == null
@@ -136,14 +142,15 @@
 					all: true
 				})
 	);
-	const evidence = liveRows<{ fact_key: string; subject: { collection: string; id: string } }>(() =>
-		termIds.length === 0
-			? null
-			: bolt.read('fact_evidence', {
-					where: { subject: { employment_terms: { in: termIds } } } as never,
-					select: { fact_key: true, subject: true },
-					all: true
-				})
+	const evidence = liveRows<{ fact_key: string; subject: { collection: string; id: string } }>(
+		() =>
+			termIds.length === 0
+				? null
+				: bolt.read('fact_evidence', {
+						where: { subject: { employment_terms: { in: termIds } } } as never,
+						select: { fact_key: true, subject: true },
+						all: true
+					})
 	);
 
 	const loaded = $derived(
@@ -176,7 +183,9 @@
 			terms: live(terms.current ?? []) as never,
 			personFacts: live(personFacts.current ?? []) as never,
 			evidence: new Set(
-				(evidence.current ?? []).map((row) => `${row.subject.collection}:${row.subject.id}:${row.fact_key}`)
+				(evidence.current ?? []).map(
+					(row) => `${row.subject.collection}:${row.subject.id}:${row.fact_key}`
+				)
 			),
 			codesOn: (day) =>
 				referenceCodes(byVersion.get(settingsInForce(lineage, code, day)?.id ?? '') ?? [], day)
@@ -209,7 +218,7 @@
 							<tr><th>Who</th><th>Fact</th><th>Why</th><th>Record on</th></tr>
 						</thead>
 						<tbody>
-							{#each owed as fact (`${fact.collection}:${fact.id}:${fact.label}:${fact.key}`)}
+							{#each owed as fact ([fact.collection, fact.id, fact.label, fact.key].join(':'))}
 								<tr class="border-t border-border align-top">
 									<td>{fact.label}</td>
 									<td>{fact.key}</td>

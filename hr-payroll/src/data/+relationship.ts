@@ -272,6 +272,11 @@ export default relationship({
 		inverse: 'fact_evidence',
 		owned: true
 	},
+	'payslip_explanations.payslip_id': {
+		to: 'payslips',
+		inverse: 'payslip_explanations',
+		owned: true
+	},
 	'payslip_wage_periods.payslip_id': {
 		to: 'payslips',
 		inverse: 'payslip_wage_periods',

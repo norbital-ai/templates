@@ -152,7 +152,7 @@ function holes(
 ): LadderFinding[] {
 	const out: LadderFinding[] = [];
 	const sorted = rungs.toSorted(
-		(a, b) => a.range.lo - b.range.lo || Number(b.range.loIn) - Number(a.range.loIn)
+		(a, b) => a.range.lo - b.range.lo || (b.range.loIn ? 1 : 0) - (a.range.loIn ? 1 : 0)
 	);
 	let reach: Interval | null = null;
 	for (const { index, range } of sorted) {

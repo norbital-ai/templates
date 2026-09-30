@@ -180,16 +180,10 @@ function owedInput(options: {
 		versionOn,
 		company: configuration.company,
 		companyFactRevisions: configuration.companyFactRevisions,
-		employments: employments as unknown as OwedInput['employments'],
-		employees: live(world?.employees ?? []).filter((row) =>
-			people.has(row.id)
-		) as unknown as OwedInput['employees'],
-		terms: live(world?.employment_terms ?? []).filter((row) =>
-			ids.has(row.employment_id)
-		) as unknown as OwedInput['terms'],
-		personFacts: live(world?.person_facts ?? []).filter((row) =>
-			people.has(row.employee_id)
-		) as unknown as OwedInput['personFacts'],
+		employments,
+		employees: live(world?.employees ?? []).filter((row) => people.has(row.id)),
+		terms: live(world?.employment_terms ?? []).filter((row) => ids.has(row.employment_id)),
+		personFacts: live(world?.person_facts ?? []).filter((row) => people.has(row.employee_id)),
 		evidence: new Set(
 			live(world?.fact_evidence ?? []).map(
 				(row) => `${row.subject.collection}:${row.subject.id}:${row.fact_key}`

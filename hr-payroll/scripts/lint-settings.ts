@@ -11,6 +11,7 @@
 
 import { readdirSync, readFileSync } from 'node:fs';
 import { gunzipSync } from 'node:zlib';
+import * as Predicate from 'effect/Predicate';
 import {
 	lintLineage,
 	lintSettingsVersion,
@@ -48,7 +49,8 @@ const read = (dir: URL, collection: string): Seeded[] => {
 			continue;
 		}
 		const text = (file.endsWith('.gz') ? gunzipSync(bytes) : bytes).toString('utf8');
-		return JSON.parse(text) as Seeded[];
+		const rows: unknown = JSON.parse(text);
+		return Array.isArray(rows) ? rows.filter(Predicate.isObject) : [];
 	}
 	return [];
 };

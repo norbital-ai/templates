@@ -1,4 +1,4 @@
-import { automation } from '@norbital-ai/bolt';
+import { automation, type Id } from '@norbital-ai/bolt';
 import { dateKey } from '../lib/iso-day.js';
 import { governed, settingsInForce } from '../lib/jurisdiction_settings.js';
 import {
@@ -157,8 +157,8 @@ obligation_calendar.run(async (_input, ctx) => {
 				all: true
 			})
 		]);
-	const loans = plainRows<{ id: string; creditor: 'EMPLOYER' | 'THIRD_PARTY' }>(loanRows);
-	const repayments = plainRows<{ id: string; loan_id: string }>(repaymentRows);
+	const loans = plainRows<{ id: Id<'loans'>; creditor: 'EMPLOYER' | 'THIRD_PARTY' }>(loanRows);
+	const repayments = plainRows<{ id: Id<'loan_repayments'>; loan_id: Id<'loans'> }>(repaymentRows);
 	const cases = plainRows<{
 		id: string;
 		employment_id: string;

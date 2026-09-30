@@ -717,21 +717,27 @@ settings.transform(async (inputs, { existing, db, refuse }) => {
 			const span = governed(other.effective_range);
 			return days0 != null && span != null && periodsOverlap(days0, span);
 		};
+		const code = row.code ?? '';
 		for (const declaration of overlaysOf(row)) {
-			const self = overlayFault(row.code, declaration, { code: '', work_rules: {} }, []);
+			const self = overlayFault(code, declaration, { code: '', work_rules: {} }, []);
 			if (self != null) refuse(self);
 			for (const overlay of lineages.rows)
 				if (overlay.code === declaration.lineage && overlapping(overlay)) {
-					const fault = overlayFault(row.code, declaration, overlay, schemeCodesOf(overlay.id));
+					const fault = overlayFault(code, declaration, overlay, schemeCodesOf(overlay.id));
 					if (fault != null) refuse(fault);
 				}
 		}
 		if (stored != null)
 			for (const base of lineages.rows)
-				if (base.code !== row.code && overlapping(base))
+				if (base.code !== code && overlapping(base))
 					for (const declaration of overlaysOf(base))
-						if (declaration.lineage === row.code) {
-							const fault = overlayFault(base.code, declaration, row, schemeCodesOf(stored.id));
+						if (declaration.lineage === code) {
+							const fault = overlayFault(
+								base.code,
+								declaration,
+								{ ...row, code, work_rules: row.work_rules },
+								schemeCodesOf(stored.id)
+							);
 							if (fault != null) refuse(fault);
 						}
 		// Sealing. The sealed-only `noOverlap` holds the overlap too; the sentence is why it happens here, and the batch

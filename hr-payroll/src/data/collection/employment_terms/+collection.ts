@@ -213,8 +213,8 @@ terms.transform(async (inputs, { existing, db, refuse }) => {
 	const classCodeById = new Map(classes.map((row) => [String(row.id), row.code]));
 	// The version's stored checks at TERMS_CHANGE (E9), per created or revised row, over the batch's rows of its
 	// contract as they will be written; `before.*` reads the stored terms the day before the change.
-	const judged = inputs.flatMap((input, index) =>
-		'$delete' in input ? [] : [{ ...existing[index], ...input } as Record<string, unknown>]
+	const judged = inputs.flatMap((input, index): Record<string, unknown>[] =>
+		'$delete' in input ? [] : [{ ...existing[index], ...input }]
 	);
 	const contracts =
 		judged.length === 0
