@@ -8,7 +8,7 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import { Instant } from '@norbital-ai/std/date';
 	import { AppShell, Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { Badge, Button, Icon, Label, Sheet, Textarea } from '@norbital-ai/ui';
+	import { Badge, Button, EmptyState, Icon, Label, Sheet, Textarea } from '@norbital-ai/ui';
 	import { live } from '../../lib/live.svelte.js';
 	import { driveMinutes, type Point } from '../../lib/matching.js';
 
@@ -263,7 +263,7 @@
 			{:else}
 				{#if helper !== undefined}{@render sharingLine()}{/if}
 				{#if actor?.kind === 'member' && me.current !== undefined && helper === undefined}
-					<p class="text-caption">{t('app.helper.not_a_helper')}</p>
+					<EmptyState title={t('app.helper.not_a_helper')} />
 				{/if}
 				{#if problem}<p class="text-sm text-destructive">{problem}</p>{/if}
 

@@ -26,12 +26,17 @@ tools already carry each person's access.
 
 - The business runs on **Singapore time**.
 - Matching: a helper must have the service's skill, work that day and those hours, not be on time
-  off, and be free once the drive between visits is counted. Among those, less driving, the same area
-  and a lighter week rank higher; a recurring customer keeps their helper while they stay free.
+  off, and be free once the drive between visits is counted. Among those, the least drive added to
+  their day and the fewest hours booked that week rank higher, the same area breaks near-ties, and a
+  recurring customer keeps their helper while they stay free. Drive times are Google Maps' when the
+  workspace has a key, else estimated from distance.
+- A helper never holds two overlapping visits. A visit that becomes unreachable in time is moved to
+  the best other helper automatically.
 - Two hours before a helper's first visit of a day they are asked to confirm. No answer within the
   hour, or a decline, and the day's visits are reassigned; without a medical certificate a warning
   letter is filed. Customers who asked for particular helpers are told who comes instead.
-- An hour before each visit the helper's last GPS position gives an ETA; over 30 minutes, or no
+- An hour before each visit the helper's last GPS position gives an ETA (Google, in live traffic);
+  over 30 minutes, or no
   recent position, and the visit is flagged for dispatch to call the helper.
 
 ## House rules

@@ -4,8 +4,8 @@
 	 * far away they are, then what is done, then the messages sent about them. Unverified, the number is verified here.
 	 */
 	import { bolt } from '$bolt';
-	import { Center, Cluster, Scroll, Stack } from '@norbital-ai/ui/layout';
-	import { Badge, Label, PhoneVerify } from '@norbital-ai/ui';
+	import { Center, Cluster, Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Badge, EmptyState, Icon, Label, PhoneVerify } from '@norbital-ai/ui';
 	import { live } from '../../lib/live.svelte.js';
 
 	const t = bolt.t;
@@ -61,7 +61,13 @@
 <Scroll name="my-visits" inset>
 	<Center measure="narrow">
 		<Stack gap="lg" class="py-6">
-			<h1 class="text-title">{t('app.portal.my_bookings')}</h1>
+			<Stack gap="xs">
+				<p class="text-caption" data-portal-org>{bolt.org.name}</p>
+				<Inline gap="sm" align="center">
+					<Icon name="lucide:calendar-heart" class="size-6 text-brand" />
+					<h1 class="text-title">{t('app.portal.my_bookings')}</h1>
+				</Inline>
+			</Stack>
 			{#if !me}
 				<p class="text-sm text-muted-foreground">{t('app.portal.verify_to_see')}</p>
 				<PhoneVerify session={bolt.session} />
@@ -71,7 +77,7 @@
 					{#if visits.current === undefined}
 						<p class="text-caption">{t('component.loading')}</p>
 					{:else if upcoming.length === 0}
-						<p class="text-caption">{t('app.portal.visits_nothing_upcoming')}</p>
+						<EmptyState variant="card" title={t('app.portal.visits_nothing_upcoming')} />
 					{:else}
 						{#each upcoming as v (v.id)}
 							<div class="rounded-xl border bg-card p-4 shadow-sm">

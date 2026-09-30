@@ -2,9 +2,12 @@
  * The matching rules, pure: which helpers may take a visit (the hard requirements) and in what order (the soft ones).
  *
  * Hard: the helper is active, has the service's skill, works that weekday and those hours, is not off that day, and has
- * no visit that overlaps this one once the drive between the two addresses is added on both sides.
- * Soft: less driving from where the helper will be, the customer's area, fewer visits already that week, and the helper
- * the customer's earlier visit had.
+ * no visit that overlaps this one once the drive between the two addresses (plus settling in) is added on both sides.
+ * Soft, in minutes of driving: the drive this visit adds to the helper's day, then 2 per hour they already work that
+ * week (load balance), 5 for the customer's area, and 100 for the helper the customer's earlier visit had.
+ *
+ * A drive is Google's time between the ~1 km squares the two addresses sit in, when the `drive_times` cache has it
+ * (the `check_drives` run fetches every planned leg), else the straight-line estimate.
  */
 import type { PlainTime } from '@norbital-ai/bolt';
 import { addDays, addMonths, Instant, type PlainDate } from '@norbital-ai/std/date';
@@ -27,8 +30,12 @@ export const REPEATS = ['once', 'weekly', 'fortnightly', 'monthly'] as const;
 export const SETTLE_MINUTES = 15;
 /** A drive whose ends are not both known. */
 export const UNKNOWN_DRIVE_MINUTES = 30;
-/** Door-to-door urban speed. ponytail: straight-line distance at a flat speed; use a routing provider when one is bound. */
+/** Door-to-door urban speed for the straight-line estimate, used for a leg Google has not timed yet. */
 const KMH = 25;
+/** Soft weights, in minutes of driving. */
+const PER_WEEK_HOUR = 2;
+const SAME_AREA = 5;
+const CONTINUITY = 100;
 /** The dispatch thresholds when the workspace has no `dispatch_settings` row; the row's defaults match. */
 export const DEFAULTS = {
 	/** The ETA above which dispatch calls the helper, and how long before a visit it is checked. */
@@ -75,14 +82,18 @@ export type Pool = {
 	readonly helpers: readonly Helper[];
 	readonly busy: readonly Busy[];
 	readonly off: readonly Off[];
+	/** Google's drive minutes by `legOf` key; a leg not here is estimated. */
+	readonly drive?: ReadonlyMap<string, number>;
 };
 export type Candidate = {
 	readonly helper: string;
 	readonly name: string;
 	readonly score: number;
+	/** The drive this visit adds to the helper's day: in from their last stop, on to their next, less the leg it replaces. */
 	readonly drive_minutes: number;
 	readonly same_area: boolean;
-	readonly week_load: number;
+	/** Hours already booked for the helper that week. */
+	readonly week_hours: number;
 };
 export type Refusal = 'left' | 'skill' | 'day' | 'hours' | 'time_off' | 'booked';
 
@@ -95,9 +106,25 @@ const minutesOf = (time: PlainTime) => {
 	return parseInt(h, 10) * 60 + parseInt(m, 10);
 };
 
-/** Minutes to drive between two addresses, rounded up. */
-export function driveMinutes(a: Point | null, b: Point | null): number {
+/** The ~1 km square (0.01°) a point sits in. ponytail: one cached time per square pair; finer squares cost more lookups. */
+export const cellOf = (p: Point) => `${p.lat.toFixed(2)},${p.lng.toFixed(2)}`;
+/** The cache key of the drive from `a` to `b`, or `null` when an end is unknown or both share a square. */
+export function legOf(a: Point | null, b: Point | null): string | null {
+	if (a === null || b === null) return null;
+	const from = cellOf(a),
+		to = cellOf(b);
+	return from === to ? null : `${from}>${to}`;
+}
+
+/** Minutes to drive from `a` to `b`: Google's time from `drive` when it has the leg, else the straight-line estimate. */
+export function driveMinutes(
+	a: Point | null,
+	b: Point | null,
+	drive?: ReadonlyMap<string, number>
+): number {
 	if (a === null || b === null) return UNKNOWN_DRIVE_MINUTES;
+	const known = drive?.get(legOf(a, b) ?? '');
+	if (known !== undefined) return known;
 	const rad = Math.PI / 180;
 	const h =
 		Math.sin(((b.lat - a.lat) * rad) / 2) ** 2 +
@@ -138,37 +165,57 @@ export function refusal(helper: Helper, need: Need, pool: Pool, zone: string): R
 		to = ms(need.slot.end);
 	for (const b of pool.busy) {
 		if (b.helper !== helper.id || b.id === need.visit) continue;
-		const buffer = (driveMinutes(b.location, need.location) + SETTLE_MINUTES) * MINUTE;
+		// the drive that matters is the one out of whichever visit comes first
+		const [first, second] =
+			ms(b.slot.start) < from ? [b.location, need.location] : [need.location, b.location];
+		const buffer = (driveMinutes(first, second, pool.drive) + SETTLE_MINUTES) * MINUTE;
 		if (from < ms(b.slot.end) + buffer && ms(b.slot.start) < to + buffer) return 'booked';
 	}
 	return null;
 }
 
-/** Where the helper sets off from: their visit that ends last before this one that day, else home. */
-function origin(helper: Helper, need: Need, pool: Pool, zone: string): Point | null {
+/** The helper's own visits on the local day of `need`, other than `need` itself. */
+function sameDay(helper: Helper, need: Need, pool: Pool, zone: string): Busy[] {
 	const day = local(need.slot.start, zone).date;
-	const before = pool.busy
-		.filter(
-			(b) =>
-				b.helper === helper.id &&
-				b.id !== need.visit &&
-				ms(b.slot.end) <= ms(need.slot.start) &&
-				local(b.slot.start, zone).date === day
-		)
-		.sort((a, b) => ms(b.slot.end) - ms(a.slot.end))[0];
-	return before?.location ?? helper.home_location;
+	return pool.busy.filter(
+		(b) => b.helper === helper.id && b.id !== need.visit && local(b.slot.start, zone).date === day
+	);
 }
 
-/** Visits the helper holds in the Monday-started week of `need`. */
-function weekLoad(helper: Helper, need: Need, pool: Pool, zone: string): number {
+/**
+ * The drive `need` adds to the helper's day: from their last stop before it (a visit, else home) to it, on to their next
+ * visit that day, less the drive from that stop straight to the next one that it replaces.
+ */
+function detour(helper: Helper, need: Need, pool: Pool, zone: string): number {
+	const day = sameDay(helper, need, pool, zone);
+	const before = day
+		.filter((b) => ms(b.slot.end) <= ms(need.slot.start))
+		.sort((a, b) => ms(b.slot.end) - ms(a.slot.end))[0];
+	const after = day
+		.filter((b) => ms(b.slot.start) >= ms(need.slot.end))
+		.sort((a, b) => ms(a.slot.start) - ms(b.slot.start))[0];
+	const from = before === undefined ? helper.home_location : before.location;
+	const drive = (a: Point | null, b: Point | null) => driveMinutes(a, b, pool.drive);
+	if (after === undefined) return drive(from, need.location);
+	return Math.max(
+		0,
+		drive(from, need.location) + drive(need.location, after.location) - drive(from, after.location)
+	);
+}
+
+/** Hours the helper holds in the Monday-started week of `need`. */
+function weekHours(helper: Helper, need: Need, pool: Pool, zone: string): number {
 	const day = local(need.slot.start, zone).date;
 	const monday = addDays(day, -((new Date(`${day}T00:00:00Z`).getUTCDay() + 6) % 7));
 	const sunday = addDays(monday, 6);
-	return pool.busy.filter((b) => {
-		if (b.helper !== helper.id || b.id === need.visit) return false;
-		const d = local(b.slot.start, zone).date;
-		return monday <= d && d <= sunday;
-	}).length;
+	const minutes = pool.busy
+		.filter((b) => {
+			if (b.helper !== helper.id || b.id === need.visit) return false;
+			const d = local(b.slot.start, zone).date;
+			return monday <= d && d <= sunday;
+		})
+		.reduce((sum, b) => sum + (ms(b.slot.end) - ms(b.slot.start)) / MINUTE, 0);
+	return Math.round((minutes / 60) * 10) / 10;
 }
 
 /**
@@ -184,19 +231,49 @@ export function rank(
 	return pool.helpers
 		.filter((h) => refusal(h, need, pool, zone) === null)
 		.map((h) => {
-			const drive = driveMinutes(origin(h, need, pool, zone), need.location);
-			const load = weekLoad(h, need, pool, zone);
+			const drive = detour(h, need, pool, zone);
+			const hours = weekHours(h, need, pool, zone);
 			const same = h.home_area === need.area;
 			return {
 				helper: h.id,
 				name: h.name,
-				score: 100 - drive + (same ? 20 : 0) - load * 5 + (h.id === keep ? 100 : 0),
+				score:
+					-drive -
+					hours * PER_WEEK_HOUR +
+					(same ? SAME_AREA : 0) +
+					(h.id === keep ? CONTINUITY : 0),
 				drive_minutes: drive,
 				same_area: same,
-				week_load: load
+				week_hours: hours
 			};
 		})
 		.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
+}
+
+/** Each helper's visits grouped by local day, in order: the day as it will be driven. */
+export function routes(pool: Pool, zone: string): Busy[][] {
+	const by = new Map<string, Busy[]>();
+	for (const b of pool.busy) {
+		const key = `${b.helper}|${local(b.slot.start, zone).date}`;
+		by.set(key, [...(by.get(key) ?? []), b]);
+	}
+	return [...by.values()].map((day) => day.sort((a, b) => ms(a.slot.start) - ms(b.slot.start)));
+}
+
+/** The legs driven on a day: home to the first visit, then visit to visit. */
+export function legsOf(day: readonly Busy[], home: Point | null): [Point | null, Point | null][] {
+	return day.map((b, i) => [i === 0 ? home : day[i - 1]!.location, b.location]);
+}
+
+/** Every leg a match over `spots` may ask about: each planned leg, and each spot to and from every visit and home. */
+export function lookups(pool: Pool, spots: readonly (Point | null)[], zone: string): string[] {
+	const homes = new Map(pool.helpers.map((h) => [h.id, h.home_location]));
+	const legs = routes(pool, zone).flatMap((day) => legsOf(day, homes.get(day[0]!.helper) ?? null));
+	for (const s of spots) {
+		for (const b of pool.busy) legs.push([b.location, s], [s, b.location]);
+		for (const h of pool.helpers) legs.push([h.home_location, s]);
+	}
+	return [...new Set(legs.flatMap(([a, b]) => legOf(a, b) ?? []))];
 }
 
 /** Shared skills over all skills of either: how closely `b` can stand in for `a`. */
