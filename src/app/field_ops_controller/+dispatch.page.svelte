@@ -1,12 +1,12 @@
 <script lang="ts">
 	/**
-	 * The dispatch day: the day's jobs on a board by status (a drop is the status write), the day's sites on a map with
-	 * their jobs listed beside it, an open suspicion marked on both, the suspicion review's manual start and the
+	 * The dispatch day: the day's jobs on a board by status (a drop is the status write), the day's sites on a map, an open
+	 * suspicion marked on the board, the suspicion review's manual start and the
 	 * work-order sheet import.
 	 */
 	import { bolt } from '$bolt';
 	import type { ListRow } from '@norbital-ai/bolt';
-	import { AppShell, Cluster, Scroll, Split, Stack } from '@norbital-ai/ui/layout';
+	import { AppShell, Cluster, Split, Stack } from '@norbital-ai/ui/layout';
 	import { Board, Button, DateInput, Map } from '@norbital-ai/ui';
 	import Icon from '@iconify/svelte';
 	import { csvRecords } from '../../lib/csv.js';
@@ -30,7 +30,7 @@
 	const jobs = live(() =>
 		bolt.read('job_assignments', {
 			where: { scheduled_for: { eq: date } },
-			select: { site_id: true, title: true, nature: true, status: true, summary: true },
+			select: { site_id: true },
 			limit: 1000
 		})
 	);
@@ -41,7 +41,7 @@
 			? null
 			: bolt.read('sites', {
 					where: { id: { in: siteIds } },
-					select: { name: true, address: true },
+					select: { name: true },
 					limit: 1000
 				})
 	);
@@ -64,7 +64,7 @@
 	const suspicious = $derived(
 		new Set((open.current?.rows ?? []).map((log) => log.job_assignment_id))
 	);
-	const statusLabel = (status: (typeof dayJobs)[number]['status']) =>
+	const statusLabel = (status: 'unassigned' | 'assigned' | 'completed') =>
 		t(`component.status_${status}`);
 
 	let message = $state<string | null>(null);
@@ -217,36 +217,6 @@
 							{t('app.field_ops_controller.map_empty', { date })}
 						</p>
 					{/if}
-					<Scroll
-						as="ul"
-						name={t('app.field_ops_controller.dispatch_map_for', { date })}
-						grow
-						gap="sm"
-					>
-						{#each sites.current?.rows ?? [] as site (site.id)}
-							<li class="rounded-md border p-2">
-								<p class="text-sm font-medium">{site.name}</p>
-								{#if site.address}<p class="text-meta">{site.address}</p>{/if}
-								<Stack as="ul" gap="xs" class="mt-1 border-t pt-1">
-									{#each dayJobs.filter((job) => job.site_id === site.id) as job (job.id)}
-										<li class="text-xs">
-											{#if suspicious.has(job.id)}
-												<Icon
-													icon="lucide:shield-alert"
-													class="inline size-3.5 text-warning"
-													aria-label={t('component.suspicion_open')}
-												/>
-											{/if}
-											<span class="font-medium">{job.title}</span>
-											<span class="text-muted-foreground">
-												· {job.summary ? `${job.summary} · ` : ''}{statusLabel(job.status)}
-											</span>
-										</li>
-									{/each}
-								</Stack>
-							</li>
-						{/each}
-					</Scroll>
 				</Stack>
 			{/snippet}
 		</Split>
