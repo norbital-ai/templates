@@ -59,6 +59,15 @@ const f = customField({
 				},
 				optional: true
 			},
+			part_time_hours: {
+				kind: 'object',
+				fields: {
+					part_time_below_hours: { kind: 'number', min: 0 },
+					comparator_weekly_hours: { kind: 'number', min: 0 },
+					comparator_daily_hours: { kind: 'number', min: 0 }
+				},
+				optional: true
+			},
 			month_counts_when: { kind: 'number', min: 0, max: 1, optional: true },
 			hour_share_step: { kind: 'number', min: 0, max: 1, optional: true },
 			minimum_days: { kind: 'number', min: 0, optional: true },

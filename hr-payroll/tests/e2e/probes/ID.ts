@@ -2125,9 +2125,11 @@ const cases: ProbeCase[] = [
 		id: 'ID-07-1',
 		profile: 'ID',
 		description:
-			'A worker hired 6 January 2025 (over one year of service) on Rp10,000,000 with no wage-scale grade on the terms, February 2026: refused until the company scale, grade notice and basic minimum are recorded.',
+			'A worker hired 6 January 2025 (over one year of service) on Rp10,000,000 with no wage-scale grade on the terms, February 2026: paid (the ID-14-1 slip) with a warning to record the company scale, grade notice and basic minimum.',
 		citation: [
-			'PP 36/2021 arts.20–21, 24 as amended by PP 49/2025 art.21: from one year of service the wage follows the company wage structure and scale, notified to each worker (https://jdih.kemnaker.go.id/asset/data_puu/2025pp0049.pdf; https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)'
+			'PP 36/2021 arts.20–21, 24 as amended by PP 49/2025 art.21: from one year of service the wage follows the company wage structure and scale, notified to each worker (https://jdih.kemnaker.go.id/asset/data_puu/2025pp0049.pdf; https://jdih.kemnaker.go.id/asset/data_puu/PP362021.pdf)',
+			'PP 36/2021 art.79(1): breach of art.21(1)–(2) draws administrative sanctions, not a bar on paying wages (tracker ID-07 lawful default: warn)',
+			'ID-14-1 figures: TER gross 10,454,000 at 2.5% = 261,350; net 9,338,650'
 		],
 		company: company(),
 		inputs: [
@@ -2135,8 +2137,8 @@ const cases: ProbeCase[] = [
 			...worker({ ref: 'vet0', wage: 10_000_000, hire: VETERAN_HIRE })
 		],
 		period: '2026-02',
-		refused: 'WAGE_CONTRACT_RULE: P-ID-vet0: record the dated company wage structure',
-		expected: []
+		warnings: ['WAGE_CONTRACT_RULE: P-ID-vet0: record the dated company wage structure.*paid without the grade check'],
+		expected: [{ employment: 'vet0_job', lines: { ...TEN_MILLION, BASIC: 10_000_000 } }]
 	},
 	{
 		id: 'ID-07-2',

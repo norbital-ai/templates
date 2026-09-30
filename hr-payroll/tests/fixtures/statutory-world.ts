@@ -50,7 +50,17 @@ export const LINEAGES = readdirSync(jurisdictionRoot, { withFileTypes: true })
 	.sort() as readonly Lineage[];
 
 export type Lineage =
-	'MY' | 'MY-nihon' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID' | 'TH' | 'CN-shanghai' | 'CN-kunming';
+	| 'MY'
+	| 'MY-nihon'
+	| 'PH'
+	| 'SG'
+	| 'VN'
+	| 'TW'
+	| 'ID'
+	| 'TH'
+	| 'CN-shanghai'
+	| 'CN-kunming'
+	| 'JP';
 
 function law(code: Lineage, file: string, options?: { optional: true }): any[] {
 	const rows = readLawFile(resolve(jurisdictionRoot, code, file), options);

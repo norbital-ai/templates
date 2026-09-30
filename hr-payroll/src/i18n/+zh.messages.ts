@@ -215,6 +215,7 @@ export default messages({
 	'component.assessment_period': '计征周期',
 	'component.attendance': '考勤',
 	'component.attendance_cutoff_day': '考勤截止日',
+	'component.late_arrival_grace_minutes': '迟到宽限（分钟）',
 	'component.attendance_window': '考勤窗口',
 	'component.authority': '依据',
 	'component.authority_reference': '依据文号',

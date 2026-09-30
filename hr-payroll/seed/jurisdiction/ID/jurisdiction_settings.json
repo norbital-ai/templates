@@ -644,9 +644,9 @@
 						"key": "wage_scale_recorded",
 						"when": "employment.service_years >= 1",
 						"holds": "terms.facts.wage_scale_grade != \"\" && terms.facts.wage_scale_reference != \"\" && terms.facts.wage_scale_effective_on != \"\" && terms.facts.wage_scale_effective_on <= employment.rule_date && terms.facts.wage_scale_notice_on != \"\" && terms.facts.wage_scale_notice_on <= employment.rule_date && terms.facts.wage_scale_basic_minimum > 0.0",
-						"severity": "BLOCKER",
-						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum before pricing service of one year or more.",
-						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts)."
+						"severity": "WARNING",
+						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum: service of one year or more is paid without the grade check.",
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts). PP 36/2021 art.21(1) puts the duty to draw up and apply the scale on the employer, and art.79(1) sanctions its breach administratively (written warning, restriction, suspension or freezing of business) — no article bars paying wages without it, so a missing record warns (tracker ID-07 lawful default); a recorded grade minimum still binds (wage_scale_minimum)."
 					},
 					{
 						"key": "wage_scale_minimum",
@@ -697,6 +697,8 @@
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"trailing_wage_short_months": 3,
+			"trailing_wage_long_months": 12,
 			"final_pay_deadlines": [
 				{
 					"when": "",
@@ -2648,9 +2650,9 @@
 						"key": "wage_scale_recorded",
 						"when": "employment.service_years >= 1",
 						"holds": "terms.facts.wage_scale_grade != \"\" && terms.facts.wage_scale_reference != \"\" && terms.facts.wage_scale_effective_on != \"\" && terms.facts.wage_scale_effective_on <= employment.rule_date && terms.facts.wage_scale_notice_on != \"\" && terms.facts.wage_scale_notice_on <= employment.rule_date && terms.facts.wage_scale_basic_minimum > 0.0",
-						"severity": "BLOCKER",
-						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum before pricing service of one year or more.",
-						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts)."
+						"severity": "WARNING",
+						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum: service of one year or more is paid without the grade check.",
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts). PP 36/2021 art.21(1) puts the duty to draw up and apply the scale on the employer, and art.79(1) sanctions its breach administratively (written warning, restriction, suspension or freezing of business) — no article bars paying wages without it, so a missing record warns (tracker ID-07 lawful default); a recorded grade minimum still binds (wage_scale_minimum)."
 					},
 					{
 						"key": "wage_scale_minimum",
@@ -2701,6 +2703,8 @@
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"trailing_wage_short_months": 3,
+			"trailing_wage_long_months": 12,
 			"final_pay_deadlines": [
 				{
 					"when": "",
@@ -4664,9 +4668,9 @@
 						"key": "wage_scale_recorded",
 						"when": "employment.service_years >= 1",
 						"holds": "terms.facts.wage_scale_grade != \"\" && terms.facts.wage_scale_reference != \"\" && terms.facts.wage_scale_effective_on != \"\" && terms.facts.wage_scale_effective_on <= employment.rule_date && terms.facts.wage_scale_notice_on != \"\" && terms.facts.wage_scale_notice_on <= employment.rule_date && terms.facts.wage_scale_basic_minimum > 0.0",
-						"severity": "BLOCKER",
-						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum before pricing service of one year or more.",
-						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts)."
+						"severity": "WARNING",
+						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum: service of one year or more is paid without the grade check.",
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts). PP 36/2021 art.21(1) puts the duty to draw up and apply the scale on the employer, and art.79(1) sanctions its breach administratively (written warning, restriction, suspension or freezing of business) — no article bars paying wages without it, so a missing record warns (tracker ID-07 lawful default); a recorded grade minimum still binds (wage_scale_minimum)."
 					},
 					{
 						"key": "wage_scale_minimum",
@@ -4717,6 +4721,8 @@
 			"timezone": "Asia/Jakarta",
 			"tax_year_start_month": 1,
 			"allowance_npl_prorates": true,
+			"trailing_wage_short_months": 3,
+			"trailing_wage_long_months": 12,
 			"final_pay_deadlines": [
 				{
 					"when": "",

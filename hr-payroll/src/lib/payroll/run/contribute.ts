@@ -156,6 +156,10 @@ type SchemeAssessment = {
 	/** calendar month → component code → what earlier payslips earned; `earned_average` reads it. */
 	readonly earnedByMonth?: ReadonlyMap<string, ReadonlyMap<string, number>> | undefined;
 	readonly paidWagesByMonth?: ReadonlyMap<string, number> | undefined;
+	/** The version's `payroll.trailing_wage_{short,long}_months`: the windows the trailing slots average. */
+	readonly trailingWageMonths?:
+		| { readonly short?: number | null; readonly long?: number | null }
+		| undefined;
 	/** The month's earlier instalments (semi-monthly, weekly): a MONTH scheme prices the month on their sum. */
 	readonly monthPrior?: MonthPrior | undefined;
 	readonly monthlyContributionDays?:
@@ -703,7 +707,12 @@ function schemeObject(options: {
 	for (const [prefix, amounts] of Object.entries(deductions))
 		for (const key of mentions.deductionKeys.get(prefix) ?? []) amounts[key] ??= 0;
 	const since = registered?.since ?? '';
-	const trailingWage = (months: number): { base: number; months: number } => {
+	const trailingWage = (window: 'short' | 'long'): { base: number; months: number } => {
+		const months =
+			input.trailingWageMonths?.[window] ??
+			refuse(
+				`${contribution.row.code}: scheme.trailing_${window} requires payroll.trailing_wage_${window}_months in the sealed settings version.`
+			);
 		let month = input.period.key.slice(0, 7);
 		let wages = 0;
 		let employed = 0;
@@ -713,7 +722,7 @@ function schemeObject(options: {
 			const paid = input.paidWagesByMonth?.get(month);
 			if (paid == null)
 				refuse(
-					`${contribution.row.code}: paid wage for ${month} is missing from the trailing ${months}-month BPJS history.`
+					`${contribution.row.code}: paid wage for ${month} is missing from the trailing ${months}-month wage history.`
 				);
 			wages += paid;
 			employed += 1;
@@ -734,21 +743,21 @@ function schemeObject(options: {
 		),
 		first_year: input.firstYear?.(contribution.row.code) ?? 0,
 		dependent_months: dependentMonths,
-		trailing_3m:
+		trailing_short:
 			input.person.terms.statutory_work_category === 'PIECE_RATE' &&
 			!input.person.terms.weather_dependent_piece &&
 			schemeExpressions(contribution).some((expression) =>
-				expression.includes('scheme.trailing_3m')
+				expression.includes('scheme.trailing_short')
 			)
-				? trailingWage(3)
+				? trailingWage('short')
 				: { base: 0, months: 0 },
-		trailing_12m:
+		trailing_long:
 			input.person.terms.statutory_work_category === 'PIECE_RATE' &&
 			input.person.terms.weather_dependent_piece &&
 			schemeExpressions(contribution).some((expression) =>
-				expression.includes('scheme.trailing_12m')
+				expression.includes('scheme.trailing_long')
 			)
-				? trailingWage(12)
+				? trailingWage('long')
 				: { base: 0, months: 0 },
 		projection: {
 			payslips_remaining: input.projection.payslipsRemaining,

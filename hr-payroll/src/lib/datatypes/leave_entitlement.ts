@@ -129,6 +129,21 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	/** How an hourly grant (`requires_hourly_for_part_time`) rounds, in hours. Absent is exact. */
 	hour_rounding: Schema.optionalKey(Schema.NullOr(stepRounding)),
 	/**
+	 * Of a `requires_hourly_for_part_time` row, the weekly hours below which the contract is
+	 * part-time (SG Part-Time Employees Regulations reg.2(1): `35`), and the daily and weekly hours
+	 * a declared ABSENT similar full-time employee is deemed to work (reg.2(2): `8` and `44`). A
+	 * declared comparator must itself work at least `part_time_below_hours`. Required by that flag.
+	 */
+	part_time_hours: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				part_time_below_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
+				comparator_weekly_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
+				comparator_daily_hours: Schema.Finite.check(Schema.isGreaterThan(0))
+			})
+		)
+	),
+	/**
 	 * Of a `HALF_MONTHS` proration, the share of a calendar month's days that must be eligible for
 	 * the month to count (VN Decree 145/2020 art.66(2): `0.5`). Required by that proration.
 	 */

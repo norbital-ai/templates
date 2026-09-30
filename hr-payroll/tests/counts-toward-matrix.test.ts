@@ -313,6 +313,34 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		CHILDCARE_SUBSIDY: [],
 		TRAVEL_ALLOWANCE: [],
 		MISSED_MEAL_SUBSIDY: []
+	},
+	// 健康保険法 §3(5), 厚生年金保険法 §3(1)(iii): the monthly premiums are charged on the declared
+	// 標準報酬月額 (HEALTH.standard_monthly_remuneration), never on the month's pay, so no class counts
+	// toward HEALTH, PENSION or CHILD_CONTRIBUTION. 徴収法 §2(2): 賃金 is every payment for labour,
+	// 通勤手当 and 賞与 included, so both bear EMPLOYMENT_INSURANCE and WORKERS_COMP. 所得税法 §9(1)(v)
+	// with 施行令 §20の2: INCOME_TAX subtracts the exempt 通勤手当 by code. RESIDENT_TAX charges the
+	// municipality's notice, not this base; its membership is the pay an exit lump collection may be
+	// taken from (地方税法 §321-5(2)).
+	JP: {
+		COMMUTING: ['EMPLOYMENT_INSURANCE', 'INCOME_TAX', 'RESIDENT_TAX', 'WORKERS_COMP'],
+		// 健康保険法 §3(6), 厚生年金保険法 §3(1)(iv): 標準賞与額; 所得税法 §186: the bonus table.
+		BONUS: [
+			'EMPLOYMENT_INSURANCE',
+			'HEALTH_BONUS',
+			'INCOME_TAX_BONUS',
+			'PENSION_BONUS',
+			'RESIDENT_TAX',
+			'WORKERS_COMP'
+		],
+		// 所得税基本通達 36-38の2: the meal value is pay to INCOME_TAX; the worker's charge is no pay.
+		MEAL_IN_KIND: ['INCOME_TAX'],
+		MEAL_CHARGE: [],
+		// 労働基準法 §26 休業手当 is 賃金 (徴収法 §2(2)) and 給与所得 (所得税法 §28).
+		SHUTDOWN_ALLOWANCE: ['EMPLOYMENT_INSURANCE', 'INCOME_TAX', 'RESIDENT_TAX', 'WORKERS_COMP'],
+		// 所得税法 §30(1), 地方税法 §50-2 and §328: 退職所得, taxed apart; not 報酬, 賞与 or 賃金.
+		RETIREMENT_ALLOWANCE: ['RESIDENT_TAX', 'RESIDENT_TAX_RETIREMENT', 'RETIREMENT_INCOME_TAX'],
+		// 労働基準法 §20 解雇予告手当: 退職所得 (所得税基本通達 30-5), not 賃金 for labour insurance.
+		DISMISSAL_NOTICE_PAY: ['RESIDENT_TAX', 'RESIDENT_TAX_RETIREMENT', 'RETIREMENT_INCOME_TAX']
 	}
 };
 MATRIX['MY-nihon'] = MATRIX.MY;

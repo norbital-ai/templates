@@ -24,6 +24,8 @@ const f = customField({
 			allowance_npl_prorates: { kind: 'bool' },
 			payment_occasion_scheme: { kind: 'text', optional: true },
 			separation_wage_average_months: { kind: 'int', min: 1, optional: true },
+			trailing_wage_short_months: { kind: 'int', min: 1, optional: true },
+			trailing_wage_long_months: { kind: 'int', min: 1, optional: true },
 			final_pay_due_days: { kind: 'int', min: 1, optional: true },
 			final_pay_deadlines: {
 				kind: 'list',

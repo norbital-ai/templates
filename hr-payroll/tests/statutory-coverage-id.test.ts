@@ -36,16 +36,20 @@ test('ID: a worker past one year needs a dated company wage-scale grade and basi
 	const [scaleFile] = world.fact_evidence!.splice(0, 1);
 	assert.throws(build, /reference counts only once its evidence \(file\) is recorded/);
 	world.fact_evidence!.unshift(scaleFile!);
+	// PP 36/2021 arts.21(1), 79(1): a missing or future-dated scale record warns, it does not refuse.
+	const warned = () =>
+		build().warnings.some((line) => /record the dated company wage structure/.test(line));
+	assert.equal(warned(), false);
 	delete facts.wage_scale_reference;
-	assert.throws(build, /record the dated company wage structure/);
+	assert.equal(warned(), true);
 	facts.wage_scale_reference = 'FIXTURE-SCALE';
 	facts.wage_scale_effective_on = '2026-02-01';
-	assert.throws(build, /record the dated company wage structure/);
+	assert.equal(warned(), true);
 	facts.wage_scale_effective_on = '2025-01-01';
 	facts.wage_scale_notice_on = '2026-02-01';
-	assert.throws(build, /record the dated company wage structure/);
+	assert.equal(warned(), true);
 	facts.wage_scale_notice_on = '2025-01-01';
-	assert.doesNotThrow(build);
+	assert.equal(warned(), false);
 
 	const firstYear = createStatutoryWorld({
 		code: 'ID',

@@ -13,6 +13,8 @@ export default model({
 		registration_number: { kind: 'text', optional: true },
 		/** The day a run's attendance window opens; the window closes the day before it next month. */
 		pay_cutoff_day: { kind: 'int', min: 1, max: 31 },
+		/** Company policy, not law: minutes after a rostered shift's start before a missing clock-in is a late arrival. */
+		late_arrival_grace_minutes: { kind: 'int', min: 0, default: 15 },
 		pay_frequency: {
 			kind: 'enum',
 			values: ['MONTHLY', 'SEMI_MONTHLY', 'WEEKLY'],

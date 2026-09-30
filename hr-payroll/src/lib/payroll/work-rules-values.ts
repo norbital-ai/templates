@@ -42,6 +42,13 @@ export const nightPremiumValueSchema = Schema.Struct({
 	from: clockTime,
 	to: clockTime,
 	ordinary_add: percentAdd,
-	overtime_add: percentAdd
+	overtime_add: percentAdd,
+	/**
+	 * Who earns the premium, a boolean over the person; empty or absent is everyone. Its own rule,
+	 * not `overtime_when`: a person outside the overtime ladder can still be owed the night premium
+	 * on every night hour, overtime ones included (JP 労基法 §41 excludes hours, breaks and rest
+	 * days, not §37(4)), or none at all (PH Labor Code art.82 takes art.86 away with the rest).
+	 */
+	when: Schema.optionalKey(Schema.String)
 });
 export type NightPremium = Schema.Schema.Type<typeof nightPremiumValueSchema>;

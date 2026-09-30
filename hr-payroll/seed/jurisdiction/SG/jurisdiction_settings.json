@@ -258,6 +258,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -904,6 +905,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -1550,6 +1552,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -2196,6 +2199,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -2842,6 +2846,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -3488,6 +3493,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -4136,6 +4142,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -4784,6 +4791,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -5432,6 +5440,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -6080,6 +6089,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -6728,6 +6738,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -7383,6 +7394,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -8038,6 +8050,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -8693,6 +8706,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -9348,6 +9362,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -10003,6 +10018,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -10665,6 +10681,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -11327,6 +11344,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -11989,6 +12007,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -12651,6 +12670,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -13313,6 +13333,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -13976,6 +13997,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -14639,6 +14661,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -15302,6 +15325,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -15965,6 +15989,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -16628,6 +16653,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -17292,6 +17318,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -17956,6 +17983,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -18620,6 +18648,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -19284,6 +19313,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -19949,6 +19979,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -20614,6 +20645,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -21279,6 +21311,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -21944,6 +21977,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -22609,6 +22643,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -23275,6 +23310,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -23944,6 +23980,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -24613,6 +24650,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -25282,6 +25320,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -25951,6 +25990,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -26620,6 +26660,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -27289,6 +27330,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -27958,6 +28000,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -28627,6 +28670,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -29296,6 +29340,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -29965,6 +30010,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -30634,6 +30680,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -31303,6 +31350,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -31972,6 +32020,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -32641,6 +32690,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -33310,6 +33360,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -33979,6 +34030,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -34648,6 +34700,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -35317,6 +35370,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -35986,6 +36040,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -36655,6 +36710,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -37331,6 +37387,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -38007,6 +38064,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -38683,6 +38741,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -39359,6 +39418,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -40035,6 +40095,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -40711,6 +40772,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -41387,6 +41449,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -42063,6 +42126,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -42739,6 +42803,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -43415,6 +43480,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -44091,6 +44157,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -44767,6 +44834,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -45443,6 +45511,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -46119,6 +46188,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -46795,6 +46865,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -47472,6 +47543,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -48149,6 +48221,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -48826,6 +48899,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -49503,6 +49577,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -50180,6 +50255,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -51106,6 +51182,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -52032,6 +52109,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -52958,6 +53036,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",
@@ -53884,6 +53963,7 @@
 			"holiday_in_no_pay_leave_unpaid": true,
 			"holiday_adjacent_absence_unpaid": true,
 			"short_day_half_hours": 5,
+			"short_day_fraction": 0.5,
 			"final_pay_deadlines": [
 				{
 					"when": "employment.exit_reason == \"RESIGNATION\" && !(\"notice_served\" in employment.exit_fact_keys && employment.exit_facts.notice_served == true)",

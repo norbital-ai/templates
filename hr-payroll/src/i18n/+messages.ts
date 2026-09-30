@@ -229,6 +229,7 @@ export default messages({
 	'component.assessment_period': 'Assessment period',
 	'component.attendance': 'Attendance',
 	'component.attendance_cutoff_day': 'Attendance cutoff day',
+	'component.late_arrival_grace_minutes': 'Late-arrival grace (minutes)',
 	'component.attendance_window': 'Attendance window',
 	'component.authority': 'Authority',
 	'component.authority_reference': 'Authority reference',

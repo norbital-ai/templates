@@ -2475,6 +2475,10 @@ function contributionAssessment(options: {
 			yearQuantityPayments: options.yearQuantityPayments,
 			earnedByMonth: options.earnedByMonth,
 			paidWagesByMonth: options.paidWagesByMonth,
+			trailingWageMonths: {
+				short: configuration.jurisdiction.payroll.trailing_wage_short_months,
+				long: configuration.jurisdiction.payroll.trailing_wage_long_months
+			},
 			monthPrior: options.monthPrior,
 			monthlyContributionDays: measured.monthlyContributionDays,
 			componentsByCode: new Map(

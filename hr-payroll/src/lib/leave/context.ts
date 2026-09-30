@@ -239,6 +239,8 @@ export type LeaveContext = {
 type Stored<T> = T & { readonly approval_id: string | null };
 const unique = (values: readonly string[]): string[] => [...new Set(values)];
 const settled = { approval_id: { isNull: true } } as const;
+/** Two leave years of at most 366 days: the current entitlement window and its carry source. */
+const ANNUAL_LOOKBACK_DAYS = 732;
 
 /**
  * One batched read of employment history and manual activity, as the workspace (a transform's
@@ -351,7 +353,7 @@ export async function readLeaveContext(
 			? []
 			: readAll<LeaveContext['holidays'][number]>(reads, 'jurisdiction_holidays', {
 					company_id: { in: companyIds },
-					date: { gte: addDays(window.end, -732), lte: window.end },
+					date: { gte: addDays(window.end, -ANNUAL_LOOKBACK_DAYS), lte: window.end },
 					published_at: { isNull: false },
 					...settled
 				}),
@@ -377,7 +379,7 @@ export async function readLeaveContext(
 			? []
 			: readAll<NonNullable<LeaveContext['annualAttendance']>[number]>(reads, 'work_days', {
 					employment_id: { in: ids },
-					work_date: { gte: addDays(window.end, -732), lte: window.end },
+					work_date: { gte: addDays(window.end, -ANNUAL_LOOKBACK_DAYS), lte: window.end },
 					...settled
 				})
 	]);

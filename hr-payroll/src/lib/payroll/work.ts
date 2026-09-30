@@ -938,10 +938,11 @@ function workContext(
 		// and the divisor alike (SG EA s.20A / MOM: the days required to work "include public
 		// holidays"; VN Decree 145/2020 art.54(1)(a) counts the same). One that falls on a rest day
 		// is neither.
-		// A day the contract requires five hours or fewer counts as half (SG EA s.20A(2)), where the
-		// version says so — but a public holiday on such a day pays a full day (s.88(7)), so it
+		// A day the contract requires `short_day_half_hours` or fewer weighs `short_day_fraction`
+		// (SG EA s.20A(2): 5 hours, half a day), where the version says so — but a public holiday on such a day pays a full day (s.88(7)), so it
 		// weighs one.
 		const halfHours = configuration.jurisdiction.payroll.short_day_half_hours ?? null;
+		const shortWeight = configuration.jurisdiction.payroll.short_day_fraction ?? 1;
 		const days = dates.reduce((total, date) => {
 			const day = prorationSchedule.get(date);
 			const working =
@@ -952,7 +953,7 @@ function workContext(
 				day?.dayType === 'ORDINARY' &&
 				day.shift != null &&
 				day.shift.paid_minutes <= halfHours * 60;
-			return total + (short ? 0.5 : 1);
+			return total + (short ? shortWeight : 1);
 		}, 0);
 		return days;
 	};
@@ -1904,8 +1905,10 @@ function workAttendance(
 									? Number.POSITIVE_INFINITY
 									: Math.max(0, dailyWorkedHours(clocked, priced, offset) - priced.normalHours)
 					);
-					// Overtime hours add nothing where the person is outside statutory overtime pay.
-					const overtime = paymentEligibleOn(date) ? night.overtime : 0;
+					// Who earns the premium is the premium's own rule, independent of the overtime ladder:
+					// it covers the night's overtime hours too.
+					if (!isEligible(nightPremium.when, ratesOn(date).person)) return [];
+					const overtime = night.overtime;
 					if (night.ordinary + overtime <= 0) return [];
 					// The adds follow the day where the version says so. A day the bands never saw — no
 					// overtime (an ordinary night shift), outside the overtime window, or an ineligible

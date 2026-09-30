@@ -845,22 +845,22 @@ const SCHEME_FIELDS: readonly ContextField[] = [
 			'Sum of registered eligible dependant counts over the tax year’s twelve months; required for an authorised annual finalisation (VN Decree 253/2026 art.48)'
 	},
 	{
-		path: 'trailing_3m.base',
+		path: 'trailing_short.base',
 		description:
-			'Average paid wages in the last three calendar months of this employment, across tax years (ID PP 44/2015 art.19(4))'
+			'Average paid wages over the last payroll.trailing_wage_short_months calendar months of this employment, across tax years, for piece work (ID PP 44/2015 art.19(4): 3)'
 	},
 	{
-		path: 'trailing_3m.months',
-		description: 'Months of this employment in the three-month lookback'
+		path: 'trailing_short.months',
+		description: 'Months of this employment in the short lookback'
 	},
 	{
-		path: 'trailing_12m.base',
+		path: 'trailing_long.base',
 		description:
-			'Average paid wages in the last twelve calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5))'
+			'Average paid wages over the last payroll.trailing_wage_long_months calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5): 12)'
 	},
 	{
-		path: 'trailing_12m.months',
-		description: 'Months of this employment in the twelve-month lookback'
+		path: 'trailing_long.months',
+		description: 'Months of this employment in the long lookback'
 	},
 	{
 		path: 'projection.payslips_remaining',
@@ -1726,8 +1726,8 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 			last_year: { base: 0, employee: 0, employer: 0 },
 			first_year: 0,
 			dependent_months: 0,
-			trailing_3m: { base: 0, months: 0 },
-			trailing_12m: { base: 0, months: 0 },
+			trailing_short: { base: 0, months: 0 },
+			trailing_long: { base: 0, months: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',
@@ -1834,8 +1834,8 @@ const SCHEME_CONTEXT: ExpressionContext = {
 			last_year: { base: 0, employee: 0, employer: 0 },
 			first_year: 0,
 			dependent_months: 0,
-			trailing_3m: { base: 0, months: 0 },
-			trailing_12m: { base: 0, months: 0 },
+			trailing_short: { base: 0, months: 0 },
+			trailing_long: { base: 0, months: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',

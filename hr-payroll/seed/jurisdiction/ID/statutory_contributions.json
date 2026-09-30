@@ -27,7 +27,7 @@
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
 		],
-		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_12m.months > 0 ? scheme.trailing_12m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_3m.months > 0 ? scheme.trailing_3m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
+		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_long.months > 0 ? scheme.trailing_long.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_short.months > 0 ? scheme.trailing_short.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
 		"unregistered_action": "ASSESS",
 		"short_name": null,
 		"listing_order": 21,
@@ -168,7 +168,7 @@
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
 		],
-		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_12m.months > 0 ? scheme.trailing_12m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_3m.months > 0 ? scheme.trailing_3m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
+		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_long.months > 0 ? scheme.trailing_long.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_short.months > 0 ? scheme.trailing_short.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
 		"unregistered_action": "ASSESS",
 		"short_name": null,
 		"listing_order": 23,
@@ -203,7 +203,7 @@
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
 		],
-		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_12m.months > 0 ? scheme.trailing_12m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_3m.months > 0 ? scheme.trailing_3m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
+		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_long.months > 0 ? scheme.trailing_long.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_short.months > 0 ? scheme.trailing_short.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
 		"unregistered_action": "ASSESS",
 		"short_name": null,
 		"listing_order": 24,
@@ -1119,7 +1119,7 @@
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
 		],
-		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_12m.months > 0 ? scheme.trailing_12m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_3m.months > 0 ? scheme.trailing_3m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
+		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_long.months > 0 ? scheme.trailing_long.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_short.months > 0 ? scheme.trailing_short.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
 		"unregistered_action": "ASSESS",
 		"short_name": null,
 		"listing_order": 21,
@@ -1260,7 +1260,7 @@
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
 		],
-		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_12m.months > 0 ? scheme.trailing_12m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_3m.months > 0 ? scheme.trailing_3m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
+		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_long.months > 0 ? scheme.trailing_long.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_short.months > 0 ? scheme.trailing_short.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
 		"unregistered_action": "ASSESS",
 		"short_name": null,
 		"listing_order": 23,
@@ -1295,7 +1295,7 @@
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
 		],
-		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_12m.months > 0 ? scheme.trailing_12m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_3m.months > 0 ? scheme.trailing_3m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
+		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_long.months > 0 ? scheme.trailing_long.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_short.months > 0 ? scheme.trailing_short.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
 		"unregistered_action": "ASSESS",
 		"short_name": null,
 		"listing_order": 24,
@@ -2211,7 +2211,7 @@
 				"employer": "round_unit((base) * 3.7 / 100.0)"
 			}
 		],
-		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_12m.months > 0 ? scheme.trailing_12m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_3m.months > 0 ? scheme.trailing_3m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
+		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_long.months > 0 ? scheme.trailing_long.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_short.months > 0 ? scheme.trailing_short.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
 		"unregistered_action": "ASSESS",
 		"short_name": null,
 		"listing_order": 21,
@@ -2327,7 +2327,7 @@
 				"employer": "round_unit((base) * 1.74 / 100.0)"
 			}
 		],
-		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_12m.months > 0 ? scheme.trailing_12m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_3m.months > 0 ? scheme.trailing_3m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
+		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_long.months > 0 ? scheme.trailing_long.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_short.months > 0 ? scheme.trailing_short.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
 		"unregistered_action": "ASSESS",
 		"short_name": null,
 		"listing_order": 23,
@@ -2362,7 +2362,7 @@
 				"employer": "round_unit((base) * 0.3 / 100.0)"
 			}
 		],
-		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_12m.months > 0 ? scheme.trailing_12m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_3m.months > 0 ? scheme.trailing_3m.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
+		"assessed_on": "person.terms.statutory_work_category == \"PIECE_RATE\" ? (person.terms.weather_dependent_piece ? (scheme.trailing_long.months > 0 ? scheme.trailing_long.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE) : (scheme.trailing_short.months > 0 ? scheme.trailing_short.base : BASE + (ALLOWANCES + ADHOC) - ABSENCE - NO_PAY_LEAVE)) : person.terms.pay_frequency == \"DAILY\" ? person.terms.basic_salary * 25.0 + (ALLOWANCES + ADHOC) : person.terms.pay_frequency == \"HOURLY\" ? BASE - ABSENCE - NO_PAY_LEAVE + (ALLOWANCES + ADHOC) : person.terms.monthly_wage",
 		"unregistered_action": "ASSESS",
 		"short_name": null,
 		"listing_order": 24,

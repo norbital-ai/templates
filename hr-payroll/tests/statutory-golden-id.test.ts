@@ -2809,6 +2809,69 @@ test('Indonesia — piece-rate BPJS uses three paid months, or twelve for weathe
 	}
 });
 
+test('Indonesia — the piece-rate trailing windows are the version\'s payroll.trailing_wage_{short,long}_months (ID-62; LIT-4)', () => {
+	// Same history as above: Feb–Oct 2025 4,000,000, Nov 5,000,000, Dec 6,000,000, Jan 2026 7,000,000.
+	const months = Object.fromEntries(
+		Array.from({ length: 9 }, (_, index) => [
+			`2025-${String(index + 2).padStart(2, '0')}`,
+			4_000_000
+		])
+	);
+	Object.assign(months, { '2025-11': 5_000_000, '2025-12': 6_000_000, '2026-01': 7_000_000 });
+	const build = (weather: boolean, short: number | null, long: number | null) => {
+		const key = weather ? 'ID-PIECE-WEATHER' : 'ID-PIECE';
+		return {
+			key,
+			slips: buildStatutory(
+				{
+					code: 'ID',
+					period: '2026-02',
+					region: 'Provinsi DKI Jakarta',
+					riskClass: 'II',
+					people: [
+						{
+							key,
+							wage: 8_000_000,
+							hire_date: '2025-02-01',
+							statutory_work_category: 'PIECE_RATE',
+							weather_dependent_piece: weather
+						}
+					]
+				},
+				(world) => {
+					priorWages(world, key, months);
+					for (const row of world.jurisdiction_settings) {
+						const payroll = row.payroll as Record<string, unknown>;
+						delete payroll.trailing_wage_short_months;
+						delete payroll.trailing_wage_long_months;
+						if (short != null) payroll.trailing_wage_short_months = short;
+						if (long != null) payroll.trailing_wage_long_months = long;
+					}
+				}
+			).slips
+		};
+	};
+	// Short window 2: (Dec 6,000,000 + Jan 7,000,000) / 2 = 6,500,000.
+	// Long window 6: (Aug 4 + Sep 4 + Oct 4 + Nov 5 + Dec 6 + Jan 7) × 1,000,000 / 6 = 5,000,000.
+	for (const [weather, expected] of [
+		[false, 6_500_000],
+		[true, 5_000_000]
+	] as const) {
+		const { key, slips } = build(weather, 2, 6);
+		for (const code of ['JHT', 'JKK', 'JKM'])
+			assert.equal(
+				slips.get(key)!.statutory.find((row) => row.scheme_code === code)?.base_amount,
+				expected,
+				`${key} ${code}`
+			);
+	}
+	// A version that states no window stops the run rather than guessing one.
+	assert.throws(
+		() => build(false, null, 12),
+		/scheme\.trailing_short requires payroll\.trailing_wage_short_months/
+	);
+});
+
 test('Indonesia — a worksite without its KBLI sector code refuses naming the employee and the field (F22)', () => {
 	// The bank's KDIT worksite states no KBLI. DKI Kep. Gubernur 33 Tahun 2026 sets sector wages by
 	// five-digit KBLI (PP 36/2021 art.35D as amended by PP 49/2025), so the floor cannot be chosen

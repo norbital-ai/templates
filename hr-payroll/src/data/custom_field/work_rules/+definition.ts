@@ -146,7 +146,8 @@ const f = customField({
 					from: { kind: 'text' },
 					to: { kind: 'text' },
 					ordinary_add: { kind: 'json' },
-					overtime_add: { kind: 'json' }
+					overtime_add: { kind: 'json' },
+					when: { kind: 'text', optional: true }
 				}
 			},
 			time_off_in_lieu: {

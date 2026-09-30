@@ -86,7 +86,8 @@ const NAMED_LIMITS: Record<string, string> = {
 	PROBLEM_LIMIT: 'problems a message lists',
 	GRID_DAYS: 'six displayed weeks of a month grid',
 	PROJECTION_DAYS: 'days a shift pattern is projected ahead',
-	LOOKBACK_MINUTES: 'how far back a punch pairs with its shift'
+	LOOKBACK_MINUTES: 'how far back a punch pairs with its shift',
+	ANNUAL_LOOKBACK_DAYS: 'two leave years of at most 366 days a holiday and attendance read spans'
 };
 
 /**

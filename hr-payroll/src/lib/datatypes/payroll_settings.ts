@@ -262,6 +262,13 @@ export type PayrollSettings = {
 	readonly payment_occasion_scheme?: string | null;
 	/** Contractual wage months before exit used by a separation-pay catalogue (VN Decree 145 art.8(5)). */
 	readonly separation_wage_average_months?: number | null;
+	/**
+	 * Calendar months averaged by `scheme.trailing_short` and `scheme.trailing_long` (ID PP 44/2015
+	 * art.19(4)–(5): 3 for piece work, 12 for weather-dependent piece work); absent, a scheme that
+	 * reads the slot stops the run.
+	 */
+	readonly trailing_wage_short_months?: number | null;
+	readonly trailing_wage_long_months?: number | null;
 	/** Configured days after the last day of work for the final-pay warning; absent is no rule. */
 	readonly final_pay_due_days?: number | null;
 	/** Final-pay deadlines per circumstance; `when` is CEL over the leaver, empty the default. */
@@ -351,6 +358,8 @@ export type PayrollSettings = {
 	readonly regular_holiday_prior_workday?: boolean | null;
 	/** A contracted day of at most this many hours is half a working day (SG EA s.20A(2)). */
 	readonly short_day_half_hours?: number | null;
+	/** What such a short day weighs in the working-day count (SG EA s.20A(2): half a day, 0.5). */
+	readonly short_day_fraction?: number | null;
 	readonly income_return?: IncomeReturnSettings | null;
 	/**
 	 * Where the version's law runs (MY EA 1955 s.1(2); CN LCL Implementing Regulation art.14): each
@@ -423,6 +432,11 @@ export function payrollSettingsFault(value: PayrollSettings): string | undefined
 		)
 	)
 		return 'separation_wage_average_months: must be a positive integer';
+	for (const field of ['trailing_wage_short_months', 'trailing_wage_long_months'] as const) {
+		const months = value[field];
+		if (months != null && !(Number.isInteger(months) && months > 0))
+			return `${field}: must be a positive integer`;
+	}
 	if (value.final_pay_deadlines?.some((rule) => rule.days < 0 || rule.authority === ''))
 		return 'final_pay_deadlines: each rule states its days and authority';
 	const ceiling = value.deduction_ceiling;
@@ -455,6 +469,12 @@ export function payrollSettingsFault(value: PayrollSettings): string | undefined
 	)
 		return 'tax_clearance: tax_payment_days must be a positive integer';
 	if ((value.short_day_half_hours ?? 1) <= 0) return 'short_day_half_hours: must be positive';
+	if (
+		(value.short_day_half_hours != null) !== (value.short_day_fraction != null) ||
+		(value.short_day_fraction != null &&
+			!(value.short_day_fraction > 0 && value.short_day_fraction <= 1))
+	)
+		return 'short_day_fraction: states the weight (0–1] of a short day, with short_day_half_hours';
 	const coverage = value.worksite_coverage;
 	if (
 		coverage != null &&

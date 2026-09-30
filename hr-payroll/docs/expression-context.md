@@ -779,10 +779,10 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `scheme.last_year.employer` | Employer amount this employer charged in the tax year before this one |
 | `scheme.first_year` | Earliest tax year in which one of this employer’s earlier slips charged a base on this scheme, 0 when none — ID PP 68/2009 art.6 counts the third calendar year from the first severance part |
 | `scheme.dependent_months` | Sum of registered eligible dependant counts over the tax year’s twelve months; required for an authorised annual finalisation (VN Decree 253/2026 art.48) |
-| `scheme.trailing_3m.base` | Average paid wages in the last three calendar months of this employment, across tax years (ID PP 44/2015 art.19(4)) |
-| `scheme.trailing_3m.months` | Months of this employment in the three-month lookback |
-| `scheme.trailing_12m.base` | Average paid wages in the last twelve calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5)) |
-| `scheme.trailing_12m.months` | Months of this employment in the twelve-month lookback |
+| `scheme.trailing_short.base` | Average paid wages over the last payroll.trailing_wage_short_months calendar months of this employment, across tax years, for piece work (ID PP 44/2015 art.19(4): 3) |
+| `scheme.trailing_short.months` | Months of this employment in the short lookback |
+| `scheme.trailing_long.base` | Average paid wages over the last payroll.trailing_wage_long_months calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5): 12) |
+| `scheme.trailing_long.months` | Months of this employment in the long lookback |
 | `scheme.projection.payslips_remaining` | Payslips left in the year, this one included |
 | `scheme.projection.future_equivalents` | Future payslips of this size |
 | `scheme.rate_override` | The employment flat rate override percentage, 0 when none |
@@ -1042,10 +1042,10 @@ Open prefixes: `produced.<key>`, `history.<key>`, `year.<key>`, `scheme.election
 | `scheme.last_year.employer` | Employer amount this employer charged in the tax year before this one |
 | `scheme.first_year` | Earliest tax year in which one of this employer’s earlier slips charged a base on this scheme, 0 when none — ID PP 68/2009 art.6 counts the third calendar year from the first severance part |
 | `scheme.dependent_months` | Sum of registered eligible dependant counts over the tax year’s twelve months; required for an authorised annual finalisation (VN Decree 253/2026 art.48) |
-| `scheme.trailing_3m.base` | Average paid wages in the last three calendar months of this employment, across tax years (ID PP 44/2015 art.19(4)) |
-| `scheme.trailing_3m.months` | Months of this employment in the three-month lookback |
-| `scheme.trailing_12m.base` | Average paid wages in the last twelve calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5)) |
-| `scheme.trailing_12m.months` | Months of this employment in the twelve-month lookback |
+| `scheme.trailing_short.base` | Average paid wages over the last payroll.trailing_wage_short_months calendar months of this employment, across tax years, for piece work (ID PP 44/2015 art.19(4): 3) |
+| `scheme.trailing_short.months` | Months of this employment in the short lookback |
+| `scheme.trailing_long.base` | Average paid wages over the last payroll.trailing_wage_long_months calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5): 12) |
+| `scheme.trailing_long.months` | Months of this employment in the long lookback |
 | `scheme.projection.payslips_remaining` | Payslips left in the year, this one included |
 | `scheme.projection.future_equivalents` | Future payslips of this size |
 | `scheme.rate_override` | The employment flat rate override percentage, 0 when none |

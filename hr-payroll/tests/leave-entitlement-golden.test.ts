@@ -83,6 +83,13 @@ type Facts = {
 	 * band would then claim every person the fixture did not think to age.
 	 */
 	readonly age?: number;
+	/** The measured working week (`terms.ordinary_hours_per_week`, `terms.working_days_per_week`). */
+	readonly week?: {
+		readonly ordinary_hours_per_week: number;
+		readonly working_days_per_week: number;
+	};
+	/** Lineage-declared terms facts (`terms.facts.<key>`). */
+	readonly termsFacts?: Readonly<Record<string, number>>;
 };
 
 /**
@@ -146,8 +153,10 @@ function grant(
 				residency_status: facts.citizenship ?? null,
 				work_classification: facts.classification ?? null,
 				employment_type: facts.employment_type ?? null,
-				statutory_work_category: facts.statutory_work_category ?? null
+				statutory_work_category: facts.statutory_work_category ?? null,
+				facts: facts.termsFacts ?? null
 			},
+			week: facts.week ?? null,
 			children: (facts.childAges ?? []).map((age, index) => ({
 				child_birthdate: bornFor(age, asOf),
 				citizenship: facts.childCitizenship?.[index] ?? null,
@@ -1251,6 +1260,69 @@ test('VN — a maternity grant of N months ends on the calendar, not after 30 ×
 	assert.equal(monthsEnd('2027-08-29', 6), '2028-02-28');
 	for (const row of leaveCatalogue('VN').filter((row) => row.code === 'MATERNITY_LEAVE'))
 		assert.equal(row.entitlement.calendar_months, true);
+});
+
+test('JP — 労働基準法 §39 and 育児・介護休業法 leaves on every sealed version', () => {
+	// 労働基準法施行規則 §24-3: five-hour days, so a week under 30 hours on `days` working days.
+	const PART = (days: number) => ({
+		week: { ordinary_hours_per_week: 5 * days, working_days_per_week: days }
+	});
+	for (const version of settingsVersions('JP').keys()) {
+		// §39(1)–(3): 10, then 11, 12, 14, 16, 18, 20 at 0.5–6.5 years, each given six months early
+		// (recorded default): the hire day 10, 30 months (the grant due at 2.5 years) 12, 70 months
+		// (due at 5.5 years) 18.
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE'), [10, 12, 18]);
+		// §24-3, the same six-month-early shift: 4 days 7/…/9/…/13, 3 days 5/…/6/…/10,
+		// 2 days 3/…/4/…/6, 1 day 1/…/2/…/3.
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE', PART(4)), [7, 9, 13]);
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE', PART(3)), [5, 6, 10]);
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE', PART(2)), [3, 4, 6]);
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE', PART(1)), [1, 2, 3]);
+		// Five days a week at under 30 hours is no §24-3 worker: the full ladder.
+		assert.deepEqual(ladder('JP', version, 'ANNUAL_LEAVE', PART(5)), [10, 12, 18]);
+		// §65(1)–(2): 42 + 56 = 98 calendar days; 98 + 56 = 154 for a multiple pregnancy; a woman's.
+		const birth = (kind: string) => ({ event: { kind } });
+		assert.deepEqual(
+			ladder('JP', version, 'MATERNITY_LEAVE', { ...FEMALE, ...birth('BIRTH') }),
+			[98, 98, 98]
+		);
+		assert.deepEqual(
+			ladder('JP', version, 'MATERNITY_LEAVE', { ...FEMALE, ...birth('MULTIPLE_BIRTH') }),
+			[154, 154, 154]
+		);
+		assert.deepEqual(
+			ladder('JP', version, 'MATERNITY_LEAVE', { ...MALE, ...birth('BIRTH') }),
+			[null, null, null]
+		);
+		// 育児・介護休業法 §9-2: 28 days of 出生時育児休業 per birth or adoption, from day one.
+		assert.deepEqual(ladder('JP', version, 'POSTNATAL_CHILDCARE_LEAVE', birth('BIRTH')), [
+			28, 28, 28
+		]);
+		assert.deepEqual(ladder('JP', version, 'POSTNATAL_CHILDCARE_LEAVE', birth('ADOPTION')), [
+			28, 28, 28
+		]);
+		// §5: 育児休業 is bounded by the child's age, which the engine does not meter.
+		assert.deepEqual(ladder('JP', version, 'CHILDCARE_LEAVE'), [null, null, null]);
+		// §11, §15(1): 93 days per 対象家族; only a family-care event opens it.
+		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_LEAVE', birth('FAMILY_CARE')), [
+			93, 93, 93
+		]);
+		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_LEAVE', birth('BIRTH')), [
+			null,
+			null,
+			null
+		]);
+		// §16-5(1): 5 days a year, 10 for two or more 対象家族.
+		const carers = (care_family_members: number) => ({ termsFacts: { care_family_members } });
+		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_DAYS', carers(0)), [0, 0, 0]);
+		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_DAYS', carers(1)), [5, 5, 5]);
+		assert.deepEqual(ladder('JP', version, 'FAMILY_CARE_DAYS', carers(3)), [10, 10, 10]);
+		// §16-2(1): 5 days a year, 10 for two or more children; a child under ten counts (default).
+		const kids = (childAges: readonly number[]) => ({ childAges });
+		assert.deepEqual(ladder('JP', version, 'CHILD_NURSING_LEAVE', kids([9])), [5, 5, 5]);
+		assert.deepEqual(ladder('JP', version, 'CHILD_NURSING_LEAVE', kids([2, 9])), [10, 10, 10]);
+		assert.deepEqual(ladder('JP', version, 'CHILD_NURSING_LEAVE', kids([10])), [0, 0, 0]);
+	}
 });
 
 test('every sealed version of every lineage has a leave golden', () => {

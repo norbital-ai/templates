@@ -1907,3 +1907,78 @@ register(
 		}
 	})
 );
+
+/**
+ * The 令和8年度 floors that take effect after 1 October 2026 (JP-RF-R8-1 covers the 1 October ones): a whole pay period
+ * after the prefecture's 発効日, company and worksite in the prefecture, figures as REGIONS.
+ */
+register(
+	jp({
+		id: 'JP-RF24-R8-1',
+		description:
+			'A 京都府 establishment and worksite in December 2026: 150,000 a month on 2,040 annual hours (882.35 an hour) is below the 令和8年度 京都府 floor of 1,180 from 16 November 2026, so the wage is 1,180 × 170 = 200,600.',
+		citation: [
+			SRC.minimumWage,
+			'Kyoto Labour Bureau (https://jsite.mhlw.go.jp/kyoto-roudoukyoku/news_topics/houdou/_00281.html) and MHLW quick table (https://saiteichingin.mhlw.go.jp/table/page_list_nationallist.php, read 2026-09-30): 京都府 1,180円 from 令和8.11.16, in force for all of December 2026. 最低賃金法 §4(2): 150,000 ÷ 170 = 882.35 < 1,180; 1,180 × 170 = 200,600.',
+			...SI,
+			'協会けんぽ 令和8年度都道府県単位保険料率 (https://www.kyoukaikenpo.or.jp/about/business/insurance_rate/rate_prefectures/r08/, read 2026-09-30): 京都府 9.89%; born 1990, no 介護.',
+			'December pay collects November on the recorded 190,000 grade: health 190,000 × 9.89% = 18,791 ÷ 2 = 9,395.5 → 9,395 employee, 9,396 employer; 支援金 437 ÷ 2 = 218.5 → 218 / 219; 厚生年金 190,000 × 9.15% = 17,385 each; 拠出金 190,000 × 0.36% = 684.',
+			'200,600: 雇用保険 令和8年度 × 5/1,000 = 1,003, employer × 8.5/1,000 = 1,705.1 → 1,705; 労災 × 3/1,000 = 601.8 → 601.',
+			SRC.tax,
+			'源泉所得税: no 扶養控除等申告書 recorded (乙欄, so no 年末調整): 200,600 − (9,395 + 218 + 17,385 + 1,003) = 172,599 → 月額表 令和8年分 乙欄 171,000–173,000 → 11,500.'
+		],
+		company: { region: '京都府' },
+		period: '2026-12',
+		people: [sato({ ref: 'kyoto', name: 'Mori Aoi', wage: 150_000, grade: 190_000, worksite: '京都府' })],
+		expected: {
+			kyoto: {
+				gross: 200_600,
+				'HEALTH.employee': 9_395,
+				'HEALTH.employer': 9_396,
+				'CHILD_SUPPORT.employee': 218,
+				'CHILD_SUPPORT.employer': 219,
+				'PENSION.employee': 17_385,
+				'PENSION.employer': 17_385,
+				'CHILD_CONTRIBUTION.employer': 684,
+				'EMPLOYMENT_INSURANCE.employee': 1_003,
+				'EMPLOYMENT_INSURANCE.employer': 1_705,
+				'WORKERS_COMP.employer': 601,
+				'INCOME_TAX.employee': 11_500
+			}
+		}
+	}),
+	jp({
+		id: 'JP-RF29-R8-1',
+		description:
+			'A 奈良県 establishment and worksite in November 2026: 150,000 a month on 2,040 annual hours is below the 令和8年度 奈良県 floor of 1,107 from 4 October 2026, so the wage is 1,107 × 170 = 188,190.',
+		citation: [
+			SRC.minimumWage,
+			'Nara Labour Bureau (https://jsite.mhlw.go.jp/nara-roudoukyoku/newpage_01186.html) and MHLW quick table (https://saiteichingin.mhlw.go.jp/table/page_list_nationallist.php, read 2026-09-30): 奈良県 1,107円 from 令和8.10.04, in force for all of November 2026. 最低賃金法 §4(2): 150,000 ÷ 170 = 882.35 < 1,107; 1,107 × 170 = 188,190.',
+			...SI,
+			'協会けんぽ 令和8年度都道府県単位保険料率 (https://www.kyoukaikenpo.or.jp/about/business/insurance_rate/rate_prefectures/r08/, read 2026-09-30): 奈良県 9.91%; born 1990, no 介護.',
+			'November pay collects October on the recorded 180,000 grade: health 180,000 × 9.91% = 17,838 ÷ 2 = 8,919 each; 支援金 414 ÷ 2 = 207 each; 厚生年金 180,000 × 9.15% = 16,470 each; 拠出金 180,000 × 0.36% = 648.',
+			'188,190: 雇用保険 令和8年度 × 5/1,000 = 940.95 → 941 (over 50 sen up), employer × 8.5/1,000 = 1,599.615 → 1,599; 労災 × 3/1,000 = 564.57 → 564.',
+			SRC.tax,
+			'源泉所得税 乙欄: 188,190 − (8,919 + 207 + 16,470 + 941) = 161,653 → 月額表 令和8年分 乙欄 161,000–163,000 → 10,100.'
+		],
+		company: { region: '奈良県' },
+		period: '2026-11',
+		people: [sato({ ref: 'nara', name: 'Ishii Kanon', wage: 150_000, grade: 180_000, worksite: '奈良県' })],
+		expected: {
+			nara: {
+				gross: 188_190,
+				'HEALTH.employee': 8_919,
+				'HEALTH.employer': 8_919,
+				'CHILD_SUPPORT.employee': 207,
+				'CHILD_SUPPORT.employer': 207,
+				'PENSION.employee': 16_470,
+				'PENSION.employer': 16_470,
+				'CHILD_CONTRIBUTION.employer': 648,
+				'EMPLOYMENT_INSURANCE.employee': 941,
+				'EMPLOYMENT_INSURANCE.employer': 1_599,
+				'WORKERS_COMP.employer': 564,
+				'INCOME_TAX.employee': 10_100
+			}
+		}
+	})
+);
