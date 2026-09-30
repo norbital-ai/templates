@@ -82,7 +82,7 @@ bookings.action('book', async (input, ctx) => {
 	]);
 	if (customer === null || service === null) return ctx.refuse('Pick a customer and a service.');
 	const starts = occurrences(input.start, input.repeat, input.visits ?? AHEAD, ctx.tz);
-	const pool = await loadPool(ctx, starts[0]!, starts.at(-1)!);
+	const pool = await loadPool(ctx, starts[0]!, starts.at(-1)!, [customer.location]);
 	const helpers =
 		preferred.length === 0
 			? pool.helpers
@@ -93,7 +93,7 @@ bookings.action('book', async (input, ctx) => {
 	const visits = starts.map((start, i) => {
 		const slot = slotOf(start, service.duration_minutes);
 		const need = { skill: service.skill, slot, location: customer.location, area: customer.area };
-		const found = rank(need, { helpers, busy, off: pool.off }, ctx.tz, keep);
+		const found = rank(need, { ...pool, helpers, busy }, ctx.tz, keep);
 		// a preference is an order, not a score: the first preferred helper free takes it
 		const best =
 			preferred.length === 0

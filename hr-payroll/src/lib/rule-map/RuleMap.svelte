@@ -22,7 +22,9 @@
 		type RuleMapInput,
 		type RuleNode
 	} from './graph.js';
-	import { rowsForNode, trackerRows, trackerRowsOf, type TrackerRow } from './tracker.js';
+	import { citationParts, rowsForNode, type TrackerRow } from './tracker.js';
+	import { lineageTracker } from './tracker-files.js';
+	import { formatCalendarDate } from '../ui/display-formatters.js';
 
 	let {
 		version
@@ -53,18 +55,8 @@
 	}));
 
 	// The trackers are the template's own documents, loaded only when a map is opened.
-	// ponytail: every tracker is parsed, then filtered to the lineage; key the files by profile if that grows slow.
-	const trackerFiles = import.meta.glob('../../../docs/inventory/*.csv', {
-		query: '?raw',
-		import: 'default'
-	}) as Record<string, () => Promise<string>>;
-	const everyRow = Promise.all(Object.values(trackerFiles).map((load) => load())).then((texts) =>
-		texts.flatMap(trackerRows)
-	);
 	const trackerLoad = $derived(
-		everyRow.then((rows) =>
-			trackerRowsOf(rows, { code: version.code, jurisdiction_code: version.jurisdiction_code })
-		)
+		lineageTracker({ code: version.code, jurisdiction_code: version.jurisdiction_code })
 	);
 
 	const map = $derived(
@@ -162,12 +154,11 @@
 									onclick={() => (selected = selected === node.id ? null : node.id)}
 								>
 									<span class="block truncate font-medium">{node.label}</span>
-									<span class="block truncate text-muted-foreground"
-										>{node.kind}{#if rowsForNode(tracker, node.config).length > 0}
-											· {t('component.rule_map_tracker_count', {
-												count: rowsForNode(tracker, node.config).length
-											})}{/if}</span
-									>
+									{#if rowsForNode(tracker, node.config).length > 0}
+										<span class="block text-muted-foreground tabular-nums"
+											>§ {rowsForNode(tracker, node.config).length}</span
+										>
+									{/if}
 								</button>
 							{/each}
 						</Scroll>
@@ -187,9 +178,6 @@
 				<p class="font-medium">
 					{chosen.label} <span class="text-muted-foreground">· {chosen.kind}</span>
 				</p>
-				{#if chosen.config.length > 0}
-					<p class="font-mono text-muted-foreground">{chosen.config.join('; ')}</p>
-				{/if}
 				<div>
 					<p class="text-meta">{t('component.rule_map_reads')}</p>
 					<Cluster gap="xs">
@@ -217,19 +205,40 @@
 						</Stack>
 					</div>
 				{/if}
-				<div>
-					<p class="text-meta">{t('component.rule_map_tracker', { count: trackerOf.length })}</p>
-					<Stack as="ul" gap="xs">
-						{#each trackerOf as { id: code, status, provision, reason } (code)}
-							<li data-tracker-row={code}>
-								<span class="font-mono">{code}</span>
-								<span class="rounded-sm bg-muted px-1">{status}</span>
-								{provision}
-								{#if reason}<span class="text-muted-foreground">— {reason}</span>{/if}
-							</li>
-						{/each}
-					</Stack>
-				</div>
+				{#if trackerOf.length > 0}
+					<table class="w-full text-xs">
+						<thead>
+							<tr class="text-meta text-left">
+								<th class="py-0.5 pr-2 font-normal">{t('component.rule_map_citation')}</th>
+								<th class="py-0.5 pr-2 font-normal">{t('component.rule_map_effective')}</th>
+								<th class="py-0.5 font-normal">{t('component.rule_map_status')}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each trackerOf as row (row.id)}
+								{@const cite = citationParts(row.citation || row.provision)}
+								<tr class="border-t border-border align-top" data-tracker-row={row.id}>
+									<td class="py-0.5 pr-2">
+										<span class="line-clamp-2"
+											>{#if cite.url}<a
+													class="underline"
+													href={cite.url}
+													target="_blank"
+													rel="noreferrer">{cite.title}</a
+												>{:else}{cite.title}{/if}</span
+										>
+									</td>
+									<td class="py-0.5 pr-2 whitespace-nowrap tabular-nums"
+										>{row.effective_from ? formatCalendarDate(row.effective_from) : '—'} → {row.effective_to
+											? formatCalendarDate(row.effective_to)
+											: '—'}</td
+									>
+									<td class="py-0.5 whitespace-nowrap">{row.status}</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
 			</Stack>
 		{/if}
 	</Stack>

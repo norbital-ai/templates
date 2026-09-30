@@ -13,6 +13,8 @@
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import { RecordShell, Table, type RecordView } from '@norbital-ai/ui';
 	import CalculationFlow from '../../../lib/ui/calculation-flow.svelte';
+	import RuleMap from '../../../lib/rule-map/RuleMap.svelte';
+	import ReferenceTables from '../../../lib/ui/reference-tables.svelte';
 	import {
 		createValues,
 		HR_CREATE_SCOPE,
@@ -162,10 +164,17 @@
 	{#if record}<CalculationFlow version={record} />{/if}
 {/snippet}
 
+{#snippet visualization()}
+	{#if record}<RuleMap version={record} />{/if}
+{/snippet}
+
+{#snippet tables()}
+	{#if record}<ReferenceTables version={record} />{/if}
+{/snippet}
+
 {#snippet contributions()}
 	{#if record}
 		<Stack gap="sm">
-			<p class="text-meta">{t('component.statutory_contributions_description')}</p>
 			<Table
 				of="statutory_contributions"
 				key={`statutory_contributions-${record.id}`}
@@ -198,6 +207,18 @@
 	tabs={record == null
 		? []
 		: [
+				{
+					name: 'visualization',
+					title: t('component.visualization'),
+					icon: 'lucide:network',
+					body: visualization
+				},
+				{
+					name: 'tables',
+					title: t('component.reference_tables'),
+					icon: 'lucide:table',
+					body: tables
+				},
 				{
 					name: 'calculation',
 					title: t('component.calculation_flow'),

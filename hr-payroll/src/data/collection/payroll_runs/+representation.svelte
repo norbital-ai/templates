@@ -243,9 +243,6 @@
 					{t('component.held_excluded_from_bank', { count: held })}
 				</p>
 			{/if}
-			{#if eventLedger}
-				<p class="text-sm text-muted-foreground">{t('component.payment_use_events')}</p>
-			{/if}
 		</Stack>
 	{/if}
 {/snippet}
@@ -389,7 +386,6 @@
 							</Stack>
 						</Grid>
 					{/if}
-					<p class="text-sm text-muted-foreground">{t('component.create_run_hint')}</p>
 				</Stack>
 			{/snippet}
 		</Form>

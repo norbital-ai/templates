@@ -77,6 +77,14 @@ describe('quotes', () => {
 		);
 		const l = await rep.get('quote_lines', incl.lineId);
 		expect([dec(l!.net), dec(l!.tax), dec(l!.line_total)]).toEqual([908, 91, 999]);
+		// any ISO code rounds at its own minor unit (KWD has three); a unit price keeps four places; the line's money
+		// carries its document's currency
+		const kwd = await quoteWithLine(
+			{ currency: 'KWD' },
+			{ quantity: 3, unit_price: 1.2345, tax_rate: 0 }
+		);
+		const k = await rep.get('quote_lines', kwd.lineId);
+		expect([k!.currency, dec(k!.unit_price), dec(k!.line_total)]).toEqual(['KWD', 1.2345, 3.704]);
 		refused(
 			await rep.act('quote_lines.create', {
 				quote_id: id,
@@ -341,4 +349,118 @@ describe('purchasing', () => {
 			expect.objectContaining({ ordered: 10, received: 4, invoiced: 3, remaining_to_receive: 6 })
 		]);
 	});
+});
+
+describe('what a desk would trip over', () => {
+	it('bills an invoice line at its quote line’s discount, not the list price', async () => {
+		const q = await quoteWithLine({}, { quantity: 10, unit_price: 10, discount_pct: 10 });
+		committed(await move(rep, 'quotes', q.id, { status: 'won' }));
+		committed(await move(rep, 'quotes', q.id, { status: 'confirmed' }));
+		const inv = committed(await rep.act('sales_invoices.create', { quote_id: q.id, owner_id: KW }));
+		const line = committed(
+			await rep.act('sales_invoice_lines.create', {
+				sales_invoice_id: inv,
+				quote_line_id: q.lineId,
+				quantity: 10
+			})
+		);
+		// 10 × 10 × 0.9 = 90.00 net, 9 % tax 8.10: billing the whole line bills what was quoted
+		const billed = await rep.get('sales_invoice_lines', line);
+		expect([dec(billed!.discount_pct), dec(billed!.net), dec(billed!.line_total)]).toEqual([
+			10, 90, 98.1
+		]);
+	});
+
+	it('prices a quote line from the catalogue and a quote in its account’s currency when none is given', async () => {
+		const { product, account } = await quoteWithLine();
+		const id = committed(
+			await rep.act('quotes.create', {
+				account_id: account.id,
+				title: 'Defaults',
+				tax_inclusive: false,
+				owner_id: KW
+			})
+		);
+		expect((await rep.get('quotes', id))!.currency).toBe(account.currency);
+		const line = committed(
+			await rep.act('quote_lines.create', { quote_id: id, product_id: product.id, quantity: 1 })
+		);
+		const listed = await rep.get('products', product.id);
+		expect(dec((await rep.get('quote_lines', line))!.unit_price)).toBe(dec(listed!.unit_price));
+	});
+
+	it('refuses a currency or tax-basis change under priced lines', async () => {
+		const { id } = await quoteWithLine();
+		refused(await move(rep, 'quotes', id, { tax_inclusive: true }), /lines/);
+		refused(await move(rep, 'quotes', id, { currency: 'JPY' }), /lines/);
+		committed(await move(rep, 'quotes', id, { title: 'Still editable' }));
+		const supplier = await first(buyer, 'suppliers', { active: { eq: true } });
+		const product = await first(buyer, 'products', { active: { eq: true } });
+		const po = committed(
+			await buyer.act('purchase_orders.create', {
+				supplier_id: supplier.id,
+				tax_inclusive: false,
+				owner_id: DAVIN
+			})
+		);
+		committed(
+			await buyer.act('purchase_order_lines.create', {
+				purchase_order_id: po,
+				product_id: product.id,
+				quantity: 1,
+				unit_cost: 3
+			})
+		);
+		refused(await move(buyer, 'purchase_orders', po, { tax_inclusive: true }), /lines/);
+	});
+
+	it('lets a rep keep contacts and close their activities; revisions are the desk’s to number', async () => {
+		const account = await first(rep, 'accounts', { active: { eq: true } });
+		committed(
+			await rep.act('contacts.create', {
+				account_id: account.id,
+				first_name: 'New',
+				last_name: 'Buyer',
+				active: true
+			})
+		);
+		const task = committed(
+			await rep.act('activities.create', {
+				regarding: { collection: 'accounts', id: account.id },
+				type: 'task',
+				subject: 'Call back',
+				owner_id: KW
+			})
+		);
+		committed(
+			await rep.act('activities.update', {
+				target: task,
+				set: { completed_at: '2026-09-25T02:00:00.000Z' }
+			})
+		);
+		expect(
+			await rep.act('quotes.create', {
+				account_id: account.id,
+				title: 'Forged',
+				tax_inclusive: false,
+				owner_id: KW,
+				revision_number: 7
+			})
+		).toMatchObject({ kind: 'refused' });
+	});
+});
+
+it('keeps another rep’s quote lines out of reach', async () => {
+	const other = t.as(t.member(SALES));
+	const { id, lineId, product } = await quoteWithLine();
+	refused(
+		await other.act('quote_lines.create', {
+			quote_id: id,
+			product_id: product.id,
+			quantity: 1,
+			unit_price: 1
+		}),
+		/No readable quotes/
+	);
+	expect(await other.get('quote_lines', lineId)).toBeNull();
 });

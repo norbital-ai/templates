@@ -7,6 +7,7 @@ const columns = [
 	'description',
 	'spec',
 	'unit',
+	'currency',
 	'unit_price',
 	'tax_rate',
 	'qty_on_hand',

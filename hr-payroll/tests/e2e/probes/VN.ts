@@ -2688,14 +2688,14 @@ register(
 		id: 'VN-LC99-01-2',
 		profile: 'VN',
 		description:
-			'Work stoppages by cause, March 2026 (22 working days), 22,000,000 each (1,000,000 a day), Region I: the employer’s fault for 3 days (full wage), co-workers stopped by another’s fault for 5 days at an agreed 70%, and a 16-working-day utility failure at an agreed 30% (floored at the minimum wage for its first 14 working days).',
+			'Work stoppages by cause, March 2026 (22 working days), 22,000,000 each (1,000,000 a day), Region I: the employer’s fault for 3 days (full wage), co-workers stopped by another’s fault for 5 days at an agreed 70%, and a 16-working-day utility failure at an agreed 20%, under the minimum wage, so floored at it for its first 14 working days.',
 		citation: [
 			'Labour Code 45/2019 art.99 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf): (1) the employer’s fault → the full contract wage; (2) co-workers who must stop → the agreed wage, not below the minimum wage; (3) a utility failure not the employer’s fault → the agreed wage, not below the minimum wage for the first 14 working days',
 			`${MW293_CITE}: the day’s floor on the wage’s own divisor 5,310,000 ÷ 22 = 241,363.64`,
 			'Co-workers: 5 × 1,000,000 × 30% = 1,500,000 off → 20,500,000',
-			'Utility: days 1–14 at the floor, 14 × (1,000,000 − 241,363.64) = 10,620,909.09, days 15–16 at 30%, 2 × 700,000 = 1,400,000 → 12,020,909 off (whole đồng) → 9,979,091',
+			'Utility: 20% of the day, 200,000, is under the 241,363.64 floor: days 1–14 at the floor, 14 × (1,000,000 − 241,363.64) = 10,620,909.09, days 15–16 at 20%, 2 × 800,000 = 1,600,000 → 12,220,909 off (whole đồng) → 9,779,091. (At an agreed 30%, 300,000 a day, the floor would not bind.)',
 			`${SI_CITE}: no day is wholly unpaid, so none counts toward the 14-day rule (owner rule VN-SI-01) — SI, HI and UI on the whole contract salary: 1,760,000 / 3,850,000; 330,000 / 660,000; 220,000 / 220,000`,
-			`${PIT_CITE}: 22,000,000 → 209,500; 20,500,000 − 2,310,000 − 15,500,000 = 2,690,000 → 134,500; 9,979,091 → 0`
+			`${PIT_CITE}: 22,000,000 → 209,500; 20,500,000 − 2,310,000 − 15,500,000 = 2,690,000 → 134,500; 9,779,091 → 0`
 		],
 		company: company(),
 		inputs: [
@@ -2746,7 +2746,7 @@ register(
 				to_date: '2026-03-23',
 				facts: {
 					event_date: '2026-03-02',
-					agreed_pay_fraction: 0.3
+					agreed_pay_fraction: 0.2
 				},
 				reason: 'Power failure not the employer’s fault (Labour Code art.99(3))'
 			})
@@ -2780,8 +2780,8 @@ register(
 			{
 				employment: 'y_job',
 				lines: slip(
-					9_979_091,
-					7_669_091,
+					9_779_091,
+					7_469_091,
 					4_730_000,
 					[1_760_000, 3_850_000],
 					[330_000, 660_000],
@@ -2877,7 +2877,13 @@ register(
 						event_date: '2026-04-17',
 						pay_period: '2026-04',
 						reason: 'Separation payment on departure 2026-04-17'
-					}
+					},
+					// art.46(1): the pension-eligible and the art.36(1)(e) leaver are owed none, so the request is refused.
+					...(code === 'SEVERANCE_ALLOWANCE'
+						? {
+								refused: `SEVERANCE_ALLOWANCE is not offered to P-VN-30${index + 1}: its eligibility rule does not hold for them\\.`
+							}
+						: {})
 				} satisfies ProbeInput
 			])
 		],
@@ -2923,8 +2929,8 @@ register(
 			`Labour Code art.98(3), ${LC_CITE} art.57(1): night overtime = day-type rate + 30% + 20% of the day-time hour of that day type — a normal day with no day-time overtime before it: 150% + 30% + 20% × 100% (b2) → OVERTIME 150,000, NIGHT 50,000; the weekly rest day: 200% + 30% + 20% × 200% → OVERTIME 5 × 200,000 + 20,000 = 1,020,000, NIGHT 50,000; the holiday: 300% + 30% + 20% × 300% → OVERTIME 5 × 300,000 + 40,000 = 1,540,000, NIGHT 50,000`,
 			'Labour Code art.109(1): no break is owed on a span under six hours; art.107(2): 11 overtime hours, under 40 a month',
 			`${SI_CITE}, ${HI_CITE}, ${UI_CITE}: on 17,600,000 — 1,408,000 / 3,080,000; 264,000 / 528,000; 176,000 / 176,000`,
-			`${PIT_CITE}; Law 109/2025 art.4(8): night and overtime pay exempt: 17,600,000 − 1,848,000 − 15,500,000 = 252,000 × 5% = 12,600`,
-			'Gross 17,600,000 + 2,710,000 + 180,000 = 20,490,000; net 20,490,000 − 1,848,000 − 12,600 = 18,629,400'
+			`${PIT_CITE}; Law 109/2025 art.4(8): overtime pay and the night-work wage exempt — for a resident from 2026 the whole wage of the ordinary night hour inside the salary (NIGHT_WAGE, 1 × 100,000 on 6 January; the rest-day and holiday night hours are overtime, already outside the base), not only its premium (the seeded PIT reading, VN D-night golden): 17,600,000 − 100,000 − 1,848,000 − 15,500,000 = 152,000 × 5% = 7,600`,
+			'Gross 17,600,000 + 2,710,000 + 180,000 = 20,490,000; net 20,490,000 − 1,848,000 − 7,600 = 18,634,400'
 		],
 		company: company(),
 		inputs: [
@@ -2962,16 +2968,17 @@ register(
 				lines: {
 					...slip(
 						20_490_000,
-						18_629_400,
+						18_634_400,
 						3_784_000,
 						[1_408_000, 3_080_000],
 						[264_000, 528_000],
 						[176_000, 176_000],
-						12_600
+						7_600
 					),
 					BASIC: 17_600_000,
 					OVERTIME: 2_710_000,
-					NIGHT_PREMIUM: 180_000
+					NIGHT_PREMIUM: 180_000,
+					NIGHT_WAGE: 100_000
 				}
 			}
 		]
@@ -3275,7 +3282,8 @@ register(
 			MW293_CITE,
 			'Decree 293/2025/ND-CP art.4 (Government transcription, read 2026-09-30): a weekly wage is converted to a month as the weekly wage × 52 ÷ 12, or to an hour over the normal weekly hours, and must meet the monthly or the hourly minimum: 1,000,000 × 52 ÷ 12 = 4,333,333 < 5,310,000; 1,000,000 ÷ 40 = 25,000 < 25,500'
 		],
-		company: company(),
+		// The company pays on the cadence its people are paid on, else no window exists for the weekly payee.
+		company: { ...company(), pay_frequency: 'WEEKLY' },
 		inputs: [
 			...WEEK,
 			...hire({
@@ -3289,7 +3297,7 @@ register(
 				terms: { ordinary_hours_per_week: 40 }
 			})
 		],
-		period: '2026-03',
+		period: '2026-03-1',
 		refused: 'MINIMUM_WAGE_BELOW.*P-VN-363',
 		expected: []
 	},
@@ -3532,7 +3540,22 @@ register(
 						}
 					]
 				}
-			})
+			}),
+			// 15 unworked unpaid working days: the version asks whether SI is continued; it is not (as VN-LC48-01-1).
+			{
+				collection: 'employment_statutory_facts',
+				values: {
+					employee_id: '@ngan',
+					employment_id: '@ngan_job',
+					statutory_contribution_id: '@law:statutory_contributions:SI',
+					effective_range: { from: '2026-03-23', to: '2026-03-31' },
+					status: {
+						kind: 'REGISTERED',
+						reference_number: 'PROBE-SI-P-VN-368',
+						elections: { continue_si_unpaid: false }
+					}
+				}
+			}
 		],
 		period: '2026-03',
 		expected: [
@@ -3739,10 +3762,18 @@ register(
 					due_on: '2026-03-06',
 					reason: 'Unused annual leave on departure 2026-03-06'
 				}),
-				adhoc(ref, redundant ? 'JOB_LOSS_ALLOWANCE' : 'SEVERANCE_ALLOWANCE', 0, {
-					event_date: '2026-03-06',
-					reason: 'Separation payment on departure 2026-03-06'
-				})
+				{
+					...adhoc(ref, redundant ? 'JOB_LOSS_ALLOWANCE' : 'SEVERANCE_ALLOWANCE', 0, {
+						event_date: '2026-03-06',
+						reason: 'Separation payment on departure 2026-03-06'
+					}),
+					// art.46(1): no UI-uncovered service, so the resigner is owed no severance and the request is refused.
+					...(redundant
+						? {}
+						: {
+								refused: `SEVERANCE_ALLOWANCE is not offered to ${number}: its eligibility rule does not hold for them\\.`
+							})
+				}
 			])
 		],
 		period: '2026-03',
@@ -3771,7 +3802,7 @@ register(
 			'The 40-hour month, March 2026 (22 working days, no holiday), 17,600,000 (100,000 an hour): 3 approved overtime hours beyond the normal day on 14 weekdays (2–19 March) = 42. The first 40 are overtime at 150%, exempt from PIT; the 41st and 42nd (19 March) are paid at the same rate as taxable incentive pay.',
 		citation: [
 			`${LC_GAZETTE} art.107(2)(b) (p.47): overtime at most 50% of the normal daily hours and at most 40 hours a month; art.98(1)(a): at least 150% on a normal day; ${LC_CITE} art.55(1)(a): 17,600,000 ÷ 22 ÷ 8 = 100,000 → 150,000 an overtime hour`,
-			'OVERTIME 40 × 150,000 = 6,000,000; the 2 hours past the monthly ceiling INCENTIVE 2 × 150,000 = 300,000 (work done is paid, but it is not overtime within art.107)',
+			'OVERTIME 40 × 150,000 = 6,000,000; the 2 hours past the monthly ceiling INCENTIVE 2 × 150,000 = 300,000 (work done is paid, but it is not overtime within art.107): 19 March keys 1 approved hour, the last within the 40, and 2 incentive hours — approval past the ceiling is refused',
 			'PIT: Law 109/2025/QH15 art.4(8) (Official Gazette 37 DOCX, https://congbao.chinhphu.vn/van-ban/luat-so-109-2025-qh15-468671.htm, read 2026-09-30) exempts “tiền lương làm việc ban đêm, làm thêm giờ … theo quy định của pháp luật” — overtime within the labour law, applied to resident salary from tax year 2026 (art.29(2)); the 2 hours past art.107(2)(b) are taxable (the seeded reading, golden “VN — overtime past the 40-hour month … funnelled to the taxable line”)',
 			`${SI_CITE}, ${HI_CITE}, ${UI_CITE}: on 17,600,000 — 1,408,000 / 3,080,000; 264,000 / 528,000; 176,000 / 176,000`,
 			`${PIT_CITE}: 17,600,000 + 300,000 − 1,848,000 − 15,500,000 = 552,000 × 5% = 27,600`,
@@ -3788,17 +3819,19 @@ register(
 				salary: 17_600_000,
 				from: '2025-06-02'
 			}),
-			...[2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 16, 17, 18, 19].map((day) =>
-				worked(
+			// 13 days × 3 = 39 approved; 19 March keys the one hour left and the 2 past the ceiling as incentive hours.
+			...[2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 16, 17, 18, 19].map((day) => {
+				const input = worked(
 					'gio40_job',
 					`2026-03-${String(day).padStart(2, '0')}`,
 					[
 						['09:00', '13:00'],
 						['14:00', '21:00']
 					],
-					3
-				)
-			)
+					day === 19 ? 1 : 3
+				);
+				return day === 19 ? { ...input, values: { ...input.values, incentive_hours: 2 } } : input;
+			})
 		],
 		period: '2026-03',
 		expected: [
@@ -4123,9 +4156,9 @@ register(
 		id: 'VN-LC25-02-1',
 		profile: 'VN',
 		description:
-			'A 60-day probation for a college-level job (2 March – 30 April 2026) at 17,000,000 against a job wage of 20,000,000 (exactly 85%): recorded. Lowering the probation wage to 16,999,999 is refused, and extending the probation to 1 May (61 days) is refused.',
+			'A 60-day probation for a college-level job (2 March – 30 April 2026) at 17,000,000 against a job wage of 20,000,000 (exactly 85%): recorded. Lowering the probation wage to 16,999,999 is refused, and a second college-level probation of 61 days (1 April – 31 May) is refused.',
 		citation: [
-			`${LC_GAZETTE} art.25(2): at most 60 days for a job needing college-level or higher qualifications — 2 March to 30 April 2026 is 30 + 30 = 60 days, to 1 May 61`,
+			`${LC_GAZETTE} art.25(2): at most 60 days for a job needing college-level or higher qualifications — 2 March to 30 April 2026 is 30 + 30 = 60 days; 1 April to 31 May is 30 + 31 = 61`,
 			`${LC_GAZETTE} art.26: the probation wage is at least 85% of the job's wage — 20,000,000 × 85% = 17,000,000 > 16,999,999`
 		],
 		company: company(),
@@ -4138,7 +4171,6 @@ register(
 					number: 'P-VN-405',
 					born: '1999-05-05',
 					gender: 'FEMALE',
-					// the terms stay open so the EXIT check reads them on the extended last day
 					salary: [{ amount: 17_000_000, from: '2026-03-02', to: null }],
 					from: '2026-03-02',
 					to: '2026-04-30',
@@ -4153,12 +4185,23 @@ register(
 				values: { base_salary: 16_999_999 },
 				refused: 'P-VN-405: the probation wage is below 85% of the wage of the job'
 			},
-			{
-				collection: 'employments',
-				target: '@thu_job',
-				values: { effective_range: { from: '2026-03-02', to: '2026-05-01' } },
-				refused: 'P-VN-405: the probation is longer than its job class allows'
-			}
+			// A closed contract's end may only move earlier, so the 61-day probation is a second one, 1 April – 31 May
+			// (outside the March run): its terms are refused.
+			...hire({
+				ref: 'thu61',
+				name: 'Thử Văn Dài',
+				number: 'P-VN-407',
+				born: '1999-06-06',
+				salary: [{ amount: 17_000_000, from: '2026-04-01', to: null }],
+				from: '2026-04-01',
+				to: '2026-05-31',
+				type: 'PROBATION',
+				termsFacts: { probation_class: 'COLLEGE_OR_ABOVE', probation_job_wage: 20_000_000 }
+			}).map((input) =>
+				input.collection === 'employment_terms'
+					? { ...input, refused: 'P-VN-407: the probation is longer than its job class allows' }
+					: input
+			)
 		],
 		period: '2026-03',
 		expected: []

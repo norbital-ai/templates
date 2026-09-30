@@ -91,6 +91,22 @@ const twWeek = (from: string): ProbeInput[] => [
 			},
 			effective_range: { from, to: null }
 		}
+	},
+	// A part-timer's contract week: Monday and Tuesday; the days a week are read from the pattern.
+	{
+		collection: 'shift_patterns',
+		ref: 'monTue',
+		values: {
+			company_id: '@company',
+			code: 'OFFICEx2-RESTx4-STATUTORY',
+			name: '2 x OFFICE, 4 x 休息日, 例假',
+			pattern: {
+				days: ['@office', '@office', '@rest', '@rest', '@rest', '@rest', '@statutory'].map(
+					(roster_code_id) => ({ roster_code_id })
+				)
+			},
+			effective_range: { from, to: null }
+		}
 	}
 ];
 
@@ -2924,7 +2940,7 @@ register(
 						employment_type: 'PART_TIME',
 						pay_frequency: 'HOURLY',
 						ordinary_hours_per_week: 16,
-						working_days_per_week: 2
+						shift_pattern_id: '@monTue'
 					}
 				}
 			)
@@ -3828,14 +3844,13 @@ register(
 	tw({
 		id: 'TW-EXIT-03-2',
 		description:
-			'An old-system worker at a unit declaring a 16% reserve rate: outside the §56(1) 2–15% range, the run is refused rather than priced.',
+			'An old-system worker at a unit that tries to declare a 16% reserve rate: outside the §56(1) 2–15% range, the company fact is refused, and March is priced at the 2% it holds.',
 		citation: [
 			`${SRC.lsa} §56(1) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030001&flno=56): 雇主應依勞工每月薪資總額百分之二至百分之十五範圍內，按月提撥勞工退休準備金 — 16% is not a rate the authority can approve.`,
-			'Worker as TW-EXIT-03-1 (citizen since 2004, old system retained).'
+			'Worker and figures as TW-EXIT-03-1 (citizen since 2004, old system retained, 50,000 × 2% = 1,000).'
 		],
-		company: { facts: { pension_reserve_rate: 16 } },
+		company: { facts: { pension_reserve_rate: 2 } },
 		period: '2026-03',
-		refused: 'owes the monthly 勞工退休準備金 at the rate the authority approved',
 		people: [
 			citizen(
 				'ku2',
@@ -3845,7 +3860,29 @@ register(
 				{ born: '1975-11-20', hired: '2004-03-01', standing: { LABOR_PENSION: OLD_SYSTEM } }
 			)
 		],
-		expected: {}
+		extra: () => [
+			{
+				collection: 'companies',
+				target: '@company',
+				values: { facts: { pension_reserve_rate: 16 } },
+				refused: 'TW: Pension reserve rate must be at most 15\\.'
+			}
+		],
+		expected: {
+			ku2: {
+				gross: 50_000,
+				net: 48_070,
+				employer_cost: 7518,
+				'LI.employee': 1053,
+				'LI.employer': 3687,
+				'EI.employee': 92,
+				'EI.employer': 321,
+				'NHI.employee': 785,
+				'NHI.employer': 2449,
+				'OCC_INJURY.employer': 61,
+				'LABOR_PENSION_RESERVE.employer': 1000
+			}
+		}
 	}),
 	tw({
 		id: 'TW-TAX-05-2',
@@ -3954,8 +3991,8 @@ register(
 					gender: 'FEMALE',
 					terms: {
 						employment_type: 'PART_TIME',
-						ordinary_hours_per_week: 10,
-						working_days_per_week: 5
+						// five working days a week from the office pattern
+						ordinary_hours_per_week: 10
 					}
 				}
 			)

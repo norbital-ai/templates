@@ -57,8 +57,8 @@ type RunExport = {
 	readonly runId: string;
 	readonly period: string;
 	readonly payDate: string;
-	/** The entity's named workbook layout, carried so the export never infers one from a currency. */
-	readonly layout: 'MATRIX' | 'VENDOR';
+	/** The legal entity's name, as the salary listing's masthead prints it. */
+	readonly company: string;
 	/** The account the entity pays from, when it has one; `null` keeps the generic listing. */
 	readonly payer: PayerAccount | null;
 	readonly payslips: readonly ReportPayslip[];
@@ -96,11 +96,41 @@ type RunRow = {
 
 /** What a settled line's catalogue says about it, reduced to the workbook's questions. */
 type ExportLine = {
+	/** The name a reader sees: the catalogue row's, else the code. */
+	readonly name: string;
 	readonly calculationSource: string;
 	readonly bucket: SettlementBucket;
 	readonly destination: SettlementDestination;
 	readonly family: FamilyPayItem['family'];
 };
+
+/** The engine's reserved lines, by the name a payslip prints (`work-lines.ts`, `work-bands.ts`). */
+const RESERVED_NAMES: Readonly<Record<string, string>> = {
+	BASIC: 'Basic pay',
+	ABSENCE: 'Unpaid absence',
+	OVERTIME: 'Overtime',
+	INCENTIVE: 'Overtime incentive'
+};
+
+const FIGURE = (value: number) =>
+	value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const COUNT = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 2 });
+
+/** A base line's proration as figures — `500.00 × 16/31`, segments added — or none when whole. */
+function prorationDetail(
+	segments: WorkspaceRow<'payslips'>['proration'],
+	code: string
+): string | undefined {
+	const own = (segments ?? []).filter((segment) => segment.component_code === code);
+	return own.some((segment) => segment.days !== segment.denominator)
+		? own
+				.map(
+					(segment) =>
+						`${FIGURE(segment.contract_amount)} × ${COUNT(segment.days)}/${COUNT(segment.denominator)}`
+				)
+				.join(' + ')
+		: undefined;
+}
 
 function timestampHours(row: Omit<WorkDayLike, 'break_minutes'>): number {
 	const elapsed = normalizedWorkedIntervals(row).reduce(
@@ -124,11 +154,8 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 		}),
 		readAll<WorkspaceRow<'payslips'>>(reads, 'payslips', { payroll_run_id: { in: runIds } })
 	]);
-	/** The named layout of each run's entity; an entity that states none takes the matrix. */
-	const layoutOf = (run: RunRow): 'MATRIX' | 'VENDOR' =>
-		companies.find((row) => row.id === run.company_id)?.workbook_layout === 'VENDOR'
-			? 'VENDOR'
-			: 'MATRIX';
+	const companyOf = (run: RunRow): string =>
+		companies.find((row) => row.id === run.company_id)?.name ?? '';
 	/** The entity's originator account, decoded; a malformed one is no account, not a crash. */
 	const payerOf = (run: RunRow): PayerAccount | null => {
 		const decoded = Schema.decodeUnknownOption(payerAccountSchema)(
@@ -144,7 +171,7 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 			runId: run.id,
 			period: run.period,
 			payDate: requiredDateKey(run.pay_date, 'payroll_runs.pay_date'),
-			layout: layoutOf(run),
+			company: companyOf(run),
 			payer: payerOf(run),
 			payslips: [],
 			bank: [],
@@ -257,6 +284,7 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 				settings_id: version.id
 			}))
 				componentByCode.set(item.code, {
+					name: RESERVED_NAMES[item.code] ?? item.name ?? item.code,
 					calculationSource: item.definition.source,
 					bucket: settlementBucket(item.destination, item.direction),
 					destination: item.destination,
@@ -266,6 +294,7 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 			// Leave carries no pricing and no landing: the engine prices both lines at the
 			// ordinary day wage, so the export states the landing each line's bucket means.
 			componentByCode.set(encashmentCode(row.code), {
+				name: `${row.name} encashment`,
 				calculationSource: 'DERIVED',
 				bucket: 'EARNING',
 				destination: 'PAY',
@@ -273,6 +302,7 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 			});
 			if (row.is_npl || row.paid_by === 'FUND' || row.pay_fraction.trim() !== '')
 				componentByCode.set(row.code, {
+					name: row.name,
 					calculationSource: 'DERIVED',
 					bucket: 'ABSENCE',
 					destination: 'PAY',
@@ -292,6 +322,7 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 				const destination = row.destination;
 				const direction = row.direction;
 				componentByCode.set(row.code, {
+					name: row.name ?? row.code,
 					calculationSource: 'ENTRY',
 					bucket: settlementBucket(destination, direction),
 					destination,
@@ -419,7 +450,7 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 				return [
 					{
 						componentCode: componentCode,
-						componentName: componentCode,
+						componentName: line?.name ?? RESERVED_NAMES[componentCode] ?? componentCode,
 						family,
 						// An adjustment states the bucket it settled in; a base line reads its
 						// catalogue's, and a code the run no longer carries is informational.
@@ -443,7 +474,10 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 						entry.amount,
 						null,
 						componentByCode.get(entry.component_code)?.family === 'ALLOWANCE' ? 'ALLOWANCE' : 'BASE'
-					)
+					).map((line) => ({
+						...line,
+						detail: prorationDetail(payslip.proration, entry.component_code)
+					}))
 				),
 				...payslipAdjustments.flatMap((row): ReportLine[] =>
 					reportLine(
@@ -519,7 +553,7 @@ export async function loadRunExports(reads: Reads, runs: readonly RunRow[]): Pro
 			runId: run.id,
 			period: run.period,
 			payDate: runPayDate,
-			layout: layoutOf(run),
+			company: companyOf(run),
 			payer: payerOf(run),
 			payslips: report,
 			bank,

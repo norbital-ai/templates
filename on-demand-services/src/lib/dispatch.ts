@@ -2,10 +2,18 @@
  * The reads and writes around the matching rules, shared by the collection actions and the shift watch: loading the
  * pool a match runs over, and handing visits to another helper.
  */
-import type { ActionCtx, Id, QueryCtx } from '@norbital-ai/bolt';
+import type { ActionCtx, AutomationCtx, Id, QueryCtx } from '@norbital-ai/bolt';
 import { addDays, Instant, PlainDate } from '@norbital-ai/std/date';
 import { localOf, utcOf } from '@norbital-ai/std/zone';
-import { DEFAULTS, rank, type Pool, type Settings, type Slot } from './matching.js';
+import {
+	DEFAULTS,
+	lookups,
+	rank,
+	type Point,
+	type Pool,
+	type Settings,
+	type Slot
+} from './matching.js';
 
 type Reads = Pick<QueryCtx, 'read' | 'tz' | 'now'>;
 type Writes = Reads & Pick<ActionCtx<'visits'>, 'act' | 'notify'>;
@@ -25,8 +33,16 @@ export function dayOf(instant: string, zone: string): Slot {
 	return { start: iso(utcOf(date, 0, zone)), end: iso(utcOf(addDays(date, 1), 0, zone)) };
 }
 
-/** Every active helper, and what holds them from a day before `from` to a day after `to`. */
-export async function loadPool(ctx: Reads, from: string, to: string): Promise<Pool> {
+/**
+ * Every active helper, what holds them from a day before `from` to a day after `to`, and the Google drive times cached
+ * for the legs a match at `spots` may ask about.
+ */
+export async function loadPool(
+	ctx: Reads,
+	from: string,
+	to: string,
+	spots: readonly (Point | null)[] = []
+): Promise<Pool> {
 	const start = iso(Date.parse(from) - DAY),
 		end = iso(Date.parse(to) + DAY);
 	const [helpers, visits, off] = await Promise.all([
@@ -63,7 +79,7 @@ export async function loadPool(ctx: Reads, from: string, to: string): Promise<Po
 			all: true
 		})
 	]);
-	return {
+	const pool = {
 		helpers: helpers.rows,
 		busy: visits.rows.map((v) => ({
 			id: v.id,
@@ -73,6 +89,62 @@ export async function loadPool(ctx: Reads, from: string, to: string): Promise<Po
 		})),
 		off: off.rows
 	};
+	const legs = lookups(pool, spots, ctx.tz);
+	const known =
+		legs.length === 0
+			? []
+			: (
+					await ctx.read('drive_times', {
+						where: { leg: { in: legs } },
+						select: { leg: true, minutes: true },
+						all: true
+					})
+				).rows;
+	return { ...pool, drive: new Map(known.map((d) => [d.leg, d.minutes])) };
+}
+
+/**
+ * Google's drive minutes from `origin` to each of `destinations` (at most 625), `null` for one it could not route; `null`
+ * altogether when the call fails (no API key, quota, outage), so the caller keeps its estimate. With `traffic`, live
+ * traffic at this moment; without, the typical time.
+ */
+export async function googleMinutes(
+	ctx: Pick<AutomationCtx, 'http'>,
+	origin: Point,
+	destinations: readonly Point[],
+	traffic: boolean
+): Promise<(number | null)[] | null> {
+	const at = (p: Point) => ({
+		waypoint: { location: { latLng: { latitude: p.lat, longitude: p.lng } } }
+	});
+	const answer = await ctx.http('google_routes').post.try('distanceMatrix/v2:computeRouteMatrix', {
+		query: { fields: 'originIndex,destinationIndex,duration,condition' },
+		body: {
+			origins: [at(origin)],
+			destinations: destinations.map(at),
+			travelMode: 'DRIVE',
+			routingPreference: traffic ? 'TRAFFIC_AWARE' : 'TRAFFIC_UNAWARE'
+		},
+		output: {
+			kind: 'list',
+			of: {
+				kind: 'object',
+				fields: {
+					originIndex: { kind: 'int', optional: true },
+					destinationIndex: { kind: 'int', optional: true },
+					duration: { kind: 'text', optional: true },
+					condition: { kind: 'text', optional: true }
+				}
+			}
+		}
+	});
+	if (!Array.isArray(answer)) return null;
+	const out: (number | null)[] = destinations.map(() => null);
+	for (const e of answer)
+		// a zero index is left out of Google's JSON; a duration is seconds, as "123s"
+		if (e.condition === 'ROUTE_EXISTS' && e.duration != null)
+			out[e.destinationIndex ?? 0] = Math.ceil(parseFloat(e.duration) / 60);
+	return out;
 }
 
 /** What a reassignment reads of each visit. */
@@ -119,7 +191,12 @@ export async function reassign(
 ): Promise<{ assigned: number; unassigned: number }> {
 	if (visits.length === 0) return { assigned: 0, unassigned: 0 };
 	const starts = visits.map((v) => v.slot.start).sort();
-	const pool = await loadPool(ctx, starts[0]!, starts.at(-1)!);
+	const pool = await loadPool(
+		ctx,
+		starts[0]!,
+		starts.at(-1)!,
+		visits.map((v) => v.location)
+	);
 	const helpers = pool.helpers.filter((h) => h.id !== away);
 	const busy = [...pool.busy];
 	const names = new Map(pool.helpers.map((h) => [h.id, h.name]));
@@ -129,7 +206,7 @@ export async function reassign(
 	for (const v of visits) {
 		const slot = { start: v.slot.start, end: v.slot.end! };
 		const need = { skill: v.skill, slot, location: v.location, area: v.area, visit: v.id };
-		const best = rank(need, { helpers, busy, off: pool.off }, ctx.tz)[0];
+		const best = rank(need, { ...pool, helpers, busy }, ctx.tz)[0];
 		if (best === undefined) unassigned += 1;
 		else busy.push({ id: v.id, helper: best.helper, slot, location: v.location });
 		updates.push({

@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { Instant } from '@norbital-ai/std/date';
 import type { PlainTime } from '@norbital-ai/bolt';
 import {
+	cellOf,
 	driveMinutes,
+	legOf,
+	lookups,
 	occurrences,
 	openSlots,
 	proposal,
@@ -104,6 +107,107 @@ describe('ranking', () => {
 		expect(driveMinutes(EAST, EAST)).toBe(0);
 		expect(driveMinutes(EAST, WEST)).toBeGreaterThan(30);
 		expect(driveMinutes(null, EAST)).toBe(30);
+	});
+});
+
+const leg = (a: typeof EAST, b: typeof EAST) => legOf(a, b)!;
+
+describe('Google drive times', () => {
+	it('override the straight-line estimate, one way at a time', () => {
+		const drive = new Map([[leg(WEST, EAST), 20]]);
+		expect(driveMinutes(WEST, EAST, drive)).toBe(20);
+		expect(driveMinutes(EAST, WEST, drive)).toBeGreaterThan(30); // the way back is not timed yet
+		// two addresses in one ~1 km square are never looked up
+		expect(legOf(EAST, { lat: EAST.lat + 0.001, lng: EAST.lng })).toBeNull();
+		expect(cellOf(EAST)).toBe('1.35,103.94');
+	});
+
+	it('free a start the estimate would refuse, and refuse one it would allow', () => {
+		// ends 10:00 in the west; the estimate (~65 min) blocks a 10:40 start in the east, a timed 20 min does not
+		const earlier = {
+			id: 'v',
+			helper: 'a',
+			slot: slotOf(at('2026-09-27T23:00:00.000Z'), 180),
+			location: WEST
+		};
+		const tenForty = { ...need, slot: slotOf(at('2026-09-28T02:40:00.000Z'), 120) };
+		expect(refusal(helper('a'), tenForty, pool({ busy: [earlier] }), SG)).toBe('booked');
+		const timed = pool({ busy: [earlier], drive: new Map([[leg(WEST, EAST), 20]]) });
+		expect(refusal(helper('a'), tenForty, timed, SG)).toBeNull();
+		// a short hop the estimate allows is refused once Google says it takes an hour
+		const near = { lat: 1.33, lng: 103.94 };
+		const hop = { ...earlier, location: near };
+		const tenTwentyFive = { ...need, slot: slotOf(at('2026-09-28T02:25:00.000Z'), 120) };
+		expect(refusal(helper('a'), tenTwentyFive, pool({ busy: [hop] }), SG)).toBeNull();
+		const slow = pool({ busy: [hop], drive: new Map([[leg(near, EAST), 60]]) });
+		expect(refusal(helper('a'), tenTwentyFive, slow, SG)).toBe('booked');
+	});
+
+	it('are looked up for every planned leg and every leg to and from the spot', () => {
+		const h = helper('a');
+		const day = [
+			{ id: '1', helper: 'a', slot: slotOf(at('2026-09-28T00:00:00.000Z'), 60), location: WEST },
+			{ id: '2', helper: 'a', slot: slotOf(at('2026-09-28T06:00:00.000Z'), 60), location: EAST }
+		];
+		const near = { lat: 1.3, lng: 103.8 };
+		expect(new Set(lookups(pool({ helpers: [h], busy: day }), [near], SG))).toEqual(
+			new Set([
+				leg(EAST, WEST), // home to the first visit
+				leg(WEST, EAST), // first to second
+				leg(WEST, near),
+				leg(near, WEST),
+				leg(near, EAST),
+				leg(EAST, near) // also home to the spot: home is in the east
+			])
+		);
+	});
+});
+
+describe('efficiency', () => {
+	const MID = { lat: 1.345, lng: 103.83 };
+	const run = (helperId: string, start: string, minutes: number, location: typeof EAST) => ({
+		id: `${helperId}-${start}`,
+		helper: helperId,
+		slot: slotOf(at(start), minutes),
+		location
+	});
+	const midday = { skill: 'home_cleaning', slot: MONDAY, location: MID, area: 'central' };
+
+	it('ranks by the drive a visit adds to the day: a visit on the way costs nearly nothing', () => {
+		// on the way from the west (08:00) to the east (14:00), versus a helper at home nearer than either end
+		const onTheWay = helper('on_the_way', { home_location: WEST, home_area: 'west' });
+		const atHome = helper('at_home', { home_location: EAST, home_area: 'east' });
+		const drive = new Map([
+			[leg(WEST, MID), 20],
+			[leg(MID, EAST), 20],
+			[leg(WEST, EAST), 35],
+			[leg(EAST, MID), 15]
+		]);
+		const busy = [
+			run('on_the_way', '2026-09-28T00:00:00.000Z', 60, WEST),
+			run('on_the_way', '2026-09-28T06:00:00.000Z', 60, EAST)
+		];
+		const [first, second] = rank(midday, pool({ helpers: [atHome, onTheWay], busy, drive }), SG);
+		expect(first).toMatchObject({ helper: 'on_the_way', drive_minutes: 5, week_hours: 2 });
+		expect(second).toMatchObject({ helper: 'at_home', drive_minutes: 15, week_hours: 0 });
+	});
+
+	it('balances the week by hours booked: a heavy week outweighs a slightly shorter drive', () => {
+		const busyOne = helper('busy', { home_location: EAST });
+		const idle = helper('idle', { home_location: WEST });
+		const drive = new Map([
+			[leg(EAST, MID), 15],
+			[leg(WEST, MID), 25]
+		]);
+		// 30 hours already that week (Tuesday to Saturday): 60 minutes' worth against 10 minutes more driving
+		const heavy = ['09-29', '09-30', '10-01', '10-02', '10-03'].map((d) =>
+			run('busy', `2026-${d}T01:00:00.000Z`, 360, EAST)
+		);
+		const order = rank(midday, pool({ helpers: [busyOne, idle], busy: heavy, drive }), SG);
+		expect(order.map((c) => [c.helper, c.week_hours])).toEqual([
+			['idle', 0],
+			['busy', 30]
+		]);
 	});
 });
 

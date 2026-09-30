@@ -91,7 +91,8 @@ helpers.query('open_slots', async (input, ctx) => {
 	const pool = await loadPool(
 		ctx,
 		new Date(utcOf(days[0]!, 0, ctx.tz)).toISOString(),
-		new Date(utcOf(days.at(-1)!, 0, ctx.tz)).toISOString()
+		new Date(utcOf(days.at(-1)!, 0, ctx.tz)).toISOString(),
+		[customer.location]
 	);
 	const need = {
 		skill: service.skill,
@@ -134,7 +135,15 @@ helpers.action('offboard', async ({ last_day }, ctx) => {
 		all: true
 	});
 	const starts = later.map((v) => v.slot.start).sort();
-	const pool = later.length === 0 ? null : await loadPool(ctx, starts[0]!, starts.at(-1)!);
+	const pool =
+		later.length === 0
+			? null
+			: await loadPool(
+					ctx,
+					starts[0]!,
+					starts.at(-1)!,
+					later.map((v) => v.location)
+				);
 	const others = { ...pool!, helpers: (pool?.helpers ?? []).filter((h) => h.id !== helper.id) };
 	const busy = [...(pool?.busy ?? [])];
 	const names = new Map(others.helpers.map((h) => [h.id, h.name]));

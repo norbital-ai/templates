@@ -1,7 +1,7 @@
 import { collection, type PlainDate, type TransformCtx } from '@norbital-ai/bolt';
 import { addDays } from '@norbital-ai/std/date';
 import { EXPORT_OUTPUT, orderDocument } from '../../../lib/document-export.js';
-import { missingReason, num } from '../../../lib/pricing.js';
+import { missingReason, num, reprices } from '../../../lib/pricing.js';
 
 const EXPECTED_LEAD_DAYS = 14;
 const plusDays = (day: PlainDate, days: number) => addDays(day, days);
@@ -12,7 +12,8 @@ const terms = ['owner_id', 'status', 'currency', 'tax_inclusive', 'expected_date
 /**
  * Opens an order against an active supplier, copying down its code, name and currency and expecting delivery two weeks
  * out (numbered `PO-<year>-<n>`). Submitting needs at least one line; cancelling needs a reason; a submitted order
- * takes only its confirmation or cancellation, and a confirmed or cancelled one is frozen.
+ * takes only its confirmation or cancellation, and a confirmed or cancelled one is frozen. A draft's currency and tax
+ * basis hold still under its priced lines.
  */
 const c = collection('purchase_orders', {
 	read: { fields: 'all' },
@@ -55,16 +56,19 @@ const c = collection('purchase_orders', {
 export default c;
 
 c.transform(async (inputs, ctx: TransformCtx<'purchase_orders'>) => {
-	const submitting = inputs.flatMap((input, i) =>
-		input.status === 'submitted' ? [ctx.existing[i]!.id] : []
-	);
+	const lineChecked = inputs.flatMap((input, i) => {
+		const stored = ctx.existing[i];
+		return input.status === 'submitted' || (stored !== undefined && reprices(input, stored))
+			? [stored!.id]
+			: [];
+	});
 	const [suppliers, lines] = await Promise.all([
 		ctx.db.read('suppliers', {
 			where: { id: { in: inputs.flatMap((input) => input.supplier_id ?? []) } },
 			all: true
 		}),
 		ctx.db.read('purchase_order_lines', {
-			where: { purchase_order_id: { in: submitting } },
+			where: { purchase_order_id: { in: lineChecked } },
 			all: true
 		})
 	]);
@@ -88,6 +92,11 @@ c.transform(async (inputs, ctx: TransformCtx<'purchase_orders'>) => {
 		if (from === to) {
 			if (from !== 'draft')
 				ctx.refuse(`A ${from} purchase order is immutable. Revise by starting a new order.`);
+			// lines are priced once, in the order's currency and tax basis: neither moves under them
+			if (reprices(input, stored) && withLines.has(stored.id))
+				ctx.refuse(
+					'Currency and tax basis cannot change once the order has lines. Remove the lines first.'
+				);
 			return input;
 		}
 		if (to === 'submitted' && !withLines.has(stored.id))

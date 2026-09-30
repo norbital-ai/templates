@@ -5,13 +5,13 @@
 	 */
 	import { bolt } from '$bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
-	import { Table, Tabs } from '@norbital-ai/ui';
+	import { EmptyState, Table, Tabs } from '@norbital-ai/ui';
 
 	const t = bolt.t;
 </script>
 
 {#snippet calm(message: string)}
-	<p class="text-sm text-muted-foreground">{message}</p>
+	<EmptyState variant="inset" title={message} />
 {/snippet}
 {#snippet noAttention()}{@render calm(t('app.schedule.all_clear'))}{/snippet}
 {#snippet noShifts()}{@render calm(t('app.schedule.no_open_shift_checks'))}{/snippet}

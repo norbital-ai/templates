@@ -268,6 +268,40 @@ for (const [period, date, wage, residency, base, tax, derivation] of [
 		assert.deepEqual([pit.base_amount, pit.employee_amount], [base, tax]);
 	});
 
+test('VN D13: a rest-day night hour is overtime — premium, but no NIGHT_WAGE inside the salary', () => {
+	// Sunday 11 January 2026, 18:00–23:00, five approved hours: every hour is rest-day overtime
+	// (5 × 200,000 + 20% × 200,000 × 1 = 1,020,000), its 22:00 hour +50% of 100,000 = 50,000. The
+	// salary pays no rest-day hour, so no ordinary night wage is shown (Labour Code art.98).
+	const { slips } = buildStatutory(
+		{
+			code: 'VN',
+			period: '2026-01',
+			region: 'I',
+			people: [{ key: 'VN-SUN', wage: 17_600_000, tax_residency: 'RESIDENT' }]
+		},
+		(world) => {
+			world.work_days.push({
+				id: 'wd-sun',
+				employment_id: world.employments[0]!.id,
+				work_date: '2026-01-11',
+				shift_definition_id: null,
+				worked_intervals: [
+					{ start: '2026-01-11T18:00:00+07:00', end: '2026-01-11T23:00:00+07:00' }
+				],
+				approved_overtime_hours: 5,
+				approval_id: null
+			});
+		}
+	);
+	assert.deepEqual(
+		slips.get('VN-SUN')!.adjustments.map((row) => [row.component_code, row.quantity, row.amount]),
+		[
+			['OVERTIME', 5, 1_020_000],
+			['NIGHT_PREMIUM', 1, 50_000]
+		]
+	);
+});
+
 // ─── D14: leave pay beyond the statutory level ──────────────────────────────────────────────
 
 test('VN D14: cessation leave pay is exempt and an excess paid beside it is income of the paying month', () => {

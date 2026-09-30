@@ -1,5 +1,4 @@
 import { model } from '@norbital-ai/bolt';
-import { CURRENCIES } from '../../../lib/currency.js';
 
 /**
  * draft → sent → won → confirmed (terminal); sent → draft is a revision (the transform raises `revision_number`);
@@ -29,7 +28,7 @@ export default model({
 				cancelled: { edit: 'none' }
 			}
 		},
-		currency: { kind: 'enum', values: CURRENCIES, optional: true },
+		currency: { kind: 'currency', optional: true },
 		tax_inclusive: { kind: 'bool' },
 		valid_until: { kind: 'date', optional: true },
 		payment_terms: { kind: 'text', optional: true },

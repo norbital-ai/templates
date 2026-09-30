@@ -53,7 +53,9 @@ const payslip = {
 	])
 };
 
-const text = (pdf) => [...pdf.matchAll(/\((.*)\) Tj/g)].map((match) => match[1]);
+// Columns are padded for the monospaced page; a row is compared with its runs of spaces collapsed.
+const text = (pdf) =>
+	[...pdf.matchAll(/\((.*)\) Tj/g)].map((match) => match[1].replace(/\s+/g, ' ').trim());
 
 const render = (overtimePeriod) =>
 	text(
@@ -67,22 +69,28 @@ const render = (overtimePeriod) =>
 		})
 	);
 
-test('the payslip PDF states every Third Schedule particular with deductions signed', () => {
+test('the payslip PDF states every Third Schedule particular in sections, deductions signed', () => {
 	const lines = render({ start: '2026-08-21', end: '2026-09-20' });
 	for (const expected of [
 		'Employer: Norbital Pte. Ltd.',
 		'Employee: Tan Ah Kow \\(N0001\\)',
 		'Salary period: 2026-09-01 to 2026-09-30',
-		'BASIC | 3000.00 | SGD',
-		'ABSENCE | -136.36 | SGD',
-		'OVERTIME OT-1.5X | 94.41 | SGD',
+		'EARNINGS',
+		'BASIC 3,000.00',
+		'ABSENCE 1 -136.36',
+		'OVERTIME OT-1.5X 4 94.41',
+		'Gross 2,958.05',
+		'DEDUCTIONS',
+		'FUND on 2,958.05 -591.61',
+		'Total deductions -591.61',
+		'Net pay 2,366.44 SGD',
+		'Paid 2026-09-30',
+		'EMPLOYER CONTRIBUTIONS \\(not deducted\\)',
+		'FUND on 2,958.05 503.88',
+		'Employer cost 3,461.93 SGD',
 		'Overtime period: 2026-08-21 to 2026-09-20',
 		'Overtime hours: 4.00',
-		'Overtime pay: 94.41 SGD paid 2026-09-30',
-		'FUND | -591.61 | 503.88',
-		'Gross: 2958.05 SGD',
-		'Total deductions: -591.61 SGD',
-		'Net pay: 2366.44 SGD paid 2026-09-30'
+		'Overtime pay: 94.41 SGD paid 2026-09-30'
 	])
 		assert.ok(lines.includes(expected), `missing ${expected}\n${lines.join('\n')}`);
 });

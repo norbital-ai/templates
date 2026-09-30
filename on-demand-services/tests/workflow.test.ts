@@ -18,8 +18,40 @@ const HOME_CLEANING = '0d500001-0000-4000-8000-000000000001'; // 3 h
 /** Tuesday 29 September 2026, 10:00 in Singapore: every seeded helper works then. */
 const TUESDAY_10 = '2026-09-29T02:00:00.000Z';
 
-const workspace = () =>
-	testWorkspace({ root: `${process.cwd()}/`, seed: 'base', now: '2026-09-25T02:00:00.000Z' });
+/**
+ * Google's Routes API, faked: every route takes `minutes[routingPreference]` minutes. `calls` records what was asked.
+ * Without it the connection has no key, so every drive stays the straight-line estimate.
+ */
+function google(minutes: { readonly [preference: string]: number }) {
+	const calls: {
+		path: string;
+		query?: Row;
+		body: { destinations: unknown[]; routingPreference: string };
+	}[] = [];
+	const port = {
+		async request(connection: string, r: (typeof calls)[number]) {
+			expect(connection).toBe('google_routes');
+			calls.push(r);
+			return {
+				status: 200,
+				body: r.body.destinations.map((_, i) => ({
+					// Google leaves a zero index out
+					...(i === 0 ? {} : { destinationIndex: i }),
+					duration: `${minutes[r.body.routingPreference]! * 60}s`,
+					condition: 'ROUTE_EXISTS'
+				}))
+			};
+		}
+	};
+	return { calls, port };
+}
+const workspace = (http?: ReturnType<typeof google>) =>
+	testWorkspace({
+		root: `${process.cwd()}/`,
+		seed: 'base',
+		now: '2026-09-25T02:00:00.000Z',
+		...(http === undefined ? {} : { http: http.port as never })
+	});
 const desk = (t: T) => t.as(t.member(['operations']));
 /** Every run a run queues, down the chain (a request → a booking → notices → their delivery). */
 const settle = async (t: T) => {
@@ -157,7 +189,56 @@ describe('the shift check', () => {
 			(s) => (s.message as { to: string }).to === '6580000001@s.whatsapp.net'
 		);
 		expect(toCustomer).toHaveLength(2);
-		expect(notices.every((n) => n['delivery'] === 'whatsapp; email')).toBe(true);
+		expect(notices.every((n) => n['whatsapp'] === 'sent')).toBe(true);
+		// and, since the seeded customer gave an address, by mail through the customer_mail channel, tracked on the notice
+		const mails = t.fakes.transports.email.sent;
+		expect(mails).toHaveLength(2);
+		expect(
+			notices.every(
+				(n) => n['delivery'] === 'sent' && n['to_address'] !== null && n['sent_at'] !== null
+			)
+		).toBe(true);
+
+		// what the mailbox reports lands on the notice: presumed delivery, an approximate open, an auto-reply kept apart, a reply
+		const [first] = notices;
+		const report = (kind: 'delivered' | 'opened', more: Row = {}) =>
+			t.fakes.transports.email.emit({
+				kind: 'delivery',
+				channel: 'customer_mail',
+				providerId: mails[0]!.providerId,
+				report: { kind, at: '2026-09-29T02:00:00.000Z', provider: 'fake', ...more }
+			});
+		await report('delivered', { presumed: true });
+		await report('opened', { approximate: true });
+		const reply = (id: string, text: string, headers: Row = {}) =>
+			t.fakes.transports.email.emit({
+				kind: 'inbound',
+				channel: 'customer_mail',
+				message: {
+					id,
+					thread: String(first!['id']),
+					sentAt: '2026-09-29T03:00:00.000Z',
+					from: { address: String(first!['to_address']), name: null },
+					replyTo: null,
+					to: [],
+					cc: [],
+					subject: 'Re: booking',
+					text,
+					html: null,
+					headers: { 'in-reply-to': mails[0]!.providerId, ...headers },
+					attachments: []
+				} as never
+			});
+		await reply('<auto@x.example>', 'I am away.', { 'auto-submitted': 'auto-replied' });
+		expect(await admin.get('customer_notices', String(first!['id']))).toMatchObject({
+			delivery: 'opened',
+			delivery_presumed: true
+		});
+		await reply('<r1@x.example>', 'Thanks, see you then.');
+		const after = (await admin.get('customer_notices', String(first!['id'])))!;
+		expect(after).toMatchObject({ delivery: 'replied', reply_excerpt: 'Thanks, see you then.' });
+		expect(after['auto_replied_at']).not.toBeNull();
+		expect(after['opened_at']).not.toBeNull();
 	});
 
 	it('a decline with a medical certificate reassigns the day without a warning, and a customer with no preference is not told', async () => {
@@ -230,6 +311,132 @@ describe('the ETA check', () => {
 		const [v] = await visits(t);
 		expect(v).toMatchObject({ attention: 'none' });
 		expect(v!['eta_minutes']).toBeLessThan(5);
+	});
+});
+
+describe('drive times and double booking', () => {
+	/** Customer One (east) to Customer Two (west), each rounded to its ~1 km square. */
+	const EAST_TO_WEST = '1.32,103.93>1.33,103.74';
+
+	it('times every planned leg with Google, caches it, and moves a visit its helper can no longer reach', async () => {
+		const maps = google({ TRAFFIC_UNAWARE: 90 });
+		const t = await workspace(maps);
+		committed(await book(t, {})); // Alpha, 10:00–13:00 in the east
+		// 14:15 in the west: the straight-line estimate (~50 min + 15 to settle) lets Alpha, whom the customer asked for, go
+		committed(
+			await book(t, {
+				customer: WEST_CUSTOMER,
+				preference: 'preferred',
+				helpers: [ALPHA],
+				start: '2026-09-29T06:15:00.000Z'
+			})
+		);
+		expect((await visits(t)).map((v) => v['helper'])).toEqual([ALPHA, ALPHA]);
+		await settle(t);
+		// Google says 90 minutes: Alpha cannot make it, so the west visit goes to the best other helper
+		const [first, second] = await visits(t);
+		expect(first!['helper']).toBe(ALPHA);
+		expect(second).toMatchObject({ helper: BRAVO, attention: 'none' });
+		const cached = (await t.as(t.admin).read('drive_times', { all: true })).rows;
+		expect(cached).toContainEqual(expect.objectContaining({ leg: EAST_TO_WEST, minutes: 90 }));
+		expect(maps.calls[0]).toMatchObject({
+			path: 'distanceMatrix/v2:computeRouteMatrix',
+			query: { fields: 'originIndex,destinationIndex,duration,condition' },
+			body: { routingPreference: 'TRAFFIC_UNAWARE' }
+		});
+		// a timed leg is not asked for again
+		const asked = maps.calls.length;
+		t.clock.advance('15min');
+		await settle(t);
+		expect(maps.calls.length).toBe(asked);
+		// the customer who asked for Alpha is told who comes instead
+		const notices = (await t.as(t.admin).read('customer_notices', { all: true })).rows;
+		expect(notices.map((n) => n['subject'])).toContainEqual(
+			expect.stringContaining('A new helper for your visit')
+		);
+	});
+
+	it('matches with the cached time: a shorter real drive opens an earlier start', async () => {
+		const t = await workspace();
+		committed(await book(t, {})); // Alpha, 10:00–13:00 in the east
+		const openings = async () =>
+			(
+				(await desk(t).query('helpers.open_slots', {
+					helpers: [ALPHA],
+					customer: WEST_CUSTOMER,
+					service: HOME_CLEANING,
+					from: '2026-09-29',
+					days: 1
+				})) as { days: { starts: string[] }[] }[]
+			)[0]!.days[0]!.starts;
+		// estimated: 13:00 + ~50 min + 15 → 14:30 is the first start
+		expect(await openings()).not.toContain('2026-09-29T06:00:00.000Z');
+		committed(
+			await t.as(t.admin).act('drive_times.create', { leg: EAST_TO_WEST, minutes: 20 } as never)
+		);
+		// timed at 20 minutes: 13:00 + 20 + 15 → 14:00 opens, 13:30 still does not
+		const timed = await openings();
+		expect(timed).toContain('2026-09-29T06:00:00.000Z');
+		expect(timed).not.toContain('2026-09-29T05:30:00.000Z');
+	});
+
+	it('never lets one helper hold two overlapping visits, and moves one written too close by hand', async () => {
+		const t = await workspace();
+		committed(await book(t, {})); // Alpha, 10:00–13:00 in the east
+		const [booked] = await visits(t);
+		const direct = (start: string) =>
+			desk(t).act('bookings.create', {
+				customer: EAST_CUSTOMER,
+				service: HOME_CLEANING,
+				address: 'By hand',
+				area: 'east',
+				preference: 'any',
+				repeat: 'once',
+				visits: {
+					create: [
+						{
+							slot: { start, end: new Date(Date.parse(start) + 3 * 3_600_000).toISOString() },
+							address: 'By hand',
+							location: booked!['location'],
+							area: 'east',
+							skill: 'home_cleaning',
+							helper: ALPHA,
+							attention: 'none'
+						}
+					]
+				}
+			} as never);
+		// an overlap is refused by the database, whoever writes it
+		expect(await direct('2026-09-29T03:00:00.000Z')).toMatchObject({ kind: 'refused' });
+		// 13:05, next door: no overlap, but no time to settle in — the drive check hands it to another helper
+		committed(await direct('2026-09-29T05:05:00.000Z'));
+		await settle(t);
+		const [, second] = await visits(t);
+		expect(second!['helper']).not.toBe(ALPHA);
+		expect(second!['helper']).not.toBeNull();
+		// and a drag onto Alpha is refused with the reason
+		expect(
+			await desk(t).act('visits.update', { target: second!['id'], set: { helper: ALPHA } } as never)
+		).toMatchObject({ kind: 'refused', message: expect.stringContaining('too close') });
+	});
+
+	it('the ETA check asks Google in live traffic when the helper is not plainly close', async () => {
+		const maps = google({ TRAFFIC_UNAWARE: 20, TRAFFIC_AWARE: 50 });
+		const t = await workspace(maps);
+		committed(await book(t, {}));
+		const alpha = await signedIn(t, ALPHA);
+		t.clock.set('2026-09-29T01:20:00.000Z');
+		// central: ~26 minutes by straight line, under the 30-minute limit; Google in traffic says 50
+		committed(
+			await alpha.act('helpers.update', {
+				target: ALPHA,
+				set: { last_location: { lat: 1.3048, lng: 103.8318 } }
+			})
+		);
+		t.clock.set('2026-09-29T01:25:00.000Z');
+		await t.runDue();
+		expect((await visits(t))[0]).toMatchObject({ attention: 'eta_risk', eta_minutes: 50 });
+		expect(maps.calls.at(-1)).toMatchObject({ body: { routingPreference: 'TRAFFIC_AWARE' } });
 	});
 });
 
@@ -359,7 +566,12 @@ describe('the customer portal', () => {
 		expect(customers).toHaveLength(1);
 		expect((await visits(t))[0]).toMatchObject({ helper: ALPHA });
 		expect((await admin.read('customer_notices', { all: true })).rows).toMatchObject([
-			{ subject: expect.stringContaining('Booking confirmed'), delivery: 'whatsapp' }
+			{
+				subject: expect.stringContaining('Booking confirmed'),
+				whatsapp: 'sent',
+				to_address: null,
+				delivery: null
+			}
 		]);
 		expect(t.fakes.transports.whatsapp.sent.map((s) => (s.message as { to: string }).to)).toContain(
 			'6581234567@s.whatsapp.net'
@@ -415,7 +627,7 @@ describe('the customer portal', () => {
 		});
 		expect(await visits(t)).toEqual([]);
 		expect((await admin.read('customer_notices', { all: true })).rows).toMatchObject([
-			{ subject: expect.stringContaining('received'), delivery: 'whatsapp' }
+			{ subject: expect.stringContaining('received'), whatsapp: 'sent', delivery: null }
 		]);
 	});
 });

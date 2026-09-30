@@ -93,6 +93,12 @@ type ScheduleTerms = {
 	 * normal day. Absent is `normal_daily_hours`.
 	 */
 	readonly shift_day_hours?: number | undefined;
+	/**
+	 * No terms row covers the day (before the hire, after the exit): the contract's shape is only
+	 * projected onto it for measurement, so a roster code not yet (or no longer) in force still
+	 * names it rather than refusing the run.
+	 */
+	readonly projected?: boolean | undefined;
 };
 
 /**
@@ -109,14 +115,15 @@ type PlannedDay = {
 
 function scheduledCode(
 	code: ShiftDefinition,
-	date: IsoDate
+	date: IsoDate,
+	projected = false
 ): {
 	readonly kind: 'WORK' | 'REST' | 'OFF';
 	readonly shift: ScheduledShift | null;
 	/** A REST code marked the statutory rest day (TW 例假). */
 	readonly statutoryRest: boolean;
 } {
-	if (!coversDate(code.effective_range, date))
+	if (!projected && !coversDate(code.effective_range, date))
 		throw new Error(`Roster code ${code.code} is not effective on ${date}.`);
 	const kind = rosterCodeKind(code.variant);
 	const window = workWindow(code.variant);
@@ -176,7 +183,9 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 			const term = options.terms(date);
 			const projectedId = patternRosterCodeId(term.work_pattern, date, term.pattern_anchor);
 			const codeId = planned?.shift_definition_id ?? projectedId;
-			return codeId == null ? null : scheduledCode(codeFor(codeId, date), date).kind;
+			return codeId == null
+				? null
+				: scheduledCode(codeFor(codeId, date), date, term.projected).kind;
 		} catch {
 			return null;
 		}
@@ -195,9 +204,13 @@ export function resolveSchedule(options: ResolveScheduleOptions): Map<IsoDate, S
 		const patternCodeId = patternRosterCodeId(terms.work_pattern, date, terms.pattern_anchor);
 		const assignmentCodeId = plannedByDate.get(date)?.shift_definition_id ?? patternCodeId;
 		const assignmentCode =
-			assignmentCodeId == null ? null : scheduledCode(codeFor(assignmentCodeId, date), date);
+			assignmentCodeId == null
+				? null
+				: scheduledCode(codeFor(assignmentCodeId, date), date, terms.projected);
 		const patternCode =
-			patternCodeId == null ? null : scheduledCode(codeFor(patternCodeId, date), date);
+			patternCodeId == null
+				? null
+				: scheduledCode(codeFor(patternCodeId, date), date, terms.projected);
 		const rostered = (options.rosters ?? []).some(
 			(roster) => roster.start <= date && date <= roster.end
 		);

@@ -45,6 +45,13 @@ type LeaveCapture = {
 	readonly leave_entry_id: string;
 	readonly charges: readonly LeaveCharge[];
 	readonly gross_amount: MoneyValue;
+	/**
+	 * A pinned entry's last day its pinning run's window reached: a later window prices the entry's
+	 * days after it, without moving the pin. Absent is settled whole.
+	 */
+	readonly through?: string | undefined;
+	/** This slip priced the days of an entry an earlier slip pinned: it does not pin it again. */
+	readonly continued?: boolean | undefined;
 };
 
 export type SettledLeaveCapture = LeaveCapture & { readonly pay_items: readonly LeavePayItem[] };
@@ -171,6 +178,14 @@ export function prepareLeavePayroll(options: {
 	const payslipById = new Map<string, (typeof payslipRows)[number]>(
 		payslipRows.map((row) => [row.id, row])
 	);
+	// The window a pin's run reached: an entry longer than it (a maternity leave across months) is
+	// priced for its later days by the later runs, each for the days inside its own window.
+	const runOfSlip = new Map<string, string>(
+		live(world.payslips).map((row) => [row.id, row.payroll_run_id])
+	);
+	const runThrough = new Map<string, string>(
+		world.payroll_runs.map((row) => [row.id, dateKey(row.attendance_to)])
+	);
 	const entriesByEmployment = Map.groupBy(entries, (row) => row.employment_id);
 	const result = new Map<string, GatheredLeave>();
 	for (const employment of options.employments) {
@@ -188,6 +203,7 @@ export function prepareLeavePayroll(options: {
 					charges: entry.charges,
 					pay_items,
 					gross_amount: leaveCaptureAmount(pay_items, payslip?.currency ?? options.currency),
+					through: runThrough.get(runOfSlip.get(entry.payslip_id) ?? '') || undefined,
 					// Paid is this person's own slip, read only where a reversal negates it.
 					paid: payslip?.paid_at != null
 				}
@@ -554,6 +570,7 @@ export function leavePayrollInputs(options: {
 		readonly leave_entry_id: string;
 		/** Whether the payslip that froze this capture had been paid. */
 		readonly paid?: boolean | undefined;
+		readonly through?: string | undefined;
 	}[];
 	/** Money-only callers (hasLeavePayment) do not judge whether a time-off entry straddles. */
 	readonly monetaryOnly?: boolean | undefined;
@@ -565,24 +582,27 @@ export function leavePayrollInputs(options: {
 		)
 	);
 	const settled = new Set(options.captures.map((row) => row.leave_entry_id));
+	const through = new Map(options.captures.map((row) => [row.leave_entry_id, row.through]));
+	// A time-off entry is charged and priced for the days inside each window. The first slip to
+	// price any of its days pins it, so it is locked from then on; a later window prices its own
+	// days of the pinned entry and leaves the pin where it is.
+	// ponytail: a reversal negates the pinning slip's lines only; a later window's lines for the
+	// same entry need their own correction until reversals read every slip that priced it.
 	const timeOff = options.monetaryOnly
 		? []
 		: activeTimeOff(approved).flatMap((entry) => {
-				if (settled.has(entry.id)) return [];
+				const after = through.get(entry.id);
+				if (settled.has(entry.id) && after == null) return [];
 				const charges = entry.charges.filter(
-					(row) => row.date >= options.salaryWindow.start && row.date <= options.salaryWindow.end
+					(row) =>
+						row.date >= options.salaryWindow.start &&
+						row.date <= options.salaryWindow.end &&
+						(after == null || row.date > after)
 				);
 				if (charges.length === 0) return [];
-				if (charges.length !== entry.charges.length)
-					refuse(
-						`Approved ${entry.leave_code} leave straddles the payroll window ` +
-							`${options.salaryWindow.start}–${options.salaryWindow.end}. A time-off entry ` +
-							'settles whole in the period that contains all of its days; split the leave ' +
-							'into one entry per period.'
-					);
 				if (new Set(charges.map((row) => row.date)).size !== charges.length)
 					refuse('Approved leave has duplicate charges for one date.');
-				return [{ entry, charges }];
+				return [{ entry, charges, continued: settled.has(entry.id) }];
 			});
 	const monetary = approved.flatMap((entry) => {
 		if (settled.has(entry.id) || reversed.has(entry.id)) return [];
@@ -631,7 +651,11 @@ export function leaveCoverage(
 	includesDate: (date: string) => boolean = () => true
 ) {
 	const days: Record<string, number> = {};
-	const byCode: Record<string, number> = {};
+	// Every code of the lineage reads 0 until charged: `period.leave_days.<CODE>` names a code the
+	// window may not have (compile fills a mentioned key with 0, so the run does too).
+	const byCode: Record<string, number> = Object.fromEntries(
+		prepared.catalogues.map((row) => [row.code, 0])
+	);
 	const datesByCode = new Map<string, Map<string, number>>();
 	const seen = new Set<string>();
 	const add = (entryId: string, charge: LeaveCharge) => {
@@ -655,9 +679,9 @@ export function leaveCoverage(
 	for (const entry of activeTimeOff(prepared.entries))
 		for (const charge of entry.charges) add(entry.id, charge);
 	const fullDaysByCode = Object.fromEntries(
-		[...datesByCode].map(([code, dates]) => [
+		Object.keys(byCode).map((code) => [
 			code,
-			[...dates.values()].filter((days) => days >= 1).length
+			[...(datesByCode.get(code)?.values() ?? [])].filter((days) => days >= 1).length
 		])
 	);
 	return { days, byCode, fullDaysByCode };
@@ -751,19 +775,21 @@ export function calculateLeavePayroll(options: {
 	const add = (
 		entryId: string,
 		charges: readonly LeaveCharge[],
-		items: readonly LeavePayItem[]
+		items: readonly LeavePayItem[],
+		continued = false
 	) => {
 		captures.push({
 			leave_entry_id: entryId,
 			charges,
 			pay_items: items,
-			gross_amount: leaveCaptureAmount(items, currency)
+			gross_amount: leaveCaptureAmount(items, currency),
+			...(continued ? { continued } : {})
 		});
 	};
 	// Round cumulative deductions per dated salary basis. Independently rounded days can exceed
 	// the prorated salary when an entire pay period is unpaid. Each capture retains its allocated share.
 	const deductionTotals = new Map<string, number>();
-	for (const { entry, charges } of selected.timeOff.toSorted(
+	for (const { entry, charges, continued } of selected.timeOff.toSorted(
 		(a, b) =>
 			(a.charges[0]?.date ?? '').localeCompare(b.charges[0]?.date ?? '') ||
 			a.entry.id.localeCompare(b.entry.id)
@@ -812,7 +838,7 @@ export function calculateLeavePayroll(options: {
 				rate
 			});
 		}
-		add(entry.id, charges, items);
+		add(entry.id, charges, items, continued);
 	}
 	for (const { entry } of options.includeMonetary === false ? [] : selected.monetary) {
 		const activity = leaveActivityOf(entry);

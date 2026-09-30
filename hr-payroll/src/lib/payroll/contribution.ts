@@ -700,7 +700,9 @@ function workingDayDeadline(
 		terms: () => ({
 			work_pattern: pattern?.pattern ?? null,
 			pattern_anchor: patternAnchor(pattern),
-			normal_daily_hours: 0
+			normal_daily_hours: 0,
+			// every day read here is after the exit
+			projected: true
 		}),
 		workDays: [],
 		configuration
@@ -2122,6 +2124,20 @@ export function configuredMonthlyWageAverage(
 	return average;
 }
 
+/** The pay period as the run measured it: what `person.period.*` reads at every run stage. */
+export function measuredPeriod(measured: MeasuredEmployment): NonNullable<PersonInput['period']> {
+	return {
+		working_days: measured.periodWorkingDays,
+		unpaid_days: measured.periodUnpaidDays,
+		unpaid_full_days: measured.periodFullyUnpaidDays,
+		leave_days: measured.periodLeaveDays,
+		leave_full_days: measured.periodFullLeaveDays,
+		leave_pay: measured.periodLeavePay,
+		overtime_days: measured.periodOvertimeDays,
+		arrears: measured.arrears?.amount ?? 0
+	};
+}
+
 export function prepareContributionAssessment(
 	options: Parameters<typeof contributionAssessment>[0]
 ): ContractAssessment {
@@ -2303,16 +2319,7 @@ function contributionAssessment(options: {
 		},
 		// The pay month's working days and the employed ones it did not pay, so a scheme can count
 		// the days without wages (VN art.33(5): fourteen or more in the month contribute nothing).
-		period: {
-			working_days: measured.periodWorkingDays,
-			unpaid_days: measured.periodUnpaidDays,
-			unpaid_full_days: measured.periodFullyUnpaidDays,
-			leave_days: measured.periodLeaveDays,
-			leave_full_days: measured.periodFullLeaveDays,
-			leave_pay: measured.periodLeavePay,
-			overtime_days: measured.periodOvertimeDays,
-			arrears: measured.arrears?.amount ?? 0
-		},
+		period: measuredPeriod(measured),
 		facts: personFacts(configuration.contributions, currentFacts),
 		asOf
 	};

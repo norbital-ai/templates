@@ -516,9 +516,10 @@ function workContext(
 		bundle.workDays.map((day) => [requiredDateKey(day.work_date, 'work_days.work_date'), day])
 	);
 	const scheduleTermsAt = (date: IsoDate) => {
-		const row =
-			bundle.termsHistory.find((candidate) => coversDate(candidate.effective_range, date)) ??
-			closingTerms;
+		const covering = bundle.termsHistory.find((candidate) =>
+			coversDate(candidate.effective_range, date)
+		);
+		const row = covering ?? closingTerms;
 		const workload = termsWorkload({
 			terms: row,
 			configuration,
@@ -536,6 +537,7 @@ function workContext(
 		return {
 			work_pattern: patternRow?.pattern ?? null,
 			pattern_anchor: patternAnchor(patternRow),
+			projected: covering == null,
 			// The normal day of a day with no shift of its own (a rest day's halves, an unrostered
 			// clocked day): the contract's stated day, else the roster's usual day, else the
 			// statute's — never a figure of the engine's.
@@ -1340,32 +1342,47 @@ function workContext(
 		configuration.jurisdiction.payroll.holiday_adjacent_absence_unpaid === true;
 	const absentDaysIn = (window: PayRange) => {
 		const forfeited = new Set<string>();
-		return bundle.workDays.flatMap((day) => {
-			if (day.worked_intervals != null && day.worked_intervals.length > 0) return [];
-			const date = requiredDateKey(day.work_date, 'work_days.work_date');
-			if (date < window.start || date > window.end) return [];
-			if (
-				configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
-				day.piece_units != null &&
-				termsAt(bundle, date).base_salary <= 0 &&
-				termsAt(bundle, date).statutory_work_category === 'PIECE_RATE'
-			)
-				return [];
-			const uncovered = 1 - (coverage.days[date] ?? 0);
-			if (uncovered <= 0) return [];
-			const scheduled = schedule.get(date);
-			if (scheduled?.shift == null || scheduled.dayType !== 'ORDINARY') return [];
-			// An absence recorded as neither leave nor work had no prior consent (owner default,
-			// register SG): the holiday beside it loses its pay, once, charged to the absent day.
-			const holidays = holidayAdjacentAbsence
-				? adjacentHolidays(date).filter((holiday) => !forfeited.has(holiday))
+		const absent: { id: string; date: string; days: number; family?: 'WORK_DAY' | 'LEAVE' }[] =
+			bundle.workDays.flatMap((day) => {
+				if (day.worked_intervals != null && day.worked_intervals.length > 0) return [];
+				const date = requiredDateKey(day.work_date, 'work_days.work_date');
+				if (date < window.start || date > window.end) return [];
+				if (
+					configuration.jurisdiction.work_rules.wages?.block_unmeasured_results_pay === true &&
+					day.piece_units != null &&
+					termsAt(bundle, date).base_salary <= 0 &&
+					termsAt(bundle, date).statutory_work_category === 'PIECE_RATE'
+				)
+					return [];
+				const uncovered = 1 - (coverage.days[date] ?? 0);
+				if (uncovered <= 0) return [];
+				const scheduled = schedule.get(date);
+				if (scheduled?.shift == null || scheduled.dayType !== 'ORDINARY') return [];
+				// An absence recorded as neither leave nor work had no prior consent (owner default,
+				// register SG): the holiday beside it loses its pay, once, charged to the absent day.
+				const holidays = holidayAdjacentAbsence
+					? adjacentHolidays(date).filter((holiday) => !forfeited.has(holiday))
+					: [];
+				for (const holiday of holidays) forfeited.add(holiday);
+				return [
+					{ id: day.id, date, days: uncovered },
+					...holidays.map((holiday) => ({ id: day.id, date: holiday, days: 1 }))
+				];
+			});
+		// An unworked regular holiday the salary pays is lost to an absence on the workday before it
+		// (`payroll.regular_holiday_prior_workday`), charged to the leave or work day that recorded it.
+		const unpaidHolidays =
+			configuration.jurisdiction.payroll.regular_holiday_prior_workday === true
+				? [...configuration.holidays].flatMap(([date, holiday]) => {
+						if (date < window.start || date > window.end || forfeited.has(date)) return [];
+						// ponytail: a double holiday keeps the salary's day (the DBL-ABS golden); only its second 100% is lost, in the bands.
+						if (holiday.kind !== 'PUBLIC_HOLIDAY') return [];
+						if (!workingDayOn(date) || workedOn.has(date)) return [];
+						const cause = absenceBeforeHoliday(bundle, configuration, date);
+						return cause == null ? [] : [{ ...cause, date, days: 1 }];
+					})
 				: [];
-			for (const holiday of holidays) forfeited.add(holiday);
-			return [
-				{ id: day.id, date, days: uncovered },
-				...holidays.map((holiday) => ({ id: day.id, date: holiday, days: 1 }))
-			];
-		});
+		return [...absent, ...unpaidHolidays];
 	};
 	return {
 		attendance,
@@ -1397,18 +1414,19 @@ function workContext(
 }
 
 /**
- * Whether the person was present, or on leave with pay, on the workday immediately preceding a
- * holiday (PH Handbook ch.2 §D–E): a rest or non-work day before it looks further back (§D.3),
- * and so does an unworked holiday — two successive holidays are both paid to someone present
- * before the first, and the second to someone who worked the first (§E). Silence is presence,
- * as it is for the wage; a day read empty is present only under paid leave. A day before the
- * terms begin states no workday, so the test passes.
+ * What made the person absent on the workday immediately preceding a holiday, or null where they
+ * were present or on leave with pay (PH Handbook ch.2 §D–E): a rest or non-work day before it
+ * looks further back (§D.3), and so does an unworked holiday — two successive holidays are both
+ * paid to someone present before the first, and the second to someone who worked the first (§E).
+ * Leave decides first, with or without a work-day row: unpaid leave is absence. Otherwise silence
+ * is presence, as it is for the wage, and a day read empty is absence. A day before the terms
+ * begin states no workday, so the test passes.
  */
-function presentBeforeHoliday(
+function absenceBeforeHoliday(
 	bundle: Pick<EmploymentBundle, 'workDays' | 'termsHistory' | 'leave'>,
 	configuration: Pick<Configuration, 'holidays' | 'patternById' | 'shiftById'>,
 	holiday: IsoDate
-): boolean {
+): { readonly family: 'WORK_DAY' | 'LEAVE'; readonly id: string } | null {
 	const rowOn = new Map(
 		bundle.workDays.map((row) => [requiredDateKey(row.work_date, 'work_days.work_date'), row])
 	);
@@ -1416,26 +1434,29 @@ function presentBeforeHoliday(
 	for (let back = 1; back <= 31; back += 1) {
 		const date = addDays(holiday, -back);
 		const row = rowOn.get(date);
-		if ((row?.worked_intervals?.length ?? 0) > 0) return true;
+		if ((row?.worked_intervals?.length ?? 0) > 0) return null;
 		if (configuration.holidays.has(date)) continue;
 		const terms = bundle.termsHistory.find((candidate) =>
 			coversDate(candidate.effective_range, date)
 		);
-		if (terms == null) return true;
+		if (terms == null) return null;
 		const patternRow = termPatternRow(terms, configuration.patternById);
 		const codeId =
 			row?.shift_definition_id ??
 			patternRosterCodeId(patternRow?.pattern ?? null, date, patternAnchor(patternRow));
 		const code = codeId == null ? undefined : configuration.shiftById.get(codeId);
 		if (code == null || rosterCodeKind(code.variant) !== 'WORK') continue;
-		if (row?.worked_intervals == null) return true;
 		const day = { start: date, end: date };
-		return (
-			(leaveCoverage(bundle.leave, day).days[date] ?? 0) > 0 &&
-			unpaidLeaveDays(bundle.leave, day) === 0
-		);
+		if ((leaveCoverage(bundle.leave, day).days[date] ?? 0) > 0) {
+			if (unpaidLeaveDays(bundle.leave, day) === 0) return null;
+			const unpaid = activeTimeOff(bundle.leave.entries).find(
+				(entry) => unpaidLeaveDays({ ...bundle.leave, entries: [entry] }, day) > 0
+			);
+			return unpaid == null ? null : { family: 'LEAVE', id: unpaid.id };
+		}
+		return row == null || row.worked_intervals == null ? null : { family: 'WORK_DAY', id: row.id };
 	}
-	return true;
+	return null;
 }
 
 /** The contract's stated hours a day (`ordinary_hours_per_week` over its days), or null where it states none. */
@@ -1727,7 +1748,7 @@ function workAttendance(
 			holidayName: configuration.holidays.get(workDate)?.name ?? '',
 			holidayPriorPresent:
 				!configuration.holidays.has(workDate) ||
-				presentBeforeHoliday(bundle, configuration, workDate),
+				absenceBeforeHoliday(bundle, configuration, workDate) == null,
 			consecutiveHours: derived.restBreak?.longestRunHours ?? 0,
 			continuousAttendance: false,
 			restDay: day.restDay,
@@ -2009,6 +2030,7 @@ function workAttendance(
 							overtime,
 							adds,
 							rate: ratesOn(date).ordinaryHour,
+							salaried: (bandDay?.dayType ?? priced?.dayType) === 'ORDINARY',
 							premium: nightPremium
 						}
 					];
@@ -2237,7 +2259,7 @@ function workAttendance(
 	};
 	const capturedWorkDayIds = [
 		...new Set([
-			...adjustments.map((row) => row.input.id),
+			...adjustments.flatMap((row) => (row.input.family === 'WORK_DAY' ? [row.input.id] : [])),
 			...attendedDays.flatMap((day) => {
 				const date = requiredDateKey(day.work_date, 'work_days.work_date');
 				return date >= lockSpan.start && date <= lockSpan.end ? [day.id] : [];
@@ -2886,7 +2908,7 @@ function measureWorkComponent(
 				regularHoliday &&
 				unworked &&
 				options.configuration.jurisdiction.payroll.regular_holiday_prior_workday === true &&
-				!presentBeforeHoliday(options.bundle, options.configuration, date)
+				absenceBeforeHoliday(options.bundle, options.configuration, date) != null
 			)
 				continue;
 			const holidayUnit = regularHoliday && unworked;
@@ -2961,7 +2983,13 @@ function measureAbsence(options: {
 	readonly catalogueComponents: readonly CatalogueComponent[];
 	readonly subject: PersonContext;
 	readonly dayWage: number;
-	readonly days: readonly { readonly id: string; readonly date: string; readonly days: number }[];
+	readonly days: readonly {
+		readonly id: string;
+		readonly date: string;
+		readonly days: number;
+		/** The input that recorded the absence; a work day where unstated. */
+		readonly family?: 'WORK_DAY' | 'LEAVE' | undefined;
+	}[];
 	readonly currency: string;
 }): MeasuredAdjustment[] {
 	if (options.days.length === 0) return [];
@@ -2994,7 +3022,7 @@ function measureAbsence(options: {
 			const previous = priced;
 			priced += options.dayWage * day.days;
 			return {
-				input: { family: 'WORK_DAY' as const, id: day.id },
+				input: { family: day.family ?? 'WORK_DAY', id: day.id },
 				catalogueComponent: component,
 				bucket: settlementBucket(component.destination, component.direction),
 				label: component.code,
@@ -3023,6 +3051,8 @@ function measureNightPremium(options: {
 		readonly adds: { readonly ordinary: number; readonly overtime: number };
 		/** The ordinary hour of the calendar month the day fell in. */
 		readonly rate: number;
+		/** An ordinary scheduled day, whose ordinary hours the salary pays; a rest day's or holiday's are the bands'. */
+		readonly salaried: boolean;
 	}[];
 	readonly catalogueComponents: readonly CatalogueComponent[];
 	readonly subject: PersonContext;
@@ -3042,7 +3072,7 @@ function measureNightPremium(options: {
 			day.rate * ((day.ordinary * day.adds.ordinary + day.overtime * day.adds.overtime) / 100),
 			options.currency
 		);
-		const ordinaryWage = cents(day.rate * day.ordinary, options.currency);
+		const ordinaryWage = day.salaried ? cents(day.rate * day.ordinary, options.currency) : 0;
 		return [
 			...(amount === 0
 				? []

@@ -353,8 +353,10 @@ export function pickConfiguration(options: {
  * What the entity's person contexts read on their own dates: the lineage's table rows through the
  * version in force (`table()`), and the revision of a named worksite in force (`worksite.*`).
  */
-function datedCompany(
-	versions: readonly WorkspaceRow<'jurisdiction_settings'>[],
+export function datedCompany(
+	versions: readonly (Parameters<typeof settingsInForce>[0][number] & {
+		readonly tables?: unknown;
+	})[],
 	code: string,
 	rows: ReadonlyMap<string, readonly StoredReferenceRow[]>,
 	sites: readonly Worksite[]

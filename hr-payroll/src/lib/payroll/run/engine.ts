@@ -53,6 +53,7 @@ import {
 } from '../../../lib/payroll/loan.js';
 import {
 	finalPayIssues,
+	measuredPeriod,
 	minimumWageIssues,
 	raiseToMinimumWage,
 	windowMinimumWage
@@ -380,6 +381,10 @@ function runChecks(options: {
 		employment: stint(bundle.employment, configuration.jurisdiction.exit_facts ?? []),
 		terms: bundle.termsHistory.find((row) => coversDate(row.effective_range, date)) ?? null,
 		children: bundle.children,
+		presence: bundle.presence,
+		// The slip's own measured week and period, as its contribution stage reads them.
+		week: options.measured.week,
+		period: measuredPeriod(options.measured),
 		company: {
 			...configuration.company,
 			headcount: options.gathered.headcount,

@@ -105,7 +105,6 @@ async function wave1(db: Reads, companyId: string) {
 		shift_definitions,
 		shift_patterns,
 		employments,
-		payroll_runs,
 		claim_requests,
 		adhoc_requests,
 		employment_statutory_facts
@@ -122,7 +121,6 @@ async function wave1(db: Reads, companyId: string) {
 		readAll<WorkspaceRow<'shift_definitions'>>(db, 'shift_definitions', onCompany),
 		readAll<WorkspaceRow<'shift_patterns'>>(db, 'shift_patterns', onCompany),
 		readAll<WorkspaceRow<'employments'>>(db, 'employments', onCompany),
-		readAll<WorkspaceRow<'payroll_runs'>>(db, 'payroll_runs', { company_id: { eq: companyId } }),
 		// The money families reach the people through the employment relation, so their consumption history
 		// (a pinned claim or ad hoc request) is in hand by wave 2.
 		readAll<WorkspaceRow<'claim_requests'>>(db, 'claim_requests', {
@@ -143,7 +141,6 @@ async function wave1(db: Reads, companyId: string) {
 		shift_definitions: complete(shift_definitions, 'shift definitions'),
 		shift_patterns: complete(shift_patterns, 'shift patterns'),
 		employments: complete(employments, 'employments'),
-		payroll_runs: complete(payroll_runs, 'payroll runs'),
 		claim_requests: complete(claim_requests, 'claim requests'),
 		adhoc_requests: complete(adhoc_requests, 'ad hoc requests'),
 		employment_statutory_facts: complete(employment_statutory_facts, 'statutory facts')
@@ -243,7 +240,8 @@ async function wave2(
 		worksites,
 		person_facts,
 		employment_history,
-		reference_rows
+		reference_rows,
+		payroll_runs
 	] = await Promise.all([
 		readAll<WorkspaceRow<'employees'>>(db, 'employees', { id: { in: employeeIds }, ...APPROVED }),
 		readAll<WorkspaceRow<'employment_terms'>>(db, 'employment_terms', people),
@@ -331,7 +329,31 @@ async function wave2(
 			employee_id: { in: employeeIds },
 			...APPROVED
 		}),
-		readAll<WorkspaceRow<'reference_rows'>>(db, 'reference_rows', under)
+		// Every version clones its tables whole: JP's 34 versions carry 9,356 rows (4.1 MB, SPECIFIC_MW
+		// labels mostly), over one crossing's 4 MiB. The run reads the row's own columns, not its audit
+		// stamps; 5,000 rows are 2.4 MB at JP's widest.
+		readAll<WorkspaceRow<'reference_rows'>>(db, 'reference_rows', under, 5000, {
+			id: true,
+			settings_id: true,
+			table: true,
+			code: true,
+			parent_code: true,
+			label: true,
+			effective_range: true,
+			range_from: true,
+			range_to: true,
+			values: true,
+			approval_id: true
+		}),
+		// A run row carries every person's trace, so a page holds as many runs as the company's
+		// headcount leaves room for: a run a crossing at Nihon's 84 people, every run at once at one.
+		// ponytail: 50 KB a person is the Nihon measure; a wider trace needs a wider allowance here.
+		readAll<WorkspaceRow<'payroll_runs'>>(
+			db,
+			'payroll_runs',
+			{ company_id: { eq: companyId } },
+			Math.max(1, Math.floor(2_000_000 / (50_000 * Math.max(1, first.employments.length))))
+		)
 	]);
 	// A piece leaver's history (`results_pay.piece_history_weeks`; TH s.118 reads up to 400 last
 	// piece-workdays, so 400 weeks at one workday a week). Sparse work beyond that horizon refuses
@@ -421,6 +443,7 @@ async function wave2(
 	].toSorted()[0]!;
 	return {
 		...first,
+		payroll_runs: complete(payroll_runs, 'payroll runs'),
 		jurisdiction_settings: [...first.jurisdiction_settings, ...foreignSettings],
 		employees: complete(employees, 'employees'),
 		employment_terms: complete(employment_terms, 'employment terms'),

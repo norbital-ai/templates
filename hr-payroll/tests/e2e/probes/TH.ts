@@ -2340,6 +2340,31 @@ const guardDay = (ref: string, date: string, agreedAt: string): ProbeInput => ({
 		}
 	}
 });
+/**
+ * The guard's agreed week as the contract from `from` (a Monday): a roster may not add normal hours
+ * to the terms' pattern (work_days pattern conformity), so a longer agreed normal day is a terms row
+ * naming a pattern that carries it. EPOCH (1990-01-01) is a Monday, so day 0 is Monday.
+ */
+const guardContract = (
+	ref: string,
+	from: string,
+	days: readonly ('@guard12' | '@work' | '@rest')[]
+): { pattern: ProbeInput; changes: Row[] } => ({
+	pattern: {
+		collection: 'shift_patterns',
+		ref: `${ref}_week`,
+		values: {
+			company_id: '@company',
+			code: `TH-GUARD-${ref.toUpperCase()}`,
+			name: `Guard week (${ref})`,
+			pattern: { days: days.map((roster_code_id) => ({ roster_code_id })) },
+			effective_range: { from: EPOCH, to: null }
+		}
+	},
+	changes: [{ from, shift_pattern_id: `@${ref}_week` }]
+});
+const GUARD_MONDAY = ['@guard12', '@work', '@work', '@work', '@work', '@rest', '@rest'] as const;
+const GUARD_WEEKDAYS = ['@guard12', '@guard12', '@guard12', '@guard12', '@guard12', '@rest', '@rest'] as const;
 const FOUR_HOURS: Variant = {
 	kind: 'WORK',
 	start_time: '09:00',
@@ -2585,10 +2610,12 @@ register(
 		],
 		inputs: [
 			guardTwelve,
+			guardContract('guardh', '2026-10-26', GUARD_MONDAY).pattern,
 			...person({
 				ref: 'guardh',
 				wage: 60,
-				terms: { pay_frequency: 'HOURLY', statutory_work_category: 'GUARD_DUTY' }
+				terms: { pay_frequency: 'HOURLY', statutory_work_category: 'GUARD_DUTY' },
+				changes: guardContract('guardh', '2026-10-26', GUARD_MONDAY).changes
 			}),
 			guardDay('guardh', '2026-10-26', '2026-10-25T05:00:00.000Z')
 		],
@@ -2617,7 +2644,13 @@ register(
 		],
 		inputs: [
 			guardTwelve,
-			...person({ ref: 'gagree', wage: 24_000, terms: { statutory_work_category: 'GUARD_DUTY' } }),
+			guardContract('gagree', '2026-04-27', GUARD_MONDAY).pattern,
+			...person({
+				ref: 'gagree',
+				wage: 24_000,
+				terms: { statutory_work_category: 'GUARD_DUTY' },
+				changes: guardContract('gagree', '2026-04-27', GUARD_MONDAY).changes
+			}),
 			guardDay('gagree', '2026-04-27', '2026-04-27T03:00:00.000Z')
 		],
 		period: '2026-04',
@@ -3115,7 +3148,7 @@ register(
 			'Flood-relief notice cl.1 (https://ratchakitcha.soc.go.th/documents/100888.pdf): 3% each for wage months December 2025–May 2026.',
 			`${SSA}: 15,000 × 3% = 450.`,
 			`${P96}: 360,000 − 100,000 − 60,000 − 450 × 12 = 194,600 → 44,600 × 5% = 2,230 ÷ 12 = 185.8333 → 185.83; December carries 2,230 − 12 × 185.83 = 0.04: 185.87.`,
-			'Net 30,000 − 450 − 185.87 = 29,363.13.'
+			'Net 30,000 − 450 − 185.87 = 29,364.13.'
 		],
 		company: { facts: { sso_flood_relief_area: true } },
 		inputs: person({ ref: 'flooddec', wage: 30_000, terms: { worksite: 'Songkhla/Hat Yai' } }),
@@ -3715,7 +3748,13 @@ register(
 		],
 		inputs: [
 			guardTwelve,
-			...person({ ref: 'g60', wage: 24_000, terms: { statutory_work_category: 'GUARD_DUTY' } }),
+			guardContract('g60', '2026-10-26', GUARD_WEEKDAYS).pattern,
+			...person({
+				ref: 'g60',
+				wage: 24_000,
+				terms: { statutory_work_category: 'GUARD_DUTY' },
+				changes: guardContract('g60', '2026-10-26', GUARD_WEEKDAYS).changes
+			}),
 			...guardWeek('g60', ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30'])
 		],
 		period: '2026-10',
@@ -4022,19 +4061,23 @@ register(
 	th({
 		id: 'TH-WORK-07-18',
 		description:
-			'The continuous-work exception claimed for Monday 5 January 2026 with no evidence reference: the run is refused.',
+			'The continuous-work exception claimed for Monday 5 January 2026 with no evidence reference: the work day is refused, and January pays THB24,000 plain.',
 		citation: [
-			`LPA s.24 para.2 (${LPA}). Owner rule 2026-09-28 (register TH-WORK-07): an exception to the consent the Act requires is recorded with its evidence.`
+			`LPA s.24 para.2 (${LPA}). Owner rule 2026-09-28 (register TH-WORK-07): an exception to the consent the Act requires is recorded with its evidence.`,
+			PLAIN24K_LAW,
+			'Net 24,000 − 875 = 23,125.'
 		],
 		inputs: [
 			...person({ ref: 'noproof', wage: 24_000 }),
-			excepted('noproof', '2026-01-05', LONG_DAY, 3, {
-				consent_exception: 'CONTINUOUS_DAMAGE_IF_STOPPED'
-			})
+			{
+				...excepted('noproof', '2026-01-05', LONG_DAY, 3, {
+					consent_exception: 'CONTINUOUS_DAMAGE_IF_STOPPED'
+				}),
+				refused: '2026-01-05 needs evidence for the Thai consent exception'
+			}
 		],
 		period: '2026-01',
-		refused: 'needs evidence for the Thai consent exception',
-		expected: []
+		expected: [{ employment: 'noproof_job', lines: plain24k }]
 	}),
 
 	// ─── Young and pregnant workers (TH-HR-07) ──────────────────────────────────────────────────
@@ -4271,14 +4314,15 @@ register(
 	th({
 		id: 'TH-SS-11-2',
 		description:
-			'An insured person employed at the same time by this company on THB10,000 and by a second company on THB20,000, January 2026: this employer assesses s.33 on its own wage alone, 10,000 × 5% = 500 each side, not on the combined 30,000 (which would reach the 17,500 ceiling).',
+			'An insured person employed at the same time by this company on THB12,000 (the Bangkok floor, 400 × 30) and by a second company on THB20,000, January 2026: this employer assesses s.33 on its own wage alone, 12,000 × 5% = 600 each side, not on the combined 32,000 (which would reach the 17,500 ceiling).',
 		citation: [
 			`${SSA}; s.46 para.3–4 and s.48 (same consolidation): contributions on the wages from each employer are computed separately, each employer liable under ss.46–47.`,
-			`${P96}: this employer withholds on its own payment: 120,000 − 60,000 − 60,000 − 6,000 → nil.`,
-			'Net 10,000 − 500 = 9,500.'
+			`${P96}: this employer withholds on its own payment: 144,000 − 72,000 − 60,000 − 7,200 → nil.`,
+			'Bangkok daily minimum wage 400 (the version’s MINIMUM_WAGE; a monthly wage ÷ 30): 12,000 ÷ 30 = 400, at the floor — 10,000 was below it and refused.',
+			'Net 12,000 − 600 = 11,400.'
 		],
 		inputs: [
-			...person({ ref: 'dual', wage: 10_000 }),
+			...person({ ref: 'dual', wage: 12_000 }),
 			{
 				collection: 'companies',
 				ref: 'co2',
@@ -4348,12 +4392,12 @@ register(
 			{
 				employment: 'dual_job',
 				lines: {
-					gross: 10_000,
-					net: 9_500,
-					employer_cost: 500,
-					BASIC: 10_000,
-					'SSO.employee': 500,
-					'SSO.employer': 500
+					gross: 12_000,
+					net: 11_400,
+					employer_cost: 600,
+					BASIC: 12_000,
+					'SSO.employee': 600,
+					'SSO.employer': 600
 				}
 			}
 		]
@@ -4721,7 +4765,10 @@ register(
 				] as const
 			).map(([day, facts]) => ({
 				...timeOff('window', 'CHILD_BIRTH_LEAVE', day, day, { facts }),
-				refused: 'spouse-birth leave is taken within 90 days counted from the birth'
+				refused:
+					'event_date' in facts
+						? 'spouse-birth leave is taken within 90 days counted from the birth'
+						: 'Per-event leave requires the dated event that grants it: CHILD_BIRTH_LEAVE entry .* names no event date'
 			}))
 		],
 		period: '2026-02',

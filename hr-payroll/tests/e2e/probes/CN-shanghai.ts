@@ -2812,7 +2812,7 @@ const procedureJan = (
 		inputs: [
 			...base.inputs.slice(0, -1),
 			entry(id, accepted),
-			{ ...entry(`${id}-over`, over), refused: 'Insufficient leave in .*: 1 more days are needed' }
+			{ ...entry(`${id}-over`, over), refused: 'FAMILY_PLANNING_PROCEDURE_LEAVE grants \\d+ days for this event; 0 are already taken and this would add \\d+\\.' }
 		]
 	};
 };
@@ -3106,7 +3106,7 @@ register(
 		],
 		company: { facts: FACTS },
 		inputs: [
-			...cnWeek('2026-01-05'),
+			...cnWeek('2025-12-29'),
 			...hire('li', {
 				name: 'Li Na',
 				gender: 'FEMALE',

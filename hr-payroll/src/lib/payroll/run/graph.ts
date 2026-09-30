@@ -65,7 +65,10 @@ export function payrollRunGraph(options: {
 			workDays: payslip.captured.workDays,
 			claims: payslip.captured.payRequests.CLAIM,
 			adhoc: payslip.captured.payRequests.ADHOC,
-			leave: payslip.captured.leave.map((capture) => capture.leave_entry_id),
+			// An entry an earlier slip pinned keeps that pin; this slip priced its later days only.
+			leave: payslip.captured.leave.flatMap((capture) =>
+				capture.continued === true ? [] : [capture.leave_entry_id]
+			),
 			loanRepayments: payslip.captured.loanRepayments,
 			orderRepayments: payslip.orderRepayments ?? [],
 			wagePeriods: payslip.captured.wagePeriods

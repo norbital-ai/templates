@@ -6161,18 +6161,23 @@ const round12: ProbeCase[] = [
 		id: 'ID-110-1',
 		profile: 'ID',
 		description:
-			'A PKWTT worker hired Monday 2 June 2025 whose first terms state probation to 2 September 2025 (three months and a day) are refused at the terms write; the same terms with probation to 1 September 2025 are saved, and February 2026 pays the ID-14-1 slip.',
+			'A PKWTT worker hired Monday 1 December 2025 (the lineage’s first version: a hire before it has no law in force to judge its terms) whose first terms state probation to 1 March 2026 (three months and a day) are refused at the terms write; the same terms with probation to 28 February 2026 are saved, and February 2026 pays the ID-14-1 slip.',
 		citation: [
 			PROBATION_REF,
-			'2 June 2025 + 3 months = 2 September 2025, so the last probation day is 1 September 2025',
+			'1 December 2025 + 3 months = 1 March 2026, so the last probation day is 28 February 2026',
 			'ID-14-1 figures: net 9,338,650'
 		],
 		company: company(),
 		inputs: [
 			...week('2025-06-02'),
 			...refusedFirstTerms(
-				worker({ ref: 'coba', wage: 10_000_000, terms_facts: { probation_end_on: '2025-09-01' } }),
-				{ probation_end_on: '2025-09-02' },
+				worker({
+					ref: 'coba',
+					wage: 10_000_000,
+					hire: '2025-12-01',
+					terms_facts: { probation_end_on: '2026-02-28' }
+				}),
+				{ probation_end_on: '2026-03-01' },
 				'P-ID-coba: A PKWTT probation may last at most three months from the first day of work'
 			)
 		],
@@ -6183,14 +6188,20 @@ const round12: ProbeCase[] = [
 		id: 'ID-110-2',
 		profile: 'ID',
 		description:
-			'A citizen PKWT of 2 June 2025 to 31 December 2026 whose first terms state a probation to 1 September 2025 are refused (a PKWT may not require probation); the same terms without it are saved, and February 2026 pays the ID-14-1 slip.',
+			'A citizen PKWT of 1 December 2025 (the lineage’s first version) to 31 December 2026 whose first terms state a probation to 28 February 2026 are refused (a PKWT may not require probation); the same terms without it are saved, and February 2026 pays the ID-14-1 slip.',
 		citation: [PROBATION_REF, 'ID-14-1 figures: net 9,338,650'],
 		company: company(),
 		inputs: [
 			...week('2025-06-02'),
 			...refusedFirstTerms(
-				worker({ ref: 'kontrak', wage: 10_000_000, type: 'CONTRACT', exit: '2026-12-31' }),
-				{ probation_end_on: '2025-09-01' },
+				worker({
+					ref: 'kontrak',
+					wage: 10_000_000,
+					type: 'CONTRACT',
+					hire: '2025-12-01',
+					exit: '2026-12-31'
+				}),
+				{ probation_end_on: '2026-02-28' },
 				'P-ID-kontrak: A fixed-term contract \\(PKWT\\) may not require a probation period'
 			)
 		],

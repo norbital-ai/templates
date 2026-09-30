@@ -10,6 +10,9 @@ export type TrackerRow = {
 	readonly profile: string;
 	readonly area: string;
 	readonly provision: string;
+	readonly citation: string;
+	readonly effective_from: string;
+	readonly effective_to: string;
 	readonly status: string;
 	readonly reason: string;
 	readonly config_path: string;
@@ -55,6 +58,9 @@ export function trackerRows(text: string): readonly TrackerRow[] {
 		profile: row.profile ?? '',
 		area: row.area ?? '',
 		provision: row.provision ?? '',
+		citation: row.citation ?? '',
+		effective_from: row.effective_from ?? '',
+		effective_to: row.effective_to ?? '',
 		status: row.status ?? '',
 		reason: row.reason ?? '',
 		config_path: row.config_path ?? '',
@@ -134,4 +140,16 @@ export function rowsForNode(
 	return config.length === 0
 		? []
 		: rows.filter((row) => config.some((path) => configPathNames(row.config_path, path)));
+}
+
+/** A tracker citation as its title and first link: `Act 1955 reprint (https://…) …` → both halves. */
+export function citationParts(citation: string): {
+	readonly title: string;
+	readonly url: string | null;
+} {
+	const url = /https?:\/\/[^\s)]+/.exec(citation)?.[0] ?? null;
+	const title = (url == null ? citation : citation.slice(0, citation.indexOf(url)))
+		.replace(/[\s(]+$/, '')
+		.trim();
+	return { title: title === '' ? (url ?? '') : title, url };
 }

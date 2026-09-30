@@ -210,7 +210,11 @@
 	<Center measure="narrow">
 		<Stack gap="lg" class="py-6">
 			<Stack gap="xs">
-				<h1 class="text-title">{t('app.portal.title')}</h1>
+				<p class="text-caption" data-portal-org>{bolt.org.name}</p>
+				<Inline gap="sm" align="center">
+					<Icon name="lucide:calendar-heart" class="size-6 text-brand" />
+					<h1 class="text-title">{t('app.portal.title')}</h1>
+				</Inline>
 				<Cluster gap="xs">
 					{#each STEPS as s, i (s)}
 						<Badge variant={step === s ? 'default' : 'outline'}

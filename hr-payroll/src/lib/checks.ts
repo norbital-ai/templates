@@ -21,7 +21,12 @@ import { personAt, readLeaveContext, type LeaveContext } from './leave/context.j
 import { readAll, type Reads } from './reads.js';
 import { settingsInForce } from './jurisdiction_settings.js';
 import { sealedLineages } from './entity-facts.js';
-import { readRange } from './payroll/run/effective.js';
+import { coversDate, readRange } from './payroll/run/effective.js';
+import { datedCompany } from './payroll/run/configuration.js';
+import { DATED } from './payroll/run/eligibility.js';
+import { referenceRowOf, type ReferenceRow } from './expressions/functions/tables.js';
+import { dateKey } from './iso-day.js';
+import type { WorkspaceRow } from './rows.js';
 import { addDays } from './payroll/run/dates.js';
 import { getErrorMessage } from './refuse.js';
 import type { PersonContext } from './payroll/run/eligibility.js';
@@ -201,9 +206,13 @@ export async function employmentCheckIssues(
 	});
 	const company = companies[0];
 	if (company == null) return [];
-	// Narrowed, so the custom `checks` and `duty_types` are read (a default projection omits them).
+	// Narrowed, so the custom `checks`, `duty_types` and `tables` are read (a default projection omits them).
 	const versions = await readAll<
-		Parameters<typeof settingsInForce>[0][number] & { checks?: unknown; duty_types?: unknown }
+		Parameters<typeof settingsInForce>[0][number] & {
+			checks?: unknown;
+			duty_types?: unknown;
+			tables?: unknown;
+		}
 	>(reads, 'jurisdiction_settings', sealedLineages([company.settings_code]).where, undefined, {
 		id: true,
 		code: true,
@@ -212,9 +221,33 @@ export async function employmentCheckIssues(
 		approval_id: true,
 		effective_range: true,
 		checks: true,
-		duty_types: true
+		duty_types: true,
+		tables: true
 	});
-	const version = settingsInForce(versions, company.settings_code, date);
+	const subject = employment.employee_number ?? '';
+	const first = versions
+		.map((row) => dateKey(readRange(row.effective_range)?.start))
+		.filter((day) => day !== '')
+		.toSorted()[0];
+	let rule = date;
+	let version = settingsInForce(versions, company.settings_code, date);
+	if (version == null && first != null) {
+		// A day the lineage's span reaches that no version covers is a hole in the law, never a pass.
+		if (date >= first)
+			return [
+				{
+					code: 'NO_VERSION_IN_FORCE',
+					message: `${subject === '' ? '' : `${subject}: `}${company.settings_code} has no sealed version in force on ${date}, so its ${at} checks cannot be judged. Seal a version whose effective range covers it.`,
+					collection: 'employments',
+					recordId: employment.id ?? undefined
+				}
+			];
+		// Before the lineage's first version, a hire and its terms are judged on that version's first day,
+		// while they still stand there; an exit or an entry that closed before it met no stated law.
+		if (at !== 'EMPLOYMENT_START' && at !== 'TERMS_CHANGE') return [];
+		rule = first;
+		version = settingsInForce(versions, company.settings_code, rule);
+	}
 	const checks = checksOf(version).filter((check) => check.at === at);
 	// An employment's own duties block its exit; a run's are the precheck's (`payrollRunPrecheck`).
 	const block = at === 'EXIT' ? 'EXIT' : null;
@@ -223,7 +256,8 @@ export async function employmentCheckIssues(
 
 	const id = employment.id ?? NEW;
 	const context = await readLeaveContext(reads, employment.id == null ? [] : [employment.id]);
-	const [employees, open] = await Promise.all([
+	const settled = { company_id: { eq: company.id }, approval_id: { isNull: true } };
+	const [employees, open, patterns, shifts, sites, referenceRows] = await Promise.all([
 		context.employees.some((row) => row.id === employment.employee_id)
 			? []
 			: readAll<LeaveContext['employees'][number]>(reads, 'employees', {
@@ -241,7 +275,18 @@ export async function employmentCheckIssues(
 					},
 					undefined,
 					{ duty_code: true }
-				)
+				),
+		// The stage's context is the run's: the roster vocabulary a pattern week is measured from, the
+		// worksites `worksite.*` reads, and the version's table rows `table()` reads.
+		readAll<LeaveContext['patterns'][number]>(reads, 'shift_patterns', settled),
+		readAll<LeaveContext['shifts'][number]>(reads, 'shift_definitions', settled),
+		readAll<WorkspaceRow<'worksites'>>(reads, 'worksites', settled),
+		version == null || ((version.tables ?? []) as readonly unknown[]).length === 0
+			? []
+			: readAll<ReferenceRow & { readonly settings_id: unknown }>(reads, 'reference_rows', {
+					settings_id: { eq: version.id },
+					approval_id: { isNull: true }
+				})
 	]);
 	const stored = context.employments.find((row) => row.id === id);
 	// repository-health:allow R3b -- a candidate is a stored terms row merged with its validated input, so every terms field is there
@@ -266,9 +311,20 @@ export async function employmentCheckIssues(
 				exit_facts: employment.exit_facts ?? stored?.exit_facts ?? null
 			}
 		],
-		companies: context.companies.some((row) => row.id === company.id)
-			? context.companies
-			: [...context.companies, company],
+		companies: [
+			...context.companies.filter((row) => row.id !== company.id),
+			{
+				...(context.companies.find((row) => row.id === company.id) ?? company),
+				[DATED]: datedCompany(
+					versions,
+					company.settings_code,
+					new Map([[version?.id ?? '', referenceRows.map((row) => referenceRowOf(row))]]),
+					sites
+				)
+			}
+		],
+		patterns,
+		shifts,
 		employees: [...context.employees, ...employees],
 		// Candidates first: the row in force is the first that covers the day, so a revision wins over the row it closes.
 		terms: [
@@ -276,13 +332,19 @@ export async function employmentCheckIssues(
 			...context.terms.filter((row) => !candidateTerms.some((candidate) => candidate.id === row.id))
 		]
 	};
-	const person = personAt(spliced, id, date);
+	if (
+		rule !== date &&
+		!(
+			at === 'TERMS_CHANGE' ? candidateTerms : spliced.employments.filter((row) => row.id === id)
+		).some((row) => coversDate(row.effective_range, rule))
+	)
+		return [];
+	const person = personAt(spliced, id, rule);
 	const openCodes = open.map((row) => row.duty_code);
-	const subject = employment.employee_number ?? '';
 	// The terms before a change are those in force the day before it, as stored.
 	const before =
 		at === 'TERMS_CHANGE' && options.roots?.before == null
-			? personAt({ ...spliced, terms: context.terms }, id, addDays(date, -1)).terms
+			? personAt({ ...spliced, terms: context.terms }, id, addDays(rule, -1)).terms
 			: options.roots?.before;
 	return [
 		...checkIssues({
@@ -290,7 +352,7 @@ export async function employmentCheckIssues(
 			at,
 			context: checkContext({
 				at,
-				date,
+				date: rule,
 				person,
 				open: openCodes,
 				roots: { ...options.roots, before }

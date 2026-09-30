@@ -27,8 +27,10 @@ import * as Predicate from 'effect/Predicate';
 import { resolveCompanyFacts } from '../declared-facts.js';
 import { personFactsForVersion } from '../payroll/facts.js';
 import {
+	DATED,
 	isEligible,
 	personContext,
+	type DatedCompany,
 	type PersonContext,
 	type PersonInput
 } from '../../lib/payroll/run/eligibility.js';
@@ -68,6 +70,8 @@ export type LeaveContext = {
 		readonly facts?: Readonly<Record<string, unknown>> | null | undefined;
 		/** Dated entity fact revisions, so a leave rule reads the facts of its own date. */
 		readonly fact_revisions?: readonly CompanyFactRevision[] | undefined;
+		/** The version's tables and worksites on a date, where the caller bound them (a lifecycle check). */
+		readonly [DATED]?: DatedCompany | undefined;
 	}[];
 	employees: {
 		readonly id: string;

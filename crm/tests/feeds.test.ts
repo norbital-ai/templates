@@ -62,6 +62,23 @@ describe('ERP master imports', () => {
 			(await t.as(t.admin).read('suppliers', { where: { code: { eq: 'S900' } }, limit: 1 })).rows[0]
 		).toMatchObject({ payment_terms_days: 30 });
 	});
+
+	it('price an imported item in its feed currency, else the workspace currency', async () => {
+		const t = await workspace();
+		const items = [
+			{ external_code: 'I901', name: 'Resin', unit_price: 6.85, currency: 'CNY' },
+			{ external_code: 'I902', name: 'Film', unit_price: 2 }
+		];
+		expect(await feed(t, 'products', { items })).toMatchObject({ kind: 'committed' });
+		const rows = (
+			await t.as(t.admin).read('products', {
+				where: { external_code: { in: ['I901', 'I902'] } },
+				orderBy: 'external_code',
+				all: true
+			})
+		).rows;
+		expect(rows.map((r) => r['currency'])).toEqual(['CNY', 'SGD']);
+	});
 });
 
 describe('document exports and the expiry sweep', () => {

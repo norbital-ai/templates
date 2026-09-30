@@ -390,3 +390,26 @@ test('checks: a stored final-pay deadline (exit + 3 days) warns a slip paid on d
 	assert.deepEqual(judge('2026-03-20', '2026-03-24'), [['FINAL_PAY_LATE', 'WARNING']]);
 	assert.deepEqual(judge(null, '2026-04-30'), []);
 });
+
+test('checks: a PAYSLIP check reads the slip’s measured period and week, not the blank 0', async () => {
+	const { buildPayrollRun, gatherPayrollRun } = await import('../src/lib/payroll/run/engine.ts');
+	const { createPublicPayrollWorld, COMPANY_ID } =
+		await import('./fixtures/public-payroll-world.ts');
+	const { payrollWorld } = await import('./fixtures/memory-payroll-api.ts');
+	const run = async (when: string) => {
+		const world = createPublicPayrollWorld();
+		world.jurisdiction_settings[0]!.checks = [
+			{ code: 'SEEN', at: 'PAYSLIP', when, severity: 'REFUSE', message: 'Seen.' }
+		];
+		return buildPayrollRun(
+			await gatherPayrollRun({
+				world: payrollWorld(world),
+				companyId: COMPANY_ID,
+				period: '2026-01'
+			})
+		);
+	};
+	await assert.rejects(async () => run('period.working_days > 0'), /PF0001: Seen\./);
+	await assert.rejects(async () => run('terms.working_days_per_week > 0'), /PF0001: Seen\./);
+	await run('period.working_days < 0');
+});

@@ -62,6 +62,18 @@
  *     (`from: { automation, input }`, started through `/act` and awaited) or from a saved row's file field
  *     (`from: { collection, where, field }`); the first file whose name matches `name` (a RegExp source) must equal
  *     `text` byte for byte as UTF-8, or hash to `sha256`.
+ *
+ * Automations the host would run on its own (each started through `/act` `start`, as the app's Run button or the
+ * scheduler starts it, and awaited through the shell's run view):
+ *   - `exits: ['<employment ref>', …]`: the departure settlement `leave_encashment_on_exit` runs for those
+ *     contracts (`{ ids }`) after the `event` inputs, before the event run, so the leave encashment, separation
+ *     requests and clearance hold it raises are saved (and a `saved` expectation can pin them);
+ *   - `sweep: true`: the daily `obligation_calendar` sweep runs after the event run (or its refusal), before `saved`
+ *     is judged; a sweep failure naming the case's company fails the case. On by default when `saved` pins
+ *     `obligation_instances` (the ledger has no inline writer); `sweep: false` turns it off.
+ * Both run on the host's wall clock: bolt-server's `start()` has no clock seam, so `ctx.today` is the real day, not
+ * the case's period. The sweep is a catch-up (every occurrence from the lineage's first day to today, idempotent),
+ * so a case pinning past-dated duties is judged the same on any later day.
  */
 import { randomBytes, randomUUID } from 'node:crypto';
 import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
@@ -123,6 +135,10 @@ export type ProbeCase = {
 	event?: readonly ProbeInput[];
 	saved?: readonly SavedExpectation[];
 	files?: readonly FileExpectation[];
+	/** Employment refs `leave_encashment_on_exit` settles before the event run */
+	exits?: readonly string[];
+	/** Run the `obligation_calendar` sweep before `saved`; default: `saved` pins `obligation_instances` */
+	sweep?: boolean;
 };
 
 export const PROFILES = [
@@ -201,7 +217,8 @@ export async function boot(root = process.cwd()) {
 	const scratch = mkdtempSync(join(tmpdir(), 'norbital-payroll-probe-'));
 	cpSync(join(root, '.norbital', 'artifact'), join(scratch, 'artifact'), { recursive: true });
 	mkdirSync(join(scratch, 'files'));
-	const mail: { to: readonly string[]; text?: string; html?: string }[] = [];
+	// bolt-server ≥0.0.148 hands the host's mail transport (channel, message, signal) and wants a provider id back.
+	const mail: string[] = [];
 	const server: RunningServer = await start(
 		{
 			artifact: join(scratch, 'artifact'),
@@ -212,10 +229,11 @@ export async function boot(root = process.cwd()) {
 			files: { provider: 'local', root: join(scratch, 'files') },
 			masterKey: randomBytes(32),
 			opsKey: null,
-			mail: null,
-			sms: null,
+			transactional: null,
+			local: true,
 			providers: {},
 			ai: { sys1: null, sys2: {}, embed: {}, modalities: { sys2: null, embed: null } },
+			speech: null,
 			vapid: null,
 			turnstile: null,
 			telemetryRetainHours: 72,
@@ -227,9 +245,9 @@ export async function boot(root = process.cwd()) {
 			dev: false
 		},
 		{
-			mail: async (m) => {
-				mail.push(m as (typeof mail)[number]);
-				return `probe-${mail.length}`;
+			mail: async (_channel, message) => {
+				mail.push(JSON.stringify(message));
+				return { providerId: `probe-${mail.length}` };
 			},
 			log: () => {}
 		}
@@ -244,7 +262,7 @@ export async function boot(root = process.cwd()) {
 		return { response, body: (await response.json()) as Json };
 	};
 	await post('/__bolt/session/code', { address: FOUNDER });
-	const code = /\b(\d{6})\b/.exec(mail.at(-1)?.text ?? mail.at(-1)?.html ?? '')?.[1];
+	const code = /\b(\d{6})\b/.exec(mail.at(-1) ?? '')?.[1];
 	if (code === undefined) throw new Error('no sign-in code was mailed to the founder');
 	const verified = await post('/__bolt/session/verify', { address: FOUNDER, code });
 	cookie = verified.response.headers
@@ -536,6 +554,10 @@ export async function runCase(host: Host, probe: ProbeCase) {
 		results.push(...judgeSlips(slips, step.expected ?? [], `${step.period} `));
 	}
 	await apply(probe.event ?? [], 'event');
+	if (probe.exits !== undefined)
+		await host.run('leave_encashment_on_exit', {
+			ids: (await resolve(probe.exits.map((ref) => `@${ref}`))) as Json
+		});
 
 	const runInput = { company_id: ids.get('company')!, period: probe.period };
 	if (probe.refused !== undefined) {
@@ -593,6 +615,18 @@ export async function runCase(host: Host, probe: ProbeCase) {
 			select: SLIP_FIELDS
 		});
 		results.push(...judgeSlips(slips, probe.expected));
+	}
+
+	if (probe.sweep ?? (probe.saved ?? []).some((want) => want.collection === 'obligation_instances')) {
+		// ponytail: sweeps every company on the host, serialised (`concurrency: { max: 1 }`); fine at probe scale
+		const swept = await host.run('obligation_calendar', {});
+		const company = ids.get('company')!;
+		const failures = ((swept.result as Row | null)?.failures ?? []) as readonly Json[];
+		results.push({
+			employment: 'obligation sweep',
+			actual: swept.result ?? null,
+			differences: failures.map(String).filter((line) => line.includes(company))
+		});
 	}
 
 	/** `where` as the read's filter: each field equal to its resolved value. */

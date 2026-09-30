@@ -383,6 +383,66 @@ test('PH round 2 — Handbook ch.2 §D: the daily-paid are paid an unworked regu
 	);
 });
 
+test('PH round 2 — Labor Code art.94: unpaid leave the workday before costs a monthly salary the unworked regular holiday too', () => {
+	// ₱30,450 on the 261 factor is ₱1,400 a day (30,450 × 12 ÷ 261). Friday 28 August 2026 is
+	// unpaid leave with no work-day row; Monday 31 August a regular holiday, not worked (Saturday
+	// and Sunday are rest days, §D.3). M-NPL loses both days: 30,450 − 2 × 1,400 = 27,650.
+	// M-PRESENT is silent on Friday (present): the holiday stays paid, 30,450.
+	const settings = settingsIdOn('PH', '2026-08-28');
+	const unpaid = leaveCatalogue('PH').find(
+		(row) => row.settings_id === settings && row.code === 'UNPAID_LEAVE'
+	)!;
+	const { slips } = buildStatutory(
+		{
+			// The September run's attendance window, 21 August – 20 September, holds both days.
+			code: 'PH',
+			period: '2026-09',
+			people: [
+				{ key: 'M-NPL', wage: 30_450 },
+				{ key: 'M-PRESENT', wage: 30_450 }
+			]
+		},
+		(world) => {
+			world.jurisdiction_holidays.push(holiday('2026-08-31', 'National Heroes Day'));
+			world.leave_catalogue.push(unpaid);
+			const employment = world.employments.find((row) => row.employee_number === 'M-NPL')!;
+			const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+			world.leave_entries.push({
+				id: 'e1000000-0000-4000-8000-0000000npl28',
+				employment_id: employment.id,
+				catalogue_id: unpaid.id,
+				leave_code: 'UNPAID_LEAVE',
+				reference: 'NPL-28',
+				from_date: '2026-08-28',
+				to_date: '2026-08-28',
+				half_day_start: false,
+				half_day_end: false,
+				days: 1,
+				effective_on: '2026-08-28',
+				reason: 'Personal matter, unpaid',
+				allocations: [],
+				charges: [
+					{
+						date: '2026-08-28',
+						days: 1,
+						catalogue_id: unpaid.id,
+						employment_term_id: term.id,
+						holiday_id: null,
+						shift_definition_id: null,
+						work_day_id: null
+					}
+				],
+				approval_id: null,
+				payslip_id: null
+			});
+		}
+	);
+	assert.deepEqual(
+		['M-NPL', 'M-PRESENT'].map((key) => slips.get(key)!.gross),
+		[27_650, 30_450]
+	);
+});
+
 test('PH round 2 — RA 10361 s.24: a kasambahay in NCR is held to NCR-DW-06, ₱7,800 a month, not the establishment order', () => {
 	// NCR-DW-06 s.1: ₱7,800 a month from 7 February 2026 (the 1 April 2026 version carries it).
 	// DW-7500 is below it and refuses; DW-7800 meets it despite being below the establishment floor.

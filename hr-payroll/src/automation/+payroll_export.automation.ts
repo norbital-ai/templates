@@ -234,7 +234,7 @@ payroll_export.run(async ({ ids, kind, codes, authorised_person, submission, sub
 								bankFileRows(
 									run.bank.map((payment) => ({
 										...payment,
-										payrollRunId: run.runId,
+										period: run.period,
 										paymentDate: run.payDate
 									}))
 								)

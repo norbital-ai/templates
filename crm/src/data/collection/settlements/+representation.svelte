@@ -5,16 +5,12 @@
 	import type { RecordView } from '@norbital-ai/ui';
 
 	let { view }: { view: RecordView<'settlements'> } = $props();
-	const KIND: { readonly [collection: string]: string } = {
-		quotes: 'quote',
-		purchase_orders: 'purchase order',
-		purchase_invoices: 'purchase invoice'
-	};
 </script>
 
 {#snippet regarding(form: FormState)}
 	<Regarding
 		{form}
+		confirmed
 		arms={[
 			['quotes', 'component.quote'],
 			['purchase_orders', 'component.purchase_order'],
@@ -25,15 +21,7 @@
 
 <RecordForm
 	{view}
-	subtitle={(r) =>
-		`${KIND[(r.regarding as { collection?: string } | null)?.collection ?? ''] ?? 'document'} · ${r.settled_on ?? 'unsettled'}`}
+	subtitle={['settled_on']}
 	editors={{ regarding }}
-	fields={[
-		['regarding', 'component.regarding'],
-		'amount',
-		'currency',
-		['settled_on', 'component.settled_on'],
-		'reference',
-		['owner_id', 'component.recorded_by']
-	]}
+	fields={['regarding', 'amount', 'currency', 'settled_on', 'reference', 'owner_id']}
 />

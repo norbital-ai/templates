@@ -3,13 +3,13 @@ import { ledger, num, priceLine } from '../../../lib/pricing.js';
 
 /**
  * Matches an invoice line to an order line of the invoice's own order (only while the invoice is a draft: the line is
- * owned), snapshotting the product and cost, and refuses to invoice more than was ordered, counting only lines on
- * invoices that are not cancelled. An update re-prices from the changed cells.
+ * owned), snapshotting the product, cost and tax rate, and refuses to invoice more than was ordered, counting only
+ * lines on invoices that are not cancelled. An update re-prices from the changed cells.
  */
 const c = collection('purchase_invoice_lines', {
 	read: { fields: 'all' },
 	create: {
-		input: { columns: ['purchase_invoice_id', 'purchase_order_line_id', 'quantity', 'tax_rate'] }
+		input: { columns: ['purchase_invoice_id', 'purchase_order_line_id', 'quantity'] }
 	},
 	update: { input: { columns: ['quantity', 'unit_cost', 'tax_rate'] } },
 	delete: {}
@@ -58,7 +58,7 @@ c.transform(async (inputs, ctx: TransformCtx<'purchase_invoice_lines'>) => {
 						product_code: orderLine.product_code,
 						product_name: orderLine.product_name,
 						unit_cost: orderLine.unit_cost,
-						tax_rate: input.tax_rate ?? orderLine.tax_rate
+						tax_rate: orderLine.tax_rate
 					};
 		const line = { ...stored, ...written };
 		const priced = priceLine(invoice, { ...line, unit_price: line.unit_cost }, 'Unit cost');
