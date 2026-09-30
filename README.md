@@ -60,11 +60,37 @@ way, the next visits with the drive to each from where the phone is now, directi
 button, one tap to start and a completion sheet with notes. While it is open the phone's position is
 shared with the scheduler. A helper signs in as the member their `helpers.user` names.
 
-**Book a visit** is the public customer portal: no account needed. A visitor picks a service, a
-time and leaves their details; the `portal_intake` run books it through the same matching the desk
-uses and emails a confirmation, or — when nobody is free then — emails that a time will follow and
-puts the request in Scheduling → Bookings → Portal requests. A visitor sees only the active
-services and can only file a request.
+**Book a visit** is the customer portal: two site pages (`site: true`) with no workspace chrome, to
+link to or embed in your own site. Anyone may open them.
+
+1. **Details.** The customer types their mobile number and presses **Send code**; the six-digit code
+   box appears beside **Verify**, and the sixth digit verifies (ui's `PhoneVerify`). The first verification signs them up
+   as a `customer`. That policy opens the portal alone and shows only their own records. Then they
+   pick the service (the hard requirement), address and area, how often, and their name. A returning
+   customer finds these filled in.
+2. **Time.** The service's open starts over the next two weeks, day by day.
+3. **Confirmed.** The `portal_intake` run books it through the same matching the desk uses. When the
+   time was just taken, it says a time will follow and the request waits in Scheduling → Bookings →
+   Portal requests.
+
+**My bookings** lists their upcoming and past visits (who is coming, how far away) and the messages
+sent to them.
+
+The open times come from `openings`, which the `publish_openings` run keeps current: every 15
+minutes and whenever the schedule changes. It names no helper and no other customer. Closing sign-up
+(Settings → People) stops new numbers from joining.
+
+To embed the portal, frame it:
+
+```html
+<iframe
+	src="https://<workspace host>/app/portal/book"
+	style="width:100%;height:760px;border:0"
+></iframe>
+```
+
+Only the portal's pages may be framed; every other page refuses. Inside the frame, the customer's
+sign-in is kept apart from the host site's cookies, and writes started by another site are refused.
 
 ## Source layout
 
@@ -72,10 +98,11 @@ services and can only file a request.
 src/
 ├── data/model/…            services, helpers, helper_time_off, customers, bookings,
 │                           booking_helpers, visits, helper_warnings, customer_notices,
-│                           booking_requests, dispatch_settings
+│                           booking_requests, openings, dispatch_settings
 ├── data/collection/…       bookings.book, visits.{reassign,reschedule,cancel,…},
 │                           helpers.{open_slots,offboard}, and the visit guard
-├── automation/             shift_watch, eta_watch, warning_letter, portal_intake
+├── automation/             shift_watch, eta_watch, warning_letter, portal_intake,
+│                           publish_openings, deliver_notices, helper_alerts
 ├── channel/                customer_mail (emails each customer notice)
 ├── lib/matching.ts         the matching rules, pure and unit-tested
 └── lib/dispatch.ts         loading the pool and reassigning visits

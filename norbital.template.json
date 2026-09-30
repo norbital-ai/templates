@@ -6,9 +6,9 @@
 	"description": "On-demand helper bookings: skill- and availability-matched helpers with travel buffers, preferred-helper scheduling, recurring visits, pre-shift checks with automatic reassignment, and GPS ETA alerts.",
 	"visibility": "public",
 	"counts": {
-		"collections": 11,
-		"apps": 7,
-		"automations": 6
+		"collections": 12,
+		"apps": 6,
+		"automations": 7
 	},
 	"tags": ["Home services", "Scheduling", "Dispatch"],
 	"name_zh": "上门服务",

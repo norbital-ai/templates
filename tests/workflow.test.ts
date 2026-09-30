@@ -137,7 +137,7 @@ describe('the shift check', () => {
 		const admin = t.as(t.admin);
 		const warnings = (await admin.read('helper_warnings', { all: true })).rows;
 		expect(warnings).toMatchObject([{ helper: ALPHA, reason: 'no_response' }]);
-		// the kit renders no PDFs: the letter run ends cleanly and the warning stands without one
+		// the kit converts no documents: the letter run ends cleanly and the warning stands without one
 		const [letterRun] = (
 			await t.db.read([
 				{ text: `SELECT state FROM sys_run WHERE automation = 'warning_letter'`, params: [] }
@@ -297,7 +297,7 @@ describe('changes', () => {
 
 describe('the customer portal', () => {
 	const request = {
-		name: 'Portal Visitor',
+		name: 'Portal Customer',
 		phone: '+6581234567',
 		address: '9 Portal Lane, Singapore 400009',
 		area: 'east',
@@ -305,31 +305,60 @@ describe('the customer portal', () => {
 		start: TUESDAY_10,
 		repeat: 'once'
 	};
+	/** A customer who verified their number on the portal (signed up: external, the `customer` policy). */
+	const customer = (t: T, phone = request.phone) =>
+		t.as(t.member(['customer'], { external: true, phone }));
 
-	it('a visitor with no account files a request, and sees nothing else', async () => {
+	it('a visitor sees the services and their open times, and nothing else — not even a way to book', async () => {
 		const t = await workspace();
+		await t.as(t.admin).start('publish_openings');
+		await settle(t);
 		const visitor = t.visitor('portal');
-		committed(await visitor.act('booking_requests.create', request));
 		expect((await visitor.read('services', { all: true })).rows).toHaveLength(4);
+		const open = (await visitor.read('openings', { all: true })).rows;
+		expect(open.length).toBeGreaterThan(0);
 		await expect(visitor.read('helpers', { all: true })).rejects.toThrow();
-		await expect(visitor.read('booking_requests', { all: true })).rejects.toThrow();
+		expect(await visitor.act('booking_requests.create', request as never)).toMatchObject({
+			kind: 'refused'
+		});
 	});
 
-	it('a request a helper is free for is booked on its own, the customer filed by phone and told on WhatsApp', async () => {
+	it('the open times are when a helper with the skill is free, and a booked time closes', async () => {
 		const t = await workspace();
-		committed(await t.visitor('portal').act('booking_requests.create', request));
+		await t.as(t.admin).start('publish_openings');
+		await settle(t);
+		const admin = t.as(t.admin);
+		const tuesday = async () =>
+			(
+				await admin.read('openings', {
+					where: { service: { eq: HOME_CLEANING }, day: { eq: '2026-09-29' } },
+					all: true
+				})
+			).rows[0]!['starts'] as string[];
+		expect(await tuesday()).toContain(TUESDAY_10);
+		// book 10:00 until no helper who cleans is left free then
+		while ((await book(t, {})).kind === 'committed');
+		await settle(t);
+		expect(await tuesday()).not.toContain(TUESDAY_10);
+	});
+
+	it('a verified customer books under their own number: filed by phone, booked, told on WhatsApp, and sees it', async () => {
+		const t = await workspace();
+		const me = customer(t);
+		const filed = committed(await me.act('booking_requests.create', request as never));
 		await settle(t);
 		const admin = t.as(t.admin);
 		const [r] = (await admin.read('booking_requests', { all: true })).rows;
 		expect(r).toMatchObject({ status: 'booked' });
-		expect(r!['booking']).not.toBeNull();
+		expect((await me.read('booking_requests', { all: true })).rows).toMatchObject([
+			{ id: filed.records[0]!.id, status: 'booked' }
+		]);
 		const customers = (
 			await admin.read('customers', { where: { phone: { eq: request.phone } }, all: true })
 		).rows;
 		expect(customers).toHaveLength(1);
 		expect((await visits(t))[0]).toMatchObject({ helper: ALPHA });
-		const notices = (await admin.read('customer_notices', { all: true })).rows;
-		expect(notices).toMatchObject([
+		expect((await admin.read('customer_notices', { all: true })).rows).toMatchObject([
 			{ subject: expect.stringContaining('Booking confirmed'), delivery: 'whatsapp' }
 		]);
 		expect(t.fakes.transports.whatsapp.sent.map((s) => (s.message as { to: string }).to)).toContain(
@@ -338,14 +367,29 @@ describe('the customer portal', () => {
 		expect(t.fakes.transports.email.sent).toEqual([]);
 	});
 
+	it('a customer cannot book under, or read, another number', async () => {
+		const t = await workspace();
+		const me = customer(t);
+		expect(
+			await me.act('booking_requests.create', { ...request, phone: '+6580000001' } as never)
+		).toMatchObject({ kind: 'refused' });
+		committed(
+			await customer(t, '+6580000001').act('booking_requests.create', {
+				...request,
+				phone: '+6580000001'
+			} as never)
+		);
+		expect((await me.read('booking_requests', { all: true })).rows).toEqual([]);
+	});
+
 	it('a returning customer is recognised by their number, not filed twice', async () => {
 		const t = await workspace();
 		committed(
-			await t.visitor('portal').act('booking_requests.create', {
+			await customer(t, '+6580000001').act('booking_requests.create', {
 				...request,
 				name: 'Someone Else',
 				phone: '+6580000001'
-			})
+			} as never)
 		);
 		await settle(t);
 		const admin = t.as(t.admin);
@@ -359,9 +403,10 @@ describe('the customer portal', () => {
 		const t = await workspace();
 		// Sunday 06:00: nobody works then
 		committed(
-			await t
-				.visitor('portal')
-				.act('booking_requests.create', { ...request, start: '2026-09-26T22:00:00.000Z' })
+			await customer(t).act('booking_requests.create', {
+				...request,
+				start: '2026-09-26T22:00:00.000Z'
+			} as never)
 		);
 		await settle(t);
 		const admin = t.as(t.admin);

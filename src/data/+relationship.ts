@@ -19,5 +19,6 @@ export default relationship({
 	'customer_notices.customer': { to: 'customers', inverse: 'notices' },
 	'customer_notices.visit': { to: 'visits', optional: true, onDelete: 'setNull' },
 	'booking_requests.service': { to: 'services', where: { active: { eq: true } } },
-	'booking_requests.booking': { to: 'bookings', optional: true, onDelete: 'setNull' }
+	'booking_requests.booking': { to: 'bookings', optional: true, onDelete: 'setNull' },
+	'openings.service': { to: 'services', inverse: 'openings', owned: true }
 });

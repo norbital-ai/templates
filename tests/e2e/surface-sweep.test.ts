@@ -46,7 +46,7 @@ it('every page renders for every policy and the portal visitor, with no console 
 			'/app/scheduler/schedule/board',
 			'/app/scheduler/schedule/live',
 			'/app/helper/today',
-			'/app/my_visits/visits',
+			'/app/portal/visits',
 			'/app/portal/book'
 		])
 	);
