@@ -8,7 +8,7 @@ import { envoy } from '@norbital-ai/bolt';
  */
 export default envoy({
 	channel: 'field_ops_whatsapp',
-	audience: 'authenticated',
+	audience: 'private',
 	name: 'Norbital',
 	policies: ['field_ops_whatsapp'],
 	groupMessages: 'mention_or_reply',

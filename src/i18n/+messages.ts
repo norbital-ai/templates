@@ -1,6 +1,32 @@
 import { messages } from '@norbital-ai/bolt';
 
 export default messages({
+	'models.communication_logs.label': 'Messages',
+	'models.communication_logs.singular': 'Message',
+	'models.job_assignments.label': 'Jobs',
+	'models.job_assignments.singular': 'Job',
+	'models.photo_evidence.label': 'Photo evidence',
+	'models.photo_evidence.singular': 'Photo',
+	'models.sites.label': 'Sites',
+	'models.sites.singular': 'Site',
+	'models.suspicion_reviews.label': 'Suspicion reviews',
+	'models.suspicion_reviews.singular': 'Suspicion review',
+	'models.suspicious_activity_logs.label': 'Findings',
+	'models.suspicious_activity_logs.singular': 'Finding',
+	'models.variation_requests.label': 'Variations',
+	'models.variation_requests.singular': 'Variation',
+	'models.job_assignments.fields.assignee_user_id': 'Contractor',
+	'models.job_assignments.fields.scheduled_for': 'Scheduled',
+	'models.job_assignments.fields.nature': 'Job nature',
+	'models.job_assignments.fields.location_address': 'Reported location',
+	'models.job_assignments.fields.amount_charged': 'Value charged',
+	'models.job_assignments.fields.summary': 'Completion summary',
+	'models.job_assignments.fields.external_ref': 'External reference',
+	'models.sites.fields.client_name': 'Client / tenant',
+	'models.sites.fields.house_type': 'Site type',
+	'models.sites.fields.floor_area_sqm': 'Floor area (sqm)',
+	'models.sites.fields.house_type.hdb_flat': 'HDB flat',
+	'models.suspicious_activity_logs.fields.reason': 'Judgement',
 	'app.field_ops_contractor.title': 'Contractor Workspace',
 	'app.field_ops_contractor.header_title': 'Contractor jobs',
 	'app.field_ops_contractor.header_description':
@@ -9,12 +35,7 @@ export default messages({
 		"You dispatch this workspace, so every contractor's assignments are listed here — not only your own.",
 	'app.field_ops_contractor.scope_own': 'Assignments dispatched to you.',
 	'app.field_ops_contractor.dispatched_jobs': 'Dispatched jobs',
-	'app.field_ops_contractor.dispatched_jobs_description':
-		'Jobs visible under your access policy. Review the site and scope, update progress, and inspect information captured by agents.',
-	'app.field_ops_contractor.filter_status': 'Status',
-	'app.field_ops_contractor.filter_status_all': 'All statuses',
-	'app.field_ops_contractor.filter_clear': 'Clear',
-	'app.field_ops_controller.title': 'Field Operations Controller',
+	'app.field_ops_controller.title': 'Dispatch',
 	'app.field_ops_controller.header_title': 'Dispatch control',
 	'app.field_ops_controller.header_description':
 		'Coordinate scheduled work, sites, contractors, and field evidence.',
@@ -23,14 +44,11 @@ export default messages({
 	'app.field_ops_controller.today': 'Today',
 	'app.field_ops_controller.importing': 'Importing…',
 	'app.field_ops_controller.select_dispatch_date': 'Select dispatch date',
-	'app.field_ops_controller.board': 'Board',
-	'app.field_ops_controller.map': 'Map',
 	'app.field_ops_controller.map_empty':
 		'No contractor assignment with a mapped site is scheduled for {date}.',
 	'app.field_ops_controller.sites_description':
 		'Site information, upcoming jobs, and completed activity evidence.',
 	'component.job': 'Job',
-	'component.job_site_date': 'Job · site · date',
 	'component.job_assignment': 'Job assignment',
 	'component.site': 'Site',
 	'component.contractor': 'Contractor',
@@ -49,57 +67,27 @@ export default messages({
 	'component.value_charged': 'Value charged',
 	'component.reported_location': 'Reported location',
 	'component.completion_summary': 'Completion / visit summary',
-	'component.title': 'Title',
-	'component.requested_at': 'Requested at',
-	'component.amount': 'Amount',
-	'component.description': 'Description',
-	'component.photo': 'Photo',
-	'component.variation_request': 'Variation request',
-	'component.source': 'Where it came from',
-	'component.integrity_flags': 'Integrity flags',
-	'component.duplicates_of': 'Duplicates of',
-	'component.general_information': 'General information',
-	'component.general_information_description':
-		'Client context and the exact location used for dispatch mapping.',
 	'component.upcoming_scheduled_jobs': 'Upcoming scheduled jobs',
-	'component.upcoming_scheduled_jobs_description':
-		'Future-dated jobs and past-due jobs that are still pending assignment or dispatch. New jobs open the job form — pick this site on the form.',
 	'component.upcoming_jobs': 'Upcoming jobs',
 	'component.activity_history': 'Activity history',
-	'component.activity_history_description':
-		'Jobs that have progressed past dispatch — work in progress or completed.',
 	'component.job_scope': 'Job scope',
-	'component.job_scope_description':
-		'Site, schedule, work nature, and the description the contractor receives.',
-	'component.job_scope_status': 'Job scope status',
-	'component.assignment_and_activity': 'Assignment and activity',
-	'component.assignment_and_activity_description':
-		'Completion, captured evidence, variations, and charges are retained against the assignment.',
-	'component.variation_history': 'Variation history',
 	'component.variations': 'Variations',
 	'component.variations_description': 'Scope changes captured by the field agent.',
 	'component.recorded_count': '{count} recorded',
 	'component.requested_at_instant': 'Requested {instant}',
 	'component.no_variations': 'No variation requests were recorded for this assignment.',
-	'component.evidence': 'Evidence',
-	'component.loading_evidence': 'Loading evidence…',
 	'component.evidence_load_failed': 'Could not load the photographic evidence.',
 	'component.open_photo': 'Open {name} at full size',
 	'component.workspace_upload': 'Workspace upload',
 	'component.provider_agent': '{provider} agent',
 	'component.not_recorded': 'Not recorded',
-	'component.status_and_activity': 'Status and activity',
 	'component.new_site_by_address': 'New site by address',
 	'component.site_address': 'Site address',
 	'component.add_site': 'Add site',
 	'component.create_assignment': 'Create assignment',
-	'component.evidence_write_only':
-		'A photo evidence record is written when an image is ingested and hashed, never by hand.',
 	'component.provider_channel': '{provider} channel',
 	'component.conversation_message': 'Conversation {conversationId} · Message {messageId}',
-	'component.invalid_photo_source': 'Invalid photo source',
 	'component.status_completed': 'Completed',
-	'component.loading': 'Loading…',
 	'component.status': 'Status',
 	'component.status_assigned': 'Assigned',
 	'component.flag_missing_geolocation': 'No GPS tag',
@@ -117,13 +105,6 @@ export default messages({
 	'component.suspicion_resolved': 'Resolved',
 	'component.status_unassigned': 'Unassigned',
 	'component.suspicion_resolve': 'Resolve',
-	'component.suspicion_resolve_failed':
-		'The resolution could not be saved. Your text is still here; try again.',
-	'component.suspicion_resolution_saved': 'Resolution saved.',
-	'component.suspicion_resolution_placeholder':
-		'What did you conclude? Say whether the suspicion was correct.',
-	'component.suspicion_resolve_unavailable':
-		'You can read this judgement, but your current access does not allow you to resolve it.',
 	'component.evidence_facts': 'Evidence facts',
 	'component.evidence_facts_description':
 		'Neutral observations available to the reviewer. These facts do not by themselves make an assignment suspicious.',
@@ -145,24 +126,15 @@ export default messages({
 	'component.suspicion_resolved_at': 'Resolved {instant}',
 	'component.suspicion_resolution_missing':
 		'This record is marked resolved, but its resolution text is unavailable.',
-	'component.suspicion_resolve_from_assignment':
-		"Open the assignment's Suspicion logs tab to review the evidence and resolve this judgement.",
-	'component.communication_logs': 'Communication logs',
 	'component.communication_logs_failed': 'The communication log could not be loaded.',
 	'component.conversation': 'Conversation',
 	'component.conversation_description':
 		'Messages and photos from the field, in the order they arrived.',
 	'component.conversation_read_only': 'Read only',
 	'component.conversation_empty': 'No messages or photos have been captured for this assignment.',
-	'component.photo_count': '{count} photos',
-	'component.communication_sender': 'Sent by',
-	'component.communication_sent_at': 'Sent at',
-	'component.communication_message': 'Message',
 	'component.communication_recorded_automatically':
 		'Communication records are captured from authorised field channels and cannot be authored here.',
 	'component.suspicion_review_decision': 'Suspicious judgement',
-	'component.suspicion_reviewed_at': 'Reviewed at',
-	'component.suspicion_review_model': 'Inference model',
 	'component.suspicion_review_read_only':
 		'Suspicion reviews are created by the review automation and cannot be authored here.',
 	'app.field_ops_controller.review_status_failed':
@@ -176,6 +148,6 @@ export default messages({
 	'app.field_ops_controller.import_failed':
 		'The import could not be confirmed; check the board before importing again.',
 	'app.field_ops_controller.site_handover': 'Site handover',
-	'app.field_ops_controller.suspicion_review_progress': '{percent}% {text}',
-	'component.conversation_to_latest': 'Latest'
+	'component.conversation_to_latest': 'Latest',
+	'channels.field_ops_whatsapp.label': 'Field ops WhatsApp'
 });

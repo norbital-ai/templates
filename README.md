@@ -2,6 +2,8 @@
 
 ![Field Operations workspace thumbnail](assets/thumbnail.svg)
 
+The user guide, with screens of every app, is [docs/README.md](docs/README.md).
+
 Field Operations is a construction field-operations workspace: schedule a site job, dispatch a
 contractor, track on-site progress, raise scope-change requests, and collect photographic
 evidence whose integrity is checked mechanically. It is deliberately focused — it does not attempt
@@ -146,8 +148,8 @@ assignment's progress and their evidence photos — never the integrity results.
 
 `field_ops_whatsapp` is a conversational entry point for contractors who already have an active
 workspace account. It answers on the WhatsApp channel of the same name
-(`src/channels/+field_ops_whatsapp.ts`). An administrator verifies the contractor's WhatsApp number on that account; an
-unknown number receives a registration prompt and no model run.
+(`src/channels/+field_ops_whatsapp.ts`). An administrator records the contractor's WhatsApp number on that account
+(Settings → People); an unknown number is told it is not recognised and gets no model run.
 
 The envoy's whole job is to bring a contractor's **existing** assignments up to date from what
 they send. One report is one `write_collection` update on the assignment it is about, carrying:

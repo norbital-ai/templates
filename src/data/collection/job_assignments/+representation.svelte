@@ -5,13 +5,21 @@
 	 */
 	import { bolt } from '$bolt';
 	import type { RecordView } from '@norbital-ai/ui';
-	import { Button, Dialog, Field, Form, RecordShell, useKinds } from '@norbital-ai/ui';
+	import {
+		Button,
+		Dialog,
+		Field,
+		Form,
+		format,
+		RecordShell,
+		Show,
+		useKinds
+	} from '@norbital-ai/ui';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 	import Conversation from '../../../lib/conversation.svelte';
 	import SuspicionPanel from '../../../lib/suspicion-panel.svelte';
 	import { live } from '../../../lib/live.svelte.js';
-	import { singaporeInstant } from '../../../lib/format.js';
 
 	let { view }: { view: RecordView<'job_assignments'> } = $props();
 	const t = bolt.t;
@@ -83,12 +91,18 @@
 		{#each variations.current?.rows ?? [] as variation (variation.id)}
 			<Stack gap="xs" class="rounded-md border p-3">
 				<p class="text-sm font-medium">
-					{variation.title} <span class="float-right">{String(variation.amount ?? '')}</span>
+					{variation.title}
+					<span class="float-right"
+						><Show kind={{ kind: 'money' }} value={variation.amount ?? null} /></span
+					>
 				</p>
 				<p class="text-sm text-muted-foreground">{variation.description}</p>
 				<p class="text-meta">
 					{t('component.requested_at_instant', {
-						instant: singaporeInstant(variation.requested_at)
+						instant: format({ kind: 'instant' }, variation.requested_at ?? null, {
+							...kinds,
+							locale: kinds.locale ?? bolt.locale
+						})
 					})}
 				</p>
 			</Stack>
@@ -157,19 +171,13 @@
 		</RecordShell>
 	</Stack>
 {:else}
-	{#if finding}
-		<p class="px-1 text-sm text-warning" aria-live="polite">
-			<Icon icon="lucide:shield-alert" class="inline size-4" /><span class="font-semibold"
-				>{t('component.suspicion_open')}:</span
-			>
-			{finding.reason}
-		</p>
-	{/if}
 	<RecordShell
 		of="job_assignments"
 		id={record.id}
-		title={record.title}
-		subtitle={`${t(`component.status_${record.status}`)} · ${singaporeInstant(record.dispatched_at == null ? null : String(record.dispatched_at), t('component.not_recorded'))}`}
+		subtitle={['status', 'dispatched_at']}
+		{...finding
+			? { icon: 'lucide:shield-alert', badge: t('component.suspicion_open'), hint: finding.reason }
+			: {}}
 		tabs={[
 			{ name: 'scope', title: t('component.job_scope'), body: scope },
 			{ name: 'variations', title: t('component.variations'), body: variationList },
@@ -181,17 +189,8 @@
 				: [])
 		]}
 	>
-		<Form
-			of="job_assignments"
-			mode="update"
-			id={record.id}
-			{record}
-			submit={t('component.status_and_activity')}
-		>
+		<Form of="job_assignments" mode="update" id={record.id} {record}>
 			{#snippet children()}
-				<p class="text-sm text-muted-foreground">
-					{t('component.assignment_and_activity_description')}
-				</p>
 				<Grid minimum="panel">
 					<Field name="status" />
 					<Field name="assignee_user_id" label={t('component.contractor')} />

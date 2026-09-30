@@ -17,7 +17,6 @@
 		toolbar={{
 			title: t('app.field_ops_controller.tab_sites'),
 			new: true,
-			select: true,
 			actions: [
 				{
 					start: 'site_handover',

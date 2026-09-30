@@ -33,7 +33,6 @@ export default policy({
 		'envoys.receive': [
 			{ rate: '30/min', per: 'sender' },
 			{ rate: '300/min', per: 'subject' }
-		],
-		'envoys.registration': { rate: '1/15min', per: 'sender' }
+		]
 	}
 });

@@ -7,15 +7,15 @@
 	import { bolt } from '$bolt';
 	import type { ListRow } from '@norbital-ai/bolt';
 	import { AppShell, Cluster, Split, Stack } from '@norbital-ai/ui/layout';
-	import { Board, Button, DateInput, Map } from '@norbital-ai/ui';
+	import { Board, Button, DateInput, EmptyState, Map, useKinds } from '@norbital-ai/ui';
 	import Icon from '@iconify/svelte';
 	import { csvRecords } from '../../lib/csv.js';
 	import { live } from '../../lib/live.svelte.js';
-	import { dayOf, getErrorMessage, singaporeDay } from '../../lib/format.js';
+	import { dayIn, dayOf, getErrorMessage } from '../../lib/format.js';
 	import { xlsxRecords } from '../../lib/xlsx.js';
 
 	const t = bolt.t;
-	const today = singaporeDay(new Date());
+	const today = dayIn(useKinds().zone);
 	/** The day is in the URL, so opening a record (which re-renders the page) keeps it. */
 	let day = $state<string>(new URL(location.href).searchParams.get('day') ?? today);
 	/** The day as a date; an unreadable one reads as today. */
@@ -213,9 +213,7 @@
 						/>
 					</div>
 					{#if siteIds.length === 0}
-						<p class="text-sm text-muted-foreground">
-							{t('app.field_ops_controller.map_empty', { date })}
-						</p>
+						<EmptyState variant="inset" title={t('app.field_ops_controller.map_empty', { date })} />
 					{/if}
 				</Stack>
 			{/snippet}

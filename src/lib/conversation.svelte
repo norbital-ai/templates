@@ -1,6 +1,6 @@
 <script lang="ts">
 	/**
-	 * A job's conversation as received: the retained messages and the photos filed with them, grouped by Singapore day,
+	 * A job's conversation as received: the retained messages and the photos filed with them, grouped by the workspace's day,
 	 * a burst of photos from one sender within two minutes as one bubble. Read-only; it follows the latest message until
 	 * the reader scrolls away.
 	 */
@@ -10,7 +10,7 @@
 	import { Button, useKinds } from '@norbital-ai/ui';
 	import { Frame, Grid, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import { live } from './live.svelte.js';
-	import { singaporeDay, singaporeTime, singaporeWeekday } from './format.js';
+	import { dayIn, timeIn, weekdayIn } from './format.js';
 
 	type Photo = {
 		id: string;
@@ -36,7 +36,9 @@
 		})
 	);
 	/** A contractor's grant masks a photo's provenance: select it only where it is readable. */
-	const provenance = useKinds().catalog?.['photo_evidence']?.fields['source'] !== undefined;
+	const kinds = useKinds();
+	const locale = kinds.locale ?? bolt.locale;
+	const provenance = kinds.catalog?.['photo_evidence']?.fields['source'] !== undefined;
 	const traced = live(() =>
 		provenance
 			? bolt.read('photo_evidence', {
@@ -128,13 +130,13 @@
 				!item.system &&
 				!last.system &&
 				last.sender === item.sender &&
-				singaporeDay(last.sentAt) === singaporeDay(item.sentAt) &&
+				dayIn(kinds.zone, last.sentAt) === dayIn(kinds.zone, item.sentAt) &&
 				Math.abs(Date.parse(item.sentAt) - Date.parse(last.sentAt)) <= 120_000
 			)
 				last.photos.push(...item.photos);
 			else grouped.push({ ...item, photos: [...item.photos] });
 		}
-		return Map.groupBy(grouped, (item) => singaporeDay(item.sentAt));
+		return Map.groupBy(grouped, (item) => dayIn(kinds.zone, item.sentAt));
 	});
 	let port = $state<HTMLElement | null>(null);
 	let pinned = $state(true);
@@ -168,10 +170,10 @@
 		{/if}
 		<Stack as="ol" gap="sm">
 			{#each timeline as [day, items] (day)}
-				<li class="text-center text-meta">{singaporeWeekday(items[0]!.sentAt)}</li>
+				<li class="text-center text-meta">{weekdayIn(kinds.zone, locale, items[0]!.sentAt)}</li>
 				{#each items as item (item.id)}
 					<li class="rounded-md border bg-card p-2" data-conversation-item>
-						<p class="text-meta">{item.sender} · {singaporeTime(item.sentAt)}</p>
+						<p class="text-meta">{item.sender} · {timeIn(kinds.zone, locale, item.sentAt)}</p>
 						{#if item.text}<p class="text-sm whitespace-pre-wrap">{item.text}</p>{/if}
 						{#if item.photos.length > 0}
 							<Grid minimum="compact" gap="xs">
