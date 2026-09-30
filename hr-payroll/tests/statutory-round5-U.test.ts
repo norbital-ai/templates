@@ -550,7 +550,7 @@ const timeOff = (world: PayrollWorld, code: string, from: string, to: string) =>
 		reference: `${code}-${from}`,
 		from_date: from,
 		to_date: to,
-		event_date: code === 'MATERNITY_LEAVE' ? from : null,
+		facts: code === 'MATERNITY_LEAVE' ? { event_kind: 'BIRTH', event_date: from } : {},
 		half_day_start: false,
 		half_day_end: false,
 		days: charges.length,

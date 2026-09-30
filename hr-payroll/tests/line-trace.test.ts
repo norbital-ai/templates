@@ -22,7 +22,8 @@ import {
 import { evaluationObserver } from '../src/lib/trace/observer.ts';
 
 const tables: TableLookup = {
-	table: (name, keys) => (name === 'FLOORS' && String(keys[0]) === 'R1' ? { code: 'R1', rate: 12.5 } : null),
+	table: (name, keys) =>
+		name === 'FLOORS' && String(keys[0]) === 'R1' ? { code: 'R1', rate: 12.5 } : null,
 	band: () => null,
 	bands: () => []
 };
@@ -75,7 +76,9 @@ test('line trace: records the evaluation behind a line and changes nothing', () 
 	]);
 	assert.deepEqual(price!.rounding, [{ value: 37.5, step: 1, mode: 'UP', result: 38 }]);
 	assert.equal(evaluationObserver(), null, 'the scope closes');
-	assert.deepEqual(tracesOf(traces, { kind: 'ADJUSTMENT', code: 'MEAL', source_id: 's1' }), [trace]);
+	assert.deepEqual(tracesOf(traces, { kind: 'ADJUSTMENT', code: 'MEAL', source_id: 's1' }), [
+		trace
+	]);
 	assert.deepEqual(tracesOf(traces, { kind: 'ADJUSTMENT', code: 'MEAL', source_id: 's2' }), []);
 });
 
@@ -97,7 +100,10 @@ test('line trace: one trace per employment and line part; a line priced again ke
 	});
 	assert.equal(traces.length, 3);
 	const mine = tracesForEmployment(traces, 'e1');
-	assert.deepEqual(tracesForEmployment(traces, 'e2').map((trace) => trace.line.code), ['FUND']);
+	assert.deepEqual(
+		tracesForEmployment(traces, 'e2').map((trace) => trace.line.code),
+		['FUND']
+	);
 	assert.deepEqual(
 		tracesOf(mine, { kind: 'ADJUSTMENT', code: 'OT', source_id: 'd1' }).map((trace) => [
 			trace.line.part,

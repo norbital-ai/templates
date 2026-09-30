@@ -937,42 +937,45 @@ test('Malaysia — s.59(1): of two rest days in a week only the last is the rest
 	// Sun 9 Aug stays the rest day: 4 h is not more than half the normal hours, s.60(3)(b)(i) half a
 	// day's wages = 57.69.
 	//
-	// The MY lineage's company term (Nihon Pigment's contract, owner-approved 2026-09-23) pays 2.0×
-	// on every coded rest day, at or above the s.60(3) floor, so Saturday is its contractual rest
-	// day as well as the Act's working day. Until the 104-hour count (s.60A(4)(a)) and the contract
-	// rate are priced together, paid work on it refuses before a payslip is built
-	// (`earlier_rest_day_work: REFUSE`); the Sunday alone is priced in the golden that follows the next.
-	const build = () =>
-		buildStatutory(
-			{
-				code: 'MY',
-				period: '2026-08',
-				people: [
-					{ key: 'SAT-4', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL },
-					{ key: 'SAT-10', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }
-				]
-			},
-			(world) => {
-				punch(world, 'SAT-4', '2026-08-08', '09:00', '13:00');
-				punch(world, 'SAT-4', '2026-08-09', '09:00', '13:00');
-				const employment = world.employments.find((row) => row.employee_number === 'SAT-10')!;
-				world.work_days.push({
-					id: 'wd-SAT-10-2026-08-08',
-					employment_id: employment.id,
-					work_date: '2026-08-08',
-					shift_definition_id: null,
-					worked_intervals: [
-						{ start: '2026-08-08T08:00:00+08:00', end: '2026-08-08T13:00:00+08:00' },
-						{ start: '2026-08-08T14:00:00+08:00', end: '2026-08-08T19:00:00+08:00' }
-					],
-					approval_id: null
-				});
-			}
-		);
-	assert.throws(
-		build,
-		/SAT-4: 2026-08-08 is an earlier contractual rest day.*statutory 104-hour overtime count/
+	// The MY lineage resolves the earlier rest day as s.59(1) reads (`earlier_rest_day_work:
+	// RESOLVE_AS_OFF`, applied 2026-10-01; the former REFUSE is withdrawn): Saturday is an off day
+	// and its hours are s.60A(3)(a) overtime. The company term prices them at its own hour, RM15.38
+	// (the customer divisor), not the Act's 14.4231 — a term above the statute:
+	// Sat 4 h: 4 × 15.38 × 1.5 = 92.28 (Act floor 86.54); 10 h: 10 × 15.38 × 1.5 = 230.70 (floor
+	// 216.35). Sunday keeps the company's 2.0× rest-day rate: 4 × 15.38 × 2.0 = 123.04, above the
+	// s.60(3)(b)(i) half day's wages of 57.69. (EARLIER-REST-2.0X is keyed on payroll group 5D;
+	// this world records none, so Saturday takes the 1.5 column.)
+	const { slips } = buildStatutory(
+		{
+			code: 'MY',
+			period: '2026-08',
+			people: [
+				{ key: 'SAT-4', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL },
+				{ key: 'SAT-10', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }
+			]
+		},
+		(world) => {
+			punch(world, 'SAT-4', '2026-08-08', '09:00', '13:00');
+			punch(world, 'SAT-4', '2026-08-09', '09:00', '13:00');
+			const employment = world.employments.find((row) => row.employee_number === 'SAT-10')!;
+			world.work_days.push({
+				id: 'wd-SAT-10-2026-08-08',
+				employment_id: employment.id,
+				work_date: '2026-08-08',
+				shift_definition_id: null,
+				worked_intervals: [
+					{ start: '2026-08-08T08:00:00+08:00', end: '2026-08-08T13:00:00+08:00' },
+					{ start: '2026-08-08T14:00:00+08:00', end: '2026-08-08T19:00:00+08:00' }
+				],
+				approval_id: null
+			});
+		}
 	);
+	assert.deepEqual(workLines(slips.get('SAT-4')!), [
+		['2026-08-08', 'WORKDAY-OT-1.5X', 4, 92.28],
+		['2026-08-09', 'RESTDAY-OT-2.0X', 4, 123.04]
+	]);
+	assert.deepEqual(workLines(slips.get('SAT-10')!), [['2026-08-08', 'WORKDAY-OT-1.5X', 10, 230.7]]);
 });
 
 test('Malaysia — s.59(1): the earlier of two rest days counts toward the 104-hour month, and a holiday on it is not substituted', () => {
@@ -992,17 +995,18 @@ test('Malaysia — s.59(1): the earlier of two rest days counts toward the 104-h
 	// 104); Mon 31's 4 h are incentive. Reading Saturday as the rest day would count 80 and approve
 	// every hour.
 	//
-	// The MY lineage's company terms (Nihon Pigment's contract, owner-approved 2026-09-23) differ:
-	// every coded rest day pays 2.0×, at or above the s.60(3) floor, so neither Saturday nor Sunday
-	// becomes an OFF day, and a holiday keeps its own date over the rest day
-	// (`holiday_rest_precedence: PUBLIC_HOLIDAY`) — the s.60D(1) proviso's substitute is the
-	// published replacement holiday row, not a derived one. Saturday's hours are rest-day hours
-	// outside the 104-hour month, so it holds 80 and approves every hour; paid Saturday work itself
-	// refuses at payroll (`earlier_rest_day_work: REFUSE`, the golden below).
+	// The MY lineage resolves Saturday as s.59(1) reads (`earlier_rest_day_work: RESOLVE_AS_OFF`,
+	// applied 2026-10-01; the former REFUSE is withdrawn): every Saturday is an OFF day whose hours
+	// count. A holiday keeps its own date over the rest day (`holiday_rest_precedence:
+	// PUBLIC_HOLIDAY`, the company's term): the s.60D(1) proviso's substitute is the published
+	// replacement holiday row, not a derived one, so this world has no Mon 24 substitute and Mon 24
+	// counts. 28 Saturday hours + 19 weekdays × 4 (Mon 3 to Thu 27) = 104: the cap is full after
+	// Thu 27, and Fri 28 and Mon 31 are incentive. Counting Mon 24 fills the cap a day earlier than
+	// the statutory reading, never later.
 	const settingsId = settingsIdOn('MY', '2026-08-15');
 	const work = settingsVersions('MY').find((row) => row.id === settingsId)!.work_rules;
 	assert.equal(work.last_rest_day_only ?? null, null);
-	assert.equal(work.earlier_rest_day_work, 'REFUSE');
+	assert.equal(work.earlier_rest_day_work, 'RESOLVE_AS_OFF');
 	const codes = [
 		{
 			id: 'W',
@@ -1044,9 +1048,15 @@ test('Malaysia — s.59(1): the earlier of two rest days counts toward the 104-h
 		patternOn: () => ({ pattern, anchor: '2026-08-03' }),
 		worksiteOn: () => null
 	} as Parameters<typeof observedDays>[0]);
-	// Sat 15 and Sun 23 are each observed on their own date; no Saturday is an OFF day.
+	// Sat 15 and Sun 23 are each observed on their own date; every Saturday is an OFF day.
 	assert.deepEqual([...observed.holidays].toSorted(), ['2026-08-15', '2026-08-23']);
-	assert.deepEqual([...observed.offDays].toSorted(), []);
+	assert.deepEqual([...observed.offDays].toSorted(), [
+		'2026-08-01',
+		'2026-08-08',
+		'2026-08-15',
+		'2026-08-22',
+		'2026-08-29'
+	]);
 	const days = [];
 	for (let n = 1; n <= 31; n++) {
 		const date = `2026-08-${String(n).padStart(2, '0')}`;
@@ -1083,14 +1093,15 @@ test('Malaysia — s.59(1): the earlier of two rest days counts toward the 104-h
 	assert.deepEqual(row('2026-08-15'), [12, 0]);
 	assert.deepEqual(row('2026-08-22'), [4, 0]);
 	assert.deepEqual(row('2026-08-24'), [4, 0]);
-	assert.deepEqual(row('2026-08-28'), [4, 0]);
-	assert.deepEqual(row('2026-08-31'), [4, 0]);
+	assert.deepEqual(row('2026-08-27'), [4, 0]);
+	assert.deepEqual(row('2026-08-28'), [0, 4]);
+	assert.deepEqual(row('2026-08-31'), [0, 4]);
 });
 
-test('MY — the last rest day keeps its 2.0× rate; paid earlier rest-day work refuses before saving', () => {
-	// A contractual Sat+Sun rest pattern makes only Sunday the Act's s.59(1) rest day. The company
-	// owes its 2× Saturday rate, while Saturday also consumes s.60A(4)(a)'s 104-hour overtime cap.
-	// Until those two identities are represented separately, Saturday work cannot be priced safely.
+test('MY — the last rest day keeps its 2.0× rate; earlier rest-day work is priced as off-day overtime', () => {
+	// A contractual Sat+Sun rest pattern makes only Sunday the Act's s.59(1) rest day. Since
+	// 2026-10-01 (`earlier_rest_day_work: RESOLVE_AS_OFF`) Saturday resolves as an off day: 4 h of
+	// s.60A(3)(a) overtime at the company hour, 4 × 15.38 × 1.5 = 92.28 (Act floor 86.54).
 	const { slips } = buildStatutory(
 		{
 			code: 'MY',
@@ -1100,18 +1111,17 @@ test('MY — the last rest day keeps its 2.0× rate; paid earlier rest-day work 
 		(world) => punch(world, 'SUN-4', '2026-08-09', '09:00', '13:00')
 	);
 	assert.deepEqual(workLines(slips.get('SUN-4')!), [['2026-08-09', 'RESTDAY-OT-2.0X', 4, 123.04]]);
-	assert.throws(
-		() =>
-			buildStatutory(
-				{
-					code: 'MY',
-					period: '2026-08',
-					people: [{ key: 'SAT-4', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
-				},
-				(world) => punch(world, 'SAT-4', '2026-08-08', '09:00', '13:00')
-			),
-		/earlier contractual rest day.*statutory 104-hour overtime count/
+	const saturday = buildStatutory(
+		{
+			code: 'MY',
+			period: '2026-08',
+			people: [{ key: 'SAT-4', wage: 3000, citizenship: 'CITIZEN', registrations: MY_LOCAL }]
+		},
+		(world) => punch(world, 'SAT-4', '2026-08-08', '09:00', '13:00')
 	);
+	assert.deepEqual(workLines(saturday.slips.get('SAT-4')!), [
+		['2026-08-08', 'WORKDAY-OT-1.5X', 4, 92.28]
+	]);
 });
 
 test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rate', () => {

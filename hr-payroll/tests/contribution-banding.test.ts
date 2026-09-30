@@ -360,8 +360,8 @@ test('a wage exactly on a boundary belongs to the band that ends there, not the 
 test('the rule chosen is the one whose money is charged, so a boundary is money', () => {
 	assert.deepEqual(selectRule(LADDER, { base: 4800 }, engine), {
 		when: 'base > 3000.0 && base <= 4800.0',
-		employee: 'round(base * 3.0 / 100.0, 0.01, "HALF_UP")',
-		employer: 'round(base * 4.0 / 100.0, 0.01, "HALF_UP")'
+		employee: "round(base * 3.0 / 100.0, 0.01, 'HALF_UP')",
+		employer: "round(base * 4.0 / 100.0, 0.01, 'HALF_UP')"
 	});
 	assert.equal(charge([schemeOf('PUB', LADDER)], 4800)[0]!.employee, 144);
 	assert.equal(charge([schemeOf('PUB', LADDER)], 4800.01)[0]!.employee, 240, '5% of 4,800.01');

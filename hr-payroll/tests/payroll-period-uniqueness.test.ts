@@ -41,9 +41,16 @@ test('a skipped period is refused: the run must stand on the one before it', () 
 	assert.doesNotThrow(() => assertPayrollPeriodAvailable([{ period: '2025-12' }], '2026-01'));
 });
 
-test('payroll creation accepts company, period and contractual pay due date', () => {
+test('payroll creation accepts company, period, contractual pay due date, run kind and sources', () => {
 	// The declared input is the whole of what a caller may submit; every other column is derived.
-	assert.deepEqual(payrollRuns.spec.create.input.columns, ['company_id', 'period', 'pay_due_date']);
+	// L3 (docs/capability-plan.md): a run names its kind, and an OFF_CYCLE run its selected sources.
+	assert.deepEqual(payrollRuns.spec.create.input.columns, [
+		'company_id',
+		'period',
+		'pay_due_date',
+		'kind',
+		'sources'
+	]);
 	assert.equal(payrollRuns.spec.create.input.with, undefined);
 	assert.equal(payrollRuns.spec.update, undefined, 'a run is frozen once built');
 });

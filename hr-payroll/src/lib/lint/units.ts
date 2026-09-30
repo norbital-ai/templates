@@ -217,6 +217,15 @@ export function unitOf(env: UnitEnv, node: Node): Unit {
 		return UNKNOWN;
 	}
 	const parts = children(node);
+	// `x * part / whole` reads left to right: money times money is a share of money once divided by
+	// money, so the product is judged with its divisor.
+	if (op === '/' && parts[0]?.op === '*') {
+		const [a = UNKNOWN, b = UNKNOWN] = children(parts[0]).map((part) => unitOf(env, part));
+		const by = parts[1] == null ? UNKNOWN : unitOf(env, parts[1]);
+		if (a.dim === 'money' && b.dim === 'money' && by.dim === 'money')
+			return unit('money', a.pct + b.pct - by.pct);
+		return divided(env, times(env, a, b), by);
+	}
 	if (op === '?:') {
 		const [condition, yes, no] = parts;
 		if (condition != null) unitOf(env, condition);

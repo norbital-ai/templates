@@ -205,7 +205,8 @@ test('the rate, obligation, filing and case sites compile what their fields stat
 		/does not compile|must produce/
 	);
 	assert.match(
-		compileExpression({ site: 'case', type: 'money', expression: 'case.salary' }) ?? '',
+		// L5 declares `case.salary` (the PH maternity phases read it); an undeclared member still refuses.
+		compileExpression({ site: 'case', type: 'money', expression: 'case.bonus' }) ?? '',
 		/does not carry/
 	);
 	assert.match(

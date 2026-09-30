@@ -237,15 +237,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -262,12 +256,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -343,11 +332,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -442,11 +427,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -463,10 +444,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -690,11 +668,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -709,11 +683,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -721,18 +691,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -760,9 +725,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -1352,15 +1315,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -1377,12 +1334,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -1458,11 +1410,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -1557,11 +1505,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -1578,10 +1522,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -1805,11 +1746,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -1824,11 +1761,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -1836,18 +1769,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -1875,9 +1803,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -2467,15 +2393,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -2492,12 +2412,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -2573,11 +2488,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -2672,11 +2583,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -2693,10 +2600,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -2920,11 +2824,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -2939,11 +2839,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -2951,18 +2847,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -2990,9 +2881,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -3582,15 +3471,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -3607,12 +3490,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -3688,11 +3566,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -3787,11 +3661,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -3808,10 +3678,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -4035,11 +3902,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -4054,11 +3917,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -4066,18 +3925,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -4105,9 +3959,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -4697,15 +4549,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -4722,12 +4568,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -4803,11 +4644,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -4902,11 +4739,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -4923,10 +4756,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -5150,11 +4980,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -5169,11 +4995,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -5181,18 +5003,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -5220,9 +5037,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -5812,15 +5627,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -5837,12 +5646,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -5918,11 +5722,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -6017,11 +5817,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -6038,10 +5834,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -6265,11 +6058,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -6284,11 +6073,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -6296,18 +6081,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -6335,9 +6115,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -6927,15 +6705,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -6952,12 +6724,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -7033,11 +6800,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -7132,11 +6895,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -7153,10 +6912,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -7380,11 +7136,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -7399,11 +7151,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -7411,18 +7159,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -7450,9 +7193,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -8042,15 +7783,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -8067,12 +7802,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -8148,11 +7878,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -8247,11 +7973,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -8268,10 +7990,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -8495,11 +8214,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -8514,11 +8229,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -8526,18 +8237,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -8565,9 +8271,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -9157,15 +8861,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -9182,12 +8880,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -9263,11 +8956,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -9362,11 +9051,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -9383,10 +9068,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -9610,11 +9292,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -9629,11 +9307,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -9641,18 +9315,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -9680,9 +9349,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -10272,15 +9939,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -10297,12 +9958,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -10378,11 +10034,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -10477,11 +10129,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -10498,10 +10146,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -10725,11 +10370,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -10744,11 +10385,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -10756,18 +10393,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -10795,9 +10427,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -11387,15 +11017,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -11412,12 +11036,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -11493,11 +11112,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -11592,11 +11207,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -11613,10 +11224,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -11840,11 +11448,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -11859,11 +11463,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -11871,18 +11471,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -11910,9 +11505,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -12502,15 +12095,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -12527,12 +12114,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -12608,11 +12190,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -12707,11 +12285,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -12728,10 +12302,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -12955,11 +12526,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -12974,11 +12541,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -12986,18 +12549,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -13025,9 +12583,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -13617,15 +13173,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -13642,12 +13192,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -13723,11 +13268,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -13822,11 +13363,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -13843,10 +13380,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -14070,11 +13604,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -14089,11 +13619,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -14101,18 +13627,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -14140,9 +13661,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -14732,15 +14251,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -14757,12 +14270,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -14838,11 +14346,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -14937,11 +14441,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -14958,10 +14458,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -15185,11 +14682,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -15204,11 +14697,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -15216,18 +14705,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -15255,9 +14739,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -15847,15 +15329,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -15872,12 +15348,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -15953,11 +15424,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -16052,11 +15519,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -16073,10 +15536,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -16300,11 +15760,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -16319,11 +15775,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -16331,18 +15783,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -16370,9 +15817,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -16962,15 +16407,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -16987,12 +16426,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -17068,11 +16502,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -17167,11 +16597,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -17188,10 +16614,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -17415,11 +16838,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -17434,11 +16853,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -17446,18 +16861,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -17485,9 +16895,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -18077,15 +17485,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -18102,12 +17504,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -18183,11 +17580,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -18282,11 +17675,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -18303,10 +17692,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -18530,11 +17916,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -18549,11 +17931,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -18561,18 +17939,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -18600,9 +17973,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -19192,15 +18563,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -19217,12 +18582,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -19298,11 +18658,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -19397,11 +18753,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -19418,10 +18770,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -19645,11 +18994,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -19664,11 +19009,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -19676,18 +19017,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -19715,9 +19051,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -20307,15 +19641,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -20332,12 +19660,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -20413,11 +19736,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -20512,11 +19831,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -20533,10 +19848,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -20760,11 +20072,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -20779,11 +20087,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -20791,18 +20095,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -20830,9 +20129,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -21422,15 +20719,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -21447,12 +20738,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -21528,11 +20814,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -21627,11 +20909,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -21648,10 +20926,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -21875,11 +21150,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -21894,11 +21165,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -21906,18 +21173,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -21945,9 +21207,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -22537,15 +21797,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -22562,12 +21816,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -22643,11 +21892,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -22742,11 +21987,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -22763,10 +22004,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -22990,11 +22228,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -23009,11 +22243,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -23021,18 +22251,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -23060,9 +22285,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -23652,15 +22875,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -23677,12 +22894,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -23758,11 +22970,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -23857,11 +23065,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -23878,10 +23082,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -24105,11 +23306,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -24124,11 +23321,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -24136,18 +23329,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -24175,9 +23363,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -24767,15 +23953,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -24792,12 +23972,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -24873,11 +24048,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -24972,11 +24143,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -24993,10 +24160,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -25220,11 +24384,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -25239,11 +24399,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -25251,18 +24407,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -25290,9 +24441,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -25882,15 +25031,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -25907,12 +25050,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -25988,11 +25126,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -26087,11 +25221,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -26108,10 +25238,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -26335,11 +25462,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -26354,11 +25477,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -26366,18 +25485,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -26405,9 +25519,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -26997,15 +26109,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -27022,12 +26128,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -27103,11 +26204,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -27202,11 +26299,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -27223,10 +26316,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -27450,11 +26540,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -27469,11 +26555,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -27481,18 +26563,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -27520,9 +26597,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -28112,15 +27187,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -28137,12 +27206,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -28218,11 +27282,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -28317,11 +27377,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -28338,10 +27394,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -28565,11 +27618,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -28584,11 +27633,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -28596,18 +27641,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -28635,9 +27675,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -29227,15 +28265,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -29252,12 +28284,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -29333,11 +28360,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -29432,11 +28455,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -29453,10 +28472,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -29680,11 +28696,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -29699,11 +28711,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -29711,18 +28719,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -29750,9 +28753,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -30342,15 +29343,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -30367,12 +29362,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -30448,11 +29438,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -30547,11 +29533,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -30568,10 +29550,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -30795,11 +29774,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -30814,11 +29789,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -30826,18 +29797,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -30865,9 +29831,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -31457,15 +30421,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -31482,12 +30440,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -31563,11 +30516,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -31662,11 +30611,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -31683,10 +30628,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -31910,11 +30852,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -31929,11 +30867,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -31941,18 +30875,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -31980,9 +30909,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -32572,15 +31499,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -32597,12 +31518,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -32678,11 +31594,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -32777,11 +31689,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -32798,10 +31706,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -33025,11 +31930,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -33044,11 +31945,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -33056,18 +31953,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -33095,9 +31987,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -33687,15 +32577,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -33712,12 +32596,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -33793,11 +32672,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -33892,11 +32767,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -33913,10 +32784,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -34140,11 +33008,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -34159,11 +33023,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -34171,18 +33031,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -34210,9 +33065,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -34802,15 +33655,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -34827,12 +33674,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -34908,11 +33750,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -35007,11 +33845,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -35028,10 +33862,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -35255,11 +34086,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -35274,11 +34101,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -35286,18 +34109,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -35325,9 +34143,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -35917,15 +34733,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -35942,12 +34752,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -36023,11 +34828,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -36122,11 +34923,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -36143,10 +34940,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -36370,11 +35164,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -36389,11 +35179,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -36401,18 +35187,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -36440,9 +35221,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",
@@ -37032,15 +35811,9 @@
 		"payroll": {
 			"vocabularies": {
 				"statutory_work_category": [],
-				"work_classification": [
-					"LSA_COVERED",
-					"SUPERVISORY_MANAGER"
-				],
+				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
-				"tax_residency": [
-					"RESIDENT",
-					"NON_RESIDENT"
-				]
+				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
 			},
 			"currency": "JPY",
 			"timezone": "Asia/Tokyo",
@@ -37057,12 +35830,7 @@
 			"worksite_coverage": {
 				"source": "worksite",
 				"covered_by_wage_regions": true,
-				"spans": [
-					"SALARY",
-					"ATTENDANCE",
-					"ARREARS",
-					"SERVICE_AFTER_EXIT"
-				],
+				"spans": ["SALARY", "ATTENDANCE", "ARREARS", "SERVICE_AFTER_EXIT"],
 				"authority": "最低賃金法 §9, §13 (https://laws.e-gov.go.jp/law/334AC0000000137): the regional minimum wage is set per prefecture and binds work at a workplace there; a worksite must name one of the 47 prefectures `work_rules.wages.by_region` keys, or payroll refuses."
 			}
 		},
@@ -37138,11 +35906,7 @@
 				"key": "employment_insurance_class",
 				"type": "string",
 				"label": "雇用保険の事業の種類 (employment-insurance rate class)",
-				"options": [
-					"GENERAL",
-					"AGRICULTURE_SAKE",
-					"CONSTRUCTION"
-				],
+				"options": ["GENERAL", "AGRICULTURE_SAKE", "CONSTRUCTION"],
 				"description": "労働保険の保険料の徴収等に関する法律 §12(4) (https://laws.e-gov.go.jp/law/344AC0000000084); MHLW 雇用保険料率 (https://www.mhlw.go.jp/content/001692566.pdf): GENERAL 一般の事業; AGRICULTURE_SAKE 農林水産・清酒製造の事業; CONSTRUCTION 建設の事業. 園芸サービス、牛馬の育成、酪農、養鶏、養豚、内水面養殖 and a business employing 特定の船員 take the GENERAL rate. Record the class the 労働保険 保険関係成立届 established; payroll refuses an employment-insurance premium without it."
 			},
 			{
@@ -37237,11 +36001,7 @@
 				"key": "withholding_column",
 				"type": "string",
 				"label": "源泉徴収税額表の欄 (甲/乙/丙)",
-				"options": [
-					"KOU",
-					"OTSU",
-					"HEI"
-				],
+				"options": ["KOU", "OTSU", "HEI"],
 				"default_value": "OTSU",
 				"description": "所得税法 §185(1) and §194 (https://laws.e-gov.go.jp/law/340AC0000000033; NTA https://www.nta.go.jp/taxes/shiraberu/taxanswer/gensen/2511.htm): KOU (甲欄) only where the worker filed the 給与所得者の扶養控除等（異動）申告書 with this payer; HEI (丙欄) for 日雇賃金 — daily-paid work of at most two months' continuous employment; otherwise OTSU (乙欄). Unrecorded is no declaration: OTSU, the statute's column for a payer without the declaration."
 			},
@@ -37258,10 +36018,7 @@
 				"key": "resident_tax_collection",
 				"type": "string",
 				"label": "住民税の徴収方法",
-				"options": [
-					"SPECIAL",
-					"ORDINARY"
-				],
+				"options": ["SPECIAL", "ORDINARY"],
 				"description": "地方税法 §321-3–§321-5: an employer designated by the municipality special-collects (SPECIAL, 特別徴収) the resident tax the municipality notifies, one twelfth a month from June to the following May; ORDINARY (普通徴収) where the municipality notice leaves collection to the worker. Record from the municipality's 特別徴収税額の決定通知書 (e.g. https://www.city.shinjuku.lg.jp/hoken/file04_04_00001.html)."
 			},
 			{
@@ -37485,11 +36242,7 @@
 				"key": "retirement_prior_same_year_kind",
 				"type": "string",
 				"label": "支払済みの他の退職手当等の区分",
-				"options": [
-					"GENERAL",
-					"SHORT_TERM",
-					"SPECIFIED_OFFICER"
-				],
+				"options": ["GENERAL", "SHORT_TERM", "SPECIFIED_OFFICER"],
 				"default_value": "GENERAL",
 				"description": "所得税法 §30(4)–(5), §201(1)(ii)イ–ニ: 一般, 短期 or 特定役員退職手当等. A different kind from this payment needs 施行令 §71-2 and is refused."
 			},
@@ -37504,11 +36257,7 @@
 				"key": "resident_tax_exit_collection",
 				"type": "string",
 				"label": "住民税 特別徴収の退職時の取扱い",
-				"options": [
-					"LUMP_SUM",
-					"TRANSFER",
-					"ORDINARY"
-				],
+				"options": ["LUMP_SUM", "TRANSFER", "ORDINARY"],
 				"description": "地方税法 §321-5(2) (https://laws.e-gov.go.jp/law/325AC0000000226; Yokohama https://www.city.yokohama.lg.jp/kurashi/koseki-zei-hoken/zeikin/jigyosya/shizei/choshu/kirikaeiraisyo.html): LUMP_SUM withholds the remaining installments to May in one amount from the final pay where it exceeds them (the worker’s request from June to December; required from January to April); TRANSFER where the new employer continues the special collection (特別徴収継続); ORDINARY where the rest passes to 普通徴収 (June–December only). Unrecorded is no request from June to December and LUMP_SUM from January to April. File the 給与所得者異動届出書 by the tenth of the next month either way."
 			}
 		],
@@ -37516,18 +36265,13 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": []
 			},
 			{
 				"name": "SPECIFIC_MW",
 				"label": "特定最低賃金 (specific minimum wages): one row per prefectural industry determination, keyed by prefecture and determination code",
-				"keys": [
-					"parent_code",
-					"code"
-				],
+				"keys": ["parent_code", "code"],
 				"columns": [
 					{
 						"key": "hourly",
@@ -37555,9 +36299,7 @@
 			{
 				"name": "IN_KIND_VALUE",
 				"label": "厚生労働大臣が定める現物給与の価額 (social-insurance in-kind values) by prefecture",
-				"keys": [
-					"code"
-				],
+				"keys": ["code"],
 				"columns": [
 					{
 						"key": "meal_month",

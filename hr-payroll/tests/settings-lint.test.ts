@@ -150,6 +150,18 @@ test('money added to a fraction is a type error', () => {
 	one(findings, 'type', 'error', 'mixes money with a fraction');
 });
 
+test('money times money is a type error unless divided by money: a share of money is money', () => {
+	const lint = (employee) =>
+		found(
+			lintSettingsVersion(tree({ schemes: [scheme('A', [rule('', employee)])] })),
+			'type',
+			'error',
+			''
+		);
+	one(lint('base * terms.monthly_basic'), 'type', 'error', 'Money is multiplied by money');
+	assert.deepEqual(lint('base * (base - terms.monthly_basic) / terms.monthly_basic'), []);
+});
+
 test('a date compared with a number or a non-day string is a type error', () => {
 	const findings = lintSettingsVersion(
 		tree({

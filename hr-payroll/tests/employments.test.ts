@@ -29,11 +29,23 @@ const law = (from, to, options) => ({
 	effective_range: { from, to },
 	exit_facts: [{ key: 'cause', type: 'string', options }]
 });
+/** A departure ground is a code of the version's TERMINATION_GROUND table (the exit_reason → exit_ground sweep). */
+const grounds = (settingsId, codes) =>
+	codes.map((code) => ({
+		settings_id: settingsId,
+		table: 'TERMINATION_GROUND',
+		code,
+		effective_range: { from: '2025-01-01', to: null }
+	}));
 const world = (over = {}) => ({
 	companies: [{ id: 'entity', settings_code: 'ID' }],
 	jurisdiction_settings: [
 		law('2025-01-01', '2025-12-31', ['OLD']),
 		law('2026-01-01', null, ['WARNINGS'])
+	],
+	reference_rows: [
+		...grounds('law-2025-01-01', ['RESIGNATION', 'DISMISSAL']),
+		...grounds('law-2026-01-01', ['RESIGNATION', 'DISMISSAL'])
 	],
 	...over
 });
@@ -183,7 +195,8 @@ test('a departure write that leaves an owed declaration unrecorded is refused, n
 					}
 				]
 			}
-		]
+		],
+		reference_rows: grounds('law-2025-01-01', ['RESIGNATION', 'RETIREMENT'])
 	};
 	const leave = (set, row = open) => transform(employments, [set], { existing: [row], tables });
 	const range = { from: '2025-01-01', to: '2026-03-31' };

@@ -338,7 +338,9 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		ONE_CHILD_SUBSIDY: [],
 		CHILDCARE_SUBSIDY: [],
 		TRAVEL_ALLOWANCE: [],
-		MISSED_MEAL_SUBSIDY: []
+		MISSED_MEAL_SUBSIDY: [],
+		// 劳部发〔1994〕489号 art.16: a loss recovered from net pay reduces no insured or taxable wage.
+		EMPLOYEE_DAMAGE_DEDUCTION: []
 	},
 	// 健康保険法 §3(5), 厚生年金保険法 §3(1)(iii): the monthly premiums are charged on the declared
 	// 標準報酬月額 (HEALTH.standard_monthly_remuneration), never on the month's pay, so no class counts

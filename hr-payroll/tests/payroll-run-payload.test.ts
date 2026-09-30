@@ -20,6 +20,7 @@ const captures = (overrides = {}) => ({
 	adhoc: [],
 	leave: [],
 	loanRepayments: [],
+	orderRepayments: [],
 	wagePeriods: [],
 	...overrides
 });

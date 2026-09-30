@@ -50,6 +50,7 @@ import type { SpanDay } from './functions/spans.js';
 import { tablesIn, type TableLookup } from './functions/tables.js';
 import type { CompanyAccess } from './functions/company.js';
 import { historyIn } from './functions/history.js';
+import { evaluationObserver } from '../trace/observer.js';
 import type { HistoryAccess } from '../payroll/history.js';
 
 /**
@@ -277,8 +278,16 @@ export function programFor(expression: string): ParseResult {
 	return program;
 }
 
-/** A program with `engine` bound; an engine that binds no tables or history borrows the context's (`TABLES`, `HISTORY`). */
+/** One evaluation, or, inside a line trace scope (`lib/trace/record.ts`), the observer's recording of it. */
 function run(engine: ExpressionEngine, expression: string, context: object): unknown {
+	const observe = evaluationObserver();
+	return observe == null
+		? evaluateBound(engine, expression, context)
+		: observe(engine, expression, context, (traced) => evaluateBound(traced, expression, context));
+}
+
+/** A program with `engine` bound; an engine that binds no tables or history borrows the context's (`TABLES`, `HISTORY`). */
+function evaluateBound(engine: ExpressionEngine, expression: string, context: object): unknown {
 	const program = programFor(expression);
 	const tables = engine.tables ?? tablesIn(context);
 	const history = engine.history ?? historyIn(context);

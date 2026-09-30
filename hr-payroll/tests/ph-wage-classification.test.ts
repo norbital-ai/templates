@@ -266,7 +266,9 @@ test('PH wage order: every active version has sourced IV-A agriculture rates and
 			version.terms_facts.map((fact) => [fact.key, fact.evidence?.kind]),
 			[
 				['wage_worksite_source', 'REFERENCE_AND_FILE'],
-				['wage_sector_source', 'REFERENCE_AND_FILE']
+				['wage_sector_source', 'REFERENCE_AND_FILE'],
+				// The RA 12063 EBET program is a terms fact read by stored checks (EBET_PROGRAM_UNRECORDED).
+				['ebet_program', undefined]
 			]
 		);
 	}

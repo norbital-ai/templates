@@ -22,9 +22,23 @@ import { settle } from './helpers/settlement.ts';
 
 const LEAVER = 'leaver-contract';
 
+/**
+ * Every rostered day worked in full: a work day with no time entry is an absence (work.ts
+ * `absentDaysIn`), so the public roster rows are punched, 07:30–12:30 and 13:30–16:30, as
+ * tests/public-month.test.ts does.
+ */
+function punched(world: PayrollWorld) {
+	for (const day of world.work_days)
+		day.worked_intervals = [
+			{ start: `${day.work_date}T07:30:00+08:00`, end: `${day.work_date}T12:30:00+08:00` },
+			{ start: `${day.work_date}T13:30:00+08:00`, end: `${day.work_date}T16:30:00+08:00` }
+		];
+	return world;
+}
+
 /** The public world plus a second person who leaves on 2026-01-10, and one per-employment scheme remitted floored. */
 function twoPersonWorld() {
-	const world = createPublicPayrollWorld();
+	const world = punched(createPublicPayrollWorld());
 	clearAllowances(world);
 	world.employees.push({ ...world.employees[0]!, id: 'leaver-person', name: 'Leaver' });
 	world.employments.push({
@@ -178,7 +192,7 @@ test('a FINAL run refuses when nobody exits in the period, or the leaver is alre
 });
 
 test('an OFF_CYCLE run pays only the selected request, with no wages beside it', () => {
-	const world = createPublicPayrollWorld();
+	const world = punched(createPublicPayrollWorld());
 	clearAllowances(world);
 	file(world, build(world, '2026-01'), '2026-01');
 	world.adhoc_requests.push({

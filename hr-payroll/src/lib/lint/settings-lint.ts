@@ -126,7 +126,7 @@ function unitByName(name: string, dates: boolean): Unit | null {
 	if (/(?:^|_)(?:percent|pct)$/.test(name)) return PERCENT;
 	if (/(?:^|_)(?:fraction|ratio)$/.test(name)) return FRACTION;
 	if (
-		/(?:^|_)(?:amount|salary|wage|base|gross|net)$/.test(name) ||
+		/(?:^|_)(?:amount|salary|wage|base|basic|gross|net)$/.test(name) ||
 		['ordinary', 'wage_floor', 'fixed_allowances', 'ordinary_hour', 'ordinary_day'].includes(name)
 	)
 		return MONEY;
@@ -268,7 +268,7 @@ const FAMILIES = [
 	['loanCatalogue', 'loan'],
 	['claimCatalogue', 'claim'],
 	['adhocCatalogue', 'ad hoc'],
-	['allowanceCatalogue', 'allowance']
+	['allowanceCatalogue', 'allowance catalogue']
 ] as const;
 
 function collect(tree: LintTree) {

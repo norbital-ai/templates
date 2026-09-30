@@ -25,7 +25,7 @@ export type LoanRepaymentDraft = {
  * principal. One cent of rounding is not an imbalance; a cent more than that is. Exactly the
  * tolerance is accepted — the comparison is `>`.
  */
-const LOAN_SCHEDULE_TOLERANCE = 0.01;
+export const LOAN_SCHEDULE_TOLERANCE = 0.01;
 
 export function loanScheduleTotal(rows: readonly { readonly amount_due?: unknown }[]): number {
 	return rows.reduce((total, row) => total + decodeNumber(row.amount_due), 0);

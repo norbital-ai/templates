@@ -7,6 +7,7 @@ import test from 'node:test';
 // The execution boundary is covered separately in planned-overtime-split.test.ts.
 type Settings = {
 	id: string;
+	voided_at: string | null;
 	work_rules: {
 		limits: {
 			key: string;
@@ -38,14 +39,16 @@ for (const lineage of ['MY']) {
 			assert.equal((limit.counts_day_when ?? '').trim(), '');
 			assert.equal((limit.counts_beyond_normal_when ?? '').trim(), '');
 		});
-	// EA 1955 s.59(1): of two weekly rest days only the last is the Part XII rest day. The MY
-	// lineage's company term (Nihon Pigment's contract, owner-approved 2026-09-23) pays 2.0× on
-	// every coded rest day — at or above the s.60(3) floor — so it refuses paid work on the earlier
-	// until the 104-hour count and the contract rate are priced together.
+	// EA 1955 s.59(1): of two weekly rest days only the last is the Part XII rest day, so the
+	// earlier resolves as an off day whose hours are s.60A(3) overtime inside the 104-hour count
+	// (applied 2026-10-01). The voided snapshots before it kept the withdrawn REFUSE.
 	for (const version of versions)
 		test(`${lineage} ${version.id}: earlier rest-day work`, () => {
 			const rules = version.work_rules;
-			assert.equal(rules.earlier_rest_day_work, 'REFUSE');
+			assert.equal(
+				rules.earlier_rest_day_work,
+				version.voided_at == null ? 'RESOLVE_AS_OFF' : 'REFUSE'
+			);
 			assert.equal(rules.last_rest_day_only ?? null, null);
 		});
 }

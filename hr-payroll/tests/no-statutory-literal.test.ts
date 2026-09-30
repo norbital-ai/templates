@@ -108,7 +108,11 @@ const SITES: Record<string, Record<string, string>> = {
 	'src/lib/payroll/work.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/history.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/run/engine.ts': { '2': SEMI_MONTHLY },
-	'src/lib/payroll/run/contribute.ts': { '2': SEMI_MONTHLY, '4': SEMI_MONTHLY },
+	'src/lib/payroll/run/contribute.ts': {
+		'2': SEMI_MONTHLY,
+		'4': SEMI_MONTHLY,
+		'3': 'months a quarter of an assessment year'
+	},
 	'src/lib/payroll/run/period.ts': {
 		'2': SEMI_MONTHLY,
 		'11': 'the last month of a twelve-month year',

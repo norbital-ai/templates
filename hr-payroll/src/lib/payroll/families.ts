@@ -84,8 +84,9 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 		const unpaidDaysIn = (window: { readonly start: string; readonly end: string }) =>
 			unpaidLeaveDays(bundle.leave, window);
 		const currency = configuration.jurisdiction.payroll.currency;
-		const finalDate = employmentDates(bundle.employment).exit;
-		if (finalDate == null) throw new Error('An ended contract requires a final service date.');
+		// An OFF_CYCLE or CORRECTION run takes this branch for a person still employed (engine.ts
+		// `population`): their requests are priced on the window's last day.
+		const finalDate = employmentDates(bundle.employment).exit ?? options.salary.end;
 		const leave = calculateLeavePayroll({
 			prepared: bundle.leave,
 			window: options.salary,

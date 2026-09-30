@@ -566,6 +566,8 @@ test('every sealed version of `ID` is priced by a golden here', () => {
 const HOUSE_ALLOWANCE_ID = 'a1a1a1a1-0000-4000-8000-000000000001';
 const THR_ID = '6905cf49-a5ed-5833-ad3d-d08074b60c4e';
 
+const PKWT_START = '2024-03-01';
+
 test('Indonesia — THR is a twelfth of the monthly wage per completed month, whole after a year', () => {
 	const world = createStatutoryWorld({
 		...idWorld('2026-03'),
@@ -585,22 +587,27 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 			// 21 March) is owed the THR (art.7(1)); a PKWT that ends *before* the holiday is not
 			// (art.7(3)); one that ends on or after it was employed on the day and is (art.2(1)).
 			{ key: 'ID-PERM-25MAR', wage: 10_000_000, exit_date: '2026-03-25' },
+			// A PKWT lasts at most five years (PP 35/2021 art.8, check PKWT_TERM_OVER_FIVE_YEARS), so
+			// these contracts start two years before, not on the fixture's 2015 default.
 			{
 				key: 'ID-PKWT-31MAR',
 				wage: 10_000_000,
 				employment_type: 'CONTRACT',
+				hire_date: PKWT_START,
 				exit_date: '2026-03-31'
 			},
 			{
 				key: 'ID-PKWT-21MAR',
 				wage: 10_000_000,
 				employment_type: 'CONTRACT',
+				hire_date: PKWT_START,
 				exit_date: '2026-03-21'
 			},
 			{
 				key: 'ID-PKWT-10MAR',
 				wage: 10_000_000,
 				employment_type: 'CONTRACT',
+				hire_date: PKWT_START,
 				exit_date: '2026-03-10'
 			}
 		]

@@ -208,7 +208,7 @@ test('a calendar maternity event split across entries cannot settle with missing
 		refusalOf(() =>
 			withLeaveDeductionEligibility(
 				{
-					entries: [{ ...first, id: id(22), approval_id: null, event_date: null }],
+					entries: [{ ...first, id: id(22), approval_id: null, facts: { event_kind: 'BIRTH' } }],
 					catalogues: context.catalogues,
 					captures: [],
 					schemes: []

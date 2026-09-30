@@ -39,7 +39,9 @@ const MAP = ruleMap({
 		{
 			code: 'FUND',
 			assessed_on: 'BASE + ORDINARY.ALLOWANCES',
-			rules: [{ when: 'base > 0.0', employee: "round(base * 0.1, 0.01, 'HALF_UP')", employer: '0.0' }]
+			rules: [
+				{ when: 'base > 0.0', employee: "round(base * 0.1, 0.01, 'HALF_UP')", employer: '0.0' }
+			]
 		},
 		{
 			code: 'LEVY',
@@ -55,9 +57,15 @@ const MAP = ruleMap({
 				eligibility: 'employee.age >= 18',
 				bands: [{ when: '', amount: 'entry.amount', limit: null }]
 			},
-			{ code: 'TRAVEL', counts_toward: ['FUND.ADDITIONAL'], bands: [{ when: '', amount: 'entry.amount' }] }
+			{
+				code: 'TRAVEL',
+				counts_toward: ['FUND.ADDITIONAL'],
+				bands: [{ when: '', amount: 'entry.amount' }]
+			}
 		],
-		adhoc_catalogue: [{ code: 'BONUS', counts_toward: ['LEVY'], bands: [{ when: '', amount: 'entry.amount' }] }]
+		adhoc_catalogue: [
+			{ code: 'BONUS', counts_toward: ['LEVY'], bands: [{ when: '', amount: 'entry.amount' }] }
+		]
 	}
 });
 
@@ -66,10 +74,16 @@ const has = (map: RuleMap, from: string, to: string) =>
 
 test('rule map: inputs feed the rules and lines that read them', () => {
 	assert.ok(has(MAP, 'fact:terms_facts:grade', 'rule:work_rules.overtime_when'));
-	assert.ok(has(MAP, 'table:GRADES', 'fact:terms_facts:grade'), 'a code input picks from its table');
+	assert.ok(
+		has(MAP, 'table:GRADES', 'fact:terms_facts:grade'),
+		'a code input picks from its table'
+	);
 	assert.ok(has(MAP, 'table:FLOORS', 'rule:work_rules.bands:OT-A'));
 	assert.ok(has(MAP, 'input:worksite.region', 'rule:work_rules.bands:OT-A'));
-	assert.ok(has(MAP, 'rule:work_rules.bands:OT-A', 'line:OVERTIME'), 'a band without line/component posts to OVERTIME');
+	assert.ok(
+		has(MAP, 'rule:work_rules.bands:OT-A', 'line:OVERTIME'),
+		'a band without line/component posts to OVERTIME'
+	);
 	assert.ok(has(MAP, 'input:employee.age', 'line:MEAL'));
 	assert.ok(has(MAP, 'input:entry.amount', 'line:MEAL'));
 	assert.equal(
@@ -80,8 +94,15 @@ test('rule map: inputs feed the rules and lines that read them', () => {
 });
 
 test('rule map: lines enter a base through counts_toward, parts only where the base names the part', () => {
-	assert.ok(has(MAP, 'line:MEAL', 'base:FUND'), 'MEAL counts toward FUND.ORDINARY; the base reads ORDINARY.ALLOWANCES');
-	assert.equal(has(MAP, 'line:TRAVEL', 'base:FUND'), false, 'TRAVEL counts toward the ADDITIONAL part only');
+	assert.ok(
+		has(MAP, 'line:MEAL', 'base:FUND'),
+		'MEAL counts toward FUND.ORDINARY; the base reads ORDINARY.ALLOWANCES'
+	);
+	assert.equal(
+		has(MAP, 'line:TRAVEL', 'base:FUND'),
+		false,
+		'TRAVEL counts toward the ADDITIONAL part only'
+	);
 	assert.equal(has(MAP, 'line:MEAL', 'base:LEVY'), false, 'LEVY reads ADHOC, not ALLOWANCES');
 	assert.ok(has(MAP, 'line:BONUS', 'base:LEVY'));
 	assert.ok(has(MAP, 'line:BASE', 'base:FUND'), 'a reserved line the base names');
@@ -97,7 +118,14 @@ test('rule map: upstream and downstream reach', () => {
 	assert.ok(down.has('rule:work_rules.overtime_when'));
 	assert.ok(down.has('payslip'));
 	const up = reach(MAP, 'scheme:LEVY', 'up');
-	for (const id of ['base:LEVY', 'scheme:FUND', 'base:FUND', 'line:MEAL', 'input:employee.age', 'line:BONUS'])
+	for (const id of [
+		'base:LEVY',
+		'scheme:FUND',
+		'base:FUND',
+		'line:MEAL',
+		'input:employee.age',
+		'line:BONUS'
+	])
 		assert.ok(up.has(id), id);
 	assert.equal(up.has('line:TRAVEL'), false);
 	assert.deepEqual([...adjacent(MAP, 'base:FUND', 'down')], ['scheme:FUND']);
@@ -115,12 +143,26 @@ test('rule map: expression reads', () => {
 });
 
 test('rule map: tracker config paths name nodes', () => {
-	assert.ok(configPathNames('statutory_contributions:FUND; terms_facts:grade', 'statutory_contributions:FUND'));
+	assert.ok(
+		configPathNames(
+			'statutory_contributions:FUND; terms_facts:grade',
+			'statutory_contributions:FUND'
+		)
+	);
 	assert.ok(configPathNames('terms_facts:grade', 'terms_facts:grade'));
 	assert.ok(configPathNames('adhoc_catalogue:A,BONUS,C', 'adhoc_catalogue:BONUS'));
-	assert.ok(configPathNames('work_rules.overtime_when (the eligibility, note; x)', 'work_rules.overtime_when'));
+	assert.ok(
+		configPathNames(
+			'work_rules.overtime_when (the eligibility, note; x)',
+			'work_rules.overtime_when'
+		)
+	);
 	assert.ok(configPathNames('work_rules.limits.daily', 'work_rules.limits'));
-	assert.equal(configPathNames('work_rules', 'work_rules.overtime_when'), false, 'a whole root marks no node');
+	assert.equal(
+		configPathNames('work_rules', 'work_rules.overtime_when'),
+		false,
+		'a whole root marks no node'
+	);
 	assert.equal(configPathNames('adhoc_catalogue:BONUSES', 'adhoc_catalogue:BONUS'), false);
 	const csv =
 		'id,profile,area,provision,citation,url,source_checked,effective_from,effective_to,status,reason,config_path,golden,probe,verified_at\n' +
@@ -129,11 +171,20 @@ test('rule map: tracker config paths name nodes', () => {
 		'XB-1,XB,leave,p,c,u,,,,GAP,r,statutory_contributions:FUND,,,\n';
 	assert.equal(parseCsv(csv).length, 3);
 	const rows = trackerRowsOf(trackerRows(csv), { code: 'XA', jurisdiction_code: 'XA' });
-	assert.deepEqual(rows.map((row) => row.id), ['XA-1', 'XA-2']);
+	assert.deepEqual(
+		rows.map((row) => row.id),
+		['XA-1', 'XA-2']
+	);
 	assert.equal(rows[0]!.provision, 'Fund at 10%, capped');
 	assert.equal(rows[0]!.reason, 'a "quoted"\nreason');
 	const fund = MAP.nodes.find((node) => node.id === 'scheme:FUND')!;
-	assert.deepEqual(rowsForNode(rows, fund.config).map((row) => row.id), ['XA-1']);
+	assert.deepEqual(
+		rowsForNode(rows, fund.config).map((row) => row.id),
+		['XA-1']
+	);
 	const grade = MAP.nodes.find((node) => node.id === 'fact:terms_facts:grade')!;
-	assert.deepEqual(rowsForNode(rows, grade.config).map((row) => row.id), ['XA-2']);
+	assert.deepEqual(
+		rowsForNode(rows, grade.config).map((row) => row.id),
+		['XA-2']
+	);
 });

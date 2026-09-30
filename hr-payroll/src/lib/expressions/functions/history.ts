@@ -38,8 +38,7 @@ const windowOf = (value: unknown): HistoryWindow => {
 	return isCalendarDate(from) && isCalendarDate(to) && from <= to ? { from, to } : EMPTY;
 };
 
-const between = (from: string, to: string): HistoryWindow =>
-	from <= to ? { from, to } : EMPTY;
+const between = (from: string, to: string): HistoryWindow => (from <= to ? { from, to } : EMPTY);
 
 /** The `n` whole calendar months before the month of `date`, after skipping the `skip` latest. */
 export function monthsBefore(date: string, n: number, skip = 0): HistoryWindow {
@@ -90,12 +89,8 @@ const accessOf = (engine: { readonly history?: HistoryAccess | undefined }, fn: 
 	return engine.history;
 };
 
-/** The window functions whose count must be a literal, and the argument positions holding it. */
-const LITERAL_BOUNDS: Readonly<Record<string, readonly number[]>> = {
-	months_before: [1, 2],
-	days_before: [1],
-	rolling: [1]
-};
+/** The window functions whose every argument after the first is a count that must be a literal. */
+const LITERAL_BOUNDS = ['months_before', 'days_before', 'rolling'] as const;
 
 /** The arguments of each call of `name` in `expression`, split at top-level commas. */
 function callsOf(expression: string, name: string): string[][] {
@@ -128,11 +123,11 @@ const INTEGER = /^\d+$/;
  * literals (`historyReachDays`), so `months_before(d, scheme.facts.n)` is refused at write time.
  */
 export function historyWindowFault(expression: string): string | null {
-	for (const [name, positions] of Object.entries(LITERAL_BOUNDS))
+	for (const name of LITERAL_BOUNDS)
 		for (const args of callsOf(expression, name))
-			for (const position of positions)
-				if (args[position] != null && !INTEGER.test(args[position]))
-					return `${name}(…) takes its count as a whole-number literal; got ${args[position]}.`;
+			for (const count of args.slice(1))
+				if (!INTEGER.test(count))
+					return `${name}(…) takes its count as a whole-number literal; got ${count}.`;
 	return null;
 }
 
@@ -194,7 +189,8 @@ export const HISTORY_FUNCTIONS: readonly ExpressionFunctionEntry[] = [
 		handler: (_engine, date, start) => serviceYearOf(String(date), String(start)),
 		doc: {
 			path: 'service_year_of(date, start)',
-			description: 'The window of the service year holding date: from the latest anniversary of start'
+			description:
+				'The window of the service year holding date: from the latest anniversary of start'
 		}
 	},
 	{

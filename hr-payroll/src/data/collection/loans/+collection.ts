@@ -1,7 +1,7 @@
 import { collection } from '@norbital-ai/bolt';
 import { decodeNumber } from '../../../lib/wire.js';
 import { boundToContract } from '../../../lib/employment-contract.js';
-import { loanScheduleRefusals } from '../../../lib/loan-schedule.js';
+import { LOAN_SCHEDULE_TOLERANCE, loanScheduleRefusals } from '../../../lib/loan-schedule.js';
 import { capSubjects } from '../../../lib/component_entry_cap_subject.js';
 import { readAll } from '../../../lib/reads.js';
 import { plain } from '../../../lib/wire.js';
@@ -204,7 +204,7 @@ c.transform(async (inputs, ctx) => {
 				(total, row) => total + (row.payslip_id == null ? 0 : decodeNumber(row.amount_due)),
 				0
 			);
-			if (principal < recovered - 0.01)
+			if (principal < recovered - LOAN_SCHEDULE_TOLERANCE)
 				refuse(
 					`Payroll has already withheld ${recovered.toFixed(2)} under this order; its principal cannot be less.`,
 					{ field: 'principal' }

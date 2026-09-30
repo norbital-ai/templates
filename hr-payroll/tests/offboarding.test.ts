@@ -34,7 +34,28 @@ const leave = (row, to, over = {}) =>
 			existing: [row],
 			tables: {
 				employments: [row],
-				employment_terms: [{ employment_id: 'a', approval_id: null }]
+				employment_terms: [{ employment_id: 'a', approval_id: null }],
+				// A departure ground is a code of the sealed version's TERMINATION_GROUND table (exit_ground sweep).
+				companies: [{ id: 'entity', settings_code: 'X' }],
+				jurisdiction_settings: [
+					{
+						id: 'x',
+						code: 'X',
+						sealed_at: '2025-01-01T00:00:00.000Z',
+						voided_at: null,
+						approval_id: null,
+						effective_range: { from: '2025-01-01', to: null },
+						exit_facts: []
+					}
+				],
+				reference_rows: [
+					{
+						settings_id: 'x',
+						table: 'TERMINATION_GROUND',
+						code: 'RESIGNATION',
+						effective_range: { from: '2025-01-01', to: null }
+					}
+				]
 			}
 		}
 	);
@@ -48,7 +69,11 @@ test('a future end moves earlier on departure, to a later or an earlier day than
 
 test('a set end never extends or reopens, a start never moves, and a passed end never moves', async () => {
 	await assert.rejects(leave(fixedTerm, '2031-12-31'), /cannot be reopened or extended/);
-	await assert.rejects(leave(fixedTerm, null), /cannot be reopened or extended/);
+	// Without a last day there is no departure to ground: the reopening itself is refused.
+	await assert.rejects(
+		leave(fixedTerm, null, { exit_ground: null }),
+		/cannot be reopened or extended/
+	);
 	await assert.rejects(
 		leave(fixedTerm, '2026-06-30', { effective_range: { from: '2025-02-01', to: '2026-06-30' } }),
 		/cannot be reopened or extended/

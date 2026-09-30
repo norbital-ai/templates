@@ -814,6 +814,8 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				: [],
 		jurisdiction_settings: versions,
 		statutory_contributions: schemes,
+		// The version's `tables` rows (`band('EPF_PART_F', …)`, `TERMINATION_GROUND`): the reset loads them too.
+		reference_rows: law(code, 'reference_rows', { optional: true }),
 		loan_catalogue: [],
 		claim_catalogue: claimCatalogue(code),
 		allowance_catalogue: allowanceCatalogue(code),

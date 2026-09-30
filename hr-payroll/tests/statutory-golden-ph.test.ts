@@ -1128,7 +1128,13 @@ test('Philippines — Labor Code arts. 87, 93 and 94 premiums on every version',
 				.map((limit) => [limit.measure, limit.max_hours]),
 			[
 				['NORMAL_HOURS', 8],
-				['TOTAL_WORK_HOURS', 16]
+				['TOTAL_WORK_HOURS', 16],
+				// RA 9231 s.12-A(2): a child 15 to 17 works at most eight hours a day, forty a week.
+				['TOTAL_WORK_HOURS', 8],
+				['TOTAL_WORK_HOURS', 40],
+				// RA 12063 s.13: an adult trainee at most ten hours a day, a minor trainee eight.
+				['TOTAL_WORK_HOURS', 10],
+				['TOTAL_WORK_HOURS', 8]
 			]
 		);
 		// Art.85: the 60-minute unpaid meal period, and the 20-minute compensable one where the

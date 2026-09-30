@@ -7,6 +7,7 @@ import {
 	noticeMonthlyWages,
 	serviceYearsOn
 } from '../src/lib/expressions/notice-period.ts';
+import { roundStep, type RoundMode } from '../src/lib/payroll/run/rounding.ts';
 
 // Execute the actual stored formulas with the production notice functions. This isolates the
 // catalogue from the payroll loader's concurrently changing API; it does not prove gather or save.
@@ -17,9 +18,9 @@ const engine = new Environment({
 engine.registerFunction('map.service_years_on(dyn): int', serviceYearsOn);
 engine.registerFunction('map.notice_days_remaining(dyn, dyn, dyn): double', noticeDaysRemaining);
 engine.registerFunction('map.notice_monthly_wages(dyn, dyn, dyn, dyn): double', noticeMonthlyWages);
-engine.registerFunction(
-	'round(dyn, 0.01, "HALF_UP"): double',
-	(value) => Math.round(Number(value) * 100) / 100
+// The stored bands call `round(value, step, 'MODE')` (round 10); bind the engine's own stepping.
+engine.registerFunction('round(dyn, dyn, string): double', (value, step, mode) =>
+	roundStep(Number(value), Number(step), mode as RoundMode)
 );
 
 type Row = {

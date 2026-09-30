@@ -66,7 +66,7 @@ export type ExpressionContext = {
  */
 const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{
-		path: 'history',
+		path: 'history.slips|days|leave|terms|external(window)',
 		description:
 			'The person’s saved past: `history.slips|days|leave|terms|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span`'
 	},

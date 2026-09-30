@@ -12,7 +12,10 @@
 	import { live, liveRows } from '../ui/live.svelte.js';
 	import { tracesOf, type LineTrace, type TracedLine } from './record.js';
 
-	let { payslipId, line }: { readonly payslipId: string; readonly line: Omit<TracedLine, 'part' | 'employment_id'> } =
+	let {
+		payslipId,
+		line
+	}: { readonly payslipId: string; readonly line: Omit<TracedLine, 'part' | 'employment_id'> } =
 		$props();
 	let open = $state(false);
 	const explanation = liveRows<{ lines: readonly LineTrace[] }>(() =>
