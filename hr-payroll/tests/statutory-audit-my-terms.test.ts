@@ -321,7 +321,9 @@ test('MY — the 104-hour ceiling is still reported (EA s.60A(4)(a), OTR reg.2)'
 		}
 	);
 	const slip = slips.get('CAP')!;
-	assert.equal(slip.gross, Math.round((2600 + 14 * 99.98 + 3 * 239.94) * 100) / 100);
+	// Saturday on the 5-day week is the company's earlier rest day at 2.0x (12 × 13.33 × 2 = 319.92),
+	// above the EA s.60A(3) 1.5x floor (239.94).
+	assert.equal(slip.gross, Math.round((2600 + 14 * 99.98 + 3 * 319.92) * 100) / 100);
 	assert.ok(
 		warnings.some((line) => line.startsWith('OVERTIME_LIMIT_EXCEEDED') && /106/.test(line)),
 		`106 regulated overtime hours must be reported against the 104-hour ceiling:\n${warnings.join('\n')}`

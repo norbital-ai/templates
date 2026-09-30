@@ -295,6 +295,8 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	// outside every base.
 	TH: {
 		BONUS: ['PIT'],
+		// LPA s.9: interest on late wages is not wages; it counts toward nothing
+		LATE_WAGE_INTEREST: [],
 		NOTICE_IN_LIEU: [],
 		SEVERANCE_PAY: [],
 		SLF_DEDUCTION: [],

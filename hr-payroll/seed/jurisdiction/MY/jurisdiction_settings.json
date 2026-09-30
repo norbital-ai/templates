@@ -24515,14 +24515,14 @@
 				},
 				{
 					"label": "EARLIER-REST-2.0X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.working_days_per_week == 5.0",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.working_days_per_week == 5.0)",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -25752,14 +25752,14 @@
 				},
 				{
 					"label": "EARLIER-REST-2.0X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.working_days_per_week == 5.0",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.working_days_per_week == 5.0)",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -26989,14 +26989,14 @@
 				},
 				{
 					"label": "EARLIER-REST-2.0X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.working_days_per_week == 5.0",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.working_days_per_week == 5.0)",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -28237,14 +28237,14 @@
 				},
 				{
 					"label": "EARLIER-REST-2.0X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.working_days_per_week == 5.0",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.working_days_per_week == 5.0)",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -29496,14 +29496,14 @@
 				},
 				{
 					"label": "EARLIER-REST-2.0X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.working_days_per_week == 5.0",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.working_days_per_week == 5.0)",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"
@@ -30755,14 +30755,14 @@
 				},
 				{
 					"label": "EARLIER-REST-2.0X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.payroll_group == \"5D\"",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && off_day && person.terms.working_days_per_week == 5.0",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "max(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0, hours * (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) * 1.5)",
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
 					"label": "WORKDAY-OT-1.5X",
-					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.payroll_group == \"5D\")",
+					"when": "person.employment.type != \"PART_TIME\" && day_type == \"ORDINARY\" && !(off_day && person.terms.working_days_per_week == 5.0)",
 					"take_hours": "hours_beyond_normal",
 					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 1.5",
 					"funnel_above_hours": "limits.daily_total"

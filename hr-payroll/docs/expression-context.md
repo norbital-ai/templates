@@ -71,7 +71,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 
 | Member | Meaning |
 | --- | --- |
-| `history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `employee.gender` | Recorded gender |
 | `employee.age` | Completed years on the rule date |
 | `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -267,7 +267,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 
 | Member | Meaning |
 | --- | --- |
-| `person.history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `person.history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `person.employee.gender` | Recorded gender |
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -505,7 +505,7 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 
 | Member | Meaning |
 | --- | --- |
-| `person.history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `person.history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `person.employee.gender` | Recorded gender |
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -743,7 +743,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `company.facts.<key>`, `year.<
 
 | Member | Meaning |
 | --- | --- |
-| `person.history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `person.history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `person.employee.gender` | Recorded gender |
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -1044,7 +1044,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `company.facts.<key>`, `year.<
 
 | Member | Meaning |
 | --- | --- |
-| `person.history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `person.history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `person.employee.gender` | Recorded gender |
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -1324,7 +1324,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 
 | Member | Meaning |
 | --- | --- |
-| `history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `employee.gender` | Recorded gender |
 | `employee.age` | Completed years on the rule date |
 | `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -1529,7 +1529,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 
 | Member | Meaning |
 | --- | --- |
-| `history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `employee.gender` | Recorded gender |
 | `employee.age` | Completed years on the rule date |
 | `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -1791,7 +1791,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 
 | Member | Meaning |
 | --- | --- |
-| `history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `employee.gender` | Recorded gender |
 | `employee.age` | Completed years on the rule date |
 | `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -2104,7 +2104,7 @@ Open prefixes: `company.facts.<key>`, `totals.lines.<key>`, `totals.classes.<key
 | `company.settings_code` | Jurisdiction settings lineage |
 | `company.name` | The employing entity’s legal name |
 | `company.facts.<key>` | Declared entity input (registration numbers) |
-| `person.history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `person.history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `person.employee.gender` | Recorded gender |
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -2313,7 +2313,7 @@ Open prefixes: `case.facts.<key>`, `person.company.facts.<key>`, `person.facts.<
 
 | Member | Meaning |
 | --- | --- |
-| `person.history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `person.history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `person.employee.gender` | Recorded gender |
 | `person.employee.age` | Completed years on the rule date |
 | `person.employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -2534,7 +2534,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 
 | Member | Meaning |
 | --- | --- |
-| `history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `employee.gender` | Recorded gender |
 | `employee.age` | Completed years on the rule date |
 | `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |
@@ -2866,7 +2866,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 
 | Member | Meaning |
 | --- | --- |
-| `history` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
+| `history.slips|days|leave|terms|external(window)` | The person’s saved past: `history.slips\|days\|leave\|terms\|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span` |
 | `employee.gender` | Recorded gender |
 | `employee.age` | Completed years on the rule date |
 | `employee.age_months` | Whole calendar months since birth, for a band that moves the month after a birthday |

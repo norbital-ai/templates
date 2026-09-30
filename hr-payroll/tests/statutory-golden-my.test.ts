@@ -972,10 +972,14 @@ test('Malaysia — s.59(1): of two rest days in a week only the last is the rest
 		}
 	);
 	assert.deepEqual(workLines(slips.get('SAT-4')!), [
-		['2026-08-08', 'WORKDAY-OT-1.5X', 4, 92.28],
+		// Company term (5-day week): earlier rest-day work at 2.0x, above the EA s.60A(3) 1.5x floor.
+		['2026-08-08', 'EARLIER-REST-2.0X', 4, 123.04],
 		['2026-08-09', 'RESTDAY-OT-2.0X', 4, 123.04]
 	]);
-	assert.deepEqual(workLines(slips.get('SAT-10')!), [['2026-08-08', 'WORKDAY-OT-1.5X', 10, 230.7]]);
+	assert.deepEqual(
+		workLines(slips.get('SAT-10')!),
+		[['2026-08-08', 'EARLIER-REST-2.0X', 10, 307.6]] /* company 2.0x; EA s.60A(3) floor 216.35 */
+	);
 });
 
 test('Malaysia — s.59(1): the earlier of two rest days counts toward the 104-hour month, and a holiday on it is not substituted', () => {
@@ -1120,7 +1124,8 @@ test('MY — the last rest day keeps its 2.0× rate; earlier rest-day work is pr
 		(world) => punch(world, 'SAT-4', '2026-08-08', '09:00', '13:00')
 	);
 	assert.deepEqual(workLines(saturday.slips.get('SAT-4')!), [
-		['2026-08-08', 'WORKDAY-OT-1.5X', 4, 92.28]
+		// Company term (5-day week): earlier rest-day work at 2.0x, above the EA s.60A(3) 1.5x floor.
+		['2026-08-08', 'EARLIER-REST-2.0X', 4, 123.04]
 	]);
 });
 
@@ -1207,7 +1212,8 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 		['2026-01-01', 'HOLIDAY-2.0X', 8, 213.28],
 		['2026-01-04', 'RESTDAY-OT-2.0X', 4, 106.64],
 		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 39.99],
-		['2026-01-10', 'WORKDAY-OT-1.5X', 4, 79.98],
+		// Company term (5-day week): earlier rest-day work at 2.0x, above the EA s.60A(3) 1.5x floor.
+		['2026-01-10', 'EARLIER-REST-2.0X', 4, 106.64],
 		['2026-01-11', 'RESTDAY-OT-2.0X', 6.5, 173.29],
 		['2026-01-14', 'HOLIDAY-2.0X', 8, 213.28],
 		['2026-01-14', 'HOLIDAY-OT-3.0X', 2, 79.98],
@@ -1215,7 +1221,8 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 	]);
 	assert.equal(
 		slips.get('MY-EA')!.gross,
-		2600 + 213.28 + 106.64 + 39.99 + 79.98 + 173.29 + 213.28 + 79.98 + 279.93
+		Math.round((2600 + 213.28 + 106.64 + 39.99 + 106.64 + 173.29 + 213.28 + 79.98 + 279.93) * 100) /
+			100
 	);
 	// Which schemes see the overtime is each scheme's own `assessed_on`: EPF Act 1991 s.2 keeps
 	// overtime out of wages, Act 4 and Act 800 take it in, HRD Corp levies basic and fixed
@@ -1226,12 +1233,15 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 		slips.get('MY-EA')!.statutory.find((row) => row.scheme_code === code)!;
 	assert.equal(charge('EPF').base_amount, 3026.56);
 	assert.equal(charge('HRDF').base_amount, 2600);
-	assert.equal(charge('SOCSO').base_amount, 3786.37);
-	assert.equal(charge('EIS').base_amount, 3786.37);
-	// SOCSO on 3,786.37 is the "exceeding 3,700, not exceeding 3,800" row: 18.75 / 65.65.
+	assert.equal(
+		charge('SOCSO').base_amount,
+		3813.03 /* +26.66: 5-day earlier rest day at the company 2.0x */
+	);
+	assert.equal(charge('EIS').base_amount, 3813.03);
+	// SOCSO on 3,813.03 is the Act 4 Third Schedule row "exceeding 3,800, not exceeding 3,900": 19.25 / 67.35.
 	assert.deepEqual(
 		[charge('SOCSO').employee_amount, charge('SOCSO').employer_amount],
-		[18.75, 65.65]
+		[19.25, 67.35]
 	);
 
 	// Over RM4,000 and outside para 2: the same six days produce no Part XII line at all.
@@ -1258,7 +1268,7 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 		['2026-01-01', 'HOLIDAY-2.0X', 8, 426.72],
 		['2026-01-04', 'RESTDAY-OT-2.0X', 4, 213.36],
 		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 80.01],
-		['2026-01-10', 'WORKDAY-OT-1.5X', 4, 160.02],
+		['2026-01-10', 'EARLIER-REST-2.0X', 4, 213.36] /* company 2.0x; EA s.60A(3) floor 1.5x */,
 		['2026-01-11', 'RESTDAY-OT-2.0X', 6.5, 346.71],
 		['2026-01-14', 'HOLIDAY-2.0X', 8, 426.72],
 		['2026-01-14', 'HOLIDAY-OT-3.0X', 2, 160.02],
