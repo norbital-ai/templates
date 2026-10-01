@@ -6320,7 +6320,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -6378,7 +6378,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -6696,7 +6696,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -6922,7 +6922,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -7148,7 +7148,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -7374,7 +7374,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -9263,7 +9263,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -9691,7 +9691,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -10059,7 +10059,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -10427,7 +10427,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -10795,7 +10795,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -11182,7 +11182,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -11569,7 +11569,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -11956,7 +11956,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -12343,7 +12343,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -12730,7 +12730,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -13117,7 +13117,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -13504,7 +13504,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -13891,7 +13891,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -14278,7 +14278,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -14665,7 +14665,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{
@@ -15052,7 +15052,7 @@
 		],
 		"authority": "SSS IRR (RA 11199) Rule 12 s.6(ii), (xii): commissions and commission advances are compensation; Pag-IBIG Circular 460 (15 January 2024, from February 2024) p.2: fund salary is remuneration “ascertained on a time, task, or piece or commission basis”; NIRC s.32(A)(1): compensation income, withheld on the regular table. Not PhilHealth’s monthly basic salary, and not the 13th-month basic (Boie-Takeda Chemicals v. De la Serna, G.R. 92174 & 102552, 10 December 1993; DOLE Handbook 2024 ch.13 §F.2).",
 		"name": "Commission",
-		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.ORDINARY"],
+		"counts_toward": ["SSS", "SSS_EC", "SSS_MPF", "HDMF", "WTAX.SUPPLEMENTARY"],
 		"raised_by": "MANUAL"
 	},
 	{

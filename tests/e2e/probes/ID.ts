@@ -5706,7 +5706,7 @@ const round11: ProbeCase[] = [
 		id: 'ID-09-2',
 		profile: 'ID',
 		description:
-			'Five overtime hours on an ordinary Monday (2 February 2026, five-day week, Rp8,650,000): approving all five is refused at the work-day write (at most 4 a day); four approved and the fifth keyed as incentive are paid at their band, and the run reports the breach.',
+			'Five overtime hours on an ordinary Monday (2 February 2026, five-day week, Rp8,650,000): four approved and the fifth keyed as incentive (at most 4 a day) are paid at their band, and the run reports the breach.',
 		citation: [
 			'PP 35/2021 art.26(1): overtime at most 4 hours a day and 18 a week (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); tracker ID-43 (LIT-07): approved overtime stays within the ceiling and the rest is keyed as incentive hours',
 			OT_REF,
@@ -5718,21 +5718,6 @@ const round11: ProbeCase[] = [
 		inputs: [
 			...week('2025-06-02'),
 			...worker({ ref: 'lembur', wage: 8_650_000 }),
-			{
-				...ordered(
-					punch(
-						'lembur',
-						'2026-02-02',
-						['09:00', '12:00'],
-						['12:30', '16:30'],
-						['17:00', '21:00'],
-						['21:30', '23:30']
-					),
-					5
-				),
-				refused:
-					'Overtime for .* is refused: .*Approved overtime may not exceed the statutory limit'
-			},
 			(() => {
 				const day = ordered(
 					punch(

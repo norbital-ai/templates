@@ -1,7 +1,7 @@
 <script lang="ts">
 	/** Ad hoc payments (bonus, back pay, ex-gratia, separation pay, claw-backs) and the payroll capture that settled each. */
 	import { bolt } from '$bolt';
-	import PayRequests from '../../../../lib/ui/PayRequests.svelte';
+	import PayRequests from '../../../lib/ui/PayRequests.svelte';
 </script>
 
 <PayRequests

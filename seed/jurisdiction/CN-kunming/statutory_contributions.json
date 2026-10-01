@@ -164,14 +164,14 @@
 		"code": "HOUSING_FUND",
 		"unregistered_action": "ASSESS",
 		"name": "Housing provident fund (住房公积金)",
-		"authority": "Kunming housing fund: ceiling 32,470; floor 2,170 (category I) / 2,020 (category II) for new, opened and transferred accounts from October 2025; the floor of an unchanged existing account after October is unresolved (register CN-KM05), so a base below the new floor refuses. Unit selects one equal rate 5–12% each side (昆公积金规〔2020〕2号 arts.10–14, https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf). The ordinary employer and worker shares use the same selected rate and are each rounded to the whole yuan (四舍五入). No Shanghai supplementary-fund term applies to this Kunming scheme. Mo Han–Mo Ding category III is blocked pending authentication of the fund-centre floor and account applicability; the centre-attributed January 2026 interim notice and September 2026 report are inventoried in CN-KM05. Fund floor selection uses each worker’s exact recorded worksite; unknown sites refuse, and the Mo Han category-III charge remains blocked.",
+		"authority": "Kunming housing fund: ceiling 32,470; floor 2,170 (category I) / 2,020 (category II) for new, opened and transferred accounts from October 2025; the floor of an unchanged existing account after October is unresolved (register CN-KM05), so a base below the new floor refuses. Unit selects one equal rate 5–12% each side (昆公积金规〔2020〕2号 arts.10–14, https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf). The ordinary employer and worker shares use the same selected rate and are each rounded to the whole yuan (四舍五入). No Shanghai supplementary-fund term applies to this Kunming scheme. Mo Han–Mo Ding category III is blocked pending authentication of the fund-centre floor and account applicability; the centre-attributed January 2026 interim notice and September 2026 report are inventoried in CN-KM05. Fund floor selection uses each worker’s exact recorded worksite; unknown sites refuse, and the Mo Han category-III charge remains blocked. Applied 2026-10-01 (wrong transcription, fixed in place): a foreign or permanent-resident worker without a recorded agreement is outside the fund (CN-KM18.optional-participants), so the base, worksite, Mo Han and floor refusals and the `contribution_base` requirement apply only to a citizen or an agreed participant — the participation test `assessed_on` already reads.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(\"contribution_base\" in scheme.election_keys)",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(\"contribution_base\" in scheme.election_keys)",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Record the housing-fund contribution base (`contribution_base`): the prior year’s monthly average wage, or the first-ever / transferred worker’s qualifying month."
@@ -183,25 +183,25 @@
 				"refusal": "Record citizenship on the employment terms: a foreign or permanent-resident worker joins the housing fund only by agreement."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\", \"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\", \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"])",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\", \"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\", \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"])",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Record this worker’s exact Kunming worksite on employment terms using a seeded district key; the fund floor cannot be selected from the company address or an unknown site (register CN-KM05)."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite == \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite == \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Mo Han housing-fund category-III floor is supported by centre-attributed reproductions, but the issuer notice and its account applicability were not authenticated. Verify the actual worksite, the fund-centre notice and the account-specific base before running payroll (register CN-KM05)."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\"] && scheme.elections.contribution_base < 2170.0",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\"] && scheme.elections.contribution_base < 2170.0",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "The declared housing-fund base is below the published floor, and the floor that governs this account is not settled by the retrieved Kunming notices (register CN-KM05); record the base at or above the floor or the agency’s written determination."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\"] && scheme.elections.contribution_base < 2020.0",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\"] && scheme.elections.contribution_base < 2020.0",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "The declared housing-fund base is below the published floor, and the floor that governs this account is not settled by the retrieved Kunming notices (register CN-KM05); record the base at or above the floor or the agency’s written determination."
@@ -223,7 +223,7 @@
 				"minimum": 0,
 				"label": "Housing-fund contribution base (monthly)",
 				"description": "The prior calendar year’s monthly average wage, or the first-ever / transferred worker’s qualifying month, before the published bounds.",
-				"required_when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start)"
+				"required_when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start)"
 			},
 			{
 				"key": "first_ever_account",
@@ -248,7 +248,7 @@
 		"code": "IIT",
 		"unregistered_action": "ASSESS",
 		"name": "Individual income tax on wages (工资薪金个人所得税)",
-		"authority": "IIT Law arts.3 and 6 (https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193028/content.html); STA 2018 No.61 art.6 with annex table 1 (residents: cumulative withholding at this employer — the year’s income less the year’s employee social insurance and housing fund, CNY5,000 a month employed here and the declared special additional deductions, on the annual table, less tax already withheld; a negative balance is not refunded) and art.9 with table 3 (non-residents: the month’s wage less CNY5,000 on the monthly table, with no insurance or housing-fund relief — IIT Law art.6(2) takes only the 5,000 from a non-resident’s monthly wage, and the withholding return STA 2022 No.7 annex 2 item 11(1)② states a non-resident’s wage taxable income as income less that deduction, https://fgk.chinatax.gov.cn/zcfgk/c100012/c5196775/content.html; the pre-2019 财税〔2006〕10号 relief is read for residents only; the STA Foshan bureau’s filing guide Q(十) answers on IIT Law art.6 and STA 2018 No.61 art.9 that a non-resident’s 三险一金 暂不允许扣除, https://guangdong.chinatax.gov.cn/gdsw/fssw_nsrxt_kjxz/2025-10/09/content_00a4ed7054fc4d82ac30702f52001a14.shtml). https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html STA 2020 No.13: a resident whose first wage income of the year is paid mid-year deducts CNY5,000 for every month from January (election `first_wage_income_this_year`). STA 2020 No.19: the qualifying continuing employee deducts CNY60,000 from January (election `annual_60000_from_january`) https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html. 国发〔2018〕41号 and 2023 No.14: the housing-rent deduction is at most CNY1,500 a month in a municipality or provincial capital and cannot be claimed with housing-loan interest; major-illness medical expense is annual-only and is never withheld monthly. Housing-fund employee shares are relieved in full: the seeded rates (Shanghai 5–7%, Kunming 5–12%) and base ceilings sit inside the 12% / 3× city-average exemption of 财税〔2006〕10号 items 1–2 (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5203070/content.html) — an assumption the register (CN-N43) has not closed for Kunming. Tax is kept to the fen.",
+		"authority": "IIT Law arts.3 and 6 (https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193028/content.html); STA 2018 No.61 art.6 with annex table 1 (residents: cumulative withholding at this employer — the year’s income less the year’s employee social insurance and housing fund, CNY5,000 a month employed here and the declared special additional deductions, on the annual table, less tax already withheld; a negative balance is not refunded) and art.9 with table 3 (non-residents: the month’s wage less CNY5,000 on the monthly table, with no insurance or housing-fund relief — IIT Law art.6(2) takes only the 5,000 from a non-resident’s monthly wage, and the withholding return STA 2022 No.7 annex 2 item 11(1)② states a non-resident’s wage taxable income as income less that deduction, https://fgk.chinatax.gov.cn/zcfgk/c100012/c5196775/content.html; the pre-2019 财税〔2006〕10号 relief is read for residents only; the STA Foshan bureau’s filing guide Q(十) answers on IIT Law art.6 and STA 2018 No.61 art.9 that a non-resident’s 三险一金 暂不允许扣除, https://guangdong.chinatax.gov.cn/gdsw/fssw_nsrxt_kjxz/2025-10/09/content_00a4ed7054fc4d82ac30702f52001a14.shtml). https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html STA 2020 No.13: a resident whose first wage income of the year is paid mid-year deducts CNY5,000 for every month from January (election `first_wage_income_this_year`). STA 2020 No.19: the qualifying continuing employee deducts CNY60,000 from January (election `annual_60000_from_january`) https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html. 国发〔2018〕41号 and 2023 No.14: the housing-rent deduction is at most CNY1,500 a month in a municipality or provincial capital and cannot be claimed with housing-loan interest; major-illness medical expense is annual-only and is never withheld monthly. Housing-fund employee shares are relieved in full: the seeded rates (Shanghai 5–7%, Kunming 5–12%) and base ceilings sit inside the 12% / 3× city-average exemption of 财税〔2006〕10号 items 1–2 (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5203070/content.html) — an assumption the register (CN-N43) has not closed for Kunming. Tax is kept to the fen. Applied 2026-10-01 (wrong transcription, fixed in place): 国发〔2018〕41号 as raised by 2023 No.14 caps elderly support at CNY3,000 a month for an only child and a non-only child's share at CNY1,500 a month; the year's declarations above the cap times the month (the same year-to-date test as housing rent) refuse, and `elderly_support_only_child` records which cap applies (unrecorded is a sibling's share).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -270,6 +270,12 @@
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Housing rent and housing-loan interest cannot both be deducted in one year (国发〔2018〕41号)."
+			},
+			{
+				"when": "has(scheme.deductions.ELDERLY_SUPPORT) && scheme.deductions.ELDERLY_SUPPORT > (scheme.elections.elderly_support_only_child ? 3000.0 : 1500.0) * double(period.month)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Elderly support above the cap: CNY3,000 a month for an only child, a share of at most CNY1,500 a month otherwise (国发〔2018〕41号; 2023 No.14; register CN-N16)."
 			},
 			{
 				"when": "true",
@@ -297,6 +303,13 @@
 				"default_value": false,
 				"label": "CNY60,000 deducted from January (STA 2020 No.19)",
 				"description": "Qualifying continuing employee: declared by this employer every month of the prior year with that year’s wages at most CNY60,000."
+			},
+			{
+				"key": "elderly_support_only_child",
+				"type": "boolean",
+				"default_value": false,
+				"label": "Only child (elderly support)",
+				"description": "An only child deducts up to CNY3,000 a month; a sibling's agreed share is at most CNY1,500 a month (国发〔2018〕41号; 2023 No.14)."
 			}
 		]
 	},
@@ -536,14 +549,14 @@
 		"code": "HOUSING_FUND",
 		"unregistered_action": "ASSESS",
 		"name": "Housing provident fund (住房公积金)",
-		"authority": "Kunming housing fund: ceiling 32,543; floor 2,170 / 2,020 for all contributors pending final data (centre interim notice of 4 January 2026, https://zfgjj.km.gov.cn/c/2026-01-04/5047947.shtml); final ceiling 32,543 retroactive to 1 January 2026 (昆公积金〔2026〕69号, reproduced text, register CN-KM05). Unit selects one equal rate 5–12% each side (昆公积金规〔2020〕2号 arts.10–14, https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf). The ordinary employer and worker shares use the same selected rate and are each rounded to the whole yuan (四舍五入). No Shanghai supplementary-fund term applies to this Kunming scheme. Mo Han–Mo Ding category III is blocked pending authentication of the fund-centre floor and account applicability; the centre-attributed January 2026 interim notice and September 2026 report are inventoried in CN-KM05. Fund floor selection uses each worker’s exact recorded worksite; unknown sites refuse, and the Mo Han category-III charge remains blocked.",
+		"authority": "Kunming housing fund: ceiling 32,543; floor 2,170 / 2,020 for all contributors pending final data (centre interim notice of 4 January 2026, https://zfgjj.km.gov.cn/c/2026-01-04/5047947.shtml); final ceiling 32,543 retroactive to 1 January 2026 (昆公积金〔2026〕69号, reproduced text, register CN-KM05). Unit selects one equal rate 5–12% each side (昆公积金规〔2020〕2号 arts.10–14, https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf). The ordinary employer and worker shares use the same selected rate and are each rounded to the whole yuan (四舍五入). No Shanghai supplementary-fund term applies to this Kunming scheme. Mo Han–Mo Ding category III is blocked pending authentication of the fund-centre floor and account applicability; the centre-attributed January 2026 interim notice and September 2026 report are inventoried in CN-KM05. Fund floor selection uses each worker’s exact recorded worksite; unknown sites refuse, and the Mo Han category-III charge remains blocked. Applied 2026-10-01 (wrong transcription, fixed in place): a foreign or permanent-resident worker without a recorded agreement is outside the fund (CN-KM18.optional-participants), so the base, worksite, Mo Han and floor refusals and the `contribution_base` requirement apply only to a citizen or an agreed participant — the participation test `assessed_on` already reads.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(\"contribution_base\" in scheme.election_keys)",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(\"contribution_base\" in scheme.election_keys)",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Record the housing-fund contribution base (`contribution_base`): the prior year’s monthly average wage, or the first-ever / transferred worker’s qualifying month."
@@ -555,25 +568,25 @@
 				"refusal": "Record citizenship on the employment terms: a foreign or permanent-resident worker joins the housing fund only by agreement."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\", \"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\", \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"])",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\", \"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\", \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"])",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Record this worker’s exact Kunming worksite on employment terms using a seeded district key; the fund floor cannot be selected from the company address or an unknown site (register CN-KM05)."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite == \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite == \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Mo Han housing-fund category-III floor is supported by centre-attributed reproductions, but the issuer notice and its account applicability were not authenticated. Verify the actual worksite, the fund-centre notice and the account-specific base before running payroll (register CN-KM05)."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\"] && scheme.elections.contribution_base < 2170.0",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\"] && scheme.elections.contribution_base < 2170.0",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "The declared housing-fund base is below the published floor, and the floor that governs this account is not settled by the retrieved Kunming notices (register CN-KM05); record the base at or above the floor or the agency’s written determination."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\"] && scheme.elections.contribution_base < 2020.0",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\"] && scheme.elections.contribution_base < 2020.0",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "The declared housing-fund base is below the published floor, and the floor that governs this account is not settled by the retrieved Kunming notices (register CN-KM05); record the base at or above the floor or the agency’s written determination."
@@ -595,7 +608,7 @@
 				"minimum": 0,
 				"label": "Housing-fund contribution base (monthly)",
 				"description": "The prior calendar year’s monthly average wage, or the first-ever / transferred worker’s qualifying month, before the published bounds.",
-				"required_when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start)"
+				"required_when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start)"
 			},
 			{
 				"key": "first_ever_account",
@@ -620,7 +633,7 @@
 		"code": "IIT",
 		"unregistered_action": "ASSESS",
 		"name": "Individual income tax on wages (工资薪金个人所得税)",
-		"authority": "IIT Law arts.3 and 6 (https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193028/content.html); STA 2018 No.61 art.6 with annex table 1 (residents: cumulative withholding at this employer — the year’s income less the year’s employee social insurance and housing fund, CNY5,000 a month employed here and the declared special additional deductions, on the annual table, less tax already withheld; a negative balance is not refunded) and art.9 with table 3 (non-residents: the month’s wage less CNY5,000 on the monthly table, with no insurance or housing-fund relief — IIT Law art.6(2) takes only the 5,000 from a non-resident’s monthly wage, and the withholding return STA 2022 No.7 annex 2 item 11(1)② states a non-resident’s wage taxable income as income less that deduction, https://fgk.chinatax.gov.cn/zcfgk/c100012/c5196775/content.html; the pre-2019 财税〔2006〕10号 relief is read for residents only; the STA Foshan bureau’s filing guide Q(十) answers on IIT Law art.6 and STA 2018 No.61 art.9 that a non-resident’s 三险一金 暂不允许扣除, https://guangdong.chinatax.gov.cn/gdsw/fssw_nsrxt_kjxz/2025-10/09/content_00a4ed7054fc4d82ac30702f52001a14.shtml). https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html STA 2020 No.13: a resident whose first wage income of the year is paid mid-year deducts CNY5,000 for every month from January (election `first_wage_income_this_year`). STA 2020 No.19: the qualifying continuing employee deducts CNY60,000 from January (election `annual_60000_from_january`) https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html. 国发〔2018〕41号 and 2023 No.14: the housing-rent deduction is at most CNY1,500 a month in a municipality or provincial capital and cannot be claimed with housing-loan interest; major-illness medical expense is annual-only and is never withheld monthly. Housing-fund employee shares are relieved in full: the seeded rates (Shanghai 5–7%, Kunming 5–12%) and base ceilings sit inside the 12% / 3× city-average exemption of 财税〔2006〕10号 items 1–2 (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5203070/content.html) — an assumption the register (CN-N43) has not closed for Kunming. Tax is kept to the fen.",
+		"authority": "IIT Law arts.3 and 6 (https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193028/content.html); STA 2018 No.61 art.6 with annex table 1 (residents: cumulative withholding at this employer — the year’s income less the year’s employee social insurance and housing fund, CNY5,000 a month employed here and the declared special additional deductions, on the annual table, less tax already withheld; a negative balance is not refunded) and art.9 with table 3 (non-residents: the month’s wage less CNY5,000 on the monthly table, with no insurance or housing-fund relief — IIT Law art.6(2) takes only the 5,000 from a non-resident’s monthly wage, and the withholding return STA 2022 No.7 annex 2 item 11(1)② states a non-resident’s wage taxable income as income less that deduction, https://fgk.chinatax.gov.cn/zcfgk/c100012/c5196775/content.html; the pre-2019 财税〔2006〕10号 relief is read for residents only; the STA Foshan bureau’s filing guide Q(十) answers on IIT Law art.6 and STA 2018 No.61 art.9 that a non-resident’s 三险一金 暂不允许扣除, https://guangdong.chinatax.gov.cn/gdsw/fssw_nsrxt_kjxz/2025-10/09/content_00a4ed7054fc4d82ac30702f52001a14.shtml). https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html STA 2020 No.13: a resident whose first wage income of the year is paid mid-year deducts CNY5,000 for every month from January (election `first_wage_income_this_year`). STA 2020 No.19: the qualifying continuing employee deducts CNY60,000 from January (election `annual_60000_from_january`) https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html. 国发〔2018〕41号 and 2023 No.14: the housing-rent deduction is at most CNY1,500 a month in a municipality or provincial capital and cannot be claimed with housing-loan interest; major-illness medical expense is annual-only and is never withheld monthly. Housing-fund employee shares are relieved in full: the seeded rates (Shanghai 5–7%, Kunming 5–12%) and base ceilings sit inside the 12% / 3× city-average exemption of 财税〔2006〕10号 items 1–2 (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5203070/content.html) — an assumption the register (CN-N43) has not closed for Kunming. Tax is kept to the fen. Applied 2026-10-01 (wrong transcription, fixed in place): 国发〔2018〕41号 as raised by 2023 No.14 caps elderly support at CNY3,000 a month for an only child and a non-only child's share at CNY1,500 a month; the year's declarations above the cap times the month (the same year-to-date test as housing rent) refuse, and `elderly_support_only_child` records which cap applies (unrecorded is a sibling's share).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -642,6 +655,12 @@
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Housing rent and housing-loan interest cannot both be deducted in one year (国发〔2018〕41号)."
+			},
+			{
+				"when": "has(scheme.deductions.ELDERLY_SUPPORT) && scheme.deductions.ELDERLY_SUPPORT > (scheme.elections.elderly_support_only_child ? 3000.0 : 1500.0) * double(period.month)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Elderly support above the cap: CNY3,000 a month for an only child, a share of at most CNY1,500 a month otherwise (国发〔2018〕41号; 2023 No.14; register CN-N16)."
 			},
 			{
 				"when": "true",
@@ -669,6 +688,13 @@
 				"default_value": false,
 				"label": "CNY60,000 deducted from January (STA 2020 No.19)",
 				"description": "Qualifying continuing employee: declared by this employer every month of the prior year with that year’s wages at most CNY60,000."
+			},
+			{
+				"key": "elderly_support_only_child",
+				"type": "boolean",
+				"default_value": false,
+				"label": "Only child (elderly support)",
+				"description": "An only child deducts up to CNY3,000 a month; a sibling's agreed share is at most CNY1,500 a month (国发〔2018〕41号; 2023 No.14)."
 			}
 		]
 	},
@@ -908,14 +934,14 @@
 		"code": "HOUSING_FUND",
 		"unregistered_action": "ASSESS",
 		"name": "Housing provident fund (住房公积金)",
-		"authority": "Kunming housing fund: ceiling 32,543; floor 2,270 (category I) / 2,120 for new, transferred and reopened accounts from 1 September 2026 (昆公积金〔2026〕69号); an unchanged existing account’s floor is not stated, so a base below the new floor refuses. Unit selects one equal rate 5–12% each side (昆公积金规〔2020〕2号 arts.10–14, https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf). The ordinary employer and worker shares use the same selected rate and are each rounded to the whole yuan (四舍五入). No Shanghai supplementary-fund term applies to this Kunming scheme. Mo Han–Mo Ding category III is blocked pending authentication of the fund-centre floor and account applicability; the centre-attributed January 2026 interim notice and September 2026 report are inventoried in CN-KM05. Fund floor selection uses each worker’s exact recorded worksite; unknown sites refuse, and the Mo Han category-III charge remains blocked.",
+		"authority": "Kunming housing fund: ceiling 32,543; floor 2,270 (category I) / 2,120 for new, transferred and reopened accounts from 1 September 2026 (昆公积金〔2026〕69号); an unchanged existing account’s floor is not stated, so a base below the new floor refuses. Unit selects one equal rate 5–12% each side (昆公积金规〔2020〕2号 arts.10–14, https://www.kunming.cn/news/upload/resources/file/2024/10/12/1728062.pdf). The ordinary employer and worker shares use the same selected rate and are each rounded to the whole yuan (四舍五入). No Shanghai supplementary-fund term applies to this Kunming scheme. Mo Han–Mo Ding category III is blocked pending authentication of the fund-centre floor and account applicability; the centre-attributed January 2026 interim notice and September 2026 report are inventoried in CN-KM05. Fund floor selection uses each worker’s exact recorded worksite; unknown sites refuse, and the Mo Han category-III charge remains blocked. Applied 2026-10-01 (wrong transcription, fixed in place): a foreign or permanent-resident worker without a recorded agreement is outside the fund (CN-KM18.optional-participants), so the base, worksite, Mo Han and floor refusals and the `contribution_base` requirement apply only to a citizen or an agreed participant — the participation test `assessed_on` already reads.",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
 		"project_relief_annually": false,
 		"rules": [
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(\"contribution_base\" in scheme.election_keys)",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(\"contribution_base\" in scheme.election_keys)",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Record the housing-fund contribution base (`contribution_base`): the prior year’s monthly average wage, or the first-ever / transferred worker’s qualifying month."
@@ -927,25 +953,25 @@
 				"refusal": "Record citizenship on the employment terms: a foreign or permanent-resident worker joins the housing fund only by agreement."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\", \"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\", \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"])",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && !(person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\", \"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\", \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"])",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Record this worker’s exact Kunming worksite on employment terms using a seeded district key; the fund floor cannot be selected from the company address or an unknown site (register CN-KM05)."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite == \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite == \"云南省/西双版纳傣族自治州/勐腊县/磨憨镇\"",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Mo Han housing-fund category-III floor is supported by centre-attributed reproductions, but the issuer notice and its account applicability were not authenticated. Verify the actual worksite, the fund-centre notice and the account-specific base before running payroll (register CN-KM05)."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\"] && scheme.elections.contribution_base < 2270.0",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/五华区\", \"云南省/昆明市/盘龙区\", \"云南省/昆明市/西山区\", \"云南省/昆明市/官渡区\", \"云南省/昆明市/呈贡区\", \"云南省/昆明市/晋宁区\", \"云南省/昆明市/安宁市\", \"云南省/昆明市/嵩明县\"] && scheme.elections.contribution_base < 2270.0",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "The declared housing-fund base is below the published floor, and the floor that governs this account is not settled by the retrieved Kunming notices (register CN-KM05); record the base at or above the floor or the agency’s written determination."
 			},
 			{
-				"when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\"] && scheme.elections.contribution_base < 2120.0",
+				"when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start) && person.terms.worksite in [\"云南省/昆明市/东川区\", \"云南省/昆明市/富民县\", \"云南省/昆明市/宜良县\", \"云南省/昆明市/石林彝族自治县\", \"云南省/昆明市/禄劝彝族苗族自治县\", \"云南省/昆明市/寻甸回族彝族自治县\"] && scheme.elections.contribution_base < 2120.0",
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "The declared housing-fund base is below the published floor, and the floor that governs this account is not settled by the retrieved Kunming notices (register CN-KM05); record the base at or above the floor or the agency’s written determination."
@@ -967,7 +993,7 @@
 				"minimum": 0,
 				"label": "Housing-fund contribution base (monthly)",
 				"description": "The prior calendar year’s monthly average wage, or the first-ever / transferred worker’s qualifying month, before the published bounds.",
-				"required_when": "!person.employee.receiving_pension && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start)"
+				"required_when": "!person.employee.receiving_pension && (person.employee.citizenship == \"CITIZEN\" || scheme.elections.voluntary_agreement) && !(scheme.elections.first_ever_account && person.employment.service_start >= period.start)"
 			},
 			{
 				"key": "first_ever_account",
@@ -992,7 +1018,7 @@
 		"code": "IIT",
 		"unregistered_action": "ASSESS",
 		"name": "Individual income tax on wages (工资薪金个人所得税)",
-		"authority": "IIT Law arts.3 and 6 (https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193028/content.html); STA 2018 No.61 art.6 with annex table 1 (residents: cumulative withholding at this employer — the year’s income less the year’s employee social insurance and housing fund, CNY5,000 a month employed here and the declared special additional deductions, on the annual table, less tax already withheld; a negative balance is not refunded) and art.9 with table 3 (non-residents: the month’s wage less CNY5,000 on the monthly table, with no insurance or housing-fund relief — IIT Law art.6(2) takes only the 5,000 from a non-resident’s monthly wage, and the withholding return STA 2022 No.7 annex 2 item 11(1)② states a non-resident’s wage taxable income as income less that deduction, https://fgk.chinatax.gov.cn/zcfgk/c100012/c5196775/content.html; the pre-2019 财税〔2006〕10号 relief is read for residents only; the STA Foshan bureau’s filing guide Q(十) answers on IIT Law art.6 and STA 2018 No.61 art.9 that a non-resident’s 三险一金 暂不允许扣除, https://guangdong.chinatax.gov.cn/gdsw/fssw_nsrxt_kjxz/2025-10/09/content_00a4ed7054fc4d82ac30702f52001a14.shtml). https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html STA 2020 No.13: a resident whose first wage income of the year is paid mid-year deducts CNY5,000 for every month from January (election `first_wage_income_this_year`). STA 2020 No.19: the qualifying continuing employee deducts CNY60,000 from January (election `annual_60000_from_january`) https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html. 国发〔2018〕41号 and 2023 No.14: the housing-rent deduction is at most CNY1,500 a month in a municipality or provincial capital and cannot be claimed with housing-loan interest; major-illness medical expense is annual-only and is never withheld monthly. Housing-fund employee shares are relieved in full: the seeded rates (Shanghai 5–7%, Kunming 5–12%) and base ceilings sit inside the 12% / 3× city-average exemption of 财税〔2006〕10号 items 1–2 (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5203070/content.html) — an assumption the register (CN-N43) has not closed for Kunming. Tax is kept to the fen.",
+		"authority": "IIT Law arts.3 and 6 (https://fgk.chinatax.gov.cn/zcfgk/c100009/c5193028/content.html); STA 2018 No.61 art.6 with annex table 1 (residents: cumulative withholding at this employer — the year’s income less the year’s employee social insurance and housing fund, CNY5,000 a month employed here and the declared special additional deductions, on the annual table, less tax already withheld; a negative balance is not refunded) and art.9 with table 3 (non-residents: the month’s wage less CNY5,000 on the monthly table, with no insurance or housing-fund relief — IIT Law art.6(2) takes only the 5,000 from a non-resident’s monthly wage, and the withholding return STA 2022 No.7 annex 2 item 11(1)② states a non-resident’s wage taxable income as income less that deduction, https://fgk.chinatax.gov.cn/zcfgk/c100012/c5196775/content.html; the pre-2019 财税〔2006〕10号 relief is read for residents only; the STA Foshan bureau’s filing guide Q(十) answers on IIT Law art.6 and STA 2018 No.61 art.9 that a non-resident’s 三险一金 暂不允许扣除, https://guangdong.chinatax.gov.cn/gdsw/fssw_nsrxt_kjxz/2025-10/09/content_00a4ed7054fc4d82ac30702f52001a14.shtml). https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html STA 2020 No.13: a resident whose first wage income of the year is paid mid-year deducts CNY5,000 for every month from January (election `first_wage_income_this_year`). STA 2020 No.19: the qualifying continuing employee deducts CNY60,000 from January (election `annual_60000_from_january`) https://fgk.chinatax.gov.cn/zcfgk/c100012/c5194953/content.html. 国发〔2018〕41号 and 2023 No.14: the housing-rent deduction is at most CNY1,500 a month in a municipality or provincial capital and cannot be claimed with housing-loan interest; major-illness medical expense is annual-only and is never withheld monthly. Housing-fund employee shares are relieved in full: the seeded rates (Shanghai 5–7%, Kunming 5–12%) and base ceilings sit inside the 12% / 3× city-average exemption of 财税〔2006〕10号 items 1–2 (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5203070/content.html) — an assumption the register (CN-N43) has not closed for Kunming. Tax is kept to the fen. Applied 2026-10-01 (wrong transcription, fixed in place): 国发〔2018〕41号 as raised by 2023 No.14 caps elderly support at CNY3,000 a month for an only child and a non-only child's share at CNY1,500 a month; the year's declarations above the cap times the month (the same year-to-date test as housing rent) refuse, and `elderly_support_only_child` records which cap applies (unrecorded is a sibling's share).",
 		"assessment_period": "MONTH",
 		"employee_share_annual_cap": null,
 		"shared_cap_group": null,
@@ -1014,6 +1040,12 @@
 				"employee": "0.0",
 				"employer": "0.0",
 				"refusal": "Housing rent and housing-loan interest cannot both be deducted in one year (国发〔2018〕41号)."
+			},
+			{
+				"when": "has(scheme.deductions.ELDERLY_SUPPORT) && scheme.deductions.ELDERLY_SUPPORT > (scheme.elections.elderly_support_only_child ? 3000.0 : 1500.0) * double(period.month)",
+				"employee": "0.0",
+				"employer": "0.0",
+				"refusal": "Elderly support above the cap: CNY3,000 a month for an only child, a share of at most CNY1,500 a month otherwise (国发〔2018〕41号; 2023 No.14; register CN-N16)."
 			},
 			{
 				"when": "true",
@@ -1041,6 +1073,13 @@
 				"default_value": false,
 				"label": "CNY60,000 deducted from January (STA 2020 No.19)",
 				"description": "Qualifying continuing employee: declared by this employer every month of the prior year with that year’s wages at most CNY60,000."
+			},
+			{
+				"key": "elderly_support_only_child",
+				"type": "boolean",
+				"default_value": false,
+				"label": "Only child (elderly support)",
+				"description": "An only child deducts up to CNY3,000 a month; a sibling's agreed share is at most CNY1,500 a month (国发〔2018〕41号; 2023 No.14)."
 			}
 		]
 	},

@@ -2,10 +2,11 @@
  * The schedule-time limit arithmetic, pure, so the `work_days` and `shift_patterns` transforms, the
  * import and the day sheet quote one sentence. Planned overtime is two keyed figures (owner's rule,
  * 2026-09-23): `approved_overtime_hours` within every limit that bounds it, `incentive_hours`
- * beyond; a direct write is refused past the headroom (`overtimeHeadroom`), and only the import
- * splits a total (`splitPlannedOvertime`). A shift whose own hours or spread-over pass a
- * TOTAL_WORK_HOURS or SPREAD_HOURS limit is refused (`projectedLimitBreaches`). The projection is
- * the pattern cycle plus the roster overlay, measured in net worked minutes.
+ * beyond; the day sheet shows the headroom (`overtimeHeadroom`), and only the import splits a
+ * total (`splitPlannedOvertime`). A shift whose own hours or spread-over pass a TOTAL_WORK_HOURS or
+ * SPREAD_HOURS limit is a breach (`projectedLimitBreaches`): a shift pattern refuses it, a work day
+ * never does — the import returns it as a warning (owner's rule, 2026-10-01). The projection is the
+ * pattern cycle plus the roster overlay, measured in net worked minutes.
  */
 
 import {
@@ -118,6 +119,8 @@ type LimitBreach = {
 	readonly date: string;
 	readonly projected: number;
 	readonly maximum: number;
+	/** The breach as a fact, for a warning: what the plan projects against which limit. */
+	readonly sentence: string;
 	readonly message: string;
 };
 
@@ -807,6 +810,11 @@ export function projectedLimitBreaches(options: {
 			const periodIdentity = `${limit.key}:${limit.period}:${periodKey(limit.period, date)}`;
 			if (reported.has(periodIdentity)) continue;
 			reported.add(periodIdentity);
+			const sentence =
+				`the plan through ${date} projects ` +
+				`${value.toFixed(2)} ${MEASURE_LABEL[limit.measure]} in the ` +
+				`${PERIOD_LABEL[limit.period]}, above the ${maximum}-hour limit "${limit.key}"` +
+				`${limit.authority ? ` (${limit.authority})` : options.authority ? ` (${options.authority})` : ''}`;
 			breaches.push({
 				key: limit.key,
 				period: limit.period,
@@ -814,11 +822,9 @@ export function projectedLimitBreaches(options: {
 				date,
 				projected: value,
 				maximum,
+				sentence,
 				message:
-					`Roster change for ${options.subject} is refused: the plan through ${date} projects ` +
-					`${value.toFixed(2)} ${MEASURE_LABEL[limit.measure]} in the ` +
-					`${PERIOD_LABEL[limit.period]}, above the ${maximum}-hour limit "${limit.key}"` +
-					`${limit.authority ? ` (${limit.authority})` : options.authority ? ` (${options.authority})` : ''}. ` +
+					`Roster change for ${options.subject} is refused: ${sentence}. ` +
 					'Shorten the plan or move the work to another period.'
 			});
 		}

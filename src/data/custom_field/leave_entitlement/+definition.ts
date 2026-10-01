@@ -69,6 +69,11 @@ const f = customField({
 				optional: true
 			},
 			month_counts_when: { kind: 'number', min: 0, max: 1, optional: true },
+			month_share_basis: {
+				kind: 'enum',
+				values: ['CALENDAR_DAYS', 'NORMAL_WORKING_DAYS'],
+				optional: true
+			},
 			hour_share_step: { kind: 'number', min: 0, max: 1, optional: true },
 			minimum_days: { kind: 'number', min: 0, optional: true },
 			qualifies_window: { kind: 'bool', optional: true },

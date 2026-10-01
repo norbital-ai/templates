@@ -276,7 +276,13 @@ test('MY — every planned hour at its column multiple: 1.5 off day, 2.0 rest da
 			rates: { ordinaryHour: (2600 * 12) / (52 * 45), dayWage: 100 }
 		}).map((row) => [row.line, row.label, row.hours, Math.round(row.amount * 100) / 100]);
 	assert.deepEqual(price('OFF_DAY', 10, true), [['OVERTIME', 'WORKDAY-OT-1.5X', 10, 199.95]]);
-	assert.deepEqual(price('REST_DAY', 12), [['OVERTIME', 'RESTDAY-OT-2.0X', 12, 319.92]]);
+	// EA s.60A(3): only the rest-day hours beyond the normal 9 are overtime. 2,600 × 12 ÷ (52 × 45)
+	// = 13.33: 9 × 13.33 × 2 = 239.94 on REST_DAY_WORK (s.60(3)(b)), 3 × 13.33 × 2 = 79.98 on
+	// OVERTIME (s.60(3)(c)); 319.92 together.
+	assert.deepEqual(price('REST_DAY', 12), [
+		['REST_DAY_WORK', 'RESTDAY-2.0X', 9, 239.94],
+		['OVERTIME', 'RESTDAY-OT-2.0X', 3, 79.98]
+	]);
 	assert.deepEqual(price('PUBLIC_HOLIDAY', 11), [
 		['HOLIDAY_WORK', 'HOLIDAY-2.0X', 9, 239.94],
 		['OVERTIME', 'HOLIDAY-OT-3.0X', 2, 79.98]

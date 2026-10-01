@@ -137,6 +137,8 @@ export function computedEntitlement(options: {
 	readonly personOn: (date: string) => PersonContext;
 	/** Calendar-day equivalents excluded from continuous service (SG EA s.88A(4)). */
 	readonly serviceExcludedOn?: ((date: string) => number) | undefined;
+	/** A normal working day on the roster: the days a `NORMAL_WORKING_DAYS` month share counts. */
+	readonly normalWorkingDayOn?: ((date: string) => boolean) | undefined;
 	/** Part-time statutory grants are measured in hours against the comparable full-time worker. */
 	readonly hourlyBasisOn?:
 		| ((
@@ -251,9 +253,13 @@ export function computedEntitlement(options: {
 						.length / 12
 				);
 			case 'HALF_MONTHS': {
-				// A month is counted once it has ended and at least `month_counts_when` of its days were
-				// eligible; a leaver's last month has ended for them on the exit day.
+				// A month is counted once it has ended and at least `month_counts_when` of its days (calendar
+				// or normal working, by `month_share_basis`) were eligible; a leaver's last month has ended
+				// for them on the exit day.
 				const share = rule.month_counts_when;
+				const workingDayOn = options.normalWorkingDayOn;
+				if (rule.month_share_basis === 'NORMAL_WORKING_DAYS' && workingDayOn == null)
+					refuse('A working-day month share needs the roster.');
 				if (share == null)
 					refuse('A HALF_MONTHS proration needs the share of days a month counts at.');
 				const last = options.exitDate != null && to >= end ? end.slice(0, 7) : null;
@@ -263,7 +269,9 @@ export function computedEntitlement(options: {
 					monthBounds(month).end <= to || month === last;
 					month = addDays(monthBounds(month).end, 1).slice(0, 7)
 				) {
-					const days = daysBetween(monthBounds(month).start, monthBounds(month).end);
+					const all = daysBetween(monthBounds(month).start, monthBounds(month).end);
+					const days =
+						rule.month_share_basis === 'NORMAL_WORKING_DAYS' ? all.filter(workingDayOn!) : all;
 					if (days.filter((date) => eligible.has(date)).length >= share * days.length) months += 1;
 				}
 				return months / 12;

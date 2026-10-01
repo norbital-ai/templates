@@ -635,6 +635,7 @@ export default messages({
 	'component.workbook_import_failed': '无法导入 {file}。',
 	'component.workbook_imported': '已从 {file} 导入 {count} 条{label}。',
 	'component.workbook_layout': '薪资报表版式',
+	'component.workbook_warnings': '{count} 条警告',
 	'component.workbook_overwritten':
 		'为与文件一致，已更改或删除 {count} 个已存工作日，包括上次导入后在应用内所做的修改：',
 	'component.workbook_not_spreadsheet': '无法将“{file}”作为电子表格打开。',

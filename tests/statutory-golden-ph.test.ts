@@ -626,6 +626,29 @@ test('Philippines — NCR-DW-06 holds a kasambahay to ₱7,800 from 7 February 2
 	);
 });
 
+test('Philippines — a kasambahay is covered by SSS, PhilHealth and Pag-IBIG after one month of service (RA 10361 s.30)', () => {
+	// RA 10361 s.30 (https://elibrary.judiciary.gov.ph/thebookshelf/showdocs/2/51514): "A domestic
+	// worker who has rendered at least one (1) month of service shall be covered". October 2026, NCR,
+	// ₱8,000 a month: hired 1 October, 31 October completes the month; hired 20 October, it does not.
+	const book = assessStatutory({
+		code: 'PH',
+		period: '2026-10',
+		region: 'NCR',
+		people: [
+			{ key: 'DW-OCT-01', wage: 8_000, employment_type: 'DOMESTIC', hire_date: '2026-10-01' },
+			{ key: 'DW-OCT-20', wage: 8_000, employment_type: 'DOMESTIC', hire_date: '2026-10-20' }
+		]
+	});
+	for (const code of ['SSS', 'SSS_EC', 'PHIC', 'HDMF'])
+		expectStatutory(book, 'DW-OCT-20', code, 0, 0);
+	// Covered: SSS MSC 8,000 at 5% / 10% = 400 / 800, EC ₱10; PhilHealth 5% of the ₱10,000 floor =
+	// 250 each; Pag-IBIG 2% of 8,000 = 160 each.
+	expectStatutory(book, 'DW-OCT-01', 'SSS', 400, 800);
+	expectStatutory(book, 'DW-OCT-01', 'SSS_EC', 0, 10);
+	expectStatutory(book, 'DW-OCT-01', 'PHIC', 250, 250);
+	expectStatutory(book, 'DW-OCT-01', 'HDMF', 160, 160);
+});
+
 test('Philippines — RIX-DW-06 holds a Dapitan City kasambahay to ₱6,000 from 20 May 2026', () => {
 	// Wage Order RIX-DW-06 (https://nwpc.dole.gov.ph/wp-content/uploads/2026/05/Wage-Order-No.-RIX-DW-06.pdf)
 	// s.1: chartered cities and first-class municipalities ₱5,500 + ₱500 = ₱6,000 a month; s.5: no
@@ -2855,8 +2878,10 @@ test('Philippines — a commission is SSS, Pag-IBIG and withholding compensation
 	// salary + ₱5,000 commission = 25,000 → MSC 25,000: Regular SS on 20,000 at 5% / 10% = 1,000 /
 	// 2,000, MPF on the 5,000 above it = 250 / 500, EC ₱30. PhilHealth reads the monthly basic
 	// salary alone: 5% × 20,000 = 1,000 → 500 each. Pag-IBIG: fund salary capped at 10,000 → 200
-	// each. Withholding (NIRC s.32(A)(1), monthly table): 25,000 − (1,250 + 500 + 200) = 23,050 →
-	// 15% × (23,050 − 20,833) = 332.55.
+	// each. Withholding (NIRC s.32(A)(1), monthly table): the commission is supplementary
+	// compensation (RR 11-2018 s.2.79(B)(3) Step 1), so the regular 20,000 − 1,950 = 18,050 sits in
+	// the exempt rung and the supplementary pay triggers withholding on the whole: 25,000 − (1,250 +
+	// 500 + 200) = 23,050 → 15% × (23,050 − 20,833) = 332.55.
 	const book = assessStatutory(
 		{ code: 'PH', period: '2026-06', people: [{ key: 'C', wage: 20_000 }] },
 		(world) => adhoc(world, 30, 'COMMISSION', '2026-06-15', 5_000)

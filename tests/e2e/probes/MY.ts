@@ -2946,9 +2946,9 @@ register(
 		description:
 			'A citizen aged 76 on RM2,600 works three Sundays in January 2026 (4, 8 and 10 hours): no EPF at 75 or over, SOCSO Second Category on the rest-day pay too, and every rest-day hour at the company 2.0 column on the customer hour 13.33, above the s.60(3) awards it is floored at.',
 		citation: [
-			'EPF: KWSP, Employer mandatory contribution: employees aged 14 to under 75 contribute (https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution); EPF Act 1991 First Schedule para 13 (AGC text as at 1 July 2022) excludes a person who has attained seventy-five: no EPF',
+			'EPF: KWSP, Employer mandatory contribution: employees aged 14 to under 75 contribute (https://web.archive.org/web/20260810072920/https://www.kwsp.gov.my/en/employer/responsibilities/mandatory-contribution); EPF Act 1991 First Schedule para 13 (AGC text as at 1 July 2022) excludes a person who has attained seventy-five: no EPF, although the EPF Act s.2 wage would be 2,600 + 533.20 rest-day pay = 3,133.20 (only the 53.32 overtime payment is excluded)',
 			`${COMPANY}: 2,600 ÷ 195 = 13.333 → 13.33`,
-			`${EA} s.59(1): of the Saturday OFF and the Sunday REST, Sunday is the rest day; s.60I(1)(a), (1A), (1)(b): ORP 2,600 ÷ 26 = 100.00, hourly 100 ÷ 8 = 12.50. 11 Jan, 4 h: column 4 × 13.33 × 2 = 106.64 ≥ s.60(3)(b)(i) half a day 50.00. 18 Jan, 8 h: 8 × 13.33 × 2 = 213.28 ≥ s.60(3)(b)(ii) one day 100.00. 25 Jan, 10 h: the normal 8 at 213.28 ≥ 100.00, the 2 beyond at 2 × 13.33 × 2 = 53.32 ≥ s.60(3)(c) 2 × 12.50 × 2 = 50.00: 266.60. Total 586.52`,
+			`${EA} s.59(1): of the Saturday OFF and the Sunday REST, Sunday is the rest day; s.60I(1)(a), (1A), (1)(b): ORP 2,600 ÷ 26 = 100.00, hourly 100 ÷ 8 = 12.50. 11 Jan, 4 h: column 4 × 13.33 × 2 = 106.64 ≥ s.60(3)(b)(i) half a day 50.00. 18 Jan, 8 h: 8 × 13.33 × 2 = 213.28 ≥ s.60(3)(b)(ii) one day 100.00. 25 Jan, 10 h: the normal 8 at 213.28 ≥ 100.00, the 2 beyond at 2 × 13.33 × 2 = 53.32 ≥ s.60(3)(c) 2 × 12.50 × 2 = 50.00: 266.60. Total 586.52. s.60A(3): only the hours beyond the normal hours are overtime, so 106.64 + 213.28 + 213.28 = 533.20 is s.60(3)(a)/(b) rest-day pay on REST_DAY_WORK and 53.32 is OVERTIME`,
 			`${SOCSO}: Act 4 wages include rest-day pay: 3,186.52 is the row exceeding RM3,100, not RM3,200: Second Category employer RM39.40`,
 			'EIS: none from sixty (Act 800 First Schedule)',
 			`${PCB}: at most P = 3,186.52 × 12 − 9,000 = 29,238.24; 9,238.24 × 3% − 250 = 27.15 ÷ 12 = 2.26, under RM10 (E(3)): nil`,
@@ -3328,11 +3328,12 @@ register(
 			'A 5D-group citizen on RM2,600 whose week codes Saturday and Sunday REST works four hours on each of Saturday 10 and Sunday 11 January 2026: Sunday is the s.59(1) rest day; Saturday resolves as an off day whose hours are s.60A(3) overtime toward the 104-hour month, still paid the company rest-day column 4 × 14.12 × 2.',
 		citation: [
 			`${EA} s.59(1): where more than one rest day is allowed in a week, the last is the rest day for Part XII; the earlier day's work is s.60A(3) overtime at not less than 1.5 × the s.60I hour (2,600 ÷ 26 ÷ 8 = 12.50) and counts toward the Employment (Limitation of Overtime Work) Regulations 1980 reg.2 104 hours (s.60A(4)(a) proviso excludes only rest-day and holiday work)`,
-			`${COMPANY}: 5D: 2,600 × 12 ÷ (52 × 42.5) = 14.1176 → 14.12. Saturday (EARLIER-REST-2.0X): 4 × 14.12 × 2 = 112.96 ≥ 4 × 12.50 × 1.5 = 75.00. Sunday (RESTDAY-OT-2.0X): 4 × 14.12 × 2 = 112.96 ≥ s.60(3)(b)(i) half a day 50.00`,
-			`${EPF_WAGES}: base 2,600, RM338 / RM286`,
+			`${COMPANY}: 5D: 2,600 × 12 ÷ (52 × 42.5) = 14.1176 → 14.12. Saturday (EARLIER-REST-2.0X): 4 × 14.12 × 2 = 112.96 ≥ 4 × 12.50 × 1.5 = 75.00. Sunday (RESTDAY-2.0X): 4 × 14.12 × 2 = 112.96 ≥ s.60(3)(b)(i) half a day 50.00`,
+			`${EA} s.60A(3): Sunday's 4 h are within the normal 8, so they are s.60(3)(b) rest-day pay (REST_DAY_WORK), not overtime; Saturday's off-day hours are overtime`,
+			`${EPF_WAGES}: s.2 excludes only the overtime payment: base 2,600 + 112.96 (Sunday) = 2,712.96, row "2,700.01 to 2,720.00": 13% × 2,720 = 353.60 → RM354 / 11% × 2,720 = 299.20 → RM300`,
 			`${SOCSO}: base 2,825.92, row 33 (RM2,800–2,900) RM49.85 / RM14.25; ${EIS}: row 33 RM5.70 each`,
-			`${PCB}: K2 = 286; at most P = 2,539.92 × 12 − 9,000 = 21,479.04; 1,479.04 × 3% − 250 < 0: nil`,
-			'Net: 2,825.92 − 286 − 14.25 − 5.70 = 2,519.97; employer cost 338 + 49.85 + 5.70 = 393.55'
+			`${PCB}: K2 = 300; at most P = 2,525.92 × 12 − 9,000 = 21,311.04; 1,311.04 × 3% − 250 < 0: nil`,
+			'Net: 2,825.92 − 300 − 14.25 − 5.70 = 2,505.97; employer cost 354 + 49.85 + 5.70 = 409.55'
 		],
 		company: NO_HRD,
 		inputs: [
@@ -3350,11 +3351,11 @@ register(
 				employment: 'weekender_job',
 				lines: {
 					gross: 2825.92,
-					net: 2519.97,
-					employer_cost: 393.55,
+					net: 2505.97,
+					employer_cost: 409.55,
 					BASIC: 2600,
-					'EPF.employee': 286,
-					'EPF.employer': 338,
+					'EPF.employee': 300,
+					'EPF.employer': 354,
 					'SOCSO.employee': 14.25,
 					'SOCSO.employer': 49.85,
 					'EIS.employee': 5.7,

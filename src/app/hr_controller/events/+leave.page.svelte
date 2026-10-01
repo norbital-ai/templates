@@ -3,20 +3,20 @@
 	 * One legal entity's manual leave activities for a pay period (anything valued inside it, and time off whose days
 	 * overlap it) and their payroll settlement. An approved entry is immutable; a change is a reversal.
 	 */
-	import ScopeGate from '../../../../lib/ui/ScopeGate.svelte';
-	import { t } from '../../../../lib/ui/t.js';
+	import ScopeGate from '../../../lib/ui/ScopeGate.svelte';
+	import { t } from '../../../lib/ui/t.js';
 	import type { Id } from '@norbital-ai/bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table, Tabs } from '@norbital-ai/ui';
-	import { leavePeriodWhere } from '../../../../lib/leave/activity-fields.js';
-	import CompanyScope from '../../../../lib/ui/CompanyScope.svelte';
-	import { companyScope, employmentNames } from '../../../../lib/ui/company-scope.svelte.js';
-	import { formatLeaveSummary } from '../../../../lib/ui/display-formatters.js';
-	import MonthPeriodPicker from '../../../../lib/ui/month-period-picker.svelte';
-	import BenefitCaseAdvanceStatus from '../../../../lib/ui/leave/benefit-case-advance-status.svelte';
+	import { leavePeriodWhere } from '../../../lib/leave/activity-fields.js';
+	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
+	import { companyScope, employmentNames } from '../../../lib/ui/company-scope.svelte.js';
+	import { formatLeaveSummary } from '../../../lib/ui/display-formatters.js';
+	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
+	import BenefitCaseAdvanceStatus from '../../../lib/ui/leave/benefit-case-advance-status.svelte';
 	import { bolt } from '$bolt';
-	import { liveRows } from '../../../../lib/ui/live.svelte.js';
-	import { createPayPeriodScope } from '../../../../lib/ui/pay-period-scope.svelte.js';
+	import { liveRows } from '../../../lib/ui/live.svelte.js';
+	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
 
 	const scope = companyScope();
 	const pay = createPayPeriodScope(() => scope.company);

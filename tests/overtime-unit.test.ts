@@ -110,15 +110,18 @@ test('a direct write is keyed in the governing version’s unit', async () => {
 	await plan(1, 2);
 });
 
-test('the unit is a positive number every version states; every seed lineage states 0.5', () => {
+test('the unit is a positive number every version states; every seed lineage states 0.5, JP one minute', () => {
 	const seeds = new URL('../seed/jurisdiction/', import.meta.url);
-	const rules = readdirSync(seeds).flatMap((lineage) =>
+	const units = readdirSync(seeds).flatMap((lineage) =>
 		JSON.parse(readFileSync(new URL(`${lineage}/jurisdiction_settings.json`, seeds), 'utf8')).map(
-			(version) => version.work_rules
+			(version) => ({ lineage, work: version.work_rules })
 		)
 	);
-	assert.ok(rules.length > 0);
-	for (const work of rules) assert.equal(work.overtime_unit_hours, 0.5);
+	assert.ok(units.length > 0);
+	// 労働基準法 §§24, 37 with 昭和63年基発第150号: every minute of overtime is paid, no daily rounding.
+	for (const { lineage, work } of units)
+		assert.equal(work.overtime_unit_hours, lineage === 'JP' ? 1 / 60 : 0.5, lineage);
+	const rules = units.map(({ work }) => work);
 	const decode = Schema.decodeUnknownSync(workRulesValueSchema);
 	const { overtime_unit_hours: _, ...without } = rules[0];
 	assert.throws(() => decode(without));

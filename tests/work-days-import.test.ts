@@ -103,7 +103,8 @@ test('a re-import writes each stored day once, skips the unchanged, and names wh
 		created: 1,
 		updated: 2,
 		removed: 1,
-		overwritten: ['PERSON on 2026-01-21', 'PERSON on 2026-01-22', 'PERSON on 2026-01-23']
+		overwritten: ['PERSON on 2026-01-21', 'PERSON on 2026-01-22', 'PERSON on 2026-01-23'],
+		warnings: []
 	});
 });
 
@@ -112,7 +113,14 @@ test('re-importing the month as stored writes nothing and overwrites nothing', a
 	world.work_days = [stored('kept', '2026-01-20'), stored('also', '2026-01-21')];
 	const { output, acts } = await run(world, ['2026-01-20', '2026-01-21']);
 	assert.deepEqual(acts, []);
-	assert.deepEqual(output, { days: 2, created: 0, updated: 0, removed: 0, overwritten: [] });
+	assert.deepEqual(output, {
+		days: 2,
+		created: 0,
+		updated: 0,
+		removed: 0,
+		overwritten: [],
+		warnings: []
+	});
 });
 
 test('a bad or missing clock_in on a long-form Time entries row is named once', () => {

@@ -616,9 +616,20 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 				statutory_work_category: job.workman ? 'MANUAL_LABOUR' : 'NON_MANUAL',
 				employment_type: 'PERMANENT',
 				shift_pattern_id: '@week',
-				...(m.leave_days_paid_on_exit !== undefined
+				...(m.leave_days_paid_on_exit !== undefined ||
+				m.paid_leave?.some((l) => l.kind === 'ANNUAL')
 					? {
-							opening_attendance_through: addDays(`${s.period}-01`, -1),
+							// an exit settles the current service year: attendance is declared to the period's eve and
+							// recorded day by day after it; leave taken in service draws on the year before the current one
+							opening_attendance_through:
+								m.leave_days_paid_on_exit !== undefined
+									? addDays(`${s.period}-01`, -1)
+									: (() => {
+											let from = `${s.period.slice(0, 4)}${job.start.slice(4)}`;
+											if (from > `${s.period}-01`)
+												from = `${Number(from.slice(0, 4)) - 1}${from.slice(4)}`;
+											return addDays(from, -1);
+										})(),
 							opening_unexcused_absence_days: 0,
 							opening_attendance_reference: 'DIFF-OPENING-ATTENDANCE'
 						}
@@ -740,11 +751,28 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 	const last = on(lastDay(s.period));
 	const gross = job.monthly_basic;
 	const time: ProbeInput[] = [
-		...holidays.filter((d) => weekday(d) === 6).map((d) => workDay('job', d, [], tz)),
+		...holidays
+			.filter((d) => weekday(d) === 6 && d >= job.start && (end === null || d <= end))
+			.map((d) => workDay('job', d, [], tz)),
 		...(m.absent ?? []).map((d) => workDay('job', d, [], tz)),
 		...(m.overtime ?? []).map((o) =>
 			workDay('job', o.date, clock(8 + o.hours), tz, { approved_overtime_hours: o.hours })
 		),
+		// EA s.88A(5): the exit month's attendance, day by day after the opening declaration
+		...(m.leave_days_paid_on_exit === undefined
+			? []
+			: monthDays(s.period)
+					.filter(
+						(d) =>
+							!skip(d) &&
+							d >= job.start &&
+							d <= last &&
+							!(m.absent ?? []).includes(d) &&
+							!(m.no_pay_leave ?? []).includes(d) &&
+							!(m.overtime ?? []).some((o) => o.date === d) &&
+							!(m.paid_leave ?? []).some((l) => l.date === d)
+					)
+					.map((d) => workDay('job', d, clock(8), tz))),
 		...(m.rest_day_work ?? []).map((w) =>
 			workDay('job', w.date, clock(w.hours), tz, {
 				approved_overtime_hours: w.hours,
@@ -796,7 +824,8 @@ function sgMap(s: sgOracle.Scenario): Mapped {
 						m.damage_recovery.commissioner_permitted
 							? 'APPROVED_DAMAGE_RECOVERY'
 							: 'DAMAGE_RECOVERY',
-						m.damage_recovery.loss,
+						// EA ss.29(1), 32(1): the lawful deduction, not the whole loss
+						sgOracle.computePayslip(s).components.damage_recovery!,
 						mid,
 						'Damage recovery, inquiry held',
 						{ files: { evidence_file: 'damage-record.pdf' } }
@@ -883,15 +912,21 @@ const sg = profile('SG', sgScenarios, sgMap, (s) =>
 // ---------------------------------------------------------------------------------------------------------------
 // A roster of `days` ('W' work, 'OFF', 'REST', 'STAT' a statutory rest day), Monday first, anchored on ANCHOR
 // ---------------------------------------------------------------------------------------------------------------
-type Day = 'W' | 'OFF' | 'REST' | 'STAT';
+type Day = 'W' | 'SHORT' | 'OFF' | 'REST' | 'STAT';
 const DAY_REF: Record<Day, [ref: string, name: string, variant: Row]> = {
 	W: ['rw', 'Work day', { kind: 'WORK' }],
+	SHORT: ['rshort', 'Short work day', { kind: 'WORK' }],
 	OFF: ['roff', 'Off day', { kind: 'OFF' }],
 	REST: ['rrest', 'Rest day', { kind: 'REST' }],
 	STAT: ['rstat', 'Statutory rest day', { kind: 'REST', statutory: true }]
 };
 /** Shift definitions and the week pattern `rweek` of `days` (Monday first), the work day `work`. */
-export function week(days: readonly Day[], work: Row, code = 'DIFF'): ProbeInput[] {
+export function week(
+	days: readonly Day[],
+	work: Row,
+	code = 'DIFF',
+	short: Row = work
+): ProbeInput[] {
 	const range = { from: ANCHOR, to: null };
 	return [
 		...[...new Set(days)].map((d): ProbeInput => {
@@ -903,7 +938,12 @@ export function week(days: readonly Day[], work: Row, code = 'DIFF'): ProbeInput
 					company_id: '@company',
 					code: `${code}-${d}`,
 					name,
-					variant: d === 'W' ? { ...variant, ...work } : variant,
+					variant:
+						d === 'W'
+							? { ...variant, ...work }
+							: d === 'SHORT'
+								? { ...variant, ...short }
+								: variant,
 					effective_range: range
 				}
 			};
@@ -955,12 +995,12 @@ const TH_SITE: Record<thOracle.Worksite, string> = {
 	NONTHABURI: 'Nonthaburi',
 	NAKHON_RATCHASIMA: 'Nakhon Ratchasima',
 	SAMUT_SONGKHRAM: 'Samut Songkhram',
-	CHIANG_MAI: 'Chiang Mai',
+	CHIANG_MAI: 'Chiang Mai/Doi Saket',
 	LOPBURI: 'Lop Buri',
 	NONG_KHAI: 'Nong Khai',
 	KRABI: 'Krabi',
-	SONGKHLA: 'Songkhla',
-	SURAT_THANI: 'Surat Thani',
+	SONGKHLA: 'Songkhla/Mueang Songkhla',
+	SURAT_THANI: 'Surat Thani/Mueang Surat Thani',
 	CHUMPHON: 'Chumphon',
 	LAMPHUN: 'Lamphun',
 	ROI_ET: 'Roi Et',
@@ -1061,7 +1101,10 @@ function thMap(s: thOracle.Scenario): Mapped {
 	};
 	leave('UNPAID_LEAVE', take(lv.unpaidDays));
 	leave('SICK_LEAVE', [...before(lv.sick.prior), ...take(lv.sick.days)], {}, true);
-	leave('PERSONAL_BUSINESS_LEAVE', [...before(lv.personal.prior), ...take(lv.personal.days)]);
+	// s.57/1 pays three days; a day granted beyond is keyed as unpaid leave (owner rule 2026-09-30, TH-LEAVE-07)
+	const personalPaid = Math.max(0, Math.min(lv.personal.days, 3 - lv.personal.prior));
+	leave('PERSONAL_BUSINESS_LEAVE', [...before(lv.personal.prior), ...take(personalPaid)]);
+	leave('UNPAID_LEAVE', take(lv.personal.days - personalPaid));
 	leave('MILITARY_LEAVE', [...before(lv.military.prior), ...take(lv.military.days)]);
 	leave('ANNUAL_LEAVE', take(lv.annualLeaveDays));
 	leave(
@@ -1143,10 +1186,33 @@ function thMap(s: thOracle.Scenario): Mapped {
 				'Bonus'
 			)
 		);
+	// LPA ss.46–48 are judged on the timed day: every working day of an under-18 employee carries its clock (TH-HR-07)
+	if (thOracle.ageOn(e.birthDate, lastWorked) < 18) {
+		const timed = new Set(
+			inputs.filter((i) => i.collection === 'work_days').map((i) => String(i.values.work_date))
+		);
+		for (const d of free)
+			if (!timed.has(d)) inputs.push(workDay(job, d, clock(e.normalDailyHours), TH_TZ));
+	}
 	if (x !== null) {
 		for (const code of ['SEVERANCE_PAY', 'NOTICE_IN_LIEU'])
 			if (oracle[code] !== undefined)
 				inputs.push(adhocRow(job, code, 0, x.date, code.toLowerCase()));
+		const year = x.date.slice(0, 4);
+		const opens = `${year}-01-01` > e.hireDate ? `${year}-01-01` : e.hireDate;
+		const adjust = (reference: string, days: number, reason: string) =>
+			inputs.push(
+				leaveRow(job, 'ANNUAL_LEAVE', `${year}-01-01`, `${year}-12-31`, {
+					reference,
+					days,
+					effective_on: opens,
+					reason
+				})
+			);
+		if (x.carriedLeaveDays > 0)
+			adjust('DIFF-CARRIED', x.carriedLeaveDays, 'carried forward from last year');
+		if (x.annualLeaveTakenThisYear > 0)
+			adjust('DIFF-TAKEN', -x.annualLeaveTakenThisYear, 'taken earlier this year');
 		const encash = oracle.LEAVE_ENCASHMENT?.base;
 		if (encash !== undefined)
 			inputs.push(
@@ -1304,18 +1370,36 @@ const thFiller: ProbeInput[] = [
 const th = profile('TH', thScenarios, thMap, (s) => verdictOf(thOracle.computePayslip(s)));
 
 /** Working days before `first` in its year (and from `from`), `n` of them, earliest first. */
-function priorWeekdays(first: string, n: number, from: string, what: string) {
+function priorWeekdays(
+	first: string,
+	n: number,
+	from: string,
+	what: string,
+	skip: readonly string[] = []
+) {
 	const pool: string[] = [];
 	for (
 		let d = addDays(first, -1);
 		pool.length < n && d >= `${first.slice(0, 4)}-01-01`;
 		d = addDays(d, -1)
 	)
-		if (weekday(d) >= 1 && weekday(d) <= 5 && d >= from) pool.push(d);
+		if (weekday(d) >= 1 && weekday(d) <= 5 && d >= from && !skip.includes(d)) pool.push(d);
 	if (pool.length < n) unmapped(`${n} prior ${what} days before ${first} this year`);
 	return pool.sort();
 }
 const weekendSkip = (d: string) => weekday(d) === 0 || weekday(d) === 6;
+/** The first weekday of each of the `n` months before `first` this year: 性別平等工作法 §14, one 生理假 day a month. */
+function priorMonthWeekdays(first: string, n: number, from: string) {
+	const out: string[] = [];
+	for (let m = Number(first.slice(5, 7)) - 1; out.length < n && m >= 1; m--) {
+		const d = monthDays(`${first.slice(0, 4)}-${String(m).padStart(2, '0')}`).find(
+			(day) => !weekendSkip(day) && day >= from
+		);
+		if (d !== undefined) out.push(d);
+	}
+	if (out.length < n) unmapped(`${n} prior months of 生理假 before ${first}`);
+	return out.sort();
+}
 
 // ---------------------------------------------------------------------------------------------------------------
 // TW (precedents: tests/e2e/probes/TW.ts `twWeek`, `personInputs`, `worked`/`asked`, `leave`, `wageMonth`, `adhoc`)
@@ -1383,7 +1467,10 @@ function twMap(s: twOracle.Scenario): Mapped {
 		OCC_INJURY: { insured_amount: base('OCC_INJURY') },
 		LABOR_PENSION: {
 			insured_amount: base('LABOR_PENSION'),
-			voluntary_rate: e.pension.voluntaryRate * 100
+			voluntary_rate: e.pension.voluntaryRate * 100,
+			...(e.citizenship === 'FOREIGN_PROFESSIONAL'
+				? { professional_work_class: 'FOREIGN_PROFESSIONAL' }
+				: {})
 		},
 		WAGE_ARREARS_BASE: { insured_amount: base('LI') },
 		INCOME_TAX:
@@ -1392,22 +1479,48 @@ function twMap(s: twOracle.Scenario): Mapped {
 				: { table_declaration_reference: 'DIFF-TW-TABLE', table_dependants: e.taxDependants }
 	};
 	const range = { from: e.hireDate, to: x?.date ?? null };
-	const regs = Object.entries(elections).map(([code, el]) => ({
-		collection: 'employment_statutory_facts',
-		values: {
-			employee_id: '@person',
-			employment_id: '@job',
-			statutory_contribution_id: `@law:statutory_contributions:${code}`,
-			effective_range: range,
-			status: {
-				kind: 'REGISTERED',
-				elections: el,
-				reference_number: `DIFF-${code}`,
-				since: e.hireDate,
-				first_contribution_due_on: e.hireDate
+	// 就業保險法 §5(1): a foreigner without PR or an ROC spouse is outside 就保 (TW-PEN-02-1); 勞工保險條例 §6(1):
+	// compulsory LI ends at 65, so an over-65 worker the unit did not keep insured is not registered
+	const excluded: Record<string, { reason: string; elections: Row }> = {
+		...(e.citizenship === 'MIGRANT_WORKER' || e.citizenship === 'FOREIGN_PROFESSIONAL'
+			? {
+					EI: {
+						reason: 'Foreigner without permanent residence: outside 就業保險法 §5',
+						elections: { foreign_worker_excluded: true }
+					}
+				}
+			: {}),
+		...(!e.liAfter65 && twOracle.ageOn(e.birthDate, first) >= 65
+			? { LI: { reason: '勞工保險條例 §6(1): over 65, cover not continued', elections: {} } }
+			: {})
+	};
+	const regs = Object.entries(elections).map(([code, el]) => {
+		const ex = excluded[code];
+		return {
+			collection: 'employment_statutory_facts',
+			values: {
+				employee_id: '@person',
+				employment_id: '@job',
+				statutory_contribution_id: `@law:statutory_contributions:${code}`,
+				effective_range: range,
+				status:
+					ex !== undefined
+						? {
+								kind: 'NOT_REGISTERED',
+								reason: ex.reason,
+								declaration_reference: `DIFF-${code}-EXCLUDED`,
+								elections: ex.elections
+							}
+						: {
+								kind: 'REGISTERED',
+								elections: el,
+								reference_number: `DIFF-${code}`,
+								since: e.hireDate,
+								first_contribution_due_on: e.hireDate
+							}
 			}
-		}
-	}));
+		};
+	});
 	const free = monthDays(s.period).filter(
 		(d) => !weekendSkip(d) && d >= e.hireDate && d <= lastWorked
 	);
@@ -1433,16 +1546,15 @@ function twMap(s: twOracle.Scenario): Mapped {
 		ranges(dates).map(([from, to]) =>
 			leaveRow('job', code, from, to, { half_day_start: false, half_day_end: false })
 		);
+	const menstrualPrior = priorMonthWeekdays(first, lv.menstrualPriorDays, e.hireDate);
 	const leaves = [
 		...leave('PERSONAL_LEAVE', take(lv.personalDays)),
 		...leave('SICK_LEAVE', [
-			...priorWeekdays(first, lv.sickPriorDays, e.hireDate, 'sick'),
+			...priorWeekdays(first, lv.sickPriorDays, e.hireDate, 'sick', menstrualPrior),
 			...take(lv.sickDays)
 		]),
-		...leave('MENSTRUAL_LEAVE', [
-			...priorWeekdays(first, lv.menstrualPriorDays, e.hireDate, 'menstrual'),
-			...take(lv.menstrualDays)
-		])
+		...leave('HOSPITALISED_SICK_LEAVE', take(lv.hospitalisedDays)),
+		...leave('MENSTRUAL_LEAVE', [...menstrualPrior, ...take(lv.menstrualDays)])
 	];
 	const pay: ProbeInput[] = [
 		...(s.bonus.amount > 0
@@ -1504,18 +1616,20 @@ function twMap(s: twOracle.Scenario): Mapped {
 				pay.push(adhocRow('job', code, 0, x.date, `${code} on departure`));
 		// the last whole month's normal wage (施行細則 §24-1) and the unused annual leave the oracle pays
 		const prev = addDays(first, -1).slice(0, 7);
-		pay.push({
-			collection: 'employment_wage_periods',
-			values: {
-				employment_id: '@job',
-				period: { from: `${prev}-01`, to: lastDay(prev) },
-				currency: 'TWD',
-				normal_wages: e.pay.monthly,
-				due_on: lastDay(prev),
-				paid_on: lastDay(prev),
-				reference: `${prev} payslip`
-			}
-		});
+		// the TW lineage opens 2025-12-01: an earlier month has no sealed settings to record a wage period under
+		if (prev >= '2025-12')
+			pay.push({
+				collection: 'employment_wage_periods',
+				values: {
+					employment_id: '@job',
+					period: { from: `${prev}-01`, to: lastDay(prev) },
+					currency: 'TWD',
+					normal_wages: e.pay.monthly,
+					due_on: lastDay(prev),
+					paid_on: lastDay(prev),
+					reference: `${prev} payslip`
+				}
+			});
 		const payout = oracle.ANNUAL_LEAVE_PAYOUT?.amount;
 		if (payout !== undefined) {
 			const d =
@@ -1594,7 +1708,15 @@ function twMap(s: twOracle.Scenario): Mapped {
 					statutory_work_category: 'NON_MANUAL',
 					employment_type: 'PERMANENT',
 					shift_pattern_id: '@rweek',
-					facts: {},
+					facts: {
+						// 勞動基準法 §46 / §45(1)
+						...(twOracle.ageOn(e.birthDate, e.hireDate) < 18
+							? { guardian_consent_reference: 'DIFF-LSA46-CONSENT' }
+							: {}),
+						...(twOracle.ageOn(e.birthDate, e.hireDate) < 15
+							? { under_15_exception_reference: 'DIFF-LSA45-PERMIT' }
+							: {})
+					},
 					effective_range: range
 				}
 			},
@@ -1623,6 +1745,8 @@ function vnMap(s: vnOracle.Scenario): Mapped {
 	if (e.voluntaryPension > 0) unmapped('voluntary pension premium (a PIT deduction claim)');
 	if (Object.values(t.night).some((h) => h > 0)) unmapped('night work');
 	if (x?.cause === 'ABANDONMENT') unmapped('ABANDONMENT exit');
+	if (k.allowance > 0)
+		unmapped('stable job allowance (no insured VN allowance class; VN-SI-01 GAP)');
 	const oracle = vnOracle.computePayslip(s).lines;
 	const first = `${s.period}-01`;
 	const last = lastDay(s.period);
@@ -1643,9 +1767,18 @@ function vnMap(s: vnOracle.Scenario): Mapped {
 		}
 	});
 	// overtime: weekday hours at most four a day, rest-day (Sunday) and holiday hours at most eight a day
+	// LC art.107(2)(b): at most 40 approved hours a month; hours past it are worked and paid as incentive hours
+	let approved = 0;
 	for (let left = t.ot.weekday; left > 0; left -= 4) {
 		const h = Math.min(4, left);
-		inputs.push(workDay('job', take(1)[0]!, clock(8 + h), VN_TZ, { approved_overtime_hours: h }));
+		const ok = Math.min(h, Math.max(0, 40 - approved));
+		approved += ok;
+		inputs.push(
+			workDay('job', take(1)[0]!, clock(8 + h), VN_TZ, {
+				approved_overtime_hours: ok,
+				...(h > ok ? { incentive_hours: h - ok } : {})
+			})
+		);
 	}
 	let sunday = 0;
 	for (let left = t.ot.rest; left > 0; left -= 8) {
@@ -1670,23 +1803,19 @@ function vnMap(s: vnOracle.Scenario): Mapped {
 				reason: 'Agreed unpaid leave (Labour Code art.115(3))'
 			})
 		);
-	if (t.unpaidDays >= 14)
-		inputs.push(fact('SI', first, { elections: { continue_si_unpaid: false } }, last));
+	// SI arts.33(5)/34(3): days before hire, after exit, unpaid and fund-paid sick days are working days without wage
+	const siFrom = k.start > first ? k.start : first;
+	const noWage =
+		vnOracle.workingDays(first, last) -
+		(vnOracle.workingDays(siFrom, end) - t.unpaidDays - t.sickDays);
+	const si = {
+		...(noWage >= 14 ? { continue_si_unpaid: false } : {}),
+		...(t.sickDays > 0
+			? { sickness_benefit_eligible: true, long_term_sickness: false, first_return_month: false }
+			: {})
+	};
+	if (Object.keys(si).length > 0) inputs.push(fact('SI', siFrom, { elections: si }, end));
 	if (t.sickDays > 0) {
-		inputs.push(
-			fact(
-				'SI',
-				first,
-				{
-					elections: {
-						sickness_benefit_eligible: true,
-						long_term_sickness: false,
-						first_return_month: false
-					}
-				},
-				last
-			)
-		);
 		for (const [from, to] of ranges(take(t.sickDays)))
 			inputs.push(
 				leaveRow(
@@ -1768,16 +1897,6 @@ function vnMap(s: vnOracle.Scenario): Mapped {
 					tax_residency: e.taxResident ? 'RESIDENT' : 'NON_RESIDENT',
 					currency: 'VND',
 					base_salary: k.monthly,
-					...(k.allowance > 0
-						? {
-								allowances: [
-									{
-										catalogue_id: '@law:allowance_catalogue:INSURANCE_EQUIVALENT',
-										amount: k.allowance
-									}
-								]
-							}
-						: {}),
 					pay_frequency: 'MONTHLY',
 					work_classification: 'EA_COVERED',
 					statutory_work_category: 'NON_MANUAL',
@@ -1799,7 +1918,8 @@ function vnMap(s: vnOracle.Scenario): Mapped {
 				: [
 						fact('UI', k.uiFrom < k.start ? k.start : k.uiFrom, {
 							since: k.uiFrom,
-							elections: { pension_qualified: e.receivingPension }
+							// the pension-qualified exclusion is Law 74/2025 art.31(2), from 1 January 2026; Law 38/2013 has none
+							elections: s.period >= '2026-01' ? { pension_qualified: e.receivingPension } : {}
 						})
 					]),
 			fact('UNION_DUES', k.start, { elections: { union_member: e.unionMember } }),
@@ -1807,7 +1927,24 @@ function vnMap(s: vnOracle.Scenario): Mapped {
 				elections: {
 					eligible_dependents: e.dependants,
 					...(e.dependants > 0 ? { dependents_registration_reference: 'DIFF-DEP' } : {})
-				}
+				},
+				// a resident's payment under a contract of less than three months, or after the contract: one declared payment
+				...(e.taxResident &&
+				((k.fixedEnd !== null &&
+					vnOracle.monthsBetween(k.start, vnOracle.addDays(k.fixedEnd, 1)) < 3) ||
+					(x !== null && x.date < last))
+					? {
+							unit_assessments: [
+								{
+									period: s.period,
+									gross: oracle.PIT!.base!,
+									units: 1,
+									reference: 'DIFF-PAY',
+									paid_on: last
+								}
+							]
+						}
+					: {})
 			}),
 			...inputs
 		],
@@ -1883,6 +2020,14 @@ function myMap(s: MyScenario): Mapped {
 					]
 				})
 	};
+	// Act 800 from 1 January 2018; para 8: none due before 18 (an under-18 has no date yet)
+	const eisFirst = [
+		e.firstContributionDate,
+		'2018-01-01',
+		`${+e.birthDate.slice(0, 4) + 18}${e.birthDate.slice(4)}`
+	]
+		.sort()
+		.at(-1)!;
 	const facts: ProbeInput[] = [
 		fact('EPF', {
 			elections: foreign ? { member_before_1998: false } : {},
@@ -1897,7 +2042,7 @@ function myMap(s: MyScenario): Mapped {
 		fact('SOCSO', { elections: {}, first_contribution_due_on: e.firstContributionDate }),
 		fact('EIS', {
 			elections: foreign ? { mykas_resident: false } : {},
-			first_contribution_due_on: e.firstContributionDate
+			...(eisFirst <= last ? { first_contribution_due_on: eisFirst } : {})
 		}),
 		fact('PCB', pcb),
 		...(e.skbbkReleased
@@ -1905,7 +2050,8 @@ function myMap(s: MyScenario): Mapped {
 					fact(
 						'SKBBK',
 						{ elections: { skbbk_liability_released: true } },
-						`${s.period}-01` > j.hireDate ? `${s.period}-01` : j.hireDate
+						// a release exists only from the 8 July 2026 version (LINDUNG FAQ; MY-SKBBK-04)
+						[`${s.period}-01`, j.hireDate, '2026-07-08'].sort().at(-1)!
 					)
 				]
 			: [])
@@ -1914,9 +2060,16 @@ function myMap(s: MyScenario): Mapped {
 	const time: ProbeInput[] = [
 		...m.work.map((w) => {
 			const off = holidays.has(w.date) || weekendSkip(w.date);
-			return workDay('job', w.date, clock(w.hours), MY_TZ, {
-				approved_overtime_hours: off ? w.hours : Math.max(0, w.hours - 8)
-			});
+			// a short shifted day punches its break as a gap (a start before 13:00 that crosses the lunch hour)
+			return workDay(
+				'job',
+				w.date,
+				clock(w.hours, w.hours <= 4 && !weekendSkip(w.date) ? '12:30' : '09:00'),
+				MY_TZ,
+				{
+					approved_overtime_hours: off ? w.hours : Math.max(0, w.hours - 8)
+				}
+			);
 		}),
 		...ranges(m.unpaidLeave).map(([from, to]) =>
 			leaveRow('job', 'UNPAID_LEAVE', from, to, { half_day_start: false, half_day_end: false })
@@ -2048,7 +2201,7 @@ function myMap(s: MyScenario): Mapped {
 			}
 		};
 		exit = byCause[x.cause];
-		for (const code of ['TERMINATION_BENEFIT', 'NOTICE_INDEMNITY'])
+		for (const code of ['TERMINATION_BENEFIT', 'NOTICE_IN_LIEU'])
 			if (oracle[code] !== undefined)
 				pay.push(adhocRow('job', code, 0, x.date, `${code} on departure`));
 		const encash = oracle.ENCASHMENT?.amount;
@@ -2241,16 +2394,33 @@ function phMap(s: PHScenario): Mapped {
 	const mid = `${s.period}-15` < end ? `${s.period}-15` : end;
 	const minutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3));
 	const time: ProbeInput[] = s.work.map((w) => {
-		const worked = (minutes(w.end) - minutes(w.start) - w.breakMinutes) / 60;
+		// a shift that ends at or before its start ends on the next calendar day
+		const overnight = minutes(w.end) <= minutes(w.start);
+		const worked =
+			(minutes(w.end) + (overnight ? 24 * 60 : 0) - minutes(w.start) - w.breakMinutes) / 60;
 		const off =
 			weekday(w.date) === 0 ||
 			weekday(w.date) === 6 ||
 			PH_REGULAR.includes(w.date) ||
 			PH_SPECIAL.includes(w.date);
-		return workDay('job', w.date, [[w.start, w.end]], PH_TZ, {
+		const row = workDay('job', w.date, [[w.start, w.end]], PH_TZ, {
 			...(weekday(w.date) >= 1 && weekday(w.date) <= 5 ? { shift_definition_id: '@office' } : {}),
 			approved_overtime_hours: off ? worked : Math.max(0, worked - 8)
 		});
+		return overnight
+			? {
+					...row,
+					values: {
+						...row.values,
+						worked_intervals: [
+							{
+								start: `${w.date}T${w.start}:00${PH_TZ}`,
+								end: `${addDays(w.date, 1)}T${w.end}:00${PH_TZ}`
+							}
+						]
+					}
+				}
+			: row;
 	});
 	for (const [from, to] of ranges(s.unpaidLeave))
 		time.push(
@@ -2335,6 +2505,18 @@ function phMap(s: PHScenario): Mapped {
 					...(s.exitCause === undefined ? {} : PH_EXIT[s.exitCause])
 				}
 			},
+			// RA 11199 s.9(a): coverage at 60 is judged on the first contribution due date (this hire)
+			...(e.birthDate !== null &&
+			`${Number(e.birthDate.slice(0, 4)) + 60}${e.birthDate.slice(4)}` <= last
+				? [
+						registration('person', 'job', 'SSS', j.hireDate, {
+							kind: 'REGISTERED',
+							reference_number: 'DIFF-SSS',
+							first_contribution_due_on: j.hireDate,
+							elections: {}
+						})
+					]
+				: []),
 			{
 				collection: 'employment_terms',
 				values: {
@@ -2353,6 +2535,7 @@ function phMap(s: PHScenario): Mapped {
 							: 'PERMANENT',
 					worksite: 'NCR/Manila',
 					...(domestic ? {} : { worksite_sector: 'OTHER_NONAGRI' }),
+					...(j.type === 'APPRENTICE' ? { facts: { ebet_program: 'APPRENTICESHIP' } } : {}),
 					shift_pattern_id: '@week',
 					effective_range: { from: j.hireDate, to: exit }
 				}
@@ -2436,19 +2619,31 @@ function jpMap(s: jpOracle.Scenario): Mapped {
 					...(c.parking === undefined ? {} : { commute_parking_fee: c.parking })
 				})
 	};
+	const notRegistered = (code: string, why: string): ProbeInput => ({
+		collection: 'employment_statutory_facts',
+		values: {
+			employee_id: '@person',
+			employment_id: '@job',
+			statutory_contribution_id: `@law:statutory_contributions:${code}`,
+			effective_range: range,
+			status: { kind: 'NOT_REGISTERED', reason: why, declaration_reference: `DIFF-${code}-NOT-REG` }
+		}
+	});
 	const facts: ProbeInput[] = [
-		...(e.health.registered
-			? [fact('HEALTH', { standard_monthly_remuneration: e.health.grade })]
-			: []),
-		...(e.employmentInsurance.registered
-			? [
-					fact(
-						'EMPLOYMENT_INSURANCE',
-						e.employmentInsurance.category === 'GENERAL'
-							? {}
-							: { insured_category: e.employmentInsurance.category }
-					)
-				]
+		e.health.registered
+			? fact('HEALTH', { standard_monthly_remuneration: e.health.grade })
+			: notRegistered('HEALTH', '健康保険法 §3: outside compulsory cover'),
+		e.employmentInsurance.registered
+			? fact(
+					'EMPLOYMENT_INSURANCE',
+					e.employmentInsurance.category === 'GENERAL'
+						? {}
+						: { insured_category: e.employmentInsurance.category }
+				)
+			: notRegistered('EMPLOYMENT_INSURANCE', '雇用保険法 §6: not an insured person'),
+		// 所得税法 §190: the December last payment of a 甲欄 resident settles the year on the 基礎控除申告書
+		...(s.period.endsWith('-12') && e.taxResident && e.withholding.column === 'KOU'
+			? [fact('INCOME_TAX', { yearend_basic_declaration: true })]
 			: [])
 	];
 	const time: ProbeInput[] = [
@@ -2708,6 +2903,12 @@ function idMap(s: idOracle.Scenario): Mapped {
 			? [reg('KESEHATAN', { extra_members: ee.kesehatanExtraMembers })]
 			: [])
 	];
+	// UU 13/2003 art 93(4): per-event leave carries its dated event
+	const EVENT: Partial<Record<string, Row>> = {
+		MARRIAGE: { event_kind: 'MARRIAGE', event_relationship: 'SELF' },
+		BEREAVEMENT: { event_kind: 'DEATH', event_relationship: 'PARENT' },
+		PATERNITY: { event_kind: 'BIRTH', event_relationship: 'CHILD' }
+	};
 	const time: ProbeInput[] = [
 		...ranges(inp.unpaidDates).map(([from, to]) => leaveRow('job', 'UNPAID_LEAVE', from, to)),
 		...inp.paidLeave.flatMap((l) =>
@@ -2717,7 +2918,7 @@ function idMap(s: idOracle.Scenario): Mapped {
 					`${l.kind}_LEAVE`,
 					from,
 					to,
-					{},
+					EVENT[l.kind] === undefined ? {} : { facts: { ...EVENT[l.kind], event_date: from } },
 					l.kind === 'MENSTRUAL' ? { certificate_file: 'menstrual-leave.pdf' } : undefined
 				)
 			)
@@ -2743,8 +2944,10 @@ function idMap(s: idOracle.Scenario): Mapped {
 			)
 		);
 	const thr = inp.thrHolidayDate;
-	if (oracleCodes.THR !== undefined && thr !== null) {
-		const due = addDays(thr, -11) < end ? addDays(thr, -11) : end;
+	// raised whenever the scenario asks for THR, so an ineligible request is refused as the oracle refuses it;
+	// dated H−7, the seed's THR_HOLIDAY due date (Permenaker 6/2016 art 5(4))
+	if (thr !== null) {
+		const due = addDays(thr, -7) < end ? addDays(thr, -7) : end;
 		pay.push(adhocRow('job', 'THR', 0, due < `${period}-01` ? `${period}-01` : due, 'THR'));
 	}
 	let exit: Row = {};
@@ -2783,9 +2986,11 @@ function idMap(s: idOracle.Scenario): Mapped {
 		shared: [
 			...(sixDay
 				? week(
-						['W', 'W', 'W', 'W', 'W', 'W', 'REST'],
+						// PP 35/2021 art 21(2)(a): six days of 40 hours, the sixth a 5-hour day
+						['W', 'W', 'W', 'W', 'W', 'SHORT', 'REST'],
 						{ start_time: '08:00', end_time: '16:00', break_minutes: 60 },
-						'ID6'
+						'ID6',
+						{ start_time: '08:00', end_time: '13:00', break_minutes: 0 }
 					)
 				: week(['W', 'W', 'W', 'W', 'W', 'REST', 'REST'], dayVariant(8), 'ID')),
 			...holidaysNeeded.map((d) => holidayRow(d))
@@ -2865,6 +3070,30 @@ const id = profile('ID', idScenarios, idMap, (s) => {
 // ---------------------------------------------------------------------------------------------------------------
 
 const CN_TZ = '+08:00';
+/** Whole-period wages before the first run, as opening wage periods: LCL Implementing Regulation art.27 and
+ * 年休假实施办法 art.11 average the twelve months before the exit. A part first month records its covered share. */
+const cnOpenings = (hire: string, firstRun: string, wage: number): ProbeInput[] =>
+	periodsFrom(
+		hire.slice(0, 7) > addDays(`${firstRun}-01`, -365).slice(0, 7)
+			? hire.slice(0, 7)
+			: addDays(`${firstRun}-01`, -365).slice(0, 7),
+		addDays(`${firstRun}-01`, -1).slice(0, 7)
+	).map((ym) => {
+		const from = hire > `${ym}-01` ? hire : `${ym}-01`;
+		const share = (monthDays(ym).length - monthDays(ym).indexOf(from)) / monthDays(ym).length;
+		return {
+			collection: 'employment_wage_periods',
+			values: {
+				employment_id: '@job',
+				period: { from, to: lastDay(ym) },
+				currency: 'CNY',
+				normal_wages: Math.round(wage * share * 100) / 100,
+				due_on: lastDay(ym),
+				paid_on: lastDay(ym),
+				reference: `${ym} opening`
+			}
+		};
+	});
 const SH_EXIT: Partial<Record<NonNullable<ShScenario['exit']>['ground'], [string, string]>> = {
 	ART36_EMPLOYER: ['MUTUAL', 'ART_36_EMPLOYER'],
 	ART36_EMPLOYEE: ['MUTUAL', 'ART_36_WORKER'],
@@ -2882,20 +3111,27 @@ const cnLeaveFacts = (code: string, from: string, detail?: string): Row =>
 		? { event_kind: 'MARRIAGE', event_date: addDays(from, -2) }
 		: code === 'FUNERAL_LEAVE'
 			? { event_kind: 'DEATH', event_relationship: 'PARENT', event_date: addDays(from, -2) }
-			: code === 'FAMILY_PLANNING_PROCEDURE_LEAVE'
-				? { event_kind: (detail ?? '').toUpperCase().replaceAll(' ', '_'), event_date: from }
-				: {};
+			: code === 'PATERNITY_LEAVE'
+				? { event_kind: 'BIRTH', event_date: addDays(from, -2) }
+				: code === 'FAMILY_PLANNING_PROCEDURE_LEAVE'
+					? { event_kind: (detail ?? '').toUpperCase().replaceAll(' ', '_'), event_date: from }
+					: {};
 /** One overtime entry on the CN calendar: extended hours on a working day, whole hours on a rest day or holiday. */
 function cnOvertime(
 	o: { date: string; hours: number; compensatoryRest?: boolean },
 	type: string,
-	weekend: boolean
+	weekend: boolean,
+	budget: { left: number }
 ) {
 	if (o.compensatoryRest) unmapped('rest-day work with compensatory rest');
 	if ((type === 'WORKDAY' && weekend) || (type === 'REST' && !weekend))
 		unmapped(`overtime on a 调休 day ${o.date}`);
+	// LL art.41: at most 3 approved hours a day and 36 a month; the excess is keyed as incentive hours (CN-N40)
+	const ok = type === 'WORKDAY' ? Math.max(0, Math.min(o.hours, 3, budget.left)) : o.hours;
+	if (type === 'WORKDAY') budget.left -= ok;
 	return workDay('job', o.date, clock(type === 'WORKDAY' ? 8 + o.hours : o.hours), CN_TZ, {
-		approved_overtime_hours: o.hours
+		approved_overtime_hours: ok,
+		...(o.hours > ok ? { incentive_hours: o.hours - ok } : {})
 	});
 }
 function shMap(s: ShScenario): Mapped {
@@ -2912,6 +3148,8 @@ function shMap(s: ShScenario): Mapped {
 		unmapped('early retirement');
 	if (s.tax.annualBonusSeparateUsedThisYear)
 		unmapped('a separate annual bonus already used this year');
+	if (m.paidLeave.some((l) => l.code === 'WORK_INJURY_LEAVE'))
+		unmapped('Shanghai work-injury leave (CN-SH20 GAP: no catalogue class)');
 	const result = shOracle.computePayslip(s);
 	const runs = shOracle.runsFor(s);
 	const range = { from: e.hireDate, to: e.exitDate };
@@ -2928,15 +3166,23 @@ function shMap(s: ShScenario): Mapped {
 	const last = lastDay(s.period);
 	const end = e.exitDate !== null && e.exitDate < last ? e.exitDate : last;
 	const mid = `${s.period}-15` < end ? `${s.period}-15` : end;
+	// one 36-hour art.41 budget per month, spent in date order
+	const budgets = new Map<string, { left: number }>();
+	const overtime = (list: readonly Parameters<typeof cnOvertime>[0][]) =>
+		[...list]
+			.sort((a, b) => a.date.localeCompare(b.date))
+			.map((o) => {
+				const ym = o.date.slice(0, 7);
+				if (!budgets.has(ym)) budgets.set(ym, { left: 36 });
+				return cnOvertime(o, shOracle.dayType(o.date), weekendSkip(o.date), budgets.get(ym)!);
+			});
 	const inputs: ProbeInput[] = [
 		...ranges(take(m.unpaidLeaveDays)).map(([from, to]) =>
 			leaveRow('job', 'UNPAID_LEAVE', from, to)
 		),
-		...m.overtime.map((o) => cnOvertime(o, shOracle.dayType(o.date), weekendSkip(o.date))),
+		...overtime(m.overtime),
 		...s.earlier.flatMap((x) => [
-			...(x.overtime ?? []).map((o) =>
-				cnOvertime(o, shOracle.dayType(o.date), weekendSkip(o.date))
-			),
+			...overtime(x.overtime ?? []),
 			...(x.bonus ? [adhocRow('job', 'BONUS', x.bonus, `${x.ym}-15`, 'Bonus')] : [])
 		]),
 		...(m.bonus > 0 ? [adhocRow('job', 'BONUS', m.bonus, mid, 'Bonus')] : []),
@@ -2944,7 +3190,9 @@ function shMap(s: ShScenario): Mapped {
 			? [adhocRow('job', 'ANNUAL_BONUS_SEPARATE', m.annualBonusSeparate, mid, 'Annual bonus')]
 			: []),
 		...Object.entries(m.nonWage).map(([code, amount]) =>
-			adhocRow('job', code, amount ?? 0, mid, code)
+			adhocRow('job', code, amount ?? 0, mid, code, {
+				files: { evidence_file: `${code.toLowerCase()}.pdf` }
+			})
 		),
 		...m.paidLeave.map((l) =>
 			leaveRow(
@@ -2961,6 +3209,7 @@ function shMap(s: ShScenario): Mapped {
 	];
 	let exit: Row = {};
 	if (x !== null && e.exitDate !== null) {
+		inputs.push(...cnOpenings(e.hireDate, runs[0]!, e.monthlyWage));
 		const [ground, lcl] = SH_EXIT[x.ground]!;
 		exit = {
 			exit_ground: ground,
@@ -3047,7 +3296,17 @@ function shMap(s: ShScenario): Mapped {
 					date_of_birth: w.birthDate,
 					gender: w.sex === 'F' ? 'FEMALE' : 'MALE',
 					nationality: w.citizenship === 'CN' ? 'Chinese' : 'Foreign',
-					receiving_pension: w.pensionRecipient
+					receiving_pension: w.pensionRecipient,
+					...(m.paidLeave.some((l) => l.code === 'PATERNITY_LEAVE' || l.code === 'CHILDCARE_LEAVE')
+						? { marital_status: 'MARRIED' }
+						: {}),
+					...(m.paidLeave.some((l) => l.code === 'CHILDCARE_LEAVE')
+						? {
+								children: [
+									{ child_birthdate: '2024-06-01', relationship: 'CHILD', citizenship: 'CITIZEN' }
+								]
+							}
+						: {})
 				}
 			},
 			{
@@ -3191,6 +3450,12 @@ function kmMap(s: KmScenario): Mapped {
 		(d) => shOracle.dayType(d) === 'WORKDAY' && !weekendSkip(d) && d >= em.hireDate && d <= end
 	);
 	const take = days(free);
+	const prorated =
+		em.hireDate > `${s.period}-01` ||
+		end < last ||
+		(em.raise !== undefined && em.raise.from.startsWith(s.period));
+	if (prorated && kmOracle.touchesAdjustedDay(`${s.period}-01`, last))
+		unmapped('a prorated month holding a 调休 day (CN-N03.adjusted-workdays GAP)');
 	const inputs: ProbeInput[] = [];
 	for (const [from, to] of ranges(take(t.unpaidDays ?? 0)))
 		inputs.push(
@@ -3199,11 +3464,16 @@ function kmMap(s: KmScenario): Mapped {
 	const ot = t.overtime;
 	if (ot !== undefined) {
 		const daily = ot.maxDailyWeekdayHours ?? 3;
+		// LL art.41: at most 3 approved hours a day and 36 a month; the excess is keyed as incentive hours (CN-N40)
+		let approved = 0;
 		for (let left = ot.weekdayHours ?? 0; left > 0; left -= daily) {
 			const h = Math.min(daily, left);
+			const ok = Math.max(0, Math.min(h, 3, 36 - approved));
+			approved += ok;
 			inputs.push(
 				workDay('job', take(1)[0]!, clock(8 + h), CN_TZ, {
-					approved_overtime_hours: h,
+					approved_overtime_hours: ok,
+					...(h > ok ? { incentive_hours: h - ok } : {}),
 					time_off_in_lieu: false
 				})
 			);
@@ -3240,9 +3510,14 @@ function kmMap(s: KmScenario): Mapped {
 			adhocRow('job', 'BONUS', p.priorBonus.amount, `${p.priorBonus.period}-15`, 'bonus')
 		);
 	for (const sub of p.subsidies ?? [])
-		inputs.push(adhocRow('job', sub.code, sub.amount, mid, sub.code));
+		inputs.push(
+			adhocRow('job', sub.code, sub.amount, mid, sub.code, {
+				files: { evidence_file: `${sub.code.toLowerCase()}.pdf` }
+			})
+		);
 	let exit: Row = {};
 	if (x !== undefined && em.exitDate !== null) {
+		inputs.push(...cnOpenings(em.hireDate, runs[0]!, em.monthlyWage));
 		const [ground, lcl] = KM_EXIT[x.cause];
 		exit = {
 			exit_ground: ground,
@@ -3325,7 +3600,12 @@ function kmMap(s: KmScenario): Mapped {
 									reference_number: 'DIFF-SI',
 									elections: { contribution_base: siBase }
 								}
-							: { kind: 'NOT_REGISTERED', reason: 'Registration pending' },
+							: {
+									kind: 'NOT_REGISTERED',
+									reason: 'Registration pending',
+									elections: { contribution_base: siBase },
+									declaration_reference: 'DIFF-SI'
+								},
 						false
 					)
 				]),
@@ -3337,13 +3617,11 @@ function kmMap(s: KmScenario): Mapped {
 						{
 							kind: 'REGISTERED',
 							reference_number: 'DIFF-HF',
-							elections:
-								f.fundAccount === 'FIRST_EVER'
-									? { first_ever_account: true }
-									: {
-											contribution_base:
-												f.fundAccount === 'EXISTING' ? (f.fundBase ?? siBase) : siBase
-										}
+							elections: {
+								...(f.fundAccount === 'FIRST_EVER' ? { first_ever_account: true } : {}),
+								contribution_base: f.fundAccount === 'EXISTING' ? (f.fundBase ?? siBase) : siBase,
+								...(ee.citizenship === 'CN' ? {} : { voluntary_agreement: true })
+							}
 						},
 						f.fundAccount === 'FIRST_EVER'
 					)

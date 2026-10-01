@@ -49,11 +49,11 @@ test('a roster month grid expands filled cells and omits blanks', () => {
 	]);
 });
 
-test('a time-entry month grid reads closed ranges and open punches', () => {
+test('a time-entry month grid reads closed ranges, open punches and several intervals to a cell', () => {
 	const rows = expandTimeMonthGrid(
 		{
 			sheetName: 'Time entries',
-			headers: ['employee_number', '4', '5', '6'],
+			headers: ['employee_number', '4', '5', '6', '7'],
 			rows: [
 				{
 					rowNumber: 2,
@@ -61,7 +61,8 @@ test('a time-entry month grid reads closed ranges and open punches', () => {
 						['employee_number', 'PUBEM0023'],
 						['4', '20:30-05:15'],
 						['5', ''],
-						['6', '20:31']
+						['6', '20:31'],
+						['7', '08:00-12:00; 13:00-17:00\n18:00-20:00']
 					])
 				}
 			]
@@ -75,7 +76,18 @@ test('a time-entry month grid reads closed ranges and open punches', () => {
 			clock_in: '20:30',
 			clock_out: '05:15'
 		},
-		{ employee_number: 'PUBEM0023', work_date: '2026-05-06', clock_in: '20:31' }
+		{ employee_number: 'PUBEM0023', work_date: '2026-05-06', clock_in: '20:31' },
+		// a split shift: one row per interval, in the order the cell lists them
+		...[
+			['08:00', '12:00'],
+			['13:00', '17:00'],
+			['18:00', '20:00']
+		].map(([clock_in, clock_out]) => ({
+			employee_number: 'PUBEM0023',
+			work_date: '2026-05-07',
+			clock_in,
+			clock_out
+		}))
 	]);
 });
 

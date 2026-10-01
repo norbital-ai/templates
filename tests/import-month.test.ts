@@ -129,12 +129,16 @@ test('a date no single approved contract covers is refused by name', async () =>
 	);
 });
 
-test('a roster names every employed day, never PH, and becomes the roster of record of each contract it names', async () => {
-	await assert.rejects(
-		run(world(), { roster: roster().filter((row) => row.work_date < '2026-01-30') }),
-		/write REST or OFF[\s\S]*PERSON: 2026-01-30, 2026-01-31/
+test('a roster may leave days blank (warned, no plan written), never PH, and becomes the roster of record of each contract it names', async () => {
+	const blank = await run(world(), {
+		roster: roster().filter((row) => row.work_date < '2026-01-30')
+	});
+	assert.equal(act(blank.acts, 'work_days.create').length, 29, 'a blank day writes no row');
+	assert.match(
+		blank.output.warnings.join('\n'),
+		/no roster code[\s\S]*PERSON: 2026-01-30, 2026-01-31/
 	);
-	// a day approved full-day leave owns may stay blank; a half day it leaves free may not
+	// a day approved full-day leave owns is blank by design and not warned; a half day it leaves free is
 	const onLeave = (half_day_end = false) =>
 		world({
 			leave: [
@@ -149,8 +153,11 @@ test('a roster names every employed day, never PH, and becomes the roster of rec
 			]
 		});
 	const blanks = { roster: roster().filter((row) => row.work_date < '2026-01-30') };
-	await run(onLeave(), blanks);
-	await assert.rejects(run(onLeave(true), blanks), /write REST or OFF[\s\S]*PERSON: 2026-01-31$/m);
+	assert.deepEqual((await run(onLeave(), blanks)).output.warnings, []);
+	assert.match(
+		(await run(onLeave(true), blanks)).output.warnings.join('\n'),
+		/no roster code[\s\S]*PERSON: 2026-01-31$/m
+	);
 	await assert.rejects(
 		run(world(), {
 			roster: roster().map((row) =>
@@ -276,5 +283,115 @@ test('a scheduling import writes the consent and the declared import inputs with
 			]
 		}),
 		/columns these rules do not import/
+	);
+});
+
+test('statutory limits are warnings: nine days running, a long shift, a short break and overtime past the cap all import', async () => {
+	const rules = {
+		limits: [
+			{
+				key: 'daily_total',
+				period: 'DAY',
+				measure: 'TOTAL_WORK_HOURS',
+				max_hours: 12,
+				unit: 'WORKED_HOURS'
+			},
+			{
+				key: 'daily_ot',
+				period: 'DAY',
+				measure: 'OVERTIME_HOURS',
+				max_hours: 4,
+				unit: 'WORKED_HOURS'
+			},
+			{ key: 'weekly_rest', measure: 'CONSECUTIVE_WORK_DAYS', max_days: 6, discharged_by: 'REST' }
+		],
+		bands: [],
+		breaks: [{ when: 'consecutive_hours > 5.0', owed_minutes: '30.0', counts_as_worked_time: null }]
+	};
+	const tables = world({
+		codes: [
+			...CODES,
+			{
+				id: 'c-13',
+				code: 'D13',
+				variant: { kind: 'WORK', start_time: '07:00', end_time: '21:00', break_minutes: 60 },
+				effective_range: { from: '2020-01-01', to: null }
+			},
+			{
+				id: 'c-short',
+				code: 'SB',
+				variant: { kind: 'WORK', start_time: '09:00', end_time: '15:15', break_minutes: 15 },
+				effective_range: { from: '2020-01-01', to: null }
+			}
+		],
+		versions: [{ ...workDayTables().jurisdiction_settings[0], work_rules: rules }]
+	});
+	// a shift change: 19th–27th worked straight through
+	const nine = JANUARY.filter((date) => date >= '2026-01-19' && date <= '2026-01-27');
+	const { output, acts } = await run(tables, {
+		roster: roster(nine).map((row) =>
+			row.work_date === '2026-01-20'
+				? { ...row, shift_code: 'D13' }
+				: row.work_date === '2026-01-21'
+					? { ...row, shift_code: 'SB' }
+					: row
+		),
+		overtime: [{ employee_number: 'PERSON', work_date: '2026-01-22', overtime_hours: 6 }]
+	});
+	assert.equal(act(acts, 'work_days.create').length, 31, 'nothing is refused');
+	const said = output.warnings.join('\n');
+	assert.match(
+		said,
+		/PERSON: 2026-01-19 to 2026-01-27 is 9 consecutive worked days with no rest day; the rules allow 6/
+	);
+	assert.match(
+		said,
+		/PERSON: the plan through 2026-01-20 projects 13\.00 worked hours in the day, above the 12-hour limit "daily_total"/
+	);
+	assert.match(said, /Shift SB grants 15 minutes of break, but the rules require 30/);
+	assert.match(
+		said,
+		/PERSON: overtime above the statutory limits on 2026-01-22 \(2 h\) is recorded as incentive hours/
+	);
+	const ot = act(acts, 'work_days.create').find((row) => row.work_date === '2026-01-22');
+	assert.deepEqual([ot.approved_overtime_hours, ot.incentive_hours], [4, 2]);
+	// rules that keep no incentive hours record the whole total as approved overtime, still warned
+	tables.jurisdiction_settings[0].work_rules = { ...rules, incentive_hours_allowed: false };
+	const strict = await run(tables, {
+		overtime: [{ employee_number: 'PERSON', work_date: '2026-01-22', overtime_hours: 6 }]
+	});
+	const kept = act(strict.acts, 'work_days.create')[0];
+	assert.deepEqual([kept.approved_overtime_hours, kept.incentive_hours], [6, 0]);
+	assert.match(strict.output.warnings.join('\n'), /is recorded as approved overtime/);
+});
+
+test('a Time entries day holds several intervals, the later ones running past midnight', async () => {
+	const { acts } = await run(world(), {
+		attendance: [
+			{ employee_number: 'PERSON', work_date: '2026-01-20', clock_in: '08:00', clock_out: '12:00' },
+			{ employee_number: 'PERSON', work_date: '2026-01-20', clock_in: '12:00', clock_out: '17:00' },
+			{ employee_number: 'PERSON', work_date: '2026-01-21', clock_in: '22:00', clock_out: '02:00' },
+			{ employee_number: 'PERSON', work_date: '2026-01-21', clock_in: '03:00', clock_out: '06:00' }
+		]
+	});
+	const created = act(acts, 'work_days.create');
+	assert.deepEqual(
+		created.map((row) => [row.work_date, row.worked_intervals]),
+		[
+			[
+				'2026-01-20',
+				[
+					{ start: '2026-01-20T00:00:00.000Z', end: '2026-01-20T04:00:00.000Z' },
+					{ start: '2026-01-20T04:00:00.000Z', end: '2026-01-20T09:00:00.000Z' }
+				]
+			],
+			[
+				'2026-01-21',
+				[
+					{ start: '2026-01-21T14:00:00.000Z', end: '2026-01-21T18:00:00.000Z' },
+					{ start: '2026-01-21T19:00:00.000Z', end: '2026-01-21T22:00:00.000Z' }
+				]
+			]
+		]
 	);
 });

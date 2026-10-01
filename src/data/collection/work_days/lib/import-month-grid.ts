@@ -4,7 +4,8 @@
  * expands the grid before anything is posted.
  *
  * Every sheet of the workbook is expanded here: the roster sheet's cells are roster-code tokens,
- * the attendance sheet's are clock ranges and the overtime sheet's are approved hours, but the
+ * the attendance sheet's are clock ranges (several to a cell, `;`- or line-separated, are one row
+ * each: the day's intervals) and the overtime sheet's are approved hours, but the
  * header row, the day columns and the refuse-the-whole-file rule are one piece of grammar.
  *
  * Long-form sheets (`employee_number`, `work_date`, …) keep importing unchanged.
@@ -131,6 +132,7 @@ type ExpandedOvertimeCell = {
 };
 
 const RANGE_SPLIT = /\s*[-–—/]\s*/;
+const INTERVAL_SPLIT = /[;\n]/;
 
 function cellAsClockText(raw: SheetCell): string {
 	if (raw == null) return '';
@@ -278,21 +280,25 @@ export function expandTimeMonthGrid(
 			continue;
 		}
 		for (const column of columns) {
-			const text = cellAsClockText(row.cells.get(column.header) ?? null);
-			if (text === '') continue;
 			const identity = `Row ${row.rowNumber} (${employee} on ${column.work_date})`;
-			const parsed = Result.try({
-				try: () => ({
-					employee_number: employee,
-					work_date: column.work_date,
-					...parseClockRange(text, identity)
-				}),
-				catch: (error) => error
-			});
-			if (Result.isSuccess(parsed)) {
-				rows.push(parsed.success);
-			} else {
-				problems.push(getErrorMessage(parsed.failure));
+			// One interval per `;` or line in the cell, each its own row, in the order written: a split shift.
+			for (const text of cellAsClockText(row.cells.get(column.header) ?? null)
+				.split(INTERVAL_SPLIT)
+				.map((part) => part.trim())
+				.filter((part) => part !== '')) {
+				const parsed = Result.try({
+					try: () => ({
+						employee_number: employee,
+						work_date: column.work_date,
+						...parseClockRange(text, identity)
+					}),
+					catch: (error) => error
+				});
+				if (Result.isSuccess(parsed)) {
+					rows.push(parsed.success);
+				} else {
+					problems.push(getErrorMessage(parsed.failure));
+				}
 			}
 		}
 	}

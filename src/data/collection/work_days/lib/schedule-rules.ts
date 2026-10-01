@@ -107,7 +107,28 @@ export function assertMonthConformsToPattern(options: {
  * roster, not attendance, and a roster committing thirteen straight WORK days is unlawful whether
  * or not leave later removes some of them.
  */
-export function assertRunHasRestDay(options: {
+export function assertRunHasRestDay(options: Parameters<typeof restRunBreaches>[0]): void {
+	const breach = restRunBreaches(options)[0];
+	if (breach == null) return;
+	const { employeeNumber, rule, authority } = options;
+	refuse(
+		`Roster change for ${employeeNumber} is refused: ${breach.start} to ${breach.end} would be ` +
+			`${breach.length} consecutive worked day(s) with no rest day inside them. This jurisdiction ` +
+			`allows ${rule.max_days}${authority ? ` (${authority})` : ''}. Give the run a rest day — ` +
+			`swap one of those days for a ${rule.discharged_by === 'REST' ? 'REST' : 'REST or OFF'} ` +
+			`code in the same write — or move the work outside it.`
+	);
+}
+
+/** One run of worked days longer than the rule allows: its first and last day and its length. */
+export type RestRunBreach = {
+	readonly start: string;
+	readonly end: string;
+	readonly length: number;
+};
+
+/** Every run `assertRunHasRestDay` would refuse, in date order; the import reports them as warnings. */
+export function restRunBreaches(options: {
 	readonly employeeNumber: string;
 	readonly rule: StatutoryWeeklyRestRule;
 	/** The Work catalogue's citation, quoted in the refusal. */
@@ -125,23 +146,12 @@ export function assertRunHasRestDay(options: {
 	readonly suspendedDates?: ReadonlySet<string>;
 	/** Whether `rule.average` applies to this person (its `when` judged by the caller); absent is yes. */
 	readonly averaging?: boolean;
-}): void {
-	const {
-		employeeNumber,
-		rule,
-		authority,
-		window,
-		plannedByDate,
-		changedDates,
-		terms,
-		patternById,
-		codeKindById
-	} = options;
+}): RestRunBreach[] {
+	const { rule, window, plannedByDate, changedDates, terms, patternById, codeKindById } = options;
 	const suspended = options.suspendedDates ?? new Set<string>();
 	/** The dates the plan discharges the rule on, for the averaging arm's count. */
 	const discharged: string[] = [];
-	// The rule is always enforced: the weekly rest ceiling has no preference arm, so
-	// a stated breach refuses the write.
+	const breaches: RestRunBreach[] = [];
 	let runStart: string | null = null;
 	let runEnd: string | null = null;
 	let length = 0;
@@ -156,13 +166,7 @@ export function assertRunHasRestDay(options: {
 			discharged.filter((date) => date > addDays(runEnd!, -rule.average!.days) && date <= runEnd!)
 				.length >= rule.average.rest_days;
 		if (touched && length > rule.max_days && !averaged)
-			refuse(
-				`Roster change for ${employeeNumber} is refused: ${runStart} to ${runEnd} would be ` +
-					`${length} consecutive worked day(s) with no rest day inside them. This jurisdiction ` +
-					`allows ${rule.max_days}${authority ? ` (${authority})` : ''}. Give the run a rest day — ` +
-					`swap one of those days for a ${rule.discharged_by === 'REST' ? 'REST' : 'REST or OFF'} ` +
-					`code in the same write — or move the work outside it.`
-			);
+			breaches.push({ start: runStart!, end: runEnd!, length });
 		runStart = null;
 		runEnd = null;
 		length = 0;
@@ -202,4 +206,5 @@ export function assertRunHasRestDay(options: {
 		date = addDays(date, 1);
 	}
 	flush();
+	return breaches;
 }
