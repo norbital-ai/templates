@@ -136,3 +136,30 @@ template release is not an automated workflow; the tenant's source history remai
 ## License
 
 See [LICENSE](./LICENSE).
+
+<!-- current-screenshots:start -->
+
+## Template screenshots
+
+Captured 2 October 2026.
+
+### [Blank](blank/README.md)
+
+![Blank](blank/docs/images/current-home.png)
+
+### [Construction Operations](construction/README.md)
+
+![Construction Operations](construction/docs/images/current-construction_project_workspace-projects.png)
+
+### [CRM](crm/README.md)
+
+![CRM](crm/docs/images/current-crm-desk.png)
+
+### [Field Operations](field-operations/README.md)
+
+![Field Operations](field-operations/docs/images/current-field_ops_controller-dispatch.png)
+
+### [On-Demand Services](on-demand-services/README.md)
+
+![On-Demand Services](on-demand-services/docs/images/current-scheduler-schedule-board.png)
+<!-- current-screenshots:end -->

@@ -38,8 +38,6 @@ types** and the **BIM reference matrix** sit beside the projects and feed them.
 
 ### Projects
 
-![Projects](images/01-projects.png)
-
 Every project with its number, client, status and programme. **New** opens a project form: the
 **Project** section (name, number, client, main contractor, status, type, project manager) and
 **Schedule and value** (programme, currency, contract value) are open; **Address** and
@@ -47,13 +45,9 @@ Every project with its number, client, status and programme. **New** opens a pro
 
 ### Project record
 
-![Project record](images/02-project-record.png)
-
 The header gives the project number, client and status. The **Record** tab shows the programme,
 the contract value, the main contractor and the project manager. Three more tabs hold the delivery
 detail.
-
-![Model & coordination](images/03-project-coordination.png)
 
 **Model & coordination.** The coordination model, the project's issued IFC model, opens in a 3D
 viewer. It shows when one of the project's documents is an IFC model (or links to an `.ifc` file);
@@ -63,13 +57,9 @@ workers and live documents, over the project's scope. Below are the project's **
 title, priority, status, due date) and **Defects** (number, title, severity, status, due date), each
 with **+** to add one.
 
-![Manpower allocation](images/04-project-manpower.png)
-
 **Manpower allocation.** One lane per work front, with its code and head count. Each card is a
 worker on a job there: the worker, the work package, their role and planned hours a day. A project
 with no site locations asks for one first.
-
-![Commercial & controls](images/05-project-commercial.png)
 
 **Commercial & controls.**
 
@@ -83,8 +73,6 @@ with no site locations asks for one first.
 
 ## Reference matrix
 
-![BIM reference matrix](images/06-reference-matrix.png)
-
 The BIM item master sheet: each reference's name and code, IFC category and subcategory, unit of
 measure, rate, and embodied carbon per unit with its unit. A reference can also carry a
 specification, a BIM GUID and its data source. Jobs point at a reference, so a work package can be
@@ -94,11 +82,7 @@ costed and its carbon estimated from the quantities. **New** adds a reference.
 
 ### Workers
 
-![Workers](images/07-workers.png)
-
 The worker roster: name, number, trade, status (**Active**, **Inactive**, **Suspended**), phone and email.
-
-![A worker's record](images/08-worker-record.png)
 
 A worker's record opens on the worker and their **Compliance** dates (work permit expiry, medical
 check, safety induction). **Contact** (phone, email) and **Personal details** (date of birth,
@@ -106,14 +90,10 @@ nationality) start collapsed, each showing its first value.
 
 ### Certifications
 
-![Certification types](images/09-certifications.png)
-
 The certification library: name, code, category, issuing body, how many months it stays valid and
 whether a refresher is required.
 
 ### Jobs
-
-![Jobs](images/10-jobs.png)
 
 Every job: title, number, project, type, status (**Planned**, **Ready**, **In progress**, **Completed**,
 **Blocked**, **Cancelled**), priority and schedule. A job's record adds its site location, BIM reference, budget
@@ -175,3 +155,22 @@ channel is your own mailbox over IMAP + SMTP (a password, or Microsoft or Google
 your own OAuth app); a WhatsApp channel is **Official (Twilio)** or **Unofficial (WhatsApp Web)**. Norbius needs
 the host's AI to be configured. The sample coordination model is an IFC file shipped with the
 template. A project's own model is linked as a document of type IFC model.
+
+<!-- current-screenshots:start -->
+
+## Current screenshots
+
+Captured 2 October 2026 from the standalone template with sample data.
+
+### Projects
+
+![Construction Operations: Projects](images/current-construction_project_workspace-projects.png)
+
+### Reference matrix
+
+![Construction Operations: Reference matrix](images/current-construction_settings_reference_matrix-matrix.png)
+
+### Workforce
+
+![Construction Operations: Workforce](images/current-construction_settings_workforce-workforce.png)
+<!-- current-screenshots:end -->

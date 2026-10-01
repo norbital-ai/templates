@@ -14,9 +14,15 @@
 		<Grid minimum="compact">
 			<Field name="assignment_code" />
 			<Field name="status" />
-			<RefField name="job_id" ref="job" />
-			<RefField name="worker_id" ref="worker" />
-			<RefField name="site_location_id" ref="site" />
+			{#if view.mode !== 'create' || view.values.job_id == null}
+				<RefField name="job_id" ref="job" />
+			{/if}
+			{#if view.mode !== 'create' || view.values.worker_id == null}
+				<RefField name="worker_id" ref="worker" />
+			{/if}
+			{#if view.mode !== 'create' || view.values.site_location_id == null}
+				<RefField name="site_location_id" ref="site" />
+			{/if}
 			<Field name="role" />
 		</Grid>
 	</Section>

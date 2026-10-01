@@ -1,6 +1,9 @@
 import { messages } from '@norbital-ai/bolt';
 
 export default messages({
+	'section.message': 'Message',
+	'section.delivery': 'Delivery',
+
 	'component.section_map': 'Map location',
 	'component.section_basis': 'Basis and model',
 	'component.summary_pinned': 'Pinned',

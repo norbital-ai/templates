@@ -14,10 +14,18 @@
 		<Grid minimum="compact">
 			<Field name="permit_number" />
 			<Field name="permit_type" />
-			<RefField name="project_id" ref="project" />
-			<RefField name="site_location_id" ref="site" />
-			<RefField name="job_id" ref="job" />
-			<RefField name="worker_id" ref="worker" />
+			{#if view.mode !== 'create' || view.values.project_id == null}
+				<RefField name="project_id" ref="project" />
+			{/if}
+			{#if view.mode !== 'create' || view.values.site_location_id == null}
+				<RefField name="site_location_id" ref="site" />
+			{/if}
+			{#if view.mode !== 'create' || view.values.job_id == null}
+				<RefField name="job_id" ref="job" />
+			{/if}
+			{#if view.mode !== 'create' || view.values.worker_id == null}
+				<RefField name="worker_id" ref="worker" />
+			{/if}
 			<Field name="status" />
 		</Grid>
 	</Section>

@@ -1,6 +1,9 @@
 import { messages } from '@norbital-ai/bolt';
 
 export default messages({
+	'section.message': '消息',
+	'section.delivery': '投递',
+
 	'component.section_map': '地图位置',
 	'component.section_basis': '依据与模型',
 	'component.summary_pinned': '已标注',

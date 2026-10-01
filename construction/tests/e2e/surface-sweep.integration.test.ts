@@ -20,10 +20,25 @@ const pages = Object.fromEntries(
 	)
 );
 
+type RepresentationLoader = NonNullable<
+	NonNullable<Parameters<typeof sweep>[1]>['representations']
+>[string];
+const representations = Object.fromEntries(
+	Object.entries(
+		import.meta.glob<Awaited<ReturnType<RepresentationLoader>>>(
+			'../../src/data/collection/**/+representation.svelte'
+		)
+	).map(([path, load]) => [
+		path.replace('../../src/data/collection/', '').replace('/+representation.svelte', ''),
+		load
+	])
+);
+
 it('every app page renders for every team with no console error and no over-budget view', async () => {
 	const t = await testWorkspace({ root: process.cwd() });
 	const report = await sweep(t, {
 		pages,
+		representations,
 		as: [{ admin: true }, ...Object.values(teams).map((policies) => ({ policies }))]
 	});
 	expect(report.visited.map((visit) => visit.path)).toEqual(
@@ -33,5 +48,10 @@ it('every app page renders for every team with no console error and no over-budg
 			'/app/construction_settings_workforce/workforce'
 		])
 	);
+	for (const collection of Object.keys(representations)) {
+		expect(report.visited.some((visit) => visit.path.endsWith(`?record=${collection}/new`))).toBe(
+			true
+		);
+	}
 	expect(report.findings).toEqual([]);
 });

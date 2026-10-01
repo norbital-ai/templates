@@ -8,6 +8,19 @@ matches a helper to every visit, and it watches each shift until the helper is a
 
 The user guide, with screens of every app, is [docs/README.md](docs/README.md).
 
+<!-- current-screenshots:start -->
+
+## Current screenshots
+
+Captured 2 October 2026 from the standalone template with sample data.
+
+### Schedule
+
+![On-Demand Services: Schedule](docs/images/current-scheduler-schedule-board.png)
+
+[All application screens](docs/README.md#current-screenshots).
+<!-- current-screenshots:end -->
+
 ## Operating model
 
 A **customer** books a **service** at their address. The booking has one **visit** per occurrence

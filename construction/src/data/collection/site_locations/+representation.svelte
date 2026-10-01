@@ -16,8 +16,12 @@
 		<Grid minimum="compact">
 			<Field name="location_name" />
 			<Field name="location_code" />
-			<RefField name="project_id" ref="project" />
-			<RefField name="parent_location_id" ref="site" />
+			{#if view.mode !== 'create' || view.values.project_id == null}
+				<RefField name="project_id" ref="project" />
+			{/if}
+			{#if view.mode !== 'create' || view.values.parent_location_id == null}
+				<RefField name="parent_location_id" ref="site" />
+			{/if}
 			<Field name="location_type" />
 		</Grid>
 	</Section>

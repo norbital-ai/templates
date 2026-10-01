@@ -15,7 +15,9 @@
 		<Grid minimum="compact">
 			<Field name="reference_name" />
 			<Field name="reference_code" />
-			<RefField name="project_id" ref="project" />
+			{#if view.mode !== 'create' || view.values.project_id == null}
+				<RefField name="project_id" ref="project" />
+			{/if}
 			<Field name="category" />
 			<Field name="subcategory" />
 			<Field name="unit_of_measure" />

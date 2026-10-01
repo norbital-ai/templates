@@ -32,8 +32,6 @@ and the contractor who holds it. A job carries its **variations**, its **photo e
 
 ### Dispatch schedule
 
-![Dispatch schedule: the day's jobs by status, beside the day's sites on a map](images/01-dispatch.png)
-
 The chosen day's jobs in three lanes: **Unassigned**, **Assigned** and **Completed**. Pick the day
 at the top, or press **Today**. The map on the right shows that day's sites.
 
@@ -59,23 +57,15 @@ at the top, or press **Today**. The map on the right shows that day's sites.
 Open a job from the board or from any job list. The header gives its status and when it was
 dispatched; a job with an open suspicion shows it in the header's pill, its reason behind it.
 
-![A job's record: status, contractor, times, value charged, summary and reported location](images/02-job-record.png)
-
 - **Record**: **Progress** (status, contractor, dispatch and completion times) and **Completion**
   (value charged, the completion summary) are open; **Reported location** starts collapsed,
   showing the reported address. Save with **Save**.
 - **Job scope**: the site, title, kind of work, day and the full description.
 
-![Variations on a job](images/03-job-variations.png)
-
 - **Variations**: scope changes raised on this job, with amount and time.
-
-![The job's conversation: messages and photos from the field](images/04-job-conversation.png)
 
 - **Conversation**: the messages and photos that came in about this job, in order, grouped by day.
   It is read-only. Click a photo to see it full size.
-
-![Suspicion logs: evidence facts per photo and the open judgement](images/05-job-suspicion.png)
 
 - **Suspicion logs** (controllers only):
   - **Evidence facts**: each photo with a flag on it, and its flags.
@@ -86,8 +76,6 @@ dispatched; a job with an open suspicion shows it in the header's pill, its reas
 
 ### Sites
 
-![Sites](images/06-sites.png)
-
 Every site: name, client, address, type (HDB flat, condo, landed, commercial, industrial, other)
 and floor area. **New** adds a site.
 
@@ -97,15 +85,11 @@ and floor area. **New** adds a site.
   file with the site, its jobs, variations and photo evidence, plus a CSV for each of those
   tables, for handing the site over to another system.
 
-![A site's record: upcoming jobs and activity history](images/07-site-record.png)
-
 A site's record shows the site and its client, with the map pin and geocoded address folded into
 **Map location**. It has **Upcoming jobs** (from today on, plus any still open) and **Activity history**
 (jobs assigned or completed, with value charged, reported location and summary).
 
 ### Approvals
-
-![Approvals waiting for a controller](images/09-approvals.png)
 
 A variation raised or changed by a contractor lands here for the `Field Operations Controllers`
 team. It takes effect only when approved: press **Approve**, or open the menu beside it to
@@ -118,13 +102,7 @@ team. It takes effect only when approved: press **Approve**, or open the menu be
 A controller sees every contractor's jobs, with a **Contractor** column and **New** to file a job.
 The table's info button says whose jobs are listed.
 
-![Dispatched jobs, as a controller](images/08-jobs-all.png)
-
 A contractor sees only the jobs assigned to them.
-
-![A contractor's own jobs, on a phone](images/10-contractor-jobs.png)
-
-![A contractor's job, on a phone](images/11-contractor-job.png)
 
 On a job, a contractor can:
 
@@ -199,8 +177,6 @@ should look.
 
 ## Connections
 
-![Settings → Channels: the WhatsApp channel's setup, on the Official (Twilio) provider](images/12-channel-setup.png)
-
 The workspace connects its WhatsApp channel, **Field ops WhatsApp**, with its own credentials: an
 administrator opens **Settings → Channels**, picks the channel and chooses how it connects.
 
@@ -222,3 +198,22 @@ The channel's **Messages** tab lists what it sent and received, with each messag
 The workspace runs on Singapore time and Singapore dollars. Without the `scene` embedding, the
 review still runs its exact and near-identical photo checks, but cannot find re-shot or cropped
 scenes across jobs.
+
+<!-- current-screenshots:start -->
+
+## Current screenshots
+
+Captured 2 October 2026 from the standalone template with sample data.
+
+### Dispatch control
+
+![Field Operations: Dispatch control](images/current-field_ops_controller-dispatch.png)
+
+### Contractor jobs
+
+![Field Operations: Contractor jobs](images/current-field_ops_contractor-jobs.png)
+
+### Sites
+
+![Field Operations: Sites](images/current-field_ops_controller-sites.png)
+<!-- current-screenshots:end -->

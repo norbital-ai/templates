@@ -34,8 +34,6 @@ The Scheduler has four pages in the sidebar: **Scheduling** (tabs **Schedule**, 
 
 ### Schedule
 
-![Schedule board: one lane per helper](images/01-schedule-board.png)
-
 **By helper** shows the day's visits, one lane per helper plus an **Unassigned** lane. Pick the
 day at the top right.
 
@@ -52,11 +50,7 @@ day at the top right.
 **List** shows the same day as a table. Each row has **Reassign to best match** and **Cancel
 visit**.
 
-![Schedule as a list](images/02-schedule-list.png)
-
 ### Warnings
-
-![Warnings](images/03-warnings.png)
 
 **Needs attention** is one list of what needs a person now: visits with no helper, ETA risks, and
 proposals after a helper left. When nothing does, it reads "All clear". **Shift checks** lists the
@@ -64,14 +58,10 @@ shift checks still open, and **Warning letters** the letters on file.
 
 ### Live map
 
-![Live map of helper positions](images/04-live-map.png)
-
 **Helper positions** shows each helper's last reported position. **Under way and next** lists the
 visits under way or starting in the next four hours.
 
 ### Bookings
-
-![Bookings desk](images/05-bookings.png)
 
 - **All bookings** lists every booking. Cancelling a booking cancels its visits still to come.
 - **New** on its toolbar takes a booking. Pick the customer and the service, the date and time,
@@ -85,8 +75,6 @@ visits under way or starting in the next four hours.
 
 ### Helper profiles
 
-![Helper profiles](images/06-helper-profiles.png)
-
 Skills, phone, home area, working days and hours, time off and warnings; the sign-in account and
 map locations fold into **Sign-in and location** ("Last seen …"). **Offboard
 today** marks a helper as leaving today. Each of their later visits gets a proposal: the helper with the closest
@@ -95,14 +83,10 @@ and the desk accepts it from the visit.
 
 ### Customer profiles
 
-![Customer profiles](images/07-customer-profiles.png)
-
 Contact details, address and area, their bookings, and every notice sent to them. **Notes** and the
 **Map location** pin fold away behind a one-line summary.
 
 ### Configurations
-
-![Dispatch settings](images/08-dispatch-settings.png)
 
 **Dispatch** holds the settings below; change them and press **Save settings**.
 
@@ -114,14 +98,10 @@ Contact details, address and area, their bookings, and every notice sent to them
 | Time to answer (minutes)                        | 60      | No answer within this, and the day is reassigned            |
 | Free changes until (hours before a visit)       | 24      | Later cancellations are chargeable; later moves are refused |
 
-![Services](images/09-services.png)
-
 **Services** lists what can be booked. Each has a skill (the matching requirement), a duration, a price and a description.
 Only active services are offered on the portal.
 
 ## Customer portal
-
-![Book a visit, on a phone](images/10-portal-book.png)
 
 1. **Details.** The customer types their mobile number and presses **Send code**. The six-digit code
    box appears beside **Verify**; the sixth digit verifies. The first verification signs them up.
@@ -150,16 +130,12 @@ close sign-up.
 
 ## Signing in
 
-![Sign in with a mobile number, on a phone](images/11-sign-in-phone.png)
-
 Everyone signs in to the workspace with a six-digit code. On **Sign in or sign up**, type the
 mobile number and press **Text me** (or **WhatsApp me**) to get the code; **Use email instead**
 sends it by email. A number that is new to the workspace signs up as a customer, the same as on the
 portal.
 
 ## Helper app — My Day
-
-![My Day on a helper's phone](images/12-helper-my-day.png)
 
 - **Shift check.** Confirm the day, or say you cannot come, with or without a medical certificate.
 - **Your visits.** The visit under way, then the next ones: time, customer, service, address, and
@@ -249,8 +225,6 @@ it starts. Later, a cancellation is marked late (chargeable) and a move is refus
 channel, and its **Connection** tab asks how it connects; **Messages** shows what went out on it
 and each message's delivery status.
 
-![Connecting the WhatsApp channel through Twilio](images/13-channel-setup.png)
-
 - **WhatsApp**: **Official (Twilio)** takes your Twilio account SID, auth token and WhatsApp sender
   number; set the sender's incoming-message webhook to the URL shown. **Unofficial (WhatsApp Web)**
   links a WhatsApp account as a linked device instead.
@@ -270,3 +244,54 @@ Until a channel is connected, nothing is delivered on it: the channel counts its
 - The ETA check asks Google in live traffic whenever the estimate is over half the ETA limit.
 
 At 2,000 visits a month, Google usage sits within or near its monthly free allowance.
+
+<!-- current-screenshots:start -->
+
+## Current screenshots
+
+Captured 2 October 2026 from the standalone template with sample data.
+
+### Schedule
+
+![On-Demand Services: Schedule](images/current-scheduler-schedule-board.png)
+
+### My day
+
+![On-Demand Services: My day](images/current-helper-today.png)
+
+### Book a visit
+
+![On-Demand Services: Book a visit](images/current-portal-book.png)
+
+### My bookings
+
+![On-Demand Services: My bookings](images/current-portal-visits.png)
+
+### Dispatch settings
+
+![On-Demand Services: Dispatch settings](images/current-scheduler-configurations-dispatch.png)
+
+### Services
+
+![On-Demand Services: Services](images/current-scheduler-configurations-services.png)
+
+### Customer profiles
+
+![On-Demand Services: Customer profiles](images/current-scheduler-customers-profiles.png)
+
+### Helper profiles
+
+![On-Demand Services: Helper profiles](images/current-scheduler-helpers-profiles.png)
+
+### Bookings
+
+![On-Demand Services: Bookings](images/current-scheduler-schedule-bookings.png)
+
+### Live map
+
+![On-Demand Services: Live map](images/current-scheduler-schedule-live.png)
+
+### Warnings
+
+![On-Demand Services: Warnings](images/current-scheduler-schedule-warnings.png)
+<!-- current-screenshots:end -->

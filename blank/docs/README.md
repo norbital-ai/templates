@@ -26,8 +26,6 @@ Blank declares no teams. The person the workspace was created for is its adminis
 
 ## Home
 
-![Home: no applications yet](images/01-home.png)
-
 The home page lists the workspace's applications. On Blank it reads **No applications yet**; each
 app you add appears here as a card.
 
@@ -41,8 +39,6 @@ The sidebar holds the shell:
   appearance, **Preview as a team** and **Sign out**.
 
 ## Norbius
-
-![Norbius, ready for a first conversation](images/02-norbius.png)
 
 Start here. Tell Norbius what the workspace is for, for example "we run a small cleaning company;
 we need bookings and a schedule". Norbius:
@@ -58,8 +54,6 @@ work through an approach before anything is built.
 
 ## Approvals
 
-![Approvals: nothing waits on you](images/03-approvals.png)
-
 Anything that needs a person's approval lands in the **Approvals** list of the **Inbox**. On a fresh Blank workspace, **Nothing waits on
 you.**
 
@@ -68,12 +62,8 @@ you.**
 The **…** menu under **Account** opens the settings pages: **People**, **Organization**, **Audit**,
 **Automations**, and under **System**, **Channels**, **Integrations** and **Environment secrets**.
 
-![People: members, teams, invitations and assignments](images/04-people.png)
-
 **People** lists the members (at first, only you), the teams, invitations and team assignments.
 Invite colleagues here once there is something for them to use.
-
-![Organization: workspace name, locale and time zone](images/05-organization.png)
 
 **Organization** shows the workspace name, locale (`en-SG`) and time zone (`Asia/Singapore`). These
 are set by the workspace itself; ask Norbius to change them.
@@ -92,8 +82,6 @@ Blank there are none yet.
 
 ## Connections
 
-![Integrations: API keys and declared integrations](images/06-integrations.png)
-
 Blank declares no channels, integrations or environment secrets, so **Channels**, **Integrations**
 and **Environment secrets** start empty. When you ask Norbius for something that needs one (email or
 WhatsApp messages, an outside service, an API key), it adds the declaration, and the setting then
@@ -106,3 +94,14 @@ channel connects through **Official (Twilio)** or **Unofficial (WhatsApp Web)**.
 
 **Integrations → API keys** lets an administrator issue a key so another system can reach this
 workspace.
+
+<!-- current-screenshots:start -->
+
+## Current screenshots
+
+Captured 2 October 2026 from the standalone template with sample data.
+
+### Blank
+
+![Blank: Blank](images/current-home.png)
+<!-- current-screenshots:end -->

@@ -62,7 +62,7 @@
 </script>
 
 {#snippet field(name: string, form: FormState)}
-	{#if Object.hasOwn(values, name)}
+	{#if Object.entries(values).some(([field, value]) => field === name && value != null)}
 		<!-- the parent scoping this create: fixed, not asked -->
 	{:else if editors[name]}
 		<Field {name}>
@@ -120,7 +120,12 @@
 						first={i === 0}
 						name={section.name}
 						title={section.title}
-						{...section.closed === undefined ? {} : { defaultOpen: false, summary: section.closed }}
+						{...section.closed === undefined
+							? {}
+							: {
+									defaultOpen: false,
+									...(typeof section.closed === 'string' ? { summary: section.closed } : {})
+								}}
 					>
 						<Grid gap="md" minimum="compact">
 							{#each section.fields as name (name)}{@render field(name, form)}{/each}

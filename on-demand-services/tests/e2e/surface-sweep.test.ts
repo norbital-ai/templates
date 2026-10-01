@@ -20,6 +20,20 @@ const pages = Object.fromEntries(
 	])
 );
 
+type RepresentationLoader = NonNullable<
+	NonNullable<Parameters<typeof sweep>[1]>['representations']
+>[string];
+const representations = Object.fromEntries(
+	Object.entries(
+		import.meta.glob<Awaited<ReturnType<RepresentationLoader>>>(
+			'../../src/data/collection/**/+representation.svelte'
+		)
+	).map(([path, load]) => [
+		path.replace('../../src/data/collection/', '').replace('/+representation.svelte', ''),
+		load
+	])
+);
+
 it('every page renders for every policy and the portal visitor, with no console error and no refused view', async () => {
 	const t = await testWorkspace({
 		manifest: JSON.parse(built('manifest.json')) as EngineManifest,
@@ -40,7 +54,7 @@ it('every page renders for every policy and the portal visitor, with no console 
 			...input
 		});
 	expect(await book({})).toMatchObject({ kind: 'committed' });
-	const report = await sweep(t, { pages: pages as never });
+	const report = await sweep(t, { pages: pages as never, representations });
 	expect(report.visited.map((v) => v.path)).toEqual(
 		expect.arrayContaining([
 			'/app/scheduler/schedule/board',
@@ -50,5 +64,10 @@ it('every page renders for every policy and the portal visitor, with no console 
 			'/app/portal/book'
 		])
 	);
+	for (const collection of Object.keys(representations)) {
+		expect(report.visited.some((visit) => visit.path.endsWith(`?record=${collection}/new`))).toBe(
+			true
+		);
+	}
 	expect(report.findings).toEqual([]);
 });

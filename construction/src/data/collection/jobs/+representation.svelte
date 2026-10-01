@@ -15,9 +15,15 @@
 		<Grid minimum="compact">
 			<Field name="job_title" />
 			<Field name="job_number" />
-			<RefField name="project_id" ref="project" />
-			<RefField name="site_location_id" ref="site" />
-			<RefField name="bim_reference_id" ref="bim" />
+			{#if view.mode !== 'create' || view.values.project_id == null}
+				<RefField name="project_id" ref="project" />
+			{/if}
+			{#if view.mode !== 'create' || view.values.site_location_id == null}
+				<RefField name="site_location_id" ref="site" />
+			{/if}
+			{#if view.mode !== 'create' || view.values.bim_reference_id == null}
+				<RefField name="bim_reference_id" ref="bim" />
+			{/if}
 			<Field name="job_type" />
 			<Field name="status" />
 			<Field name="priority" />

@@ -44,20 +44,14 @@ picked account.
 
 ### Pipeline
 
-![Pipeline board for one account](images/01-pipeline.png)
-
 The account's quotes in lanes: **Draft**, **Sent**, **Won**, **Confirmed** and **Lost**. Each card
 shows the quote number, title and total. Pick someone in the picker beside the search to see only
 their quotes. **New** opens a quote; click a card to open it.
 
 ### Quotes
 
-![Quotes for one account](images/02-quotes.png)
-
 The same quotes as a table: number, title, status, amount (with its currency, `SGD 1,234.50`), valid until, when
 confirmed and the owner.
-
-![A confirmed quote](images/03-quote-record.png)
 
 A quote carries the account and a contact (picked from that account's people), the currency and
 whether prices include tax, and the valid-until date. The **Trade terms** section (payment, shipping,
@@ -65,8 +59,6 @@ place of loading and delivery, packaging, shipping mark, time of shipment and an
 **Notes** start collapsed, showing the payment terms and the first words of the notes. The currency
 is the account's unless you choose another. Each quote is numbered `QT-<year>-<nnnn>` when it is
 created.
-
-![A draft quote's lines](images/04-quote-lines.png)
 
 Add lines on a draft quote's **Lines** tab: pick a product and give the quantity. The product's
 sell price and tax rate are filled in, and you can change them or add a discount. The product's
@@ -79,21 +71,15 @@ accounting system.
 
 ### Accounts
 
-![Accounts](images/05-accounts.png)
-
 Customer companies from the ERP: name, industry, phone, currency and **Credit available** (credit
 limit less credit used, or **Hold** when the account is on credit hold). Only active accounts are
 listed.
 
 ### Contacts
 
-![Contacts at one account](images/06-contacts.png)
-
 The people at the picked account: name, email, job title and department.
 
 ### Products
-
-![Products](images/07-products.png)
 
 The catalogue from the ERP: code, name, specification, unit, quantity on hand and sell price in the
 product's own currency (the workspace's, SGD, unless the ERP says otherwise). Only
@@ -101,14 +87,10 @@ active products are listed, and only they can be quoted. Buy costs are never kep
 
 ### Activities
 
-![Activities for one account](images/08-activities.png)
-
 Calls, meetings, emails, tasks and notes, each about the account or one of its quotes, with a due
 date and when it was completed. A task entered without a due date is due today.
 
 ### Invoices
-
-![Invoices for one account](images/09-invoices.png)
 
 Invoices raised against the account's confirmed quotes, numbered `SI-<year>-<nnnn>`. Create one
 against a confirmed quote, then add lines on its **Lines** tab, choosing which of that quote's lines
@@ -117,16 +99,12 @@ One quote can be billed over several invoices. Issue the invoice when it is read
 
 ### Contracts
 
-![Contracts for one account](images/10-contracts.png)
-
 The contract for a confirmed quote, as an **Advance** or **Credit** variant. It moves from
 **Unstamped** to **Counterparty stamped** (when the customer's stamped copy is uploaded) to
 **Acknowledged**. A quote has one live contract at a time; to re-sign, void the current one with a
 reason and raise a new one.
 
 ### Payments
-
-![Payments received for one account](images/11-payments.png)
 
 Payments received against the account's confirmed quotes: the quote, amount (with its currency),
 **Settled on** date and a reference. **New** records one.
@@ -135,21 +113,15 @@ Payments received against the account's confirmed quotes: the quote, amount (wit
 
 ### Dashboard
 
-![Purchasing dashboard](images/12-purchasing-dashboard.png)
-
 How many purchase orders are in each state (**Draft**, **Submitted**, **Confirmed**,
 **Cancelled**); committed spend per currency, which counts submitted and confirmed orders; and the
 top five suppliers by committed spend. It updates as orders change.
 
 ### Purchase orders
 
-![Purchase orders](images/13-purchase-orders.png)
-
 Every order: number (`PO-<year>-<nnnn>`), status, supplier, expected date, total (with its currency), when
 confirmed and the owner. An order's **Lines** tab shows the quantity ordered, the quantity received
 so far and the unit cost of each line.
-
-![A draft purchase order's lines](images/14-purchase-order-record.png)
 
 Create an order for an active supplier. It takes the supplier's code, name and currency, and expects
 delivery 14 days out unless you give a date. Add lines on its **Lines** tab with product, quantity
@@ -158,14 +130,10 @@ lines, its currency and tax basis cannot change. A confirmed order has an **Expo
 
 ### Suppliers
 
-![Suppliers](images/15-suppliers.png)
-
 The vendor list from the ERP: code, name, contact, category, currency and payment terms in days.
 Only active suppliers are listed, and only they can be ordered from.
 
 ### Goods receipts
-
-![Goods receipts](images/16-goods-receipts.png)
 
 Each delivery against a confirmed order, numbered `GRN-<year>-<nnnn>`, with the date received
 (today unless you give one) and who received it. Its **Lines** tab records how much of each of the
@@ -173,15 +141,11 @@ order's lines arrived. A receipt is written once and never edited.
 
 ### Purchase invoices
 
-![Purchase invoices](images/17-purchase-invoices.png)
-
 The supplier's invoice, booked against a confirmed order and numbered `PI-<year>-<nnnn>`, with the
 supplier's own invoice number and date. On its **Lines** tab, add a line per order line invoiced
 (it takes the order line's cost and tax rate), then confirm it.
 
 ### Payments
-
-![Payments made to suppliers](images/18-purchase-payments.png)
 
 Payments made against confirmed purchase orders and purchase invoices: what the payment is
 **Regarding**, the amount, **Settled on** date and a reference.
@@ -276,11 +240,24 @@ with Telegram itself. Skip the setup's group step: the sales desk ignores group 
 is no reason to add the bot to a group. The **Messages** tab lists what went out on the channel, with each message's
 delivery status.
 
-![Connecting the sales desk's Telegram bot](images/19-channel-setup.png)
-
 **Sales desk on Telegram.** Anyone can message the bot directly; group messages are ignored. It
 answers questions about a customer's quotes and account with the Sales team's access only. A
 staff member who has linked their Telegram gets their own access as well. Each sender can send 8
 messages a minute, and the desk takes 300 a minute in total.
 
 The workspace runs on Singapore time. There are no API keys to set.
+
+<!-- current-screenshots:start -->
+
+## Current screenshots
+
+Captured 2 October 2026 from the standalone template with sample data.
+
+### Sales
+
+![CRM: Sales](images/current-crm-desk.png)
+
+### Purchasing
+
+![CRM: Purchasing](images/current-crm_purchase-desk.png)
+<!-- current-screenshots:end -->

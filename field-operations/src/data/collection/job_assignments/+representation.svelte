@@ -58,7 +58,7 @@
 </script>
 
 {#snippet scope()}
-	<Grid minimum="panel">
+	<Grid minimum="card">
 		<div>
 			<p class="text-xs text-muted-foreground">{t('component.site')}</p>
 			<p class="text-sm">{site.current?.name ?? t('component.not_recorded')}</p>
@@ -138,7 +138,7 @@
 				onOutcome={(o) => o.kind === 'committed' && (addingSite = false)}
 			>
 				{#snippet children()}
-					<Grid minimum="panel">
+					<Grid minimum="card">
 						<Field name="name" label={t('component.site_address')} />
 						<Field name="location" address="address" />
 					</Grid>
@@ -158,8 +158,10 @@
 			>
 				{#snippet children()}
 					<Section first name="job" title={t('section.job')}>
-						<Grid minimum="panel">
-							<Field name="site_id" label={t('component.site')} />
+						<Grid minimum="card">
+							{#if view.mode !== 'create' || view.values.site_id == null}
+								<Field name="site_id" label={t('component.site')} />
+							{/if}
 							<Field name="title" label={t('component.job_title')} />
 							<Field name="nature" label={t('component.job_nature')} />
 							<Field name="scheduled_for" label={t('component.scheduled_date')} />
@@ -195,7 +197,7 @@
 		<Form of="job_assignments" mode="update" id={record.id} {record}>
 			{#snippet children()}
 				<Section first name="progress" title={t('section.progress')}>
-					<Grid minimum="panel">
+					<Grid minimum="card">
 						<Field name="status" />
 						<Field name="assignee_user_id" label={t('component.contractor')} />
 						<Field name="dispatched_at" label={t('component.dispatched_at')} />
@@ -203,7 +205,7 @@
 					</Grid>
 				</Section>
 				<Section name="completion" title={t('section.completion')}>
-					<Grid minimum="panel">
+					<Grid minimum="card">
 						<Field name="amount_charged" label={t('component.value_charged')} />
 						<Column span="all"
 							><Field name="summary" label={t('component.completion_summary')} /></Column
