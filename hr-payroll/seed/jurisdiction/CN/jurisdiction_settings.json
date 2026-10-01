@@ -292,6 +292,13 @@
 				"description": "The employer-only work-injury rate the agency assigned: the industry class base rate (0.2/0.4/0.7/0.9/1.1/1.3/1.6/1.9%) after its float. It is an agency determination, never a default."
 			},
 			{
+				"key": "si_registration_locality",
+				"type": "code",
+				"table": "LOCALITY",
+				"label": "Social-insurance and housing-fund registration city",
+				"description": "The city where the employer (or the branch employing the worker) is registered for social insurance and the housing fund. Insurance, the fund, their bases, caps and duties follow it (Social Insurance Law arts.57–58; Housing Provident Fund Regulation art.14); the minimum wage, heat allowance and local leave follow the worksite (劳动合同法实施条例 art.14). Unrecorded, the company region where it names a locality."
+			},
+			{
 				"key": "housing_fund_rate",
 				"type": "number",
 				"required": true,
@@ -299,7 +306,7 @@
 				"maximum": 12,
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
-				"description": "The unit selects one equal employer and worker rate: 5–7% in whole points at a Shanghai worksite (the stored check HOUSING_FUND_RATE_SHANGHAI), 5–12% at a Kunming one; a lower rate needs an approved reduction."
+				"description": "The unit selects one equal employer and worker rate: 5–7% in whole points for a Shanghai-registered unit (the stored check HOUSING_FUND_RATE_SHANGHAI), 5–12% for a Kunming one (`si_registration_locality`); a lower rate needs an approved reduction."
 			},
 			{
 				"key": "housing_fund_supplementary_rate",
@@ -461,7 +468,7 @@
 						"table": "LOCALITY",
 						"label": "Locality",
 						"required": true,
-						"description": "The city whose law governs the worksite: social insurance, housing fund, minimum wage, local leave and allowances."
+						"description": "The city whose law governs the worksite: minimum wage, local leave and allowances. Social insurance and the housing fund follow the employer’s registration city (`si_registration_locality`)."
 					},
 					{
 						"key": "monthly",
@@ -531,8 +538,8 @@
 				"code": "HOUSING_FUND_RATE_SHANGHAI",
 				"at": "PAYSLIP",
 				"severity": "REFUSE",
-				"when": "terms.worksite == \"SHANGHAI\" && !(company.facts.housing_fund_rate == 5.0 || company.facts.housing_fund_rate == 6.0 || company.facts.housing_fund_rate == 7.0)",
-				"message": "A Shanghai worksite’s housing fund is paid at one equal rate of 5, 6 or 7% each side; record the unit’s elected rate in whole points.",
+				"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\" && !(company.facts.housing_fund_rate == 5.0 || company.facts.housing_fund_rate == 6.0 || company.facts.housing_fund_rate == 7.0)",
+				"message": "A Shanghai-registered unit’s housing fund is paid at one equal rate of 5, 6 or 7% each side; record the unit’s elected rate in whole points.",
 				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) and the annual committee notice: the unit selects an equal rate of 5–7% in whole points (register CN-SH09)."
 			}
 		],
@@ -563,7 +570,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "HIRE",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(trigger.date, 30)",
 				"evidence": [
@@ -582,7 +589,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "EXIT",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(employment.exit_date, 30)",
 				"evidence": [
@@ -631,7 +638,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "HIRE",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(trigger.date, 30)"
 			},
@@ -642,7 +649,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "EXIT",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(trigger.date, 30)"
 			},
@@ -653,7 +660,7 @@
 				"subject": "RUN",
 				"trigger": {
 					"on": "RUN_FINALISED",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(period.start, 19)",
 				"amount": "((\"PENSION\" in run.remittances) ? run.remittances.PENSION : 0.0) + ((\"MEDICAL\" in run.remittances) ? run.remittances.MEDICAL : 0.0) + ((\"MATERNITY\" in run.remittances) ? run.remittances.MATERNITY : 0.0) + ((\"UNEMPLOYMENT\" in run.remittances) ? run.remittances.UNEMPLOYMENT : 0.0) + ((\"INJURY\" in run.remittances) ? run.remittances.INJURY : 0.0)"
@@ -984,6 +991,13 @@
 				"description": "As the employer rate: recorded from the agency assessment until the 2026 instrument is sealed."
 			},
 			{
+				"key": "si_registration_locality",
+				"type": "code",
+				"table": "LOCALITY",
+				"label": "Social-insurance and housing-fund registration city",
+				"description": "The city where the employer (or the branch employing the worker) is registered for social insurance and the housing fund. Insurance, the fund, their bases, caps and duties follow it (Social Insurance Law arts.57–58; Housing Provident Fund Regulation art.14); the minimum wage, heat allowance and local leave follow the worksite (劳动合同法实施条例 art.14). Unrecorded, the company region where it names a locality."
+			},
+			{
 				"key": "housing_fund_rate",
 				"type": "number",
 				"required": true,
@@ -991,7 +1005,7 @@
 				"maximum": 12,
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
-				"description": "The unit selects one equal employer and worker rate: 5–7% in whole points at a Shanghai worksite (the stored check HOUSING_FUND_RATE_SHANGHAI), 5–12% at a Kunming one; a lower rate needs an approved reduction."
+				"description": "The unit selects one equal employer and worker rate: 5–7% in whole points for a Shanghai-registered unit (the stored check HOUSING_FUND_RATE_SHANGHAI), 5–12% for a Kunming one (`si_registration_locality`); a lower rate needs an approved reduction."
 			},
 			{
 				"key": "housing_fund_supplementary_rate",
@@ -1153,7 +1167,7 @@
 						"table": "LOCALITY",
 						"label": "Locality",
 						"required": true,
-						"description": "The city whose law governs the worksite: social insurance, housing fund, minimum wage, local leave and allowances."
+						"description": "The city whose law governs the worksite: minimum wage, local leave and allowances. Social insurance and the housing fund follow the employer’s registration city (`si_registration_locality`)."
 					},
 					{
 						"key": "monthly",
@@ -1223,8 +1237,8 @@
 				"code": "HOUSING_FUND_RATE_SHANGHAI",
 				"at": "PAYSLIP",
 				"severity": "REFUSE",
-				"when": "terms.worksite == \"SHANGHAI\" && !(company.facts.housing_fund_rate == 5.0 || company.facts.housing_fund_rate == 6.0 || company.facts.housing_fund_rate == 7.0)",
-				"message": "A Shanghai worksite’s housing fund is paid at one equal rate of 5, 6 or 7% each side; record the unit’s elected rate in whole points.",
+				"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\" && !(company.facts.housing_fund_rate == 5.0 || company.facts.housing_fund_rate == 6.0 || company.facts.housing_fund_rate == 7.0)",
+				"message": "A Shanghai-registered unit’s housing fund is paid at one equal rate of 5, 6 or 7% each side; record the unit’s elected rate in whole points.",
 				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) and the annual committee notice: the unit selects an equal rate of 5–7% in whole points (register CN-SH09)."
 			}
 		],
@@ -1255,7 +1269,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "HIRE",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(trigger.date, 30)",
 				"evidence": [
@@ -1274,7 +1288,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "EXIT",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(employment.exit_date, 30)",
 				"evidence": [
@@ -1314,7 +1328,7 @@
 				"trigger": {
 					"on": "CALENDAR",
 					"every": "YEAR",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(add_months(period.start, 5), 24)",
 				"evidence": [
@@ -1349,7 +1363,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "HIRE",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(trigger.date, 30)"
 			},
@@ -1360,7 +1374,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "EXIT",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(trigger.date, 30)"
 			},
@@ -1371,7 +1385,7 @@
 				"subject": "RUN",
 				"trigger": {
 					"on": "RUN_FINALISED",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(period.start, 19)",
 				"amount": "((\"PENSION\" in run.remittances) ? run.remittances.PENSION : 0.0) + ((\"MEDICAL\" in run.remittances) ? run.remittances.MEDICAL : 0.0) + ((\"MATERNITY\" in run.remittances) ? run.remittances.MATERNITY : 0.0) + ((\"UNEMPLOYMENT\" in run.remittances) ? run.remittances.UNEMPLOYMENT : 0.0) + ((\"INJURY\" in run.remittances) ? run.remittances.INJURY : 0.0)"
@@ -1702,6 +1716,13 @@
 				"description": "As the employer rate: recorded from the agency assessment until the 2026 instrument is sealed."
 			},
 			{
+				"key": "si_registration_locality",
+				"type": "code",
+				"table": "LOCALITY",
+				"label": "Social-insurance and housing-fund registration city",
+				"description": "The city where the employer (or the branch employing the worker) is registered for social insurance and the housing fund. Insurance, the fund, their bases, caps and duties follow it (Social Insurance Law arts.57–58; Housing Provident Fund Regulation art.14); the minimum wage, heat allowance and local leave follow the worksite (劳动合同法实施条例 art.14). Unrecorded, the company region where it names a locality."
+			},
+			{
 				"key": "housing_fund_rate",
 				"type": "number",
 				"required": true,
@@ -1709,7 +1730,7 @@
 				"maximum": 12,
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
-				"description": "The unit selects one equal employer and worker rate: 5–7% in whole points at a Shanghai worksite (the stored check HOUSING_FUND_RATE_SHANGHAI), 5–12% at a Kunming one; a lower rate needs an approved reduction."
+				"description": "The unit selects one equal employer and worker rate: 5–7% in whole points for a Shanghai-registered unit (the stored check HOUSING_FUND_RATE_SHANGHAI), 5–12% for a Kunming one (`si_registration_locality`); a lower rate needs an approved reduction."
 			},
 			{
 				"key": "housing_fund_supplementary_rate",
@@ -1871,7 +1892,7 @@
 						"table": "LOCALITY",
 						"label": "Locality",
 						"required": true,
-						"description": "The city whose law governs the worksite: social insurance, housing fund, minimum wage, local leave and allowances."
+						"description": "The city whose law governs the worksite: minimum wage, local leave and allowances. Social insurance and the housing fund follow the employer’s registration city (`si_registration_locality`)."
 					},
 					{
 						"key": "monthly",
@@ -1941,8 +1962,8 @@
 				"code": "HOUSING_FUND_RATE_SHANGHAI",
 				"at": "PAYSLIP",
 				"severity": "REFUSE",
-				"when": "terms.worksite == \"SHANGHAI\" && !(company.facts.housing_fund_rate == 5.0 || company.facts.housing_fund_rate == 6.0 || company.facts.housing_fund_rate == 7.0)",
-				"message": "A Shanghai worksite’s housing fund is paid at one equal rate of 5, 6 or 7% each side; record the unit’s elected rate in whole points.",
+				"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\" && !(company.facts.housing_fund_rate == 5.0 || company.facts.housing_fund_rate == 6.0 || company.facts.housing_fund_rate == 7.0)",
+				"message": "A Shanghai-registered unit’s housing fund is paid at one equal rate of 5, 6 or 7% each side; record the unit’s elected rate in whole points.",
 				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) and the annual committee notice: the unit selects an equal rate of 5–7% in whole points (register CN-SH09)."
 			}
 		],
@@ -1973,7 +1994,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "HIRE",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(trigger.date, 30)",
 				"evidence": [
@@ -1992,7 +2013,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "EXIT",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(employment.exit_date, 30)",
 				"evidence": [
@@ -2041,7 +2062,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "HIRE",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(trigger.date, 30)"
 			},
@@ -2052,7 +2073,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "EXIT",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(trigger.date, 30)"
 			},
@@ -2063,7 +2084,7 @@
 				"subject": "RUN",
 				"trigger": {
 					"on": "RUN_FINALISED",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(period.start, 19)",
 				"amount": "((\"PENSION\" in run.remittances) ? run.remittances.PENSION : 0.0) + ((\"MEDICAL\" in run.remittances) ? run.remittances.MEDICAL : 0.0) + ((\"MATERNITY\" in run.remittances) ? run.remittances.MATERNITY : 0.0) + ((\"UNEMPLOYMENT\" in run.remittances) ? run.remittances.UNEMPLOYMENT : 0.0) + ((\"INJURY\" in run.remittances) ? run.remittances.INJURY : 0.0)"
@@ -2394,6 +2415,13 @@
 				"description": "As the employer rate: recorded from the agency assessment until the 2026 instrument is sealed."
 			},
 			{
+				"key": "si_registration_locality",
+				"type": "code",
+				"table": "LOCALITY",
+				"label": "Social-insurance and housing-fund registration city",
+				"description": "The city where the employer (or the branch employing the worker) is registered for social insurance and the housing fund. Insurance, the fund, their bases, caps and duties follow it (Social Insurance Law arts.57–58; Housing Provident Fund Regulation art.14); the minimum wage, heat allowance and local leave follow the worksite (劳动合同法实施条例 art.14). Unrecorded, the company region where it names a locality."
+			},
+			{
 				"key": "housing_fund_rate",
 				"type": "number",
 				"required": true,
@@ -2401,7 +2429,7 @@
 				"maximum": 12,
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
-				"description": "The unit selects one equal employer and worker rate: 5–7% in whole points at a Shanghai worksite (the stored check HOUSING_FUND_RATE_SHANGHAI), 5–12% at a Kunming one; a lower rate needs an approved reduction."
+				"description": "The unit selects one equal employer and worker rate: 5–7% in whole points for a Shanghai-registered unit (the stored check HOUSING_FUND_RATE_SHANGHAI), 5–12% for a Kunming one (`si_registration_locality`); a lower rate needs an approved reduction."
 			},
 			{
 				"key": "housing_fund_supplementary_rate",
@@ -2563,7 +2591,7 @@
 						"table": "LOCALITY",
 						"label": "Locality",
 						"required": true,
-						"description": "The city whose law governs the worksite: social insurance, housing fund, minimum wage, local leave and allowances."
+						"description": "The city whose law governs the worksite: minimum wage, local leave and allowances. Social insurance and the housing fund follow the employer’s registration city (`si_registration_locality`)."
 					},
 					{
 						"key": "monthly",
@@ -2633,8 +2661,8 @@
 				"code": "HOUSING_FUND_RATE_SHANGHAI",
 				"at": "PAYSLIP",
 				"severity": "REFUSE",
-				"when": "terms.worksite == \"SHANGHAI\" && !(company.facts.housing_fund_rate == 5.0 || company.facts.housing_fund_rate == 6.0 || company.facts.housing_fund_rate == 7.0)",
-				"message": "A Shanghai worksite’s housing fund is paid at one equal rate of 5, 6 or 7% each side; record the unit’s elected rate in whole points.",
+				"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\" && !(company.facts.housing_fund_rate == 5.0 || company.facts.housing_fund_rate == 6.0 || company.facts.housing_fund_rate == 7.0)",
+				"message": "A Shanghai-registered unit’s housing fund is paid at one equal rate of 5, 6 or 7% each side; record the unit’s elected rate in whole points.",
 				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) and the annual committee notice: the unit selects an equal rate of 5–7% in whole points (register CN-SH09)."
 			}
 		],
@@ -2665,7 +2693,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "HIRE",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(trigger.date, 30)",
 				"evidence": [
@@ -2684,7 +2712,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "EXIT",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(employment.exit_date, 30)",
 				"evidence": [
@@ -2733,7 +2761,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "HIRE",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(trigger.date, 30)"
 			},
@@ -2744,7 +2772,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "EXIT",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(trigger.date, 30)"
 			},
@@ -2755,7 +2783,7 @@
 				"subject": "RUN",
 				"trigger": {
 					"on": "RUN_FINALISED",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(period.start, 19)",
 				"amount": "((\"PENSION\" in run.remittances) ? run.remittances.PENSION : 0.0) + ((\"MEDICAL\" in run.remittances) ? run.remittances.MEDICAL : 0.0) + ((\"MATERNITY\" in run.remittances) ? run.remittances.MATERNITY : 0.0) + ((\"UNEMPLOYMENT\" in run.remittances) ? run.remittances.UNEMPLOYMENT : 0.0) + ((\"INJURY\" in run.remittances) ? run.remittances.INJURY : 0.0)"
@@ -3086,6 +3114,13 @@
 				"description": "As the employer rate: recorded from the agency assessment until the 2026 instrument is sealed."
 			},
 			{
+				"key": "si_registration_locality",
+				"type": "code",
+				"table": "LOCALITY",
+				"label": "Social-insurance and housing-fund registration city",
+				"description": "The city where the employer (or the branch employing the worker) is registered for social insurance and the housing fund. Insurance, the fund, their bases, caps and duties follow it (Social Insurance Law arts.57–58; Housing Provident Fund Regulation art.14); the minimum wage, heat allowance and local leave follow the worksite (劳动合同法实施条例 art.14). Unrecorded, the company region where it names a locality."
+			},
+			{
 				"key": "housing_fund_rate",
 				"type": "number",
 				"required": true,
@@ -3093,7 +3128,7 @@
 				"maximum": 12,
 				"integer": false,
 				"label": "Housing-fund rate each side (%)",
-				"description": "The unit selects one equal employer and worker rate: 5–7% in whole points at a Shanghai worksite (the stored check HOUSING_FUND_RATE_SHANGHAI), 5–12% at a Kunming one; a lower rate needs an approved reduction."
+				"description": "The unit selects one equal employer and worker rate: 5–7% in whole points for a Shanghai-registered unit (the stored check HOUSING_FUND_RATE_SHANGHAI), 5–12% for a Kunming one (`si_registration_locality`); a lower rate needs an approved reduction."
 			},
 			{
 				"key": "housing_fund_supplementary_rate",
@@ -3255,7 +3290,7 @@
 						"table": "LOCALITY",
 						"label": "Locality",
 						"required": true,
-						"description": "The city whose law governs the worksite: social insurance, housing fund, minimum wage, local leave and allowances."
+						"description": "The city whose law governs the worksite: minimum wage, local leave and allowances. Social insurance and the housing fund follow the employer’s registration city (`si_registration_locality`)."
 					},
 					{
 						"key": "monthly",
@@ -3325,8 +3360,8 @@
 				"code": "HOUSING_FUND_RATE_SHANGHAI",
 				"at": "PAYSLIP",
 				"severity": "REFUSE",
-				"when": "terms.worksite == \"SHANGHAI\" && !(company.facts.housing_fund_rate == 5.0 || company.facts.housing_fund_rate == 6.0 || company.facts.housing_fund_rate == 7.0)",
-				"message": "A Shanghai worksite’s housing fund is paid at one equal rate of 5, 6 or 7% each side; record the unit’s elected rate in whole points.",
+				"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\" && !(company.facts.housing_fund_rate == 5.0 || company.facts.housing_fund_rate == 6.0 || company.facts.housing_fund_rate == 7.0)",
+				"message": "A Shanghai-registered unit’s housing fund is paid at one equal rate of 5, 6 or 7% each side; record the unit’s elected rate in whole points.",
 				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) and the annual committee notice: the unit selects an equal rate of 5–7% in whole points (register CN-SH09)."
 			}
 		],
@@ -3357,7 +3392,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "HIRE",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(trigger.date, 30)",
 				"evidence": [
@@ -3376,7 +3411,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "EXIT",
-					"when": "company.region == \"SHANGHAI\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"SHANGHAI\""
 				},
 				"due": "add_days(employment.exit_date, 30)",
 				"evidence": [
@@ -3425,7 +3460,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "HIRE",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(trigger.date, 30)"
 			},
@@ -3436,7 +3471,7 @@
 				"subject": "EMPLOYMENT",
 				"trigger": {
 					"on": "EXIT",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(trigger.date, 30)"
 			},
@@ -3447,7 +3482,7 @@
 				"subject": "RUN",
 				"trigger": {
 					"on": "RUN_FINALISED",
-					"when": "company.region == \"KUNMING\""
+					"when": "(has(company.facts.si_registration_locality) && company.facts.si_registration_locality != \"\" ? company.facts.si_registration_locality : company.region) == \"KUNMING\""
 				},
 				"due": "add_days(period.start, 19)",
 				"amount": "((\"PENSION\" in run.remittances) ? run.remittances.PENSION : 0.0) + ((\"MEDICAL\" in run.remittances) ? run.remittances.MEDICAL : 0.0) + ((\"MATERNITY\" in run.remittances) ? run.remittances.MATERNITY : 0.0) + ((\"UNEMPLOYMENT\" in run.remittances) ? run.remittances.UNEMPLOYMENT : 0.0) + ((\"INJURY\" in run.remittances) ? run.remittances.INJURY : 0.0)"

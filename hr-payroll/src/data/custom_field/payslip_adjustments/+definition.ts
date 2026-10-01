@@ -27,7 +27,9 @@ const f = customField({
 				amount: { kind: 'number' },
 				quantity: { kind: 'number', optional: true },
 				rate: { kind: 'number', optional: true },
-				statutory_rule_key: { kind: 'text', optional: true }
+				statutory_rule_key: { kind: 'text', optional: true },
+				/** A late line's own period: recorded after that period was settled early, paid here. */
+				earned_period: { kind: 'text', optional: true }
 			}
 		}
 	}

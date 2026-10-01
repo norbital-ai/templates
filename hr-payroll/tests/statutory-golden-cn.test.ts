@@ -73,7 +73,12 @@ const SH_2026_FACTS = {
 	unemployment_employer_rate: 0.5,
 	unemployment_employee_rate: 0.5
 };
+/**
+ * These Kunming worlds keep the legacy `CATEGORY_I` company region, which names no LOCALITY: the unit
+ * records its social-insurance registration city instead (owner-delegated rule 2026-10-01).
+ */
 const KM_2025_FACTS = {
+	si_registration_locality: 'KUNMING',
 	injury_rate: 0.2,
 	housing_fund_rate: 12,
 	housing_fund_supplementary_rate: 0
@@ -964,7 +969,7 @@ function annualLeaveOnExit(
 	code: typeof SH | typeof KM,
 	key: string,
 	prior: number,
-	companyFacts: Record<string, number>,
+	companyFacts: Record<string, number | string>,
 	region: string,
 	bonus = 0
 ) {
@@ -1741,7 +1746,7 @@ function severance(
 	code: typeof SH | typeof KM,
 	period: string,
 	region: string,
-	companyFacts: Record<string, number>,
+	companyFacts: Record<string, number | string>,
 	leavers: readonly Leaver[]
 ) {
 	return buildStatutory(
@@ -2242,7 +2247,7 @@ function maternityMonth(
 	code: typeof SH | typeof KM,
 	period: string,
 	region: string,
-	companyFacts: Record<string, number>,
+	companyFacts: Record<string, number | string>,
 	cases: ReadonlyArray<{
 		key: string;
 		wage: number;

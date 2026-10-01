@@ -142,6 +142,12 @@ export function assessContributions(
 			);
 			continue;
 		}
+		// ponytail: one person's late lines are topped up per contract only; several contracts refuse until needed.
+		if (ordered.some((contract) => contract.calculation.lateTopUps != null))
+			refuse(
+				`${first.employment.employee_number}: records settled after an early settlement bill in their earned month, ` +
+					'which several contracts charged together cannot do yet. Correct them with an ad hoc line in this period.'
+			);
 		const accumulations = ordered.map((contract) => contract.calculation.accumulation);
 		const charges = naming(first.employment.employee_number, () =>
 			contribute({

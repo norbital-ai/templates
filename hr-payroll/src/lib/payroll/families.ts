@@ -7,6 +7,7 @@ import {
 } from '../../lib/payroll/run/configuration.js';
 import type { EmploymentBundle } from '../../lib/payroll/run/gather.js';
 import {
+	accumulatePayslip,
 	accumulateSettledPayslip,
 	dayFactTotals,
 	deriveLines,
@@ -547,6 +548,7 @@ export function calculateFamilies(options: MeasureEmploymentOptions): MeasuredEm
 
 	return {
 		bundle,
+		...(late == null ? {} : { lateMonth: late.month }),
 		base,
 		proration,
 		adjustments,
@@ -727,6 +729,7 @@ function measureLateRecords(options: MeasureEmploymentOptions): {
 	readonly workDays: readonly string[];
 	readonly leave: MeasuredEmployment['captured']['leave'];
 	readonly overtimeHours: OvertimeHours | undefined;
+	readonly month: MeasuredEmployment;
 } | null {
 	const late = options.bundle.late;
 	if (late == null || options.deferredWagesOnly) return null;
@@ -783,12 +786,15 @@ function measureLateRecords(options: MeasureEmploymentOptions): {
 				'salary was settled early, changes more of that period than its own line. Correct it with an ad hoc line in this period.'
 		);
 	return {
-		adjustments: now.adjustments
-			.filter(isLate)
-			.map((line) => ({ ...line, label: `${line.label} (${late.window.period})` })),
+		adjustments: now.adjustments.filter(isLate).map((line) => ({
+			...line,
+			label: `${line.label} (${late.window.period})`,
+			earnedPeriod: late.window.period
+		})),
 		workDays: now.captured.workDays.filter((id) => late.ids.has(id)),
 		leave: now.captured.leave.filter((capture) => late.ids.has(capture.leave_entry_id)),
-		overtimeHours: addHours(now.settledOvertimeHours, then.settledOvertimeHours, -1)
+		overtimeHours: addHours(now.settledOvertimeHours, then.settledOvertimeHours, -1),
+		month: now
 	};
 }
 import { prepareMoneyConsumption } from './money.js';
@@ -986,9 +992,21 @@ function earnedYearToDate(options: {
 
 /** What one payslip earned, as `year.earned` counts it. */
 function earnedLines(payslip: WorkspaceRow<'payslips'>): [string, number][] {
+	return earnedOf(payslip.base, payslip.adjustments);
+}
+
+/** Pay lines as `year.earned` counts them: the base, earnings, and every unpaid day as `ABSENCE`. */
+function earnedOf(
+	base: readonly { readonly component_code: string; readonly amount: number }[],
+	adjustments: readonly {
+		readonly component_code: string;
+		readonly bucket: string;
+		readonly amount: number;
+	}[]
+): [string, number][] {
 	return [
-		...payslip.base.map((line): [string, number] => [line.component_code, line.amount]),
-		...payslip.adjustments.flatMap((line): [string, number][] =>
+		...base.map((line): [string, number] => [line.component_code, line.amount]),
+		...adjustments.flatMap((line): [string, number][] =>
 			line.bucket === 'EARNING' || line.bucket === 'NON_WAGE_PAYMENT'
 				? [[line.component_code, line.amount]]
 				: // Every unpaid day, absence or no-pay leave, under the reserved name: `BASIC - ABSENCE`
@@ -1262,11 +1280,13 @@ import { refuse } from '../refuse.js';
 import {
 	assessCompanyContributions,
 	assessContributions,
+	naming,
 	prepareContributionAssessment
 } from './contribution.js';
+import { contribute } from '../../lib/payroll/run/contribute.js';
 import { validateWorkInputs, validateWorkResult } from './work.js';
 import { blockers, describeIssues } from '../../lib/payroll/run/validate.js';
-import { payProjection } from '../../lib/payroll/run/period.js';
+import { payProjection, taxYearOf } from '../../lib/payroll/run/period.js';
 import { dateKey } from '../iso-day.js';
 
 export function calculateFamilyAssessments(options: {
@@ -1291,9 +1311,6 @@ export function calculateFamilyAssessments(options: {
 		readonly measured: ReturnType<typeof calculateFamilies>;
 		readonly termsThrough: string;
 		readonly projection: ReturnType<typeof payProjection>;
-		readonly yearEarned: ReadonlyMap<string, number>;
-		readonly earnedByMonth: ReadonlyMap<string, ReadonlyMap<string, number>>;
-		readonly paidWagesByMonth: ReadonlyMap<string, number>;
 	}> = [];
 	const taxYearStartMonth = configuration.jurisdiction.payroll.tax_year_start_month;
 
@@ -1312,8 +1329,6 @@ export function calculateFamilyAssessments(options: {
 		const projection = payProjection(period, taxYearStartMonth, bundle.window);
 		const yearEarned = gathered.yearEarned.get(bundle.employment.employee_id) ?? new Map();
 		const earnedByMonth = gathered.earnedByMonth.get(bundle.employment.employee_id) ?? new Map();
-		const paidWagesByMonth =
-			gathered.paidWagesByMonth.get(bundle.employment.employee_id) ?? new Map();
 		const wages = calculateFamilies({
 			bundle,
 			configuration: atWorksite(
@@ -1372,9 +1387,6 @@ export function calculateFamilyAssessments(options: {
 		measuredRuns.push({
 			measured,
 			projection,
-			yearEarned,
-			earnedByMonth,
-			paidWagesByMonth,
 			// These are committed calculation dates, not the future horizon of an entitlement or tax projection.
 			termsThrough: [
 				[
@@ -1405,38 +1417,171 @@ export function calculateFamilyAssessments(options: {
 	// Every measured run is judged before any is accumulated, so a blocker names every person it
 	// concerns and an undecided cell is reported as the issue it is rather than thrown from the grid.
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
-	const measuredContracts = measuredRuns.map(
-		({ projection, yearEarned, earnedByMonth, paidWagesByMonth, ...run }) => ({
-			...run,
-			...prepareContributionAssessment({
-				measured: run.measured,
-				configuration,
-				projection,
-				yearToDate: gathered.yearToDate,
-				lastYear: gathered.lastYear,
-				firstYear: gathered.firstYear,
-				statutoryHistory:
-					gathered.statutoryHistory.get(run.measured.bundle.employment.employee_id) ?? [],
-				yearQuantityPayments: gathered.yearQuantityPayments?.get(
-					run.measured.bundle.employment.employee_id
-				),
-				headcount: gathered.headcount,
-				headcountCitizens: gathered.headcountCitizens,
-				yearEarned,
-				earnedByMonth,
-				paidWagesByMonth,
-				monthPrior: gathered.monthPrior.get(
-					`${run.measured.bundle.employment.employee_id}:${period.slice(0, 7)}`
-				),
-				periodPrior:
-					period === period.slice(0, 7)
-						? undefined
-						: gathered.monthPrior.get(`${run.measured.bundle.employment.employee_id}:${period}`),
-				history: run.measured.bundle.history,
-				company: gathered.company
-			})
-		})
+	/**
+	 * One measured slip's contribution assessment, under a version and the history before its period; an EARNED
+	 * scheme reads that history with each late line in the period it was earned (`prior.earned`).
+	 */
+	const assess = (
+		measured: MeasuredEmployment,
+		version: Configuration,
+		prior: Pick<
+			GatheredRun,
+			| 'yearToDate'
+			| 'lastYear'
+			| 'firstYear'
+			| 'statutoryHistory'
+			| 'yearQuantityPayments'
+			| 'yearEarned'
+			| 'earnedByMonth'
+			| 'paidWagesByMonth'
+			| 'monthPrior'
+			| 'earned'
+		>,
+		at: string,
+		projection: ReturnType<typeof payProjection>
+	) => {
+		const { bundle } = measured;
+		const employeeId = bundle.employment.employee_id;
+		const priors = (months: ReadonlyMap<string, MonthPrior>) => ({
+			monthPrior: months.get(`${employeeId}:${at.slice(0, 7)}`),
+			periodPrior: at === at.slice(0, 7) ? undefined : months.get(`${employeeId}:${at}`)
+		});
+		const assessed = prepareContributionAssessment({
+			measured,
+			configuration: version,
+			projection,
+			yearToDate: prior.yearToDate,
+			lastYear: prior.lastYear,
+			firstYear: prior.firstYear,
+			statutoryHistory: prior.statutoryHistory.get(employeeId) ?? [],
+			yearQuantityPayments: prior.yearQuantityPayments?.get(employeeId),
+			headcount: gathered.headcount,
+			headcountCitizens: gathered.headcountCitizens,
+			yearEarned: prior.yearEarned.get(employeeId) ?? new Map(),
+			earnedByMonth: prior.earnedByMonth.get(employeeId) ?? new Map(),
+			paidWagesByMonth: prior.paidWagesByMonth.get(employeeId) ?? new Map(),
+			...priors(prior.monthPrior),
+			history: bundle.history,
+			company: gathered.company
+		});
+		const earned = prior.earned;
+		return earned == null
+			? assessed
+			: {
+					...assessed,
+					calculation: {
+						...assessed.calculation,
+						earnedView: {
+							...priors(earned.monthPrior),
+							earnedByMonth: earned.earnedByMonth.get(employeeId) ?? new Map(),
+							yearEarned: earned.yearEarned.get(employeeId) ?? new Map()
+						}
+					}
+				};
+	};
+	const earnedSchemes = new Set(
+		configuration.contributions
+			.filter((scheme) => scheme.row.late_line_month === 'EARNED')
+			.map((scheme) => scheme.row.code)
 	);
+	const measuredContracts = measuredRuns.map(({ projection, ...run }) => {
+		const assessed = assess(run.measured, configuration, gathered, period, projection);
+		const late = run.measured.bundle.late;
+		const lateMonth = run.measured.lateMonth;
+		if (late == null || lateMonth == null || earnedSchemes.size === 0)
+			return { ...run, ...assessed };
+		// The late lines bill an EARNED scheme in their own period: a top-up of its bill, under its version and
+		// history, charged here. Here the scheme bills this slip without them, its month and year counting them as
+		// that period's.
+		const lateLines = run.measured.adjustments.filter((line) => line.earnedPeriod != null);
+		const earnedMonth = assess(
+			{ ...lateMonth, bundle: { ...lateMonth.bundle, statutoryFacts: late.statutoryFacts } },
+			late.configuration,
+			late.prior,
+			late.window.period,
+			payProjection(
+				late.window.period,
+				late.configuration.jurisdiction.payroll.tax_year_start_month,
+				late.window
+			)
+		);
+		const topUps = new Map(
+			naming(run.measured.bundle.employment.employee_number, () =>
+				contribute({
+					...earnedMonth.calculation,
+					accumulation: accumulatePayslip({
+						items: lateLines,
+						ordinaryHour: lateMonth.ordinaryHourlyRate
+					})
+				})
+			)
+				.filter((charge) => earnedSchemes.has(charge.contribution.row.code))
+				.map((charge) => [charge.contribution.row.code, charge])
+		);
+		const calculation = assessed.calculation;
+		const view = calculation.earnedView ?? {};
+		// Counted in this tax year only when their period is in it.
+		const sameYear =
+			taxYearOf(late.window.period, configuration.jurisdiction.payroll.tax_year_start_month) ===
+			taxYearOf(period, configuration.jurisdiction.payroll.tax_year_start_month);
+		const lateEarned = new Map<string, number>();
+		for (const [code, amount] of earnedOf(
+			[],
+			lateLines.map((line) => ({
+				component_code: line.catalogueComponent.code,
+				bucket: line.bucket,
+				amount: line.amount
+			}))
+		))
+			lateEarned.set(code, (lateEarned.get(code) ?? 0) + amount);
+		const plus = (into: ReadonlyMap<string, number>) => {
+			const out = new Map(into);
+			for (const [code, amount] of lateEarned) out.set(code, (out.get(code) ?? 0) + amount);
+			return out;
+		};
+		const lateMonthKey = late.window.period.slice(0, 7);
+		const byMonth = view.earnedByMonth ?? calculation.earnedByMonth ?? new Map();
+		return {
+			...run,
+			...assessed,
+			calculation: {
+				...calculation,
+				earnedView: {
+					...view,
+					accumulation: accumulatePayslip({
+						items: [
+							...run.measured.base,
+							...run.measured.adjustments.filter((line) => line.earnedPeriod == null)
+						],
+						ordinaryHour: run.measured.ordinaryHourlyRate
+					}),
+					earnedByMonth: new Map(byMonth).set(
+						lateMonthKey,
+						plus(byMonth.get(lateMonthKey) ?? new Map())
+					),
+					...(sameYear
+						? {
+								yearEarned: plus(view.yearEarned ?? calculation.yearEarned),
+								yearToDate: (code: string) => {
+									const year = calculation.yearToDate(code);
+									const top = topUps.get(code);
+									return top == null
+										? year
+										: {
+												employee: year.employee + top.employee,
+												employer: year.employer + top.employer,
+												base: year.base + top.base,
+												ordinary: (year.ordinary ?? 0) + (top.ordinary ?? 0),
+												rebate: (year.rebate ?? 0) + (top.rebate ?? 0)
+											};
+								}
+							}
+						: {})
+				},
+				lateTopUps: { period: late.window.period, charges: topUps }
+			}
+		};
+	});
 
 	// 6 — CONTRIBUTE once per person/entity assessment; outputs remain on their own contracts.
 	const chargesByEmployment = assessContributions(measuredContracts);

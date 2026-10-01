@@ -607,6 +607,12 @@ function workContext(
 	);
 	const weeklyNormalLimits = enforcedWeekly.filter((limit) => limit.measure === 'NORMAL_HOURS');
 	let weeklySchedule = new Map<IsoDate, ScheduledDay>();
+	/**
+	 * The normal hours a week's limit moves to overtime, by date: the excess over the lowest
+	 * applicable weekly normal limit, taken from the week's latest days first (TH LPA ss.23, 61:
+	 * work beyond the normal hours is overtime).
+	 */
+	const weeklyExcessByDate = new Map<IsoDate, number>();
 	if (enforcedWeekly.length > 0) {
 		const employment = employmentDates(bundle.employment);
 		const first = weekStart(complianceWindow.start);
@@ -635,6 +641,7 @@ function workContext(
 				redistributed: number;
 				shorter: number;
 				limits: Map<string, (typeof weeklyNormalLimits)[number]>;
+				days: [IsoDate, number][];
 			}
 		>();
 		for (const [date, day] of weeklySchedule) {
@@ -645,9 +652,11 @@ function workContext(
 				hours: 0,
 				redistributed: 0,
 				shorter: 0,
-				limits: new Map<string, (typeof weeklyNormalLimits)[number]>()
+				limits: new Map<string, (typeof weeklyNormalLimits)[number]>(),
+				days: []
 			};
 			totals.hours += day.normalHours;
+			totals.days.push([date, day.normalHours]);
 			const person = personContext({
 				employee: bundle.employee,
 				employment: employmentForPerson(),
@@ -686,13 +695,23 @@ function workContext(
 				limitWarning(
 					`${bundle.employment.employee_number} has ${totals.redistributed.toFixed(2)} redistributed normal hours above the normal day in the week of ${week}, but only ${totals.shorter.toFixed(2)} shorter-day hours to offset them.`
 				);
-			for (const limit of [...totals.limits.values()].toSorted(
+			const sorted = [...totals.limits.values()].toSorted(
 				(left, right) => left.max_hours - right.max_hours
-			))
+			);
+			for (const limit of sorted)
 				if (totals.hours > limit.max_hours + 1e-9)
 					limitWarning(
 						`${bundle.employment.employee_number} has ${totals.hours.toFixed(2)} normal hours in the week of ${week}, above the ${limit.max_hours}-hour limit "${limit.key}".`
 					);
+			let excess = sorted.length === 0 ? 0 : totals.hours - sorted[0]!.max_hours;
+			for (const [date, hours] of totals.days.toSorted(([left], [right]) =>
+				left < right ? 1 : -1
+			)) {
+				if (excess <= 1e-9) break;
+				const moved = Math.min(excess, hours);
+				weeklyExcessByDate.set(date, moved);
+				excess -= moved;
+			}
 		}
 	}
 
@@ -1424,6 +1443,7 @@ function workContext(
 		/** The terms a schedule reads per day; the same reader outside the resolved window. */
 		scheduleTermsAt,
 		weeklySchedule,
+		weeklyExcessByDate,
 		workDayByDate,
 		dayRuleContext,
 		coverage,
@@ -1531,6 +1551,7 @@ function workAttendance(
 		schedule,
 		scheduleTermsAt,
 		weeklySchedule,
+		weeklyExcessByDate,
 		workDayByDate,
 		coverage,
 		subject,
@@ -1660,8 +1681,9 @@ function workAttendance(
 		...(configuration.onDay?.(date) ?? configuration).work,
 		limits
 	});
-	// A weekly or daily normal-hours limit prices nothing here: hours beyond it pay only as the
-	// day's planned entries (owner's rule, 2026-09-23). Clock time never pays.
+	// A daily normal-hours limit prices nothing here: hours beyond it pay only as the day's planned
+	// entries (owner's rule, 2026-09-23). Clock time never pays. A week's normal hours beyond its
+	// limit (`weeklyExcessByDate`) move from the day's normal hours to its overtime.
 	for (const { entry, workDate } of clockedDays) {
 		const day = schedule.get(workDate);
 		if (!day) continue;
@@ -1727,9 +1749,11 @@ function workAttendance(
 			daily == null && worked > 0 && holidayDay && day.shift != null
 				? Math.min(day.normalHours, worked)
 				: 0;
-		const derived: DailyOvertime | null =
+		const weekExcess =
+			day.dayType === 'ORDINARY' && worked > 0 ? (weeklyExcessByDate.get(workDate) ?? 0) : 0;
+		const dayOvertime: DailyOvertime | null =
 			daily == null
-				? unworkedHoliday || rosteredHolidayHours > 0
+				? unworkedHoliday || rosteredHolidayHours > 0 || weekExcess > 0
 					? {
 							date: workDate,
 							workDayId: entry.id,
@@ -1743,6 +1767,14 @@ function workAttendance(
 						}
 					: null
 				: daily;
+		const derived: DailyOvertime | null =
+			dayOvertime == null || weekExcess <= 0
+				? dayOvertime
+				: {
+						...dayOvertime,
+						hours: dayOvertime.hours + weekExcess,
+						normalHours: dayOvertime.normalHours - weekExcess
+					};
 		const nightHours =
 			rulesOn.nightPremium == null
 				? 0
@@ -3437,12 +3469,9 @@ export function validateWorkResult(options: {
 	const ownDays = measured.overtimeDays.filter(
 		(day) => day.date >= attendance.start && day.date <= attendance.end
 	);
-	const plannedByWorkDayId = new Map(
-		bundle.workDays.map((row) => [
-			String(row.id),
-			decodeNumber(row.approved_overtime_hours ?? 0) + decodeNumber(row.incentive_hours ?? 0)
-		])
-	);
+	// A day's priced overtime: its planned and incentive hours, plus the normal hours its week's
+	// limit moved to overtime.
+	const plannedByWorkDayId = new Map(ownDays.map((day) => [day.workDayId, day.hours]));
 	issues.push(
 		...validateUnplannedOvertime({
 			employeeNumber: bundle.employment.employee_number,

@@ -183,6 +183,7 @@ const settings = collection('jurisdiction_settings', {
 							'name',
 							'authority',
 							'assessment_period',
+							'late_line_month',
 							'assessment_scope',
 							'base_when',
 							'remittance_rounding',

@@ -3194,3 +3194,48 @@ register(
 		]
 	}
 );
+
+register({
+	id: 'CN-X-WORKSITE-1',
+	profile: 'CN-shanghai',
+	description:
+		'December 2025, a Shanghai-registered unit (no `si_registration_locality` recorded: the company region SHANGHAI) posts a resident citizen hired 1 December to a Wuhua, Kunming worksite on CNY2,500 with declared 2,500 bases: insured at Shanghai rates on the Shanghai floors, held to the Kunming class I gross floor.',
+	citation: [
+		'Social insurance follows the employer’s registration (Social Insurance Law arts.57–58, http://www.npc.gov.cn/zgrdw/npc/xinwen/2019-01/07/content_2070267.htm; Housing Provident Fund Regulation art.14, https://www.gov.cn/zhengce/content/202608/content_7078477.htm); the minimum wage follows the performance place (劳动合同法实施条例 art.14, https://xzfg.moj.gov.cn/front/law/detail?LawID=284); owner-delegated rule 2026-10-01',
+		`${SOURCES.si2025}: 2,500 clamps to 7,460`,
+		`${SOURCES.pension}: 7,460 × 8% = 596.80 / × 16% = 1,193.60`,
+		`${SOURCES.medical2025}: 149.20 / 671.40`,
+		`${SOURCES.unemployment2025}: 37.30 / 37.30`,
+		`${SOURCES.injury2025}: 14.92`,
+		`${SOURCES.hf2025}: 2,500 clamps to 2,690 × 7% = 188.30 → 188 each side`,
+		`${SOURCES.iitResident}: 2,500 − 971.30 − 5,000 < 0 → 0`,
+		'Kunming class I 2,170 a month gross (云人社发〔2025〕19号, https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf): 2,500 passes; the Shanghai net floor (2,500 − 971.30 = 1,528.70 < 2,740) does not apply outside Shanghai',
+		'Net 2,500 − 971.30 = 1,528.70; employer 1,193.60 + 671.40 + 37.30 + 14.92 + 188 = 2,105.22'
+	],
+	company: { ...SH_COMPANY, facts: FACTS },
+	inputs: [
+		...cnWeek('2025-12-01'),
+		...hire('chen', {
+			name: 'Chen Jie',
+			from: '2025-12-01',
+			wages: [[2500, '2025-12-01', null]],
+			si: 2500,
+			hf: { contribution_base: 2500, first_ever_account: false },
+			terms: { worksite: '云南省/昆明市/五华区' }
+		})
+	],
+	period: '2025-12',
+	expected: [
+		{
+			employment: 'chen_job',
+			lines: {
+				gross: 2500,
+				net: 1528.7,
+				employer_cost: 2105.22,
+				BASIC: 2500,
+				...si([596.8, 1193.6], [149.2, 671.4], [37.3, 37.3], 14.92, 188),
+				'IIT.employee': 0
+			}
+		}
+	]
+});

@@ -21,6 +21,11 @@ const f = customField({
 			},
 			auto_carry_one_year: { kind: 'bool', optional: true },
 			carry_max_days: { kind: 'json', optional: true },
+			carry_statutory_bands: {
+				kind: 'list',
+				of: { kind: 'object', fields: { eligibility: { kind: 'text' }, days: { kind: 'json' } } },
+				optional: true
+			},
 			proration: {
 				kind: 'enum',
 				values: ['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'HALF_MONTHS', 'CALENDAR_DAYS']

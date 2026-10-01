@@ -100,7 +100,19 @@ export function payrollRunGraph(options: {
 					: {}),
 				...(charge.remittanceRounding == null
 					? {}
-					: { remittance_rounding: charge.remittanceRounding })
+					: { remittance_rounding: charge.remittanceRounding }),
+				...(charge.lateTopUp == null
+					? {}
+					: {
+							earned_period: charge.lateTopUp.period,
+							earned_base_amount: charge.lateTopUp.base,
+							...(charge.lateTopUp.ordinary == null
+								? {}
+								: { earned_ordinary_amount: charge.lateTopUp.ordinary }),
+							earned_employee_amount: charge.lateTopUp.employee,
+							earned_employer_amount: charge.lateTopUp.employer,
+							earned_rebate_amount: charge.lateTopUp.rebate ?? 0
+						})
 			})),
 			gross: payslip.settlement.gross,
 			total_deductions: payslip.settlement.totalDeductions,
@@ -117,7 +129,8 @@ export function payrollRunGraph(options: {
 				amount: adjustment.amount,
 				quantity: adjustment.quantity,
 				rate: adjustment.rate,
-				statutory_rule_key: adjustment.statutoryRuleKey
+				statutory_rule_key: adjustment.statutoryRuleKey,
+				...(adjustment.earnedPeriod == null ? {} : { earned_period: adjustment.earnedPeriod })
 			}))
 		};
 	});
