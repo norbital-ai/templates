@@ -683,7 +683,7 @@ function workContext(
 		}
 		for (const [week, totals] of weeks) {
 			if (totals.redistributed > totals.shorter + 1e-9)
-				refuse(
+				limitWarning(
 					`${bundle.employment.employee_number} has ${totals.redistributed.toFixed(2)} redistributed normal hours above the normal day in the week of ${week}, but only ${totals.shorter.toFixed(2)} shorter-day hours to offset them.`
 				);
 			for (const limit of [...totals.limits.values()].toSorted(
@@ -923,11 +923,10 @@ function workContext(
 				continue;
 			const judged = dayRuleContext(date, day);
 			if (judged == null) continue;
-			const broken = dayRules.find((rule) =>
+			for (const broken of dayRules.filter((rule) =>
 				evaluateBoolean(judged.engine, rule.when, judged.context)
-			);
-			if (broken != null)
-				refuse(
+			))
+				limitWarning(
 					`${bundle.employment.employee_number} ${broken.message} on ${date}${broken.authority ? ` (${broken.authority})` : ''}.`
 				);
 		}
@@ -1617,9 +1616,13 @@ function workAttendance(
 					(entry.overtime_consented_at == null ||
 						!(Date.parse(entry.overtime_consented_at) < firstStart))
 				)
-					refuse(
-						`${bundle.employment.employee_number} needs the worker’s prior consent for overtime or holiday work on ${date}.`
-					);
+					limitNotes.push({
+						code: 'STATUTORY_LIMIT_EXCEEDED',
+						severity: 'WARNING',
+						message: `${bundle.employment.employee_number} needs the worker’s prior consent for overtime or holiday work on ${date}.`,
+						collection: 'employments',
+						recordId: bundle.employment.id
+					});
 			}
 			const week = weekStart(date);
 			weeklyHours.set(week, (weeklyHours.get(week) ?? 0) + premium);
