@@ -243,8 +243,8 @@ test('PH wage order: every active version has sourced IV-A agriculture rates and
 		assert.equal(wages.by_region['IV-A-AGRI-COMPONENT-1ST'], 13_693.75);
 		assert.equal(wages.by_region['IV-A-AGRI-RECLASSIFIED-1ST'], afterApril ? 13_693.75 : 12_650.42);
 		assert.equal(wages.by_region['IV-A-AGRI-2ND-5TH'], afterApril ? 13_250.33 : 12_650.42);
-		// The same 568 exact classes on every version (a class whose order is not yet sealed refuses by name).
-		assert.equal(wages.classified_by_worksite?.rows.length, 568);
+		// The same 574 exact classes on every version (568 + Batangas/Santo Tomas's six, IVA-22 p.3) (a class whose order is not yet sealed refuses by name).
+		assert.equal(wages.classified_by_worksite?.rows.length, 574);
 		// A reduced (non-NCR, non-IV-A) non-domestic class needs its municipality and sector sources.
 		for (const row of wages.classified_by_worksite?.rows ?? [])
 			assert.deepEqual(

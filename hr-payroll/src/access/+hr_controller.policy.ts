@@ -90,7 +90,7 @@ export default policy({
 		leave_entries: {
 			read: true,
 			create: { approval: [HR_LEAVE_TIME_OFF, HR_LEAVE_MANUAL] },
-			queries: ['leave_balances', 'preview_leave']
+			queries: ['leave_balances', 'leave_balance_report', 'preview_leave']
 		},
 		payroll_runs: { read: true, create: { approval: CONTROLLER_RUN_APPROVAL } },
 		payslips: { read: true },

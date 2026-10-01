@@ -2,7 +2,7 @@
  * The inputs oracle (capability plan I8): a tracker row's `config_path` names configuration the seeds declare.
  *
  * A path is `;`-separated tokens. Each token is read as far as its first space, `(`, `=`, `{` or `[`, and resolved
- * in every seeded lineage its `profile` covers (`CN` covers each `CN-*` lineage):
+ * in every seeded lineage its `profile` covers (`CN-shanghai` and `CN-kunming` resolve in `CN`):
  *
  *   - `<collection>:<CODE>[.<path>]`: a row of the lineage's `<collection>.json[.gz]` whose `code` (or `table`, for
  *     `reference_rows`) is CODE, then `path` inside it;
@@ -156,8 +156,11 @@ function tokens(path: string): string[] {
 	return out;
 }
 
+// A locality profile (`CN-shanghai`) resolves in its jurisdiction's lineage (`CN`).
 const lineagesOf = (profile: string) =>
-	[...LINEAGES.keys()].filter((l) => l === profile || l.split('-')[0] === profile);
+	[...LINEAGES.keys()].filter(
+		(l) => l === profile || l.split('-')[0] === profile || l === profile.split('-')[0]
+	);
 
 test('config_path tokens expand lists and continuations', () => {
 	assert.deepEqual(tokens('statutory_contributions:CPF.elections.a; b; none'), [

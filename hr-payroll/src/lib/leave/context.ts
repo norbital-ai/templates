@@ -29,6 +29,7 @@ import { resolveCompanyFacts } from '../declared-facts.js';
 import { personFactsForVersion } from '../payroll/facts.js';
 import {
 	DATED,
+	evaluatePersonNumber,
 	isEligible,
 	personContext,
 	type DatedCompany,
@@ -921,6 +922,8 @@ export function leaveRules(
 			readonly earned: number | null;
 			readonly available: number | null;
 			readonly automaticCarryFrom: LeaveWindow | null;
+			/** The most of this year's unused days that carry into the next (`carry_max_days`). */
+			readonly carryMax: number | null;
 		}
 	>();
 	const rosterCodes = new Map(context.shifts.map((row) => [row.id, row]));
@@ -1190,7 +1193,13 @@ export function leaveRules(
 			entitlement: lost ? 0 : entitlement.entitlement,
 			earned: lost ? 0 : entitlement.earned,
 			available: lost ? 0 : entitlement.available,
-			automaticCarryFrom: previousWindow
+			automaticCarryFrom: previousWindow,
+			carryMax:
+				rule.carry_max_days == null
+					? null
+					: Predicate.isString(rule.carry_max_days)
+						? Math.max(0, evaluatePersonNumber(rule.carry_max_days, personOn(asOf)))
+						: rule.carry_max_days
 		};
 		amounts.set(key, result);
 		return result;

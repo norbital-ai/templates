@@ -2,7 +2,11 @@ import { collection, type Id } from '@norbital-ai/bolt';
 import { factValuesFault } from '../../../lib/declared-facts.js';
 import { statutoryFactSummary } from '../../../lib/derived-titles.js';
 import { factScopeFault, holdsFactType, type FactKey } from '../../../lib/datatypes/fact_keys.js';
-import { openKeyMentions } from '../../../lib/expressions/contexts.js';
+import {
+	childClaimClasses,
+	openKeyMentions,
+	schemeExpressions
+} from '../../../lib/expressions/contexts.js';
 import { DEDUCTION_TOTAL_KEYS } from '../../../lib/statutory-deductions.js';
 
 const statutoryFacts = collection('employment_statutory_facts', {
@@ -110,20 +114,8 @@ statutoryFacts.transform(async (inputs, { existing, db, refuse }) => {
 		if ((claims?.child_claims?.length ?? 0) > 0 || (claims?.deduction_claims?.length ?? 0) > 0) {
 			if (scheme == null)
 				return refuse('The statutory contribution this fact names no longer exists.');
-			const expressions = [
-				scheme.assessed_on,
-				scheme.ordinary_on,
-				...scheme.rules.flatMap((rule) => [
-					rule.when,
-					rule.employee,
-					rule.employer,
-					rule.rebate ?? '',
-					rule.deduction ?? ''
-				])
-			];
-			const classes = new Set(
-				expressions.flatMap((expression) => openKeyMentions(expression, 'scheme.child_claims'))
-			);
+			const expressions = schemeExpressions(scheme);
+			const classes = new Set(childClaimClasses(scheme));
 			const seen = new Set<string>();
 			for (const claim of claims?.child_claims ?? []) {
 				if (!/^\d{4}$/.test(claim.year)) refuse('Child claims require a four-digit tax year.');

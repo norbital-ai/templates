@@ -9,12 +9,9 @@
 	import type { CustomFieldView } from '@norbital-ai/ui';
 	import EntityFactsRenderer from '../../../data/custom_field/entity_facts/+renderer.svelte';
 	import type { FactKey } from '../../datatypes/fact_keys.js';
-	import type { BenefitCaseType } from '../../datatypes/case_types.js';
-	import type { PayrollSettings } from '../../datatypes/payroll_settings.js';
-	import { settingsInForce } from '../../jurisdiction_settings.js';
 	import { todayKey } from '../calendar.js';
-	import { live, liveRows } from '../live.svelte.js';
-	import { inForceSettings } from '../settings-scope.js';
+	import { live } from '../live.svelte.js';
+	import { caseTypes } from './case-types.svelte.js';
 
 	let {
 		view,
@@ -60,40 +57,11 @@
 					)) ||
 			todayKey()
 	);
-	const employment = live(() =>
-		employmentOf
-			? bolt.get('employments', employmentOf as Id<'employments'>, { company_id: true })
-			: null
+	const types = caseTypes(
+		() => employmentOf,
+		() => on
 	);
-	const company = live(() =>
-		employment.current?.company_id
-			? bolt.get('companies', employment.current.company_id, { settings_code: true })
-			: null
-	);
-	const code = $derived(company.current?.settings_code);
-	const versions = liveRows(() =>
-		code
-			? bolt.read('jurisdiction_settings', {
-					where: inForceSettings(code, on),
-					select: {
-						code: true,
-						name: true,
-						sealed_at: true,
-						voided_at: true,
-						approval_id: true,
-						effective_range: true,
-						payroll: true
-					},
-					all: true
-				})
-			: null
-	);
-	const type = $derived(
-		(
-			((settingsInForce(versions.current ?? [], code ?? '', on)?.payroll as PayrollSettings | null)
-				?.benefit_cases ?? []) as readonly BenefitCaseType[]
-		).find((row) => row.case_type === typeCode)
-	);
+	const type = $derived(types.current.find((row) => row.case_type === typeCode));
 	const declarations = $derived<readonly FactKey[]>(
 		schema === 'facts'
 			? (type?.facts ?? [])

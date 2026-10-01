@@ -7,7 +7,7 @@ import {
 } from '../payroll-probe.ts';
 
 /**
- * CN-kunming cases: see the case shape at the top of payroll-probe.ts. Every figure is computed by
+ * CN-kunming cases (the Kunming profile of the CN lineage): see the case shape at the top of payroll-probe.ts. Every figure is computed by
  * hand from the cited law; the goldens are not the source.
  *
  * Sources common to every case (register rows in docs/inventory/china.csv):
@@ -48,6 +48,13 @@ import {
 const WUHUA = '云南省/昆明市/五华区';
 const FUMIN = '云南省/昆明市/富民县';
 const SINCE = '2025-06-02';
+
+/**
+ * The Kunming profile of the one CN lineage: the entity is registered in Kunming (`company.region`, which the
+ * city's employer duties read) and every worker's terms record a Kunming worksite, whose locality selects the
+ * city law.
+ */
+const KM_COMPANY = { settings_code: 'CN', region: 'KUNMING' } as const;
 
 /** 2026 company facts: class I injury 0.2%, the agency's 0.7 / 0.3 unemployment rates, a 12% fund. */
 const FACTS_2026 = {
@@ -249,7 +256,7 @@ const jan21750 = (
 	profile: 'CN-kunming',
 	description,
 	citation,
-	company: { facts: FACTS_2026 },
+	company: { ...KM_COMPANY, facts: FACTS_2026 },
 	inputs: [
 		...officeWeek(SINCE),
 		...worker({ ref: 'w', name: `Worker ${id}`, wage: 21750, ...w }),
@@ -271,7 +278,7 @@ register(
 			'IIT (STA 2018 No.61 art.6, month 1): 10,000 − (800 + 200 + 30 + 1,200) − 5,000 = 2,770 × 3% = 83.10.',
 			'昆明市工资支付条例 art.16 (CN-KM-WP09; https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=67457): the employer may withhold only personal income tax, the worker’s social insurance, court-ordered 抚养费/赡养费 and other amounts laws and regulations prescribe; the housing-fund share is withheld under that last item with the Housing Provident Fund Regulation (CN-N08). Net 10,000 − 2,230 − 83.10 = 7,686.90; employer 1,600 + 700 + 90 + 70 + 20 + 1,200 = 3,680.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [...officeWeek(SINCE), ...worker({ ref: 'li', name: 'Li Ming', wage: 10000 })],
 		period: '2026-01',
 		expected: [
@@ -309,7 +316,7 @@ register(
 			'Fund 4,000 × 12% = 480 each side (above the 2,170 floor).',
 			'IIT: 4,000 − 932.59 − 5,000 < 0 → nothing. Net 4,000 − 932.59 = 3,067.41; employer 704.48 + 304.99 + 39.21 + 30.82 + 8.81 + 480 = 1,568.31.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [...officeWeek(SINCE), ...worker({ ref: 'zhao', name: 'Zhao Lei', wage: 4000 })],
 		period: '2026-01',
 		expected: [
@@ -346,7 +353,7 @@ register(
 			'Fund 32,543 (昆公积金〔2026〕69号 cap, CN-KM05) × 12% = 3,905.16 → 3,905 each side.',
 			'IIT: 30,000 − (1,761.36 + 435.78 + 66.05 + 3,905) − 5,000 = 18,831.81 × 3% = 564.9543 → 564.95. Net 30,000 − 6,733.14 = 23,266.86; employer 9,347.20.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({ ref: 'wang', name: 'Wang Fang', wage: 30000, hfBase: 40000 })
@@ -386,7 +393,7 @@ register(
 			'Fund cap 32,470 for 2025 (昆公积金〔2025〕61号, CN-KM05): 33,000 declared → 32,470 × 12% = 3,896.4 → 3,896 each side.',
 			'IIT (month 1 at this employer): 25,000 − 6,140.27 − 5,000 = 13,859.73 × 3% = 415.7919 → 415.79. Net 18,443.94; employer 9,299.67.'
 		],
-		company: { facts: FACTS_2025 },
+		company: { ...KM_COMPANY, facts: FACTS_2025 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({ ref: 'chen', name: 'Chen Hao', wage: 25000, hfBase: 33000, from: '2025-12-01' })
@@ -426,7 +433,7 @@ register(
 			'Fund: a transferred worker contributes from the first month of pay at the full monthly wage (昆公积金规〔2020〕2号 art.12, https://zc.51shebao.com/detail/825467; a first-ever account would start only in the second month, CN-KM20-1); new/transferred-account floor 2,270 from 1 Sep 2026 (CN-KM05); 2,270 × 5% = 113.50 → 114 each side, 228 combined, not 227 (art.13 四舍五入 per side, CN-KM20).',
 			'IIT nil. Net 2,270 − 567.51 = 1,702.49; employer 704.48 + 308.21 + 39.63 + 30.82 + 8.81 + 114 = 1,205.95.'
 		],
-		company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+		company: { ...KM_COMPANY, facts: { ...FACTS_2026, housing_fund_rate: 5 } },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -472,7 +479,7 @@ register(
 			'Fund class II floor 2,020 (CN-KM05) × 5% = 101 each side.',
 			'IIT nil. Net 2,020 − 553.59 = 1,466.41; employer 1,189.31.'
 		],
-		company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+		company: { ...KM_COMPANY, facts: { ...FACTS_2026, housing_fund_rate: 5 } },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({ ref: 'yang', name: 'Yang Jie', wage: 2020, worksite: FUMIN })
@@ -522,7 +529,7 @@ register(
 			'Insurance on the declared first-month base 21,750: 1,740 / 3,480, 435 / 1,522.5, 195.75, 65.25 / 152.25, 43.5.',
 			'IIT: 10,000 − (1,740 + 435 + 65.25) − 5,000 = 2,759.75 × 3% = 82.7925 → 82.79. Net 10,000 − 2,323.04 = 7,676.96; employer 5,394.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -569,7 +576,7 @@ register(
 			'IIT_SEVERANCE: 财税〔2018〕164号 item 5(1) (http://szs.mof.gov.cn/zhengcefabu/201812/t20181227_3110164.htm) exempts up to 3 × 130,174 = 390,522: nothing charged.',
 			'Insurance and fund for the month on the declared 21,750 (4,850.25 / 8,004). IIT on the wage: 10,000 − 4,850.25 − 5,000 = 149.75 × 3% = 4.4925 → 4.49. Gross 20,875; net 20,875 − 4,854.74 = 16,020.26.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -672,7 +679,7 @@ register(
 			'Base: the declared prior-year average, not the new wage (CN-KM03, KM20). Pension 22,000 × 16% / 8% = 3,520 / 1,760; medical at the 21,789 cap 1,525.23 / 435.78; maternity 196.10; unemployment 154 / 66; injury 44; fund 22,000 × 12% = 2,640 each side.',
 			'IIT: 24,200 − 4,901.78 − 5,000 = 14,298.22 × 3% = 428.9466 → 428.95. Net 24,200 − 5,330.73 = 18,869.27; employer 8,079.33.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -749,7 +756,7 @@ register(
 			iit,
 			'Employer 3,200 + 1,400 + 180 + 140 + 40 + 2,400 = 7,360.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({ ref: 'b', name: `Bonus ${id}`, wage: 20000 }),
@@ -789,7 +796,7 @@ register(
 			'Multi-month bonus (MOF/STA 2019 No.35 item 3(2), https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202332/content.html; CN-KM-A1): [(60,000 ÷ 6) × 10% − 210] × 6 = 4,740.',
 			'Net 90,000 − (2,263.19 + 3,590 + 4,740) = 79,406.81; employer 5,442.20.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -874,7 +881,7 @@ register(
 			'Social Insurance Law arts.10, 44, 33 (compulsory enrolment; CN-N07) and the county HRSS notice (https://www.yncxym.gov.cn/info/1011/286437.htm; CN-KM28): probation, a waiver or a pending registration do not excuse the premiums.',
 			'Same figures as CN-KM-WP09-1: pension 800 / 1,600, medical 200 / 700, maternity 90, unemployment 30 / 70, injury 20, fund 1,200 / 1,200, IIT 83.10; net 7,686.90; employer 3,680.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -944,7 +951,7 @@ const belowFloor = (
 	profile: 'CN-kunming',
 	description,
 	citation,
-	company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+	company: { ...KM_COMPANY, facts: { ...FACTS_2026, housing_fund_rate: 5 } },
 	inputs: [
 		...officeWeek(SINCE),
 		...worker({ ref: 'low', name: `Floor ${id}`, wage, siBase: 2300, hfBase: 2300 })
@@ -988,7 +995,7 @@ register(
 			'Fund class I floor 2,170 (CN-KM05) × 5% = 108.50 → 109 each side (四舍五入, CN-KM20).',
 			'IIT nil. Net 2,170 − 561.59 = 1,608.41; employer 704.48 + 304.99 + 39.21 + 30.82 + 8.81 + 109 = 1,197.31.'
 		],
-		company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+		company: { ...KM_COMPANY, facts: { ...FACTS_2026, housing_fund_rate: 5 } },
 		inputs: [...officeWeek(SINCE), ...worker({ ref: 'qi', name: 'Qi Yun', wage: 2170 })],
 		period: '2026-01',
 		expected: [
@@ -1024,7 +1031,7 @@ register(
 			'Insurance and fund for the month on the declared 21,750 (4,850.25 / 8,004, as every jan21750 case). A resignation (LCL art.37) owes no compensation.',
 			'IIT: 11,000 − 4,850.25 − 5,000 = 1,149.75 × 3% = 34.4925 → 34.49; 19,000 − 4,850.25 − 5,000 = 9,149.75 × 3% = 274.4925 → 274.49. Net 11,000 − 4,884.74 = 6,115.26 and 19,000 − 5,124.74 = 13,875.26.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...(
@@ -1193,7 +1200,7 @@ register(
 			'云人社发〔2020〕14号 (https://hrss.yn.gov.cn/Uploads/NewsPhoto/2020-03-12/b451dfd4-ba60-48d9-931e-2bed943dcef0.pdf) and the county notice (https://www.yncxym.gov.cn/info/1011/286437.htm): classes I–VIII at 0.2–1.9%, employer-only, the assigned rate recorded as `injury_rate` (CN-KM26): 10,000 × 1.9% = 190.',
 			'As CN-KM-WP09-1: pension 800 / 1,600, medical 200 / 700, maternity 90, unemployment 30 / 70, fund 1,200 / 1,200, IIT 83.10; net 7,686.90; employer 1,600 + 700 + 90 + 70 + 190 + 1,200 = 3,850.'
 		],
-		company: { facts: { ...FACTS_2026, injury_rate: 1.9 } },
+		company: { ...KM_COMPANY, facts: { ...FACTS_2026, injury_rate: 1.9 } },
 		inputs: [...officeWeek(SINCE), ...worker({ ref: 'li', name: 'Li Qiang', wage: 10000 })],
 		period: '2026-01',
 		expected: [
@@ -1227,7 +1234,7 @@ register(
 		citation: [
 			'MOF/STA 2019 No.35 item 3(2) (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5202332/content.html): 在一个公历年度内，对每一个非居民个人，该计税办法只允许适用一次 (CN-KM-A1).'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -1260,7 +1267,7 @@ register(
 			'Insurance on the declared 21,750 as SI_21750. January (CN-KM20-1): 10,000 paid, 2,240.25 employee insurance, IIT 82.79.',
 			'IIT February cumulative (STA 2018 No.61 art.6): 31,750 − (2,240.25 + 4,850.25) − 10,000 = 14,659.50 × 3% = 439.785 → 439.79 − 82.79 = 357.00. Net 21,750 − 5,207.25 = 16,542.75; employer 8,004.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -1303,7 +1310,7 @@ register(
 			'Insurance continues on the declared 12,000 (medical on the 2025 bounds to 31 August): pension 960 / 1,920, medical 240 / 840, maternity 108, unemployment 36 / 84, injury 24, fund 12% 1,440 each side.',
 			'The allowance is exempt (财税〔2008〕8号): IIT on 3,000 − 2,676 is nil. Net 3,000 − 2,676 = 324; employer 1,920 + 840 + 108 + 84 + 24 + 1,440 = 4,416.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({ ref: 'xu', name: 'Xu Ying', wage: 12000, gender: 'FEMALE' }),
@@ -1367,7 +1374,7 @@ const leaverOn = (
 	profile: 'CN-kunming',
 	description,
 	citation,
-	company: { facts: FACTS_2026 },
+	company: { ...KM_COMPANY, facts: FACTS_2026 },
 	inputs: [
 		...officeWeek(SINCE),
 		...worker({
@@ -1451,7 +1458,7 @@ register(
 			'Fund: a transferred account contributes from the first month (昆公积金规〔2020〕2号 art.12, CN-KM20); 40,000 capped at 32,543 (CN-KM05) × 12% = 3,905.16 → 3,905 each side.',
 			'IIT (month 1 here, STA 2018 No.61 art.6): 30,000 − 6,172.75 − 5,000 = 18,827.25 × 3% = 564.8175 → 564.82. Net 30,000 − 6,737.57 = 23,262.43; employer 9,365.21.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -1496,7 +1503,7 @@ register(
 			'Yunnan HRSS 29 Aug 2026 (https://www.ynjc.gov.cn/jcqzfxxgk/zcw2023j0221/20260901/1677677.html): from 1 September 2026 category II CNY2,120 (CN-KM02); 最低工资规定 art.12 and 昆明市工资支付条例 art.8 (CN-KM-WP03): 2,100 < 2,120.',
 			'Declared bases 2,300 (above the 2,120 fund floor) so only the wage floor is in question.'
 		],
-		company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+		company: { ...KM_COMPANY, facts: { ...FACTS_2026, housing_fund_rate: 5 } },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -1632,7 +1639,7 @@ const fundRefused = (
 	profile: 'CN-kunming',
 	description,
 	citation,
-	company: { facts: FACTS_2026 },
+	company: { ...KM_COMPANY, facts: FACTS_2026 },
 	inputs: [...officeWeek(SINCE), ...worker({ ref: 'hf', name: `Fund ${id}`, wage: 10000, ...w })],
 	period: '2026-01',
 	refused,
@@ -1708,7 +1715,7 @@ register(
 			'Final pay 21,750 ÷ 21.75 × 10 working days = 10,000 (CN-N02); insurance and fund on the declared 21,750 (4,850.25 / 8,004); IIT on the wage 10,000 − 4,850.25 − 5,000 = 149.75 × 3% = 4.49.',
 			'Gross 510,000; deductions 4,850.25 + 4.49 + 15,920 = 20,774.74; net 489,225.26.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -1808,7 +1815,7 @@ register(
 			'Fund 4,000 × 12% = 480 each side (above the 2,170 class I floor, CN-KM05).',
 			'IIT (month 1 here): 4,000 − 928.77 − 5,000 < 0 → nothing. Net 4,000 − 928.77 = 3,071.23; employer 697.12 + 304.99 + 39.21 + 30.50 + 8.71 + 480 = 1,560.53.'
 		],
-		company: { facts: FACTS_2025 },
+		company: { ...KM_COMPANY, facts: FACTS_2025 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({ ref: 'fu', name: 'Fu Qiang', wage: 4000, from: '2025-12-01' })
@@ -1846,7 +1853,7 @@ register(
 			'Insurance on 10,000 inside 4,403–22,017: pension 800 / 1,600, medical 200 / 700, maternity 90, unemployment 30 / 70, injury 20.',
 			'IIT (month 1 here): 10,000 − 1,136 − 5,000 = 3,864 × 3% = 115.92. Net 10,000 − 1,251.92 = 8,748.08; employer 1,600 + 700 + 90 + 70 + 20 + 106 = 2,586.'
 		],
-		company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+		company: { ...KM_COMPANY, facts: { ...FACTS_2026, housing_fund_rate: 5 } },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({
@@ -1931,7 +1938,7 @@ register({
 		'云人社发〔2025〕19号 (https://www.ynjc.gov.cn/u/cms/jcqzfxxgk/202509/30130601xbad.pdf): Kunming’s other counties CNY2,020 from 1 October 2025 (CN-KM01); 最低工资规定 art.12 and 昆明市工资支付条例 art.8 (CN-KM-WP03): 2,000 < 2,020.',
 		'Declared bases 2,300 (above the 2,020 class II fund floor) so only the wage floor is in question.'
 	],
-	company: { facts: { ...FACTS_2026, housing_fund_rate: 5 } },
+	company: { ...KM_COMPANY, facts: { ...FACTS_2026, housing_fund_rate: 5 } },
 	inputs: [
 		...officeWeek(SINCE),
 		...worker({
@@ -2053,7 +2060,7 @@ register(
 		citation: [
 			'云南省女职工劳动保护特别规定 (Order 232) art.10(3) (https://policy.mofcom.gov.cn/claw/clawContent.shtml?id=105672, read 1 Oct 2026): 怀孕不满3个月和怀孕7个月以上的，不得延长劳动时间或者安排夜班劳动 (CN-KM11.overtime-night-restriction). add_months(2025-05-01, 7) = 2025-12-01 ≤ the January rule date, and the day has overtime.'
 		],
-		company: { facts: FACTS_2026 },
+		company: { ...KM_COMPANY, facts: FACTS_2026 },
 		inputs: [
 			...officeWeek(SINCE),
 			...worker({ ref: 'w', name: 'Worker CN-KM11-1', wage: 21750, gender: 'FEMALE' }),
@@ -2095,7 +2102,7 @@ register(
 			{ gross: 21750, total_deductions: 5207.24, net: 16542.76, 'IIT.employee': 356.99 },
 			{ from: '2026-01-01' }
 		),
-		company: { facts: { ...FACTS_2026, union_established: true } },
+		company: { ...KM_COMPANY, facts: { ...FACTS_2026, union_established: true } },
 		saved: [
 			...['SI_REGISTRATION', 'HF_ACCOUNT_REGISTRATION'].map((duty_code) => ({
 				collection: 'obligation_instances',

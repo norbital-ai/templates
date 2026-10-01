@@ -57,8 +57,11 @@ history.transform(async (inputs, { existing, db, refuse }) => {
 				field: 'effective_range'
 			});
 		const facts = input.facts ?? stored?.facts ?? {};
-		const fault = lineagesFault(declaring, facts, (code) =>
-			kindsOf(code).flatMap((declared) => declared.facts)
+		const fault = lineagesFault(
+			declaring,
+			facts,
+			(code) => kindsOf(code).flatMap((declared) => declared.facts),
+			lineages.codesOf
 		);
 		if (fault != null) refuse(fault, { field: 'facts' });
 		return {

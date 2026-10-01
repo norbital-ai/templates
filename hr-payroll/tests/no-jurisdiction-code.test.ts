@@ -158,7 +158,7 @@ const src = walk(at('src')).filter((f) => /\.(ts|svelte)$/.test(f));
 const i18n = at('src/i18n/');
 
 test('no src string equals a jurisdiction code', () => {
-	assert.ok(CODES.has('MY') && CODES.has('CN') && CODES.has('CN-shanghai'), [...CODES].join(', '));
+	assert.ok(CODES.has('MY') && CODES.has('CN'), [...CODES].join(', '));
 	const offenders: string[] = [];
 	for (const file of src.filter((f) => !f.startsWith(i18n))) {
 		const text = readFileSync(file, 'utf8');

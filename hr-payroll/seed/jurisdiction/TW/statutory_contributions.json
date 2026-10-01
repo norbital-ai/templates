@@ -2709,9 +2709,8 @@
 			},
 			{
 				"key": "withdrawal_on",
-				"type": "string",
+				"type": "date",
 				"label": "NHI withdrawal date",
-				"min_length": 10,
 				"required_when": "base > 0.0 && person.employment.exit_date != \"\" && person.employment.exit_date < period.start",
 				"valid_when": "scheme.elections.withdrawal_on == person.employment.exit_date",
 				"validation_message": "The NHI withdrawal date must match the documented employment exit."
@@ -8643,9 +8642,8 @@
 			},
 			{
 				"key": "withdrawal_on",
-				"type": "string",
+				"type": "date",
 				"label": "NHI withdrawal date",
-				"min_length": 10,
 				"required_when": "base > 0.0 && person.employment.exit_date != \"\" && person.employment.exit_date < period.start",
 				"valid_when": "scheme.elections.withdrawal_on == person.employment.exit_date",
 				"validation_message": "The NHI withdrawal date must match the documented employment exit."
@@ -14577,9 +14575,8 @@
 			},
 			{
 				"key": "withdrawal_on",
-				"type": "string",
+				"type": "date",
 				"label": "NHI withdrawal date",
-				"min_length": 10,
 				"required_when": "base > 0.0 && person.employment.exit_date != \"\" && person.employment.exit_date < period.start",
 				"valid_when": "scheme.elections.withdrawal_on == person.employment.exit_date",
 				"validation_message": "The NHI withdrawal date must match the documented employment exit."
@@ -18726,9 +18723,8 @@
 			},
 			{
 				"key": "withdrawal_on",
-				"type": "string",
+				"type": "date",
 				"label": "NHI withdrawal date",
-				"min_length": 10,
 				"required_when": "base > 0.0 && person.employment.exit_date != \"\" && person.employment.exit_date < period.start",
 				"valid_when": "scheme.elections.withdrawal_on == person.employment.exit_date",
 				"validation_message": "The NHI withdrawal date must match the documented employment exit."
@@ -23312,11 +23308,10 @@
 			},
 			{
 				"key": "pr_old_election_on",
-				"type": "string",
+				"type": "date",
 				"label": "Permanent-resident written old-pension election date",
 				"description": "YYYY-MM-DD from the written election at this unit. The 2018 and 2019 classes accept only the original commencement windows; FOREIGN_LATER_PR_GRANT accepts an election on or after the recorded residency_since and before the same day six months later (勞工退休金條例 §8-1(2): 於適用本條例之日起六個月內; the stricter reading of 行政程序法 §48 is the recorded default). BLI: https://www.bli.gov.tw/en/0010369.html",
-				"scope": "EMPLOYMENT",
-				"min_length": 10
+				"scope": "EMPLOYMENT"
 			},
 			{
 				"key": "notification_reference",
@@ -25010,9 +25005,8 @@
 			},
 			{
 				"key": "withdrawal_on",
-				"type": "string",
+				"type": "date",
 				"label": "NHI withdrawal date",
-				"min_length": 10,
 				"required_when": "base > 0.0 && person.employment.exit_date != \"\" && person.employment.exit_date < period.start",
 				"valid_when": "scheme.elections.withdrawal_on == person.employment.exit_date",
 				"validation_message": "The NHI withdrawal date must match the documented employment exit."
@@ -25535,11 +25529,10 @@
 			},
 			{
 				"key": "professional_old_election_on",
-				"type": "string",
+				"type": "date",
 				"scope": "EMPLOYMENT",
 				"label": "Foreign professional written old-system election date",
-				"description": "Enter the YYYY-MM-DD day on the written same-unit old-system election, supported by the NOT_REGISTERED declaration reference. This narrow path accepts an election from 1 January through 30 June 2026; earlier 2018/2019 foreign permanent-resident elections need their separate original-law evidence path. BLI: https://www.bli.gov.tw/en/0010369.html",
-				"min_length": 10
+				"description": "Enter the YYYY-MM-DD day on the written same-unit old-system election, supported by the NOT_REGISTERED declaration reference. This narrow path accepts an election from 1 January through 30 June 2026; earlier 2018/2019 foreign permanent-resident elections need their separate original-law evidence path. BLI: https://www.bli.gov.tw/en/0010369.html"
 			},
 			{
 				"key": "pr_old_transition_class",
@@ -25555,11 +25548,10 @@
 			},
 			{
 				"key": "pr_old_election_on",
-				"type": "string",
+				"type": "date",
 				"label": "Permanent-resident written old-pension election date",
 				"description": "YYYY-MM-DD from the written election at this unit. The 2018 and 2019 classes accept only the original commencement windows; FOREIGN_LATER_PR_GRANT accepts an election on or after the recorded residency_since and before the same day six months later (勞工退休金條例 §8-1(2): 於適用本條例之日起六個月內; the stricter reading of 行政程序法 §48 is the recorded default). BLI: https://www.bli.gov.tw/en/0010369.html",
-				"scope": "EMPLOYMENT",
-				"min_length": 10
+				"scope": "EMPLOYMENT"
 			},
 			{
 				"key": "notification_reference",

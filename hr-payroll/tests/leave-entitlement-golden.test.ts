@@ -31,9 +31,16 @@ import {
 	LINEAGES,
 	contributionSchemes,
 	leaveCatalogue,
+	lineageOf,
 	settingsVersions,
 	type Lineage
 } from './fixtures/statutory-world.ts';
+
+/** A China profile's worker sits at one of its city's worksites: the locality selects the leave rows. */
+const CN_WORKSITE: Partial<Record<Lineage, string>> = {
+	'CN-shanghai': 'SHANGHAI',
+	'CN-kunming': '云南省/昆明市/五华区'
+};
 
 /**
  * Every `(lineage, sealed version)` this file actually asserted against, recorded as it goes.
@@ -132,7 +139,7 @@ function grant(
 		)
 		.map((row) => row.id as string)[version];
 	assert.ok(settingsId, `${lineage} has no leave rows for version ${version}`);
-	asserted.add(`${lineage}:${settingsId}`);
+	asserted.add(`${lineageOf(lineage)}:${settingsId}`);
 	const row = leaveCatalogue(lineage).find(
 		(candidate) => candidate.settings_id === settingsId && candidate.code === code
 	);
@@ -150,6 +157,7 @@ function grant(
 			},
 			employment: { service_start: hire },
 			terms: {
+				worksite: CN_WORKSITE[lineage] ?? null,
 				residency_status: facts.citizenship ?? null,
 				work_classification: facts.classification ?? null,
 				employment_type: facts.employment_type ?? null,

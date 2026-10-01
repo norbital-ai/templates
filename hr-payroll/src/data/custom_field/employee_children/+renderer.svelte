@@ -15,7 +15,7 @@
 		readonly adoption_eligibility_date?: string | null;
 		readonly relationship: 'CHILD' | 'STEPCHILD' | 'ADOPTED' | 'LEGAL_WARD';
 		readonly effective_range?: { readonly start: string; readonly end: string | null } | null;
-		readonly citizenship?: string | null;
+		readonly citizenship?: (typeof citizenships)[number] | null;
 		readonly shared_parental_weeks?: Count;
 		readonly prior_employment_days?: Count;
 		readonly prior_childcare_days?: Count;
@@ -28,6 +28,7 @@
 	const disabled = $derived(view.mode === 'edit' ? view.disabled : true);
 	const rows = $derived(view.value ?? []);
 	const relationships = ['CHILD', 'STEPCHILD', 'ADOPTED', 'LEGAL_WARD'] as const;
+	const citizenships = ['CITIZEN', 'PERMANENT_RESIDENT', 'FOREIGNER'] as const;
 	function emit(value: Value): void {
 		if (view.mode === 'edit') view.onChange(value);
 	}
@@ -111,12 +112,12 @@
 					/>
 				</Labelled>
 				<Labelled label={t('employee_children.citizenship')}>
-					<Input
-						value={row.citizenship ?? ''}
+					<Combobox
+						clearable
+						options={citizenships.map((value) => ({ value, label: value }))}
+						value={row.citizenship ?? null}
 						{disabled}
-						placeholder="CITIZEN"
-						oninput={(event) =>
-							edit(index, { citizenship: event.currentTarget.value.trim() || null })}
+						onChange={(citizenship) => edit(index, { citizenship })}
 					/>
 				</Labelled>
 				<Labelled label={t('employee_children.relief_class')}>

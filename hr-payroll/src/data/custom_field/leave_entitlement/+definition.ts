@@ -2,7 +2,7 @@ import { customField } from '@norbital-ai/bolt';
 import { fault } from '../../../lib/datatypes/fault.js';
 import { standard } from '../../../lib/datatypes/leave_entitlement.js';
 
-// `lifetime_days` and a band's `days` are a number or an expression (an untagged union): `json`, checked below.
+// `lifetime_days`, `carry_max_days` and a band's `days` are a number or an expression (an untagged union): `json`, checked below.
 const f = customField({
 	description:
 		'Computed annual leave: an entitlement matrix of who and how many days, availability and proration. Carry-forward and encashment are manually approved entries.',
@@ -20,6 +20,7 @@ const f = customField({
 				optional: true
 			},
 			auto_carry_one_year: { kind: 'bool', optional: true },
+			carry_max_days: { kind: 'json', optional: true },
 			proration: {
 				kind: 'enum',
 				values: ['NONE', 'CALENDAR_MONTHS', 'COMPLETED_MONTHS', 'HALF_MONTHS', 'CALENDAR_DAYS']
@@ -36,6 +37,7 @@ const f = customField({
 				optional: true
 			},
 			child_years: { kind: 'bool', optional: true },
+			child_years_when: { kind: 'text', optional: true },
 			rolling_months: { kind: 'int', min: 1, optional: true },
 			weekly_days: { kind: 'number', min: 0, optional: true },
 			rounding: {

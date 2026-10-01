@@ -11,17 +11,14 @@
 	import { t } from '../t.js';
 	import type { Id } from '@norbital-ai/bolt';
 	import { PlainDate } from '@norbital-ai/std/date';
-	import { Button, Combobox, DateInput, Input } from '@norbital-ai/ui';
+	import { Button, DateInput, Input } from '@norbital-ai/ui';
 	import { Cluster, Stack } from '@norbital-ai/ui/layout';
 	import { toast } from 'svelte-sonner';
 	import { todayKey } from '../calendar.js';
 	import FormSection from '../form-section.svelte';
 	import ExitFactsRenderer from './exit-facts-renderer.svelte';
-	import { settingsInForce } from '../../jurisdiction_settings.js';
-	import { coversDate } from '../../payroll/run/effective.js';
-	import type { IsoDate } from '../../payroll/run/dates.js';
-	import { live, liveRows } from '../live.svelte.js';
-	import { inForceSettings } from '../settings-scope.js';
+	import CodeSelect from '../code-select.svelte';
+	import { live } from '../live.svelte.js';
 
 	let {
 		employment,
@@ -50,38 +47,6 @@
 	// The grounds a departure may record: the `TERMINATION_GROUND` rows in force on the last day.
 	const company = live(() => bolt.get('companies', employment.company_id, { settings_code: true }));
 	const settingsCode = $derived(company.current?.settings_code);
-	const versions = liveRows(() =>
-		settingsCode && lastDay
-			? bolt.read('jurisdiction_settings', {
-					select: {
-						code: true,
-						sealed_at: true,
-						voided_at: true,
-						approval_id: true,
-						effective_range: true
-					},
-					where: inForceSettings(settingsCode, lastDay),
-					all: true
-				})
-			: null
-	);
-	const version = $derived(
-		settingsInForce(versions.current ?? [], settingsCode ?? '', lastDay ?? '')
-	);
-	const grounds = liveRows<{ code: string; label: string | null; effective_range: unknown }>(() =>
-		version == null
-			? null
-			: bolt.read('reference_rows', {
-					where: { settings_id: { eq: version.id }, table: { eq: 'TERMINATION_GROUND' } } as never,
-					select: { code: true, label: true, effective_range: true },
-					all: true
-				})
-	);
-	const groundOptions = $derived(
-		(grounds.current ?? [])
-			.filter((row) => lastDay != null && coversDate(row.effective_range, lastDay as IsoDate))
-			.map((row) => ({ value: row.code, label: row.label ?? row.code }))
-	);
 	const lastDayValid = $derived(
 		lastDay != null && lastDay >= startDay && (endDay == null || lastDay <= endDay)
 	);
@@ -99,9 +64,10 @@
 				/>
 			</Labelled>
 			<Labelled label={t('component.exit_ground')} class="text-sm font-medium">
-				<Combobox
-					clearable
-					options={groundOptions}
+				<CodeSelect
+					{settingsCode}
+					day={lastDay}
+					table="TERMINATION_GROUND"
 					value={exitGround}
 					onChange={(next) => (exitGround = next)}
 				/>

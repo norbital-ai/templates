@@ -1,4 +1,9 @@
-import { factValueFault, type FactKey } from './datatypes/fact_keys.js';
+import {
+	factValueFault,
+	parentOf,
+	type CodeResolver,
+	type FactKey
+} from './datatypes/fact_keys.js';
 
 /**
  * (`declarations` are stored `fact_keys` values: the 0.0.1 row type spells an absent member `null`, the schema type
@@ -6,17 +11,23 @@ import { factValueFault, type FactKey } from './datatypes/fact_keys.js';
  *
  * Entity facts are judged against every sealed live version of the company's lineage: a company spans versions, so a
  * write admits a value some version of its lineage declares; calculations apply the exact constraints and required
- * fields of the version governing their date. The refusal, or null.
+ * fields of the version governing their date. With `codes` (`lineageCodes`), a `code` value must be a row of its
+ * table some version carries, under the code its `parent_fact` holds (`parents`: the subject's own columns). The
+ * refusal, or null.
  */
 export function entityFactsFault(
 	code: string,
 	values: Readonly<Record<string, unknown>>,
-	declarations: readonly object[]
+	declarations: readonly object[],
+	codes?: CodeResolver,
+	parents?: Readonly<Record<string, unknown>>
 ): string | null {
 	for (const [key, value] of Object.entries(values)) {
 		const matches = (declarations as readonly FactKey[]).filter((field) => field.key === key);
 		if (matches.length === 0) return `${code} does not declare the entity fact ${key}.`;
-		const faults = matches.map((field) => factValueFault(field, value));
+		const faults = matches.map((field) =>
+			factValueFault(field, value, codes, parentOf(field, values, parents))
+		);
 		if (faults.every((fault) => fault != null)) return `${code}: ${faults[0]}`;
 	}
 	return null;

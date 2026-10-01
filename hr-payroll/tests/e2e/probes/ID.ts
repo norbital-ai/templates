@@ -5119,10 +5119,17 @@ const unresolved = (
 	company: company({ region: worksite }),
 	inputs: [
 		...week('2025-06-02'),
-		...worker({ ref: 'place', wage: 10_000_000, worksite, sector: '62019' })
+		// A bare province whose localities all carry their own floor is refused where it is entered:
+		// the worksite dropdown lists wage places only (owner's rule 2026-10-01).
+		...worker({ ref: 'place', wage: 10_000_000, worksite, sector: '62019' }).map((input) =>
+			refused === bare(worksite) && input.collection === 'employment_terms'
+				? { ...input, refused: `worksite ${worksite} is not a wage place` }
+				: input
+		)
 	],
 	period,
-	refused,
+	// with no terms saved, the run itself refuses the uncovered person
+	refused: refused === bare(worksite) ? 'has no employment terms effective on' : refused,
 	expected: []
 });
 const bare = (province: string) =>
@@ -5937,7 +5944,7 @@ const round11: ProbeCase[] = [
 				wage: 10_000_000,
 				hire: '2025-12-01',
 				exit: '2026-01-30',
-				religion: 'KONGHUCU',
+				religion: 'CONFUCIAN',
 				exit_ground: 'RESIGNATION',
 				exit_facts: departure('VOLUNTARY_RESIGNATION', {
 					thr_holiday_date: '2026-02-17',
@@ -5953,7 +5960,7 @@ const round11: ProbeCase[] = [
 				type: 'CONTRACT',
 				hire: '2025-12-01',
 				exit: '2026-01-30',
-				religion: 'KONGHUCU',
+				religion: 'CONFUCIAN',
 				exit_ground: 'END_OF_CONTRACT',
 				exit_facts: departure(null, { thr_holiday_date: '2026-02-17' })
 			}),

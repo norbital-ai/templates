@@ -638,5 +638,8 @@ test('ID G14: a departure without the declared holiday skips the THR, and a malf
 		undeclared.warnings.join('\n'),
 		/LEAVER: adhoc THR was captured for 2027-02 and paid nothing — the departure record is incomplete: Religious holiday the THR is judged against is required/
 	);
-	assert.throws(world({ thr_holiday_date: '10/03/2027' }), /must be a date written YYYY-MM-DD/);
+	assert.throws(
+		world({ thr_holiday_date: '10/03/2027' }),
+		/must be an ISO calendar day \(YYYY-MM-DD\)/
+	);
 });

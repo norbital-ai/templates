@@ -3340,7 +3340,10 @@ register(
 			...restRestWeek('2024-01-01'),
 			...citizen('weekender', 'Hafiz Hujung', 2600, {
 				pattern: '@week_5d',
-				terms: { payroll_group: '5D' }
+				terms: {
+					payroll_group: '5D',
+					facts: { worksite_state: 'SELANGOR', contract_hours_per_week: 42.5 }
+				}
 			}),
 			worked('weekender_job', '2026-01-10', [['09:00', '13:00']], 4),
 			worked('weekender_job', '2026-01-11', [['09:00', '13:00']], 4)

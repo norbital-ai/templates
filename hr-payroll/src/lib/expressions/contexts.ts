@@ -127,11 +127,12 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 	{ path: 'employee.disabled', description: 'Disability flag' },
 	{
 		path: 'employee.race',
-		description: 'Recorded race, upper-cased, as a self-help fund row reads it'
+		description:
+			'Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty'
 	},
 	{
 		path: 'employee.religion',
-		description: 'Recorded religion, upper-cased (SG MBMF reads ISLAM)'
+		description: 'Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty'
 	},
 	{
 		path: 'employee.residency_months',
@@ -169,7 +170,10 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'PERMANENT | CONTRACT | PROBATION | INTERN | CONSULTANT | PART_TIME | APPRENTICE | DOMESTIC'
 	},
 	{ path: 'employment.classification', description: 'Work classification' },
-	{ path: 'employment.risk_class', description: 'The employment risk class, or empty' },
+	{
+		path: 'employment.risk_class',
+		description: 'The employment risk class: a `RISK_CLASS` code, or empty'
+	},
 	{
 		path: 'employment.service_days',
 		description:
@@ -2545,3 +2549,38 @@ export function openKeyMentions(
 	if (mentionKeys.size < MENTION_CACHE_CAP) mentionKeys.set(cacheKey, keys);
 	return keys;
 }
+
+/** What a claim's class or category is read from: a scheme's base and rule expressions. */
+type SchemeExpressions = {
+	readonly assessed_on: string;
+	readonly ordinary_on: string;
+	readonly rules: readonly {
+		readonly when: string;
+		readonly employee: string;
+		readonly employer: string;
+		readonly rebate?: string | null | undefined;
+		readonly deduction?: string | null | undefined;
+	}[];
+};
+
+/** Every expression of a scheme, base first. */
+export const schemeExpressions = (scheme: SchemeExpressions): string[] => [
+	scheme.assessed_on,
+	scheme.ordinary_on,
+	...scheme.rules.flatMap((rule) => [
+		rule.when,
+		rule.employee,
+		rule.employer,
+		rule.rebate ?? '',
+		rule.deduction ?? ''
+	])
+];
+
+/** The child relief classes a scheme reads (`scheme.child_claims.<class>`): the only ones a claim may name. */
+export const childClaimClasses = (scheme: SchemeExpressions): string[] => [
+	...new Set(
+		schemeExpressions(scheme).flatMap((expression) =>
+			openKeyMentions(expression, 'scheme.child_claims')
+		)
+	)
+];

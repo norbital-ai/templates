@@ -546,9 +546,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Termination notice date (YYYY-MM-DD, s.17)",
-				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+				"type": "date",
+				"label": "Termination notice date (s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
 			}
 		],
 		"work_day_facts": [
@@ -1431,9 +1431,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Termination notice date (YYYY-MM-DD, s.17)",
-				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+				"type": "date",
+				"label": "Termination notice date (s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
 			}
 		],
 		"work_day_facts": [
@@ -2344,9 +2344,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Termination notice date (YYYY-MM-DD, s.17)",
-				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+				"type": "date",
+				"label": "Termination notice date (s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
 			}
 		],
 		"work_day_facts": [
@@ -3250,9 +3250,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Termination notice date (YYYY-MM-DD, s.17)",
-				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+				"type": "date",
+				"label": "Termination notice date (s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
 			}
 		],
 		"work_day_facts": [
@@ -4197,9 +4197,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Termination notice date (YYYY-MM-DD, s.17)",
-				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+				"type": "date",
+				"label": "Termination notice date (s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
 			}
 		],
 		"work_day_facts": [
@@ -5172,9 +5172,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Termination notice date (YYYY-MM-DD, s.17)",
-				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+				"type": "date",
+				"label": "Termination notice date (s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
 			}
 		],
 		"work_day_facts": [
@@ -6147,9 +6147,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Termination notice date (YYYY-MM-DD, s.17)",
-				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+				"type": "date",
+				"label": "Termination notice date (s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
 			}
 		],
 		"work_day_facts": [
@@ -7122,9 +7122,9 @@
 			},
 			{
 				"key": "notice_given_on",
-				"type": "string",
-				"label": "Termination notice date (YYYY-MM-DD, s.17)",
-				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Blank or unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
+				"type": "date",
+				"label": "Termination notice date (s.17)",
+				"description": "Labour Protection Act s.17 para.2: the day the employer gave written notice ending the contract; it takes effect on the payday after the first payday on or after it. Unrecorded is no notice: s.17/1 pay in lieu then runs from the removal."
 			}
 		],
 		"work_day_facts": [

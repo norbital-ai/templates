@@ -9,6 +9,8 @@ import {
 import { entityDay } from '../../../lib/kiosk/entity-day.js';
 import { stableJson } from '../../../lib/jurisdiction_settings.js';
 import { refuse } from '../../../lib/refuse.js';
+import { CODED_FIELDS, codedFieldFault } from '../../../lib/coded-fields.js';
+import { personLineages } from '../../../lib/person-facts.js';
 
 /** A person, hired with their first contract in one write (the hire form and the kiosk enrolment). */
 const employees = collection('employees', {
@@ -135,10 +137,69 @@ export default employees;
 /**
  * The person. Child facts are append-only: close a wrong fact with its period and append the correction. `children`
  * defaults to `[]`. A kiosk enrolment creates the person and their first employment together; the stint's contract
- * number is the platform's sequence.
+ * number is the platform's sequence. Coded columns (`CODED_FIELDS`) are codes some lineage of the person declares.
  */
-employees.transform(async (inputs, { existing, refuse }) =>
-	inputs.map((input, index) => {
+employees.transform(async (inputs, { existing, db, refuse }) => {
+	// Coded columns as written: judged by the person's lineages (a hire's by its contract's), none without one.
+	const coded = (input: (typeof inputs)[number]) =>
+		CODED_KEYS.filter((field) => (input[field] ?? '').trim() !== '');
+	const judged = inputs.flatMap((input, index) => (coded(input).length === 0 ? [] : [index]));
+	const hires = judged.flatMap((index) =>
+		existing[index] == null
+			? (inputs[index]!.employments?.create ?? []).map((row) => String(row.company_id))
+			: []
+	);
+	const hiredBy =
+		hires.length === 0
+			? new Map<string, string>()
+			: new Map(
+					(
+						await db.read('companies', {
+							where: { id: { in: hires as never } },
+							select: { id: true, settings_code: true },
+							all: true
+						})
+					).rows.map((row) => [String(row.id), row.settings_code])
+				);
+	const lineages =
+		judged.length === 0
+			? null
+			: await personLineages(
+					db as never,
+					judged.flatMap((index) => (existing[index] == null ? [] : [String(existing[index]!.id)])),
+					Object.values(CODED_FIELDS.employees),
+					[...hiredBy.values()]
+				);
+	for (const index of judged) {
+		const input = inputs[index]!;
+		const stored = existing[index];
+		const codes =
+			stored == null
+				? [
+						...new Set(
+							(input.employments?.create ?? []).flatMap((row) => {
+								const code = hiredBy.get(String(row.company_id));
+								return code == null ? [] : [code];
+							})
+						)
+					]
+				: (lineages!.codesByEmployee.get(String(stored.id)) ?? []);
+		if (codes.length === 0) continue;
+		for (const field of coded(input)) {
+			const faults = codes.map((code) =>
+				codedFieldFault(
+					code,
+					field,
+					CODED_FIELDS.employees[field],
+					input[field],
+					lineages!.versions.filter((version) => version.code === code),
+					lineages!.codesOf(code)
+				)
+			);
+			if (faults.every((fault) => fault != null)) refuse(faults[0]!, { field });
+		}
+	}
+	return inputs.map((input, index) => {
 		const stored = existing[index];
 		if (stored == null) return input;
 		const next = input.children;
@@ -154,8 +215,10 @@ employees.transform(async (inputs, { existing, refuse }) =>
 				);
 		}
 		return input;
-	})
-);
+	});
+});
+
+const CODED_KEYS = Object.keys(CODED_FIELDS.employees) as (keyof typeof CODED_FIELDS.employees)[];
 
 employees.similarity('face', {
 	probe: ({ probe }) => ({

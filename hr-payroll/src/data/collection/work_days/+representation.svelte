@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CodeSelect from '../../../lib/ui/code-select.svelte';
 	import { t } from '../../../lib/ui/t.js';
 	import { everyField } from '../../../lib/every-field.js';
 	/**
@@ -1005,11 +1006,14 @@
 		{/if}
 		{#if wageDayWritable}
 			<Cluster gap="sm" align="center">
-				<label for="workday-site">{t('roster.day_sheet_worksite')}</label>
-				<Input
-					id="workday-site"
+				<span class="text-sm">{t('roster.day_sheet_worksite')}</span>
+				<CodeSelect
+					{settingsCode}
+					day={workDate}
+					wage="places"
 					value={draftWorksite}
-					oninput={(event) => (draftWorksite = event.currentTarget.value)}
+					aria-label={t('roster.day_sheet_worksite')}
+					onChange={(next) => (draftWorksite = next ?? '')}
 				/>
 			</Cluster>
 			{#if workDate != null && termOn(workDate)?.statutory_work_category === 'PIECE_RATE'}

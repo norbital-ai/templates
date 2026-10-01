@@ -3929,7 +3929,7 @@ register(
 	jp({
 		id: 'JP-SFMW-SCOPE',
 		description:
-			'September 2026 at 北海道 鉄鋼業 worksites (JP-SF002, 1,165 against the regional 1,075): a covered 36-year-old is topped up to 1,165; a 66-year-old, a 17-year-old and a worker the order excludes (recorded specific_mw_excluded) get the regional floor only; a 青森県 worksite recorded under the 北海道 determination gets 青森県’s regional floor.',
+			'September 2026 at 北海道 鉄鋼業 worksites (JP-SF002, 1,165 against the regional 1,075): a covered 36-year-old is topped up to 1,165; a 66-year-old, a 17-year-old and a worker the order excludes (recorded specific_mw_excluded) get the regional floor only; a 青森県 worksite (a 北海道 determination recorded there is refused at write) gets 青森県’s regional floor.',
 		citation: [
 			...SPECIFIC_SRC,
 			...SI,
@@ -3945,7 +3945,13 @@ register(
 			specificSite('SF002', '北海道', 'ws_senior'),
 			specificSite('SF002', '北海道', 'ws_minor'),
 			specificSite('SF002', '北海道', 'ws_trainee'),
-			specificSite('SF002', '青森県', 'ws_aomori')
+			// A 北海道 determination recorded at a 青森県 establishment is refused at write (the industry
+			// list is the worksite prefecture's own), so the 青森県 worksite records no industry: its
+			// regional floor binds either way (最低賃金法 §15–§16).
+			{
+				...specificSite('SF002', '青森県', 'ws_aomori'),
+				values: { ...specificSite('SF002', '青森県', 'ws_aomori').values, facts: {} }
+			}
 		],
 		people: [
 			specificWorker('SF002', '北海道'),

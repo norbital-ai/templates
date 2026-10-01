@@ -704,6 +704,12 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"duty_types": [
@@ -1431,6 +1437,12 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -2162,6 +2174,12 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"duty_types": [
@@ -2881,6 +2899,12 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -3613,6 +3637,12 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"duty_types": [
@@ -4343,6 +4373,12 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"duty_types": [
@@ -5064,6 +5100,12 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -5798,6 +5840,12 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"duty_types": [
@@ -6528,6 +6576,12 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -7272,6 +7326,12 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"duty_types": [
@@ -8012,6 +8072,12 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -8768,6 +8834,12 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -9975,6 +10047,12 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"duty_types": [
@@ -11155,6 +11233,12 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "Occupational accident insurance industry class (companies.risk_class): the row of the 勞工職業災害保險適用行業別及費率表 (BLI, from 1 January 2025) whose rate OCC_INJURY applies, 1 to 55.",
 				"keys": ["code"],
 				"columns": []
 			}

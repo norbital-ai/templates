@@ -320,7 +320,7 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	// 财税〔2018〕164号 item 5(1) (from 1 Jan 2019): LCL art.46-47 economic compensation is exempt to
 	// three times the local prior-year average wage and the excess is not added to comprehensive
 	// income, taxed alone (http://szs.mof.gov.cn/zhengcefabu/201812/t20181227_3110164.htm).
-	'CN-shanghai': {
+	CN: {
 		ANNUAL_BONUS_SEPARATE: ['IIT_BONUS', 'WAGES'],
 		BONUS: ['IIT', 'WAGES'],
 		// The allowance offset takes a fund benefit back off the wage: it leaves the IIT base (财税〔2008〕8号
@@ -379,7 +379,6 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		DISMISSAL_NOTICE_PAY: ['RESIDENT_TAX', 'RESIDENT_TAX_RETIREMENT', 'RETIREMENT_INCOME_TAX']
 	}
 };
-MATRIX['CN-kunming'] = MATRIX['CN-shanghai'];
 
 /** The classes the law owes on separation, raised by off-boarding for an eligible leaver. */
 const SEPARATION = new Set([

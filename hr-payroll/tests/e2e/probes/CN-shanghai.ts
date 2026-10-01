@@ -1,7 +1,7 @@
 import { register, type ProbeCase, type ProbeInput, type Row } from '../payroll-probe.ts';
 
 /**
- * CN-shanghai cases: see the case shape at the top of payroll-probe.ts. Every figure is computed by hand from the
+ * CN-shanghai cases (the Shanghai profile of the CN lineage): see the case shape at the top of payroll-probe.ts. Every figure is computed by hand from the
  * instrument each citation names; the case id is the register row (docs/inventory/china.csv) it prices.
  *
  * Held for every case (the recorded inputs, not law):
@@ -46,6 +46,13 @@ const SOURCES = {
 	proration:
 		'Part month: the monthly wage ÷ 21.75 for each working day employed, a whole month never more than the month; a rate change splits the month by its working days (人社部发〔2025〕2号, https://www.mohrss.gov.cn/SYrlzyhshbzb/laodongguanxi_/zcwj/202501/t20250101_533693.html; law silent on proration: the recorded seed default, CN-N02)'
 } as const;
+
+/**
+ * The Shanghai profile of the one CN lineage: the entity is registered in Shanghai (`company.region`, which
+ * the city's employer duties read) and every worker's terms record the SHANGHAI worksite, whose locality
+ * selects the city law.
+ */
+const SH_COMPANY = { settings_code: 'CN', region: 'SHANGHAI' } as const;
 
 const FACTS = {
 	injury_rate: 0.2,
@@ -241,7 +248,7 @@ register(
 			`${SOURCES.iitResident}: 20,000 − 3,500 − 5,000 = 11,500 × 3% = 345`,
 			'Net 20,000 − 3,500 − 345 = 16,155; employer 3,200 + 1,800 + 100 + 40 + 1,400 = 6,540'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-01'),
 			...hire('li', {
@@ -282,7 +289,7 @@ register(
 			`${SOURCES.iitResident}: 50,000 − 6,527.71 − 5,000 = 38,472.29 → × 10% − 2,520 = 1,327.23; 47,527.71 − 6,527.71 − 5,000 = 36,000.00 → × 3% = 1,080.00 (the band seam, and 10% − 2,520 gives the same)`,
 			'Net 50,000 − 6,527.71 − 1,327.23 = 42,145.06 and 47,527.71 − 6,527.71 − 1,080 = 39,920.00; employer 5,968.32 + 3,357.18 + 186.51 + 74.60 + 2,611 = 12,197.61 each'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-01'),
 			...hire('zhang', {
@@ -340,7 +347,7 @@ register(
 			`${SOURCES.iitNonResident}: 9,000 − 5,000 = 4,000 × 10% − 210 = 190; 30,000 − 5,000 = 25,000 × 20% − 1,410 = 3,590 (the band seam)`,
 			'Net 9,000 − 971.30 − 190 = 7,838.70 and 30,000 − 3,150 − 3,590 = 23,260; employer 1,193.60 + 671.40 + 37.30 + 14.92 + 188 = 2,105.22 and 4,800 + 2,700 + 150 + 60 = 7,710'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2024-03-04'),
 			...hire('sato', {
@@ -404,7 +411,7 @@ register(
 			`${SOURCES.iitResident}: 13,000 − 2,283.75 − 5,000 = 5,716.25 × 3% = 171.4875 → 171.49`,
 			'Net 13,000 − 2,283.75 − 171.49 = 10,544.76; employer 3,480 + 1,957.50 + 108.75 + 43.50 = 5,589.75'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-01'),
 			...hire('chen', {
@@ -445,7 +452,7 @@ register(
 			`${SOURCES.iitResident}: January is the first month of the tax year: 19,750 − 3,806.75 − 5,000 = 10,943.25 × 3% = 328.2975 → 328.30`,
 			'Net 19,750 − 3,806.75 − 328.30 = 15,614.95; employer 3,480 + 1,957.50 + 108.75 + 43.50 + 1,523 = 7,112.75'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('zhao', {
@@ -494,7 +501,7 @@ register(
 			`${SOURCES.iitResident}: 24,000 − 3,806.75 − 5,000 = 15,193.25 × 3% = 455.7975 → 455.80`,
 			'Net 24,000 − 3,806.75 − 455.80 = 19,737.45; employer 7,112.75'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			{
@@ -559,7 +566,7 @@ register(
 			`${SOURCES.iitResident}: January 22,000 − 3,850 − 5,000 = 13,150 → 394.50; February cumulative 26,300 → 789 − 394.50 = 394.50; March cumulative 68,400 − 11,550 − 15,000 = 41,850 → 41,850 × 10% − 2,520 = 1,665 − 789 = 876`,
 			'Net 24,400 − 3,850 − 876 = 19,674; employer 3,520 + 1,980 + 110 + 44 + 1,540 = 7,194'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('liu', {
@@ -604,7 +611,7 @@ register(
 			`${SOURCES.iitResident}: January 43,500 − 6,527.71 − 5,000 = 31,972.29 → 959.17; February cumulative 63,944.58 → 3,874.458 − 959.17 = 2,915.29; March cumulative 111,000 − 19,583.13 − 15,000 = 76,416.87 → 5,121.687 − 3,874.46 = 1,247.23 (the leave pay is wages; the compensation is taxed apart)`,
 			'Net 20,000 + 4,000 + 18,865.50 − 6,527.71 − 1,247.23 = 35,090.56; employer 5,968.32 + 3,357.18 + 186.51 + 74.60 + 2,611 = 12,197.61'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-01'),
 			...hire('huang', {
@@ -676,7 +683,7 @@ register(
 			`${SOURCES.si2025}; ${SOURCES.pension}: 1,600 / 3,200; ${SOURCES.medical2025}: 400 / 1,800; ${SOURCES.unemployment2026}: 100 / 100; ${SOURCES.injury}: 40; housing fund 1,400 each side — on the declared base, not the bonus month`,
 			'Net 56,000 − 3,500 − 345 − 1,080 = 51,075 and 40,000 − 3,500 − 945 = 35,555; employer 6,540 each'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('zhou', {
@@ -752,7 +759,7 @@ register(
 			`${SOURCES.iitResident}: a re-employed retiree’s pay is wage income (国税函〔2005〕382号): 10,000 − 0 − 5,000 = 5,000 × 3% = 150`,
 			'Net 10,000 − 150 = 9,850; employer cost 0'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('ma', {
@@ -786,7 +793,7 @@ register(
 			`${SOURCES.iitResident}: July is the first month employed here: 40,000 − 8,489.76 − 5,000 = 26,510.24 × 3% = 795.3072 → 795.31; 4,100 − 1,284.33 − 5,000 is negative: nothing`,
 			'Net 40,000 − 8,489.76 − 795.31 = 30,714.93 and 4,100 − 1,284.33 = 2,815.67 (above the 2,740 net floor, 沪人社规〔2025〕10号); employer 6,036.96 + 3,395.79 + 188.66 + 75.46 + 4,528 = 14,224.87 and 1,207.36 + 679.14 + 37.73 + 15.09 + 492 = 2,431.32'
 		],
-		company: { facts: { ...FACTS, housing_fund_supplementary_rate: 5 } },
+		company: { ...SH_COMPANY, facts: { ...FACTS, housing_fund_supplementary_rate: 5 } },
 		inputs: [
 			...cnWeek('2026-06-29'),
 			...hire('gao', {
@@ -840,7 +847,7 @@ register(
 			`${SOURCES.iitResident}: 3,798.33 − 1,058.33 − 5,000 is negative: nothing`,
 			'Net 2,740.00; employer 1,207.36 + 679.14 + 37.73 + 15.09 + 266 = 2,205.32'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2026-06-29'),
 			...hire('he', {
@@ -875,7 +882,7 @@ register(
 			`${SOURCES.iitResident}: 10,300 − 1,750 − 5,000 = 3,550 × 3% = 106.50`,
 			'Net 10,300 − 1,750 − 106.50 = 8,443.50; employer 1,600 + 900 + 50 + 20 + 700 = 3,270'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2026-06-29'),
 			...hire('xu', {
@@ -916,7 +923,7 @@ register(
 			`${SOURCES.iitResident}: 20,000 − 3,500 − 5,000 = 11,500 × 3% = 345`,
 			'Net 16,155; employer 6,540'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('qian', {
@@ -969,7 +976,7 @@ register(
 			`${SOURCES.iitResident}: June is the first month employed here: 40,000 − 6,527.71 − 5,000 = 28,472.29 × 3% = 854.1687 → 854.17`,
 			'Net 40,000 − 6,527.71 − 854.17 = 32,618.12; employer 5,968.32 + 3,357.18 + 186.51 + 74.60 + 2,611 = 12,197.61'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2026-06-01'),
 			...hire('kong', {
@@ -1006,7 +1013,7 @@ register(
 			`${SOURCES.iitResident}: 10,010 − 2,253.05 − 5,000 = 2,756.95 × 3% = 82.7085 → 82.71`,
 			'Net 10,010 − 2,253.05 − 82.71 = 7,674.24; employer 1,601.60 + 900.90 + 50.05 + 20.02 + 1,202 = 3,774.57'
 		],
-		company: { facts: { ...FACTS, housing_fund_supplementary_rate: 5 } },
+		company: { ...SH_COMPANY, facts: { ...FACTS, housing_fund_supplementary_rate: 5 } },
 		inputs: [
 			...cnWeek('2025-12-01'),
 			...hire('fang', {
@@ -1043,7 +1050,7 @@ register(
 			`${SOURCES.iitResident}: May is the first month employed here: 10,000 − 1,750 − 5,000 = 3,250 × 3% = 97.50`,
 			'Net 10,000 − 1,750 − 97.50 = 8,152.50; employer 1,600 + 900 + 50 + 20 + 700 = 3,270'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2026-04-27'),
 			...hire('tang', {
@@ -1083,7 +1090,7 @@ register(
 			`${SOURCES.iitResident}: January is the first month of the tax year: 21,750 − 3,806.75 − 5,000 = 12,943.25 × 3% = 388.2975 → 388.30`,
 			'Net 21,750 − 3,806.75 − 388.30 = 17,554.95; employer 3,480 + 1,957.50 + 108.75 + 43.50 + 1,523 = 7,112.75'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-01'),
 			...hire('chen', {
@@ -1145,7 +1152,7 @@ const paidLeaveJan = (
 	profile: 'CN-shanghai',
 	description,
 	citation: [citation, LEAVE_PAY, ...JAN_20000],
-	company: { facts: FACTS },
+	company: { ...SH_COMPANY, facts: FACTS },
 	inputs: [
 		...cnWeek('2025-06-02'),
 		...hire('p', {
@@ -1199,7 +1206,7 @@ register(
 			MIN_WAGE,
 			`${SOURCES.si2025}: 2,740 insures on the 7,460 floor: pension 596.80, medical 149.20, unemployment 37.30 (the recorded 0.5%); ${SOURCES.hf2025}: 2,740 × 7% = 191.80 → 192. Shares 975.30; 2,740 − 975.30 = 1,764.70 < 2,740`
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('low', {
@@ -1225,7 +1232,7 @@ register(
 			'沪人社规〔2019〕19号 items 1–3 (https://service.shanghai.gov.cn/XingZhengWenDangKuJyh/XZGFDetails.aspx?docid=REPORT_NDOC_004501): the CNY300 heat allowance, June–September (CN-SH19); item 1(2) of the minimum-wage notice leaves it out of the comparison',
 			`${SOURCES.si2026}: 3,700 insures on the 7,546 floor: pension 603.68, medical 150.92, unemployment 37.73; ${SOURCES.hf2026}: 3,700 × 7% = 259. Shares 1,051.33; 3,700 − 1,051.33 = 2,648.67 < 2,740 (with the allowance it would be 2,948.67)`
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2026-06-29'),
 			...hire('heat', {
@@ -1255,7 +1262,7 @@ register(
 			`${SOURCES.iitResident}: 11,126.44 − 3,850 − 5,000 = 2,276.44 × 3% = 68.2932 → 68.29; 22,000 − 3,850 − 5,000 = 13,150 × 3% = 394.50`,
 			'Net 11,126.44 − 3,850 − 68.29 = 7,208.15 and 22,000 − 3,850 − 394.50 = 17,755.50; employer 3,520 + 1,980 + 110 + 44 + 1,540 = 7,194 each. A resignation (LCL art.37) owes no compensation (art.46)'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...(
@@ -1317,7 +1324,7 @@ register(
 			`${SOURCES.iitResident}: 27,125 − 3,806.75 − 5,000 = 18,318.25 × 3% = 549.5475 → 549.55; 21,750 − 3,806.75 − 5,000 = 12,943.25 × 3% = 388.2975 → 388.30`,
 			'Net 27,125 − 3,806.75 − 549.55 = 22,768.70 and 21,750 − 3,806.75 − 388.30 = 17,554.95; employer 7,112.75 each'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('ye', {
@@ -1401,7 +1408,7 @@ register(
 			`${SOURCES.iitResident}: February cumulative 40,000 − 7,000 − 10,000 = 23,000 × 3% = 690 − 345 withheld in January = 345`,
 			'Net 20,000 − 3,500 − 345 = 16,155; employer 6,540'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('du', {
@@ -1426,7 +1433,7 @@ register(
 			...JAN_20000.slice(0, 2),
 			'Net 16,155; employer 3,200 + 1,800 + 100 + 380 + 1,400 = 6,880'
 		],
-		company: { facts: { ...FACTS, injury_rate: 1.9 } },
+		company: { ...SH_COMPANY, facts: { ...FACTS, injury_rate: 1.9 } },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('bai', {
@@ -1522,7 +1529,7 @@ register(
 			`${SOURCES.si2026}; ${SOURCES.pension}: 1,600 / 3,200; ${SOURCES.medical2026}: 400 / 1,800; ${SOURCES.unemployment2026}: 100 / 100; ${SOURCES.injury}: 40; ${SOURCES.hf2026}: 1,400 each side — insurance continues on the declared base during the leave`,
 			'Net 5,000 − 3,500 = 1,500; employer 6,540'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('jin', {
@@ -1578,7 +1585,7 @@ register(
 			`${SOURCES.iitResident}: August is the first month employed here: 10,500 − 1,750 − 5,000 = 3,750 × 3% = 112.50`,
 			'Net 10,500 − 1,750 − 112.50 = 8,637.50; employer 3,270'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2026-07-27'),
 			...hire('lei', {
@@ -1620,7 +1627,7 @@ register(
 			`${SOURCES.iitResident}: 4,100 − 984.33 − 5,000 is negative: nothing`,
 			'Net 3,115.67; employer 1,207.36 + 679.14 + 37.73 + 15.09 + 192 = 2,131.32'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-22'),
 			...hire('wen', {
@@ -1659,7 +1666,7 @@ register(
 			`${SOURCES.iitResident}: January 959.17 and February 2,915.29 (CN-SH50-1); March cumulative 107,000 − 19,583.13 − 15,000 = 72,416.87 × 10% − 2,520 = 4,721.687 − 3,874.46 = 847.23. January 345, February 345; March cumulative 49,195.40 − 10,500 − 15,000 = 23,695.40 × 3% = 710.862 − 690 = 20.86`,
 			'Net 472,772 − 6,527.71 − 847.23 = 465,397.06 and 69,195.40 − 3,500 − 20.86 = 65,674.54; employer 12,197.61 and 6,540'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-01'),
 			...(
@@ -1730,7 +1737,7 @@ register(
 			`${SOURCES.iitResident}: December is the only month employed here in 2025: 50,000 − 6,527.71 − 5,000 = 38,472.29 × 10% − 2,520 = 1,327.23`,
 			'Net 68,651 − 6,527.71 − 1,327.23 = 60,796.06; employer 12,197.61'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-01'),
 			...hire('dong', {
@@ -1774,7 +1781,7 @@ register(
 			`${SOURCES.si2025}: 30,000 in bounds; foreign employees are insured like citizens (CN-N25): ${SOURCES.pension} 2,400 / 4,800; ${SOURCES.medical2025} 600 / 2,700; ${SOURCES.unemployment2026} 150 / 150; ${SOURCES.injury} 60. No fund without agreement (CN-SH41)`,
 			'Net 90,000 − 3,150 − 3,590 − 4,740 = 78,520; employer 4,800 + 2,700 + 150 + 60 = 7,710'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2024-03-04'),
 			...hire('klein', {
@@ -1814,7 +1821,7 @@ register(
 		citation: [
 			'MOF/STA 2023 No.30 (https://fgk.chinatax.gov.cn/zcfgk/c102416/c5211524/content.html) and 国税发〔2005〕9号 item 3 (https://www.chinatax.gov.cn/n810341/n810765/n812188/n812950/c1201370/content.html): 在一个纳税年度内，对每一个纳税人，该计税办法只允许采用一次 (CN-N10)'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('feng', {
@@ -1843,7 +1850,7 @@ register(
 			`${SOURCES.si2025}; 10,000: pension 800 / 1,600, medical 200 / 900, unemployment 50 / 50, injury 20, fund 700; 20,000: 1,600 / 3,200, 400 / 1,800, 100 / 100, 40, fund 1,400`,
 			'Net 10,000 − 1,750 = 8,250 and 20,000 − 3,500 − 300 = 16,200; employer 3,270 and 6,540'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('tian', {
@@ -1907,7 +1914,7 @@ register(
 			`${SOURCES.si2026}; ${SOURCES.pension}: 1,600 / 3,200; ${SOURCES.medical2026}: 400 / 1,800; ${SOURCES.unemployment2026}: 100 / 100; ${SOURCES.injury}: 40; ${SOURCES.hf2026}: 1,400 each side (a transferred account from the first month)`,
 			'Net 16,500 and 16,155; employer 6,540 each'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2026-06-29'),
 			...hire('qu', {
@@ -1959,13 +1966,14 @@ const claimant = (
 	id: string,
 	description: string,
 	citation: string[],
-	claims: Row[]
+	claims: Row[],
+	elections?: Row
 ): ProbeCase => ({
 	id,
 	profile: 'CN-shanghai',
 	description,
 	citation,
-	company: { facts: FACTS },
+	company: { ...SH_COMPANY, facts: FACTS },
 	inputs: [
 		...cnWeek('2025-06-02'),
 		...hire('c', {
@@ -1976,6 +1984,7 @@ const claimant = (
 			hf: { contribution_base: 20000 }
 		}),
 		iitRegistration('c', {
+			...(elections == null ? {} : { elections }),
 			deduction_claims: claims.map((claim) => ({
 				period: '2026-01',
 				source: 'EMPLOYEE',
@@ -2016,7 +2025,9 @@ register(
 			[
 				{ category: 'CHILD_EDUCATION', amount: 2000 },
 				{ category: 'ELDERLY_SUPPORT', amount: 3000 }
-			]
+			],
+			// The national cap (3,000 only for an only child, a share of at most 1,500 otherwise) reads the election.
+			{ elderly_support_only_child: true }
 		),
 		expected: [
 			{
@@ -2043,7 +2054,7 @@ register(
 			`${SOURCES.si2025}; ${SOURCES.pension}: 1,600 / 3,200; ${SOURCES.medical2026}: 400 / 1,800; ${SOURCES.unemployment2026}: 100 / 100; ${SOURCES.injury}: 40; ${SOURCES.hf2025}: 1,400 each side`,
 			'Net 5,000 − 3,500 = 1,500; employer 6,540'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('lu', {
@@ -2104,7 +2115,7 @@ register(
 			`${SOURCES.si2025}; ${SOURCES.pension}: 1,600 / 3,200; ${SOURCES.medical2025}: 400 / 1,800; ${SOURCES.unemployment2026}: 100 / 100; ${SOURCES.injury}: 40; housing fund 1,400 each side on the declared base`,
 			'Gross 20,000 + 650 = 20,650; net 20,650 − 3,500 − 345 = 16,805; employer 6,540'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('gu', {
@@ -2156,7 +2167,7 @@ register(
 			`${SOURCES.iitResident}: one month employed here in 2026: 50,000 − 6,527.71 − 5,000 = 38,472.29 × 10% − 2,520 = 1,327.23`,
 			'Net 955,544 − 6,527.71 − 1,327.23 − 82,911.60 = 864,777.46; employer 12,197.61'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2026-06-01'),
 			...hire('su', {
@@ -2234,7 +2245,7 @@ register(
 			`${SOURCES.iitResident}: January–March 10,000 − 1,750 − 5,000 = 3,250 × 3% = 97.50 a month (292.50 withheld). April: 65,000 − 7,000 − 20,000 = 38,000 × 10% − 2,520 = 1,280 − 292.50 = 987.50; 75,000 − 7,000 − 20,000 = 48,000 × 10% − 2,520 = 2,280 − 292.50 = 1,987.50; the April joiner is month one here: 97.50`,
 			'Net 35,000 − 1,750 − 987.50 = 32,262.50; 45,000 − 1,750 − 1,987.50 = 41,262.50; 10,000 − 1,750 − 97.50 = 8,152.50; employer 3,270 each'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2015-12-28'),
 			...tenK('nwc', 'Kong Wei', '2026-01-01'),
@@ -2301,7 +2312,7 @@ register(
 			`${SOURCES.iitResident}: January 8,000 − 1,400 − 5,000 = 1,600 × 3% = 48; February 26,000 − 2,800 − 10,000 = 13,200 × 3% = 396 − 48 = 348. January 7,000 − 1,273.30 − 5,000 = 726.70 × 3% = 21.80; February 16,000 − 2,546.60 − 10,000 = 3,453.40 × 3% = 103.60 − 21.80 = 81.80. January 97.50; February 30,000 − 3,500 − 10,000 = 16,500 × 3% = 495 − 97.50 = 397.50`,
 			'Net 18,000 − 1,400 − 348 = 16,252; 9,000 − 1,273.30 − 81.80 = 7,644.90; 20,000 − 1,750 − 397.50 = 17,852.50'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-29'),
 			...hire('pa', {
@@ -2397,7 +2408,7 @@ register(
 			`${SOURCES.iitResident}: January–May 97.50 a month (487.50); June 60,000 − 10,500 − 30,000 = 19,500 × 3% = 585 − 487.50 = 97.50 each (the compensation is taxed apart)`,
 			'Net 20,000 − 1,847.50 = 18,152.50; 10,000 − 1,847.50 = 8,152.50; 30,000 − 1,847.50 = 28,152.50; employer 3,270 each'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-29'),
 			...(
@@ -2478,7 +2489,7 @@ register(
 			'职工带薪年休假条例 (https://xzfg.moj.gov.cn/front/law/detail?LawID=208, re-read 30 Sep 2026) art.2: 职工连续工作1年以上的，享受带薪年休假 … 职工在年休假期间享受与正常工作期间相同的工资收入; art.3: 职工累计工作已满1年不满10年的，年休假5天 … 法定假日、休息日不计入年休假的假期 (CN-N05, CN-N06): 24 + 7 = 31 months → 5 working days; a sixth is refused. Three months’ work → no entitlement yet',
 			...JAN_20000
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('al', {
@@ -2552,7 +2563,7 @@ register(
 			`${SOURCES.iitResident}: January 959.17 and February 2,915.29 (CN-SH50-1); March 115,000 − 19,583.13 − 15,000 = 80,416.87 × 10% − 2,520 = 5,521.69 − 3,874.46 = 1,647.23`,
 			'Net 28,000 − 6,527.71 − 1,647.23 = 19,825.06; employer 12,197.61'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-01'),
 			...hire('yao', {
@@ -2613,7 +2624,7 @@ register(
 			`${SOURCES.iitResident}: 22,875 − 3,806.75 − 5,000 = 14,068.25 × 3% = 422.05`,
 			'Net 22,875 − 3,806.75 − 422.05 = 18,646.20; employer 7,112.75'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			{
@@ -2674,7 +2685,7 @@ register(
 			`${SOURCES.iitResident}: 20,000 − 3,100 − 5,000 = 11,900 × 3% = 357`,
 			'Net 20,000 − 3,100 − 357 = 16,543; employer 3,200 + 1,800 + 100 + 40 + 1,000 = 6,140'
 		],
-		company: { facts: { ...FACTS, housing_fund_rate: 5 } },
+		company: { ...SH_COMPANY, facts: { ...FACTS, housing_fund_rate: 5 } },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('yin', {
@@ -2760,7 +2771,7 @@ register(
 			MIN_WAGE,
 			`${SOURCES.si2025}: 3,000 insures on the 7,460 floor, foreign employees like citizens (Social Insurance Law art.97): pension 596.80, medical 149.20, unemployment 37.30 = 783.30; no fund without agreement (CN-SH41). 3,000 − 783.30 = 2,216.70 < 2,740`
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('rossi', {
@@ -2941,7 +2952,7 @@ register(
 			`${SOURCES.iitResident}: 20,250 − 3,806.75 − 5,000 = 11,443.25 × 3% = 343.2975 → 343.30`,
 			'Net 20,250 − 3,806.75 − 343.30 = 16,099.95'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2023-01-02'),
 			...hire('sick', {
@@ -2979,7 +2990,7 @@ register(
 			`${SOURCES.iitResident}: the first month employed here: 19,052.34 − 3,806.75 − 5,000 = 10,245.59 × 3% = 307.3677 → 307.37`,
 			'Net 19,052.34 − 3,806.75 − 307.37 = 14,938.22'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2026-08-31'),
 			...hire('flu', {
@@ -3015,7 +3026,7 @@ register(
 			`${DAMAGE}: 20,000 × 20% = 4,000 ≥ 4,000; 16,155 − 4,000 = 12,155 ≥ 2,740`,
 			`The slip otherwise: ${SOURCES.si2025}; employee shares 1,600 + 400 + 100 + housing fund 1,400 = 3,500; ${SOURCES.iitResident}: (20,000 − 3,500 − 5,000) × 3% = 345; net 16,155. The recovery enters no insured or taxable wage → net 12,155`
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [...worker20000(), damage(4000)],
 		period: '2026-01',
 		expected: [
@@ -3031,7 +3042,7 @@ register(
 		description:
 			'January 2026, CNY4,000.01 of damage from a CNY20,000 wage: one fen over 20% of the month, so the run is refused.',
 		citation: [`${DAMAGE}: 4,000.01 > 20,000 × 20% = 4,000`],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [...worker20000(), damage(4000.01)],
 		period: '2026-01',
 		refused: 'at most 20% of the month',
@@ -3046,7 +3057,7 @@ register(
 			'沪人社规〔2025〕10号 item 1(1) (https://rsj.sh.gov.cn/tgzfl_17732/20250714/t0035_1434097.html): from 1 July 2025 the non-full-time hourly minimum wage is CNY25; 24 < 25 (CN-SH01.hourly-floor)',
 			`January unchanged: ${SOURCES.si2025}; employee shares 1,600 + 400 + 100 + housing fund 1,400 = 3,500; ${SOURCES.iitResident}: (20,000 − 3,500 − 5,000) × 3% = 345; net 16,155`
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...worker20000('2025-06-02', '2026-01-31'),
 			{
@@ -3080,7 +3091,7 @@ register(
 		citation: [
 			'Labour Contract Law art.72 (https://flk.npc.gov.cn): 非全日制用工劳动报酬结算支付周期最长不得超过十五日; 上海市企业工资支付办法 (CN-SH02). A monthly payroll settles once a month (recorded default: a weekly or semi-monthly payroll settles within the cycle)'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-06-02'),
 			...hire('pt', {
@@ -3108,7 +3119,7 @@ register(
 			'Housing Provident Fund Regulation art.19 (https://www.gov.cn/zhengce/content/202608/content_7078477.htm): both shares remitted within five days after payday → 31 January + 5 = 5 February 2026 (CN-SH43.remittance-five-days)',
 			'Shanghai Tax Bureau 2026 Notice No. 1 (https://shanghai.chinatax.gov.cn/zcfw/zcfgk/sbf/202604/t480144.html): the 2026 base declaration by 25 June 2026 (CN-SH36)'
 		],
-		company: { facts: FACTS },
+		company: { ...SH_COMPANY, facts: FACTS },
 		inputs: [
 			...cnWeek('2025-12-29'),
 			...hire('li', {

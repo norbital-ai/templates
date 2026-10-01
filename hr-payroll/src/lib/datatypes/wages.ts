@@ -280,6 +280,12 @@ export const wagesValueSchema = Schema.Struct({
 	 * employee's statutory social insurance and housing fund). Absent compares the contract gross.
 	 */
 	net_of_employee_schemes: Schema.optionalKey(Schema.NullOr(Schema.Array(Schema.String))),
+	/**
+	 * Who the floor is net of `net_of_employee_schemes` for, over the person; absent is everyone.
+	 * One lineage whose localities state the floor differently (net in one city, gross in another)
+	 * names the localities here.
+	 */
+	net_of_employee_schemes_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/** A covered under-floor contract that must prevent a payroll run, over the person. */
 	block_below_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/**
@@ -353,6 +359,14 @@ export const wagesValueSchema = Schema.Struct({
 						expression: wages.block_below_when,
 						site: 'person',
 						type: 'boolean'
+					})) ??
+			(wages.net_of_employee_schemes_when == null ||
+			wages.net_of_employee_schemes_when.trim() === ''
+				? null
+				: compileExpression({
+						expression: wages.net_of_employee_schemes_when,
+						site: 'person',
+						type: 'boolean'
 					}));
 		return fault == null || `Minimum wage coverage: ${fault}`;
 	})
@@ -390,3 +404,63 @@ export function placeWage(table: Readonly<Record<string, number>>, place: string
 export const standard = Schema.toStandardSchemaV1(wagesValueSchema, {
 	parseOptions: { onExcessProperty: 'error' }
 });
+
+const unique = (keys: readonly string[]): string[] => [...new Set(keys)];
+
+type Opt<T> = T | null | undefined;
+
+/** What the key lists read of a wage order: the stored row's shape as much as the schema's. */
+export type WageKeySource = {
+	readonly by_region?: Opt<Readonly<Record<string, number>>>;
+	readonly hourly_by_region?: Opt<Readonly<Record<string, number>>>;
+	readonly workplace_keyed?: Opt<boolean>;
+	readonly daily_by_worksite?: Opt<Readonly<Record<string, number>>>;
+	readonly daily_by_sector?: Opt<Readonly<Record<string, number>>>;
+	readonly classified_by_worksite?: Opt<{
+		readonly rows: readonly { readonly worksite: string; readonly sector?: Opt<string> }[];
+	}>;
+	readonly monthly_by_sector?: Opt<
+		readonly { readonly place: string; readonly sector_codes: readonly string[] }[]
+	>;
+	readonly verified_ordinary_sectors?: Opt<readonly { readonly sector_code: string }[]>;
+	readonly sector_code_pattern?: Opt<string>;
+};
+
+/**
+ * The worksites a version's wage order prices (`employment_terms.worksite`, `work_days.worksite`,
+ * `jurisdiction_holidays.worksite`): `by_region` where it names workplaces, the daily worksite
+ * table, the classified rows and the sector rows' places. Empty: the lineage does not key a wage
+ * by worksite.
+ */
+export const wagePlaces = (wages: WageKeySource | null | undefined): string[] =>
+	wages == null
+		? []
+		: unique([
+				...(wages.workplace_keyed ? Object.keys(wages.by_region ?? {}) : []),
+				...Object.keys(wages.daily_by_worksite ?? {}),
+				...(wages.classified_by_worksite?.rows ?? []).map((row) => row.worksite),
+				...(wages.monthly_by_sector ?? []).map((row) => row.place)
+			]);
+
+/**
+ * The worksite sectors a version's wage order names (`employment_terms.worksite_sector`). Where
+ * `sector_code_pattern` is set the classification is open: any code it matches is a sector, these
+ * are the known ones.
+ */
+export const wageSectors = (wages: WageKeySource | null | undefined): string[] =>
+	wages == null
+		? []
+		: unique([
+				...(wages.classified_by_worksite?.rows ?? []).flatMap((row) =>
+					row.sector == null ? [] : [row.sector]
+				),
+				...Object.keys(wages.daily_by_sector ?? {}),
+				...(wages.monthly_by_sector ?? []).flatMap((row) => row.sector_codes),
+				...(wages.verified_ordinary_sectors ?? []).map((row) => row.sector_code)
+			]);
+
+/** The regions a version's wage order keys (`companies.region`): the monthly and hourly tables. */
+export const wageRegions = (wages: WageKeySource | null | undefined): string[] =>
+	wages == null
+		? []
+		: unique([...Object.keys(wages.by_region ?? {}), ...Object.keys(wages.hourly_by_region ?? {})]);

@@ -8,6 +8,7 @@ import { scalarFacts } from '../../../lib/payroll/run/eligibility.js';
 import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import { factValuesFault } from '../../../lib/declared-facts.js';
 import { entityFactsFault, evidenceFault } from '../../../lib/entity-facts.js';
+import { factTables, lineageCodes } from '../../../lib/coded-fields.js';
 import type { FactKey } from '../../../lib/datatypes/fact_keys.js';
 
 /** An evidenced non-contract payee obligation; the row is immutable once recorded. */
@@ -77,6 +78,11 @@ c.transform(async (inputs, ctx) => {
 			settlement_facts: true
 		}
 	);
+	const codesOf = await lineageCodes(
+		db,
+		lineages,
+		factTables(lineages.flatMap((row) => row.settlement_facts ?? []))
+	);
 	return inputs.map((input) => {
 		const code = codeOf.get(String(input.company_id));
 		if (code == null) refuse('A non-contract settlement needs a paying company on file.');
@@ -115,7 +121,7 @@ c.transform(async (inputs, ctx) => {
 		const lineage = lineages.filter((row) => row.code === code);
 		const declared = lineage.flatMap((row) => row.settlement_facts ?? []);
 		const fault =
-			entityFactsFault(code, facts, declared) ??
+			entityFactsFault(code, facts, declared, codesOf(code)) ??
 			factValuesFault(version.settlement_facts ?? [], facts);
 		if (fault != null) refuse(fault, { field: 'facts' });
 		for (const row of (input.fact_evidence?.create ?? []) as readonly {

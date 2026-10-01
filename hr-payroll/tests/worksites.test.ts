@@ -65,7 +65,9 @@ const lineage = {
 			voided_at: null,
 			approval_id: null,
 			effective_range: range('2025-12-01'),
-			worksite_facts: [{ key: 'construction', type: 'boolean', label: 'Construction' }]
+			worksite_facts: [{ key: 'construction', type: 'boolean', label: 'Construction' }],
+			// the worksite's region is a key of the wage order
+			work_rules: { wages: { by_region: { NORTH: 1000, SOUTH: 900 } } }
 		}
 	]
 };

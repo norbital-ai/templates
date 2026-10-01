@@ -62,7 +62,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -182,11 +183,13 @@
 		"settings_id": "a69018d6-222a-59a9-8d40-ee515081082c",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -265,7 +268,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -394,7 +398,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -514,11 +519,13 @@
 		"settings_id": "af82cfef-0a71-5cf3-bdba-0be68c809c35",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -597,7 +604,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -726,7 +734,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -846,11 +855,13 @@
 		"settings_id": "f65bb7cb-b8eb-563e-9ee3-fda47351ed31",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -929,7 +940,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -1058,7 +1070,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -1178,11 +1191,13 @@
 		"settings_id": "ae716c71-a303-5afe-9545-12f6d016c63a",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -1261,7 +1276,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -1390,7 +1406,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -1510,11 +1527,13 @@
 		"settings_id": "035fe649-7807-5a9a-ac0c-af52650a2feb",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -1593,7 +1612,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -1722,7 +1742,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -1842,11 +1863,13 @@
 		"settings_id": "afb1af6a-dc87-5261-841f-c07946dce50e",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -1925,7 +1948,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -2054,7 +2078,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -2174,11 +2199,13 @@
 		"settings_id": "a0131890-6831-5877-ba7a-226d53641b4f",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -2257,7 +2284,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -2386,7 +2414,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -2506,11 +2535,13 @@
 		"settings_id": "76ad3dca-70cf-5225-a866-e6e9c77ca7c7",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -2589,7 +2620,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -2718,7 +2750,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -2838,11 +2871,13 @@
 		"settings_id": "3c1456f9-6462-5c19-a65e-2347b518b3f5",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -2921,7 +2956,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -3050,7 +3086,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -3170,11 +3207,13 @@
 		"settings_id": "7986fbc4-f724-5269-94d3-49c7fd4ebaf2",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -3253,7 +3292,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -3382,7 +3422,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -3502,11 +3543,13 @@
 		"settings_id": "2c514e79-7396-5a28-a6ac-dc793ad66497",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -3585,7 +3628,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -3714,7 +3758,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -3834,11 +3879,13 @@
 		"settings_id": "047d7a5b-852c-559d-b2d0-f721cb820514",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -3917,7 +3964,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -4046,7 +4094,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -4166,11 +4215,13 @@
 		"settings_id": "ca3f7f9d-a7c2-50d9-8566-2a19206b3f66",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -4249,7 +4300,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -4378,7 +4430,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -4498,11 +4551,13 @@
 		"settings_id": "3b087820-2cb6-5a9c-b4ca-31ddb5957a02",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -4581,7 +4636,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -4710,7 +4766,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -4830,11 +4887,13 @@
 		"settings_id": "c3d0d51d-e1c8-53da-8144-c0a09a3771e5",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -4913,7 +4972,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -5042,7 +5102,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -5162,11 +5223,13 @@
 		"settings_id": "488ff2a4-81ec-55e3-8e93-be89eaa5af69",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -5245,7 +5308,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -5374,7 +5438,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -5494,11 +5559,13 @@
 		"settings_id": "a2d9696e-f903-5333-a3dc-1357d8cbcf68",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -5577,7 +5644,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -5706,7 +5774,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -5826,11 +5895,13 @@
 		"settings_id": "e9b35eb8-53fb-5e9f-98e9-50671005938c",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -5909,7 +5980,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -6038,7 +6110,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -6158,11 +6231,13 @@
 		"settings_id": "6215213b-d017-5916-8cdf-bd2d64412a3f",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -6241,7 +6316,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -6370,7 +6446,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -6490,11 +6567,13 @@
 		"settings_id": "c7e8b8e8-cb91-5a2b-b442-a33c089b841e",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -6573,7 +6652,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -6702,7 +6782,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -6822,11 +6903,13 @@
 		"settings_id": "dcbfe46a-d948-5aa7-b3c2-7500b9ec7283",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -6905,7 +6988,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -7034,7 +7118,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -7154,11 +7239,13 @@
 		"settings_id": "10e35465-e226-5f28-82f8-149385947cac",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -7237,7 +7324,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -7366,7 +7454,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -7486,11 +7575,13 @@
 		"settings_id": "df51b92b-1c02-56a4-b4ca-984ac130d184",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -7569,7 +7660,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -7698,7 +7790,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -7818,11 +7911,13 @@
 		"settings_id": "db473023-ba7d-549f-9a23-51dc366e111a",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -7901,7 +7996,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -8030,7 +8126,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -8150,11 +8247,13 @@
 		"settings_id": "c945be82-d3c4-5c82-ac9d-5b8e52378cae",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -8233,7 +8332,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -8362,7 +8462,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -8482,11 +8583,13 @@
 		"settings_id": "1b4c5584-fe04-57da-807a-b7a37c6446c0",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -8565,7 +8668,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -8694,7 +8798,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -8814,11 +8919,13 @@
 		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -8897,7 +9004,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -9026,7 +9134,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -9146,11 +9255,13 @@
 		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -9229,7 +9340,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -9358,7 +9470,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -9478,11 +9591,13 @@
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -9561,7 +9676,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -9690,7 +9806,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -9810,11 +9927,13 @@
 		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -9893,7 +10012,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -10022,7 +10142,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -10142,11 +10263,13 @@
 		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -10225,7 +10348,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -10354,7 +10478,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
@@ -10474,11 +10599,13 @@
 		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
 		"code": "ANNUAL_LEAVE",
 		"name": "Annual leave",
-		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours.",
+		"authority": "Employment Act 1955 s.60E(1) — 8 days of paid annual leave for less than two years of continuous service, 12 days for two but less than five, and 16 days for five or more. The closing words of s.60E(1) give an employee who has not completed twelve months of continuous service during the year in which the contract terminates an entitlement in direct proportion to the number of COMPLETED MONTHS of service, which is the proration below. Applied 2026-09-18 (2): EA s.60E(1): a fraction of a day under a half is disregarded and a half or more is a day (`rounding: WHOLE_DAY`). Applied 2026-09-23 (round 2): EA s.60E(3A) proviso — no pay-out where the employee is dismissed under s.14(1)(a); `encash_on_exit_when` withholds the exit pay-out on a DISMISSAL recorded as `misconduct_dismissal`. Applied 2026-09-23 (round 2): EA s.60E(3B) — leave of absence without pay exceeding thirty days in aggregate in any twelve months is disregarded in computing the length of service \"under this section\", so the ladder reads `employment.service_months_net([\"UNPAID_LEAVE\"], 30.0)`: each twelve months of service counted from the start, the calendar days of approved UNPAID_LEAVE in it disregarded where they exceed thirty. Unauthorised ABSENCE is not leave granted and is not netted; s.60F's sick-leave ladder is another section and keeps plain service. Applied 2026-09-23 (round 2): Employment (Part-Time Employees) Regulations 2010 (P.U.(A) 302/2010) reg.7(1): a part-time employee’s annual leave is 6 days under two years’ service, 8 from two to under five, 11 from five — a ladder of its own, not the full-timer’s days prorated by hours. Applied 2026-10-01: company policy (owner rule 2026-10-01) — unused annual leave carries into the next leave year, at most 5 days, expiring at that year’s end, unless the employee’s terms state another number (`terms.facts.annual_leave_carry_max_days`). EA s.60E(2)–(3) leave carry to the employer and employee’s agreement and set no statutory floor on what carries.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.absent_days_12m <= 5.2 * terms.working_days_per_week",
 		"entitlement": {
 			"availability": "UPFRONT",
 			"year_start_month": 1,
+			"auto_carry_one_year": true,
+			"carry_max_days": "\"annual_leave_carry_max_days\" in terms.fact_keys ? double(terms.facts.annual_leave_carry_max_days) : 5.0",
 			"proration": "COMPLETED_MONTHS",
 			"bands": [
 				{
@@ -10557,7 +10684,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH"]
 			},
 			{
 				"key": "event_relationship",
