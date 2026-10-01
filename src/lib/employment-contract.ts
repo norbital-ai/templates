@@ -209,6 +209,7 @@ export function stint(
 	employment: {
 		readonly id?: string | undefined;
 		readonly effective_range: StoredRange | null;
+		readonly signed_contract_end?: string | null | undefined;
 		readonly exit_ground?: string | null | undefined;
 		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
 		readonly prior_service_months?: number | null | undefined;
@@ -219,6 +220,7 @@ export function stint(
 	service_start: string;
 	prior_service_months: number;
 	exit_date: string | null;
+	signed_contract_end: string | null;
 	exit_ground: string | null;
 	exit_facts: Readonly<Record<string, string | number | boolean>>;
 	exit_fact_keys: readonly string[];
@@ -230,6 +232,8 @@ export function stint(
 		service_start: serviceStart(employment),
 		prior_service_months: employment.prior_service_months ?? 0,
 		exit_date: end == null ? null : dateKey(end),
+		signed_contract_end:
+			employment.signed_contract_end == null ? null : dateKey(employment.signed_contract_end),
 		exit_ground: employment.exit_ground ?? null,
 		exit_facts: { ...recorded, ...resolveFactValues(declared, recorded, 'Departure', false) },
 		exit_fact_keys: Object.keys(recorded)

@@ -12,6 +12,7 @@
 	 * per fact, no card per row. The scalars share a compact labelled grid.
 	 */
 	import Labelled from '../../../lib/ui/Labelled.svelte';
+	import InfoTip from '../../../lib/ui/InfoTip.svelte';
 	import { t } from '../../../lib/ui/t.js';
 
 	import { Button, Combobox, TimeRangeInput } from '@norbital-ai/ui';
@@ -139,6 +140,7 @@
 		},
 		{
 			key: 'when',
+			description: t('renderer.work_rules.column_condition_help'),
 			label: t('renderer.work_rules.when'),
 			field: exprField('when', 'work_day', 'boolean'),
 			renderer: ExpressionCell,
@@ -147,6 +149,7 @@
 		},
 		{
 			key: 'take_hours',
+			description: t('renderer.work_rules.column_take_hours_help'),
 			label: t('renderer.work_rules.take_hours'),
 			field: exprField('take_hours', 'work_day', 'hours'),
 			renderer: ExpressionCell,
@@ -155,6 +158,7 @@
 		},
 		{
 			key: 'price_amount',
+			description: t('renderer.work_rules.column_price_amount_help'),
 			label: t('renderer.work_rules.price_amount'),
 			field: exprField('price_amount', 'work_day', 'money'),
 			renderer: ExpressionCell,
@@ -256,6 +260,7 @@
 		},
 		{
 			key: 'max_hours',
+			description: t('renderer.work_rules.column_max_hours_help'),
 			label: t('renderer.work_rules.max_hours'),
 			field: fieldOf('max_hours', 'number'),
 			width: 90
@@ -268,6 +273,7 @@
 		},
 		{
 			key: 'when',
+			description: t('renderer.work_rules.column_condition_help'),
 			label: t('renderer.work_rules.limit_when'),
 			field: fieldOf('when', 'text'),
 			width: 220
@@ -318,6 +324,7 @@
 	const armColumns: MatrixColumn<ProrationArmRow>[] = [
 		{
 			key: 'when',
+			description: t('renderer.work_rules.column_condition_help'),
 			label: t('renderer.work_rules.limit_when'),
 			field: fieldOf('when', 'text'),
 			width: 260
@@ -330,6 +337,7 @@
 		},
 		{
 			key: 'days',
+			description: t('renderer.work_rules.column_fixed_days_help'),
 			label: t('renderer.work_rules.fixed_days'),
 			field: fieldOf('days', 'number'),
 			width: 100
@@ -373,6 +381,7 @@
 	const breakColumns: MatrixColumn<BreakRow>[] = [
 		{
 			key: 'when',
+			description: t('renderer.work_rules.column_condition_help'),
 			label: t('renderer.work_rules.when'),
 			field: exprField('when', 'work_day', 'boolean'),
 			renderer: ExpressionCell,
@@ -381,6 +390,7 @@
 		},
 		{
 			key: 'owed_minutes',
+			description: t('renderer.work_rules.column_owed_minutes_help'),
 			label: t('renderer.work_rules.owed_minutes'),
 			field: exprField('owed_minutes', 'work_day', 'minutes'),
 			renderer: ExpressionCell,
@@ -474,8 +484,12 @@
 		<!-- The ordinary rate divisor and who the overtime ladder covers: expressions over the person. -->
 		<Grid gap="md" minimum="card">
 			<Stack gap="xs">
-				<span class="text-sm font-semibold">{t('renderer.work_rules.ordinary')}</span>
-				<p class="text-meta">{t('renderer.work_rules.ordinary_hint')}</p>
+				<Inline gap="xs" align="center">
+					<span class="text-sm font-semibold">{t('renderer.work_rules.ordinary')}</span>
+					<InfoTip label={t('renderer.work_rules.ordinary')}
+						>{t('renderer.work_rules.ordinary_hint')}</InfoTip
+					>
+				</Inline>
 				<Inline gap="xs" align="start">
 					<ExpressionField
 						site="person"
@@ -496,8 +510,12 @@
 				</Inline>
 			</Stack>
 			<Stack gap="xs">
-				<span class="text-sm font-semibold">{t('renderer.work_rules.overtime_when')}</span>
-				<p class="text-meta">{t('renderer.work_rules.overtime_when_hint')}</p>
+				<Inline gap="xs" align="center">
+					<span class="text-sm font-semibold">{t('renderer.work_rules.overtime_when')}</span>
+					<InfoTip label={t('renderer.work_rules.overtime_when')}
+						>{t('renderer.work_rules.overtime_when_hint')}</InfoTip
+					>
+				</Inline>
 				<Inline gap="xs" align="start">
 					<ExpressionField
 						site="person"
@@ -521,8 +539,12 @@
 		</Grid>
 
 		<Stack gap="sm">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.ordinary_reference')}</span>
-			<p class="text-meta">{t('renderer.work_rules.ordinary_reference_hint')}</p>
+			<Inline gap="xs" align="center">
+				<span class="text-sm font-semibold">{t('renderer.work_rules.ordinary_reference')}</span>
+				<InfoTip label={t('renderer.work_rules.ordinary_reference')}
+					>{t('renderer.work_rules.ordinary_reference_hint')}</InfoTip
+				>
+			</Inline>
 			{#if !readonly}
 				<label class="text-xs"
 					><Inline as="span" gap="sm">
@@ -614,8 +636,12 @@
 		</Stack>
 
 		<Stack gap="sm">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.encashment')}</span>
-			<p class="text-meta">{t('renderer.work_rules.encashment_hint')}</p>
+			<Inline gap="xs" align="center">
+				<span class="text-sm font-semibold">{t('renderer.work_rules.encashment')}</span>
+				<InfoTip label={t('renderer.work_rules.encashment')}
+					>{t('renderer.work_rules.encashment_hint')}</InfoTip
+				>
+			</Inline>
 			{#if !readonly}
 				<label class="text-xs"
 					><Inline as="span" gap="sm">
@@ -747,8 +773,12 @@
 
 		<!-- Day-pricing bands. -->
 		<Stack gap="xs">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.bands')}</span>
-			<p class="text-meta">{t('renderer.work_rules.bands_hint')}</p>
+			<Inline gap="xs" align="center">
+				<span class="text-sm font-semibold">{t('renderer.work_rules.bands')}</span>
+				<InfoTip label={t('renderer.work_rules.bands')}
+					>{t('renderer.work_rules.bands_hint')}</InfoTip
+				>
+			</Inline>
 			<MatrixRenderer
 				{disabled}
 				{readonly}
@@ -773,8 +803,12 @@
 
 		<!-- Limits. -->
 		<Stack gap="xs">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.limits')}</span>
-			<p class="text-meta">{t('renderer.work_rules.limits_hint')}</p>
+			<Inline gap="xs" align="center">
+				<span class="text-sm font-semibold">{t('renderer.work_rules.limits')}</span>
+				<InfoTip label={t('renderer.work_rules.limits')}
+					>{t('renderer.work_rules.limits_hint')}</InfoTip
+				>
+			</Inline>
 			<MatrixRenderer
 				{disabled}
 				{readonly}
@@ -876,8 +910,12 @@
 
 		<!-- Minimum wage by region: who the order covers and the floor a scheme reads through `minimum_wage(region)`. -->
 		<Stack gap="xs">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.wages')}</span>
-			<p class="text-meta">{t('renderer.work_rules.wages_hint')}</p>
+			<Inline gap="xs" align="center">
+				<span class="text-sm font-semibold">{t('renderer.work_rules.wages')}</span>
+				<InfoTip label={t('renderer.work_rules.wages')}
+					>{t('renderer.work_rules.wages_hint')}</InfoTip
+				>
+			</Inline>
 			<WagesRenderer
 				view={view.mode === 'edit'
 					? {
@@ -895,8 +933,12 @@
 
 		<!-- Proration arms: who prorates on another basis than the default. -->
 		<Stack gap="xs">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.proration_by')}</span>
-			<p class="text-meta">{t('renderer.work_rules.proration_by_hint')}</p>
+			<Inline gap="xs" align="center">
+				<span class="text-sm font-semibold">{t('renderer.work_rules.proration_by')}</span>
+				<InfoTip label={t('renderer.work_rules.proration_by')}
+					>{t('renderer.work_rules.proration_by_hint')}</InfoTip
+				>
+			</Inline>
 			<MatrixRenderer
 				{disabled}
 				{readonly}
@@ -918,8 +960,12 @@
 
 		<!-- Breaks. -->
 		<Stack gap="xs">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.breaks')}</span>
-			<p class="text-meta">{t('renderer.work_rules.breaks_hint')}</p>
+			<Inline gap="xs" align="center">
+				<span class="text-sm font-semibold">{t('renderer.work_rules.breaks')}</span>
+				<InfoTip label={t('renderer.work_rules.breaks')}
+					>{t('renderer.work_rules.breaks_hint')}</InfoTip
+				>
+			</Inline>
 			<MatrixRenderer
 				{disabled}
 				{readonly}
@@ -940,8 +986,12 @@
 		</Stack>
 
 		<Stack gap="xs">
-			<span class="text-sm font-semibold">{t('renderer.work_rules.night_premium')}</span>
-			<p class="text-meta">{t('renderer.work_rules.night_premium_hint')}</p>
+			<Inline gap="xs" align="center">
+				<span class="text-sm font-semibold">{t('renderer.work_rules.night_premium')}</span>
+				<InfoTip label={t('renderer.work_rules.night_premium')}
+					>{t('renderer.work_rules.night_premium_hint')}</InfoTip
+				>
+			</Inline>
 			{#if current.night_premium == null}
 				<Inline gap="sm">
 					<span class="text-sm text-muted-foreground">

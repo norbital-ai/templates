@@ -50,6 +50,74 @@ const MY_LOCAL = { EPF_NON_CITIZEN: OUT };
 /** A non-citizen: Part F only. */
 const MY_FOREIGN = { EPF: OUT, EPF_PR: OUT, EIS: OUT };
 
+for (const version of settingsVersions('MY')) {
+	const period = String(version.effective_range.start).slice(0, 7);
+	for (const [citizenship, age, scheme, employee, normalEmployer, bonusEmployer] of [
+		['CITIZEN', 40, 'EPF', 704, 768, 825],
+		['PERMANENT_RESIDENT', 60, 'EPF_PR', 352, 384, 413],
+		['FOREIGNER', 40, 'EPF', 704, 768, 825],
+		['FOREIGNER', 60, 'EPF_PR', 352, 384, 413]
+	] as const)
+		for (const [label, payments, employer] of [
+			['non-bonus', [['ADJ', 1346.15]], normalEmployer],
+			['bonus', [['BONUS', 1346.15]], bonusEmployer],
+			[
+				'non-bonus wages already above 5000',
+				[
+					['ADJ', 200],
+					['BONUS', 1146.15]
+				],
+				normalEmployer
+			]
+		] as const)
+			test(`MY ${period} ${citizenship} ${scheme} — EPF bonus exception: ${label}`, () => {
+				const book = assessStatutory(
+					{
+						code: 'MY',
+						period,
+						people: [
+							{
+								key: 'W',
+								wage: 5000,
+								citizenship,
+								age,
+								registrations:
+									citizenship === 'FOREIGNER'
+										? {
+												...MY_LOCAL,
+												EIS: OUT,
+												EPF: { kind: 'REGISTERED', elections: { member_before_1998: true } }
+											}
+										: MY_LOCAL
+							}
+						]
+					},
+					(world) => {
+						for (const [code, amount] of payments)
+							world.adhoc_requests!.push({
+								id: `d0000000-0000-4000-8000-${code === 'ADJ' ? '000000000001' : '000000000002'}`,
+								employment_id: world.employments[0]!.id,
+								catalogue_id: rowIn(world.adhoc_catalogue!, version.id, code),
+								amount,
+								event_date: `${period}-15`,
+								pay_period: null,
+								payslip_id: null,
+								reason: label,
+								evidence_file: null,
+								as_adjustment_entry: false,
+								approval_id: null
+							});
+					}
+				);
+				// Third Schedule Part A, p.13: 6300.01–6400 yields employee 704 / employer 768.
+				// The bonus-only note on p.12 instead yields ceil(704 + 6346.15 × 13%) − 704 = 825.
+				// Part C, pp.30–31: the corresponding shares are 352 / 384, or
+				// ceil(352 + 6346.15 × 6.5%) − 352 = 413 with the bonus exception.
+				expectStatutoryBase(book, 'W', scheme, 6346.15);
+				expectStatutory(book, 'W', scheme, employee, employer);
+			});
+}
+
 for (const code of ['MY'] as const)
 	test(`${code} — child relief uses the tax-year declaration and full or half entitlement`, () => {
 		// LHDN MTD 2026: annual income 60,012 less EPF 3,999.93 (K2 312.63) and personal relief

@@ -122,8 +122,8 @@ export function monthSources(scope: {
 	const settings = liveRows(() =>
 		settingsCode == null
 			? null
-			: // the version in force and its clock and work rules only: the whole row (sources, obligations, facts) runs to
-				// megabytes per version, past what a live view holds
+			: // Keep every governing version intersecting the displayed month; historical versions outside
+				// it cannot affect this board and their work rules exceed the live answer budget.
 				bolt.read('jurisdiction_settings', {
 					select: {
 						code: true,
@@ -137,7 +137,12 @@ export function monthSources(scope: {
 						work_rules: true,
 						work_day_facts: true
 					},
-					where: onLineage(settingsCode),
+					where: {
+						...onLineage(settingsCode),
+						sealed_at: { isNull: false },
+						voided_at: { isNull: true },
+						effective_range: { overlaps: { from: start, to: end } }
+					},
 					limit: HOLIDAY_QUERY_LIMIT
 				})
 	);

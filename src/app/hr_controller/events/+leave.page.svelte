@@ -24,7 +24,8 @@
 	import { XLSX_MEDIA_TYPE } from '../../../data/collection/work_days/lib/import-template.js';
 	import {
 		leaveBalanceWorkbook,
-		type LeaveBalanceReportRow
+		type LeaveBalanceReportRow,
+		type LeaveBalanceReportPage
 	} from '../../../lib/leave/balance-report.js';
 
 	const scope = companyScope();
@@ -55,12 +56,18 @@
 		const asOf = end != null && end < today ? end : today;
 		exporting = true;
 		try {
-			// The query answers `json`: its shape is `LeaveBalanceReportRow[]`, asserted where it enters.
-			const answer = await bolt.query('leave_entries.leave_balance_report', {
-				company_id: company.id,
-				as_of: asOf
-			});
-			const rows = answer as LeaveBalanceReportRow[];
+			const rows: LeaveBalanceReportRow[] = [];
+			let after: Id<'employments'> | null = null;
+			do {
+				const page = (await bolt.query('leave_entries.leave_balance_report', {
+					company_id: company.id,
+					as_of: asOf,
+					...(after == null ? {} : { after })
+				})) as LeaveBalanceReportPage;
+				rows.push(...page.rows);
+				after = page.next_cursor;
+			} while (after != null);
+			rows.sort((a, b) => a.employee_number.localeCompare(b.employee_number));
 			const workbook = leaveBalanceWorkbook({ company: company.name, asOf, rows });
 			saveBlob(
 				new Blob([await workbook.xlsx.writeBuffer()], { type: XLSX_MEDIA_TYPE }),

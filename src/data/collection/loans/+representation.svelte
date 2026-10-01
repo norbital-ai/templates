@@ -116,6 +116,7 @@
 			{@const ruled = text(form.get('recovery_rule')).trim() !== ''}
 			<Stack gap="lg">
 				<FormSection
+					name="loan_section_loan"
 					first
 					title={t('component.loan_section_loan')}
 					hint={t('component.loan_section_loan_hint')}
@@ -165,6 +166,7 @@
 				</FormSection>
 
 				<FormSection
+					name="repayment_schedule"
 					title={t('component.repayment_schedule')}
 					hint={t('component.loan_section_schedule_hint')}
 				>

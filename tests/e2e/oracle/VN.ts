@@ -354,12 +354,14 @@ export function computePayslip(sc: Scenario): Payslip {
 	// tracker records them (VN-LC168-01: pensioner 17.5% + 1%; foreigner 17.5% + 3%, no UI part; citizen under one
 	// month 21.5% in 2026, 20.5% in December 2025 where UI still applies). DEFAULT (VN-LC168-01, owner rule
 	// 2026-09-28): prorated like a standing allowance over paid working days.
-	let eqRate = 0;
-	if (!siSubject) eqRate += 0.175;
-	if (!hiOnPayslip && !e.receivingPension) eqRate += 0.03;
-	if (!uiSubject && !foreign) eqRate += 0.01;
-	if (eqRate > 0) {
-		const amount = r0((insured * eqRate * paidWD) / WD);
+	// The equivalent is the lawful employer contribution amount (LC art.168(3)), including each
+	// scheme's own ceiling: SI art.31(1)(đ), HI art.14(5), and the regional UI cap above.
+	const siEquivalent = !siSubject ? siBase * (sc.company.oaReduced ? 0.173 : 0.175) : 0;
+	const hiEquivalent = !hiOnPayslip && !e.receivingPension ? siBase * 0.03 : 0;
+	const uiEquivalent = !uiSubject && !foreign ? uiBase * 0.01 : 0;
+	const equivalent = siEquivalent + hiEquivalent + uiEquivalent;
+	if (equivalent > 0) {
+		const amount = r0((equivalent * paidWD) / WD);
 		lines.INSURANCE_EQUIVALENT = { amount, base: insured };
 	}
 

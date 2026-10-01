@@ -52,19 +52,19 @@
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "normal_hours",
+					"take_hours": "person.terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
 					"price_amount": "hours * ordinary_hour * 2.0"
 				},
 				{
 					"label": "OT-3.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "(hours_beyond_normal < 1.0 ? hours_beyond_normal : 1.0)",
+					"take_hours": "1.0",
 					"price_amount": "hours * ordinary_hour * 3.0"
 				},
 				{
 					"label": "OT-4.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "(hours_beyond_normal > 1.0 ? hours_beyond_normal - 1.0 : 0.0)",
+					"take_hours": "overtime_hours",
 					"price_amount": "hours * ordinary_hour * 4.0"
 				},
 				{
@@ -117,7 +117,7 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY",
-			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. Applied 2026-09-18: PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out. Applied 2026-09-18 (4): PP 35/2021 art.28: overtime is on the employer’s order with the worker’s consent — an ordinary-day overrun the employer did not order (`work_days.requested_by` EMPLOYEE) earns no overtime; the order is presumed unless HR marks the day. Art.27(2): the exception for a job group of planners, thinkers and executors paid above the norm is the MANAGERIAL classification the employer designates (`overtime_when`). Recorded default 2026-09-28 (register ID-106): no instrument fixes how a monthly wage is divided for a part month — PP 36/2021 art.17's ÷25/÷21 converts only a wage fixed daily, and art.40(1) says only that no wage is due for days not worked — so the PK/PP/PKB governs; absent one, a joiner, a leaver and an unpaid day are priced on calendar days (`proration.by` CALENDAR_DAYS): the monthly wage ÷ the month's calendar days for each day, so 9,300,000 is 310,000 a day in April and 300,000 in May.",
+			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out. PP 35/2021 art.28: overtime is on the employer’s order with the worker’s consent — an ordinary-day overrun the employer did not order (`work_days.requested_by` EMPLOYEE) earns no overtime; the order is presumed unless HR marks the day. Art.27(2): the exception for a job group of planners, thinkers and executors paid above the norm is the MANAGERIAL classification the employer designates (`overtime_when`). Recorded default 2026-09-28: no instrument fixes how a monthly wage is divided for a part month — PP 36/2021 art.17's ÷25/÷21 converts only a wage fixed daily, and art.40(1) says only that no wage is due for days not worked — so the PK/PP/PKB governs; absent one, a joiner, a leaver and an unpaid day are priced on calendar days (`proration.by` CALENDAR_DAYS): the monthly wage ÷ the month's calendar days for each day, so 9,300,000 is 310,000 a day in April and 300,000 in May.",
 			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
 			"wages": {
 				"floor_includes_fixed_allowances": true,
@@ -646,7 +646,7 @@
 						"holds": "terms.facts.wage_scale_grade != \"\" && terms.facts.wage_scale_reference != \"\" && terms.facts.wage_scale_effective_on != \"\" && terms.facts.wage_scale_effective_on <= employment.rule_date && terms.facts.wage_scale_notice_on != \"\" && terms.facts.wage_scale_notice_on <= employment.rule_date && terms.facts.wage_scale_basic_minimum > 0.0",
 						"severity": "WARNING",
 						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum: service of one year or more is paid without the grade check.",
-						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts). PP 36/2021 art.21(1) puts the duty to draw up and apply the scale on the employer, and art.79(1) sanctions its breach administratively (written warning, restriction, suspension or freezing of business) — no article bars paying wages without it, so a missing record warns (tracker ID-07 lawful default); a recorded grade minimum still binds (wage_scale_minimum)."
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts). PP 36/2021 art.21(1) puts the duty to draw up and apply the scale on the employer, and art.79(1) sanctions its breach administratively (written warning, restriction, suspension or freezing of business) — no article bars paying wages without it, so a missing record warns (configured default); a recorded grade minimum still binds (wage_scale_minimum)."
 					},
 					{
 						"key": "wage_scale_minimum",
@@ -672,7 +672,7 @@
 					"authority": "PP 36/2021 art.16"
 				},
 				"block_below_when": "true",
-				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.798-Kesra/2024, effective 1 January 2025. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. Applied 2026-09-28 (round 3): the 2025 UMP, each in force from 1 January 2025, for the provinces whose own decree or government publication states it: Provinsi Kepulauan Bangka Belitung Rp3,876,600 — Kep. Gubernur Babel 188.44/628/DISNAKER/2024, signed copy on Disnaker Babel (diktum KEDUA, KEENAM); Provinsi Sulawesi Tenggara Rp3,073,551.70 — Kep. Gubernur Sultra 100.3.3.1/470 Tahun 2024, per the Pemprov Sultra portal; Provinsi Banten Rp2,905,119.90, Provinsi Sumatera Utara Rp2,992,559, Provinsi Kepulauan Riau Rp3,623,654 and Provinsi Gorontalo Rp3,221,731 — each the 2025 figure the provincial government states in its own 2026 announcement; Provinsi Papua Barat Rp3,615,000 — Pemprov Papua Barat announcement of 17 Dec 2024 (from 1 January 2025); Provinsi Sulawesi Tengah Rp2,915,000 — Pemprov Sulteng announcement of the 2025 wage council decision; Provinsi Papua Rp4,285,850 — the Pemprov Papua 2026 announcement’s Rp4,436,283 less its stated Rp150,433 rise, matching the Kemnaker 2025 compilation. A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency with no UMK (Perpres 82/2018 art.32(3); Permenaker 16/2024 art.12); a province not listed, or a city or regency with its own UMK, refuses rather than falls back. Applied 2026-09-28 (round 4): Provinsi Nusa Tenggara Timur Rp2,328,969.69 — Kep. Gubernur NTT 430/KEP/HK/2024 of 11 Dec 2024, 1 January–31 December 2025, per the Biro Administrasi Pimpinan Setda NTT announcement of 12 Dec 2024 (Kota Kupang has its own UMK and refuses). The other 2025 provincial decrees were not read (register ID-128–ID-160). Applied 2026-09-28 (engine defect 6/20): `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, read at the worksite the terms record (`employment_terms.worksite`), else the company’s region; a locality key overrides its province and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). Bali from 1 January 2025: UMP Rp2,996,561 (Kep.939/03-M/HK/2024, Bali Disnaker announcement B.21.500.15/17565/IV/DISNAKER.ESDM); UMKs Badung Rp3,534,338.88, Denpasar Rp3,298,116.50, Gianyar Rp3,119,080, Tabanan Rp3,102,520.45 (Kep.946/03-M/HK/2024, Disnaker announcement B.21.500.15/18055/IV/DISNAKER.ESDM). That announcement expressly assigns Bangli, Buleleng, Jembrana, Karangasem and Klungkung to the UMP/UMSP; the named sector rows are seeded, with KBLI and hotel-star applicability requiring affirmative classification. Banten from 1 January 2025: all eight city/regency UMKs of Kep. Gubernur Banten 471 Tahun 2024 (17 Dec 2024), as enumerated by the provincial government on 18 Dec 2024; their exact values are also the 2025 comparison column in signed Kep.703 Tahun 2025 Lampiran. All eight localities have their own UMK; UMSP/UMSK selectors remain unseeded. UU 13/2003 art.22(1)–(3): a lawful apprenticeship needs a written apprenticeship agreement with rights, duties and duration; absent it, the participant becomes the company’s worker. The law does not exempt an employee labelled INTERN or APPRENTICE from the worker minimum wage. The floor therefore covers every employment row (`applies_when` empty); a genuine nonemployee apprenticeship and its stipend require verified legal-status facts and a separate path, not a label-based payroll exemption. Added 2026-09-29 from official provincial instruments, effective 1 January 2025 unless specified: Kepri seven named locality floors from the province's 2025 comparison table (Tanjungpinang and Lingga equal the UMP); Jawa Timur all 38 UMKs from signed Kep.775/2024; Jawa Tengah all 35 UMKs and Semarang UMSK from signed Kep.561/45/2024, plus the Jepara large-business UMSK amendment Kep.100.3.3.1/45/2025 effective 10 February 2025; Riau all 12 locality floors from Pemprov Media Center's exact-sen 2025 comparison; DIY all five UMKs from Disnakertrans; Lampung UMP Rp2,893,070, five UMKs and ten named UMP-floor regencies from Lampung JDIH and Disnakertrans. Bali 2025 UMSP is KBLI-2020 category I at Rp3,052,834; Badung five-star hotel KBLI 55110 UMSK is Rp3,569,682.27. Applicability of hotel star and Jepara large-business conditions must be affirmatively classified; an unknown fact cannot default to a nonbinding condition."
+				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.798-Kesra/2024, effective 1 January 2025. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. the 2025 UMP, each in force from 1 January 2025, for the provinces whose own decree or government publication states it: Provinsi Kepulauan Bangka Belitung Rp3,876,600 — Kep. Gubernur Babel 188.44/628/DISNAKER/2024, signed copy on Disnaker Babel (diktum KEDUA, KEENAM); Provinsi Sulawesi Tenggara Rp3,073,551.70 — Kep. Gubernur Sultra 100.3.3.1/470 Tahun 2024, per the Pemprov Sultra portal; Provinsi Banten Rp2,905,119.90, Provinsi Sumatera Utara Rp2,992,559, Provinsi Kepulauan Riau Rp3,623,654 and Provinsi Gorontalo Rp3,221,731 — each the 2025 figure the provincial government states in its own 2026 announcement; Provinsi Papua Barat Rp3,615,000 — Pemprov Papua Barat announcement of 17 Dec 2024 (from 1 January 2025); Provinsi Sulawesi Tengah Rp2,915,000 — Pemprov Sulteng announcement of the 2025 wage council decision; Provinsi Papua Rp4,285,850 — the Pemprov Papua 2026 announcement’s Rp4,436,283 less its stated Rp150,433 rise, matching the Kemnaker 2025 compilation. A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency with no UMK (Perpres 82/2018 art.32(3); Permenaker 16/2024 art.12); a province not listed, or a city or regency with its own UMK, refuses rather than falls back. Provinsi Nusa Tenggara Timur Rp2,328,969.69 — Kep. Gubernur NTT 430/KEP/HK/2024 of 11 Dec 2024, 1 January–31 December 2025, per the Biro Administrasi Pimpinan Setda NTT announcement of 12 Dec 2024 (Kota Kupang has its own UMK and refuses). The other 2025 provincial decrees were not read. `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, read at the worksite the terms record (`employment_terms.worksite`), else the company’s region; a locality key overrides its province and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). Bali from 1 January 2025: UMP Rp2,996,561 (Kep.939/03-M/HK/2024, Bali Disnaker announcement B.21.500.15/17565/IV/DISNAKER.ESDM); UMKs Badung Rp3,534,338.88, Denpasar Rp3,298,116.50, Gianyar Rp3,119,080, Tabanan Rp3,102,520.45 (Kep.946/03-M/HK/2024, Disnaker announcement B.21.500.15/18055/IV/DISNAKER.ESDM). That announcement expressly assigns Bangli, Buleleng, Jembrana, Karangasem and Klungkung to the UMP/UMSP; the named sector rows are seeded, with KBLI and hotel-star applicability requiring affirmative classification. Banten from 1 January 2025: all eight city/regency UMKs of Kep. Gubernur Banten 471 Tahun 2024 (17 Dec 2024), as enumerated by the provincial government on 18 Dec 2024; their exact values are also the 2025 comparison column in signed Kep.703 Tahun 2025 Lampiran. All eight localities have their own UMK; UMSP/UMSK selectors remain unseeded. UU 13/2003 art.22(1)–(3): a lawful apprenticeship needs a written apprenticeship agreement with rights, duties and duration; absent it, the participant becomes the company’s worker. The law does not exempt an employee labelled INTERN or APPRENTICE from the worker minimum wage. The floor therefore covers every employment row (`applies_when` empty); a genuine nonemployee apprenticeship and its stipend require verified legal-status facts and a separate path, not a label-based payroll exemption. From official provincial instruments, effective 1 January 2025 unless specified: Kepri seven named locality floors from the province's 2025 comparison table (Tanjungpinang and Lingga equal the UMP); Jawa Timur all 38 UMKs from signed Kep.775/2024; Jawa Tengah all 35 UMKs and Semarang UMSK from signed Kep.561/45/2024, plus the Jepara large-business UMSK amendment Kep.100.3.3.1/45/2025 effective 10 February 2025; Riau all 12 locality floors from Pemprov Media Center's exact-sen 2025 comparison; DIY all five UMKs from Disnakertrans; Lampung UMP Rp2,893,070, five UMKs and ten named UMP-floor regencies from Lampung JDIH and Disnakertrans. Bali 2025 UMSP is KBLI-2020 category I at Rp3,052,834; Badung five-star hotel KBLI 55110 UMSK is Rp3,569,682.27. Applicability of hotel star and Jepara large-business conditions must be affirmatively classified; an unknown fact cannot default to a nonbinding condition."
 			},
 			"ordinary_rate": {
 				"hour": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : (terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? 25.0 : 21.0) : terms.pay_frequency == \"WEEKLY\" ? 52.0 / 12.0 : 1.0) * terms.monthly_wage / 173.0",
@@ -1054,8 +1054,7 @@
 				"trigger": "Establishment, each hire (a transferring worker is continued from the first day), and any change in wage, headcount, address or participant data",
 				"timing": "Registration form with worker and family data within 30 working days of receiving it from BPJS (art.6(1)); the participant card to the worker within 3 working days of receipt (art.7(2)); wage and other changes within 7 working days (art.9(2)–(3))",
 				"owner": "HR / registration, card delivery and change reports",
-				"authority": "PP 44/2015 arts.6–9 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15",
-				"status": "EXTERNAL"
+				"authority": "PP 44/2015 arts.6–9 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15"
 			},
 			{
 				"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
@@ -1063,8 +1062,7 @@
 				"trigger": "Each contribution month",
 				"timing": "\"paling lambat tanggal 15 bulan berikutnya\", the next working day when the 15th is a holiday; late payment carries a 2% fine for each month late, borne by the employer",
 				"owner": "Finance / BPJS Ketenagakerjaan payment and supporting worker data",
-				"authority": "PP 44/2015 arts.21–22 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); JHT under PP 46/2015 is billed with them",
-				"status": "PARTIAL"
+				"authority": "PP 44/2015 arts.21–22 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); JHT under PP 46/2015 is billed with them"
 			},
 			{
 				"code": "BPJS_KESEHATAN_REGISTRATION",
@@ -1072,8 +1070,7 @@
 				"trigger": "Each hire; a foreigner once working six months in Indonesia (art.1 angka 2); family changes",
 				"timing": "On employment; a worker the employer fails to register may register themselves (art.13(2)) and the employer is sanctioned (art.17)",
 				"owner": "HR / BPJS Kesehatan enrolment",
-				"authority": "Perpres 82/2018 arts.13–14, 17 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
-				"status": "EXTERNAL"
+				"authority": "Perpres 82/2018 arts.13–14, 17 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)"
 			},
 			{
 				"code": "BPJS_KESEHATAN_REMITTANCE",
@@ -1081,8 +1078,7 @@
 				"trigger": "Each month",
 				"timing": "\"paling lambat tanggal 10 setiap bulan\", the next working day when the 10th is a holiday (art.39(1),(4)); unpaid by month end suspends cover from the 1st of the next month and the employer bears the care its workers need (art.42)",
 				"owner": "Finance / BPJS Kesehatan payment",
-				"authority": "Perpres 82/2018 arts.39, 42 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
-				"status": "PARTIAL"
+				"authority": "Perpres 82/2018 arts.39, 42 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)"
 			},
 			{
 				"code": "WORK_ACCIDENT_REPORT",
@@ -1090,8 +1086,7 @@
 				"trigger": "A work accident, or an occupational disease diagnosed",
 				"timing": "Stage I within 2 x 24 hours of the accident or diagnosis; stage II within 2 x 24 hours of the doctor certifying recovery, disability or death (the benefit claim)",
 				"owner": "HR / accident forms and medical certificates",
-				"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
-				"status": "EXTERNAL"
+				"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)"
 			},
 			{
 				"code": "PPH21_REMITTANCE_AND_SPT_MASA",
@@ -1099,8 +1094,7 @@
 				"trigger": "Each tax period in which remuneration is paid",
 				"timing": "Payment by the 15th of the following month; SPT Masa within 20 days after the period ends; a Saturday, Sunday, public holiday or national cuti bersama moves either to the next working day",
 				"owner": "Finance / billing code, payment and SPT Masa receipt",
-				"authority": "PMK 81/2024 art.94(2) (payment; https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); UU KUP art.3(3)(a) (SPT Masa 20 days); PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); late filing Rp100,000 per SPT Masa (UU KUP art.7(1)), late payment interest (art.9(2a))",
-				"status": "PARTIAL"
+				"authority": "PMK 81/2024 art.94(2) (payment; https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); UU KUP art.3(3)(a) (SPT Masa 20 days); PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); late filing Rp100,000 per SPT Masa (UU KUP art.7(1)), late payment interest (art.9(2a))"
 			},
 			{
 				"code": "PPH21_ANNUAL_STATEMENT_BPA1",
@@ -1108,8 +1102,7 @@
 				"trigger": "The last tax period: December, or the month a permanent employee stops working",
 				"timing": "Within one month after the last tax period ends",
 				"owner": "Finance / BPA1 delivered to the employee",
-				"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 (the annual reckoning the form reports)",
-				"status": "PARTIAL"
+				"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 (the annual reckoning the form reports)"
 			},
 			{
 				"code": "PTKP_STATUS_AND_TAX_ID",
@@ -1117,8 +1110,7 @@
 				"trigger": "Hire, and the start of each calendar year",
 				"timing": "PTKP is fixed on the employee's condition at the start of the calendar year (PMK 168/2023 art.9)",
 				"owner": "HR / declarations and supporting documents",
-				"authority": "PMK 168/2023 art.9 (https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf); UU PPh art.21(5a) (20% higher withholding without NPWP; DJP applies none where a valid NIK is given)",
-				"status": "PARTIAL"
+				"authority": "PMK 168/2023 art.9 (https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf); UU PPh art.21(5a) (20% higher withholding without NPWP; DJP applies none where a valid NIK is given)"
 			},
 			{
 				"code": "TAX_RECORD_RETENTION",
@@ -1126,8 +1118,7 @@
 				"trigger": "Each record",
 				"timing": "10 years in Indonesia",
 				"owner": "Finance / archive",
-				"authority": "UU KUP (UU 6/1983 as amended) art.28(11)",
-				"status": "EXTERNAL"
+				"authority": "UU KUP (UU 6/1983 as amended) art.28(11)"
 			},
 			{
 				"code": "WAGE_PAYMENT_TIMING",
@@ -1135,8 +1126,7 @@
 				"trigger": "Each pay date",
 				"timing": "The agreed date; the pay interval may not exceed 1 month (art.55(4)). Late wages: 5% per day from the 4th to the 8th day, then +1% per day capped at 50% in a month, then bank interest after a month (art.61)",
 				"owner": "Finance / payment evidence",
-				"authority": "PP 36/2021 arts.54, 55, 61 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 36/2021 arts.54, 55, 61 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "PAYSLIP_ISSUE",
@@ -1144,8 +1134,7 @@
 				"trigger": "Each wage payment",
 				"timing": "\"pada saat Upah dibayarkan\" — at the time the wage is paid",
 				"owner": "Payroll / payslip delivery",
-				"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "PARTIAL"
+				"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "WAGE_DEDUCTION_LIMITS",
@@ -1153,8 +1142,7 @@
 				"trigger": "Each deduction other than tax and social security",
 				"timing": "Each payment: the total of deductions at most 50% of the wage paid (art.65); rent and debts need written agreement, third-party deductions a revocable power of attorney (arts.63–64)",
 				"owner": "Payroll / deduction authorisations",
-				"authority": "PP 36/2021 arts.63–65 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 36/2021 arts.63–65 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "MINIMUM_WAGE_COMPLIANCE",
@@ -1162,8 +1150,7 @@
 				"trigger": "Each new minimum-wage decree (in force 1 January) and each wage change",
 				"timing": "From the decree's commencement",
 				"owner": "HR / wage review",
-				"authority": "PP 36/2021 arts.7, 23(3), 25 as amended by PP 51/2023 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); the governor's UMP/UMK decree for the year",
-				"status": "PARTIAL"
+				"authority": "PP 36/2021 arts.7, 23(3), 25 as amended by PP 51/2023 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); the governor's UMP/UMK decree for the year"
 			},
 			{
 				"code": "WAGE_STRUCTURE_AND_SCALE",
@@ -1171,8 +1158,7 @@
 				"trigger": "Standing duty; each change",
 				"timing": "Standing; each worker notified individually",
 				"owner": "HR / structure, scale and notices",
-				"authority": "PP 36/2021 art.21 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 36/2021 art.21 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "THR_PAYMENT_DEADLINE",
@@ -1180,8 +1166,7 @@
 				"trigger": "Each religious holiday of the worker (Idulfitri, Christmas, Nyepi, Waisak, Imlek)",
 				"timing": "\"paling lambat 7 (tujuh) hari sebelum Hari Raya Keagamaan\" (art.5(4)); a late payment carries a 5% fine of the THR due (art.10), without discharging the THR",
 				"owner": "Finance / THR payment",
-				"authority": "Permenaker 6/2016 arts.5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf)",
-				"status": "PARTIAL"
+				"authority": "Permenaker 6/2016 arts.5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf)"
 			},
 			{
 				"code": "PKWT_REGISTRATION",
@@ -1189,8 +1174,7 @@
 				"trigger": "Signing of a PKWT or its extension",
 				"timing": "Online within 3 working days of signing; in writing at the city/regency manpower office within 7 working days where the online service is unavailable",
 				"owner": "HR / PKWT record receipt",
-				"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "EXTERNAL"
+				"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "OVERTIME_CONSENT_RECORDS_AND",
@@ -1198,8 +1182,7 @@
 				"trigger": "Overtime is requested or worked",
 				"timing": "Before the overtime (order and consent); a list of each worker's overtime hours kept; at most 4 hours a day and 18 a week outside rest days and public holidays; 1,400 kcal of food and drink for 4 hours or more, not payable in cash",
 				"owner": "HR / consent and actual-hours records",
-				"authority": "PP 35/2021 arts.26, 28, 29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "PARTIAL"
+				"authority": "PP 35/2021 arts.26, 28, 29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
@@ -1207,8 +1190,7 @@
 				"trigger": "Each termination initiated by the employer, and each legally defined cause",
 				"timing": "Notice at least 14 working days before termination, 7 during probation (art.37(3)–(4)); the worker may reject in writing within 7 working days, then bipartite negotiation and industrial-relations settlement (art.39)",
 				"owner": "HR / notices, consultation, cause and settlement evidence",
-				"authority": "PP 35/2021 arts.37–59 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "PARTIAL"
+				"authority": "PP 35/2021 arts.37–59 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "TERMINATION_REPORT",
@@ -1216,8 +1198,7 @@
 				"trigger": "The worker received the notice and did not reject it",
 				"timing": "After the notice period, on termination",
 				"owner": "HR / termination report",
-				"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "EXTERNAL"
+				"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "WLKP_EMPLOYMENT_REPORT",
@@ -1225,8 +1206,7 @@
 				"trigger": "Establishing, reopening, moving or closing the company; each year",
 				"timing": "Within 30 days after or before establishing, reopening or moving (art.6); every year thereafter (art.8)",
 				"owner": "HR / WLKP receipt",
-				"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019",
-				"status": "EXTERNAL"
+				"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019"
 			},
 			{
 				"code": "COMPANY_REGULATIONS",
@@ -1234,8 +1214,7 @@
 				"trigger": "Ten or more workers",
 				"timing": "In force once ratified; valid at most 2 years and then renewed",
 				"owner": "HR / ratified regulations",
-				"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)",
-				"status": "EXTERNAL"
+				"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
 			},
 			{
 				"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
@@ -1243,8 +1222,7 @@
 				"trigger": "Each foreign worker employed",
 				"timing": "DKPTKA paid on the billing code before the RPTKA is approved, for the period the worker works in Indonesia (art.23(2)–(5))",
 				"owner": "HR / RPTKA approval and DKPTKA receipt",
-				"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)"
 			},
 			{
 				"code": "PDP_LAWFUL_BASIS_AND_INFORMATION",
@@ -1252,8 +1230,7 @@
 				"trigger": "Collection or processing of an applicant's or worker's personal data",
 				"timing": "Before processing; before any change to the information given",
 				"owner": "HR / privacy notice and consent record",
-				"authority": "UU 27/2022 tentang Pelindungan Data Pribadi arts.20–21 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022); fully applicable from 17 October 2024 (art.74: two years from promulgation on 17 October 2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 tentang Pelindungan Data Pribadi arts.20–21 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022); fully applicable from 17 October 2024 (art.74: two years from promulgation on 17 October 2022)"
 			},
 			{
 				"code": "PDP_SECURITY_CONFIDENTIALITY",
@@ -1261,8 +1238,7 @@
 				"trigger": "Holding or processing worker personal data",
 				"timing": "Continuous",
 				"owner": "HR / IT security; processor agreement",
-				"authority": "UU 27/2022 arts.35–39 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 arts.35–39 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_IMPACT_ASSESSMENT",
@@ -1270,8 +1246,7 @@
 				"trigger": "Introduction of high-risk processing (for example biometric attendance or large-scale payroll processing of health data)",
 				"timing": "Before the high-risk processing begins",
 				"owner": "DPO / DPIA record",
-				"authority": "UU 27/2022 art.34 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 art.34 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_DELETION_DESTRUCTION",
@@ -1279,8 +1254,7 @@
 				"trigger": "End of the purpose or retention period, withdrawal of consent, or a data-subject request",
 				"timing": "When the condition arises, subject to other statutory retention periods (tax and BPJS records)",
 				"owner": "HR / retention schedule and destruction record",
-				"authority": "UU 27/2022 arts.43–45 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 arts.43–45 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_BREACH_NOTIFICATION",
@@ -1288,8 +1262,7 @@
 				"trigger": "A failure of personal data protection (breach) affecting worker personal data",
 				"timing": "No later than 3 × 24 hours",
 				"owner": "DPO / breach notice",
-				"authority": "UU 27/2022 art.46 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 art.46 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_DPO_APPOINTMENT",
@@ -1297,8 +1270,7 @@
 				"trigger": "The employer meets an art.53(1) criterion",
 				"timing": "Before or when the criterion is met; continuous",
 				"owner": "Management / DPO appointment letter",
-				"authority": "UU 27/2022 arts.53–54 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 arts.53–54 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			}
 		],
 		"tables": [
@@ -1328,7 +1300,7 @@
 				"severity": "REFUSE",
 				"when": "employment.type != \"CONTRACT\" && has(terms.facts.probation_end_on) && terms.facts.probation_end_on > add_days(add_months(employment.service_start, 3), -1)",
 				"message": "A PKWTT probation may last at most three months from the first day of work; set probation_end_on no later than the day before the three-month anniversary of the start.",
-				"authority": "UU 13/2003 art.60(1), not amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-110"
+				"authority": "UU 13/2003 art.60(1), not amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
 			},
 			{
 				"code": "PKWT_PROBATION_VOID",
@@ -1336,7 +1308,7 @@
 				"severity": "REFUSE",
 				"when": "employment.type == \"CONTRACT\" && has(terms.facts.probation_end_on)",
 				"message": "A fixed-term contract (PKWT) may not require a probation period: a probation clause is void and its days count as service. Remove probation_end_on from these terms.",
-				"authority": "UU 13/2003 art.58(1)–(2) as amended by UU 6/2023; PP 35/2021 art.12 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); tracker ID-108, ID-110"
+				"authority": "UU 13/2003 art.58(1)–(2) as amended by UU 6/2023; PP 35/2021 art.12 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "PKWT_TERM_OVER_FIVE_YEARS",
@@ -1344,7 +1316,7 @@
 				"severity": "REFUSE",
 				"when": "employment.type == \"CONTRACT\" && employment.exit_date != \"\" && employment.exit_date > add_days(add_months(employment.service_start, 60), -1)",
 				"message": "A PKWT, extensions included, may last at most five years from its start; this contract's recorded end is later. End it within five years or record the employment as PKWTT (open-ended).",
-				"authority": "PP 35/2021 art.8(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023 (not more than five years including any extension); tracker ID-108"
+				"authority": "PP 35/2021 art.8(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023 (not more than five years including any extension)"
 			},
 			{
 				"code": "YOUNG_WORKER_CONDITIONS",
@@ -1352,7 +1324,7 @@
 				"severity": "WARN",
 				"when": "employee.age < 18",
 				"message": "The worker is a child under UU 13/2003 art.1 angka 26 (under 18): art.68 bars employing a child outside the light-work (art.69), curriculum (art.70) and talent (art.71) exceptions, and art.74 bars the worst forms of child labour. Record the exception relied on and its conditions (written parental consent and agreement, at most three hours a day, daytime, outside school hours, safety, wages per law) before paying.",
-				"authority": "UU 13/2003 arts.1 angka 26, 68–75 as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-47 owner default 2026-10-01: the exceptions are lawful, so the run warns rather than refuses"
+				"authority": "UU 13/2003 arts.1 angka 26, 68–75 as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); configured default: the exceptions are lawful, so the run warns rather than refuses"
 			}
 		],
 		"duty_types": [
@@ -1384,7 +1356,7 @@
 			{
 				"code": "BPJS_KESEHATAN_REMITTANCE",
 				"label": "BPJS Kesehatan contribution of the wage month",
-				"authority": "Perpres 82/2018 art.39(1): the employer pays each month's contribution at the latest on the 10th of that month (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf); tracker ID-20 reading 2026-10-01: the 10th of the wage month itself. The art.39(4) holiday roll is not applied (no calendar on the obligation site).",
+				"authority": "Perpres 82/2018 art.39(1): the employer pays each month's contribution at the latest on the 10th of that month (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf); the payment deadline is the 10th of the wage month itself. The art.39(4) holiday roll is not applied (no calendar on the obligation site).",
 				"subject": "RUN",
 				"trigger": {
 					"on": "RUN_FINALISED"
@@ -1602,19 +1574,19 @@
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "normal_hours",
+					"take_hours": "person.terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
 					"price_amount": "hours * ordinary_hour * 2.0"
 				},
 				{
 					"label": "OT-3.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "(hours_beyond_normal < 1.0 ? hours_beyond_normal : 1.0)",
+					"take_hours": "1.0",
 					"price_amount": "hours * ordinary_hour * 3.0"
 				},
 				{
 					"label": "OT-4.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "(hours_beyond_normal > 1.0 ? hours_beyond_normal - 1.0 : 0.0)",
+					"take_hours": "overtime_hours",
 					"price_amount": "hours * ordinary_hour * 4.0"
 				},
 				{
@@ -1667,7 +1639,7 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY",
-			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. Applied 2026-09-18: PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out. Applied 2026-09-18 (4): PP 35/2021 art.28: overtime is on the employer’s order with the worker’s consent — an ordinary-day overrun the employer did not order (`work_days.requested_by` EMPLOYEE) earns no overtime; the order is presumed unless HR marks the day. Art.27(2): the exception for a job group of planners, thinkers and executors paid above the norm is the MANAGERIAL classification the employer designates (`overtime_when`). Recorded default 2026-09-28 (register ID-106): no instrument fixes how a monthly wage is divided for a part month — PP 36/2021 art.17's ÷25/÷21 converts only a wage fixed daily, and art.40(1) says only that no wage is due for days not worked — so the PK/PP/PKB governs; absent one, a joiner, a leaver and an unpaid day are priced on calendar days (`proration.by` CALENDAR_DAYS): the monthly wage ÷ the month's calendar days for each day, so 9,300,000 is 310,000 a day in April and 300,000 in May.",
+			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out. PP 35/2021 art.28: overtime is on the employer’s order with the worker’s consent — an ordinary-day overrun the employer did not order (`work_days.requested_by` EMPLOYEE) earns no overtime; the order is presumed unless HR marks the day. Art.27(2): the exception for a job group of planners, thinkers and executors paid above the norm is the MANAGERIAL classification the employer designates (`overtime_when`). Recorded default 2026-09-28: no instrument fixes how a monthly wage is divided for a part month — PP 36/2021 art.17's ÷25/÷21 converts only a wage fixed daily, and art.40(1) says only that no wage is due for days not worked — so the PK/PP/PKB governs; absent one, a joiner, a leaver and an unpaid day are priced on calendar days (`proration.by` CALENDAR_DAYS): the monthly wage ÷ the month's calendar days for each day, so 9,300,000 is 310,000 a day in April and 300,000 in May.",
 			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
 			"wages": {
 				"floor_includes_fixed_allowances": true,
@@ -2906,7 +2878,7 @@
 						"holds": "terms.facts.wage_scale_grade != \"\" && terms.facts.wage_scale_reference != \"\" && terms.facts.wage_scale_effective_on != \"\" && terms.facts.wage_scale_effective_on <= employment.rule_date && terms.facts.wage_scale_notice_on != \"\" && terms.facts.wage_scale_notice_on <= employment.rule_date && terms.facts.wage_scale_basic_minimum > 0.0",
 						"severity": "WARNING",
 						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum: service of one year or more is paid without the grade check.",
-						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts). PP 36/2021 art.21(1) puts the duty to draw up and apply the scale on the employer, and art.79(1) sanctions its breach administratively (written warning, restriction, suspension or freezing of business) — no article bars paying wages without it, so a missing record warns (tracker ID-07 lawful default); a recorded grade minimum still binds (wage_scale_minimum)."
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts). PP 36/2021 art.21(1) puts the duty to draw up and apply the scale on the employer, and art.79(1) sanctions its breach administratively (written warning, restriction, suspension or freezing of business) — no article bars paying wages without it, so a missing record warns (configured default); a recorded grade minimum still binds (wage_scale_minimum)."
 					},
 					{
 						"key": "wage_scale_minimum",
@@ -2932,7 +2904,7 @@
 					"authority": "PP 36/2021 art.16"
 				},
 				"block_below_when": "true",
-				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. Applied 2026-09-28: UMP 2026 for the provinces whose own decree or government publication was read, each applying from 1 January 2026 (PP 49/2025 art.II): Provinsi Aceh Rp3,932,552 — Kep. Gubernur Aceh 500.15.14.1/1488/2025 (30 Dec 2025), signed copy; Provinsi Sumatera Utara Rp3,228,971 — the Pemprov Sumut announcement of 19 Dec 2025 (decree number not stated there); Provinsi Bengkulu Rp2,827,250.9 — Kep. Gubernur Bengkulu K.646.DKKTRANS Tahun 2025 (22 Dec 2025), signed copy on the provincial data portal; Provinsi Kepulauan Riau Rp3,879,520 — SK Gubernur Kepri 1327/2025, per the Pemprov Kepri announcement; Provinsi Lampung Rp3,047,734 — Kep. Gubernur Lampung G/865/V.08/HK/2025, signed copy on JDIH Lampung (dictum KELIMA excepts micro and small enterprises); Provinsi Banten Rp3,100,881.4 — Kep. Gubernur Banten 701/2025 (24 Dec 2025), per the Pemprov Banten announcement; Provinsi DI Yogyakarta Rp2,417,495 — Kep. Gubernur DIY 442/2025, per the DIY Disnakertrans announcement; Provinsi Bali Rp3,207,459 — Kep. Gubernur Bali 1011/2025, published with its announcement by the Bali labour office; Provinsi Nusa Tenggara Barat Rp2,673,861 — Kep. Gubernur NTB 100.3.3.1-683/2025 (22 Dec 2025), per the NTB Disnakertrans announcement; Provinsi Kalimantan Tengah Rp3,686,138 — SK Gubernur Kalteng 188.44/477/2025 (19 Dec 2025), per the Pemprov Kalteng media centre; Provinsi Kalimantan Selatan Rp3,725,000 — the Pemprov Kalsel media-centre announcement of 25 Dec 2025 (decree number not stated there); Provinsi Kalimantan Timur Rp3,762,431 — Pengumuman Gubernur Kaltim 500.15.14.1/5097/DTKT.Srk-IV/2025 (24 Dec 2025); Provinsi Gorontalo Rp3,405,144 — the Pemprov Gorontalo announcement of 22 Dec 2025 (decree number not stated there). A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency that has no UMK (Perpres 82/2018 art.32(3), and as Permenaker 16/2024 art.12 provided for 2025); where the city or regency sets a UMK, select it instead — a UMK is not seeded for these provinces, so such a workplace must refuse, not fall back. West Java and Central Java carry no province key because every city and regency there has a UMK. Applied 2026-09-28 (round 3), each from 1 January 2026: Provinsi Kepulauan Bangka Belitung Rp4,035,000 — Kep. Gubernur Babel 100.3.3.1/…/DISNAKER/2025 (the handwritten serial reads 654 or 684), signed copy on Disnaker Babel, diktum KEDUA and KEENAM; Provinsi Sulawesi Selatan Rp3,921,088.79 — Kep. Gubernur Sulsel 2129/XII/TAHUN 2025 (22 Dec 2025), signed copy on the Sulsel open-data portal, diktum KESATU and KESEPULUH (KELIMA excepts micro and small enterprises); Provinsi Sulawesi Tenggara Rp3,306,496.18 — Kep. Gubernur Sultra 110.3.3.1/581 (24 Dec 2025), per the Pemprov Sultra portal (1 January to 31 December 2026); Provinsi Papua Rp4,436,283 — Kep. Gubernur Papua 100.3.3.1/KEP.409/2025, per the Pemprov Papua portal (effective 1 January 2026); Provinsi Papua Barat Rp3,841,000 — SK Gubernur Papua Barat 343 Tahun 2025, per the provincial archives and library office (Disarpus Papua Barat) of 23 Dec 2025; Provinsi Papua Tengah Rp4,285,848 — SK Gubernur Papua Tengah 100.3.3.1/334 Tahun 2025, per the Pemprov Papua Tengah portal of 24 Dec 2025 (unchanged from 2025). The Kemnaker compilation (satudata.kemnaker.go.id, UMP 2026) is not an authority here: it truncates sen (Bengkulu 2,827,250 against the decree’s 2,827,250.90; Sulsel 3,921,088 against 3,921,088.79) and lists Sumatera Utara at 3,228,949 against the Pemprov Sumut 3,228,971 (2,992,559 × 1.079). The other 14 provincial 2026 decrees were not read from an official source (register ID-128–ID-160; Riau from round 6). Applied 2026-09-28 (engine defect 6/20): `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, and the floor is read at the worksite the terms record (`employment_terms.worksite`), the company’s region where none is; a locality key overrides its province, a locality with no key of its own owes the province’s UMP, and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). DKI Jakarta has one UMP and no UMK (Kep. Gubernur 1142/2025). Jawa Tengah: the 35 UMKs of Kep. Gubernur Jawa Tengah 100.3.3.1/505 Tahun 2025 (24 Dec 2025, in force 1 January 2026, Lampiran I; PPID Kota Semarang copy of the BSrE-signed decree) — no province key, since every regency and city has a UMK. Sector minimum wages (`monthly_by_sector`; PP 36/2021 as amended by PP 49/2025 art.35D(1), which the DKI decree cites): DKI Kep. Gubernur 33 Tahun 2026 (20 Jan 2026, retroactive to 1 January 2026, diktum KETUJUH), Lampiran rows 1–57 and 60, each for its five-digit KBLI, with the Keterangan conditions as company facts; Jawa Tengah Kep.100.3.3.1/505/2025 Lampiran II, the UMSK of Kabupaten Cilacap, Demak, Semarang, Tegal and Kota Semarang. Both bind a worker with less than one year’s service only (DKI diktum KETIGA; Jawa Tengah diktum KETIGA). The worksite sector is `employment_terms.worksite_sector`, the five-digit KBLI. Not seeded: DKI rows 58–59 (KBLI 49214, 49219, bus drivers and mechanics of private companies) and 61 (KBLI 86103, class A private hospitals, nursing, midwifery and medical-support services), which bind named job types the terms do not record; an operator adds them with a `when` over their own label (e.g. `terms.department`). The sector floor raises the MINIMUM_WAGE_BELOW comparison only: Perpres 82/2018 art.32(2)–(3) as amended by Perpres 64/2020 floors BPJS Kesehatan at the UMK, or the UMP where none is set, never a sector wage, so `wage_floor` stays the place’s. Applied 2026-09-28 (round 6): Riau, from 1 January 2026, the 12 UMKs the Pemerintah Provinsi Riau Media Center states for the Governor's 2026 decisions (“UMK dan UMP Riau Tahun 2026 Resmi Ditetapkan”, 23 Dec 2025, mediacenter.riau.go.id/arsip/94797): Kota Dumai Rp4,431,174.69, Kabupaten Bengkalis Rp4,155,317.75, Kabupaten Siak Rp4,001,327.33, Kota Pekanbaru Rp3,998,179.46, Kabupaten Indragiri Hulu Rp3,988,406.31, Kabupaten Kuantan Singingi Rp3,949,466.98, Kabupaten Kampar Rp3,898,260.70, Kabupaten Pelalawan Rp3,894,260.58, Kabupaten Rokan Hulu Rp3,819,353.01, Kabupaten Rokan Hilir Rp3,783,052.90, and Kabupaten Kepulauan Meranti and Kabupaten Indragiri Hilir each Rp3,780,495.85, the UMP. No province key: every regency and city has a UMK, so a bare Riau workplace refuses. The Riau sector wages (migas, plantation, pulp and paper) are not seeded. Bali from 1 January 2026: UMKs Badung Rp3,791,002.57, Denpasar Rp3,499,878.78, Gianyar Rp3,316,798.48, Tabanan Rp3,287,678.87 (Kep.1021/03-M/HK/2025, Bali Disnaker announcement B.21.500.15/17641/IV/DISNAKER.ESDM). That announcement expressly assigns Bangli, Buleleng, Jembrana, Karangasem and Klungkung to the UMP/UMSP; the named sector rows are seeded, with KBLI and hotel-star applicability requiring affirmative classification. Banten from 1 January 2026: all eight city/regency UMKs of signed Kep. Gubernur Banten 703 Tahun 2025 (24 Dec 2025), Lampiran, with values exact to sen; all eight localities have their own UMK. The annex lists 2025 comparative figures, agreeing with Kep.471/2024 as published by the province. UMSP/UMSK selectors remain unseeded. Kepulauan Riau from 1 January 2026: seven city/regency UMKs stated by the Pemprov Kepri Disnaker press release 832/PR/XII/2025 of 24 Dec 2025, each naming its governor decision: Tanjungpinang Rp3,879,520, Batam Rp5,357,982, Bintan Rp4,583,221, Karimun Rp4,241,935, Lingga Rp3,879,520, Natuna Rp3,879,520 and Kepulauan Anambas Rp4,279,851. The PPID copy headed Batam calls itself Kep.1331/2025 whereas that release calls Batam Kep.1332/2025 and Tanjungpinang Kep.1331/2025; the amount is consistent but document-number metadata needs reconciliation. Kepri sector rates remain unseeded. UU 13/2003 art.22(1)–(3): a lawful apprenticeship needs a written apprenticeship agreement with rights, duties and duration; absent it, the participant becomes the company’s worker. The law does not exempt an employee labelled INTERN or APPRENTICE from the worker minimum wage. The floor therefore covers every employment row (`applies_when` empty); a genuine nonemployee apprenticeship and its stipend require verified legal-status facts and a separate path, not a label-based payroll exemption. Added 2026-09-29, effective 1 January 2026: Jawa Timur 38 UMKs from signed Kep.937/2025, UMSP seven KBLI from Kep.935/2025, and 11 locality UMSK schedules with 156 KBLI entries from Kep.938/2025; DIY five UMKs from the provincial announcement of Kep.443/2025; Lampung five UMKs from JDIH Kep.877–881/2025 and UMSP KBLI 10434 Rp3,108,689 from Kep.865/2025; Bali star-hotel UMSP KBLI 55110 Rp3,267,693 and Badung four/five-star UMSK Rp3,828,912.60 from Bali Disnaker announcements. The Lampung ten other localities and condition classification require explicit admission evidence; unknown KBLI, hotel star, and employer facts must block sector selection rather than silently select the lower floor."
+				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. UMP 2026 for the provinces whose own decree or government publication was read, each applying from 1 January 2026 (PP 49/2025 art.II): Provinsi Aceh Rp3,932,552 — Kep. Gubernur Aceh 500.15.14.1/1488/2025 (30 Dec 2025), signed copy; Provinsi Sumatera Utara Rp3,228,971 — the Pemprov Sumut announcement of 19 Dec 2025 (decree number not stated there); Provinsi Bengkulu Rp2,827,250.9 — Kep. Gubernur Bengkulu K.646.DKKTRANS Tahun 2025 (22 Dec 2025), signed copy on the provincial data portal; Provinsi Kepulauan Riau Rp3,879,520 — SK Gubernur Kepri 1327/2025, per the Pemprov Kepri announcement; Provinsi Lampung Rp3,047,734 — Kep. Gubernur Lampung G/865/V.08/HK/2025, signed copy on JDIH Lampung (dictum KELIMA excepts micro and small enterprises); Provinsi Banten Rp3,100,881.4 — Kep. Gubernur Banten 701/2025 (24 Dec 2025), per the Pemprov Banten announcement; Provinsi DI Yogyakarta Rp2,417,495 — Kep. Gubernur DIY 442/2025, per the DIY Disnakertrans announcement; Provinsi Bali Rp3,207,459 — Kep. Gubernur Bali 1011/2025, published with its announcement by the Bali labour office; Provinsi Nusa Tenggara Barat Rp2,673,861 — Kep. Gubernur NTB 100.3.3.1-683/2025 (22 Dec 2025), per the NTB Disnakertrans announcement; Provinsi Kalimantan Tengah Rp3,686,138 — SK Gubernur Kalteng 188.44/477/2025 (19 Dec 2025), per the Pemprov Kalteng media centre; Provinsi Kalimantan Selatan Rp3,725,000 — the Pemprov Kalsel media-centre announcement of 25 Dec 2025 (decree number not stated there); Provinsi Kalimantan Timur Rp3,762,431 — Pengumuman Gubernur Kaltim 500.15.14.1/5097/DTKT.Srk-IV/2025 (24 Dec 2025); Provinsi Gorontalo Rp3,405,144 — the Pemprov Gorontalo announcement of 22 Dec 2025 (decree number not stated there). A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency that has no UMK (Perpres 82/2018 art.32(3), and as Permenaker 16/2024 art.12 provided for 2025); where the city or regency sets a UMK, select it instead — a UMK is not seeded for these provinces, so such a workplace must refuse, not fall back. West Java and Central Java carry no province key because every city and regency there has a UMK. Each from 1 January 2026: Provinsi Kepulauan Bangka Belitung Rp4,035,000 — Kep. Gubernur Babel 100.3.3.1/…/DISNAKER/2025 (the handwritten serial reads 654 or 684), signed copy on Disnaker Babel, diktum KEDUA and KEENAM; Provinsi Sulawesi Selatan Rp3,921,088.79 — Kep. Gubernur Sulsel 2129/XII/TAHUN 2025 (22 Dec 2025), signed copy on the Sulsel open-data portal, diktum KESATU and KESEPULUH (KELIMA excepts micro and small enterprises); Provinsi Sulawesi Tenggara Rp3,306,496.18 — Kep. Gubernur Sultra 110.3.3.1/581 (24 Dec 2025), per the Pemprov Sultra portal (1 January to 31 December 2026); Provinsi Papua Rp4,436,283 — Kep. Gubernur Papua 100.3.3.1/KEP.409/2025, per the Pemprov Papua portal (effective 1 January 2026); Provinsi Papua Barat Rp3,841,000 — SK Gubernur Papua Barat 343 Tahun 2025, per the provincial archives and library office (Disarpus Papua Barat) of 23 Dec 2025; Provinsi Papua Tengah Rp4,285,848 — SK Gubernur Papua Tengah 100.3.3.1/334 Tahun 2025, per the Pemprov Papua Tengah portal of 24 Dec 2025 (unchanged from 2025). The Kemnaker compilation (satudata.kemnaker.go.id, UMP 2026) is not an authority here: it truncates sen (Bengkulu 2,827,250 against the decree’s 2,827,250.90; Sulsel 3,921,088 against 3,921,088.79) and lists Sumatera Utara at 3,228,949 against the Pemprov Sumut 3,228,971 (2,992,559 × 1.079). The other 14 provincial 2026 decrees were not read from an official source. `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, and the floor is read at the worksite the terms record (`employment_terms.worksite`), the company’s region where none is; a locality key overrides its province, a locality with no key of its own owes the province’s UMP, and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). DKI Jakarta has one UMP and no UMK (Kep. Gubernur 1142/2025). Jawa Tengah: the 35 UMKs of Kep. Gubernur Jawa Tengah 100.3.3.1/505 Tahun 2025 (24 Dec 2025, in force 1 January 2026, Lampiran I; PPID Kota Semarang copy of the BSrE-signed decree) — no province key, since every regency and city has a UMK. Sector minimum wages (`monthly_by_sector`; PP 36/2021 as amended by PP 49/2025 art.35D(1), which the DKI decree cites): DKI Kep. Gubernur 33 Tahun 2026 (20 Jan 2026, retroactive to 1 January 2026, diktum KETUJUH), Lampiran rows 1–57 and 60, each for its five-digit KBLI, with the Keterangan conditions as company facts; Jawa Tengah Kep.100.3.3.1/505/2025 Lampiran II, the UMSK of Kabupaten Cilacap, Demak, Semarang, Tegal and Kota Semarang. Both bind a worker with less than one year’s service only (DKI diktum KETIGA; Jawa Tengah diktum KETIGA). The worksite sector is `employment_terms.worksite_sector`, the five-digit KBLI. Not seeded: DKI rows 58–59 (KBLI 49214, 49219, bus drivers and mechanics of private companies) and 61 (KBLI 86103, class A private hospitals, nursing, midwifery and medical-support services), which bind named job types the terms do not record; an operator adds them with a `when` over their own label (e.g. `terms.department`). The sector floor raises the MINIMUM_WAGE_BELOW comparison only: Perpres 82/2018 art.32(2)–(3) as amended by Perpres 64/2020 floors BPJS Kesehatan at the UMK, or the UMP where none is set, never a sector wage, so `wage_floor` stays the place’s. Riau, from 1 January 2026, the 12 UMKs the Pemerintah Provinsi Riau Media Center states for the Governor's 2026 decisions (“UMK dan UMP Riau Tahun 2026 Resmi Ditetapkan”, 23 Dec 2025, mediacenter.riau.go.id/arsip/94797): Kota Dumai Rp4,431,174.69, Kabupaten Bengkalis Rp4,155,317.75, Kabupaten Siak Rp4,001,327.33, Kota Pekanbaru Rp3,998,179.46, Kabupaten Indragiri Hulu Rp3,988,406.31, Kabupaten Kuantan Singingi Rp3,949,466.98, Kabupaten Kampar Rp3,898,260.70, Kabupaten Pelalawan Rp3,894,260.58, Kabupaten Rokan Hulu Rp3,819,353.01, Kabupaten Rokan Hilir Rp3,783,052.90, and Kabupaten Kepulauan Meranti and Kabupaten Indragiri Hilir each Rp3,780,495.85, the UMP. No province key: every regency and city has a UMK, so a bare Riau workplace refuses. The Riau sector wages (migas, plantation, pulp and paper) are not seeded. Bali from 1 January 2026: UMKs Badung Rp3,791,002.57, Denpasar Rp3,499,878.78, Gianyar Rp3,316,798.48, Tabanan Rp3,287,678.87 (Kep.1021/03-M/HK/2025, Bali Disnaker announcement B.21.500.15/17641/IV/DISNAKER.ESDM). That announcement expressly assigns Bangli, Buleleng, Jembrana, Karangasem and Klungkung to the UMP/UMSP; the named sector rows are seeded, with KBLI and hotel-star applicability requiring affirmative classification. Banten from 1 January 2026: all eight city/regency UMKs of signed Kep. Gubernur Banten 703 Tahun 2025 (24 Dec 2025), Lampiran, with values exact to sen; all eight localities have their own UMK. The annex lists 2025 comparative figures, agreeing with Kep.471/2024 as published by the province. UMSP/UMSK selectors remain unseeded. Kepulauan Riau from 1 January 2026: seven city/regency UMKs stated by the Pemprov Kepri Disnaker press release 832/PR/XII/2025 of 24 Dec 2025, each naming its governor decision: Tanjungpinang Rp3,879,520, Batam Rp5,357,982, Bintan Rp4,583,221, Karimun Rp4,241,935, Lingga Rp3,879,520, Natuna Rp3,879,520 and Kepulauan Anambas Rp4,279,851. The PPID copy headed Batam calls itself Kep.1331/2025 whereas that release calls Batam Kep.1332/2025 and Tanjungpinang Kep.1331/2025; the amount is consistent but document-number metadata needs reconciliation. Kepri sector rates remain unseeded. UU 13/2003 art.22(1)–(3): a lawful apprenticeship needs a written apprenticeship agreement with rights, duties and duration; absent it, the participant becomes the company’s worker. The law does not exempt an employee labelled INTERN or APPRENTICE from the worker minimum wage. The floor therefore covers every employment row (`applies_when` empty); a genuine nonemployee apprenticeship and its stipend require verified legal-status facts and a separate path, not a label-based payroll exemption. Effective 1 January 2026: Jawa Timur 38 UMKs from signed Kep.937/2025, UMSP seven KBLI from Kep.935/2025, and 11 locality UMSK schedules with 156 KBLI entries from Kep.938/2025; DIY five UMKs from the provincial announcement of Kep.443/2025; Lampung five UMKs from JDIH Kep.877–881/2025 and UMSP KBLI 10434 Rp3,108,689 from Kep.865/2025; Bali star-hotel UMSP KBLI 55110 Rp3,267,693 and Badung four/five-star UMSK Rp3,828,912.60 from Bali Disnaker announcements. The Lampung ten other localities and condition classification require explicit admission evidence; unknown KBLI, hotel star, and employer facts must block sector selection rather than silently select the lower floor."
 			},
 			"ordinary_rate": {
 				"hour": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : (terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? 25.0 : 21.0) : terms.pay_frequency == \"WEEKLY\" ? 52.0 / 12.0 : 1.0) * terms.monthly_wage / 173.0",
@@ -3326,8 +3298,7 @@
 				"trigger": "Establishment, each hire (a transferring worker is continued from the first day), and any change in wage, headcount, address or participant data",
 				"timing": "Registration form with worker and family data within 30 working days of receiving it from BPJS (art.6(1)); the participant card to the worker within 3 working days of receipt (art.7(2)); wage and other changes within 7 working days (art.9(2)–(3))",
 				"owner": "HR / registration, card delivery and change reports",
-				"authority": "PP 44/2015 arts.6–9 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15",
-				"status": "EXTERNAL"
+				"authority": "PP 44/2015 arts.6–9 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15"
 			},
 			{
 				"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
@@ -3335,8 +3306,7 @@
 				"trigger": "Each contribution month",
 				"timing": "\"paling lambat tanggal 15 bulan berikutnya\", the next working day when the 15th is a holiday; late payment carries a 2% fine for each month late, borne by the employer",
 				"owner": "Finance / BPJS Ketenagakerjaan payment and supporting worker data",
-				"authority": "PP 44/2015 arts.21–22 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); JHT under PP 46/2015 is billed with them",
-				"status": "PARTIAL"
+				"authority": "PP 44/2015 arts.21–22 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); JHT under PP 46/2015 is billed with them"
 			},
 			{
 				"code": "BPJS_KESEHATAN_REGISTRATION",
@@ -3344,8 +3314,7 @@
 				"trigger": "Each hire; a foreigner once working six months in Indonesia (art.1 angka 2); family changes",
 				"timing": "On employment; a worker the employer fails to register may register themselves (art.13(2)) and the employer is sanctioned (art.17)",
 				"owner": "HR / BPJS Kesehatan enrolment",
-				"authority": "Perpres 82/2018 arts.13–14, 17 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
-				"status": "EXTERNAL"
+				"authority": "Perpres 82/2018 arts.13–14, 17 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)"
 			},
 			{
 				"code": "BPJS_KESEHATAN_REMITTANCE",
@@ -3353,8 +3322,7 @@
 				"trigger": "Each month",
 				"timing": "\"paling lambat tanggal 10 setiap bulan\", the next working day when the 10th is a holiday (art.39(1),(4)); unpaid by month end suspends cover from the 1st of the next month and the employer bears the care its workers need (art.42)",
 				"owner": "Finance / BPJS Kesehatan payment",
-				"authority": "Perpres 82/2018 arts.39, 42 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
-				"status": "PARTIAL"
+				"authority": "Perpres 82/2018 arts.39, 42 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)"
 			},
 			{
 				"code": "WORK_ACCIDENT_REPORT",
@@ -3362,8 +3330,7 @@
 				"trigger": "A work accident, or an occupational disease diagnosed",
 				"timing": "Stage I within 2 x 24 hours of the accident or diagnosis; stage II within 2 x 24 hours of the doctor certifying recovery, disability or death (the benefit claim)",
 				"owner": "HR / accident forms and medical certificates",
-				"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
-				"status": "EXTERNAL"
+				"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)"
 			},
 			{
 				"code": "PPH21_REMITTANCE_AND_SPT_MASA",
@@ -3371,8 +3338,7 @@
 				"trigger": "Each tax period in which remuneration is paid",
 				"timing": "Payment by the 15th of the following month; SPT Masa within 20 days after the period ends; a Saturday, Sunday, public holiday or national cuti bersama moves either to the next working day",
 				"owner": "Finance / billing code, payment and SPT Masa receipt",
-				"authority": "PMK 81/2024 art.94(2) (payment; https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); UU KUP art.3(3)(a) (SPT Masa 20 days); PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); late filing Rp100,000 per SPT Masa (UU KUP art.7(1)), late payment interest (art.9(2a))",
-				"status": "PARTIAL"
+				"authority": "PMK 81/2024 art.94(2) (payment; https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); UU KUP art.3(3)(a) (SPT Masa 20 days); PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); late filing Rp100,000 per SPT Masa (UU KUP art.7(1)), late payment interest (art.9(2a))"
 			},
 			{
 				"code": "PPH21_ANNUAL_STATEMENT_BPA1",
@@ -3380,8 +3346,7 @@
 				"trigger": "The last tax period: December, or the month a permanent employee stops working",
 				"timing": "Within one month after the last tax period ends",
 				"owner": "Finance / BPA1 delivered to the employee",
-				"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 (the annual reckoning the form reports)",
-				"status": "PARTIAL"
+				"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 (the annual reckoning the form reports)"
 			},
 			{
 				"code": "PTKP_STATUS_AND_TAX_ID",
@@ -3389,8 +3354,7 @@
 				"trigger": "Hire, and the start of each calendar year",
 				"timing": "PTKP is fixed on the employee's condition at the start of the calendar year (PMK 168/2023 art.9)",
 				"owner": "HR / declarations and supporting documents",
-				"authority": "PMK 168/2023 art.9 (https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf); UU PPh art.21(5a) (20% higher withholding without NPWP; DJP applies none where a valid NIK is given)",
-				"status": "PARTIAL"
+				"authority": "PMK 168/2023 art.9 (https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf); UU PPh art.21(5a) (20% higher withholding without NPWP; DJP applies none where a valid NIK is given)"
 			},
 			{
 				"code": "TAX_RECORD_RETENTION",
@@ -3398,8 +3362,7 @@
 				"trigger": "Each record",
 				"timing": "10 years in Indonesia",
 				"owner": "Finance / archive",
-				"authority": "UU KUP (UU 6/1983 as amended) art.28(11)",
-				"status": "EXTERNAL"
+				"authority": "UU KUP (UU 6/1983 as amended) art.28(11)"
 			},
 			{
 				"code": "WAGE_PAYMENT_TIMING",
@@ -3407,8 +3370,7 @@
 				"trigger": "Each pay date",
 				"timing": "The agreed date; the pay interval may not exceed 1 month (art.55(4)). Late wages: 5% per day from the 4th to the 8th day, then +1% per day capped at 50% in a month, then bank interest after a month (art.61)",
 				"owner": "Finance / payment evidence",
-				"authority": "PP 36/2021 arts.54, 55, 61 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 36/2021 arts.54, 55, 61 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "PAYSLIP_ISSUE",
@@ -3416,8 +3378,7 @@
 				"trigger": "Each wage payment",
 				"timing": "\"pada saat Upah dibayarkan\" — at the time the wage is paid",
 				"owner": "Payroll / payslip delivery",
-				"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "PARTIAL"
+				"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "WAGE_DEDUCTION_LIMITS",
@@ -3425,8 +3386,7 @@
 				"trigger": "Each deduction other than tax and social security",
 				"timing": "Each payment: the total of deductions at most 50% of the wage paid (art.65); rent and debts need written agreement, third-party deductions a revocable power of attorney (arts.63–64)",
 				"owner": "Payroll / deduction authorisations",
-				"authority": "PP 36/2021 arts.63–65 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 36/2021 arts.63–65 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "MINIMUM_WAGE_COMPLIANCE",
@@ -3434,8 +3394,7 @@
 				"trigger": "Each new minimum-wage decree (in force 1 January) and each wage change",
 				"timing": "From the decree's commencement",
 				"owner": "HR / wage review",
-				"authority": "PP 36/2021 arts.7, 23(3), 25 as amended by PP 51/2023 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); the governor's UMP/UMK decree for the year",
-				"status": "PARTIAL"
+				"authority": "PP 36/2021 arts.7, 23(3), 25 as amended by PP 51/2023 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); the governor's UMP/UMK decree for the year"
 			},
 			{
 				"code": "WAGE_STRUCTURE_AND_SCALE",
@@ -3443,8 +3402,7 @@
 				"trigger": "Standing duty; each change",
 				"timing": "Standing; each worker notified individually",
 				"owner": "HR / structure, scale and notices",
-				"authority": "PP 36/2021 art.21 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 36/2021 art.21 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "THR_PAYMENT_DEADLINE",
@@ -3452,8 +3410,7 @@
 				"trigger": "Each religious holiday of the worker (Idulfitri, Christmas, Nyepi, Waisak, Imlek)",
 				"timing": "\"paling lambat 7 (tujuh) hari sebelum Hari Raya Keagamaan\" (art.5(4)); a late payment carries a 5% fine of the THR due (art.10), without discharging the THR",
 				"owner": "Finance / THR payment",
-				"authority": "Permenaker 6/2016 arts.5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf)",
-				"status": "PARTIAL"
+				"authority": "Permenaker 6/2016 arts.5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf)"
 			},
 			{
 				"code": "PKWT_REGISTRATION",
@@ -3461,8 +3418,7 @@
 				"trigger": "Signing of a PKWT or its extension",
 				"timing": "Online within 3 working days of signing; in writing at the city/regency manpower office within 7 working days where the online service is unavailable",
 				"owner": "HR / PKWT record receipt",
-				"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "EXTERNAL"
+				"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "OVERTIME_CONSENT_RECORDS_AND",
@@ -3470,8 +3426,7 @@
 				"trigger": "Overtime is requested or worked",
 				"timing": "Before the overtime (order and consent); a list of each worker's overtime hours kept; at most 4 hours a day and 18 a week outside rest days and public holidays; 1,400 kcal of food and drink for 4 hours or more, not payable in cash",
 				"owner": "HR / consent and actual-hours records",
-				"authority": "PP 35/2021 arts.26, 28, 29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "PARTIAL"
+				"authority": "PP 35/2021 arts.26, 28, 29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
@@ -3479,8 +3434,7 @@
 				"trigger": "Each termination initiated by the employer, and each legally defined cause",
 				"timing": "Notice at least 14 working days before termination, 7 during probation (art.37(3)–(4)); the worker may reject in writing within 7 working days, then bipartite negotiation and industrial-relations settlement (art.39)",
 				"owner": "HR / notices, consultation, cause and settlement evidence",
-				"authority": "PP 35/2021 arts.37–59 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "PARTIAL"
+				"authority": "PP 35/2021 arts.37–59 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "TERMINATION_REPORT",
@@ -3488,8 +3442,7 @@
 				"trigger": "The worker received the notice and did not reject it",
 				"timing": "After the notice period, on termination",
 				"owner": "HR / termination report",
-				"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "EXTERNAL"
+				"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "WLKP_EMPLOYMENT_REPORT",
@@ -3497,8 +3450,7 @@
 				"trigger": "Establishing, reopening, moving or closing the company; each year",
 				"timing": "Within 30 days after or before establishing, reopening or moving (art.6); every year thereafter (art.8)",
 				"owner": "HR / WLKP receipt",
-				"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019",
-				"status": "EXTERNAL"
+				"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019"
 			},
 			{
 				"code": "COMPANY_REGULATIONS",
@@ -3506,8 +3458,7 @@
 				"trigger": "Ten or more workers",
 				"timing": "In force once ratified; valid at most 2 years and then renewed",
 				"owner": "HR / ratified regulations",
-				"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)",
-				"status": "EXTERNAL"
+				"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
 			},
 			{
 				"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
@@ -3515,8 +3466,7 @@
 				"trigger": "Each foreign worker employed",
 				"timing": "DKPTKA paid on the billing code before the RPTKA is approved, for the period the worker works in Indonesia (art.23(2)–(5))",
 				"owner": "HR / RPTKA approval and DKPTKA receipt",
-				"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)"
 			},
 			{
 				"code": "PDP_LAWFUL_BASIS_AND_INFORMATION",
@@ -3524,8 +3474,7 @@
 				"trigger": "Collection or processing of an applicant's or worker's personal data",
 				"timing": "Before processing; before any change to the information given",
 				"owner": "HR / privacy notice and consent record",
-				"authority": "UU 27/2022 tentang Pelindungan Data Pribadi arts.20–21 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022); fully applicable from 17 October 2024 (art.74: two years from promulgation on 17 October 2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 tentang Pelindungan Data Pribadi arts.20–21 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022); fully applicable from 17 October 2024 (art.74: two years from promulgation on 17 October 2022)"
 			},
 			{
 				"code": "PDP_SECURITY_CONFIDENTIALITY",
@@ -3533,8 +3482,7 @@
 				"trigger": "Holding or processing worker personal data",
 				"timing": "Continuous",
 				"owner": "HR / IT security; processor agreement",
-				"authority": "UU 27/2022 arts.35–39 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 arts.35–39 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_IMPACT_ASSESSMENT",
@@ -3542,8 +3490,7 @@
 				"trigger": "Introduction of high-risk processing (for example biometric attendance or large-scale payroll processing of health data)",
 				"timing": "Before the high-risk processing begins",
 				"owner": "DPO / DPIA record",
-				"authority": "UU 27/2022 art.34 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 art.34 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_DELETION_DESTRUCTION",
@@ -3551,8 +3498,7 @@
 				"trigger": "End of the purpose or retention period, withdrawal of consent, or a data-subject request",
 				"timing": "When the condition arises, subject to other statutory retention periods (tax and BPJS records)",
 				"owner": "HR / retention schedule and destruction record",
-				"authority": "UU 27/2022 arts.43–45 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 arts.43–45 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_BREACH_NOTIFICATION",
@@ -3560,8 +3506,7 @@
 				"trigger": "A failure of personal data protection (breach) affecting worker personal data",
 				"timing": "No later than 3 × 24 hours",
 				"owner": "DPO / breach notice",
-				"authority": "UU 27/2022 art.46 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 art.46 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_DPO_APPOINTMENT",
@@ -3569,8 +3514,7 @@
 				"trigger": "The employer meets an art.53(1) criterion",
 				"timing": "Before or when the criterion is met; continuous",
 				"owner": "Management / DPO appointment letter",
-				"authority": "UU 27/2022 arts.53–54 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 arts.53–54 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			}
 		],
 		"tables": [
@@ -3600,7 +3544,7 @@
 				"severity": "REFUSE",
 				"when": "employment.type != \"CONTRACT\" && has(terms.facts.probation_end_on) && terms.facts.probation_end_on > add_days(add_months(employment.service_start, 3), -1)",
 				"message": "A PKWTT probation may last at most three months from the first day of work; set probation_end_on no later than the day before the three-month anniversary of the start.",
-				"authority": "UU 13/2003 art.60(1), not amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-110"
+				"authority": "UU 13/2003 art.60(1), not amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
 			},
 			{
 				"code": "PKWT_PROBATION_VOID",
@@ -3608,7 +3552,7 @@
 				"severity": "REFUSE",
 				"when": "employment.type == \"CONTRACT\" && has(terms.facts.probation_end_on)",
 				"message": "A fixed-term contract (PKWT) may not require a probation period: a probation clause is void and its days count as service. Remove probation_end_on from these terms.",
-				"authority": "UU 13/2003 art.58(1)–(2) as amended by UU 6/2023; PP 35/2021 art.12 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); tracker ID-108, ID-110"
+				"authority": "UU 13/2003 art.58(1)–(2) as amended by UU 6/2023; PP 35/2021 art.12 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "PKWT_TERM_OVER_FIVE_YEARS",
@@ -3616,7 +3560,7 @@
 				"severity": "REFUSE",
 				"when": "employment.type == \"CONTRACT\" && employment.exit_date != \"\" && employment.exit_date > add_days(add_months(employment.service_start, 60), -1)",
 				"message": "A PKWT, extensions included, may last at most five years from its start; this contract's recorded end is later. End it within five years or record the employment as PKWTT (open-ended).",
-				"authority": "PP 35/2021 art.8(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023 (not more than five years including any extension); tracker ID-108"
+				"authority": "PP 35/2021 art.8(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023 (not more than five years including any extension)"
 			},
 			{
 				"code": "YOUNG_WORKER_CONDITIONS",
@@ -3624,7 +3568,7 @@
 				"severity": "WARN",
 				"when": "employee.age < 18",
 				"message": "The worker is a child under UU 13/2003 art.1 angka 26 (under 18): art.68 bars employing a child outside the light-work (art.69), curriculum (art.70) and talent (art.71) exceptions, and art.74 bars the worst forms of child labour. Record the exception relied on and its conditions (written parental consent and agreement, at most three hours a day, daytime, outside school hours, safety, wages per law) before paying.",
-				"authority": "UU 13/2003 arts.1 angka 26, 68–75 as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-47 owner default 2026-10-01: the exceptions are lawful, so the run warns rather than refuses"
+				"authority": "UU 13/2003 arts.1 angka 26, 68–75 as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); configured default: the exceptions are lawful, so the run warns rather than refuses"
 			}
 		],
 		"duty_types": [
@@ -3656,7 +3600,7 @@
 			{
 				"code": "BPJS_KESEHATAN_REMITTANCE",
 				"label": "BPJS Kesehatan contribution of the wage month",
-				"authority": "Perpres 82/2018 art.39(1): the employer pays each month's contribution at the latest on the 10th of that month (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf); tracker ID-20 reading 2026-10-01: the 10th of the wage month itself. The art.39(4) holiday roll is not applied (no calendar on the obligation site).",
+				"authority": "Perpres 82/2018 art.39(1): the employer pays each month's contribution at the latest on the 10th of that month (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf); the payment deadline is the 10th of the wage month itself. The art.39(4) holiday roll is not applied (no calendar on the obligation site).",
 				"subject": "RUN",
 				"trigger": {
 					"on": "RUN_FINALISED"
@@ -3874,19 +3818,19 @@
 				{
 					"label": "OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "normal_hours",
+					"take_hours": "person.terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
 					"price_amount": "hours * ordinary_hour * 2.0"
 				},
 				{
 					"label": "OT-3.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "(hours_beyond_normal < 1.0 ? hours_beyond_normal : 1.0)",
+					"take_hours": "1.0",
 					"price_amount": "hours * ordinary_hour * 3.0"
 				},
 				{
 					"label": "OT-4.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "(hours_beyond_normal > 1.0 ? hours_beyond_normal - 1.0 : 0.0)",
+					"take_hours": "overtime_hours",
 					"price_amount": "hours * ordinary_hour * 4.0"
 				},
 				{
@@ -3939,7 +3883,7 @@
 			],
 			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY",
-			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. Applied 2026-09-18: PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out. Applied 2026-09-18 (4): PP 35/2021 art.28: overtime is on the employer’s order with the worker’s consent — an ordinary-day overrun the employer did not order (`work_days.requested_by` EMPLOYEE) earns no overtime; the order is presumed unless HR marks the day. Art.27(2): the exception for a job group of planners, thinkers and executors paid above the norm is the MANAGERIAL classification the employer designates (`overtime_when`). Recorded default 2026-09-28 (register ID-106): no instrument fixes how a monthly wage is divided for a part month — PP 36/2021 art.17's ÷25/÷21 converts only a wage fixed daily, and art.40(1) says only that no wage is due for days not worked — so the PK/PP/PKB governs; absent one, a joiner, a leaver and an unpaid day are priced on calendar days (`proration.by` CALENDAR_DAYS): the monthly wage ÷ the month's calendar days for each day, so 9,300,000 is 310,000 a day in April and 300,000 in May.",
+			"authority": "Peraturan Pemerintah No. 35 Tahun 2021 Pasal 27(1) — an employer who employs a worker beyond the Pasal 21(2) working hours must pay overtime wages; the regulation sets no wage threshold, and its only exception (Pasal 27(2)) is by job group, which this workspace cannot yet express. Pasal 26(1) caps overtime at 4 hours in a day and 18 hours in a week, and Pasal 26(2) puts overtime worked on a weekly rest day or an official public holiday outside that cap. Undang-Undang No. 13 Tahun 2003 Pasal 79(2)(a) as amended by Undang-Undang No. 6 Tahun 2023 gives a break of at least 30 minutes after 4 continuous hours, not counted as working time, and Pasal 79(2)(b) one rest day for every 6 working days in a week. PP 35/2021 art.32(1)–(4): the overtime hour is 1/173 of the monthly wage, basic plus the fixed allowances (`terms.monthly_wage`); art.21: the normal day is seven hours on a six-day week, eight on a five-day one (`normal_hours`); art.26(2): rest-day and holiday overtime are outside the four-hour and eighteen-hour ceilings, which the monthly counter already leaves out. PP 35/2021 art.28: overtime is on the employer’s order with the worker’s consent — an ordinary-day overrun the employer did not order (`work_days.requested_by` EMPLOYEE) earns no overtime; the order is presumed unless HR marks the day. Art.27(2): the exception for a job group of planners, thinkers and executors paid above the norm is the MANAGERIAL classification the employer designates (`overtime_when`). Recorded default 2026-09-28: no instrument fixes how a monthly wage is divided for a part month — PP 36/2021 art.17's ÷25/÷21 converts only a wage fixed daily, and art.40(1) says only that no wage is due for days not worked — so the PK/PP/PKB governs; absent one, a joiner, a leaver and an unpaid day are priced on calendar days (`proration.by` CALENDAR_DAYS): the monthly wage ÷ the month's calendar days for each day, so 9,300,000 is 310,000 a day in April and 300,000 in May.",
 			"normal_hours": "terms.working_days_per_week >= 6.0 ? 7.0 : 8.0",
 			"wages": {
 				"floor_includes_fixed_allowances": true,
@@ -5178,7 +5122,7 @@
 						"holds": "terms.facts.wage_scale_grade != \"\" && terms.facts.wage_scale_reference != \"\" && terms.facts.wage_scale_effective_on != \"\" && terms.facts.wage_scale_effective_on <= employment.rule_date && terms.facts.wage_scale_notice_on != \"\" && terms.facts.wage_scale_notice_on <= employment.rule_date && terms.facts.wage_scale_basic_minimum > 0.0",
 						"severity": "WARNING",
 						"message": "record the dated company wage structure, this worker's grade notice and its basic-wage minimum: service of one year or more is paid without the grade check.",
-						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts). PP 36/2021 art.21(1) puts the duty to draw up and apply the scale on the employer, and art.79(1) sanctions its breach administratively (written warning, restriction, suspension or freezing of business) — no article bars paying wages without it, so a missing record warns (tracker ID-07 lawful default); a recorded grade minimum still binds (wage_scale_minimum)."
+						"authority": "PP 36/2021 arts.20, 24 and PP 49/2025 art.21: from one year's service the company wage structure and scale apply to the worker; the scale reference's file is its evidence (terms_facts). PP 36/2021 art.21(1) puts the duty to draw up and apply the scale on the employer, and art.79(1) sanctions its breach administratively (written warning, restriction, suspension or freezing of business) — no article bars paying wages without it, so a missing record warns (configured default); a recorded grade minimum still binds (wage_scale_minimum)."
 					},
 					{
 						"key": "wage_scale_minimum",
@@ -5204,7 +5148,7 @@
 					"authority": "PP 36/2021 art.16"
 				},
 				"block_below_when": "true",
-				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. Applied 2026-09-28: UMP 2026 for the provinces whose own decree or government publication was read, each applying from 1 January 2026 (PP 49/2025 art.II): Provinsi Aceh Rp3,932,552 — Kep. Gubernur Aceh 500.15.14.1/1488/2025 (30 Dec 2025), signed copy; Provinsi Sumatera Utara Rp3,228,971 — the Pemprov Sumut announcement of 19 Dec 2025 (decree number not stated there); Provinsi Bengkulu Rp2,827,250.9 — Kep. Gubernur Bengkulu K.646.DKKTRANS Tahun 2025 (22 Dec 2025), signed copy on the provincial data portal; Provinsi Kepulauan Riau Rp3,879,520 — SK Gubernur Kepri 1327/2025, per the Pemprov Kepri announcement; Provinsi Lampung Rp3,047,734 — Kep. Gubernur Lampung G/865/V.08/HK/2025, signed copy on JDIH Lampung (dictum KELIMA excepts micro and small enterprises); Provinsi Banten Rp3,100,881.4 — Kep. Gubernur Banten 701/2025 (24 Dec 2025), per the Pemprov Banten announcement; Provinsi DI Yogyakarta Rp2,417,495 — Kep. Gubernur DIY 442/2025, per the DIY Disnakertrans announcement; Provinsi Bali Rp3,207,459 — Kep. Gubernur Bali 1011/2025, published with its announcement by the Bali labour office; Provinsi Nusa Tenggara Barat Rp2,673,861 — Kep. Gubernur NTB 100.3.3.1-683/2025 (22 Dec 2025), per the NTB Disnakertrans announcement; Provinsi Kalimantan Tengah Rp3,686,138 — SK Gubernur Kalteng 188.44/477/2025 (19 Dec 2025), per the Pemprov Kalteng media centre; Provinsi Kalimantan Selatan Rp3,725,000 — the Pemprov Kalsel media-centre announcement of 25 Dec 2025 (decree number not stated there); Provinsi Kalimantan Timur Rp3,762,431 — Pengumuman Gubernur Kaltim 500.15.14.1/5097/DTKT.Srk-IV/2025 (24 Dec 2025); Provinsi Gorontalo Rp3,405,144 — the Pemprov Gorontalo announcement of 22 Dec 2025 (decree number not stated there). A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency that has no UMK (Perpres 82/2018 art.32(3), and as Permenaker 16/2024 art.12 provided for 2025); where the city or regency sets a UMK, select it instead — a UMK is not seeded for these provinces, so such a workplace must refuse, not fall back. West Java and Central Java carry no province key because every city and regency there has a UMK. Applied 2026-09-28 (round 3), each from 1 January 2026: Provinsi Kepulauan Bangka Belitung Rp4,035,000 — Kep. Gubernur Babel 100.3.3.1/…/DISNAKER/2025 (the handwritten serial reads 654 or 684), signed copy on Disnaker Babel, diktum KEDUA and KEENAM; Provinsi Sulawesi Selatan Rp3,921,088.79 — Kep. Gubernur Sulsel 2129/XII/TAHUN 2025 (22 Dec 2025), signed copy on the Sulsel open-data portal, diktum KESATU and KESEPULUH (KELIMA excepts micro and small enterprises); Provinsi Sulawesi Tenggara Rp3,306,496.18 — Kep. Gubernur Sultra 110.3.3.1/581 (24 Dec 2025), per the Pemprov Sultra portal (1 January to 31 December 2026); Provinsi Papua Rp4,436,283 — Kep. Gubernur Papua 100.3.3.1/KEP.409/2025, per the Pemprov Papua portal (effective 1 January 2026); Provinsi Papua Barat Rp3,841,000 — SK Gubernur Papua Barat 343 Tahun 2025, per the provincial archives and library office (Disarpus Papua Barat) of 23 Dec 2025; Provinsi Papua Tengah Rp4,285,848 — SK Gubernur Papua Tengah 100.3.3.1/334 Tahun 2025, per the Pemprov Papua Tengah portal of 24 Dec 2025 (unchanged from 2025). The Kemnaker compilation (satudata.kemnaker.go.id, UMP 2026) is not an authority here: it truncates sen (Bengkulu 2,827,250 against the decree’s 2,827,250.90; Sulsel 3,921,088 against 3,921,088.79) and lists Sumatera Utara at 3,228,949 against the Pemprov Sumut 3,228,971 (2,992,559 × 1.079). The other 14 provincial 2026 decrees were not read from an official source (register ID-128–ID-160; Riau from round 6). Applied 2026-09-28 (engine defect 6/20): `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, and the floor is read at the worksite the terms record (`employment_terms.worksite`), the company’s region where none is; a locality key overrides its province, a locality with no key of its own owes the province’s UMP, and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). DKI Jakarta has one UMP and no UMK (Kep. Gubernur 1142/2025). Jawa Tengah: the 35 UMKs of Kep. Gubernur Jawa Tengah 100.3.3.1/505 Tahun 2025 (24 Dec 2025, in force 1 January 2026, Lampiran I; PPID Kota Semarang copy of the BSrE-signed decree) — no province key, since every regency and city has a UMK. Sector minimum wages (`monthly_by_sector`; PP 36/2021 as amended by PP 49/2025 art.35D(1), which the DKI decree cites): DKI Kep. Gubernur 33 Tahun 2026 (20 Jan 2026, retroactive to 1 January 2026, diktum KETUJUH), Lampiran rows 1–57 and 60, each for its five-digit KBLI, with the Keterangan conditions as company facts; Jawa Tengah Kep.100.3.3.1/505/2025 Lampiran II, the UMSK of Kabupaten Cilacap, Demak, Semarang, Tegal and Kota Semarang. Both bind a worker with less than one year’s service only (DKI diktum KETIGA; Jawa Tengah diktum KETIGA). The worksite sector is `employment_terms.worksite_sector`, the five-digit KBLI. Not seeded: DKI rows 58–59 (KBLI 49214, 49219, bus drivers and mechanics of private companies) and 61 (KBLI 86103, class A private hospitals, nursing, midwifery and medical-support services), which bind named job types the terms do not record; an operator adds them with a `when` over their own label (e.g. `terms.department`). The sector floor raises the MINIMUM_WAGE_BELOW comparison only: Perpres 82/2018 art.32(2)–(3) as amended by Perpres 64/2020 floors BPJS Kesehatan at the UMK, or the UMP where none is set, never a sector wage, so `wage_floor` stays the place’s. Applied 2026-09-28 (round 6): Riau, from 1 January 2026, the 12 UMKs the Pemerintah Provinsi Riau Media Center states for the Governor's 2026 decisions (“UMK dan UMP Riau Tahun 2026 Resmi Ditetapkan”, 23 Dec 2025, mediacenter.riau.go.id/arsip/94797): Kota Dumai Rp4,431,174.69, Kabupaten Bengkalis Rp4,155,317.75, Kabupaten Siak Rp4,001,327.33, Kota Pekanbaru Rp3,998,179.46, Kabupaten Indragiri Hulu Rp3,988,406.31, Kabupaten Kuantan Singingi Rp3,949,466.98, Kabupaten Kampar Rp3,898,260.70, Kabupaten Pelalawan Rp3,894,260.58, Kabupaten Rokan Hulu Rp3,819,353.01, Kabupaten Rokan Hilir Rp3,783,052.90, and Kabupaten Kepulauan Meranti and Kabupaten Indragiri Hilir each Rp3,780,495.85, the UMP. No province key: every regency and city has a UMK, so a bare Riau workplace refuses. The Riau sector wages (migas, plantation, pulp and paper) are not seeded. Bali from 1 January 2026: UMKs Badung Rp3,791,002.57, Denpasar Rp3,499,878.78, Gianyar Rp3,316,798.48, Tabanan Rp3,287,678.87 (Kep.1021/03-M/HK/2025, Bali Disnaker announcement B.21.500.15/17641/IV/DISNAKER.ESDM). That announcement expressly assigns Bangli, Buleleng, Jembrana, Karangasem and Klungkung to the UMP/UMSP; the named sector rows are seeded, with KBLI and hotel-star applicability requiring affirmative classification. Banten from 1 January 2026: all eight city/regency UMKs of signed Kep. Gubernur Banten 703 Tahun 2025 (24 Dec 2025), Lampiran, with values exact to sen; all eight localities have their own UMK. The annex lists 2025 comparative figures, agreeing with Kep.471/2024 as published by the province. UMSP/UMSK selectors remain unseeded. Kepulauan Riau from 1 January 2026: seven city/regency UMKs stated by the Pemprov Kepri Disnaker press release 832/PR/XII/2025 of 24 Dec 2025, each naming its governor decision: Tanjungpinang Rp3,879,520, Batam Rp5,357,982, Bintan Rp4,583,221, Karimun Rp4,241,935, Lingga Rp3,879,520, Natuna Rp3,879,520 and Kepulauan Anambas Rp4,279,851. The PPID copy headed Batam calls itself Kep.1331/2025 whereas that release calls Batam Kep.1332/2025 and Tanjungpinang Kep.1331/2025; the amount is consistent but document-number metadata needs reconciliation. Kepri sector rates remain unseeded. UU 13/2003 art.22(1)–(3): a lawful apprenticeship needs a written apprenticeship agreement with rights, duties and duration; absent it, the participant becomes the company’s worker. The law does not exempt an employee labelled INTERN or APPRENTICE from the worker minimum wage. The floor therefore covers every employment row (`applies_when` empty); a genuine nonemployee apprenticeship and its stipend require verified legal-status facts and a separate path, not a label-based payroll exemption. Added 2026-09-29, effective 1 January 2026: Jawa Timur 38 UMKs from signed Kep.937/2025, UMSP seven KBLI from Kep.935/2025, and 11 locality UMSK schedules with 156 KBLI entries from Kep.938/2025; DIY five UMKs from the provincial announcement of Kep.443/2025; Lampung five UMKs from JDIH Kep.877–881/2025 and UMSP KBLI 10434 Rp3,108,689 from Kep.865/2025; Bali star-hotel UMSP KBLI 55110 Rp3,267,693 and Badung four/five-star UMSK Rp3,828,912.60 from Bali Disnaker announcements. The Lampung ten other localities and condition classification require explicit admission evidence; unknown KBLI, hotel star, and employer facts must block sector selection rather than silently select the lower floor."
+				"authority": "PP 36/2021 art.7(2): basic wage is at least 75% of basic wage plus fixed allowances. Perpres 82/2018 art.32(2)-(3), as amended: BPJS Kesehatan uses the workplace UMK; UMP applies only where no UMK is set. Kepgub Jawa Barat 561.7/Kep.862-Kesra/2025, effective 1 January 2026. All 27 West Java cities and regencies have a UMK; select the workplace city or regency, not the province. Sectoral minimum wages require a separate applicable order. UMP 2026 for the provinces whose own decree or government publication was read, each applying from 1 January 2026 (PP 49/2025 art.II): Provinsi Aceh Rp3,932,552 — Kep. Gubernur Aceh 500.15.14.1/1488/2025 (30 Dec 2025), signed copy; Provinsi Sumatera Utara Rp3,228,971 — the Pemprov Sumut announcement of 19 Dec 2025 (decree number not stated there); Provinsi Bengkulu Rp2,827,250.9 — Kep. Gubernur Bengkulu K.646.DKKTRANS Tahun 2025 (22 Dec 2025), signed copy on the provincial data portal; Provinsi Kepulauan Riau Rp3,879,520 — SK Gubernur Kepri 1327/2025, per the Pemprov Kepri announcement; Provinsi Lampung Rp3,047,734 — Kep. Gubernur Lampung G/865/V.08/HK/2025, signed copy on JDIH Lampung (dictum KELIMA excepts micro and small enterprises); Provinsi Banten Rp3,100,881.4 — Kep. Gubernur Banten 701/2025 (24 Dec 2025), per the Pemprov Banten announcement; Provinsi DI Yogyakarta Rp2,417,495 — Kep. Gubernur DIY 442/2025, per the DIY Disnakertrans announcement; Provinsi Bali Rp3,207,459 — Kep. Gubernur Bali 1011/2025, published with its announcement by the Bali labour office; Provinsi Nusa Tenggara Barat Rp2,673,861 — Kep. Gubernur NTB 100.3.3.1-683/2025 (22 Dec 2025), per the NTB Disnakertrans announcement; Provinsi Kalimantan Tengah Rp3,686,138 — SK Gubernur Kalteng 188.44/477/2025 (19 Dec 2025), per the Pemprov Kalteng media centre; Provinsi Kalimantan Selatan Rp3,725,000 — the Pemprov Kalsel media-centre announcement of 25 Dec 2025 (decree number not stated there); Provinsi Kalimantan Timur Rp3,762,431 — Pengumuman Gubernur Kaltim 500.15.14.1/5097/DTKT.Srk-IV/2025 (24 Dec 2025); Provinsi Gorontalo Rp3,405,144 — the Pemprov Gorontalo announcement of 22 Dec 2025 (decree number not stated there). A “Provinsi …” key is the UMP and is the floor only for a workplace in a city or regency that has no UMK (Perpres 82/2018 art.32(3), and as Permenaker 16/2024 art.12 provided for 2025); where the city or regency sets a UMK, select it instead — a UMK is not seeded for these provinces, so such a workplace must refuse, not fall back. West Java and Central Java carry no province key because every city and regency there has a UMK. Each from 1 January 2026: Provinsi Kepulauan Bangka Belitung Rp4,035,000 — Kep. Gubernur Babel 100.3.3.1/…/DISNAKER/2025 (the handwritten serial reads 654 or 684), signed copy on Disnaker Babel, diktum KEDUA and KEENAM; Provinsi Sulawesi Selatan Rp3,921,088.79 — Kep. Gubernur Sulsel 2129/XII/TAHUN 2025 (22 Dec 2025), signed copy on the Sulsel open-data portal, diktum KESATU and KESEPULUH (KELIMA excepts micro and small enterprises); Provinsi Sulawesi Tenggara Rp3,306,496.18 — Kep. Gubernur Sultra 110.3.3.1/581 (24 Dec 2025), per the Pemprov Sultra portal (1 January to 31 December 2026); Provinsi Papua Rp4,436,283 — Kep. Gubernur Papua 100.3.3.1/KEP.409/2025, per the Pemprov Papua portal (effective 1 January 2026); Provinsi Papua Barat Rp3,841,000 — SK Gubernur Papua Barat 343 Tahun 2025, per the provincial archives and library office (Disarpus Papua Barat) of 23 Dec 2025; Provinsi Papua Tengah Rp4,285,848 — SK Gubernur Papua Tengah 100.3.3.1/334 Tahun 2025, per the Pemprov Papua Tengah portal of 24 Dec 2025 (unchanged from 2025). The Kemnaker compilation (satudata.kemnaker.go.id, UMP 2026) is not an authority here: it truncates sen (Bengkulu 2,827,250 against the decree’s 2,827,250.90; Sulsel 3,921,088 against 3,921,088.79) and lists Sumatera Utara at 3,228,949 against the Pemprov Sumut 3,228,971 (2,992,559 × 1.079). The other 14 provincial 2026 decrees were not read from an official source. `by_region` is workplace-keyed (`workplace_keyed`): a key is “Provinsi X” or “Provinsi X/Kota|Kabupaten Y”, and the floor is read at the worksite the terms record (`employment_terms.worksite`), the company’s region where none is; a locality key overrides its province, a locality with no key of its own owes the province’s UMP, and a bare province whose localities carry keys refuses (UU 13/2003 art.88C as amended by UU 6/2023). DKI Jakarta has one UMP and no UMK (Kep. Gubernur 1142/2025). Jawa Tengah: the 35 UMKs of Kep. Gubernur Jawa Tengah 100.3.3.1/505 Tahun 2025 (24 Dec 2025, in force 1 January 2026, Lampiran I; PPID Kota Semarang copy of the BSrE-signed decree) — no province key, since every regency and city has a UMK. Sector minimum wages (`monthly_by_sector`; PP 36/2021 as amended by PP 49/2025 art.35D(1), which the DKI decree cites): DKI Kep. Gubernur 33 Tahun 2026 (20 Jan 2026, retroactive to 1 January 2026, diktum KETUJUH), Lampiran rows 1–57 and 60, each for its five-digit KBLI, with the Keterangan conditions as company facts; Jawa Tengah Kep.100.3.3.1/505/2025 Lampiran II, the UMSK of Kabupaten Cilacap, Demak, Semarang, Tegal and Kota Semarang. Both bind a worker with less than one year’s service only (DKI diktum KETIGA; Jawa Tengah diktum KETIGA). The worksite sector is `employment_terms.worksite_sector`, the five-digit KBLI. Not seeded: DKI rows 58–59 (KBLI 49214, 49219, bus drivers and mechanics of private companies) and 61 (KBLI 86103, class A private hospitals, nursing, midwifery and medical-support services), which bind named job types the terms do not record; an operator adds them with a `when` over their own label (e.g. `terms.department`). The sector floor raises the MINIMUM_WAGE_BELOW comparison only: Perpres 82/2018 art.32(2)–(3) as amended by Perpres 64/2020 floors BPJS Kesehatan at the UMK, or the UMP where none is set, never a sector wage, so `wage_floor` stays the place’s. Riau, from 1 January 2026, the 12 UMKs the Pemerintah Provinsi Riau Media Center states for the Governor's 2026 decisions (“UMK dan UMP Riau Tahun 2026 Resmi Ditetapkan”, 23 Dec 2025, mediacenter.riau.go.id/arsip/94797): Kota Dumai Rp4,431,174.69, Kabupaten Bengkalis Rp4,155,317.75, Kabupaten Siak Rp4,001,327.33, Kota Pekanbaru Rp3,998,179.46, Kabupaten Indragiri Hulu Rp3,988,406.31, Kabupaten Kuantan Singingi Rp3,949,466.98, Kabupaten Kampar Rp3,898,260.70, Kabupaten Pelalawan Rp3,894,260.58, Kabupaten Rokan Hulu Rp3,819,353.01, Kabupaten Rokan Hilir Rp3,783,052.90, and Kabupaten Kepulauan Meranti and Kabupaten Indragiri Hilir each Rp3,780,495.85, the UMP. No province key: every regency and city has a UMK, so a bare Riau workplace refuses. The Riau sector wages (migas, plantation, pulp and paper) are not seeded. Bali from 1 January 2026: UMKs Badung Rp3,791,002.57, Denpasar Rp3,499,878.78, Gianyar Rp3,316,798.48, Tabanan Rp3,287,678.87 (Kep.1021/03-M/HK/2025, Bali Disnaker announcement B.21.500.15/17641/IV/DISNAKER.ESDM). That announcement expressly assigns Bangli, Buleleng, Jembrana, Karangasem and Klungkung to the UMP/UMSP; the named sector rows are seeded, with KBLI and hotel-star applicability requiring affirmative classification. Banten from 1 January 2026: all eight city/regency UMKs of signed Kep. Gubernur Banten 703 Tahun 2025 (24 Dec 2025), Lampiran, with values exact to sen; all eight localities have their own UMK. The annex lists 2025 comparative figures, agreeing with Kep.471/2024 as published by the province. UMSP/UMSK selectors remain unseeded. Kepulauan Riau from 1 January 2026: seven city/regency UMKs stated by the Pemprov Kepri Disnaker press release 832/PR/XII/2025 of 24 Dec 2025, each naming its governor decision: Tanjungpinang Rp3,879,520, Batam Rp5,357,982, Bintan Rp4,583,221, Karimun Rp4,241,935, Lingga Rp3,879,520, Natuna Rp3,879,520 and Kepulauan Anambas Rp4,279,851. The PPID copy headed Batam calls itself Kep.1331/2025 whereas that release calls Batam Kep.1332/2025 and Tanjungpinang Kep.1331/2025; the amount is consistent but document-number metadata needs reconciliation. Kepri sector rates remain unseeded. UU 13/2003 art.22(1)–(3): a lawful apprenticeship needs a written apprenticeship agreement with rights, duties and duration; absent it, the participant becomes the company’s worker. The law does not exempt an employee labelled INTERN or APPRENTICE from the worker minimum wage. The floor therefore covers every employment row (`applies_when` empty); a genuine nonemployee apprenticeship and its stipend require verified legal-status facts and a separate path, not a label-based payroll exemption. Effective 1 January 2026: Jawa Timur 38 UMKs from signed Kep.937/2025, UMSP seven KBLI from Kep.935/2025, and 11 locality UMSK schedules with 156 KBLI entries from Kep.938/2025; DIY five UMKs from the provincial announcement of Kep.443/2025; Lampung five UMKs from JDIH Kep.877–881/2025 and UMSP KBLI 10434 Rp3,108,689 from Kep.865/2025; Bali star-hotel UMSP KBLI 55110 Rp3,267,693 and Badung four/five-star UMSK Rp3,828,912.60 from Bali Disnaker announcements. The Lampung ten other localities and condition classification require explicit admission evidence; unknown KBLI, hotel star, and employer facts must block sector selection rather than silently select the lower floor."
 			},
 			"ordinary_rate": {
 				"hour": "terms.pay_frequency == \"HOURLY\" ? terms.basic_salary : (terms.pay_frequency == \"DAILY\" ? (terms.working_days_per_week >= 6.0 ? 25.0 : 21.0) : terms.pay_frequency == \"WEEKLY\" ? 52.0 / 12.0 : 1.0) * terms.monthly_wage / 173.0",
@@ -5591,8 +5535,7 @@
 				"trigger": "Establishment, each hire (a transferring worker is continued from the first day), and any change in wage, headcount, address or participant data",
 				"timing": "Registration form with worker and family data within 30 working days of receiving it from BPJS (art.6(1)); the participant card to the worker within 3 working days of receipt (art.7(2)); wage and other changes within 7 working days (art.9(2)–(3))",
 				"owner": "HR / registration, card delivery and change reports",
-				"authority": "PP 44/2015 arts.6–9 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15",
-				"status": "EXTERNAL"
+				"authority": "PP 44/2015 arts.6–9 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); UU 24/2011 art.15"
 			},
 			{
 				"code": "BPJS_KETENAGAKERJAAN_REMITTANCE",
@@ -5600,8 +5543,7 @@
 				"trigger": "Each contribution month",
 				"timing": "\"paling lambat tanggal 15 bulan berikutnya\", the next working day when the 15th is a holiday; late payment carries a 2% fine for each month late, borne by the employer",
 				"owner": "Finance / BPJS Ketenagakerjaan payment and supporting worker data",
-				"authority": "PP 44/2015 arts.21–22 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); JHT under PP 46/2015 is billed with them",
-				"status": "PARTIAL"
+				"authority": "PP 44/2015 arts.21–22 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf); PP 45/2015 arts.30–31 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104556_PP%2045%20Tahun%202015.pdf); JHT under PP 46/2015 is billed with them"
 			},
 			{
 				"code": "BPJS_KESEHATAN_REGISTRATION",
@@ -5609,8 +5551,7 @@
 				"trigger": "Each hire; a foreigner once working six months in Indonesia (art.1 angka 2); family changes",
 				"timing": "On employment; a worker the employer fails to register may register themselves (art.13(2)) and the employer is sanctioned (art.17)",
 				"owner": "HR / BPJS Kesehatan enrolment",
-				"authority": "Perpres 82/2018 arts.13–14, 17 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
-				"status": "EXTERNAL"
+				"authority": "Perpres 82/2018 arts.13–14, 17 as amended by Perpres 64/2020 and 59/2024 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)"
 			},
 			{
 				"code": "BPJS_KESEHATAN_REMITTANCE",
@@ -5618,8 +5559,7 @@
 				"trigger": "Each month",
 				"timing": "\"paling lambat tanggal 10 setiap bulan\", the next working day when the 10th is a holiday (art.39(1),(4)); unpaid by month end suspends cover from the 1st of the next month and the employer bears the care its workers need (art.42)",
 				"owner": "Finance / BPJS Kesehatan payment",
-				"authority": "Perpres 82/2018 arts.39, 42 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)",
-				"status": "PARTIAL"
+				"authority": "Perpres 82/2018 arts.39, 42 (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf)"
 			},
 			{
 				"code": "WORK_ACCIDENT_REPORT",
@@ -5627,8 +5567,7 @@
 				"trigger": "A work accident, or an occupational disease diagnosed",
 				"timing": "Stage I within 2 x 24 hours of the accident or diagnosis; stage II within 2 x 24 hours of the doctor certifying recovery, disability or death (the benefit claim)",
 				"owner": "HR / accident forms and medical certificates",
-				"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)",
-				"status": "EXTERNAL"
+				"authority": "PP 44/2015 art.43 (https://www.bpjsketenagakerjaan.go.id/assets/uploads/peraturan/15122015_104557_PP%2044%20Tahun%202015.pdf)"
 			},
 			{
 				"code": "PPH21_REMITTANCE_AND_SPT_MASA",
@@ -5636,8 +5575,7 @@
 				"trigger": "Each tax period in which remuneration is paid",
 				"timing": "Payment by the 15th of the following month; SPT Masa within 20 days after the period ends; a Saturday, Sunday, public holiday or national cuti bersama moves either to the next working day",
 				"owner": "Finance / billing code, payment and SPT Masa receipt",
-				"authority": "PMK 81/2024 art.94(2) (payment; https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); UU KUP art.3(3)(a) (SPT Masa 20 days); PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); late filing Rp100,000 per SPT Masa (UU KUP art.7(1)), late payment interest (art.9(2a))",
-				"status": "PARTIAL"
+				"authority": "PMK 81/2024 art.94(2) (payment; https://peraturan.bpk.go.id/Details/306614/pmk-no-81-tahun-2024); UU KUP art.3(3)(a) (SPT Masa 20 days); PER-11/PJ/2025 (https://jdih.kemenkeu.go.id/dok/per-11pj2025); late filing Rp100,000 per SPT Masa (UU KUP art.7(1)), late payment interest (art.9(2a))"
 			},
 			{
 				"code": "PPH21_ANNUAL_STATEMENT_BPA1",
@@ -5645,8 +5583,7 @@
 				"trigger": "The last tax period: December, or the month a permanent employee stops working",
 				"timing": "Within one month after the last tax period ends",
 				"owner": "Finance / BPA1 delivered to the employee",
-				"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 (the annual reckoning the form reports)",
-				"status": "PARTIAL"
+				"authority": "PER-11/PJ/2025 art.7(2) (https://jdih.kemenkeu.go.id/dok/per-11pj2025); PMK 168/2023 (the annual reckoning the form reports)"
 			},
 			{
 				"code": "PTKP_STATUS_AND_TAX_ID",
@@ -5654,8 +5591,7 @@
 				"trigger": "Hire, and the start of each calendar year",
 				"timing": "PTKP is fixed on the employee's condition at the start of the calendar year (PMK 168/2023 art.9)",
 				"owner": "HR / declarations and supporting documents",
-				"authority": "PMK 168/2023 art.9 (https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf); UU PPh art.21(5a) (20% higher withholding without NPWP; DJP applies none where a valid NIK is given)",
-				"status": "PARTIAL"
+				"authority": "PMK 168/2023 art.9 (https://pajak.go.id/sites/default/files/2024-02/PMK%20168%20Tahun%202023%20Tentang%20PPh%20Pasal%2021%20TER.pdf); UU PPh art.21(5a) (20% higher withholding without NPWP; DJP applies none where a valid NIK is given)"
 			},
 			{
 				"code": "TAX_RECORD_RETENTION",
@@ -5663,8 +5599,7 @@
 				"trigger": "Each record",
 				"timing": "10 years in Indonesia",
 				"owner": "Finance / archive",
-				"authority": "UU KUP (UU 6/1983 as amended) art.28(11)",
-				"status": "EXTERNAL"
+				"authority": "UU KUP (UU 6/1983 as amended) art.28(11)"
 			},
 			{
 				"code": "WAGE_PAYMENT_TIMING",
@@ -5672,8 +5607,7 @@
 				"trigger": "Each pay date",
 				"timing": "The agreed date; the pay interval may not exceed 1 month (art.55(4)). Late wages: 5% per day from the 4th to the 8th day, then +1% per day capped at 50% in a month, then bank interest after a month (art.61)",
 				"owner": "Finance / payment evidence",
-				"authority": "PP 36/2021 arts.54, 55, 61 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 36/2021 arts.54, 55, 61 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "PAYSLIP_ISSUE",
@@ -5681,8 +5615,7 @@
 				"trigger": "Each wage payment",
 				"timing": "\"pada saat Upah dibayarkan\" — at the time the wage is paid",
 				"owner": "Payroll / payslip delivery",
-				"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "PARTIAL"
+				"authority": "PP 36/2021 art.53(2) (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "WAGE_DEDUCTION_LIMITS",
@@ -5690,8 +5623,7 @@
 				"trigger": "Each deduction other than tax and social security",
 				"timing": "Each payment: the total of deductions at most 50% of the wage paid (art.65); rent and debts need written agreement, third-party deductions a revocable power of attorney (arts.63–64)",
 				"owner": "Payroll / deduction authorisations",
-				"authority": "PP 36/2021 arts.63–65 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 36/2021 arts.63–65 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "MINIMUM_WAGE_COMPLIANCE",
@@ -5699,8 +5631,7 @@
 				"trigger": "Each new minimum-wage decree (in force 1 January) and each wage change",
 				"timing": "From the decree's commencement",
 				"owner": "HR / wage review",
-				"authority": "PP 36/2021 arts.7, 23(3), 25 as amended by PP 51/2023 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); the governor's UMP/UMK decree for the year",
-				"status": "PARTIAL"
+				"authority": "PP 36/2021 arts.7, 23(3), 25 as amended by PP 51/2023 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021); the governor's UMP/UMK decree for the year"
 			},
 			{
 				"code": "WAGE_STRUCTURE_AND_SCALE",
@@ -5708,8 +5639,7 @@
 				"trigger": "Standing duty; each change",
 				"timing": "Standing; each worker notified individually",
 				"owner": "HR / structure, scale and notices",
-				"authority": "PP 36/2021 art.21 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 36/2021 art.21 (https://peraturan.bpk.go.id/Details/161909/pp-no-36-tahun-2021)"
 			},
 			{
 				"code": "THR_PAYMENT_DEADLINE",
@@ -5717,8 +5647,7 @@
 				"trigger": "Each religious holiday of the worker (Idulfitri, Christmas, Nyepi, Waisak, Imlek)",
 				"timing": "\"paling lambat 7 (tujuh) hari sebelum Hari Raya Keagamaan\" (art.5(4)); a late payment carries a 5% fine of the THR due (art.10), without discharging the THR",
 				"owner": "Finance / THR payment",
-				"authority": "Permenaker 6/2016 arts.5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf)",
-				"status": "PARTIAL"
+				"authority": "Permenaker 6/2016 arts.5(4), 10 (https://jdih.kemnaker.go.id/asset/data_puu/permenaker_6_2016.pdf)"
 			},
 			{
 				"code": "PKWT_REGISTRATION",
@@ -5726,8 +5655,7 @@
 				"trigger": "Signing of a PKWT or its extension",
 				"timing": "Online within 3 working days of signing; in writing at the city/regency manpower office within 7 working days where the online service is unavailable",
 				"owner": "HR / PKWT record receipt",
-				"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "EXTERNAL"
+				"authority": "PP 35/2021 art.14 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "OVERTIME_CONSENT_RECORDS_AND",
@@ -5735,8 +5663,7 @@
 				"trigger": "Overtime is requested or worked",
 				"timing": "Before the overtime (order and consent); a list of each worker's overtime hours kept; at most 4 hours a day and 18 a week outside rest days and public holidays; 1,400 kcal of food and drink for 4 hours or more, not payable in cash",
 				"owner": "HR / consent and actual-hours records",
-				"authority": "PP 35/2021 arts.26, 28, 29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "PARTIAL"
+				"authority": "PP 35/2021 arts.26, 28, 29 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "TERMINATION_PROCEDURE_AND_COMPENSATION",
@@ -5744,8 +5671,7 @@
 				"trigger": "Each termination initiated by the employer, and each legally defined cause",
 				"timing": "Notice at least 14 working days before termination, 7 during probation (art.37(3)–(4)); the worker may reject in writing within 7 working days, then bipartite negotiation and industrial-relations settlement (art.39)",
 				"owner": "HR / notices, consultation, cause and settlement evidence",
-				"authority": "PP 35/2021 arts.37–59 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "PARTIAL"
+				"authority": "PP 35/2021 arts.37–59 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "TERMINATION_REPORT",
@@ -5753,8 +5679,7 @@
 				"trigger": "The worker received the notice and did not reject it",
 				"timing": "After the notice period, on termination",
 				"owner": "HR / termination report",
-				"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)",
-				"status": "EXTERNAL"
+				"authority": "PP 35/2021 art.38 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "WLKP_EMPLOYMENT_REPORT",
@@ -5762,8 +5687,7 @@
 				"trigger": "Establishing, reopening, moving or closing the company; each year",
 				"timing": "Within 30 days after or before establishing, reopening or moving (art.6); every year thereafter (art.8)",
 				"owner": "HR / WLKP receipt",
-				"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019",
-				"status": "EXTERNAL"
+				"authority": "UU 7/1981 arts.6, 8 (https://peraturan.bpk.go.id/Details/47039/uu-no-7-tahun-1981); Permenaker 18/2017 as amended by Permenaker 4/2019"
 			},
 			{
 				"code": "COMPANY_REGULATIONS",
@@ -5771,8 +5695,7 @@
 				"trigger": "Ten or more workers",
 				"timing": "In force once ratified; valid at most 2 years and then renewed",
 				"owner": "HR / ratified regulations",
-				"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)",
-				"status": "EXTERNAL"
+				"authority": "UU 13/2003 arts.108(1), 111(3) (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
 			},
 			{
 				"code": "FOREIGN_WORKER_RPTKA_DKPTKA",
@@ -5780,8 +5703,7 @@
 				"trigger": "Each foreign worker employed",
 				"timing": "DKPTKA paid on the billing code before the RPTKA is approved, for the period the worker works in Indonesia (art.23(2)–(5))",
 				"owner": "HR / RPTKA approval and DKPTKA receipt",
-				"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)",
-				"status": "EXTERNAL"
+				"authority": "PP 34/2021 arts.1 angka 7, 23 (https://peraturan.bpk.go.id/Details/161898/pp-no-34-tahun-2021)"
 			},
 			{
 				"code": "PDP_LAWFUL_BASIS_AND_INFORMATION",
@@ -5789,8 +5711,7 @@
 				"trigger": "Collection or processing of an applicant's or worker's personal data",
 				"timing": "Before processing; before any change to the information given",
 				"owner": "HR / privacy notice and consent record",
-				"authority": "UU 27/2022 tentang Pelindungan Data Pribadi arts.20–21 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022); fully applicable from 17 October 2024 (art.74: two years from promulgation on 17 October 2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 tentang Pelindungan Data Pribadi arts.20–21 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022); fully applicable from 17 October 2024 (art.74: two years from promulgation on 17 October 2022)"
 			},
 			{
 				"code": "PDP_SECURITY_CONFIDENTIALITY",
@@ -5798,8 +5719,7 @@
 				"trigger": "Holding or processing worker personal data",
 				"timing": "Continuous",
 				"owner": "HR / IT security; processor agreement",
-				"authority": "UU 27/2022 arts.35–39 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 arts.35–39 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_IMPACT_ASSESSMENT",
@@ -5807,8 +5727,7 @@
 				"trigger": "Introduction of high-risk processing (for example biometric attendance or large-scale payroll processing of health data)",
 				"timing": "Before the high-risk processing begins",
 				"owner": "DPO / DPIA record",
-				"authority": "UU 27/2022 art.34 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 art.34 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_DELETION_DESTRUCTION",
@@ -5816,8 +5735,7 @@
 				"trigger": "End of the purpose or retention period, withdrawal of consent, or a data-subject request",
 				"timing": "When the condition arises, subject to other statutory retention periods (tax and BPJS records)",
 				"owner": "HR / retention schedule and destruction record",
-				"authority": "UU 27/2022 arts.43–45 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 arts.43–45 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_BREACH_NOTIFICATION",
@@ -5825,8 +5743,7 @@
 				"trigger": "A failure of personal data protection (breach) affecting worker personal data",
 				"timing": "No later than 3 × 24 hours",
 				"owner": "DPO / breach notice",
-				"authority": "UU 27/2022 art.46 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 art.46 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			},
 			{
 				"code": "PDP_DPO_APPOINTMENT",
@@ -5834,8 +5751,7 @@
 				"trigger": "The employer meets an art.53(1) criterion",
 				"timing": "Before or when the criterion is met; continuous",
 				"owner": "Management / DPO appointment letter",
-				"authority": "UU 27/2022 arts.53–54 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)",
-				"status": "EXTERNAL"
+				"authority": "UU 27/2022 arts.53–54 (https://peraturan.bpk.go.id/Details/229798/uu-no-27-tahun-2022)"
 			}
 		],
 		"tables": [
@@ -5865,7 +5781,7 @@
 				"severity": "REFUSE",
 				"when": "employment.type != \"CONTRACT\" && has(terms.facts.probation_end_on) && terms.facts.probation_end_on > add_days(add_months(employment.service_start, 3), -1)",
 				"message": "A PKWTT probation may last at most three months from the first day of work; set probation_end_on no later than the day before the three-month anniversary of the start.",
-				"authority": "UU 13/2003 art.60(1), not amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-110"
+				"authority": "UU 13/2003 art.60(1), not amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003)"
 			},
 			{
 				"code": "PKWT_PROBATION_VOID",
@@ -5873,7 +5789,7 @@
 				"severity": "REFUSE",
 				"when": "employment.type == \"CONTRACT\" && has(terms.facts.probation_end_on)",
 				"message": "A fixed-term contract (PKWT) may not require a probation period: a probation clause is void and its days count as service. Remove probation_end_on from these terms.",
-				"authority": "UU 13/2003 art.58(1)–(2) as amended by UU 6/2023; PP 35/2021 art.12 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); tracker ID-108, ID-110"
+				"authority": "UU 13/2003 art.58(1)–(2) as amended by UU 6/2023; PP 35/2021 art.12 (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf)"
 			},
 			{
 				"code": "PKWT_TERM_OVER_FIVE_YEARS",
@@ -5881,7 +5797,7 @@
 				"severity": "REFUSE",
 				"when": "employment.type == \"CONTRACT\" && employment.exit_date != \"\" && employment.exit_date > add_days(add_months(employment.service_start, 60), -1)",
 				"message": "A PKWT, extensions included, may last at most five years from its start; this contract's recorded end is later. End it within five years or record the employment as PKWTT (open-ended).",
-				"authority": "PP 35/2021 art.8(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023 (not more than five years including any extension); tracker ID-108"
+				"authority": "PP 35/2021 art.8(1)–(2) (https://jdih.kemnaker.go.id/asset/data_puu/PP352021.pdf); UU 13/2003 art.56(3) as amended by UU 6/2023, read with MK 168/PUU-XXI/2023 (not more than five years including any extension)"
 			},
 			{
 				"code": "YOUNG_WORKER_CONDITIONS",
@@ -5889,7 +5805,7 @@
 				"severity": "WARN",
 				"when": "employee.age < 18",
 				"message": "The worker is a child under UU 13/2003 art.1 angka 26 (under 18): art.68 bars employing a child outside the light-work (art.69), curriculum (art.70) and talent (art.71) exceptions, and art.74 bars the worst forms of child labour. Record the exception relied on and its conditions (written parental consent and agreement, at most three hours a day, daytime, outside school hours, safety, wages per law) before paying.",
-				"authority": "UU 13/2003 arts.1 angka 26, 68–75 as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); tracker ID-47 owner default 2026-10-01: the exceptions are lawful, so the run warns rather than refuses"
+				"authority": "UU 13/2003 arts.1 angka 26, 68–75 as amended by UU 6/2023 (https://jdih.kemnaker.go.id/peraturan/detail/27/undang-undang-nomor-13-tahun-2003); configured default: the exceptions are lawful, so the run warns rather than refuses"
 			}
 		],
 		"duty_types": [
@@ -5921,7 +5837,7 @@
 			{
 				"code": "BPJS_KESEHATAN_REMITTANCE",
 				"label": "BPJS Kesehatan contribution of the wage month",
-				"authority": "Perpres 82/2018 art.39(1): the employer pays each month's contribution at the latest on the 10th of that month (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf); tracker ID-20 reading 2026-10-01: the 10th of the wage month itself. The art.39(4) holiday roll is not applied (no calendar on the obligation site).",
+				"authority": "Perpres 82/2018 art.39(1): the employer pays each month's contribution at the latest on the 10th of that month (https://jdih.kemenkeu.go.id/api/download/FullText/2018/82TAHUN2018PERPRES.pdf); the payment deadline is the 10th of the wage month itself. The art.39(4) holiday roll is not applied (no calendar on the obligation site).",
 				"subject": "RUN",
 				"trigger": {
 					"on": "RUN_FINALISED"

@@ -30,6 +30,7 @@
 	>
 		{#snippet children(form)}
 			<FormSection
+				name="benefit_case"
 				first
 				title={bolt.t('component.benefit_case')}
 				hint={bolt.t('component.benefit_case_hint')}

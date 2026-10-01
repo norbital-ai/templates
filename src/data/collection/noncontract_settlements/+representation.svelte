@@ -1,7 +1,7 @@
 <script lang="ts">
 	/** A non-contract obligation: recorded once, its inputs rendered with the declarations of the payer's lineage. */
 	import { bolt } from '$bolt';
-	import { Field, Form, RecordShell, type RecordView } from '@norbital-ai/ui';
+	import { Field, Form, Section, RecordShell, type RecordView } from '@norbital-ai/ui';
 	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
 	import { formatCalendarDate, formatNumeric } from '../../../lib/ui/display-formatters.js';
 	import { t } from '../../../lib/ui/t.js';
@@ -48,40 +48,46 @@
 			onOutcome={openCreated(view)}
 		>
 			{#snippet children(form)}
-				<Grid gap="sm" minimum="compact">
-					<Field name="company_id" label={t('component.legal_entity')} />
-					<Field name="employee_id" label={t('component.person')} />
-					<Field name="reference" label={t('component.reference')} />
-					<Field name="currency" label={t('component.currency')} />
-					<Field name="agreed_gross" />
-					<Field name="agreed_due_on" />
-					<Field name="tax_residency" />
-					<Field name="tax_residency_range" />
-					<Column span="all">
-						<Field
-							name="facts"
-							label={t('component.settlement_facts')}
-							help={t('component.settlement_facts_hint')}
-						>
-							{#snippet editor(field)}
-								<DeclaredFactsField
-									view={{
-										mode: 'edit',
-										name: field.name,
-										value: field.value as never,
-										disabled: field.disabled,
-										onChange: field.onChange as never
-									}}
-									settingsCode={payerCode(form.get('company_id'))}
-									schema="settlement_facts"
-									day={typeof form.get('agreed_due_on') === 'string'
-										? (form.get('agreed_due_on') as string)
-										: null}
-								/>
-							{/snippet}
-						</Field>
-					</Column>
-				</Grid>
+				<Section
+					first
+					name="noncontract_settlements"
+					title={t('component.noncontract_settlement_record')}
+				>
+					<Grid gap="sm" minimum="compact">
+						<Field name="company_id" label={t('component.legal_entity')} />
+						<Field name="employee_id" label={t('component.person')} />
+						<Field name="reference" label={t('component.reference')} />
+						<Field name="currency" label={t('component.currency')} />
+						<Field name="agreed_gross" />
+						<Field name="agreed_due_on" />
+						<Field name="tax_residency" />
+						<Field name="tax_residency_range" />
+						<Column span="all">
+							<Field
+								name="facts"
+								label={t('component.settlement_facts')}
+								help={t('component.settlement_facts_hint')}
+							>
+								{#snippet editor(field)}
+									<DeclaredFactsField
+										view={{
+											mode: 'edit',
+											name: field.name,
+											value: field.value as never,
+											disabled: field.disabled,
+											onChange: field.onChange as never
+										}}
+										settingsCode={payerCode(form.get('company_id'))}
+										schema="settlement_facts"
+										day={typeof form.get('agreed_due_on') === 'string'
+											? (form.get('agreed_due_on') as string)
+											: null}
+									/>
+								{/snippet}
+							</Field>
+						</Column>
+					</Grid>
+				</Section>
 			{/snippet}
 		</Form>
 	{/if}

@@ -38,13 +38,13 @@ export default model({
 			optional: true
 		},
 		/** Time off: the chargeable total. Adjustment: signed, non-zero. Reversal: the source's days. */
-		days: { kind: 'decimal', scale: 3, optional: true },
+		days: { kind: 'decimal', scale: 12, optional: true },
 		/** Hourly time off, carry-forward or signed adjustment. */
-		hours: { kind: 'decimal', scale: 3, optional: true },
+		hours: { kind: 'decimal', scale: 12, optional: true },
 		/** The days an encashment converts to money. */
-		encash_days: { kind: 'decimal', scale: 3, optional: true },
+		encash_days: { kind: 'decimal', scale: 12, optional: true },
 		/** Hour-denominated statutory departure payout. */
-		encash_hours: { kind: 'decimal', scale: 3, optional: true },
+		encash_hours: { kind: 'decimal', scale: 12, optional: true },
 		effective_on: { kind: 'date', optional: true },
 		due_on: { kind: 'date', optional: true },
 		/** Carry-forward: the window the days or hours land in. */

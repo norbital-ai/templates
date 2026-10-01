@@ -64,7 +64,7 @@ export default model({
 		/** The entity's own benefit tier; `terms.grade`. */
 		grade: { kind: 'text', optional: true },
 		/** Contracted ordinary hours a week, where stated; null where the roster measures it. */
-		ordinary_hours_per_week: { kind: 'int', min: 1, optional: true },
+		ordinary_hours_per_week: { kind: 'decimal', scale: 3, min: 0.001, optional: true },
 		/** Similar full-time employee's normal day for statutory part-time work premiums. */
 		comparable_full_time_daily_hours: {
 			kind: 'decimal',

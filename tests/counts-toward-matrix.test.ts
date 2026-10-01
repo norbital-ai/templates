@@ -46,6 +46,8 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 	// ITA 1967 s.13(1)(a) with PCB's additional-remuneration method for one-off pay.
 	// LHDN 2026 D(b), E(13): normal/additional EPF classification controls tax-relief projection.
 	MY: {
+		// Accommodation rent recovery is a net deduction, not a contribution wage.
+		ACCOMMODATION_RENT: [],
 		ADJ: [...MY_WAGES.filter((code) => code !== 'HRDF'), ...MY_ADDITIONAL_EPF, 'PCB.ADDITIONAL'],
 		BACKPAY_ADD_WAGES: ['EIS', 'PCB.ADDITIONAL', 'SKBBK', 'SOCSO'],
 		// Annual bonus: EPF Act 452 s.2 "wages" includes "any bonus" (AGC text as at 1 Jul 2022); ITA

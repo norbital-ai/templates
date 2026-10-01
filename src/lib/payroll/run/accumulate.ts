@@ -108,7 +108,7 @@ const effectOf = (item: PricedItem): ContributionLine['effect'] =>
 	item.bucket === 'ABSENCE' || item.bucket === 'DEDUCTION' ? 'REDUCE' : 'INCLUDE';
 
 /** The reserved line a line feeds, or null where it is a catalogue row. */
-function reservedOf(item: PricedItem): ReservedLine | null {
+export function reservedOf(item: PricedItem): ReservedLine | null {
 	const component = item.catalogueComponent;
 	if (component.family !== 'WORK') {
 		// Leave carries no pricing: an unpaid day is the reserved `NO_PAY_LEAVE` line and an
@@ -350,6 +350,7 @@ export type CompanyMonthPrior = MonthPrior & {
 
 type SettledLine = {
 	readonly component_code: string;
+	readonly reserved_line?: 'BASE' | null;
 	readonly amount: unknown;
 	readonly bucket?: string | undefined;
 	readonly quantity?: unknown | undefined;
@@ -383,7 +384,13 @@ export function accumulateSettledPayslip(
 			eligibility: ''
 		});
 		const component =
-			componentsByCode.get(code) ??
+			(line.reserved_line === 'BASE'
+				? {
+						...stub('WORK'),
+						output: `derived:${code}`,
+						definition: { source: 'DERIVED_NORMAL', unit: 'MONEY' }
+					}
+				: componentsByCode.get(code)) ??
 			stub(code.endsWith('_ENCASHMENT') || bucket === 'ABSENCE' ? 'LEAVE' : 'ALLOWANCE');
 		return {
 			catalogueComponent: component,

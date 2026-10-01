@@ -1534,7 +1534,7 @@ test('Indonesia — the part-month default is calendar days on every version, re
 	// = 310,000 in April and 9,300,000 ÷ 31 = 300,000 in May.
 	for (const version of settingsVersions('ID')) {
 		assert.deepEqual(version.work_rules.proration, { by: 'CALENDAR_DAYS' }, version.id);
-		assert.match(version.work_rules.authority, /Recorded default 2026-09-28 \(register ID-106\)/);
+		assert.match(version.work_rules.authority, /Recorded default 2026-09-28:/);
 	}
 	const unpaidDay = (period: string, date: string) => {
 		const { slips } = buildStatutory(

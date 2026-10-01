@@ -112,6 +112,7 @@ const SITES: Record<string, Record<string, string>> = {
 	'src/lib/payroll/contribution.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/families.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/work.ts': { '2': SEMI_MONTHLY },
+	'src/lib/payroll/work-bands.ts': { '3': 'months a calendar quarter' },
 	'src/lib/payroll/history.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/run/engine.ts': { '2': SEMI_MONTHLY },
 	'src/lib/payroll/run/export-data.ts': { '2': 'display precision of a printed figure' },

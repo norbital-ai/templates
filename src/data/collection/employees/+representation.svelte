@@ -203,7 +203,12 @@
 		submit={record ? t('component.save_person') : t('component.add_person')}
 	>
 		<Stack gap="lg">
-			<FormSection first title={t('component.person')} hint={t('component.person_section_hint')}>
+			<FormSection
+				name="person"
+				first
+				title={t('component.person')}
+				hint={t('component.person_section_hint')}
+			>
 				<Grid gap="sm" minimum="compact">
 					<Field name="name" />
 					<Field name="gender" />
@@ -215,7 +220,11 @@
 					<Column span="all"><Field name="location" address="address" /></Column>
 				</Grid>
 			</FormSection>
-			<FormSection title={t('component.standing')} hint={t('component.standing_hint')}>
+			<FormSection
+				name="standing"
+				title={t('component.standing')}
+				hint={t('component.standing_hint')}
+			>
 				<Grid gap="sm" minimum="compact">
 					<Field name="marital_status" label={t('component.marital_status')} />
 					<Field name="solo_parent" label={t('component.solo_parent')} />
@@ -225,7 +234,13 @@
 					{@render coded('religion', t('component.religion'))}
 				</Grid>
 			</FormSection>
-			<FormSection title={t('component.family_section')} hint={t('component.family_section_hint')}>
+			<FormSection
+				name="family_section"
+				defaultOpen={false}
+				summary={`${t('component.dependents')}: ${record?.dependents_count ?? 0}`}
+				title={t('component.family_section')}
+				hint={t('component.family_section_hint')}
+			>
 				<Grid gap="sm" minimum="compact">
 					<Field name="spouse_status" label={t('component.spouse')} />
 					<Field name="dependents_count" label={t('component.dependents')} />
@@ -254,7 +269,12 @@
 			<HireForm askCompany onDone={() => (hireOpen = false)} />
 		</FlowDialog>
 		{#if timeline.length > 0}
-			<FormSection first title={t('component.timeline_title')} hint={t('component.timeline_hint')}>
+			<FormSection
+				name="timeline_title"
+				first
+				title={t('component.timeline_title')}
+				hint={t('component.timeline_hint')}
+			>
 				{#snippet actions()}{@render hireButton()}{/snippet}
 				<Stack gap="lg">
 					{#each timeline as column (column.companyId)}

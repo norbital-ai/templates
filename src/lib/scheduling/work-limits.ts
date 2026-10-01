@@ -781,13 +781,15 @@ export function projectedLimitBreaches(options: {
 		add('YEAR', date.slice(0, 4), plan);
 	}
 	const periodKey = (period: WorkLimit['period'], date: string): string =>
-		period === 'WEEK'
-			? weekStart(date)
-			: period === 'MONTH'
-				? date.slice(0, 7)
-				: period === 'QUARTER'
-					? quarterKey(date)
-					: date.slice(0, 4);
+		period === 'DAY'
+			? date
+			: period === 'WEEK'
+				? weekStart(date)
+				: period === 'MONTH'
+					? date.slice(0, 7)
+					: period === 'QUARTER'
+						? quarterKey(date)
+						: date.slice(0, 4);
 	const breaches: LimitBreach[] = [];
 	const reported = new Set<string>();
 	for (const date of [...options.changedDates].toSorted()) {

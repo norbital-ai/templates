@@ -9,7 +9,7 @@
 	import type { Id } from '@norbital-ai/bolt';
 	import { bolt } from '$bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
-	import { Table } from '@norbital-ai/ui';
+	import { Combobox, Table } from '@norbital-ai/ui';
 	import { repaymentProgress } from '../../../lib/loan-schedule.js';
 	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
 	import { companyScope, employmentNames } from '../../../lib/ui/company-scope.svelte.js';
@@ -19,6 +19,18 @@
 
 	const scope = companyScope();
 	const person = employmentNames(() => scope.id);
+	let shown = $state<'outstanding' | 'closed' | 'all'>('outstanding');
+	const agreements = liveRows(() =>
+		scope.id == null
+			? null
+			: bolt.read('loans', {
+					where: {
+						employment_id: { is: { approval_id: { isNull: true }, company_id: { eq: scope.id } } }
+					},
+					select: { principal: true },
+					all: true
+				})
+	);
 	const repayments = liveRows(() =>
 		scope.id == null
 			? null
@@ -38,20 +50,27 @@
 	type LoanRow = {
 		readonly id: Id<'loans'>;
 		readonly principal: unknown;
-		readonly recovery_rule: string | null;
 	};
-	function progress(row: LoanRow): string {
+	function balance(row: LoanRow) {
 		const plan = byLoan.get(row.id) ?? [];
 		const recovered = plan.reduce(
 			(sum, row) => sum + (row.payslip_id?.paid_at != null ? row.amount_due : 0),
 			0
 		);
-		// A rule-recovered order's rows are what payroll withheld, not a plan summing to the principal.
-		const p = repaymentProgress(
-			plan,
-			recovered,
-			(row.recovery_rule ?? '').trim() !== '' ? decodeNumber(row.principal) : undefined
-		);
+		// Principal remains owed until paid slips recover it, even before an order has its first repayment.
+		return repaymentProgress(plan, recovered, decodeNumber(row.principal));
+	}
+	const agreementIds = $derived(
+		(agreements.current ?? [])
+			.filter(
+				(row) =>
+					shown === 'all' ||
+					(shown === 'closed' ? balance(row)?.settled === true : balance(row)?.settled !== true)
+			)
+			.map((row) => row.id)
+	);
+	function progress(row: LoanRow): string {
+		const p = balance(row);
 		if (p == null) return '—';
 		return p.settled
 			? t('app.loans.progress_settled', { paid: p.paidRepayments, total: p.totalRepayments })
@@ -62,6 +81,21 @@
 				});
 	}
 </script>
+
+{#snippet agreementFilter()}
+	<Combobox
+		value={shown}
+		options={[
+			{ value: 'outstanding', label: t('app.loans.filter_outstanding') },
+			{ value: 'closed', label: t('app.loans.filter_closed') },
+			{ value: 'all', label: t('app.loans.filter_all') }
+		]}
+		aria-label={t('app.loans.view')}
+		onChange={(value) => {
+			if (value === 'outstanding' || value === 'closed' || value === 'all') shown = value;
+		}}
+	/>
+{/snippet}
 
 {#snippet personCell({ value }: { value: unknown })}{person(value)}{/snippet}
 {#snippet progressCell({ row }: { row: LoanRow })}{progress(row)}{/snippet}
@@ -75,24 +109,32 @@
 	<ScopeGate {scope} empty={t('app.loans.empty')}>
 		{#snippet children(id)}
 			{#key id}
-				<Table
-					of="loans"
-					key={`loans-${id}`}
-					toolbar={{ title: t('app.loans.agreements') }}
-					where={{
-						employment_id: { is: { approval_id: { isNull: true }, company_id: { eq: id } } }
-					}}
-					initialFilter={{ effective_range: { contains: { today: '' } } }}
-					orderBy={{ effective_from: 'desc' }}
-					columns={[
-						'reference',
-						{ field: 'employment_id', label: t('component.employment'), cell: personCell },
-						{ field: 'loan_catalogue_id', label: t('app.loans.deducted_as') },
-						{ field: 'principal', label: t('app.loans.principal') },
-						{ field: 'id', label: t('app.loans.outstanding'), cell: progressCell },
-						{ field: 'effective_range', label: t('component.effective_period') }
-					]}
-				/>
+				{#if agreements.error || repayments.error}
+					<p role="alert" class="text-destructive text-sm">
+						{agreements.error ?? repayments.error}
+					</p>
+				{:else if agreements.loading || repayments.loading}
+					<p role="status" class="text-meta">{t('component.loading')}</p>
+				{:else}
+					<Table
+						of="loans"
+						key={`loans-${id}-${shown}`}
+						toolbar={{ title: t('app.loans.agreements'), controls: agreementFilter }}
+						where={{
+							employment_id: { is: { approval_id: { isNull: true }, company_id: { eq: id } } },
+							id: { in: agreementIds }
+						}}
+						orderBy={{ effective_from: 'desc' }}
+						columns={[
+							'reference',
+							{ field: 'employment_id', label: t('component.employment'), cell: personCell },
+							{ field: 'loan_catalogue_id', label: t('app.loans.deducted_as') },
+							{ field: 'principal', label: t('app.loans.principal') },
+							{ field: 'id', label: t('app.loans.outstanding'), cell: progressCell },
+							{ field: 'effective_range', label: t('component.effective_period') }
+						]}
+					/>
+				{/if}
 			{/key}
 		{/snippet}
 	</ScopeGate>

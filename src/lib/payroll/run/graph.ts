@@ -7,6 +7,7 @@
  */
 
 import type { ContributionCharge } from './contribute.js';
+import { reservedOf } from './accumulate.js';
 import { dateKey } from '../../../lib/iso-day.js';
 import type { PayRequestFamily } from '../../../lib/payroll/money.js';
 import type {
@@ -24,6 +25,7 @@ export type PendingPayslip = {
 	readonly employmentId: string;
 	readonly employeeNumber: string;
 	readonly termsThrough: string;
+	readonly salaryWindow?: { readonly start: string; readonly end: string };
 	readonly currency: string;
 	readonly settlement: Settlement;
 	readonly proration: readonly PayslipProration[];
@@ -77,6 +79,17 @@ export function payrollRunGraph(options: {
 			id,
 			employment_id: payslip.employmentId,
 			terms_through: dateKey(payslip.termsThrough),
+			...(payslip.salaryWindow == null
+				? {}
+				: {
+						salary_from: payslip.salaryWindow.start,
+						salary_to: payslip.salaryWindow.end
+					}),
+			leave_settlements: payslip.captured.leave.map((capture) => ({
+				leave_entry_id: capture.leave_entry_id,
+				charges: capture.charges,
+				pay_items: capture.pay_items
+			})),
 			status: 'DRAFT' as const,
 			base: payslip.settlement.base.map((item: MeasuredBase) => item.entry),
 			proration: payslip.proration,
@@ -130,6 +143,7 @@ export function payrollRunGraph(options: {
 				quantity: adjustment.quantity,
 				rate: adjustment.rate,
 				statutory_rule_key: adjustment.statutoryRuleKey,
+				...(reservedOf(adjustment) === 'BASE' ? { reserved_line: 'BASE' as const } : {}),
 				...(adjustment.earnedPeriod == null ? {} : { earned_period: adjustment.earnedPeriod })
 			}))
 		};

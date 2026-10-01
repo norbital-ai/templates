@@ -927,50 +927,145 @@ export function bankFileRows(payments: readonly BankPayment[]): (string | number
 	];
 }
 
-function pdfText(value: string): string {
-	return value
-		.normalize('NFKD')
-		.replaceAll(/[^\x20-\x7e]/g, '?')
-		.replaceAll('\\', '\\\\')
-		.replaceAll('(', '\\(')
-		.replaceAll(')', '\\)');
-}
-
-/** A minimal, dependency-free text PDF. */
-function textPdf(lines: readonly string[]): string {
-	const chunks = Array.from({ length: Math.max(1, Math.ceil(lines.length / 52)) }, (_, index) =>
-		lines.slice(index * 52, (index + 1) * 52)
-	);
-	const fontId = 3 + chunks.length * 2;
-	const objectBodies = new Map<number, string>();
-	objectBodies.set(1, '<< /Type /Catalog /Pages 2 0 R >>');
-	objectBodies.set(
-		2,
-		`<< /Type /Pages /Kids [${chunks.map((_, index) => `${3 + index * 2} 0 R`).join(' ')}] /Count ${chunks.length} >>`
-	);
-	for (const [index, chunk] of chunks.entries()) {
-		const pageId = 3 + index * 2;
-		const streamId = pageId + 1;
-		const stream = `BT\n/F1 9 Tf\n48 760 Td\n12 TL\n${chunk.map((line) => `(${pdfText(line)}) Tj\nT*`).join('')}ET`;
-		objectBodies.set(
-			pageId,
-			`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${fontId} 0 R >> >> /Contents ${streamId} 0 R >>`
+/** Embedded Noto fonts retain both original Unicode text and shaped visible glyphs. */
+async function textPdf(lines: readonly string[], currency: string): Promise<Uint8Array> {
+	const { default: fontkit } = await import('@pdf-lib/fontkit');
+	const {
+		PDFDocument,
+		PDFDict,
+		PDFHexString,
+		PDFName,
+		PDFOperator,
+		PDFOperatorNames,
+		beginText,
+		endText,
+		endMarkedContent,
+		setFontAndSize,
+		setTextMatrix,
+		showText
+	} = await import('pdf-lib');
+	const monoBytes = (await import('../../../../fonts/NotoSansMono-Regular.ttf?bytes')).default;
+	const complexScriptBytes = (await import('../../../../fonts/NotoSansThai-Regular.ttf?bytes'))
+		.default;
+	const { regionalFonts } = await import('../../../../fonts/cjk.js');
+	const document = await PDFDocument.create();
+	document.registerFontkit(fontkit);
+	const sources = new Map([
+		['latin', monoBytes],
+		['complex-script', complexScriptBytes]
+	]);
+	const faces = new Map([...sources].map(([key, bytes]) => [key, fontkit.create(bytes)]));
+	const regions =
+		currency === 'JPY'
+			? ['ja', 'zh-Hant', 'zh-Hans']
+			: currency === 'CNY'
+				? ['zh-Hans', 'zh-Hant', 'ja']
+				: ['zh-Hant', 'ja', 'zh-Hans'];
+	const faceFor = async (point: number): Promise<string> => {
+		for (const key of ['latin', 'complex-script'])
+			if (faces.get(key)!.hasGlyphForCodePoint(point)) return key;
+		const bucket = Math.floor(point / 512);
+		for (const region of regions) {
+			const load = regionalFonts[region]?.[bucket];
+			if (load == null) continue;
+			const key = `${region}:${bucket}`;
+			if (!faces.has(key)) {
+				const bytes = (await load()).default;
+				sources.set(key, bytes);
+				faces.set(key, fontkit.create(bytes));
+			}
+			if (faces.get(key)!.hasGlyphForCodePoint(point)) return key;
+		}
+		throw new Error(
+			`Payslip PDF has no supported glyph for U+${point.toString(16).toUpperCase()}.`
 		);
-		objectBodies.set(streamId, `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
+	};
+	const embedded = new Map<string, Awaited<ReturnType<typeof document.embedFont>>>();
+	const fontAt = async (key: string) => {
+		let font = embedded.get(key);
+		if (font == null) {
+			// FontTools pre-subsets CJK ranges; runtime fontkit subsets lose visible glyphs.
+			font = await document.embedFont(sources.get(key)!, {
+				subset: key === 'latin' || key === 'complex-script'
+			});
+			embedded.set(key, font);
+		}
+		return font;
+	};
+	let propertyNumber = 0;
+	let page = document.addPage([612, 792]);
+	let y = 752;
+	for (const line of lines) {
+		if (y < 48) {
+			page = document.addPage([612, 792]);
+			y = 752;
+		}
+		let x = 48;
+		const runs: { index: string; text: string }[] = [];
+		for (const character of line) {
+			const point = character.codePointAt(0)!;
+			const index = await faceFor(point);
+			const last = runs.at(-1);
+			if (last?.index === index) last.text += character;
+			else runs.push({ index, text: character });
+		}
+		const widths = runs.map(
+			(run) =>
+				faces
+					.get(run.index)!
+					.layout(run.text)
+					.positions.reduce((sum, position) => sum + position.xAdvance, 0) /
+				faces.get(run.index)!.unitsPerEm
+		);
+		// Long legal names fit the printable width instead of clipping identity or monetary values.
+		const size = Math.min(
+			9,
+			516 /
+				Math.max(
+					1,
+					widths.reduce((sum, width) => sum + width, 0)
+				)
+		);
+		if (size < 6)
+			throw new Error(
+				'Payslip PDF cannot render this unusually long field legibly; the original identity was not changed.'
+			);
+		for (const run of runs) {
+			const face = faces.get(run.index)!;
+			const font = await fontAt(run.index);
+			const key = page.node.newFontDictionary(font.name, font.ref);
+			const shaped = face.layout(run.text);
+			const encoded = font.encodeText(run.text).asString();
+			const scale = size / face.unitsPerEm;
+			const actualText = document.context.obj({ ActualText: PDFHexString.fromText(run.text) });
+			const resources = page.node.Resources()!;
+			const properties =
+				resources.lookupMaybe(PDFName.of('Properties'), PDFDict) ?? document.context.obj({});
+			resources.set(PDFName.of('Properties'), properties);
+			const property = PDFName.of(`OriginalText${propertyNumber++}`);
+			properties.set(property, document.context.register(actualText));
+			page.pushOperators(
+				PDFOperator.of(PDFOperatorNames.BeginMarkedContentSequence, [PDFName.of('Span'), property]),
+				beginText(),
+				setFontAndSize(key, size)
+			);
+			for (const [index, position] of shaped.positions.entries()) {
+				page.pushOperators(
+					setTextMatrix(1, 0, 0, 1, x + position.xOffset * scale, y + position.yOffset * scale),
+					showText(PDFHexString.of(encoded.slice(index * 4, index * 4 + 4)))
+				);
+				x += position.xAdvance * scale;
+			}
+			page.pushOperators(endText(), endMarkedContent());
+		}
+		y -= 13;
 	}
-	objectBodies.set(fontId, '<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>');
-
-	let body = '%PDF-1.4\n';
-	const offsets: number[] = [0];
-	for (let id = 1; id <= fontId; id += 1) {
-		offsets[id] = body.length;
-		body += `${id} 0 obj\n${objectBodies.get(id)}\nendobj\n`;
-	}
-	const xrefOffset = body.length;
-	body += `xref\n0 ${fontId + 1}\n0000000000 65535 f \n`;
-	for (let id = 1; id <= fontId; id += 1)
-		body += `${String(offsets[id]).padStart(10, '0')} 00000 n \n`;
-	return `${body}trailer\n<< /Size ${fontId + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
+	const bytes = await document.save();
+	if (bytes.length > 4 * 1024 * 1024)
+		throw new Error(
+			'Payslip PDF exceeds the 4 MiB file limit; the identity requires more embedded font ranges than this export can store.'
+		);
+	return bytes;
 }
 
 /** Money as a payslip prints it: two decimals, thousands grouped, a real minus. */
@@ -1021,8 +1116,30 @@ export function groupedLines(payslip: ReportPayslip): readonly ReportLine[] {
 }
 
 const WIDTH = 78;
-const row = (label: string, detail: string, amount: string) =>
-	`  ${label.slice(0, 38).padEnd(38)} ${detail.slice(0, 22).padStart(22)} ${amount.padStart(14)}`;
+const wrapCaption = (text: string, width: number): string[] => {
+	const words = text.split(/\s+/);
+	const lines: string[] = [];
+	let current = '';
+	for (const word of words) {
+		if (current.length > 0 && current.length + word.length + 1 > width) {
+			lines.push(current);
+			current = '';
+		}
+		current += `${current ? ' ' : ''}${word}`;
+	}
+	if (current) lines.push(current);
+	return lines;
+};
+const row = (label: string, detail: string, amount: string): string[] => {
+	const labels = wrapCaption(label, 38);
+	return [
+		...labels.slice(0, -1).map((caption) => `  ${caption}`),
+		`  ${(labels.at(-1) ?? '').padEnd(38)} ${(detail.length <= 22 ? detail : '').padStart(22)} ${amount.padStart(14)}`,
+		...(detail.length <= 22
+			? []
+			: wrapCaption(detail, WIDTH - 4).map((caption) => `    ${caption}`))
+	];
+};
 const total = (label: string, amount: string) =>
 	`${label.padEnd(WIDTH - 15)}${amount.padStart(15)}`;
 const rule = '-'.repeat(WIDTH);
@@ -1035,20 +1152,20 @@ const rule = '-'.repeat(WIDTH);
  * period's first and last days, every line itemised with deductions signed, overtime hours and pay,
  * the overtime period where it differs from the salary period, net pay and the date it is paid.
  */
-export function payslipPdf(options: {
+export async function payslipPdf(options: {
 	readonly employer: string;
 	readonly period: string;
 	readonly salaryPeriod: DayRange;
 	readonly overtimePeriod: DayRange;
 	readonly payDate: string;
 	readonly payslip: ReportPayslip;
-}): string {
+}): Promise<Uint8Array> {
 	const { payslip } = options;
 	const money = (amount: number) => `${figure(amount)} ${payslip.currency}`;
 	const lines = (bucket: string, sign: 1 | -1) =>
 		groupedLines(payslip)
 			.filter((line) => line.bucket === bucket)
-			.map((line) =>
+			.flatMap((line) =>
 				row(
 					lineName(line),
 					line.detail ?? (line.quantity == null ? '' : QTY(line.quantity)),
@@ -1064,69 +1181,76 @@ export function payslipPdf(options: {
 	const differs =
 		options.overtimePeriod.start !== options.salaryPeriod.start ||
 		options.overtimePeriod.end !== options.salaryPeriod.end;
-	return textPdf([
-		'PAYSLIP',
-		rule,
-		`Employer: ${options.employer}`,
-		`Employee: ${payslip.employeeName} (${payslip.employeeNumber})`,
-		...(payslip.designation == null ? [] : [`Designation: ${payslip.designation}`]),
-		`Period: ${options.period}`,
-		`Salary period: ${options.salaryPeriod.start} to ${options.salaryPeriod.end}`,
-		`Pay date: ${options.payDate}`,
-		`Currency: ${payslip.currency}`,
-		...section(
-			'EARNINGS',
-			[...lines('EARNING', 1), ...lines('ABSENCE', -1)],
-			total('Gross', figure(payslip.gross))
-		),
-		...section(
-			'DEDUCTIONS',
-			[
-				...schemes
-					.filter((amounts) => amounts.employee !== 0)
-					.map((amounts) =>
-						row(schemeLabel(amounts), `on ${figure(amounts.base)}`, figure(-amounts.employee))
-					),
-				...lines('DEDUCTION', -1)
-			],
-			total('Total deductions', figure(-payslip.totalDeductions))
-		),
-		...section('REIMBURSEMENTS', lines('NON_WAGE_PAYMENT', 1)),
-		'',
-		rule,
-		total('Net pay', money(payslip.net)),
-		`Paid ${options.payDate}`,
-		rule,
-		...section(
-			'EMPLOYER CONTRIBUTIONS (not deducted)',
-			[
-				...schemes
-					.filter((amounts) => amounts.employer !== 0)
-					.map((amounts) =>
-						row(schemeLabel(amounts), `on ${figure(amounts.base)}`, figure(amounts.employer))
-					),
-				...lines('EMPLOYER_COST', 1)
-			],
-			total('Employer cost', money(payslip.employerCost))
-		),
-		...section('INFORMATION', lines('INFORMATION', 1)),
-		...(overtime.length === 0
-			? []
-			: [
-					'',
-					...(differs
-						? [`Overtime period: ${options.overtimePeriod.start} to ${options.overtimePeriod.end}`]
-						: []),
-					`Overtime hours: ${overtime.reduce((sum, line) => sum + (line.quantity ?? 0), 0).toFixed(2)}`,
-					`Overtime pay: ${money(overtime.reduce((sum, line) => sum + line.amount, 0))} paid ${options.payDate}`
-				]),
-		...(payslip.unfundedContributions > 0
-			? [
-					'',
-					`Contribution shortfall: ${money(payslip.unfundedContributions)}`,
-					`Funding received: ${money(payslip.fundingReceived)}`,
-					`Funding outstanding: ${money(Math.max(0, payslip.unfundedContributions - payslip.fundingReceived))}`
-				]
-			: [])
-	]);
+	return textPdf(
+		[
+			'PAYSLIP',
+			rule,
+			`Employer: ${options.employer}`,
+			`Employee: ${payslip.employeeName} (${payslip.employeeNumber})`,
+			...(payslip.designation == null ? [] : [`Designation: ${payslip.designation}`]),
+			`Period: ${options.period}`,
+			`Salary period: ${options.salaryPeriod.start} to ${options.salaryPeriod.end}`,
+			`Pay date: ${payslip.paidDate ?? options.payDate}`,
+			`Currency: ${payslip.currency}`,
+			...section(
+				'EARNINGS',
+				[...lines('EARNING', 1), ...lines('ABSENCE', -1)],
+				total('Gross', figure(payslip.gross))
+			),
+			...section(
+				'DEDUCTIONS',
+				[
+					...schemes
+						.filter((amounts) => amounts.employee !== 0)
+						.flatMap((amounts) =>
+							row(schemeLabel(amounts), `on ${figure(amounts.base)}`, figure(-amounts.employee))
+						),
+					...lines('DEDUCTION', -1)
+				],
+				total('Total deductions', figure(-payslip.totalDeductions))
+			),
+			...section('REIMBURSEMENTS', lines('NON_WAGE_PAYMENT', 1)),
+			'',
+			rule,
+			total('Net pay', money(payslip.net)),
+			payslip.paidDate == null
+				? `Scheduled pay date: ${options.payDate}`
+				: `Paid ${payslip.paidDate}`,
+			rule,
+			...section(
+				'EMPLOYER CONTRIBUTIONS (not deducted)',
+				[
+					...schemes
+						.filter((amounts) => amounts.employer !== 0)
+						.flatMap((amounts) =>
+							row(schemeLabel(amounts), `on ${figure(amounts.base)}`, figure(amounts.employer))
+						),
+					...lines('EMPLOYER_COST', 1)
+				],
+				total('Employer cost', money(payslip.employerCost))
+			),
+			...section('INFORMATION', lines('INFORMATION', 1)),
+			...(overtime.length === 0
+				? []
+				: [
+						'',
+						...(differs
+							? [
+									`Overtime period: ${options.overtimePeriod.start} to ${options.overtimePeriod.end}`
+								]
+							: []),
+						`Overtime hours: ${overtime.reduce((sum, line) => sum + (line.quantity ?? 0), 0).toFixed(2)}`,
+						`Overtime pay: ${money(overtime.reduce((sum, line) => sum + line.amount, 0))} ${payslip.paidDate == null ? 'scheduled pay date' : 'paid'} ${payslip.paidDate ?? options.payDate}`
+					]),
+			...(payslip.unfundedContributions > 0
+				? [
+						'',
+						`Contribution shortfall: ${money(payslip.unfundedContributions)}`,
+						`Funding received: ${money(payslip.fundingReceived)}`,
+						`Funding outstanding: ${money(Math.max(0, payslip.unfundedContributions - payslip.fundingReceived))}`
+					]
+				: [])
+		],
+		payslip.currency
+	);
 }

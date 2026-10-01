@@ -8,6 +8,7 @@ const f = customField({
 		of: {
 			kind: 'object',
 			fields: {
+				reserved_line: { kind: 'enum', values: ['BASE'], optional: true },
 				catalogue_id: { kind: 'text' },
 				settings_id: { kind: 'text' },
 				code: { kind: 'text' },

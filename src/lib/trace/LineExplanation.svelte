@@ -2,9 +2,10 @@
 	/**
 	 * "Why is this number": one payslip line's evaluation trace (`payslip_explanations`, recorded by
 	 * `lib/trace/record.ts` as the run priced it), as compact rows — each stored expression with its
-	 * result, then the inputs it read, the table rows it looked up and every rounding. The citation
-	 * is the tracker rows whose `config_path` names the line (`config`). Read only when opened.
+	 * result, then the inputs it read, the table rows it looked up and every rounding. Read only when opened.
 	 */
+	import InfoTip from '../ui/InfoTip.svelte';
+	import { Inline } from '@norbital-ai/ui/layout';
 	import { t } from '../ui/t.js';
 	import { bolt } from '$bolt';
 	import { Button, Icon, Popover } from '@norbital-ai/ui';
@@ -13,8 +14,7 @@
 	import * as Predicate from 'effect/Predicate';
 	import { live, liveRows } from '../ui/live.svelte.js';
 	import { formatCalendarDate, formatNumeric } from '../ui/display-formatters.js';
-	import { citationParts, rowsForNode } from '../rule-map/tracker.js';
-	import { lineageTracker } from '../rule-map/tracker-files.js';
+	import { CATALOGUE_COLLECTIONS } from '../rule-map/graph.js';
 	import { tracesOf, type LineTrace, type TracedLine, type TraceStep } from './record.js';
 
 	let {
@@ -27,7 +27,7 @@
 		readonly line: Omit<TracedLine, 'part' | 'employment_id'>;
 		/** The line as the payslip prints it. */
 		readonly title: string;
-		/** Tracker `config_path`s naming this line (`statutory_contributions:<code>`, …). */
+		/** Published catalogue or work-rule paths that priced this line. */
 		readonly config?: readonly string[];
 	} = $props();
 	let open = $state(false);
@@ -48,16 +48,51 @@
 					name: true,
 					code: true,
 					jurisdiction_code: true,
-					tables: true
+					tables: true,
+					work_rules: true
 				})
+	);
+	const scheme = liveRows(() =>
+		!open || line.kind !== 'STATUTORY' || traces[0] == null
+			? null
+			: bolt.read('statutory_contributions', {
+					where: {
+						settings_id: { eq: traces[0].settings_id as never },
+						code: { eq: line.code },
+						approval_id: { isNull: true }
+					},
+					select: { name: true, authority: true },
+					all: true
+				})
+	);
+	const catalogueAuthorities = CATALOGUE_COLLECTIONS.map((collection) => ({
+		collection,
+		rows: liveRows<{ name: string; authority?: string | null }>(() =>
+			!open || traces[0] == null || !config.includes(`${collection}:${line.code}`)
+				? null
+				: (bolt.read(collection, {
+						where: {
+							settings_id: { eq: traces[0].settings_id },
+							code: { eq: line.code },
+							approval_id: { isNull: true }
+						},
+						select: { name: true, authority: true },
+						all: true
+					} as never) as never)
+		)
+	}));
+	const authorities = $derived(
+		[
+			...(scheme.current ?? []),
+			...(config.some((path) => path.startsWith('work_rules.')) &&
+			version.current?.work_rules?.authority
+				? [{ name: t('component.work_rules'), authority: version.current.work_rules.authority }]
+				: []),
+			...catalogueAuthorities.flatMap(({ rows }) => rows.current ?? [])
+		].filter((row) => row.authority != null && row.authority !== '')
 	);
 	const tableLabel = (name: string) =>
 		(version.current?.tables ?? []).find((table) => table.name === name)?.label ?? name;
-	const citations = $derived(
-		version.current == null || config.length === 0
-			? Promise.resolve([])
-			: lineageTracker(version.current).then((rows) => rowsForNode(rows, config))
-	);
 
 	/** A value as text: a number with its separators, anything else as recorded. */
 	const shown = (value: unknown): string =>
@@ -112,7 +147,7 @@
 				class="size-6 text-muted-foreground"
 				aria-label={t('component.line_why')}
 			>
-				<Icon name="lucide:circle-help" class="size-3.5" />
+				<Icon name="lucide:info" class="size-3.5" />
 			</Button>
 		{/snippet}
 	</Popover.Trigger>
@@ -125,31 +160,28 @@
 			class="w-[40rem] max-w-[90vw] p-3"
 		>
 			<div>
-				<p class="font-medium">{title}</p>
+				<Inline gap="xs" align="center"
+					><p class="font-medium">{title}</p>
+					<InfoTip label={title}>{t('component.trace_help')}</InfoTip></Inline
+				>
 				{#if version.current}
 					<p class="text-meta" data-trace-version>{version.current.name}</p>
 				{/if}
 			</div>
-			{#await citations then rows}
-				{#if rows.length > 0}
-					<ul class="text-meta" data-trace-citations>
-						{#each rows.slice(0, 3) as row (row.id)}
-							{@const cite = citationParts(row.citation || row.provision)}
-							<li class="line-clamp-2">
-								{#if cite.url}<a class="underline" href={cite.url} target="_blank" rel="noreferrer"
-										>{cite.title}</a
-									>{:else}{cite.title}{/if}
-								{#if row.effective_from}· {formatCalendarDate(row.effective_from)}{/if}
-							</li>
-						{/each}
-					</ul>
-				{/if}
-			{/await}
+
 			{#if explanation.loading}
 				<p class="text-meta">…</p>
 			{:else if traces.length === 0}
 				<p class="text-meta">{t('component.line_why_none')}</p>
 			{:else}
+				{#if authorities.length > 0}
+					<details>
+						<summary>{t('component.rule_map_citation')}</summary>
+						{#each authorities as source, index (index)}<p class="whitespace-pre-wrap py-1">
+								{source.name}: {source.authority}
+							</p>{/each}
+					</details>
+				{/if}
 				{#each traces as trace, part (part)}
 					{#if trace.line.part}<p class="font-medium">{trace.line.part}</p>{/if}
 					<table class="w-full border-collapse tabular-nums">
@@ -158,7 +190,13 @@
 								<tr class="border-t border-border align-top" data-trace-step>
 									<td class="w-6 py-1 pr-2 text-muted-foreground">{index + 1}</td>
 									<td class="py-1 pr-2">
-										<code class="font-mono break-words whitespace-pre-wrap">{step.expression}</code>
+										<Inline gap="xs" align="center"
+											><code class="font-mono break-words whitespace-pre-wrap"
+												>{step.expression}</code
+											><InfoTip label={t('component.rule_calculation')}
+												>{t('component.trace_step_help')}</InfoTip
+											></Inline
+										>
 										{#each step.reads as read (read.path)}
 											<p class="text-muted-foreground" data-trace-read>
 												<span class="font-mono">{read.path}</span> = {shown(read.value)}
@@ -168,6 +206,9 @@
 										{/each}
 										{#each step.tables as lookup, at (at)}
 											<p class="text-muted-foreground" data-trace-table>
+												<InfoTip label={tableLabel(lookup.name)}
+													>{t('component.trace_table_help')}</InfoTip
+												>
 												{tableLabel(lookup.name)}{lookup.value == null
 													? ''
 													: ` @ ${shown(lookup.value)}`} → {rowText(lookup.row)}

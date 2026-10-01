@@ -175,6 +175,12 @@ export type LateRecords = {
 };
 
 export type GatheredRun = {
+	/** Frozen earlier settlement provenance for calendar-month leave net floors. */
+	readonly leaveFloorHistory?: readonly {
+		readonly period: string;
+		readonly payslip: PayrollWorld['payslips'][number];
+	}[];
+
 	/** The entity's employments over the tax year (`company.*` aggregates), a leaver before this period included. */
 	readonly company?: CompanyAccess | undefined;
 	/** Everyone the run measures — deferred periods included; `bundle.deferral` tells them apart. */
@@ -482,9 +488,19 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 		: monthlyComplianceSpan.end;
 	const firstRest = addDays(monthlyComplianceSpan.start, -restDays);
 	const lastRest = addDays(monthlyComplianceSpan.end, restDays);
+	const holidayNeighbors =
+		configuration.jurisdiction.payroll.holiday_adjacent_absence_unpaid === true;
 	const complianceSpan = {
-		start: firstWeek < firstRest ? firstWeek : firstRest,
-		end: lastWeek > lastRest ? lastWeek : lastRest
+		start: holidayNeighbors
+			? addDays(monthlyComplianceSpan.start, -31)
+			: firstWeek < firstRest
+				? firstWeek
+				: firstRest,
+		end: holidayNeighbors
+			? addDays(monthlyComplianceSpan.end, 31)
+			: lastWeek > lastRest
+				? lastWeek
+				: lastRest
 	};
 
 	const employeeIds = [...new Set(employments.map((row) => row.employee_id))];
@@ -610,7 +626,20 @@ export function gatherRun(options: GatherRunOptions): GatheredRun {
 			late: lateRecords(employment, cadence.payFrequency, statutoryFacts)
 		});
 	}
-	return { company: companyAccess, bundles, headcount, headcountCitizens, ...prior };
+	return {
+		company: companyAccess,
+		bundles,
+		headcount,
+		headcountCitizens,
+		...prior,
+		leaveFloorHistory: world.payslips.flatMap((payslip) => {
+			const run = world.payroll_runs.find(
+				(row) =>
+					row.id === payslip.payroll_run_id && row.company_id === companyId && row.period <= period
+			);
+			return run == null ? [] : [{ period: run.period, payslip }];
+		})
+	};
 }
 
 /**

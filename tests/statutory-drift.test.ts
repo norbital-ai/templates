@@ -188,3 +188,22 @@ test('one lineage failing does not stop the others', { timeout: 2000 }, async ()
 	assert.deepEqual(result.failures, ['MY: model unavailable']);
 	assert.equal(writes.length, 1);
 });
+
+test('MY drift sources: each sealed version covers the territorial, safety and Parliament indices', () => {
+	const required = [
+		'https://jtksabah.gov.my',
+		'https://www.jtkswk.gov.my',
+		'https://lawnet.sarawak.gov.my',
+		'https://sag.sarawak.gov.my',
+		'https://sagc.sabah.gov.my',
+		'https://sabah.gov.my',
+		'https://www.dosh.gov.my',
+		'https://www.parlimen.gov.my'
+	];
+	for (const { id, sources } of settingsVersions('MY'))
+		assert.deepEqual(
+			required.filter((origin) => !sources.research_domains.includes(origin)),
+			[],
+			`MY ${id}: omitted primary-source indices`
+		);
+});

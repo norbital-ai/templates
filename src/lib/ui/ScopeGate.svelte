@@ -1,9 +1,9 @@
 <script lang="ts" generics="I extends string">
 	import type { Snippet } from 'svelte';
 	import { EmptyState } from '@norbital-ai/ui';
-	import { t } from './t.js';
+	import Loading from './Loading.svelte';
 
-	/** A page's body once its entity is chosen; until then, what is loading or what to choose. */
+	/** A page's body once its entity is chosen; until then, loading or what to choose. */
 	let {
 		scope,
 		empty,
@@ -15,8 +15,10 @@
 	} = $props();
 </script>
 
-{#if scope.id == null}
-	<EmptyState title={scope.unknown ? t('app.hr_controller.loading_scope') : empty} />
+{#if scope.unknown}
+	<Loading />
+{:else if scope.id == null}
+	<EmptyState title={empty} />
 {:else}
 	{@render children(scope.id)}
 {/if}

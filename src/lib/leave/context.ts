@@ -60,6 +60,7 @@ export type LeaveContext = {
 		readonly employee_id: string;
 		readonly company_id: string;
 		readonly effective_range: StoredRange | null;
+		readonly signed_contract_end?: string | null | undefined;
 		readonly exit_ground?: string | null | undefined;
 		readonly exit_facts?: Readonly<Record<string, unknown>> | null | undefined;
 		readonly prior_service_months?: number | null | undefined;
@@ -152,8 +153,10 @@ export type LeaveContext = {
 		| 'as_adjustment_entry'
 		| 'reversal_of_id'
 		| 'approval_id'
+		| 'facts'
 	> & {
 		readonly employee_id: string;
+		readonly company_id?: string;
 	})[];
 	versions: {
 		readonly id: string;
@@ -180,6 +183,7 @@ export type LeaveContext = {
 		readonly can_encash: boolean;
 		readonly encash_on_exit: boolean;
 		readonly pay_fraction: string;
+		readonly time_off_amount?: string;
 		readonly paid_by: 'EMPLOYER' | 'FUND';
 		readonly consumes_code: string | null;
 		readonly unit: 'DAY' | 'HOUR';
@@ -310,6 +314,7 @@ export async function readLeaveContext(
 			effective_range: row.effective_range
 		}),
 		exit_ground: row.exit_ground ?? null,
+		signed_contract_end: row.signed_contract_end ?? null,
 		exit_facts: row.exit_facts ?? null,
 		prior_service_months: row.prior_service_months ?? null
 	}));
@@ -376,10 +381,14 @@ export async function readLeaveContext(
 				}),
 		// The people's other employments here, for what a lifetime counts (MY s.60FA(2): five
 		// confinements; SG GPCL: 42 days a child) across a rehire.
-		readAll<{ readonly id: string; readonly employee_id: string }>(reads, 'employments', {
-			employee_id: { in: employeeIds },
-			...settled
-		}),
+		readAll<{ readonly id: string; readonly employee_id: string; readonly company_id: string }>(
+			reads,
+			'employments',
+			{
+				employee_id: { in: employeeIds },
+				...settled
+			}
+		),
 		readAll<Omit<NonNullable<LeaveContext['facts']>[number], 'code'>>(
 			reads,
 			'employment_statutory_facts',
@@ -404,6 +413,7 @@ export async function readLeaveContext(
 	const inScope = new Set(ids);
 	const others = siblings.filter((row) => !inScope.has(row.id));
 	const employeeOf = new Map(others.map((row) => [row.id, row.employee_id]));
+	const companyOf = new Map(others.map((row) => [row.id, row.company_id]));
 	const [catalogues, schemes, priorRows, benefitCases] = await Promise.all([
 		readAll<LeaveContext['catalogues'][number]>(reads, 'leave_catalogue', {
 			settings_id: { in: lineageIds },
@@ -458,7 +468,8 @@ export async function readLeaveContext(
 		employments,
 		priorEntries: priorRows.map((row) => ({
 			...normaliseLeaveDays(row),
-			employee_id: employeeOf.get(row.employment_id) ?? ''
+			employee_id: employeeOf.get(row.employment_id) ?? '',
+			company_id: companyOf.get(row.employment_id) ?? ''
 		})),
 		companies,
 		employees,
@@ -630,6 +641,7 @@ export function personAt(
 			service_start: range == null ? '' : dateKey(range.start),
 			prior_service_months: employment.prior_service_months ?? 0,
 			exit_date: range?.end == null ? null : dateKey(range.end),
+			signed_contract_end: employment.signed_contract_end,
 			exit_ground: employment.exit_ground ?? null,
 			exit_facts: employment.exit_facts ?? {},
 			absent_days_12m: (context.absences ?? []).filter(

@@ -43,7 +43,7 @@
 	<Form of="employment_history" mode={view.mode} {record} {values}>
 		{#snippet children(form)}
 			{@const kind = text(form.get('kind') ?? record?.kind)}
-			<FormSection first title={t('component.employment_history')}>
+			<FormSection name="employment_history" first title={t('component.employment_history')}>
 				<Grid gap="sm" minimum="compact">
 					{#if record == null}
 						<Field name="employee_id" label={t('component.person')} />

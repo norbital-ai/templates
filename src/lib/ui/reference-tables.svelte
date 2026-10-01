@@ -4,9 +4,10 @@
 	 * reference row — code, label, the band's from/to where the table is banded, each declared value
 	 * column, and the days it is in force. Read only.
 	 */
+	import InfoTip from './InfoTip.svelte';
 	import { t } from './t.js';
 	import { bolt } from '$bolt';
-	import { Scroll, Stack } from '@norbital-ai/ui/layout';
+	import { Inline, Scroll, Stack } from '@norbital-ai/ui/layout';
 	import * as Predicate from 'effect/Predicate';
 	import { decodeNumber } from '../wire.js';
 	import { EmptyState } from '@norbital-ai/ui';
@@ -18,7 +19,13 @@
 		readonly name: string;
 		readonly label?: string | null;
 		readonly range?: unknown;
-		readonly columns?: readonly { readonly key: string; readonly label?: string | null }[] | null;
+		readonly columns?:
+			| readonly {
+					readonly key: string;
+					readonly label?: string | null;
+					readonly description?: string | null;
+			  }[]
+			| null;
 	};
 	let {
 		version
@@ -70,9 +77,12 @@
 			{@const columns = table.columns ?? []}
 			{@const banded = table.range != null}
 			<section data-reference-table={table.name}>
-				<h3 class="text-overline pb-1">
-					{table.label ?? table.name} <span class="text-muted-foreground">· {list.length}</span>
-				</h3>
+				<Inline gap="xs" align="center">
+					<h3 class="text-overline">
+						{table.label ?? table.name} <span class="text-muted-foreground">· {list.length}</span>
+					</h3>
+					<InfoTip label={table.label ?? table.name}>{t('component.reference_table_help')}</InfoTip>
+				</Inline>
 				<Scroll name={table.label ?? table.name} axis="x" class="max-w-full">
 					<table class="w-full text-sm tabular-nums">
 						<thead>
@@ -84,7 +94,13 @@
 									<th class="py-1 pr-3 text-right font-normal">{t('component.band_to')}</th>
 								{/if}
 								{#each columns as column (column.key)}
-									<th class="py-1 pr-3 text-right font-normal">{column.label ?? column.key}</th>
+									<th class="py-1 pr-3 text-right font-normal"
+										><Inline gap="xs" align="center"
+											>{column.label ?? column.key}<InfoTip label={column.label ?? column.key}
+												>{column.description ?? t('component.reference_column_help')}</InfoTip
+											></Inline
+										></th
+									>
 								{/each}
 								<th class="py-1 font-normal">{t('component.rule_map_effective')}</th>
 							</tr>

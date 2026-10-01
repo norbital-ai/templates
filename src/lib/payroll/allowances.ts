@@ -78,11 +78,11 @@ export function prepareAllowanceSteps(
 				 * facts of the day: a class's eligibility may read `facts.<CODE>.registered` (VN's
 				 * insurance-equivalent allowance is owed to those outside the schemes).
 				 */
-				const subjectOn = (terms: Terms) =>
+				const subjectOn = (terms: Terms, date: string) =>
 					personContext({
 						employee: bundle.employee,
 						employment: stint(bundle.employment, configuration.jurisdiction.exit_facts ?? []),
-						fixedAllowances: contractAllowancesOn(bundle, configuration, options.salary.end),
+						fixedAllowances: contractAllowancesOn(bundle, configuration, date),
 						terms,
 						children: bundle.children,
 						company: configuration.company,
@@ -92,32 +92,15 @@ export function prepareAllowanceSteps(
 							configuration.contributions,
 							factStatusesOn(
 								bundle.statutoryFacts,
-								options.salary.end,
+								date,
 								bundle.employment.id,
 								configuration.contributions
 							)
 						),
-						asOf: options.salary.end
+						asOf: date
 					});
-				const closing = termsAt(bundle, options.contracted.end);
-				if (!isEligible(component.eligibility, subjectOn(closing))) {
-					// An owed class no contract lists is simply not owed to this person.
-					if (!listed.has(component)) return null;
-					// A class on the contract the person is not eligible for leaves no line to explain
-					// itself: the decision is reported so the operator sees it.
-					options.note({
-						code: 'ALLOWANCE_SKIPPED',
-						severity: 'WARNING',
-						message:
-							`${bundle.employment.employee_number}: allowance ${component.code} is on the ` +
-							`contract for ${options.period} and paid nothing — this employment does not ` +
-							'satisfy the class’s eligibility rule.',
-						collection: 'employment_terms',
-						recordId: String(closing.id)
-					});
-					return null;
-				}
-				const monthlyOf = (terms: Terms): number => {
+				const monthlyOf = (terms: Terms, date: string): number => {
+					if (!isEligible(component.eligibility, subjectOn(terms, date))) return 0;
 					const row = listedAllowances(terms).find(
 						(entry) => contractAllowanceClass(configuration, entry.catalogue_id) === component
 					);
@@ -125,9 +108,9 @@ export function prepareAllowanceSteps(
 					if (row == null && component.owed !== true) return 0;
 					const amount = row?.amount ?? 0;
 					if (component.bands.length === 0) return amount;
-					const subject = subjectOn(terms);
+					const subject = subjectOn(terms, date);
 					const context = entryContext({
-						entry: { amount, event_date: options.salary.start },
+						entry: { amount, event_date: date },
 						subject,
 						period: options.period,
 						periodStart: options.salary.start,
@@ -143,7 +126,7 @@ export function prepareAllowanceSteps(
 					});
 					return priceBand(component.bands, context, engine) ?? amount;
 				};
-				return measureContractSegments({
+				const measured = measureContractSegments({
 					component,
 					bundle,
 					configuration,
@@ -155,8 +138,24 @@ export function prepareAllowanceSteps(
 					contractPeriod: 'MONTH',
 					// The class may overrule the version: a statute that keeps a travelling allowance
 					// (SG EA s.2, MY s.2) out of the deduction's wage states false on the class.
-					unpaidDaysIn: (component.npl_prorates ?? prorates) ? options.unpaidDaysIn : undefined
+					unpaidDaysIn: (component.npl_prorates ?? prorates) ? options.unpaidDaysIn : undefined,
+					unpaidCharges: (component.npl_prorates ?? prorates) ? options.unpaidCharges : undefined
 				});
+				if (measured == null && listed.has(component)) {
+					const closing = termsAt(bundle, options.contracted.end);
+					if (!isEligible(component.eligibility, subjectOn(closing, options.contracted.end)))
+						options.note({
+							code: 'ALLOWANCE_SKIPPED',
+							severity: 'WARNING',
+							message:
+								`${bundle.employment.employee_number}: allowance ${component.code} is on the ` +
+								`contract for ${options.period} and paid nothing — this employment does not ` +
+								'satisfy the class’s eligibility rule.',
+							collection: 'employment_terms',
+							recordId: String(closing.id)
+						});
+				}
+				return measured;
 			}
 		}));
 }

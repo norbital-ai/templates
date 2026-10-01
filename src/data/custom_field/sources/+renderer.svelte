@@ -45,19 +45,21 @@
 				{#if urls.length === 0}
 					<p class="text-meta">{t('renderer.sources.empty')}</p>
 				{:else}
-					<ol class="m-0 list-none space-y-0.5 p-0 text-xs">
-						{#each urls as url, index (`${index}:${url}`)}
-							<li class="truncate">
-								<a
-									href={url}
-									target="_blank"
-									rel="noreferrer noopener"
-									class="text-primary underline-offset-2 hover:underline"
-									title={url}>{url}</a
-								>
-							</li>
-						{/each}
-					</ol>
+					<Scroll name={t('component.sources')} max="standard" class="min-w-0">
+						<ol class="m-0 list-none space-y-0.5 p-0 text-xs">
+							{#each urls as url, index (`${index}:${url}`)}
+								<li class="truncate">
+									<a
+										href={url}
+										target="_blank"
+										rel="noreferrer noopener"
+										class="text-primary underline-offset-2 hover:underline"
+										title={url}>{url}</a
+									>
+								</li>
+							{/each}
+						</ol>
+					</Scroll>
 				{/if}
 			{:else}
 				<Textarea

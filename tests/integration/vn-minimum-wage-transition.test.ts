@@ -59,6 +59,7 @@ it('saves Vietnam minimum-wage facts and refuses a daily contract below both con
 	const person = committed(
 		await admin.act('employees.create', {
 			name: 'VN Incumbent Probe',
+			date_of_birth: '1990-01-01',
 			email: 'vn-incumbent-probe@example.com'
 		})
 	)[0]!.id as string;
@@ -128,6 +129,7 @@ it('saves Vietnam minimum-wage facts and refuses a daily contract below both con
 	const dailyPerson = committed(
 		await admin.act('employees.create', {
 			name: 'VN Daily Wage Probe',
+			date_of_birth: '1990-01-01',
 			email: 'vn-daily-wage-probe@example.com'
 		})
 	)[0]!.id as string;

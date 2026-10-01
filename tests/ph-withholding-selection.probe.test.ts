@@ -224,7 +224,22 @@ for (const scenario of monthlyCases)
 			facts: new Map(
 				contributions.map(({ row }) => [
 					row.id,
-					{ kind: 'REGISTERED', reference_number: 'SYNTHETIC', since: '2026-01-01', elections: {} }
+					{
+						kind: 'REGISTERED',
+						reference_number: 'SYNTHETIC',
+						since: '2026-01-01',
+						elections:
+							row.code === 'HDMF'
+								? {
+										coverage_class: 'PRIVATE',
+										membership_status: 'MANDATORY',
+										initial_coverage_class: 'PRIVATE',
+										first_membership_on: '2008-01-01',
+										last_termination_reason: 'NONE',
+										membership_evidence_reference: 'SYNTHETIC-HDMF'
+									}
+								: {}
+					}
 				])
 			),
 			yearToDate: (code) => history.get(code) ?? zero(),

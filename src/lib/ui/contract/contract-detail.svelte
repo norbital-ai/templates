@@ -83,7 +83,12 @@
 		{record}
 		submit={t('component.save_employment')}
 	>
-		<FormSection first title={t('component.employment')} hint={t('component.contract_hint')}>
+		<FormSection
+			name="employment"
+			first
+			title={t('component.employment')}
+			hint={t('component.contract_hint')}
+		>
 			<Grid gap="md" minimum="panel">
 				<Field name="employee_id" label={t('component.person')} readonly={seal.sealed}>
 					{#snippet editor(field)}
@@ -118,6 +123,12 @@
 				<Column span="all"
 					><Field name="effective_range" label={t('component.effective_period')} /></Column
 				>
+				<Field
+					name="signed_contract_end"
+					label={t('component.signed_contract_end')}
+					help={t('component.signed_contract_end_hint')}
+					readonly={seal.sealed}
+				/>
 				<Field name="prior_service_months" label={t('component.prior_service_months')} />
 				<!-- Why the stint ended; the separation catalogue bands read it. Blank while in service. -->
 				<Column span="all"
@@ -187,7 +198,11 @@
 		</Form>
 	{/if}
 	{#if contracts && otherRevisions.length > 0}
-		<FormSection title={t('component.terms_revisions')} hint={t('component.terms_revisions_hint')}>
+		<FormSection
+			name="terms_revisions"
+			title={t('component.terms_revisions')}
+			hint={t('component.terms_revisions_hint')}
+		>
 			<ul class="text-sm">
 				{#each otherRevisions as revision (revision.id)}
 					<li>

@@ -1,5 +1,7 @@
 import { collection } from '@norbital-ai/bolt';
 import { readPayrollWorlds } from '../../../lib/payroll/world.js';
+import { rerunProjection, rerunPayslips } from '../../../lib/payroll/run/rerun.js';
+import type { WorkspaceRow } from '../../../lib/rows.js';
 import { plain } from '../../../lib/wire.js';
 import { readAll } from '../../../lib/reads.js';
 import { dateKey, isCalendarDate } from '../../../lib/iso-day.js';
@@ -31,13 +33,14 @@ import { assertBenefitCasePayrollCashSafe } from '../../../lib/benefit-cases/pay
  * `engine.ts`): a REGULAR run covers every eligible employment; individual cases are held per payslip (`ON_HOLD`).
  * The sequence is derived: one past the period's highest.
  *
- * A run is a frozen container (L-TPL-hr-payroll-131): no `update`, no state. Deleting a run is the settlement
- * lock's release, and the only one: its payslips go with it (owned) and their pins are released by `setNull`.
- * The delete guard below keeps a run with a paid slip, and unwinds drafts newest first.
+ * An empty update recalculates unpaid payslips on this same run, replacing their captures atomically.
+ * Paid payslips retain every field and source pin. Deleting an unpaid run releases its owned payslips
+ * and pins; both deletion and recalculation refuse later dependent runs or actual cash allocations.
  */
 const c = collection('payroll_runs', {
 	read: { fields: 'all' },
 	create: { input: { columns: ['company_id', 'period', 'pay_due_date', 'kind', 'sources'] } },
+	update: { input: { columns: [] } },
 	delete: { transform: true }
 });
 
@@ -103,6 +106,83 @@ c.transform(async (inputs, ctx) => {
 				run
 			);
 		return inputs;
+	}
+
+	if (ctx.existing.some((row) => row != null)) {
+		if (inputs.length !== 1 || ctx.existing[0] == null)
+			refuse('Recalculate one existing payroll run at a time.');
+		const run = plain(ctx.existing[0]) as WorkspaceRow<'payroll_runs'>;
+		const worlds = await readPayrollWorlds(ctx.db, [
+			{ company_id: run.company_id, period: run.period }
+		]);
+		const world = worlds.get(`${run.company_id}:${run.period}`)!;
+		const projection = rerunProjection(world, run);
+		const ids = projection.unpaid.map((row) => row.id);
+		const [wages, tranches, explanations] = await Promise.all([
+			readAll<{ id: string; payslip_id: string }>(ctx.db, 'payslip_wage_periods', {
+				payslip_id: { in: ids }
+			}),
+			readAll<{ id: string; settlement: { id: string } }>(ctx.db, 'payable_tranches', {
+				settlement: { payslips: { in: ids } }
+			}),
+			readAll<{ id: string; payslip_id: string }>(
+				ctx.db,
+				'payslip_explanations',
+				{
+					payslip_id: { in: ids }
+				},
+				undefined,
+				{ id: true, payslip_id: true }
+			)
+		]);
+		const [allocated] = await readAll<{ id: string }>(ctx.db, 'payment_allocations', {
+			payable_tranche_id: { in: tranches.map((row) => row.id) }
+		});
+		if (allocated != null)
+			refuse('A payslip with an actual payment allocation cannot be recalculated.');
+		const facts = gatherPayrollRun({
+			world: projection.world,
+			companyId: run.company_id,
+			period: run.period,
+			payDueDate: run.pay_due_date == null ? undefined : dateKey(run.pay_due_date),
+			kind: run.kind as RunKind,
+			sources: run.sources ?? []
+		});
+		const blocking = payrollRunPrecheck({
+			configuration: facts.configuration,
+			window: facts.window,
+			bundles: facts.gathered.bundles
+		});
+		if (blocking.length > 0) refuse(describeIssues(blocking));
+		await assertBenefitCasePayrollCashSafe(
+			ctx.db,
+			projection.world,
+			facts.gathered.bundles.flatMap((bundle) =>
+				bundle.wageDays == null
+					? []
+					: [{ employment_id: bundle.employment.id, salary: bundle.window.salary }]
+			)
+		);
+		const derived = await derivedColumns(facts);
+		if (projection.paid.length > 0 && derived.configuration_hash !== run.configuration_hash)
+			refuse(
+				'This mixed paid payroll has a different governing configuration. Keep the paid calculation and record a later correction.'
+			);
+		const built = buildPayrollRun(facts);
+		const paidIds = new Set<string>(projection.paid.map((row) => row.employment_id));
+		return [
+			{
+				...derived,
+				calculation_trace: [
+					...(run.calculation_trace ?? []).filter((row) => paidIds.has(row.employment_id)),
+					...built.calculation_trace
+				],
+				company_charges: built.company_charges,
+				company_remittances: built.company_remittances,
+				warnings: built.warnings.join('\n'),
+				payslips: rerunPayslips(world, projection, built, { wages, tranches, explanations })
+			}
+		] as never;
 	}
 
 	// A batch is one verb: past the delete guard every input is a create.

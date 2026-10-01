@@ -52,5 +52,9 @@ test('payroll creation accepts company, period, contractual pay due date, run ki
 		'sources'
 	]);
 	assert.equal(payrollRuns.spec.create.input.with, undefined);
-	assert.equal(payrollRuns.spec.update, undefined, 'a run is frozen once built');
+	assert.deepEqual(
+		payrollRuns.spec.update,
+		{ input: { columns: [] } },
+		'recalculation accepts no caller-written financial or run columns'
+	);
 });

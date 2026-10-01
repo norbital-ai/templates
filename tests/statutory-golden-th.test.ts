@@ -1397,63 +1397,90 @@ test('Thailand — guarding duty uses the 2009/2026 overtime cutover on 24 April
 	);
 });
 
-test('Thailand — normal hours beyond the 48-hour week are s.61 overtime, latest days first (TH-WORK-03)', () => {
-	// LPA s.23: at most 48 normal hours a week; s.61: work beyond the normal hours is overtime. A
-	// monthly guard on 24,000 (s.68: 24,000 ÷ (30 × 8) = 100/hour) works five agreed twelve-hour
-	// normal days, Monday 26 – Friday 30 October 2026: 60 normal hours, 12 beyond the week, taken
-	// from Friday (12). From 24 April 2026 a guard's workday overtime is 1.25× (guard regulation,
-	// https://ratchakitcha.soc.go.th/documents/68372.pdf): 12 × 100 × 1.25 = 1,500.
-	const run = (period: string) =>
-		buildStatutory(
-			{
-				code: TH,
-				period,
-				people: [citizen('GUARD-60', 24_000, { statutory_work_category: 'GUARD_DUTY' })]
-			},
-			(world) => {
-				const long = {
-					...world.shift_definitions[0]!,
-					id: 'guard-week-twelve',
-					code: 'GUARD-WEEK-TWELVE',
-					variant: {
-						kind: 'WORK',
-						start_time: '09:00',
-						end_time: '22:00',
-						break_minutes: 60,
-						break_start_time: '13:00'
-					}
-				};
-				world.shift_definitions.push(long as never);
-				for (const date of ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30']) {
-					punch(world, 'GUARD-60', date, '09:00', '22:00');
-					const day = world.work_days.at(-1)!;
-					day.shift_definition_id = long.id;
-					day.facts = {
-						normal_hours_redistribution_agreed_at: '2026-10-25T05:00:00.000Z',
-						split_break_agreed_at: '2026-10-25T05:00:00.000Z'
+for (const [missingDate, missingHours] of [
+	['2026-10-26', 0],
+	['2026-10-26', 6],
+	['2026-10-26', 12],
+	['2026-10-30', 6]
+] as const)
+	test(`Thailand — weekly normal overtime uses worked hours: ${missingHours} absent on ${missingDate} (TH-WORK-03)`, () => {
+		// LPA s.23: at most 48 normal hours a week; s.61: work beyond the normal hours is overtime. A
+		// monthly guard on 24,000 (s.68: 24,000 ÷ (30 × 8) = 100/hour) works five agreed twelve-hour
+		// normal days, Monday 26 – Friday 30 October 2026: 60 normal hours, 12 beyond the week, taken
+		// from Friday (12). From 24 April 2026 a guard's workday overtime is 1.25× (guard regulation,
+		// https://ratchakitcha.soc.go.th/documents/68372.pdf): 12 × 100 × 1.25 = 1,500.
+		const run = (period: string) =>
+			buildStatutory(
+				{
+					code: TH,
+					period,
+					people: [citizen('GUARD-60', 24_000, { statutory_work_category: 'GUARD_DUTY' })]
+				},
+				(world) => {
+					const long = {
+						...world.shift_definitions[0]!,
+						id: 'guard-week-twelve',
+						code: 'GUARD-WEEK-TWELVE',
+						variant: {
+							kind: 'WORK',
+							start_time: '09:00',
+							end_time: '22:00',
+							break_minutes: 60,
+							break_start_time: '13:00'
+						}
 					};
-					day.worked_intervals = [
-						['09:00', '13:00'],
-						['13:30', '17:30'],
-						['18:00', '22:00']
-					].map(([start, end]) => ({
-						start: `${date}T${start}:00+07:00`,
-						end: `${date}T${end}:00+07:00`
-					}));
+					world.shift_definitions.push(long as never);
+					for (const date of [
+						'2026-10-26',
+						'2026-10-27',
+						'2026-10-28',
+						'2026-10-29',
+						'2026-10-30'
+					]) {
+						punch(world, 'GUARD-60', date, '09:00', '22:00');
+						const day = world.work_days.at(-1)!;
+						day.shift_definition_id = long.id;
+						day.facts = {
+							normal_hours_redistribution_agreed_at: '2026-10-25T05:00:00.000Z',
+							split_break_agreed_at: '2026-10-25T05:00:00.000Z'
+						};
+						day.worked_intervals = (
+							date === missingDate && missingHours > 0
+								? missingHours === 12
+									? []
+									: [
+											['09:00', '13:00'],
+											['14:00', '16:00']
+										]
+								: [
+										['09:00', '13:00'],
+										['13:30', '17:30'],
+										['18:00', '22:00']
+									]
+						).map(([start, end]) => ({
+							start: `${date}T${start}:00+07:00`,
+							end: `${date}T${end}:00+07:00`
+						}));
+					}
 				}
-			}
+			);
+		const { slips, warnings } = run('2026-11');
+		const slip = slips.get('GUARD-60')!;
+		const overtime = 12 - missingHours;
+		assert.deepEqual(
+			workLines(slip),
+			overtime === 0
+				? [[missingDate, 'ABSENCE', 1, 800]]
+				: [['2026-10-30', 'GUARD-OT-1.25X', overtime, overtime * 125]]
 		);
-	const { slips, warnings } = run('2026-11');
-	const slip = slips.get('GUARD-60')!;
-	assert.deepEqual(workLines(slip), [['2026-10-30', 'GUARD-OT-1.25X', 12, 1_500]]);
-	assert.equal(slip.gross, 25_500);
-	// The breach stays a warning; the moved hours are priced, so they are not unplanned overtime.
-	assert.ok(warnings.some((line) => /60\.00 normal hours in the week of 2026-10-26/.test(line)));
-	assert.ok(
-		!warnings.some((line) => /UNPLANNED_OVERTIME|planned for pay/.test(line)),
-		warnings.join('\n')
-	);
-});
+		assert.equal(slip.gross, 24_000 + overtime * 125 - (missingHours === 12 ? 800 : 0));
+		// The breach stays a warning; the moved hours are priced, so they are not unplanned overtime.
+		assert.ok(warnings.some((line) => /60\.00 normal hours in the week of 2026-10-26/.test(line)));
+		assert.ok(
+			!warnings.some((line) => /UNPLANNED_OVERTIME|planned for pay/.test(line)),
+			warnings.join('\n')
+		);
+	});
 
 test('Thailand — on a seven-hour normal day the s.68 hour is monthly ÷ (30 × 7) and the eighth hour is s.61 overtime (TH-WORK-05)', () => {
 	// s.68: the hourly rate of a monthly wage is monthly ÷ (30 × the normal working hours a day); s.5

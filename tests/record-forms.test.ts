@@ -76,14 +76,17 @@ test('each org-settings record form offers every writable field but those writte
 	}
 });
 
-test('a hire names the person, the entity, the number, the pay destination and the stint', () => {
+test('a hire names the person, the entity, the number, the pay destination and the optional signed term', async () => {
 	assert.deepEqual([...fields('lib/ui/contract/hire-form.svelte')].toSorted(), [
 		'bank',
 		'company_id',
 		'effective_range',
 		'employee_id',
-		'employee_number'
+		'employee_number',
+		'signed_contract_end'
 	]);
+	const employment = (await import('../src/data/model/employments/+model.ts')).default;
+	assert.deepEqual(employment.fields.signed_contract_end, { kind: 'date', optional: true });
 });
 
 test('residency is a contract term, never a personal fact', async () => {

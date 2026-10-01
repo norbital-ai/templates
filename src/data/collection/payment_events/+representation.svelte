@@ -6,6 +6,7 @@
 		Form,
 		Picker,
 		RecordShell,
+		Section,
 		type FormState,
 		type RecordView
 	} from '@norbital-ai/ui';
@@ -82,37 +83,39 @@
 <RecordShell of="payment_events" {...record == null ? {} : { id: record.id }} mode={view.mode}>
 	{#if record}
 		<Stack gap="md">
-			<h2 class="text-heading">{t('component.payment_event_record')}</h2>
-			<Grid as="dl" gap="sm" minimum="compact">
-				<Stack gap="xs"
-					><dt class="text-meta">{t('component.reference')}</dt>
-					<dd>{record.reference}</dd></Stack
-				>
-				<Stack gap="xs"
-					><dt class="text-meta">{t('component.paid')}</dt>
-					<dd>{formatCalendarDate(record.paid_on)}</dd></Stack
-				>
-				<Stack gap="xs"
-					><dt class="text-meta">{t('component.payment_gross_allocated')}</dt>
-					<dd>{formatNumeric(record.gross_amount)} {record.currency}</dd></Stack
-				>
-				<Stack gap="xs"
-					><dt class="text-meta">{t('component.payment_cash')}</dt>
-					<dd>{formatNumeric(record.cash_amount)} {record.currency}</dd></Stack
-				>
-			</Grid>
-			<h3 class="text-subhead">{t('component.payment_sources')}</h3>
-			{#each allocations.current ?? [] as allocation (allocation.id)}
-				<Inline justify="between" class="border-b border-border py-2 text-sm">
-					<span
-						>{allocation.payable_tranche_id.reference} · {allocation.payable_tranche_id
-							.source_category} · {formatCalendarDate(allocation.payable_tranche_id.due_on)}</span
+			<Section first name="payment" title={t('component.payment_event_record')}>
+				<Grid as="dl" gap="sm" minimum="compact">
+					<Stack gap="xs"
+						><dt class="text-meta">{t('component.reference')}</dt>
+						<dd>{record.reference}</dd></Stack
 					>
-					<span class="tabular-nums"
-						>{formatNumeric(allocation.gross_amount)} {allocation.currency}</span
+					<Stack gap="xs"
+						><dt class="text-meta">{t('component.paid')}</dt>
+						<dd>{formatCalendarDate(record.paid_on)}</dd></Stack
 					>
-				</Inline>
-			{/each}
+					<Stack gap="xs"
+						><dt class="text-meta">{t('component.payment_gross_allocated')}</dt>
+						<dd>{formatNumeric(record.gross_amount)} {record.currency}</dd></Stack
+					>
+					<Stack gap="xs"
+						><dt class="text-meta">{t('component.payment_cash')}</dt>
+						<dd>{formatNumeric(record.cash_amount)} {record.currency}</dd></Stack
+					>
+				</Grid>
+			</Section>
+			<Section name="sources" title={t('component.payment_sources')}>
+				{#each allocations.current ?? [] as allocation (allocation.id)}
+					<Inline justify="between" class="border-b border-border py-2 text-sm">
+						<span
+							>{allocation.payable_tranche_id.reference} · {allocation.payable_tranche_id
+								.source_category} · {formatCalendarDate(allocation.payable_tranche_id.due_on)}</span
+						>
+						<span class="tabular-nums"
+							>{formatNumeric(allocation.gross_amount)} {allocation.currency}</span
+						>
+					</Inline>
+				{/each}
+			</Section>
 		</Stack>
 	{:else}
 		<Form
@@ -124,51 +127,59 @@
 		>
 			{#snippet children(form)}
 				<Stack gap="lg">
-					<p class="text-meta">{t('component.payment_entry_hint')}</p>
-					<Grid gap="sm" minimum="compact">
-						<Field name="company_id" label={t('component.legal_entity')} />
-						<Field name="employee_id" label={t('component.person')} />
-						<Field name="paid_on" label={t('component.pay_date')} />
-						<Field name="reference" label={t('component.reference')} />
-						<Field name="currency" label={t('component.currency')} />
-						<Field name="cash_amount" label={t('component.payment_cash')} />
-						<Field name="kind" label={t('component.payment_kind')} />
-						{#if form.get('kind') === 'NON_CASH_SETTLEMENT'}
-							<Field
-								name="non_cash_basis_reference"
-								label={t('component.payment_non_cash_basis')}
-							/>
-						{/if}
-						<Field name="external_source_kind" label={t('component.payment_external_kind')} />
-						<Field name="external_source_id" label={t('component.payment_external_id')} />
-						<Column span="all">
-							<Field
-								name="facts"
-								label={t('component.payment_facts')}
-								help={t('component.payment_facts_hint')}
-							>
-								{#snippet editor(field)}
-									<DeclaredFactsField
-										view={{
-											mode: 'edit',
-											name: field.name,
-											value: field.value as never,
-											disabled: field.disabled,
-											onChange: field.onChange as never
-										}}
-										settingsCode={payerCode(form.get('company_id'))}
-										schema="payment_facts"
-										day={typeof form.get('paid_on') === 'string'
-											? (form.get('paid_on') as string)
-											: null}
-									/>
-								{/snippet}
-							</Field>
-						</Column>
-					</Grid>
-					<Stack gap="sm">
-						<h3 class="text-subhead">{t('component.payment_sources')}</h3>
-						<p class="text-meta">{t('component.payment_sources_hint')}</p>
+					<Section
+						first
+						name="payment"
+						title={t('component.payment_event_record')}
+						hint={t('component.payment_entry_hint')}
+					>
+						<Grid gap="sm" minimum="compact">
+							<Field name="company_id" label={t('component.legal_entity')} />
+							<Field name="employee_id" label={t('component.person')} />
+							<Field name="paid_on" label={t('component.pay_date')} />
+							<Field name="reference" label={t('component.reference')} />
+							<Field name="currency" label={t('component.currency')} />
+							<Field name="cash_amount" label={t('component.payment_cash')} />
+							<Field name="kind" label={t('component.payment_kind')} />
+							{#if form.get('kind') === 'NON_CASH_SETTLEMENT'}
+								<Field
+									name="non_cash_basis_reference"
+									label={t('component.payment_non_cash_basis')}
+								/>
+							{/if}
+							<Field name="external_source_kind" label={t('component.payment_external_kind')} />
+							<Field name="external_source_id" label={t('component.payment_external_id')} />
+							<Column span="all">
+								<Field
+									name="facts"
+									label={t('component.payment_facts')}
+									help={t('component.payment_facts_hint')}
+								>
+									{#snippet editor(field)}
+										<DeclaredFactsField
+											view={{
+												mode: 'edit',
+												name: field.name,
+												value: field.value as never,
+												disabled: field.disabled,
+												onChange: field.onChange as never
+											}}
+											settingsCode={payerCode(form.get('company_id'))}
+											schema="payment_facts"
+											day={typeof form.get('paid_on') === 'string'
+												? (form.get('paid_on') as string)
+												: null}
+										/>
+									{/snippet}
+								</Field>
+							</Column>
+						</Grid>
+					</Section>
+					<Section
+						name="sources"
+						title={t('component.payment_sources')}
+						hint={t('component.payment_sources_hint')}
+					>
 						{#each drafts as draft (draft.id)}
 							<Grid gap="sm" minimum="compact">
 								<Stack gap="xs">
@@ -244,7 +255,7 @@
 								syncAllocations(form);
 							}}>{t('component.payment_add_source')}</Button
 						>
-					</Stack>
+					</Section>
 				</Stack>
 			{/snippet}
 		</Form>

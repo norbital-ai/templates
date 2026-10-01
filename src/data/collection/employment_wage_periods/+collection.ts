@@ -4,7 +4,7 @@ import { readRange } from '../../../lib/payroll/run/effective.js';
 import { cents } from '../../../lib/payroll/run/rounding.js';
 import { sealedLineages } from '../../../lib/entity-facts.js';
 import { dateKey } from '../../../lib/iso-day.js';
-import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
+import { governed, settingsInForce } from '../../../lib/jurisdiction_settings.js';
 import { decodeNumber } from '../../../lib/wire.js';
 
 const wagePeriods = collection('employment_wage_periods', {
@@ -101,8 +101,18 @@ wagePeriods.transform(async (inputs, { existing, db, refuse }) => {
 		if (!(row.reference ?? '').trim())
 			refuse('A wage period requires a source reference.', { field: 'reference' });
 		const code = row.employment_id == null ? undefined : codeOf(row.employment_id);
+		const first = versions
+			.filter((version) => version.code === code && governed(version.effective_range) != null)
+			.toSorted((left, right) =>
+				governed(left.effective_range)!.from.localeCompare(governed(right.effective_range)!.from)
+			)[0];
+		// Opening evidence predates the configured payroll timeline. Its recorded amount is never
+		// recalculated; validate it against the first supported currency, without extending law.
+		const opening = first != null && end < governed(first.effective_range)!.from ? first : null;
 		const currency =
-			code == null ? undefined : settingsInForce(versions, code, end)?.payroll.currency;
+			code == null
+				? undefined
+				: (settingsInForce(versions, code, end) ?? opening)?.payroll.currency;
 		if (currency == null)
 			return refuse('A wage period requires sealed jurisdiction settings on its final day.', {
 				field: 'period'

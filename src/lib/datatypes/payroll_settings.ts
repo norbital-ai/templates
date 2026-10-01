@@ -129,7 +129,20 @@ function incomeReturnFault(income: IncomeReturnSettings): string | undefined {
  * (a punch is an instant, a shift start a wall-clock time), the month its tax year opens and whether
  * unpaid leave prorates a standing allowance.
  */
+/** A dated leave wage floor after named employee contributions; tax and other deductions stay separate. */
+export type LeaveNetFloor = {
+	readonly code: string;
+	readonly leave_code: string;
+	readonly worksites: readonly string[];
+	readonly minimum_fraction: number;
+	readonly divisor_days: number;
+	readonly employee_scheme_codes: readonly string[];
+	readonly effective_to?: string | null;
+	readonly authority: string;
+};
+
 export type PayrollSettings = {
+	readonly leave_net_floors?: readonly LeaveNetFloor[] | null;
 	readonly currency: string;
 	readonly timezone: string;
 	readonly tax_year_start_month: number;
@@ -233,6 +246,8 @@ export type PayrollSettings = {
 	readonly holiday_in_no_pay_leave_unpaid?: boolean | null;
 	/** An absence without consent beside a public holiday forfeits its pay (SG EA s.88(3)). */
 	readonly holiday_adjacent_absence_unpaid?: boolean | null;
+	/** Employees subject to adjacent-absence holiday forfeiture; empty covers everyone. */
+	readonly holiday_adjacent_absence_when?: string | null;
 	/** An unworked special day earns the daily/hourly-paid nothing (PH DOLE Handbook ch.3 §C). */
 	readonly special_holiday_unworked_unpaid?: boolean | null;
 	/** An unworked regular holiday needs presence on the prior workday (PH Handbook ch.2 §D–E). */
@@ -316,6 +331,17 @@ export const vocabularyAdmits = (
 const share = (value: number | null | undefined) => value == null || (value >= 0 && value <= 1);
 
 export function payrollSettingsFault(value: PayrollSettings): string | undefined {
+	for (const rule of value.leave_net_floors ?? [])
+		if (
+			!rule.code ||
+			!rule.leave_code ||
+			!rule.authority ||
+			rule.worksites.length === 0 ||
+			rule.employee_scheme_codes.length === 0 ||
+			!(rule.minimum_fraction > 0 && rule.minimum_fraction <= 1) ||
+			!(rule.divisor_days > 0)
+		)
+			return 'leave_net_floors: name the leave, worksites, contribution schemes, positive divisor, fraction and authority';
 	if (value.currency === '' || value.timezone === '') return 'Enter the currency and timezone.';
 	const calendar = payCalendarFault(value.pay_calendar);
 	if (calendar) return calendar;

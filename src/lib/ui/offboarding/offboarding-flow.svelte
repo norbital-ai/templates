@@ -53,7 +53,12 @@
 </script>
 
 <Stack gap="lg">
-	<FormSection first title={t('offboarding.step_last_day')} hint={t('offboarding.last_day_hint')}>
+	<FormSection
+		name="offboarding.step_last_day"
+		first
+		title={t('offboarding.step_last_day')}
+		hint={t('offboarding.last_day_hint')}
+	>
 		<Stack gap="sm">
 			<Labelled label={t('offboarding.last_day')} class="text-sm font-medium">
 				<DateInput
@@ -81,7 +86,11 @@
 				/>
 			</Labelled>
 			<p class="text-meta">{t('offboarding.leave_hint')}</p>
-			<FormSection title={t('component.exit_facts')} hint={t('component.exit_facts_hint')}>
+			<FormSection
+				name="exit_facts"
+				title={t('component.exit_facts')}
+				hint={t('component.exit_facts_hint')}
+			>
 				<ExitFactsRenderer
 					view={{
 						mode: 'edit',

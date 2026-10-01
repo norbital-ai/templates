@@ -10,6 +10,8 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
+import payslipsCollection from '../src/data/collection/payslips/+collection.ts';
 import payrollExport from '../src/automation/+payroll_export.automation.ts';
 import { memoryDb } from './helpers/ctx.ts';
 import { createRun, storeRun } from './helpers/settlement.ts';
@@ -48,11 +50,21 @@ async function exportRuns(world, ids, kind) {
 	const db = memoryDb(world);
 	const ctx = {
 		read: db.read,
+		query: async (collection, name, input) => {
+			assert.equal(collection, 'payslips');
+			assert.equal(name, 'payslip_pdf');
+			return payslipsCollection.bodies.queries.payslip_pdf(input, {
+				read: db.read,
+				refuse: (message) => {
+					throw new Error(message);
+				}
+			});
+		},
 		progress: async () => {},
 		files: {
 			put: async (bytes, { name, mime, for: owner }) => {
 				assert.equal(owner, 'payroll_export');
-				stored.set(name, { mime, text: new TextDecoder().decode(bytes) });
+				stored.set(name, { mime, bytes, text: new TextDecoder().decode(bytes) });
 				return { id: name, name, mime };
 			}
 		}
@@ -82,7 +94,12 @@ test('a settled run exports its bank file, a payslip per employment and both wor
 	);
 	const pdf = file(artefacts[1].files[0]);
 	assert.equal(pdf.mime, 'application/pdf');
-	assert.ok(pdf.text.startsWith('%PDF') && /Net pay/.test(pdf.text));
+	assert.ok(pdf.text.startsWith('%PDF'));
+	const document = await getDocument({ data: pdf.bytes.slice(), useSystemFonts: false }).promise;
+	const content = await (await document.getPage(1)).getTextContent();
+	const extracted = content.items.flatMap((item) => ('str' in item ? [item.str] : [])).join(' ');
+	assert.match(extracted, /\bNet\s+pay\b/);
+	await document.destroy();
 	// Each export button asks for its own artefact.
 	const one = await exportRuns(world, [runId], 'payslip-pdfs');
 	assert.deepEqual(
@@ -98,6 +115,22 @@ test('a payslip with no bank destination is named as skipped; no payslips is no 
 	assert.deepEqual(bank.skipped_employment_ids, [EMPLOYMENT_ID]);
 	world.payslips.length = 0;
 	assert.deepEqual((await exportRuns(world, [runId])).artefacts, []);
+});
+
+test('a settled payslip PDF retains its salary dates after the company changes to weekly payroll', async () => {
+	const { world, runId } = await januaryWorld();
+	const settled = world.payslips.find((row) => row.payroll_run_id === runId);
+	assert.ok(settled.salary_from != null && settled.salary_to != null);
+	// January was settled on the monthly calendar. Its token cannot be resolved on a weekly
+	// calendar: the export must use the captured salary window without evaluating the fallback.
+	world.companies[0].pay_frequency = 'WEEKLY';
+	const { artefacts, file } = await exportRuns(world, [runId], 'payslip-pdfs');
+	const pdf = file(artefacts[0].files[0]);
+	const document = await getDocument({ data: pdf.bytes.slice(), useSystemFonts: false }).promise;
+	const content = await (await document.getPage(1)).getTextContent();
+	const extracted = content.items.flatMap((item) => ('str' in item ? [item.str] : [])).join(' ');
+	assert.match(extracted, /Salary\s+period:\s+2026-01-01\s+to\s+2026-01-31/);
+	await document.destroy();
 });
 
 test('a later bank payment waits for earlier contribution shortfalls funded by its payment date', async () => {
@@ -133,3 +166,55 @@ test('two runs selected together export as two sets, each named by its own perio
 	);
 	assert.equal(new Set(names).size, names.length, `a duplicate filename: ${names}`);
 });
+
+test('saved payment status and individual paid_at determine the PDF payment statement', async () => {
+	const { world, runId } = await januaryWorld();
+	const slip = world.payslips.find((row) => row.payroll_run_id === runId);
+	// Projection test: an unpaid capture must not use its run's planned pay day as payment evidence.
+	slip.status = 'DRAFT';
+	slip.paid_at = null;
+	const unpaid = await exportRuns(world, [runId], 'payslip-pdfs');
+	const read = async (bytes) => {
+		const document = await getDocument({ data: bytes.slice(), useSystemFonts: false }).promise;
+		const content = await (await document.getPage(1)).getTextContent();
+		const value = content.items.flatMap((item) => ('str' in item ? [item.str] : [])).join('');
+		await document.destroy();
+		return value;
+	};
+	assert.match(await read(unpaid.file(unpaid.artefacts[0].files[0]).bytes), /Scheduled pay date:/);
+	// The same saved slip's actual payment is an individual event, independent of the run date.
+	slip.status = 'PAID';
+	slip.paid_at = '2026-01-16';
+	const paid = await exportRuns(world, [runId], 'payslip-pdfs');
+	const value = await read(paid.file(paid.artefacts[0].files[0]).bytes);
+	assert.match(value, /Paid 2026-01-16/);
+	assert.match(value, /Pay date: 2026-01-16/);
+	assert.doesNotMatch(value, /Scheduled pay date:/);
+});
+
+for (const [timezone, instant, expected] of [
+	['Asia/Tokyo', '2026-01-14T15:30:00Z', '2026-01-15'],
+	['Asia/Ho_Chi_Minh', '2026-01-14T16:30:00Z', '2026-01-14'],
+	['Asia/Ho_Chi_Minh', '2026-01-14T17:30:00Z', '2026-01-15'],
+	['Asia/Kuala_Lumpur', '2026-01-14T15:30:00Z', '2026-01-14'],
+	['Asia/Kuala_Lumpur', '2026-01-14T16:30:00Z', '2026-01-15']
+])
+	test(`saved payment instant ${instant} uses captured payroll zone ${timezone}`, async () => {
+		const { world, runId } = await januaryWorld();
+		const slip = world.payslips.find((row) => row.payroll_run_id === runId);
+		const run = world.payroll_runs.find((row) => row.id === runId);
+		world.jurisdiction_settings.find((row) => row.id === run.settings_id).payroll.timezone =
+			timezone;
+		slip.status = 'PAID';
+		slip.paid_at = instant;
+		const exported = await exportRuns(world, [runId], 'payslip-pdfs');
+		const document = await getDocument({
+			data: exported.file(exported.artefacts[0].files[0]).bytes.slice(),
+			useSystemFonts: false
+		}).promise;
+		const content = await (await document.getPage(1)).getTextContent();
+		const value = content.items.flatMap((item) => ('str' in item ? [item.str] : [])).join('');
+		await document.destroy();
+		assert.ok(value.includes(`Paid ${expected}`));
+		assert.ok(value.includes(`Pay date: ${expected}`));
+	});

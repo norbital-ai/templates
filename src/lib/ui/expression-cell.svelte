@@ -7,6 +7,7 @@
 	 * A readonly matrix renders the expression as text: a disabled input is a muted form control,
 	 * and a display surface is neither.
 	 */
+	import InfoTip from './InfoTip.svelte';
 	import { t } from './t.js';
 	import type { MatrixCellRendererProps, MatrixRow } from './grid.svelte';
 	import { Input } from '@norbital-ai/ui';
@@ -24,8 +25,9 @@
 </script>
 
 {#if mode === 'display'}
-	<span class="block min-w-0 truncate font-mono text-xs" title={text}
-		>{text === '' ? '—' : text}</span
+	<Inline gap="xs" align="center"
+		><span class="block min-w-0 font-mono text-xs break-words">{text === '' ? '—' : text}</span
+		><InfoTip label={t('component.rule_calculation')}>{contract}</InfoTip></Inline
 	>
 {:else}
 	<Inline gap="xs">
@@ -37,6 +39,7 @@
 			title={contract}
 			oninput={(event) => onValueChange(event.currentTarget.value)}
 		/>
+		<InfoTip label={t('component.rule_calculation')}>{contract}</InfoTip>
 		<ExpressionFields {site} expression={text} {type} inline />
 	</Inline>
 {/if}

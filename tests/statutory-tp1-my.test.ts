@@ -148,7 +148,7 @@ for (const code of ['MY'] as const) {
 						String(row.effective_range.start).startsWith('2026-06')
 					)!;
 					const bonus = world.adhoc_catalogue!.find(
-						(row) => row.code === 'ADJ' && row.settings_id === settings.id
+						(row) => row.code === 'BONUS' && row.settings_id === settings.id
 					)!;
 					world.adhoc_requests!.push({
 						id: 'd0000000-0000-4000-8000-00000000ad20',

@@ -93,9 +93,10 @@ it('a month workbook for the whole plant imports in a handful of statements', as
 	expect(imported.kind, JSON.stringify(imported)).toBe('committed');
 	expect(file.roster.length).toBeGreaterThan(2_000);
 	expect(t.count.writes).toBe(1);
-	// Ten reads for the month's law and rows, plus the nested work-days write's own two-wave
-	// neighbourhood (terms, leave, payslips, rosters, settings, runs, codes and the projection).
-	expect(t.count.reads).toBeLessThanOrEqual(20);
+	// Whole-entity SET also preflights captured deletions and roster-presence changes. Its batched
+	// import, work-day transforms and paid-aware roster guards take 26 crossings for >2,000 days;
+	// a person-by-person read or a second write would breach these fixed bounds.
+	expect(t.count.reads).toBeLessThanOrEqual(26);
 });
 
 it('a payroll run prices the whole plant in one write', async () => {

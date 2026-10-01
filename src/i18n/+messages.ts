@@ -1,12 +1,15 @@
 import { messages } from '@norbital-ai/bolt';
 
 export default messages({
+	'representation.not_set': 'Not set',
+	'representation.file_attached': 'File attached',
+	'representation.automatic': 'Automatic',
+
 	'app.claims.title': 'Claims',
 	'app.events.pay_period': 'Pay period',
 	'app.events.empty_scope': 'No in-force legal entity. Choose a legal entity.',
 	'app.hr_controller.entities_description': 'Legal entities this workspace operates.',
 	'app.hr_controller.entities_title': 'Entities',
-	'app.hr_controller.loading_scope': 'Loading companies…',
 	'app.hr_employee.choose_employment': 'Choose the employment you are working in',
 	'app.hr_employee.choose_employment_description':
 		'Your requests, time, loans, and payslips will be scoped to this employment.',
@@ -92,11 +95,7 @@ export default messages({
 	'app.loans.outstanding': 'Outstanding',
 	'app.loans.progress_partial': '{outstanding} · {paid}/{total} paid',
 	'app.loans.progress_settled': 'Settled · {paid}/{total}',
-	'app.payroll.attendance': 'Attendance',
 	'app.payroll.days_late': '{days}d late',
-	'app.payroll.due_today': 'Due today',
-	'app.payroll.due_tomorrow': 'Due tomorrow',
-	'app.payroll.empty_overview': 'No in-force legal entity. Choose a legal entity.',
 	'app.payroll.empty_runs': 'No in-force legal entity. Choose a legal entity.',
 	'app.payroll.export_bank_files': 'Bank files',
 	'app.payroll.export_bank_files_description':
@@ -115,28 +114,36 @@ export default messages({
 	'app.payroll.export_workbook': 'Payroll workbook',
 	'app.payroll.export_workbook_description':
 		'Download the salary listing by section, with subtotals, and the complete breakdown.',
-	'app.payroll.in_days': 'In {days} days',
-	'app.payroll.late_count': '{count} late',
 	'app.payroll.loading_cycles': 'Loading payroll cycles…',
 	'app.payroll.no_open_cycles': 'No payroll cycles. Choose a legal entity to see its pay dates.',
 	'app.payroll.not_started': 'Not started',
 	'app.payroll.paid': 'Paid',
 	'app.payroll.paid_progress': '{paid}/{total} paid · {percent}%',
 	'app.payroll.pay_date': 'Pay date',
-	'app.payroll.payroll_cycles': 'Payroll cycles',
-	'app.payroll.payroll_cycles_description':
-		'A period pays on its last day; a semi-monthly company pays each half on the 15th and at month end. Late means the pay date passed without a paid run.',
 	'app.payroll.pays_line': 'Pays {date}',
 	'app.payroll.period': 'Period',
 	'app.payroll.policy_snapshot': 'Rules version',
-	'app.payroll.run': 'Run',
 	'app.payroll.runs_description':
 		'Review each run’s payslips, check the totals, export the files and mark it paid.',
 	'app.payroll.runs_title': 'Payroll runs',
 	'app.payroll.status': 'Status',
-	'app.payroll.status_current': 'Current',
-	'app.payroll.status_late': 'Late',
-	'app.payroll.status_upcoming': 'Upcoming',
+	'app.payroll.adhoc_items': 'What the run pays',
+	'app.payroll.adhoc_run_created': 'Ad hoc run created.',
+	'app.payroll.adhoc_run_title': 'Ad hoc run · {period}',
+	'app.payroll.new_adhoc_run': 'New ad hoc run',
+	'app.payroll.no_adhoc_items': 'No ad hoc or claim items in force.',
+	'app.payroll.no_runs_in_cycle': 'No runs yet',
+	'app.payroll.obligation_completion': 'Completion',
+	'app.payroll.obligation_facts': 'Completion facts',
+	'app.payroll.obligation_facts_count': '{count} recorded',
+	'app.payroll.obligation_fulfilled': 'Fulfilled',
+	'app.payroll.obligation_late': 'Late',
+	'app.payroll.obligation_open': 'Open',
+	'app.payroll.obligation_waived': 'Waived',
+	'app.payroll.reminders_before_run_one': '1 reminder before this run',
+	'app.payroll.reminders_before_run_many': '{count} reminders before this run',
+	'app.payroll.subject': 'Owed by',
+	'app.payroll.tab_obligations': 'Obligations',
 	'app.payroll.create_run': 'Create run',
 	'app.payroll.delete_run': 'Delete run',
 	'app.payroll.delete_run_confirm': 'Delete this unpaid run and its payslips?',
@@ -144,22 +151,12 @@ export default messages({
 	'app.payroll.export_cycle_workbook': 'Cycle workbook',
 	'app.payroll.headcount': 'Headcount',
 	'app.payroll.kind': 'Kind',
-	'app.payroll.loading_entries': 'Loading entries…',
-	'app.payroll.new_off_cycle_run': 'New off-cycle run',
-	'app.payroll.new_off_cycle_title': 'Off-cycle run · {period}',
-	'app.payroll.no_outstanding_entries': 'No outstanding claims or ad hoc entries.',
-	'app.payroll.no_runs': 'No payroll runs yet.',
-	'app.payroll.off_cycle_created': 'Off-cycle run created.',
+	'app.payroll.no_outstanding_entries': 'No outstanding approved entries for these items.',
 	'app.payroll.outstanding_entries': 'Outstanding entries',
-	'app.payroll.run_kind': 'Run kind',
 	'app.payroll.run_payroll': 'Run payroll',
 	'app.payroll.salary_early': 'Salary early',
 	'app.payroll.selected_entries': '{count} selected · {amount}',
-	'app.payroll.sequence': '#',
 	'app.payroll.tab_runs': 'Payroll runs',
-	'app.payroll.timing': 'Timing',
-	'app.payroll.unpaid_run_one': '1 unpaid run',
-	'app.payroll.unpaid_runs_many': '{count} unpaid runs',
 	'app.people.chart_description': 'Monthly leavers and joiners against average headcount.',
 	'app.people.chart_hire_rate': 'Hire rate (%)',
 	'app.people.chart_title': 'Turnover and hiring',
@@ -353,6 +350,9 @@ export default messages({
 	'component.email': 'Email',
 	'component.employee': 'Employee',
 	'component.employee_number': 'Employee number',
+	'component.signed_contract_end': 'Signed fixed-term end',
+	'component.signed_contract_end_hint':
+		'Enter the last day stated in the signed fixed-term contract. Leave blank for an indefinite contract. Preserve this date when employment ends early.',
 	'component.employee_share_annual_cap': 'Annual employee cap',
 	'component.employer_cost': 'Additional employer costs',
 	'component.employment': 'Employment contract',
@@ -560,15 +560,148 @@ export default messages({
 	'component.line_why_none': 'No trace was recorded for this line.',
 	'component.line_why_skipped': '{skipped} skipped · {omitted} omitted',
 	'component.line_why_version': 'Settings version {name}',
-	'component.visualization': 'Visualization',
+	'component.visualization': 'Payroll rules',
+	'roster.plan_projected': 'Projected',
+	'roster.plan_recorded': 'Planned',
+	'roster.plan_missing': 'No plan',
+	'roster.actual_hours': '{hours} actual',
+	'roster.projected_shift': 'Projected shift',
+	'roster.recorded_plan': 'Planned override',
+	'roster.recorded_plan_help':
+		'Assign a roster code for this date, or leave it empty to follow the shift pattern.',
+	'roster.actual_attendance_help':
+		'Only recorded attendance appears here. A projected or planned shift is not an attendance record.',
+	'roster.actual_empty': 'Recorded: no work',
+	'roster.board_layers_legend':
+		'Projected: shift pattern. Planned: recorded roster assignment. Actual: recorded attendance; — means none recorded. Blank days may be outside employment. No plan does not mean absence.',
+	'component.settings_section_facts': 'Declared inputs',
+	'component.settings_section_changes': 'Changes',
+	'renderer.obligations.details': 'Details for {code}',
+	'renderer.checks.details': 'About {code}',
+	'renderer.checks.condition': 'Technical condition',
+	'component.work_day_capture_locked':
+		'This work day is locked by payroll {period} because payment or funding has been recorded. Correct it with an adjustment in a later payroll period.',
+	'component.work_day_capture_status_unavailable':
+		'This work day has a payroll capture whose payment status cannot be verified here. Ask payroll to check it before editing.',
+	'renderer.duty_types.details': 'Authority for {code}',
+	'app.payroll.year': 'Year',
+	'app.payroll.recalculate_unpaid': 'Recalculate unpaid payslips',
+	'app.payroll.recalculate_unpaid_help':
+		'Paid payslips stay frozen. Unpaid payslips are recalculated using current entries.',
+	'app.payroll.payslip_payment': 'Payment',
+	'app.payroll.actual_payment_date': 'Actual payment date',
+	'app.payroll.payslip_payment_help':
+		'Record this employee’s actual payment date. Marking this payslip paid is final.',
+	'app.payroll.save_payment': 'Save payment',
+	'app.payroll.mark_selected_paid': 'Mark selected paid',
+	'app.loans.view': 'Agreements shown',
+	'app.loans.filter_outstanding': 'Outstanding',
+	'app.loans.filter_closed': 'Closed',
+	'app.loans.filter_all': 'All agreements',
+	'app.payroll.adhoc_in_selected_period': 'New ad hoc run in selected period',
+	'app.payroll.select_one_run': 'Select one payroll run.',
+	'app.payroll.no_runs_year': 'No payroll runs in {year}.',
+	'app.payroll.no_payslips': 'No payslips',
+	'app.payroll.part_paid': 'Part paid',
+	'app.payroll.on_hold': 'On hold',
+	'app.payroll.unpaid': 'Unpaid',
+	'app.payroll.obligations_description':
+		'Dated employer duties for filings, remittances and other required actions, plus reminders for missing payroll inputs. Duties arise from recorded events and the jurisdiction’s calendar. Payroll calculation does not file returns or pay authorities; record completion and evidence on each duty.',
+	'app.payroll.obligation_type': 'Type',
+	'app.payroll.obligation_duty': 'Employer duty',
+	'app.payroll.obligation_reminder': 'Missing input',
+	'app.payroll.obligation_trigger': 'Source',
+	'app.payroll.obligation_raised': 'Raised',
 	'component.reference_tables': 'Tables',
 	'component.reference_tables_none': 'No tables declared',
 	'component.band_from': 'From',
 	'component.band_to': 'To',
+	'component.rule_loading': 'Loading payroll rules…',
+	'component.rule_purpose':
+		'See how a payroll item is determined: which inputs you must supply, which rules apply, and which other payroll items depend on it. Choose an item below. For an employee’s actual amounts, open their payslip breakdown.',
+	'component.rule_view_formulas': 'View calculation rules',
+	'component.rule_choose': 'Choose a payroll calculation',
+	'component.rule_choose_help':
+		'Choose an earning, deduction or compliance check to see the inputs it needs, its configured calculation and the payroll items it affects. This shows the settings rules; calculated employee amounts are explained on the payslip.',
+	'component.rule_needed': 'Inputs needed',
+	'component.rule_calculation': 'Calculation',
+	'component.rule_affects': 'Affects payroll',
+	'component.rule_no_inputs': 'No employee inputs or reference tables are read.',
+	'component.rule_no_effects': 'No downstream payroll items are configured.',
+	'component.rule_choose_empty': 'Choose an item to inspect its calculation.',
+	'component.rule_expression_help':
+		'This is a configured rule, evaluated using the employee and payroll period inputs. Its result is recorded in the payslip breakdown.',
+	'component.rule_help.fact':
+		'An employee, employment or company fact required by this calculation. Supply the actual value before running payroll.',
+	'component.rule_help.input':
+		'A payroll input read by this calculation, such as pay, attendance or employment dates.',
+	'component.rule_help.table':
+		'A reference table supplying rates, thresholds or categories to this calculation.',
+	'component.rule_help.rule':
+		'A configured condition or formula controlling how payroll calculates this item.',
+	'component.rule_help.line':
+		'An earning or deduction calculated for the payslip. Its eligibility and formula determine when it applies and its amount.',
+	'component.rule_help.base':
+		'The earnings included in the amount on which a statutory contribution or tax is assessed.',
+	'component.rule_help.scheme':
+		'A statutory contribution or tax calculation. It uses eligible earnings, reference rates and employee or company facts.',
+	'component.rule_help.check':
+		'A compliance check evaluated during payroll. It identifies an input or employment condition needing attention.',
+	'component.rule_help.payslip':
+		'The employee’s final payroll record, combining earnings, deductions and employer contributions.',
+	'component.trace_help':
+		'The calculation recorded when this payslip was created. Each row shows a formula and its result, followed by the actual inputs, reference values and rounding used. This is the saved breakdown of this amount.',
+	'component.trace_step_help':
+		'This formula was evaluated during the payroll run. The result appears on the right; the values below show the inputs that produced it. A condition may return true or false rather than an amount.',
+	'component.trace_table_help':
+		'The reference values selected during this calculation. The lookup amount and matching band or category explain which rate or threshold payroll applied.',
+	'component.reference_table_help':
+		'Reference values used by the payroll rules, such as rates, limits or categories. Payroll selects the matching code or amount band for the employee and period.',
+	'component.reference_column_help':
+		'A value returned from the matching reference row and used by the configured payroll formula.',
+	'component.flow_inputs_help':
+		'The earnings used as the assessment base for this tax or contribution. Other scheme results may increase or reduce the base before this calculation runs.',
+	'component.flow_rule_when_help':
+		'The condition selecting this rule. Payroll uses the applicable rule for the employee and assessment period.',
+	'component.flow_rule_employee_help':
+		'The employee amount calculated by this rule and deducted from the employee’s pay.',
+	'component.flow_rule_employer_help':
+		'The employer amount calculated by this rule. It adds to the employer’s payroll cost.',
+	'renderer.work_rules.column_condition_help':
+		'Selects when this row applies to the employee or work day. Rows whose condition is false do not apply.',
+	'renderer.work_rules.column_take_hours_help':
+		'The number of eligible work hours this band prices. The selected hours are consumed by this band so a later band cannot price them again.',
+	'renderer.work_rules.column_price_amount_help':
+		'The pay amount for the hours selected by this band. It uses the employee’s wage rate and the configured premium or multiplier.',
+	'renderer.work_rules.column_owed_minutes_help':
+		'The break duration owed for a qualifying work day, in minutes.',
+	'renderer.work_rules.column_max_hours_help':
+		'The maximum hours allowed for the stated period and measure. Payroll warns when recorded work exceeds this limit.',
+	'renderer.work_rules.column_fixed_days_help':
+		'The fixed number of days used as the divisor when this proration rule applies.',
+	'component.breakdown_item': 'Payroll item',
+	'component.breakdown_item_help':
+		'An earning, deduction or employer contribution included in this payslip. Expand grouped items to see individual entries; open the info icon beside an amount to inspect its saved calculation.',
+	'component.breakdown_basis': 'Quantity × rate',
+	'component.breakdown_basis_help':
+		'The hours, days or units multiplied by the applicable rate for this entry, where payroll records a quantity and rate. Taxes and contributions may instead use a banded calculation.',
+	'component.breakdown_amount_help':
+		'The amount in the payslip currency. Earnings increase pay; deductions reduce pay. Employer contributions are shown separately as employer cost.',
+	'component.formula_help.when':
+		'The eligibility condition for this rule. Payroll evaluates it against the employee and period inputs; a false result skips the rule.',
+	'component.formula_help.amount':
+		'The formula producing this payroll amount from eligible inputs. The resulting earning or deduction is included in the payslip.',
+	'component.formula_help.leave_target':
+		'The total wage entitlement for each eligible leave day. Payroll subtracts ordinary wages already retained for that date and pays only the remaining amount.',
+	'component.formula_help.leave_fraction':
+		'The share of ordinary wages paid for an eligible leave day. A value of 1 keeps the full wage; 0 means the employer pays none of it.',
+	'component.formula_help.required':
+		'Determines when this fact must be supplied. Payroll needs the actual value when this condition is true.',
+	'component.formula_help.default':
+		'The configured default used when the input is absent, where the settings permit a default.',
 	'component.rule_map': 'Rule map',
 	'component.rule_map_citation': 'Citation',
 	'component.rule_map_effective': 'In force',
-	'component.rule_map_status': 'Status',
 	'component.rule_map_bases': 'Bases',
 	'component.rule_map_expressions': 'Expressions ({count})',
 	'component.rule_map_filter': 'Filter by name',
@@ -985,6 +1118,10 @@ export default messages({
 		'A person this excludes reads wage_floor as 0 in scheme rules: an intern on industrial training, an apprentice the order has not reached, a domestic servant. Ceilings that read minimum_wage(region) still see the table.',
 	'renderer.minimum_wage.applies_when_empty': 'Everyone',
 	'renderer.minimum_wage.amount': 'Monthly wage',
+	'renderer.minimum_wage.region_hint':
+		'The region or wage category assigned to the worksite. Payroll uses this code to select the applicable minimum wage.',
+	'renderer.minimum_wage.amount_hint':
+		'The monthly minimum wage in this settings version’s currency. Payroll checks covered employees against this floor; statutory calculations may also use it as a floor or ceiling.',
 	'renderer.minimum_wage.region_placeholder': 'Region code',
 	'renderer.minimum_wage.empty':
 		'No regional minimum wage. A scheme that floors or caps on one refuses to run.',
@@ -1083,7 +1220,7 @@ export default messages({
 	'roster.attendance_intervals': '{count} worked interval(s)',
 	'roster.attendance_open': 'Clocked in, not yet clocked out',
 	'roster.attended': 'Attended',
-	'roster.before_employment': 'Not employed yet',
+	'roster.before_employment': 'Outside employment',
 	'roster.board_scroll_name': 'Roster board',
 	'roster.calendar_report_punch': 'Report punch',
 	'roster.calendar_scroll_name': 'Your month',
@@ -1192,7 +1329,7 @@ export default messages({
 	'roster.swap_refused_unknown': 'The swap could not be completed.',
 	'roster.unrostered': 'No shift assigned',
 	'roster.unrostered_monthly':
-		'No shift assigned. This person is on a monthly roster, so every day must be assigned here.',
+		'No shift is assigned in this monthly roster. Add an assignment when work is expected; leave days may stay empty.',
 	'roster.unrostered_no_pattern':
 		'No shift assigned. This employment points at no shift pattern, so nothing is projected.',
 	'roster.unrostered_pattern':
@@ -1388,7 +1525,7 @@ export default messages({
 		'A longer run stands where the span ending on it still holds this many rest days (VN art.111(1): 4 / 30). Empty is a strict ceiling.',
 	'renderer.work_rules.wages': 'Minimum wage by region',
 	'renderer.work_rules.wages_hint':
-		'The floor a scheme reads through `minimum_wage(region)` and the run checks a contract against; `applies_when` says who the wages order covers, `scale` restates the floor on the person’s own factor.',
+		'The minimum wage for each worksite region or wage category, in this settings version’s currency. Payroll checks whether a covered employee’s contractual wage meets this floor. Eligibility determines who is covered; scaling adjusts the floor for the employee’s work arrangement.',
 	'app.scheduling.week_picker': 'Week of the month',
 	'app.scheduling.week_n': 'Wk {n}',
 	'app.scheduling.import_holiday_without_overtime':
@@ -1657,9 +1794,6 @@ export default messages({
 	'component.payment_priced_deduction': 'Priced deduction portion',
 	'component.payment_remove_source': 'Remove source',
 	'component.payment_add_source': 'Add source',
-	'app.payroll.tab_payments': 'Payments',
-	'app.payroll.payment_events': 'Payment events',
-	'app.payroll.noncontract_obligations': 'Non-contract obligations',
 	'component.payslip_earnings': 'Earnings',
 	'component.payslip_total_earnings': 'Total earnings',
 	'component.payslip_unpaid_time': 'Unpaid time',
@@ -1987,6 +2121,7 @@ export default messages({
 	'models.employments.fields.employee_number': 'Employee number',
 	'models.employments.fields.contract_number': 'Contract number',
 	'models.employments.fields.effective_range': 'Effective period',
+	'models.employments.fields.signed_contract_end': 'Signed fixed-term end',
 	'models.employments.fields.prior_service_months': 'Prior service (months)',
 	'models.employments.fields.encashment_due_on': 'Encashment due',
 	'models.employments.fields.encashment_raised_at': 'Encashment raised',

@@ -70,6 +70,7 @@
 				{@const employmentId = scopedEmploymentId ?? employmentOf(form.get('employment_id'))}
 				<Stack gap="lg">
 					<FormSection
+						name="leave_section_identity"
 						first
 						title={t('component.leave_section_identity')}
 						hint={t('component.leave_entry_section_leave_hint')}
@@ -104,6 +105,7 @@
 					</FormSection>
 
 					<FormSection
+						name="leave.activity"
 						title={t('leave.activity')}
 						hint={t('component.leave_entry_section_activity_hint')}
 					>
@@ -121,6 +123,7 @@
 					</FormSection>
 
 					<FormSection
+						name="leave_entry_section_certificate"
 						title={t('component.leave_entry_section_certificate')}
 						hint={t('component.leave_entry_section_certificate_hint')}
 					>

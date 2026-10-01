@@ -6,8 +6,8 @@
  * rows). Each is tagged with the tracker rows (docs/inventory/thailand.csv) and branch names it exercises.
  * No Math.random: the only variation comes from a seeded mulberry32.
  */
-import type { ExitCause, Scenario, Sector, WorkClass, Worksite } from '../oracle/TH';
-import { WORKSITE_DAILY, addDays, addYears, monthEnd } from '../oracle/TH';
+import type { ExitCause, Scenario, Sector, WorkClass, Worksite } from '../oracle/TH.ts';
+import { WORKSITE_DAILY, addDays, addYears, monthEnd } from '../oracle/TH.ts';
 
 type Patch = {
 	period?: string;
@@ -629,7 +629,11 @@ export function generateProfiles(): Scenario[] {
 				[branch, `service ${svc}`],
 				{
 					employee: { birthDate: birth, hireDate: hireFor(svc), pay: monthly(45000) },
-					exit: exitOf(exitDay, cause, { carriedLeaveDays: 2, annualLeaveTakenThisYear: 0.5 })
+					// Before one year, these cases hold an opening company leave credit only; no current statutory days were taken.
+					exit: exitOf(exitDay, cause, {
+						carriedLeaveDays: 2,
+						annualLeaveTakenThisYear: svc === '120d' ? 0 : 0.5
+					})
 				}
 			);
 		}

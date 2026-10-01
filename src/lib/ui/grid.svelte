@@ -23,6 +23,7 @@
 	export type MatrixColumn<TRow extends MatrixRow> = {
 		key: keyof TRow & string;
 		label: string;
+		description?: string;
 		field: CollectionField;
 		width?: number;
 		placeholder?: string;
@@ -36,8 +37,9 @@
 	 * remove button per row and an add button. A column's `renderer` replaces the default input (an expression,
 	 * a roster code). Every edit hands the whole next list to `onChange`.
 	 */
+	import InfoTip from './InfoTip.svelte';
 	import { Button, cn, Combobox, Input } from '@norbital-ai/ui';
-	import { Scroll } from '@norbital-ai/ui/layout';
+	import { Inline, Scroll } from '@norbital-ai/ui/layout';
 	import type { Snippet } from 'svelte';
 
 	let {
@@ -91,8 +93,14 @@
 				{#each columns as column (column.key)}
 					<th
 						class="px-1 py-1 text-left text-xs font-medium text-muted-foreground"
-						style:min-width={column.width ? `${column.width}px` : undefined}>{column.label}</th
+						style:min-width={column.width ? `${column.width}px` : undefined}
 					>
+						<Inline gap="xs" align="center">
+							{column.label}
+							{#if column.description}<InfoTip label={column.label}>{column.description}</InfoTip
+								>{/if}
+						</Inline>
+					</th>
 				{/each}
 				{#if mode === 'edit'}<th></th>{/if}
 			</tr>

@@ -3979,3 +3979,24 @@ test('Taiwan — §16(2) job-search leave is capped at two working days a week a
 		/INELIGIBLE/
 	);
 });
+
+for (const [period, born] of [
+	['2025-12', '2010-12'],
+	['2026-03', '2011-03']
+] as const)
+	test(`Taiwan — EI starts on the fifteenth birthday, with sixteen insured days for ${period} day fifteen`, () => {
+		// BLI's thirty-day calendar: grade36300 ×1% ×16/30 ×20%/70%, rounded =>39/136.
+		const book = assessStatutory({
+			code: 'TW',
+			riskClass: '1',
+			period,
+			people: [
+				{ key: 'EI-FIRST', wage: 36000, birth_date: `${born}-01`, citizenship: 'CITIZEN' },
+				{ key: 'EI-MIDDLE', wage: 36000, birth_date: `${born}-15`, citizenship: 'CITIZEN' },
+				{ key: 'EI-LAST', wage: 36000, birth_date: `${born}-31`, citizenship: 'CITIZEN' }
+			]
+		});
+		expectStatutory(book, 'EI-FIRST', 'EI', 73, 254);
+		expectStatutory(book, 'EI-MIDDLE', 'EI', 39, 136);
+		expectStatutory(book, 'EI-LAST', 'EI', 2, 8);
+	});

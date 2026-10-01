@@ -121,9 +121,7 @@ export const HR_CONTROLLER_APPS = [
 	'hr_controller/kiosk',
 	'hr_controller/settings',
 	'hr_controller/people',
-	'hr_controller/events',
-	'hr_controller/compliance',
-	'hr_controller/facts_owed'
+	'hr_controller/events'
 ] as const;
 
 /** Today's per-member budget: 600 collection calls a minute, 100 agent turns an hour. */

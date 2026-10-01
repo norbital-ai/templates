@@ -9,5 +9,12 @@
 <RecordShell
 	of="payslip_wage_periods"
 	{...view.mode === 'update' ? { id: view.record.id } : {}}
+	sections={[
+		{
+			name: 'capture',
+			title: bolt.t('component.wage_period_capture'),
+			fields: ['payslip_id', 'wage_period_id', 'title']
+		}
+	]}
 	subtitle={bolt.t('component.wage_period_capture')}
 />

@@ -235,6 +235,7 @@
 {:else}
 	<Stack gap="lg">
 		<FormSection
+			name="terms_section_pay"
 			first
 			title={t('component.terms_section_pay')}
 			hint={t('component.terms_section_pay_hint')}
@@ -265,6 +266,7 @@
 		</FormSection>
 
 		<FormSection
+			name="shift_assignment"
 			title={t('component.shift_assignment')}
 			hint={t('component.shift_assignment_hint')}
 		>
@@ -309,7 +311,11 @@
 			</Grid>
 		</FormSection>
 
-		<FormSection title={t('component.standing')} hint={t('component.terms_section_standing_hint')}>
+		<FormSection
+			name="standing"
+			title={t('component.standing')}
+			hint={t('component.terms_section_standing_hint')}
+		>
 			<Grid gap="sm" minimum="compact">
 				<Labelled label={t('component.employment_type')} class="text-sm font-medium">
 					<Combobox
@@ -351,6 +357,7 @@
 		</FormSection>
 
 		<FormSection
+			name="terms_section_organisation"
 			title={t('component.terms_section_organisation')}
 			hint={t('component.terms_section_organisation_hint')}
 		>
@@ -365,7 +372,11 @@
 			</Grid>
 		</FormSection>
 
-		<FormSection title={t('component.section_period')} hint={t('offboarding.new_start_hint')}>
+		<FormSection
+			name="section_period"
+			title={t('component.section_period')}
+			hint={t('offboarding.new_start_hint')}
+		>
 			<Grid gap="sm" minimum="compact">
 				<Labelled label={t('offboarding.new_start')} class="text-sm font-medium">
 					<DateInput value={draft.newStart} onChange={(newStart) => edit({ newStart })} />

@@ -33,6 +33,10 @@ export type ReportLine = {
 };
 
 export type ReportPayslip = {
+	/** Actual payment date of a paid saved payslip; absent/null means payment is not evidenced. */
+	readonly paidDate?: string | null;
+	/** Salary window captured by the settled payslip, independent of later calendar changes. */
+	readonly salaryPeriod?: { readonly start: string; readonly end: string } | undefined;
 	readonly employmentId: string;
 	readonly employeeNumber: string;
 	readonly currency: string;

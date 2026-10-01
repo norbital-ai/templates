@@ -46,8 +46,10 @@ export type RuleNode = {
 	readonly id: string;
 	readonly kind: NodeKind;
 	readonly label: string;
-	/** The tracker `config_path`s that name this node (`statutory_contributions:<code>`). */
+	/** Published configuration paths that name this node (`statutory_contributions:<code>`). */
 	readonly config: readonly string[];
+	readonly description?: string;
+	readonly authority?: string;
 	/** The stored expressions this node evaluates, with the field each sits at. */
 	readonly expressions: readonly { readonly field: string; readonly expression: string }[];
 };
@@ -59,7 +61,12 @@ export type RuleMap = {
 	readonly edges: readonly RuleEdge[];
 };
 
-type Row = { readonly code: string; readonly name?: string | null | undefined };
+type Row = {
+	readonly code: string;
+	readonly name?: string | null | undefined;
+	readonly description?: string | null;
+	readonly authority?: string | null;
+};
 type CatalogueRow = Row & {
 	readonly counts_toward?: readonly string[] | null | undefined;
 	readonly [field: string]: unknown;
@@ -97,7 +104,14 @@ export type RuleMapInput = {
 	readonly version: {
 		readonly work_rules?: unknown;
 		readonly payroll?: unknown;
-		readonly tables?: readonly { readonly name: string; readonly label?: string | null }[] | null;
+		readonly tables?:
+			| readonly {
+					readonly name: string;
+					readonly label?: string | null;
+					readonly description?: string | null;
+					readonly authority?: string | null;
+			  }[]
+			| null;
 		readonly checks?:
 			| readonly { readonly code: string; readonly at: string; readonly when?: string | null }[]
 			| null;
@@ -133,6 +147,8 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 			kind: NodeKind;
 			label: string;
 			config: string[];
+			description?: string;
+			authority?: string;
 			expressions: RuleNode['expressions'][number][];
 		}
 	>();
@@ -145,6 +161,16 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 		}
 		if (config != null && !found.config.includes(config)) found.config.push(config);
 		return found;
+	};
+	const describe = (
+		id: string,
+		stored: { readonly description?: unknown; readonly authority?: unknown },
+		label?: string
+	) => {
+		const found = nodes.get(id)!;
+		if (label != null) found.label = label;
+		if (Predicate.isString(stored.description)) found.description = stored.description;
+		if (Predicate.isString(stored.authority)) found.authority = stored.authority;
 	};
 	const edge = (from: string, to: string) => {
 		if (from !== to) edges.set(`${from}>${to}`, { from, to });
@@ -177,15 +203,28 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 	// Declared inputs, read or not: an input nothing reads is itself worth seeing.
 	for (const [list] of DECLARED_FACT_PREFIXES)
 		for (const [index, fact] of (input.version[list] ?? []).entries()) {
-			const id = node(factId(list, fact.key), 'fact', fact.key, `${list}:${fact.key}`).id;
+			const id = node(
+				factId(list, fact.key),
+				'fact',
+				fact.label ?? fact.key,
+				`${list}:${fact.key}`
+			).id;
+			describe(id, { description: fact.description, authority: fact.authority });
 			for (const { field, expression } of expressionsIn(fact, `${list}[${index}]`))
 				reads(id, field, expression, true);
 			// a `code` input picks its value from a table
 			if (Predicate.isString(fact.table))
 				edge(node(tableId(fact.table), 'table', fact.table, `tables:${fact.table}`).id, id);
 		}
-	for (const table of input.version.tables ?? [])
-		node(tableId(table.name), 'table', table.name, `tables:${table.name}`);
+	for (const table of input.version.tables ?? []) {
+		const id = node(
+			tableId(table.name),
+			'table',
+			table.label ?? table.name,
+			`tables:${table.name}`
+		).id;
+		describe(id, table, table.label ?? table.name);
+	}
 
 	// Work rules and payroll settings: one rule node per top-level part; each band and derived line its own.
 	for (const root of ['work_rules', 'payroll'] as const) {
@@ -196,6 +235,7 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 				for (const [index, band] of (stored as Readonly<Record<string, unknown>>[]).entries()) {
 					const label = String(band.label ?? index);
 					const id = node(`rule:work_rules.bands:${label}`, 'rule', label, `work_rules.bands`).id;
+					describe(id, { description: band.description, authority: band.authority });
 					for (const { field, expression } of expressionsIn(band, `bands[${index}]`))
 						reads(id, field, expression);
 					const posts = band.component ?? band.line ?? 'OVERTIME';
@@ -207,6 +247,7 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 				for (const [index, line] of (stored as Readonly<Record<string, unknown>>[]).entries()) {
 					const code = String(line.code);
 					const id = node(lineId(code), 'line', code, 'work_rules.derived_lines').id;
+					describe(id, { description: line.description, authority: line.authority });
 					for (const { field, expression } of expressionsIn(line, `derived_lines[${index}]`))
 						reads(id, field, expression);
 					if (line.component != null)
@@ -226,7 +267,13 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 
 	for (const collection of CATALOGUE_COLLECTIONS)
 		for (const row of input.catalogues[collection] ?? []) {
-			const id = node(lineId(row.code), 'line', row.code, `${collection}:${row.code}`).id;
+			const id = node(
+				lineId(row.code),
+				'line',
+				row.name ?? row.code,
+				`${collection}:${row.code}`
+			).id;
+			describe(id, row, row.name ?? row.code);
 			for (const { field, expression } of expressionsIn(row)) reads(id, field, expression, true);
 		}
 
@@ -235,10 +282,11 @@ export function ruleMap(input: RuleMapInput): RuleMap {
 		const charge = node(
 			schemeId(scheme.code),
 			'scheme',
-			scheme.code,
+			scheme.name ?? scheme.code,
 			`statutory_contributions:${scheme.code}`
 		).id;
 		nodes.get(charge)!.label = scheme.name ?? scheme.code;
+		describe(charge, scheme, scheme.name ?? scheme.code);
 		const baseExpressions: (readonly [string, string | null | undefined])[] = [
 			['assessed_on', scheme.assessed_on],
 			['ordinary_on', scheme.ordinary_on],

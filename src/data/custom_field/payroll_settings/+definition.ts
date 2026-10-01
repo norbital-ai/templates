@@ -18,6 +18,23 @@ const f = customField({
 	shape: {
 		kind: 'object',
 		fields: {
+			leave_net_floors: {
+				kind: 'list',
+				optional: true,
+				of: {
+					kind: 'object',
+					fields: {
+						code: { kind: 'text' },
+						leave_code: { kind: 'text' },
+						worksites: { kind: 'list', of: { kind: 'text' } },
+						minimum_fraction: { kind: 'number', min: 0, max: 1 },
+						divisor_days: { kind: 'number', min: 0 },
+						employee_scheme_codes: { kind: 'list', of: { kind: 'text' } },
+						effective_to: { kind: 'text', optional: true },
+						authority: { kind: 'text' }
+					}
+				}
+			},
 			currency: { kind: 'text' },
 			timezone: { kind: 'text' },
 			tax_year_start_month: { kind: 'int', min: 1, max: 12 },
@@ -134,6 +151,7 @@ const f = customField({
 			},
 			holiday_in_no_pay_leave_unpaid: { kind: 'bool', optional: true },
 			holiday_adjacent_absence_unpaid: { kind: 'bool', optional: true },
+			holiday_adjacent_absence_when: { kind: 'text', optional: true },
 			special_holiday_unworked_unpaid: { kind: 'bool', optional: true },
 			regular_holiday_prior_workday: { kind: 'bool', optional: true },
 			short_day_half_hours: { kind: 'number', optional: true },

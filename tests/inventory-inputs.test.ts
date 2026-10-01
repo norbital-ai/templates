@@ -12,7 +12,7 @@
  *     `path` inside that field of any settings version;
  *   - `<model or custom field>.<name>`: `name` is declared in `src/data/{model,custom_field}/<head>`.
  *
- * A path step into a list picks the item whose `key`, `code`, `name` or `table` equals it (or, failing that, the
+ * A path step into a list picks the item whose `key`, `code`, `name`, `label` or `table` equals it (or, failing that, the
  * items' own field of that name). `*` in a step is a wildcard; `A,B` or `A|B` in a step is each of them. A bare word
  * after a token replaces that token's last step (`CPF.elections.a; b` is `CPF.elections.b`). `none` names nothing.
  *
@@ -58,6 +58,13 @@ for (const kind of ['model', 'custom_field']) {
 	}
 }
 
+// Relationship keys declare model foreign-key fields even when the model omits them.
+const relationships = readFileSync(new URL('src/data/+relationship.ts', root), 'utf8');
+for (const match of relationships.matchAll(/['"]([a-z_]+)\.([a-z_]+)['"]\s*:/g)) {
+	const [, model, field] = match;
+	if (DECLARED.has(model!)) DECLARED.set(model!, `${DECLARED.get(model!)}\n${field}`);
+}
+
 /** Heads a bare word names on its own, so it is never read as the previous token's continuation. */
 const HEADS = new Set([
 	'settings',
@@ -68,7 +75,7 @@ const HEADS = new Set([
 	])
 ]);
 
-const ID_FIELDS = ['key', 'code', 'name', 'table'];
+const ID_FIELDS = ['key', 'code', 'name', 'label', 'table'];
 const escape = (step: string) => step.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
 const glob = (step: string) => new RegExp(`^${escape(step).replace(/\*/g, '.*')}$`);
 const isObj = (v: Json | undefined): v is Obj =>
@@ -84,6 +91,7 @@ function step(values: readonly Json[], name: string): Json[] {
 			if (v === name) out.push(v);
 			continue;
 		}
+		out.push(...v.filter((item) => typeof item === 'string' && match.test(item)));
 		const items = v.filter(isObj);
 		const named = items.filter((item) =>
 			ID_FIELDS.some((f) => typeof item[f] === 'string' && match.test(item[f] as string))
@@ -94,8 +102,21 @@ function step(values: readonly Json[], name: string): Json[] {
 	}
 	return out;
 }
-const walk = (values: readonly Json[], steps: readonly string[]) =>
-	steps.reduce<Json[]>((vals, s) => step(vals, s), [...values]);
+const walk = (values: readonly Json[], steps: readonly string[]) => {
+	let current = [...values];
+	for (let index = 0; index < steps.length; index += 1) {
+		let next = step(current, steps[index]!);
+		// Stored labels may contain a decimal point; resolve their exact seeded spelling.
+		let end = index;
+		while (next.length === 0 && end + 1 < steps.length) {
+			end += 1;
+			next = step(current, steps.slice(index, end + 1).join('.'));
+		}
+		current = next;
+		index = end;
+	}
+	return current;
+};
 
 /** Whether one token resolves in one lineage; `undefined` when its head names nothing the seeds or models know. */
 function resolves(lineage: string, token: string): boolean | undefined {
@@ -225,17 +246,22 @@ function unresolved(statuses: ReadonlySet<string>) {
 	return out;
 }
 
+test('configuration selectors resolve seeded band labels and vocabulary values exactly', () => {
+	assert.equal(resolves('MY', 'leave_entries.episode_id'), true);
+	assert.equal(resolves('MY', 'leave_entries.no_such_relationship'), false);
+	assert.equal(resolves('TH', 'work_rules.bands:S65-OT-HOURLY-1.0X'), true);
+	assert.equal(resolves('TH', 'work_rules.bands:NO_SUCH_BAND'), false);
+	assert.equal(resolves('TH', 'payroll.vocabularies.work_classification:COMMISSION_SALES'), true);
+	assert.equal(resolves('TH', 'payroll.vocabularies.work_classification:NO_SUCH_CLASS'), false);
+});
+
 test('every proven tracker row names configuration the seeds declare', () => {
 	assert.deepEqual(unresolved(new Set(['VERIFIED', 'EXTERNAL-RECORDED'])), []);
 });
 
-test(
-	'every tested, implemented or partial tracker row names configuration the seeds declare',
-	{ todo: 'the lineage owners correct these config_paths in phase 2' },
-	() => {
-		assert.deepEqual(unresolved(new Set(['TESTED', 'IMPLEMENTED', 'PARTIAL'])), []);
-	}
-);
+test('every tested, implemented or partial tracker row names configuration the seeds declare', () => {
+	assert.deepEqual(unresolved(new Set(['TESTED', 'IMPLEMENTED', 'PARTIAL'])), []);
+});
 
 /** Every declared FactKey (an object with a string `key` and `type`) anywhere under `value`. */
 const factKeys = (value: Json): Obj[] =>

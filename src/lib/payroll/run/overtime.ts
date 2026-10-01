@@ -182,13 +182,28 @@ export function nightWindowHours(
 		tail.push({ start: interval.end - take, end: interval.end });
 		left -= take;
 	}
-	const overtime = overlapHours(tail, nightStart, nightEnd);
+	const period = 24 * HOUR_MS;
+	const first = Math.floor(
+		(Math.min(...worked.map((interval) => interval.start)) - nightEnd) / period
+	);
+	const last = Math.floor(
+		(Math.max(...worked.map((interval) => interval.end)) - nightStart) / period
+	);
+	const nightWindows: Interval[] = [];
+	for (let index = first; index <= last; index += 1)
+		nightWindows.push({ start: nightStart + index * period, end: nightEnd + index * period });
+	const nightOverlap = (intervals: readonly Interval[]) =>
+		nightWindows.reduce(
+			(total, night) => total + overlapHours(intervals, night.start, night.end),
+			0
+		);
+	const overtime = nightOverlap(tail);
 	const clocked = overlapHours(worked, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY);
 	const ordinaryNet = Math.max(
 		0,
 		clocked - Math.max(0, entry.break_minutes ?? 0) / 60 - overtimeHours
 	);
-	const ordinary = Math.min(overlapHours(worked, nightStart, nightEnd) - overtime, ordinaryNet);
+	const ordinary = Math.min(nightOverlap(worked) - overtime, ordinaryNet);
 	return { ordinary: Math.max(0, ordinary), overtime };
 }
 

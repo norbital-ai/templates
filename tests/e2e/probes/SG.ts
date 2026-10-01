@@ -1856,7 +1856,7 @@ register(
 			citation: [
 				`${EA_88}: (3)`,
 				MOM_PH,
-				`${EA_20A}: August 2026 holds 21 working days, the holiday among them; 2,400 × ${paid} ÷ 21 = ${gross} (tracker SG-EA33 owner rule: a day recorded as neither work nor leave is without consent or excuse)`,
+				`${EA_20A}: August 2026 holds 21 working days, the holiday among them; 2,400 × ${paid} ÷ 21 = ${gross} (adjacent forfeiture cases explicitly record no permission and no reasonable excuse with decision evidence)`,
 				`${CPF_2026}: 37% × ${gross}, employee 20% rounded down → ${cpf[0]} / ${cpf[1]}`,
 				`${SHG}: CDAC $1`,
 				`${SDL}: ${levy}`
@@ -1865,7 +1865,32 @@ register(
 			inputs: [
 				...citizen(2400),
 				holiday('2026-08-10', 'National Day (observed)'),
-				...days.map((d) => workDay(d, []))
+				...days.flatMap((d): ProbeInput[] => {
+					if (id === 'SG-EA33-5') return [workDay(d, [])];
+					const ref = `absence-${d}`;
+					const reference = `Synthetic ${id} reviewed absence ${d}`;
+					return [
+						{
+							...workDay(d, [], {
+								facts: {
+									absence_permission: 'NO',
+									absence_reasonable_excuse: 'NO',
+									absence_decision: reference
+								}
+							}),
+							ref
+						},
+						{
+							collection: 'fact_evidence',
+							values: {
+								subject: { collection: 'work_days', id: `@${ref}` },
+								fact_key: 'absence_decision',
+								reference,
+								received_on: d
+							}
+						}
+					];
+				})
 			],
 			lines: pay(gross, { CPF: [cpf[0], cpf[1]], CDAC: [1, 0], SDL: [0, levy] })
 		})

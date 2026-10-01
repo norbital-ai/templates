@@ -1,4 +1,5 @@
 import * as Predicate from 'effect/Predicate';
+import { applyLeaveNetFloors } from '../../../lib/payroll/net-floor.js';
 import { calculateFamilyAssessments } from '../../../lib/payroll/families.js';
 /**
  * The payroll run: the same eight steps for every country, split at what reads and what decides.
@@ -78,7 +79,7 @@ import type { MeasuredEmployment } from '../family.js';
  * change and leave nothing on the run to explain the difference. Bump this when the payroll
  * algorithm changes in a way a settled payslip's reader would need to know.
  */
-export const CALCULATION_VERSION = '2026-09-run-kinds' as const;
+export const CALCULATION_VERSION = '2026-10-paid-slip-rerun-dated-allowances' as const;
 
 /** What one build produced, and what the run's transform returns alongside its own columns. */
 type PayrollRunGraph = {
@@ -552,7 +553,12 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		chargesByEmployment,
 		companyCharges,
 		issues: familyIssues
-	} = calculateFamilyAssessments({ configuration, gathered, window, period });
+	} = applyLeaveNetFloors(calculateFamilyAssessments({ configuration, gathered, window, period }), {
+		configuration,
+		gathered,
+		window,
+		period
+	});
 	issues.push(...familyIssues);
 	issues.push(
 		...minimumWageIssues({
@@ -655,6 +661,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			employmentId: employment.id,
 			employeeNumber: employment.employee_number,
 			termsThrough,
+			salaryWindow: measured.bundle.window.salary,
 			currency: measured.currency,
 			settlement,
 			// Evidence, not money: the segments explain the base amounts, and the negative-net guard

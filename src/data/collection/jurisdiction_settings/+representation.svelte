@@ -72,11 +72,12 @@
 	>
 		<Stack gap="lg">
 			<FormSection
+				name="settings_section_identity"
 				first
 				title={t('component.settings_section_identity')}
 				hint={t('component.settings_section_identity_hint')}
 			>
-				<Grid gap="sm" minimum="panel">
+				<Grid gap="sm" minimum="card">
 					<Field name="code" label={t('component.settings_lineage')} />
 					<Field name="jurisdiction_code" label={t('holiday_calendar.jurisdiction')} />
 					<Field name="name" />
@@ -87,9 +88,15 @@
 					/>
 				</Grid>
 			</FormSection>
-			<FormSection title={t('component.payroll_rules')}>
+			<FormSection name="payroll_rules" title={t('component.payroll_rules')} defaultOpen={false}>
+				<Field name="payroll" />
+			</FormSection>
+			<FormSection
+				name="settings_facts"
+				title={t('component.settings_section_facts')}
+				defaultOpen={false}
+			>
 				<Grid gap="sm" minimum="panel">
-					<Field name="payroll" />
 					<Field
 						name="facts"
 						label={t('component.entity_facts')}
@@ -127,25 +134,41 @@
 					<Field name="overlays" />
 				</Grid>
 			</FormSection>
-			<FormSection title={t('component.obligations')} hint={t('component.obligations_hint')}>
-				<Field name="obligations" />
-				<Field name="duty_types" />
-				<Field name="checks" />
-				<Field name="returns" />
+			<FormSection
+				name="obligations"
+				defaultOpen={false}
+				title={t('component.obligations')}
+				hint={t('component.obligations_hint')}
+			>
+				<Grid gap="sm" minimum="panel">
+					<Field name="obligations" />
+					<Field name="duty_types" />
+					<Field name="checks" />
+					<Field name="returns" />
+				</Grid>
 			</FormSection>
-			<FormSection title={t('component.work_rules')} hint={t('component.work_rules_hint')}>
+			<FormSection
+				name="work_rules"
+				defaultOpen={false}
+				title={t('component.work_rules')}
+				hint={t('component.work_rules_hint')}
+			>
 				<Field name="work_rules" label={t('component.work_rules')} />
 			</FormSection>
-			<Stack class="border-t pt-6">
+			<FormSection
+				name="settings_changes"
+				title={t('component.settings_section_changes')}
+				defaultOpen={false}
+			>
 				<Field name="change_summary" help={t('component.settings_section_changes_hint')} />
-			</Stack>
-			<Stack class="border-t pt-6">
+			</FormSection>
+			<FormSection name="settings_sources" title={t('component.sources')} defaultOpen={false}>
 				<Field
 					name="sources"
 					label={t('component.sources')}
 					help={t('component.settings_section_sources_hint')}
 				/>
-			</Stack>
+			</FormSection>
 		</Stack>
 	</Form>
 {/snippet}
@@ -233,10 +256,92 @@
 				}
 			]}
 >
-	{#if sealed}
-		<!-- Sealed law is read, not edited: the generated view shows every field of the stored version. -->
-		<RecordShell of="jurisdiction_settings" id={record!.id} />
-	{:else}
-		{@render version()}
-	{/if}
+	<div class="settings-record">
+		{#if sealed}
+			<!-- The generated reader preserves every stored field and the sealed/history behavior. -->
+			<RecordShell
+				of="jurisdiction_settings"
+				id={record!.id}
+				sections={[
+					{
+						name: 'settings_section_identity',
+						title: t('component.settings_section_identity'),
+						fields: [
+							'code',
+							'jurisdiction_code',
+							'name',
+							'effective_range',
+							'sealed_at',
+							'voided_at',
+							'void_reason'
+						]
+					},
+					{
+						name: 'payroll_rules',
+						title: t('component.payroll_rules'),
+						fields: ['payroll'],
+						defaultOpen: false
+					},
+					{
+						name: 'settings_facts',
+						title: t('component.settings_section_facts'),
+						fields: [
+							'facts',
+							'exit_facts',
+							'terms_facts',
+							'work_day_facts',
+							'payment_facts',
+							'settlement_facts',
+							'worksite_facts',
+							'person_facts',
+							'history_kinds',
+							'tables',
+							'overlays'
+						],
+						defaultOpen: false
+					},
+					{
+						name: 'obligations',
+						title: t('component.obligations'),
+						fields: ['obligations', 'duty_types', 'checks', 'returns'],
+						defaultOpen: false
+					},
+					{
+						name: 'work_rules',
+						title: t('component.work_rules'),
+						fields: ['work_rules'],
+						defaultOpen: false
+					},
+					{
+						name: 'settings_changes',
+						title: t('component.settings_section_changes'),
+						fields: ['change_summary'],
+						defaultOpen: false
+					},
+					{
+						name: 'settings_sources',
+						title: t('component.sources'),
+						fields: ['sources'],
+						defaultOpen: false
+					}
+				]}
+			/>
+		{:else}
+			{@render version()}
+		{/if}
+	</div>
 </RecordShell>
+
+<style>
+	.settings-record :global([data-section] > div[id$='-body']) {
+		max-height: min(36rem, 65dvh);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		padding-inline-end: 0.25rem;
+	}
+	.settings-record :global([data-section='payroll_rules'] > div[id$='-body'] > div > div),
+	.settings-record :global([data-section='work_rules'] > div[id$='-body'] > div > div),
+	.settings-record :global([data-section='settings_sources'] > div[id$='-body'] > div > div) {
+		grid-template-columns: minmax(0, 1fr);
+	}
+</style>

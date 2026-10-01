@@ -188,7 +188,7 @@
 		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"COMMERCIAL_VEHICLE_OPERATOR\", \"VESSEL_WORK\"])",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -208,7 +208,7 @@
 		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). Applied 2026-09-26: constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf Applied 2026-09-26 (routing): the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
+		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
 		"eligibility": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.notice_days_remaining(((employment.type != \"DOMESTIC\" && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || employment.exit_facts.notice_structural_ground != \"NONE\") && terms.notice_days < (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0)) ? (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0) : (terms.notice_days > 0.0 ? terms.notice_days : (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0))), (employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : \"\"), employment.exit_facts.notice_waived_days) > 0.0",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -432,7 +432,7 @@
 		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"COMMERCIAL_VEHICLE_OPERATOR\", \"VESSEL_WORK\"])",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -452,7 +452,7 @@
 		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). Applied 2026-09-26: constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf Applied 2026-09-26 (routing): the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
+		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
 		"eligibility": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.notice_days_remaining(((employment.type != \"DOMESTIC\" && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || employment.exit_facts.notice_structural_ground != \"NONE\") && terms.notice_days < (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0)) ? (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0) : (terms.notice_days > 0.0 ? terms.notice_days : (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0))), (employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : \"\"), employment.exit_facts.notice_waived_days) > 0.0",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -679,7 +679,7 @@
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"COMMERCIAL_VEHICLE_OPERATOR\", \"VESSEL_WORK\"])",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -699,7 +699,7 @@
 		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). Applied 2026-09-26: constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf Applied 2026-09-26 (routing): the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
+		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
 		"eligibility": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.notice_days_remaining(((employment.type != \"DOMESTIC\" && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || employment.exit_facts.notice_structural_ground != \"NONE\") && terms.notice_days < (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0)) ? (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0) : (terms.notice_days > 0.0 ? terms.notice_days : (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0))), (employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : \"\"), employment.exit_facts.notice_waived_days) > 0.0",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -926,7 +926,7 @@
 		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"COMMERCIAL_VEHICLE_OPERATOR\", \"VESSEL_WORK\"])",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -946,7 +946,7 @@
 		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). Applied 2026-09-26: constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf Applied 2026-09-26 (routing): the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
+		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
 		"eligibility": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.notice_days_remaining(((employment.type != \"DOMESTIC\" && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || employment.exit_facts.notice_structural_ground != \"NONE\") && terms.notice_days < (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0)) ? (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0) : (terms.notice_days > 0.0 ? terms.notice_days : (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0))), (employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : \"\"), employment.exit_facts.notice_waived_days) > 0.0",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -1173,7 +1173,7 @@
 		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"COMMERCIAL_VEHICLE_OPERATOR\", \"VESSEL_WORK\"])",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -1193,7 +1193,7 @@
 		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). Applied 2026-09-26: constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf Applied 2026-09-26 (routing): the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
+		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
 		"eligibility": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.notice_days_remaining(((employment.type != \"DOMESTIC\" && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || employment.exit_facts.notice_structural_ground != \"NONE\") && terms.notice_days < (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0)) ? (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0) : (terms.notice_days > 0.0 ? terms.notice_days : (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0))), (employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : \"\"), employment.exit_facts.notice_waived_days) > 0.0",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -1420,7 +1420,7 @@
 		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
 		"code": "TERMINATION_BENEFIT",
 		"name": "Termination benefit",
-		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. Applied 2026-09-23 (audit): reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; Applied 2026-09-23 (round 2): the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
+		"authority": "Employment (Termination and Lay-Off Benefits) Regulations 1980 reg.6(1): an employee of twelve months’ continuous service whose contract is terminated other than for misconduct, retirement or resignation is paid ten days’ wages for every year of service under two years, fifteen under five and twenty at five or more, pro rata for a part year; reg.4(1)(b) excludes misconduct dismissal after due inquiry. EA 1955 First Schedule paras 1A, 2(1)-(4) and 3: the s.60J wage exclusion does not apply to qualifying manual workers, manual-labour supervisors, commercial vehicle operators or vessel workers, irrespective of wages. The vessel category is excluded from Part XII, not Part XIIA. Domestic employees are excluded from Part XIIA by para.2(5). The statutory work category must represent the applicable First Schedule profile. The separate reg.1A part-time and reg.7 outworker exclusions still require their own classification; this wage-category correction does not close those mechanisms. reg.6(2): \"a day's wages\" is the average true day's wages over the twelve completed months before the relevant date — JTKSM's published formula is twelve months' wages ÷ 365 (https://jtksm.mohr.gov.my/en/frequently-asked-questions/employees-retrenchment/how-termination-benefit-payment-calculated-and), not the s.60I ordinary rate ÷ 26; the twelve months' wages are the s.2 wages earlier payslips paid (basic, standing allowances, overtime, less unpaid days; `employment.earned_monthly_average(12)` × 12), not the contract wage; where the months were paid outside the workspace, the departure's `wages_12m` states them, and a month of service with neither is refused. reg.4(1): payable on termination \"for any reason whatsoever\" other than contractual retirement, misconduct after due inquiry or voluntary resignation — a RETRENCHMENT or UNILATERAL termination is inside it.",
 		"eligibility": "employment.type != \"DOMESTIC\" && employment.service_months >= 12 && employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\", \"UNILATERAL\", \"END_OF_CONTRACT\", \"MUTUAL\"] && (terms.statutory_wages <= 4000.0 || terms.statutory_work_category in [\"MANUAL_LABOUR\", \"MANUAL_LABOUR_SUPERVISOR\", \"COMMERCIAL_VEHICLE_OPERATOR\", \"VESSEL_WORK\"])",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -1440,7 +1440,7 @@
 		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
 		"code": "NOTICE_IN_LIEU",
 		"name": "Notice in lieu",
-		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). Applied 2026-09-26: constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf Applied 2026-09-26 (routing): the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
+		"authority": "Employment Act 1955 ss.12(2)-(4),13(1),14(1)(a),57. A written contractual notice governs; absent it, general default notice is 4/6/8 weeks at under 2/under 5/at least 5 years on the notice-giving date. Section 12(3) preserves that statutory floor for redundancy/retrenchment. Domestic employment has a separate 14-day default, subject to its express contract. Written notice includes its giving day. Section 13(1) indemnifies only wages that would accrue during the unexpired notice; days already served and expressly waived final days are removed. Dismissal for misconduct after due inquiry owes no notice under s.14(1)(a). constant monthly wages are apportioned over the actual unserved calendar interval by each month's length, replacing monthly/30. This row does not yet resolve every wage component, changing/non-monthly wage or contractual calendar-month notice; those R14 branches remain open. Source: https://lom.agc.gov.my/ilims/upload/portal/akta/outputaktap/1744567_BI/Reprint%20Act%20265%20(Final).pdf the actual terminating party controls payment direction. Sections 13(2),14(3),57 supply distinct exception facts. Section 14 does not apply to domestic employees (First Schedule para.2(5)); s.17A requires both approved form and filed copy, not an INTERN label. Section 12(3) floor also reads the specified structural/transfer/ownership ground. Approved apprenticeship contractual rights remain separately unresolved.",
 		"eligibility": "((employment.exit_facts.notice_termination_party in [\"EMPLOYER\", \"EMPLOYEE\"]) && (!employment.exit_facts.notice_approved_apprenticeship || employment.type == \"DOMESTIC\") && !(employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.type != \"DOMESTIC\" && \"misconduct_dismissal\" in employment.exit_fact_keys && employment.exit_facts.misconduct_dismissal == true) && employment.exit_facts.notice_exception == \"NONE\") && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && employment.notice_days_remaining(((employment.type != \"DOMESTIC\" && employment.exit_facts.notice_termination_party == \"EMPLOYER\" && (employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || employment.exit_facts.notice_structural_ground != \"NONE\") && terms.notice_days < (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0)) ? (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0) : (terms.notice_days > 0.0 ? terms.notice_days : (employment.type == \"DOMESTIC\" ? 14.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 2 ? 28.0 : employment.service_years_on(employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : employment.exit_date) < 5 ? 42.0 : 56.0))), (employment.exit_facts.notice_given ? employment.exit_facts.notice_given_on : \"\"), employment.exit_facts.notice_waived_days) > 0.0",
 		"evidence": "NONE",
 		"destination": "PAY",
@@ -2258,5 +2258,731 @@
 		"authority": "Minimum Wages Order 2024 para 5(2); monthly zero-result evidence is an employer attestation",
 		"counts_toward": [],
 		"raised_by": "MANUAL"
+	},
+	{
+		"id": "cb6e3cc2-1a5d-5c91-b9d8-d806b99abf9a",
+		"settings_id": "d419d345-2d4d-4313-a170-85bea34af61e",
+		"code": "ACCOMMODATION_RENT",
+		"name": "Accommodation rent",
+		"authority": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 as amended by P.U.(A)49/2026; JTKSM accommodation FAQ (https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM100 per worker per month through February 2026, RM150 from March 2026. A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "MONTH",
+					"on_exceed": "BLOCK",
+					"amount": "(entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) < (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0) ? (entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) : (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0)"
+				}
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL",
+		"request_facts": [
+			{
+				"key": "rent_month",
+				"type": "string",
+				"label": "Accommodation rent month",
+				"required": true,
+				"min_length": 7,
+				"valid_when": "entry.facts.rent_month.matches(\"^[0-9]{4}-[0-9]{2}$\") && entry.event_date.startsWith(entry.facts.rent_month + \"-\")",
+				"validation_message": "Accommodation rent month must be YYYY-MM and match the liability event date."
+			},
+			{
+				"key": "accommodation_kind",
+				"type": "string",
+				"label": "Accommodation class",
+				"required": true,
+				"options": ["ACCOMMODATION", "CENTRALISED_ACCOMMODATION", "ESTATE_HOUSING"],
+				"valid_when": "entry.facts.accommodation_kind != \"ESTATE_HOUSING\"",
+				"validation_message": "Estate housing rent cannot be deducted under Act 446."
+			},
+			{
+				"key": "certificate_reference",
+				"type": "string",
+				"label": "JTKSM accommodation certificate reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "certificate_active",
+				"type": "boolean",
+				"label": "Accommodation certificate remains in force",
+				"required": true,
+				"valid_when": "entry.facts.certificate_active",
+				"validation_message": "Accommodation rent requires a JTKSM certificate currently in force."
+			},
+			{
+				"key": "certificate_valid_from",
+				"type": "date",
+				"label": "Accommodation certificate valid from",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_from <= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "certificate_valid_to",
+				"type": "date",
+				"label": "Accommodation certificate valid through",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_to >= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "contract_reference",
+				"type": "string",
+				"label": "Accommodation contract reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "contract_monthly_charge",
+				"type": "number",
+				"label": "Contractual monthly accommodation charge",
+				"required": true,
+				"minimum": 0
+			},
+			{
+				"key": "written_variation",
+				"type": "boolean",
+				"label": "Written accommodation charge variation agreed",
+				"required": true
+			},
+			{
+				"key": "varied_monthly_charge",
+				"type": "number",
+				"label": "Varied monthly accommodation charge",
+				"minimum": 0,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_reference",
+				"type": "string",
+				"label": "Written accommodation variation reference",
+				"min_length": 1,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_agreed_on",
+				"type": "date",
+				"label": "Accommodation variation agreed on",
+				"required_when": "entry.facts.written_variation",
+				"valid_when": "!entry.facts.written_variation || entry.facts.variation_agreed_on <= entry.event_date",
+				"validation_message": "Written accommodation variation must precede the rent liability date."
+			}
+		],
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true
+		}
+	},
+	{
+		"id": "3dd3b43a-ab4c-5539-ada9-68d51ee33a37",
+		"settings_id": "2dac83fd-c110-4155-a70a-57fed5b61173",
+		"code": "ACCOMMODATION_RENT",
+		"name": "Accommodation rent",
+		"authority": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 as amended by P.U.(A)49/2026; JTKSM accommodation FAQ (https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM100 per worker per month through February 2026, RM150 from March 2026. A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "MONTH",
+					"on_exceed": "BLOCK",
+					"amount": "(entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) < (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0) ? (entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) : (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0)"
+				}
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL",
+		"request_facts": [
+			{
+				"key": "rent_month",
+				"type": "string",
+				"label": "Accommodation rent month",
+				"required": true,
+				"min_length": 7,
+				"valid_when": "entry.facts.rent_month.matches(\"^[0-9]{4}-[0-9]{2}$\") && entry.event_date.startsWith(entry.facts.rent_month + \"-\")",
+				"validation_message": "Accommodation rent month must be YYYY-MM and match the liability event date."
+			},
+			{
+				"key": "accommodation_kind",
+				"type": "string",
+				"label": "Accommodation class",
+				"required": true,
+				"options": ["ACCOMMODATION", "CENTRALISED_ACCOMMODATION", "ESTATE_HOUSING"],
+				"valid_when": "entry.facts.accommodation_kind != \"ESTATE_HOUSING\"",
+				"validation_message": "Estate housing rent cannot be deducted under Act 446."
+			},
+			{
+				"key": "certificate_reference",
+				"type": "string",
+				"label": "JTKSM accommodation certificate reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "certificate_active",
+				"type": "boolean",
+				"label": "Accommodation certificate remains in force",
+				"required": true,
+				"valid_when": "entry.facts.certificate_active",
+				"validation_message": "Accommodation rent requires a JTKSM certificate currently in force."
+			},
+			{
+				"key": "certificate_valid_from",
+				"type": "date",
+				"label": "Accommodation certificate valid from",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_from <= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "certificate_valid_to",
+				"type": "date",
+				"label": "Accommodation certificate valid through",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_to >= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "contract_reference",
+				"type": "string",
+				"label": "Accommodation contract reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "contract_monthly_charge",
+				"type": "number",
+				"label": "Contractual monthly accommodation charge",
+				"required": true,
+				"minimum": 0
+			},
+			{
+				"key": "written_variation",
+				"type": "boolean",
+				"label": "Written accommodation charge variation agreed",
+				"required": true
+			},
+			{
+				"key": "varied_monthly_charge",
+				"type": "number",
+				"label": "Varied monthly accommodation charge",
+				"minimum": 0,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_reference",
+				"type": "string",
+				"label": "Written accommodation variation reference",
+				"min_length": 1,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_agreed_on",
+				"type": "date",
+				"label": "Accommodation variation agreed on",
+				"required_when": "entry.facts.written_variation",
+				"valid_when": "!entry.facts.written_variation || entry.facts.variation_agreed_on <= entry.event_date",
+				"validation_message": "Written accommodation variation must precede the rent liability date."
+			}
+		],
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true
+		}
+	},
+	{
+		"id": "c5ff2997-320e-519e-95f0-2ba82a3206bd",
+		"settings_id": "2919836b-9934-4471-87df-07862c2ce30f",
+		"code": "ACCOMMODATION_RENT",
+		"name": "Accommodation rent",
+		"authority": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 as amended by P.U.(A)49/2026; JTKSM accommodation FAQ (https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM100 per worker per month through February 2026, RM150 from March 2026. A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "MONTH",
+					"on_exceed": "BLOCK",
+					"amount": "(entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) < (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0) ? (entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) : (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0)"
+				}
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL",
+		"request_facts": [
+			{
+				"key": "rent_month",
+				"type": "string",
+				"label": "Accommodation rent month",
+				"required": true,
+				"min_length": 7,
+				"valid_when": "entry.facts.rent_month.matches(\"^[0-9]{4}-[0-9]{2}$\") && entry.event_date.startsWith(entry.facts.rent_month + \"-\")",
+				"validation_message": "Accommodation rent month must be YYYY-MM and match the liability event date."
+			},
+			{
+				"key": "accommodation_kind",
+				"type": "string",
+				"label": "Accommodation class",
+				"required": true,
+				"options": ["ACCOMMODATION", "CENTRALISED_ACCOMMODATION", "ESTATE_HOUSING"],
+				"valid_when": "entry.facts.accommodation_kind != \"ESTATE_HOUSING\"",
+				"validation_message": "Estate housing rent cannot be deducted under Act 446."
+			},
+			{
+				"key": "certificate_reference",
+				"type": "string",
+				"label": "JTKSM accommodation certificate reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "certificate_active",
+				"type": "boolean",
+				"label": "Accommodation certificate remains in force",
+				"required": true,
+				"valid_when": "entry.facts.certificate_active",
+				"validation_message": "Accommodation rent requires a JTKSM certificate currently in force."
+			},
+			{
+				"key": "certificate_valid_from",
+				"type": "date",
+				"label": "Accommodation certificate valid from",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_from <= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "certificate_valid_to",
+				"type": "date",
+				"label": "Accommodation certificate valid through",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_to >= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "contract_reference",
+				"type": "string",
+				"label": "Accommodation contract reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "contract_monthly_charge",
+				"type": "number",
+				"label": "Contractual monthly accommodation charge",
+				"required": true,
+				"minimum": 0
+			},
+			{
+				"key": "written_variation",
+				"type": "boolean",
+				"label": "Written accommodation charge variation agreed",
+				"required": true
+			},
+			{
+				"key": "varied_monthly_charge",
+				"type": "number",
+				"label": "Varied monthly accommodation charge",
+				"minimum": 0,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_reference",
+				"type": "string",
+				"label": "Written accommodation variation reference",
+				"min_length": 1,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_agreed_on",
+				"type": "date",
+				"label": "Accommodation variation agreed on",
+				"required_when": "entry.facts.written_variation",
+				"valid_when": "!entry.facts.written_variation || entry.facts.variation_agreed_on <= entry.event_date",
+				"validation_message": "Written accommodation variation must precede the rent liability date."
+			}
+		],
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true
+		}
+	},
+	{
+		"id": "79e84f6f-a021-5461-a9e7-fec592646c3d",
+		"settings_id": "893e524c-1515-4229-8ef7-684f2920f6e1",
+		"code": "ACCOMMODATION_RENT",
+		"name": "Accommodation rent",
+		"authority": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 as amended by P.U.(A)49/2026; JTKSM accommodation FAQ (https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM100 per worker per month through February 2026, RM150 from March 2026. A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "MONTH",
+					"on_exceed": "BLOCK",
+					"amount": "(entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) < (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0) ? (entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) : (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0)"
+				}
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL",
+		"request_facts": [
+			{
+				"key": "rent_month",
+				"type": "string",
+				"label": "Accommodation rent month",
+				"required": true,
+				"min_length": 7,
+				"valid_when": "entry.facts.rent_month.matches(\"^[0-9]{4}-[0-9]{2}$\") && entry.event_date.startsWith(entry.facts.rent_month + \"-\")",
+				"validation_message": "Accommodation rent month must be YYYY-MM and match the liability event date."
+			},
+			{
+				"key": "accommodation_kind",
+				"type": "string",
+				"label": "Accommodation class",
+				"required": true,
+				"options": ["ACCOMMODATION", "CENTRALISED_ACCOMMODATION", "ESTATE_HOUSING"],
+				"valid_when": "entry.facts.accommodation_kind != \"ESTATE_HOUSING\"",
+				"validation_message": "Estate housing rent cannot be deducted under Act 446."
+			},
+			{
+				"key": "certificate_reference",
+				"type": "string",
+				"label": "JTKSM accommodation certificate reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "certificate_active",
+				"type": "boolean",
+				"label": "Accommodation certificate remains in force",
+				"required": true,
+				"valid_when": "entry.facts.certificate_active",
+				"validation_message": "Accommodation rent requires a JTKSM certificate currently in force."
+			},
+			{
+				"key": "certificate_valid_from",
+				"type": "date",
+				"label": "Accommodation certificate valid from",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_from <= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "certificate_valid_to",
+				"type": "date",
+				"label": "Accommodation certificate valid through",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_to >= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "contract_reference",
+				"type": "string",
+				"label": "Accommodation contract reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "contract_monthly_charge",
+				"type": "number",
+				"label": "Contractual monthly accommodation charge",
+				"required": true,
+				"minimum": 0
+			},
+			{
+				"key": "written_variation",
+				"type": "boolean",
+				"label": "Written accommodation charge variation agreed",
+				"required": true
+			},
+			{
+				"key": "varied_monthly_charge",
+				"type": "number",
+				"label": "Varied monthly accommodation charge",
+				"minimum": 0,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_reference",
+				"type": "string",
+				"label": "Written accommodation variation reference",
+				"min_length": 1,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_agreed_on",
+				"type": "date",
+				"label": "Accommodation variation agreed on",
+				"required_when": "entry.facts.written_variation",
+				"valid_when": "!entry.facts.written_variation || entry.facts.variation_agreed_on <= entry.event_date",
+				"validation_message": "Written accommodation variation must precede the rent liability date."
+			}
+		],
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true
+		}
+	},
+	{
+		"id": "6491b4a6-ab50-56d0-a410-808df1d317a9",
+		"settings_id": "b4c99799-fd9d-4c1b-82c9-32a0252f2efe",
+		"code": "ACCOMMODATION_RENT",
+		"name": "Accommodation rent",
+		"authority": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 as amended by P.U.(A)49/2026; JTKSM accommodation FAQ (https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM100 per worker per month through February 2026, RM150 from March 2026. A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "MONTH",
+					"on_exceed": "BLOCK",
+					"amount": "(entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) < (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0) ? (entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) : (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0)"
+				}
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL",
+		"request_facts": [
+			{
+				"key": "rent_month",
+				"type": "string",
+				"label": "Accommodation rent month",
+				"required": true,
+				"min_length": 7,
+				"valid_when": "entry.facts.rent_month.matches(\"^[0-9]{4}-[0-9]{2}$\") && entry.event_date.startsWith(entry.facts.rent_month + \"-\")",
+				"validation_message": "Accommodation rent month must be YYYY-MM and match the liability event date."
+			},
+			{
+				"key": "accommodation_kind",
+				"type": "string",
+				"label": "Accommodation class",
+				"required": true,
+				"options": ["ACCOMMODATION", "CENTRALISED_ACCOMMODATION", "ESTATE_HOUSING"],
+				"valid_when": "entry.facts.accommodation_kind != \"ESTATE_HOUSING\"",
+				"validation_message": "Estate housing rent cannot be deducted under Act 446."
+			},
+			{
+				"key": "certificate_reference",
+				"type": "string",
+				"label": "JTKSM accommodation certificate reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "certificate_active",
+				"type": "boolean",
+				"label": "Accommodation certificate remains in force",
+				"required": true,
+				"valid_when": "entry.facts.certificate_active",
+				"validation_message": "Accommodation rent requires a JTKSM certificate currently in force."
+			},
+			{
+				"key": "certificate_valid_from",
+				"type": "date",
+				"label": "Accommodation certificate valid from",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_from <= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "certificate_valid_to",
+				"type": "date",
+				"label": "Accommodation certificate valid through",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_to >= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "contract_reference",
+				"type": "string",
+				"label": "Accommodation contract reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "contract_monthly_charge",
+				"type": "number",
+				"label": "Contractual monthly accommodation charge",
+				"required": true,
+				"minimum": 0
+			},
+			{
+				"key": "written_variation",
+				"type": "boolean",
+				"label": "Written accommodation charge variation agreed",
+				"required": true
+			},
+			{
+				"key": "varied_monthly_charge",
+				"type": "number",
+				"label": "Varied monthly accommodation charge",
+				"minimum": 0,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_reference",
+				"type": "string",
+				"label": "Written accommodation variation reference",
+				"min_length": 1,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_agreed_on",
+				"type": "date",
+				"label": "Accommodation variation agreed on",
+				"required_when": "entry.facts.written_variation",
+				"valid_when": "!entry.facts.written_variation || entry.facts.variation_agreed_on <= entry.event_date",
+				"validation_message": "Written accommodation variation must precede the rent liability date."
+			}
+		],
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true
+		}
+	},
+	{
+		"id": "d21d5eb9-8f37-5249-a0ce-98e40f535816",
+		"settings_id": "09e7ab7b-176e-404e-bb2b-4e7837ad8988",
+		"code": "ACCOMMODATION_RENT",
+		"name": "Accommodation rent",
+		"authority": "Workers’ Minimum Standards of Housing and Amenities Act 1990 (Act 446), P.U.(A)249/2020 as amended by P.U.(A)49/2026; JTKSM accommodation FAQ (https://jtksm.mohr.gov.my/ms/soalan-lazim/perumahan-penginapan-dan-kemudahan-pekerja): maximum RM100 per worker per month through February 2026, RM150 from March 2026. A JTKSM accommodation certificate currently in force is required, including centralised accommodation. The contractual charge remains binding: an increase, including a change from free accommodation, requires prior written agreement. Estate housing cannot be charged. Rent is a net deduction and does not reduce contributable wages. The event date records the rent liability date in the evidenced rent month; each month’s requests share the lower contractual/statutory ceiling. A written variation is recognised only from its recorded agreement date.",
+		"eligibility": "",
+		"evidence": "NONE",
+		"destination": "NET",
+		"direction": "SUBTRACT",
+		"bands": [
+			{
+				"when": "",
+				"amount": "entry.amount",
+				"limit": {
+					"period": "MONTH",
+					"on_exceed": "BLOCK",
+					"amount": "(entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) < (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0) ? (entry.facts.written_variation ? entry.facts.varied_monthly_charge : entry.facts.contract_monthly_charge) : (entry.facts.rent_month < \"2026-03\" ? 100.0 : 150.0)"
+				}
+			}
+		],
+		"counts_toward": [],
+		"raised_by": "MANUAL",
+		"request_facts": [
+			{
+				"key": "rent_month",
+				"type": "string",
+				"label": "Accommodation rent month",
+				"required": true,
+				"min_length": 7,
+				"valid_when": "entry.facts.rent_month.matches(\"^[0-9]{4}-[0-9]{2}$\") && entry.event_date.startsWith(entry.facts.rent_month + \"-\")",
+				"validation_message": "Accommodation rent month must be YYYY-MM and match the liability event date."
+			},
+			{
+				"key": "accommodation_kind",
+				"type": "string",
+				"label": "Accommodation class",
+				"required": true,
+				"options": ["ACCOMMODATION", "CENTRALISED_ACCOMMODATION", "ESTATE_HOUSING"],
+				"valid_when": "entry.facts.accommodation_kind != \"ESTATE_HOUSING\"",
+				"validation_message": "Estate housing rent cannot be deducted under Act 446."
+			},
+			{
+				"key": "certificate_reference",
+				"type": "string",
+				"label": "JTKSM accommodation certificate reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "certificate_active",
+				"type": "boolean",
+				"label": "Accommodation certificate remains in force",
+				"required": true,
+				"valid_when": "entry.facts.certificate_active",
+				"validation_message": "Accommodation rent requires a JTKSM certificate currently in force."
+			},
+			{
+				"key": "certificate_valid_from",
+				"type": "date",
+				"label": "Accommodation certificate valid from",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_from <= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "certificate_valid_to",
+				"type": "date",
+				"label": "Accommodation certificate valid through",
+				"required": true,
+				"valid_when": "entry.facts.certificate_valid_to >= entry.event_date",
+				"validation_message": "Accommodation certificate must be valid on the rent liability date."
+			},
+			{
+				"key": "contract_reference",
+				"type": "string",
+				"label": "Accommodation contract reference",
+				"required": true,
+				"min_length": 1
+			},
+			{
+				"key": "contract_monthly_charge",
+				"type": "number",
+				"label": "Contractual monthly accommodation charge",
+				"required": true,
+				"minimum": 0
+			},
+			{
+				"key": "written_variation",
+				"type": "boolean",
+				"label": "Written accommodation charge variation agreed",
+				"required": true
+			},
+			{
+				"key": "varied_monthly_charge",
+				"type": "number",
+				"label": "Varied monthly accommodation charge",
+				"minimum": 0,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_reference",
+				"type": "string",
+				"label": "Written accommodation variation reference",
+				"min_length": 1,
+				"required_when": "entry.facts.written_variation"
+			},
+			{
+				"key": "variation_agreed_on",
+				"type": "date",
+				"label": "Accommodation variation agreed on",
+				"required_when": "entry.facts.written_variation",
+				"valid_when": "!entry.facts.written_variation || entry.facts.variation_agreed_on <= entry.event_date",
+				"validation_message": "Written accommodation variation must precede the rent liability date."
+			}
+		],
+		"request_requirements": {
+			"event_within_employment": true,
+			"requires_terms": true
+		}
 	}
 ]

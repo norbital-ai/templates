@@ -9,8 +9,8 @@
 	 * the day carried in the view's values. Every write crosses `work_days` and
 	 * its transform: `work_days.create` / `work_days.update`, the halves the operator changed and nothing else.
 	 *
-	 * The lock is the RECORD's, read off the row itself: `payslip_id` is the pin a payroll run left, shown as the
-	 * header's seal. The plan half is the controller's: whether this caller may write `shift_definition_id` is read
+	 * The record freezes when its captured payslip is paid, funded or actually allocated; an unpaid pin can
+	 * be corrected and is rebuilt by recalculation. The plan half is the controller's: whether this caller may write `shift_definition_id` is read
 	 * from the collection's exposure (the grant's allowlist), never a query for a grant. Self-service reads the plan
 	 * and reports a missing punch.
 	 */
@@ -33,7 +33,7 @@
 		type RecordView
 	} from '@norbital-ai/ui';
 	import { Cluster, Inline, Stack } from '@norbital-ai/ui/layout';
-	import { sourceLock, sourceLockRecordMetadata } from '../../../lib/scheduling/lock.js';
+	import { capturedWorkDayFrozen } from '../../../lib/ui/roster/capture-claims.js';
 	import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 	import FormSection from '../../../lib/ui/form-section.svelte';
 	import { employmentPicker, hrCreateScope } from '../../../lib/ui/create-scope.js';
@@ -272,20 +272,86 @@
 		shiftBreakMinutes: selectedWindow?.break_minutes ?? null
 	});
 
-	const frozen = $derived(record?.payslip_id != null);
+	const capturedSlipId = $derived(record?.payslip_id ?? null);
+	const capturedSlip = live(() =>
+		capturedSlipId == null
+			? null
+			: bolt.get('payslips', capturedSlipId, {
+					payroll_run_id: true,
+					paid_at: true,
+					funding_received: true,
+					funding_received_on: true,
+					funding_reference: true
+				})
+	);
+	const captureTranches = liveRows(() =>
+		mode !== 'controller' || capturedSlipId == null
+			? null
+			: bolt.read('payable_tranches', {
+					where: { settlement: { payslips: { eq: capturedSlipId } } },
+					select: { settlement: true },
+					all: true
+				})
+	);
+	const captureTrancheIds = $derived((captureTranches.current ?? []).map((row) => row.id));
+	const captureAllocations = liveRows(() =>
+		mode !== 'controller' || captureTrancheIds.length === 0
+			? null
+			: bolt.read('payment_allocations', {
+					where: { payable_tranche_id: { in: captureTrancheIds } },
+					select: { payable_tranche_id: true },
+					all: true
+				})
+	);
+	const allocatedTrancheIds = $derived(
+		new Set((captureAllocations.current ?? []).map((row) => row.payable_tranche_id))
+	);
+	const allocatedSlipIds = $derived(
+		new Set(
+			(captureTranches.current ?? [])
+				.filter((row) => allocatedTrancheIds.has(row.id))
+				.map((row) => String(row.settlement.id))
+		)
+	);
+	const captureRun = live(() =>
+		mode !== 'controller' || capturedSlip.current == null
+			? null
+			: bolt.get('payroll_runs', capturedSlip.current.payroll_run_id, { period: true })
+	);
+	const captureError = $derived(
+		capturedSlip.error ?? captureTranches.error ?? captureAllocations.error ?? captureRun.error
+	);
+	const captureReady = $derived(
+		mode === 'controller' &&
+			capturedSlip.current != null &&
+			!capturedSlip.loading &&
+			captureError == null &&
+			captureTranches.current !== undefined &&
+			!captureTranches.loading &&
+			(captureTrancheIds.length === 0 ||
+				(captureAllocations.current !== undefined && !captureAllocations.loading))
+	);
+	const frozen = $derived(
+		capturedWorkDayFrozen(
+			record,
+			capturedSlip.current == null ? [] : [capturedSlip.current],
+			allocatedSlipIds,
+			captureReady
+		)
+	);
 	const lockHint = $derived(
-		record == null
+		!frozen
 			? undefined
-			: sourceLockRecordMetadata(
-					sourceLock({
-						existing: true,
-						approvalId: record.approval_id,
-						dates: [],
-						settledBy: frozen ? { period: null } : null,
-						datePassed: 'IS_NOT_A_LOCK'
-					}),
-					t
-				)[0]?.reason
+			: (captureError ??
+					(mode === 'controller' &&
+					(capturedSlip.loading ||
+						captureTranches.loading ||
+						captureAllocations.loading ||
+						captureRun.loading)
+						? t('component.loading')
+						: captureReady && captureRun.current != null
+							? t('component.work_day_capture_locked', { period: captureRun.current.period })
+							: t('component.work_day_capture_status_unavailable')))
 	);
 
 	const planWritable = $derived(mode === 'controller' && !frozen);
@@ -637,14 +703,16 @@
 		const state =
 			intervals == null
 				? kind == null
-					? t('roster.unrostered')
+					? patternCodeId == null
+						? t('roster.plan_missing')
+						: t('roster.plan_projected')
 					: kind === 'WORK'
-						? t('roster.planned')
+						? t('roster.plan_recorded')
 						: kind === 'REST'
 							? t('roster.rest_day')
 							: t('roster.off_day')
 				: intervals.length === 0
-					? t('roster.absent')
+					? t('roster.actual_empty')
 					: intervals.some((interval) => interval.end == null)
 						? t('roster.open_punch')
 						: t('roster.attended');
@@ -863,8 +931,14 @@
 
 {#snippet plannedTab()}
 	<Stack gap="md">
+		{@render fieldRow(
+			t('roster.projected_shift'),
+			patternCodeId == null ? t('roster.plan_missing') : codeLabel(patternCodeId)
+		)}
 		{#if mode === 'controller'}
 			<Stack gap="xs">
+				<p class="text-sm font-medium">{t('roster.recorded_plan')}</p>
+				<p class="text-xs text-muted-foreground">{t('roster.recorded_plan_help')}</p>
 				<Picker
 					of="shift_definitions"
 					label={['code', 'name']}
@@ -907,6 +981,7 @@
 		{/if}
 		<!-- Overtime is PLANNED on the day. One figure: the statute splits it into approved and incentive hours. -->
 		<FormSection
+			name="roster.day_sheet_planned_overtime"
 			title={t('roster.day_sheet_planned_overtime')}
 			hint={t('roster.day_sheet_approved_overtime_description')}
 			first
@@ -967,7 +1042,11 @@
 			{/if}
 		</FormSection>
 		{#if consentRequired}
-			<FormSection title={t('roster.consent_title')} hint={t('roster.consent_hint')}>
+			<FormSection
+				name="roster.consent_title"
+				title={t('roster.consent_title')}
+				hint={t('roster.consent_hint')}
+			>
 				{#if planWritable}
 					<Stack as="label" gap="xs" class="text-xs">
 						<span>{t('roster.consent_input')}</span>
@@ -990,8 +1069,13 @@
 
 {#snippet actualTab()}
 	<Stack gap="md">
+		<p class="text-sm text-muted-foreground">{t('roster.actual_attendance_help')}</p>
 		{#if dayDeclarations.length > 0 || Object.keys(record?.facts ?? {}).length > 0}
-			<FormSection title={t('component.work_day_facts')} hint={t('component.work_day_facts_hint')}>
+			<FormSection
+				name="work_day_facts"
+				title={t('component.work_day_facts')}
+				hint={t('component.work_day_facts_hint')}
+			>
 				<EntityFactsRenderer
 					view={{
 						mode: 'edit',

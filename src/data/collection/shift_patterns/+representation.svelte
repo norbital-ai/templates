@@ -16,6 +16,7 @@
 <RecordShell of="shift_patterns" mode={view.mode} {...record == null ? {} : { id: record.id }}>
 	<Form of="shift_patterns" mode={view.mode} {record} {values}>
 		<FormSection
+			name="shift_pattern"
 			first
 			title={bolt.t('component.shift_pattern')}
 			hint={bolt.t('component.pattern_section_hint')}

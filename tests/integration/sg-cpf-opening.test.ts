@@ -45,14 +45,40 @@ for (const [origin, expected] of [
 					}
 				: {})
 		};
-		const fact = committed(
-			await admin.act('employment_statutory_facts.create', {
-				employee_id: employment!.employee_id!,
-				employment_id: SG_EMPLOYMENT,
-				statutory_contribution_id: cpf.id,
-				effective_range: { from: '2026-01-01', to: null },
-				status: { kind: 'REGISTERED', reference_number: 'S1234567A', opening: [opening] }
+		const cpfSchemes = (
+			await admin.read('statutory_contributions', {
+				where: { code: { eq: 'CPF' } },
+				all: true
 			})
+		).rows;
+		const declarations = (
+			await admin.read('employment_statutory_facts', {
+				where: { employee_id: { eq: employment!.employee_id! } },
+				all: true
+			})
+		).rows.filter(
+			(row) =>
+				cpfSchemes.some((scheme) => scheme.id === row.statutory_contribution_id) &&
+				(row.employment_id == null || row.employment_id === SG_EMPLOYMENT)
+		);
+		expect(declarations.length).toBeLessThanOrEqual(1);
+		const values = {
+			statutory_contribution_id: cpf.id,
+			effective_range: { from: '2026-01-01', to: null },
+			status: { kind: 'REGISTERED', reference_number: 'S1234567A', opening: [opening] }
+		};
+		const prior = declarations[0];
+		const fact = committed(
+			prior
+				? await admin.act('employment_statutory_facts.update', {
+						target: prior.id,
+						set: values
+					})
+				: await admin.act('employment_statutory_facts.create', {
+						employee_id: employment!.employee_id!,
+						employment_id: SG_EMPLOYMENT,
+						...values
+					})
 		)[0]!;
 		const saved = await admin.get('employment_statutory_facts', fact.id as string);
 		expect(saved!.status.opening[0].origin).toBe(origin);

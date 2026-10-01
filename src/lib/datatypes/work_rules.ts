@@ -343,6 +343,16 @@ export const workRulesValueSchema = Schema.Struct({
 	),
 	part_time_comparator_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	bands: Schema.Array(workRateBandValueSchema),
+	/** Period totals available to rate bands; a pricing threshold is not an approval limit. */
+	counters: Schema.optionalKey(
+		Schema.Array(
+			Schema.Struct({
+				key: cel,
+				period: Schema.Literals(['DAY', 'WEEK', 'MONTH', 'QUARTER', 'YEAR']),
+				count_hours: cel
+			})
+		)
+	),
 	/**
 	 * E6: pay lines the period's totals decide (a minimum-wage top-up, a guaranteed minimum, a
 	 * per-output premium), in order, each read after every work, leave and money line and after the
@@ -441,6 +451,9 @@ export const workRulesValueSchema = Schema.Struct({
 	)
 }).check(
 	Schema.makeFilter((rules) => {
+		const counterKeys = (rules.counters ?? []).map((counter) => counter.key);
+		if (new Set(counterKeys).size !== counterKeys.length)
+			return 'Work counter keys must be unique.';
 		if (rules.ordinary_rate != null && rules.ordinary_rate_reference != null)
 			return 'Ordinary rate: state ordinary_rate or ordinary_rate_reference, not both.';
 		const derivedCodes = (rules.derived_lines ?? []).map((line) => line.code);
@@ -584,6 +597,9 @@ export const workRulesValueSchema = Schema.Struct({
 						)
 			),
 
+			...(rules.counters ?? []).map((counter) =>
+				faultIn(counter.count_hours, 'work_day', 'number', `Counter ${counter.key}`)
+			),
 			rules.overtime_consent == null
 				? null
 				: faultIn(rules.overtime_consent.required_when, 'work_day', 'boolean', 'Overtime consent'),

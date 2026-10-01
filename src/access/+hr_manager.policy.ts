@@ -92,8 +92,8 @@ export default policy({
 			create: { approval: [HR_LEAVE_TIME_OFF] },
 			queries: ['leave_balances', 'leave_balance_report', 'preview_leave']
 		},
-		payroll_runs: { read: true, create: true, delete: true },
-		payslips: { read: true, update: true, delete: UNPAID_PAYSLIP },
+		payroll_runs: { read: true, create: true, update: true, delete: true },
+		payslips: { queries: ['payslip_pdf'], read: true, update: true, delete: UNPAID_PAYSLIP },
 		payable_tranches: { read: true },
 		payment_events: { read: true, create: true },
 		payment_allocations: { read: true },

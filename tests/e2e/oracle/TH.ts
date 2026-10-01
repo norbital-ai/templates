@@ -132,7 +132,7 @@ export type Scenario = {
 };
 
 export type Line = { amount?: number; employee?: number; employer?: number; base?: number };
-export type Payslip = { refused: string | null; lines: Record<string, Line> };
+export type Payslip = { refused: string | null; warnings: string[]; lines: Record<string, Line> };
 
 // ---------- arithmetic ----------
 const EPS = 1e-7;
@@ -248,9 +248,10 @@ export function computePayslip(sc: Scenario): Payslip {
 	const first = `${period}-01`;
 	const last = monthEnd(period);
 	const lines: Record<string, Line> = {};
-	const refuse = (why: string): Payslip => ({ refused: why, lines: {} });
+	const warnings: string[] = [];
+	const refuse = (why: string): Payslip => ({ refused: why, warnings, lines: {} });
 
-	// ---- refusals the law states ----
+	// Owner rule: statutory work limits warn; malformed or incomplete calculation inputs refuse.
 	const floor = minimumDaily(c.worksite, c.sector);
 	// N14: daily rate below the floor; DEFAULT (TH-WAGE-01): a monthly wage held to floor × 30 (monthly ÷ 30 per day, s.68)
 	const day = e.pay.basis === 'MONTHLY' ? e.pay.monthly / 30 : e.pay.daily;
@@ -258,19 +259,19 @@ export function computePayslip(sc: Scenario): Payslip {
 	const minor = ageOn(e.birthDate, last) < 18;
 	const anyOt = sc.time.overtimeHours > 0 || (sc.time.holidayWork?.overtimeHours ?? 0) > 0;
 	const anyHoliday = sc.time.holidayWork !== null;
-	if (minor && (anyOt || anyHoliday)) return refuse('under-18 overtime/holiday work (LPA s.48)');
+	if (minor && (anyOt || anyHoliday)) warnings.push('under-18 overtime/holiday work (LPA s.48)');
 	if (e.pregnant && (anyOt || anyHoliday))
-		return refuse('pregnant overtime/holiday work (LPA s.39/1)');
+		warnings.push('pregnant overtime/holiday work (LPA s.39/1)');
 	if (e.hazardous && (anyOt || anyHoliday))
-		return refuse('hazardous overtime/holiday work (LPA s.31)');
+		warnings.push('hazardous overtime/holiday work (LPA s.31)');
 	// LPA s.23: normal day ≤ 8 hours, hazardous ≤ 7; MR 2568 cl.4 lets a guard agree a longer normal day from
 	// 24 Apr 2026 (the 48-hour week it also requires is not modelled here)
 	const guardNew = e.workClass === 'GUARD' && period >= '2026-05';
 	if (e.workClass === 'GUARD' && period === '2026-04')
 		throw new Error('guard April 2026 straddles the MR 2568 cutover');
 	if (e.hazardous && e.normalDailyHours > 7)
-		return refuse('hazardous normal day over 7 hours (LPA s.23)');
-	if (e.normalDailyHours > 8 && !guardNew) return refuse('normal day over 8 hours (LPA s.23)');
+		warnings.push('hazardous normal day over 7 hours (LPA s.23)');
+	if (e.normalDailyHours > 8 && !guardNew) warnings.push('normal day over 8 hours (LPA s.23)');
 	// No.9 ss.41 para.4, 41/1: child-care and spouse-birth leave "not more than fifteen days"
 	if (sc.leave.childCareDays > 15 || sc.leave.spouseBirthDays > 15)
 		return refuse('leave beyond 15 days');
@@ -448,8 +449,8 @@ export function computePayslip(sc: Scenario): Payslip {
 			const pro = (6 * span(`${y}-01-01`, x.date)) / span(`${y}-01-01`, `${y}-12-31`);
 			days += Math.max(0, pro - x.annualLeaveTakenThisYear);
 		}
-		// the leave entry records encash_days to three decimals (leave_entries.encash_days scale 3)
-		days = Math.round(days * 1000 + EPS) / 1000;
+		// Keep the statutory fraction in the stored quantity; only the cash payment rounds to cents.
+		days = Math.floor(days * 1e12) / 1e12;
 		if (days > 0) {
 			encash = r2(days * perDay);
 			lines.LEAVE_ENCASHMENT = { amount: encash, base: days };
@@ -531,5 +532,5 @@ export function computePayslip(sc: Scenario): Payslip {
 	lines.total_deductions = { amount: deductions };
 	lines.net = { amount: r2(gross - deductions) };
 	lines.employer_cost = { amount: r2(gross + ssoEe + ewfEe) };
-	return { refused: null, lines };
+	return { refused: null, warnings, lines };
 }

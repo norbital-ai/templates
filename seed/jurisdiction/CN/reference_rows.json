@@ -449,7 +449,7 @@
 		"label": "Resignation",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -463,7 +463,7 @@
 		"label": "Dismissal",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -477,7 +477,7 @@
 		"label": "Redundancy",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -491,7 +491,7 @@
 		"label": "Retrenchment",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -505,7 +505,7 @@
 		"label": "Unilateral termination",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -519,7 +519,7 @@
 		"label": "Retirement",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -533,7 +533,7 @@
 		"label": "End of contract",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -547,7 +547,7 @@
 		"label": "Mutual agreement",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -561,7 +561,7 @@
 		"label": "Death",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -575,7 +575,7 @@
 		"label": "五华区",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -593,7 +593,7 @@
 		"label": "盘龙区",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -611,7 +611,7 @@
 		"label": "西山区",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -629,7 +629,7 @@
 		"label": "官渡区",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -647,7 +647,7 @@
 		"label": "呈贡区",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -665,7 +665,7 @@
 		"label": "晋宁区",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -683,7 +683,7 @@
 		"label": "安宁市",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -701,7 +701,7 @@
 		"label": "嵩明县",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -719,7 +719,7 @@
 		"label": "东川区",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -737,7 +737,7 @@
 		"label": "富民县",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -755,7 +755,7 @@
 		"label": "宜良县",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -773,7 +773,7 @@
 		"label": "石林彝族自治县",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -791,7 +791,7 @@
 		"label": "禄劝彝族苗族自治县",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -809,7 +809,7 @@
 		"label": "寻甸回族彝族自治县",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -827,7 +827,7 @@
 		"label": "磨憨镇",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -845,7 +845,7 @@
 		"label": "上海市",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -863,7 +863,7 @@
 		"label": "Shanghai (上海市)",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
+			"to": "2026-06-30"
 		},
 		"range_from": null,
 		"range_to": null,
@@ -877,448 +877,6 @@
 		"label": "Kunming (昆明市), with the Mo Han trusteeship",
 		"effective_range": {
 			"from": "2026-01-01",
-			"to": "2026-02-28"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "40bc61e4-2bc2-587f-9304-8c4a81481669",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "TERMINATION_GROUND",
-		"code": "RESIGNATION",
-		"label": "Resignation",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "0b4446d4-ce2a-5e25-9732-13c63b29840f",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "TERMINATION_GROUND",
-		"code": "DISMISSAL",
-		"label": "Dismissal",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "6a78eae3-b107-5b09-9ed1-04f29ffcd6e1",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "TERMINATION_GROUND",
-		"code": "REDUNDANCY",
-		"label": "Redundancy",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "282ab032-50fa-554a-8ea9-07e75a30c44a",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "TERMINATION_GROUND",
-		"code": "RETRENCHMENT",
-		"label": "Retrenchment",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "bb17ecfa-e4d8-50fa-8403-4e428ccfcd8e",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "TERMINATION_GROUND",
-		"code": "UNILATERAL",
-		"label": "Unilateral termination",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "1cc0f2e1-f028-5b9e-842b-f3c5e54b3067",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "TERMINATION_GROUND",
-		"code": "RETIREMENT",
-		"label": "Retirement",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "c45cf15b-39c3-5f42-8222-1efebb7cfc21",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "TERMINATION_GROUND",
-		"code": "END_OF_CONTRACT",
-		"label": "End of contract",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "02ae43ba-3173-5d1e-b914-ceea8c80698c",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "TERMINATION_GROUND",
-		"code": "MUTUAL",
-		"label": "Mutual agreement",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "1b8a393b-bb1a-52d7-861e-abd46a1947de",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "TERMINATION_GROUND",
-		"code": "DEATH",
-		"label": "Death",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "3248df8f-4be0-5ea5-812a-d19af4874a53",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/五华区",
-		"label": "五华区",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2170,
-			"hourly": 21
-		}
-	},
-	{
-		"id": "52bda492-0aeb-5a9a-b80c-d582aeed5178",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/盘龙区",
-		"label": "盘龙区",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2170,
-			"hourly": 21
-		}
-	},
-	{
-		"id": "de8b1bad-67b4-5457-9b02-419011b034f7",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/西山区",
-		"label": "西山区",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2170,
-			"hourly": 21
-		}
-	},
-	{
-		"id": "2dffb9f3-1d88-54a7-a162-ec332c9a14cd",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/官渡区",
-		"label": "官渡区",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2170,
-			"hourly": 21
-		}
-	},
-	{
-		"id": "bcd0aedd-153d-55ba-b761-7767eeacfb99",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/呈贡区",
-		"label": "呈贡区",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2170,
-			"hourly": 21
-		}
-	},
-	{
-		"id": "4be4cfdb-3df5-5db0-9443-1afebdbee24b",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/晋宁区",
-		"label": "晋宁区",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2170,
-			"hourly": 21
-		}
-	},
-	{
-		"id": "0b44b173-7423-5403-833a-b27ddffa3e60",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/安宁市",
-		"label": "安宁市",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2170,
-			"hourly": 21
-		}
-	},
-	{
-		"id": "90bcd82b-7c20-56d0-b88e-42019f1873fc",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/嵩明县",
-		"label": "嵩明县",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2170,
-			"hourly": 21
-		}
-	},
-	{
-		"id": "309be29b-6d4f-5383-a4af-a8d834b79004",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/东川区",
-		"label": "东川区",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2020,
-			"hourly": 20
-		}
-	},
-	{
-		"id": "a24d0775-f194-5cb6-88a6-296db132b09f",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/富民县",
-		"label": "富民县",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2020,
-			"hourly": 20
-		}
-	},
-	{
-		"id": "e7ab01a7-258c-5f46-b194-d256ff62192d",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/宜良县",
-		"label": "宜良县",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2020,
-			"hourly": 20
-		}
-	},
-	{
-		"id": "a0ba1a88-641b-515b-8f3f-d3ed0c092b8e",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/石林彝族自治县",
-		"label": "石林彝族自治县",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2020,
-			"hourly": 20
-		}
-	},
-	{
-		"id": "6267baf1-129f-550f-abf2-c0201ba5e3ec",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/禄劝彝族苗族自治县",
-		"label": "禄劝彝族苗族自治县",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2020,
-			"hourly": 20
-		}
-	},
-	{
-		"id": "07cd4ad7-55ca-5344-84b6-e1f8a6cc46b7",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/昆明市/寻甸回族彝族自治县",
-		"label": "寻甸回族彝族自治县",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 2020,
-			"hourly": 20
-		}
-	},
-	{
-		"id": "9e810005-c543-5cdd-8fdf-ab2231daabf0",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "云南省/西双版纳傣族自治州/勐腊县/磨憨镇",
-		"label": "磨憨镇",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "KUNMING",
-			"monthly": 1870,
-			"hourly": 19
-		}
-	},
-	{
-		"id": "7ce94082-1f5d-53b9-aa37-5a2c5802ee95",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "MINIMUM_WAGE",
-		"code": "SHANGHAI",
-		"label": "上海市",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {
-			"locality": "SHANGHAI",
-			"monthly": 2740,
-			"hourly": 25
-		}
-	},
-	{
-		"id": "40597953-dbe6-5595-b7a2-9d1079dad0f9",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "LOCALITY",
-		"code": "SHANGHAI",
-		"label": "Shanghai (上海市)",
-		"effective_range": {
-			"from": "2026-03-01",
-			"to": "2026-06-30"
-		},
-		"range_from": null,
-		"range_to": null,
-		"values": {}
-	},
-	{
-		"id": "fbdb4426-2060-5db8-9ecd-35103412b90e",
-		"settings_id": "0ada268b-e43f-5dda-95c6-677c63fd248c",
-		"table": "LOCALITY",
-		"code": "KUNMING",
-		"label": "Kunming (昆明市), with the Mo Han trusteeship",
-		"effective_range": {
-			"from": "2026-03-01",
 			"to": "2026-06-30"
 		},
 		"range_from": null,

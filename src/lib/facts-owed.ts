@@ -1,7 +1,7 @@
 /**
  * The declared facts a payroll run will refuse on, listed before it is built: every value a run's `requireFactValues`
  * (company facts, terms facts) or `resolvePersonFacts` (person facts) would find missing, invalid or unevidenced. One
- * judgement, `factValuesFault`, per key; the facts-owed page and the run's precheck both read this list, so the queue
+ * judgement, `factValuesFault`, per key; the obligation reminders and the run's precheck both read this list, so the reminders
  * and the gate cannot disagree. Every declaration is stored configuration; nothing here names a jurisdiction.
  */
 import { factValuesFault, resolveFactValues } from './declared-facts.js';
@@ -40,6 +40,8 @@ export type OwedSubject = {
 	readonly when?: ((expression: string) => boolean) | undefined;
 	readonly evidenced?: ((key: string) => boolean) | undefined;
 	readonly codes?: CodeResolver | undefined;
+	/** The employment that owes it; absent where the company does. */
+	readonly employmentId?: string | undefined;
 };
 
 /** One fact owed: the subject, the key and the sentence the run refuses with. */
@@ -49,6 +51,8 @@ export type OwedFact = {
 	readonly label: string;
 	readonly key: string;
 	readonly message: string;
+	/** The employment that owes it; absent where the company does. */
+	readonly employmentId?: string | undefined;
 };
 
 /** Every key of every subject whose value the run would refuse, one entry per key (the run stops at the first). */
@@ -71,7 +75,8 @@ export function factsOwed(subjects: readonly OwedSubject[]): OwedFact[] {
 							id: subject.id,
 							label: subject.label,
 							key: field.key,
-							message
+							message,
+							...(subject.employmentId == null ? {} : { employmentId: subject.employmentId })
 						}
 					];
 		})
@@ -173,9 +178,18 @@ export function entityFactsOwed(input: OwedInput): OwedFact[] {
 		id: string,
 		label: string,
 		key: string,
-		message: string | null
+		message: string | null,
+		employmentId?: string
 	) => {
-		if (message != null) owed.push({ collection, id, label, key, message });
+		if (message != null)
+			owed.push({
+				collection,
+				id,
+				label,
+				key,
+				message,
+				...(employmentId == null ? {} : { employmentId })
+			});
 	};
 	if (governing != null && codes != null) {
 		coded(
@@ -239,7 +253,8 @@ export function entityFactsOwed(input: OwedInput): OwedFact[] {
 						employee[key as keyof typeof CODED_FIELDS.employees],
 						[governing],
 						codes
-					)
+					),
+					employment.id
 				);
 		for (const row of terms) {
 			if (!overlapsRange(row.effective_range, window.start, window.end)) continue;
@@ -255,7 +270,8 @@ export function entityFactsOwed(input: OwedInput): OwedFact[] {
 					row.id,
 					`${employment.employee_number}: terms on ${day}`,
 					key,
-					wageKeyFault(scope, key, kind, row[key], [wages])
+					wageKeyFault(scope, key, kind, row[key], [wages]),
+					employment.id
 				);
 			owed.push(
 				...factsOwed([
@@ -267,7 +283,8 @@ export function entityFactsOwed(input: OwedInput): OwedFact[] {
 						values: scalarFacts(row.facts),
 						when: (expression) => isEligible(expression, person(day)),
 						evidenced: (key) => input.evidence.has(`employment_terms:${row.id}:${key}`),
-						codes: input.codesOn?.(day)
+						codes: input.codesOn?.(day),
+						employmentId: employment.id
 					}
 				])
 			);
@@ -285,7 +302,8 @@ export function entityFactsOwed(input: OwedInput): OwedFact[] {
 					id: '',
 					label,
 					key: field.key,
-					message: getErrorMessage(error).replace(`${label}: `, '')
+					message: getErrorMessage(error).replace(`${label}: `, ''),
+					employmentId: employment.id
 				});
 			}
 		}

@@ -500,6 +500,7 @@ export function withDeclaredFacts(
 						employment: {
 							service_start: dateKey(range?.start),
 							exit_date: range?.end == null ? null : dateKey(range.end),
+							signed_contract_end: employment.signed_contract_end,
 							exit_ground: employment.exit_ground
 						},
 						terms:
@@ -780,6 +781,7 @@ export function configurationSnapshot(
 				row.is_npl,
 				row.can_encash,
 				row.pay_fraction,
+				row.time_off_amount,
 				row.paid_by,
 				row.consumes_code,
 				row.unit

@@ -1,3 +1,4 @@
+import { workDayCaptureLocks } from './capture-locks.js';
 import { everyField } from '../../../../lib/every-field.js';
 /**
  * The `work_days` action `import_month`: one workbook replaces one entity's calendar month — roster
@@ -25,7 +26,10 @@ import {
 	rosterCodeKind,
 	workWindow
 } from '../../../../lib/scheduling/roster-code.js';
-import { selectBreakRule } from '../../../../lib/scheduling/rest-break.js';
+import { dailyWorkedHours, nightWindowHours } from '../../../../lib/payroll/run/overtime.js';
+import { assertNotSettled, payrollWindows } from '../../../../lib/scheduling/lock.js';
+import type { ScheduledDay } from '../../../../lib/payroll/run/schedule.js';
+import { providedBreakMinutes, selectBreakRule } from '../../../../lib/scheduling/rest-break.js';
 import { restRunBreaches } from './schedule-rules.js';
 import { isRestLimit } from '../../../../lib/datatypes/work_rules.js';
 import { settingsInForce } from '../../../../lib/jurisdiction_settings.js';
@@ -353,7 +357,7 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 	// sheet, the month alone.
 	const reach = [
 		bounds,
-		...(overtime === undefined && roster === undefined
+		...(overtime === undefined && roster === undefined && attendance === undefined
 			? []
 			: [
 					projectionBounds(
@@ -369,62 +373,77 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 				]),
 		...(roster === undefined ? [] : [restWindow])
 	].flatMap((window) => (window == null ? [] : [window]));
-	const [storedRows, rosterRows, leaveRows, termRows, holidayRows] = await Promise.all([
-		ctx.read('work_days', {
-			select: {
-				id: true,
-				employment_id: true,
-				work_date: true,
-				shift_definition_id: true,
-				worked_intervals: true,
-				approved_overtime_hours: true,
-				incentive_hours: true,
-				overtime_consented_at: true,
-				facts: true,
-				emergency_cause: true,
-				payslip_id: true
-			},
-			where: {
-				employment_id: { in: employmentIds },
-				work_date: {
-					gte: on(reach.map((window) => window.start).toSorted()[0]!),
-					lte: on(
-						reach
-							.map((window) => window.end)
-							.toSorted()
-							.at(-1)!
-					)
+	const [storedRows, rosterRows, leaveRows, termRows, holidayRows, payrollRows, payslipRows] =
+		await Promise.all([
+			ctx.read('work_days', {
+				select: {
+					id: true,
+					employment_id: true,
+					work_date: true,
+					shift_definition_id: true,
+					worked_intervals: true,
+					approved_overtime_hours: true,
+					incentive_hours: true,
+					overtime_consented_at: true,
+					facts: true,
+					emergency_cause: true,
+					payslip_id: true
 				},
-				approval_id: { isNull: true }
-			},
-			...all
-		}),
-		ctx.read('rosters', { where: { employment_id: { in: employmentIds } }, ...all }),
-		ctx.read('leave_entries', {
-			select: everyField('leave_entries'),
-			where: {
-				employment_id: { in: employmentIds },
-				activity: { eq: 'TIME_OFF' },
-				approval_id: { isNull: true },
-				from_date: { lte: on(bounds.end) },
-				to_date: { gte: on(bounds.start) }
-			},
-			...all
-		}),
-		ctx.read('employment_terms', {
-			select: everyField('employment_terms'),
-			where: { employment_id: { in: employmentIds }, approval_id: { isNull: true } },
-			...all
-		}),
-		ctx.read('jurisdiction_holidays', {
-			where: {
-				company_id: { eq: companyId },
-				published_at: { isNull: false },
-				approval_id: { isNull: true }
-			},
-			...all
-		})
-	]);
+				where: {
+					employment_id: { in: employmentIds },
+					work_date: {
+						gte: on(reach.map((window) => window.start).toSorted()[0]!),
+						lte: on(
+							reach
+								.map((window) => window.end)
+								.toSorted()
+								.at(-1)!
+						)
+					},
+					approval_id: { isNull: true }
+				},
+				...all
+			}),
+			ctx.read('rosters', { where: { employment_id: { in: employmentIds } }, ...all }),
+			ctx.read('leave_entries', {
+				select: everyField('leave_entries'),
+				where: {
+					employment_id: { in: employmentIds },
+					activity: { eq: 'TIME_OFF' },
+					approval_id: { isNull: true },
+					from_date: { lte: on(bounds.end) },
+					to_date: { gte: on(bounds.start) }
+				},
+				...all
+			}),
+			ctx.read('employment_terms', {
+				select: everyField('employment_terms'),
+				where: { employment_id: { in: employmentIds }, approval_id: { isNull: true } },
+				...all
+			}),
+			ctx.read('jurisdiction_holidays', {
+				where: {
+					company_id: { eq: companyId },
+					published_at: { isNull: false },
+					approval_id: { isNull: true }
+				},
+				...all
+			}),
+			ctx.read('payroll_runs', { where: { company_id: { eq: companyId } }, ...all }),
+			ctx.read('payslips', {
+				where: { employment_id: { in: employmentIds } },
+				select: {
+					id: true,
+					payroll_run_id: true,
+					employment_id: true,
+					paid_at: true,
+					funding_received: true,
+					funding_received_on: true,
+					funding_reference: true
+				},
+				...all
+			})
+		]);
 
 	const codes = codeRows.rows.map((code) => ({
 		id: String(code.id),
@@ -614,6 +633,41 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 			.map((row) => [personDayKey(row.employment_id, row.work_date), row])
 	);
 
+	const captureLocks = await workDayCaptureLocks(
+		{
+			tranches: async (ids) =>
+				(
+					await ctx.read('payable_tranches', {
+						where: { settlement: { payslips: { in: ids } } },
+						select: { id: true, settlement: true },
+						all: true
+					})
+				).rows,
+			allocations: async (ids) =>
+				(
+					await ctx.read('payment_allocations', {
+						where: { payable_tranche_id: { in: ids } },
+						select: { payable_tranche_id: true },
+						all: true
+					})
+				).rows
+		},
+		payslipRows.rows
+	);
+	const slipById = new Map(payslipRows.rows.map((slip) => [String(slip.id), slip]));
+	const windows = payrollWindows(
+		payrollRows.rows.map((row) => ({
+			...row,
+			id: String(row.id),
+			attendance_from: day(row.attendance_from),
+			attendance_to: day(row.attendance_to)
+		})),
+		payslipRows.rows.map((slip) => ({
+			payroll_run_id: String(slip.payroll_run_id),
+			employment_id: String(slip.employment_id),
+			paid_at: slip.paid_at
+		}))
+	);
 	// ── sealed days: restated unchanged passes, changed or omitted is a conflict ──
 	const conflicts: string[] = [];
 	const untouched = new Set<string>();
@@ -635,7 +689,11 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 			`Reassess the saved absence decision before importing changed attendance or roster:\n${formatNamedList(conflicts)}`
 		);
 	for (const [at, row] of existingByKey) {
-		if (row.payslip_id == null) continue;
+		if (
+			row.payslip_id == null ||
+			(slipById.has(String(row.payslip_id)) && !captureLocks.has(String(row.payslip_id)))
+		)
+			continue;
 		const label = `${numberByEmployment.get(row.employment_id) ?? row.employment_id} on ${row.work_date}`;
 		const file = fileDays.get(at);
 		if (file === undefined) {
@@ -654,12 +712,12 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 	}
 	if (conflicts.length > 0)
 		refuse(
-			`These days are already taken into account by a payslip, and the file would change them:\n${formatNamedList(conflicts)}\nA sealed day may only be restated as it is. Delete that payroll run to release them, then import the month again.`
+			`These days are already taken into account by a payslip, and the file would change them:\n${formatNamedList(conflicts)}\nA sealed day may only be restated as it is. Correct the paid payslip with an adjustment in a later payroll period.`
 		);
 
 	// ── the statutory limits around the stored days: the Overtime sheet's totals split at them, and every limit the
 	// file's roster or overtime passes returned as a warning ──
-	if (carriesPlan || carriesOvertime) {
+	if (carriesPlan || carriesOvertime || carriesClock) {
 		const version = settingsInForce(versions, company.settings_code, bounds.start);
 		if (version == null)
 			refuse(`No governing jurisdiction is configured for ${company.name} in ${month}.`);
@@ -829,6 +887,84 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 						);
 				}
 			}
+			if (carriesClock) {
+				const window = projectionBounds(monthDates, limits);
+				const actualByDate = new Map<string, SchedulePlanDay>();
+				if (window != null)
+					for (let date = window.start; date <= window.end; date = addDays(date, 1)) {
+						const intervals =
+							date >= bounds.start && date <= bounds.end
+								? fileDays.get(personDayKey(employmentId, date))?.clock
+								: storedOn.get(date)?.worked_intervals;
+						if (
+							intervals == null ||
+							intervals.length === 0 ||
+							intervals.some((interval) => interval.end == null)
+						)
+							continue;
+						const code = codes.find((candidate) => candidate.id === codeOn(date));
+						const shift = code == null ? null : workWindow(code.variant);
+						const scheduled: ScheduledDay = {
+							date: on(date),
+							dayType: 'ORDINARY',
+							shift: shift == null ? null : { ...shift, id: code!.id, code: code!.code },
+							clampStart: shift?.start_time ?? null,
+							normalHours: (shift?.paid_minutes ?? 0) / 60,
+							restDay: false,
+							statutoryRest: false,
+							offDay: false,
+							observedHoliday: null
+						};
+						const offset = offsetMinutesAt(timezone!, new Date(`${date}T12:00:00Z`));
+						const entry = {
+							id: storedOn.get(date)?.id ?? personDayKey(employmentId, date),
+							work_date: date,
+							worked_intervals: intervals
+						};
+						const night =
+							rules?.night_premium == null
+								? null
+								: nightWindowHours(entry, rules.night_premium, scheduled.shift, offset);
+						const breakMinutes = providedBreakMinutes({
+							intervals,
+							shiftMinutes: shift?.break_minutes,
+							breaks: rules?.breaks,
+							person,
+							nightHours: night == null ? 0 : night.ordinary + night.overtime
+						});
+						const worked = dailyWorkedHours(
+							{ ...entry, break_minutes: breakMinutes },
+							scheduled,
+							offset
+						);
+						const start = Math.max(
+							Math.min(...intervals.map((interval) => Date.parse(interval.start))),
+							shift == null
+								? Number.NEGATIVE_INFINITY
+								: Date.parse(`${date}T00:00:00Z`) -
+										offset * 60_000 +
+										clockMinutes(shift.start_time) * 60_000
+						);
+						const end = Math.max(...intervals.map((interval) => Date.parse(interval.end!)));
+						actualByDate.set(date, {
+							date,
+							kind: 'WORK',
+							paid_minutes: worked * 60,
+							break_minutes: breakMinutes,
+							spread_hours: Math.max(0, (end - start) / 3_600_000)
+						});
+					}
+				for (const breach of projectedLimitBreaches({
+					subject: number,
+					changedDates: new Set(monthDates),
+					planByDate: actualByDate,
+					limits,
+					authority: rules?.authority
+				}))
+					warnings.push(
+						`${number}: ${breach.sentence.replace('the plan through', 'recorded attendance through').replace(' projects ', ' records ')}.`
+					);
+			}
 			if (!monthDates.some((date) => (totals.get(personDayKey(employmentId, date)) ?? 0) > 0))
 				continue;
 			// The Overtime sheet's totals, split: the hours within every limit are approved overtime, the rest incentive.
@@ -944,16 +1080,6 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 				left.employmentId.localeCompare(right.employmentId) ||
 				left.workDate.localeCompare(right.workDate)
 		);
-	// a new day is created whole (its plan, clock and overtime with it); a stored one is updated in place
-	if (creates.length > 0)
-		await ctx.act(
-			'work_days.create',
-			creates.map((file) => ({
-				employment_id: file.employmentId as Id<'employments'>,
-				work_date: PlainDate(file.workDate),
-				...halvesOf(file)
-			})) as never
-		);
 	// A stored day the file does not name keeps only the halves the file does not carry; one left with nothing is removed.
 	const emptied = [...existingByKey].filter(
 		([at, row]) =>
@@ -980,6 +1106,35 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 						set.incentive_hours !== row.incentive_hours ||
 						set.overtime_consented_at !== row.overtime_consented_at ||
 						(set.facts !== undefined && !sameFacts(set.facts, row.facts))))
+		);
+	if (carriesPlan) {
+		const wanted = new Set(
+			[...fileDays.values()]
+				.filter((file) => file.plan !== undefined)
+				.map((file) => file.employmentId)
+		);
+		const present = new Set(
+			rosterRows.rows.filter((row) => row.period === month).map((row) => String(row.employment_id))
+		);
+		for (const employmentId of new Set([...wanted, ...present]))
+			if (wanted.has(employmentId) !== present.has(employmentId))
+				for (const date of monthDates)
+					assertNotSettled(windows, date, 'Replacing this monthly roster', employmentId);
+	}
+	// Every replacement delta is checked before the first write; one paid person's conflict refuses the file.
+	for (const file of creates)
+		assertNotSettled(windows, file.workDate, 'Importing this work day', file.employmentId);
+	for (const row of [...updates.map(({ row }) => row), ...emptied.map(([, row]) => row)])
+		assertNotSettled(windows, row.work_date, 'Replacing this work day', row.employment_id);
+	// a new day is created whole (its plan, clock and overtime with it); a stored one is updated in place
+	if (creates.length > 0)
+		await ctx.act(
+			'work_days.create',
+			creates.map((file) => ({
+				employment_id: file.employmentId as Id<'employments'>,
+				work_date: PlainDate(file.workDate),
+				...halvesOf(file)
+			})) as never
 		);
 	if (updates.length > 0)
 		await ctx.act(

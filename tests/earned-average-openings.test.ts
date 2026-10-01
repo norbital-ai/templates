@@ -72,3 +72,50 @@ test('the twelve-month average reads opening wage periods for months no payslip 
 	assert.equal(Math.round(average * 100) / 100, 22_291.67);
 	assert.equal(wages['2025-12'].WAGES, 30_000);
 });
+
+for (const overtimeCode of ['OVERTIME', 'WORKDAY_OT'])
+	test(`a saved ${overtimeCode} work line enters the overtime history total once`, () => {
+		const slip = {
+			id: 'work-slip',
+			employment_id: 'job',
+			payroll_run_id: 'work-run',
+			status: 'PAID',
+			paid_at: '2025-12-31T00:00:00Z',
+			base: [{ component_code: 'BASIC', amount: 3000 }],
+			adjustments: [
+				{ component_code: overtimeCode, family: 'WORK_DAY', bucket: 'EARNING', amount: 120 },
+				{ component_code: 'NIGHT', family: 'WORK_DAY', bucket: 'EARNING', amount: 80 }
+			],
+			statutory: [],
+			proration: [{ component_code: 'BASIC', prorated_amount: 3000 }]
+		};
+		const prepared = prepareFamilyHistory({
+			world: {
+				employment_wage_periods: [],
+				payslips: [slip],
+				claim_requests: [],
+				adhoc_requests: []
+			},
+			payslips: [slip],
+			inTaxYear: new Set(),
+			employmentToEmployee: new Map([['job', 'person']]),
+			periodByRun: new Map([['work-run', '2025-12']]),
+			traceByRun: new Map(),
+			catalogueComponents: []
+		});
+		const codes = prepared.earnedByMonth.get('person').get('2025-12');
+		assert.equal(codes.get('OVERTIME'), 200);
+		assert.equal(codes.get('WAGES'), 3200);
+		assert.equal(
+			earnedMonthlyAverage(
+				{
+					service_start: '2025-12-01',
+					exit_date: '2026-01-31',
+					history: { as_of: '2026-01-31', wages: { '2025-12': Object.fromEntries(codes) } }
+				},
+				12,
+				['OVERTIME']
+			),
+			3000
+		);
+	});

@@ -198,6 +198,18 @@ export function planLeaveActivity(
 	);
 	if (!input.reference.trim()) refuse('A leave entry needs a unique supporting reference.');
 	const pools = leavePool(context, input.employment_id, rules, entries);
+	if (
+		rules.selected.entitlement.consumes_overflow_unpaid === true &&
+		((rules.selected.unit ?? 'DAY') !== 'DAY' ||
+			rules.selected.entitlement.rolling_months != null ||
+			pools.pool == null ||
+			(pools.pool.rules.selected.unit ?? 'DAY') !== 'DAY' ||
+			pools.pool.rules.selected.entitlement.rolling_months != null)
+	)
+		refuse(
+			'Unpaid shared-pool overflow requires day-denominated leave and a fixed-window day pool.'
+		);
+
 	const sameLeave = pools.own;
 	if (
 		entries.some(
@@ -284,33 +296,46 @@ export function planLeaveActivity(
 				pools.pool.rules.hire
 			);
 			const pooledDays = poolShare(date, days);
-			if (pooledDays > 0)
-				allocations.push(
-					...allocateLeaveDays({
-						entries: [
-							...pools.pool.entries,
-							{ id, allocations, approval_id: 'planning', leave_code: rules.selected.code }
-						],
-						window: poolWindow,
-						date,
-						days: pooledDays,
-						entitlementAt: pools.pool.rules.entitlementAt,
-						carryFrom: pools.pool.rules.carryFrom,
-						basis,
-						pool: pools.pool.code
-					})
-				);
+			if (pooledDays > 0) {
+				const unpaidOverflow =
+					activity === 'TIME_OFF' &&
+					rules.catalogueOn(date).entitlement.consumes_overflow_unpaid === true;
+				const funded = allocateLeaveDays({
+					entries: [
+						...pools.pool.entries,
+						{ id, allocations, approval_id: 'planning', leave_code: rules.selected.code }
+					],
+					window: poolWindow,
+					date,
+					days: pooledDays,
+					entitlementAt: pools.pool.rules.entitlementAt,
+					carryFrom: pools.pool.rules.carryFrom,
+					basis,
+					pool: pools.pool.code,
+					allow_partial: unpaidOverflow
+				});
+				allocations.push(...funded);
+				if (unpaidOverflow) {
+					const unpaid = pooledDays + funded.reduce((sum, row) => sum + row.days, 0);
+					const index = charges.findIndex((charge) => charge.date === date);
+					if (unpaid > 1e-9 && index >= 0)
+						charges[index] = { ...charges[index]!, unpaid_days: unpaid };
+				}
+			}
 		}
 	};
 	/** The person's active time off of this code under their other employments here. */
-	const priorTimeOff = () => {
+	const priorTimeOff = (companyId?: string) => {
 		const employeeId = context.employments.find(
 			(row) => row.id === input.employment_id
 		)?.employee_id;
 		return activeTimeOff(
 			// repository-health:allow R3b -- a prior entry carries the fields `activeTimeOff` reads, not a whole activity
 			(context.priorEntries ?? []).filter(
-				(row) => row.employee_id === employeeId && row.leave_code === rules.selected.code
+				(row) =>
+					row.employee_id === employeeId &&
+					row.leave_code === rules.selected.code &&
+					(companyId == null || row.company_id === companyId)
 			) as unknown as LeaveActivity[]
 		);
 	};
@@ -487,6 +512,16 @@ export function planLeaveActivity(
 		const first = charged[0];
 		if (first == null) return false;
 		const rule = rules.catalogueOn(first.date).entitlement;
+		// A dated event may be filed in several blocks; undated entries remain separate events.
+		const eventCount = (rows: readonly LeaveActivity[]) => {
+			const keyOf = (item: LeaveEntryActivity, anonymous: string) => {
+				const itemEvent = leaveEventOf(item);
+				return itemEvent.date == null
+					? JSON.stringify(['ENTRY', anonymous])
+					: JSON.stringify(['EVENT', itemEvent.kind, itemEvent.relationship, itemEvent.date]);
+			};
+			return new Set([...rows.map((row) => keyOf(row, row.id)), keyOf(input, id)]).size;
+		};
 		if (rule.availability === 'PER_EVENT') {
 			// A leave code the version declares a benefit case for grants what its event's case facts
 			// decide (`event.case.facts`): an extension counts once the case proves it.
@@ -556,28 +591,32 @@ export function planLeaveActivity(
 					);
 			}
 			// Counted over the person: this employment's entries and their other employments' here.
-			const taken =
-				activeTimeOff(sameLeave).filter(
+			const taken = eventCount([
+				...activeTimeOff(sameLeave).filter(
 					(row) =>
 						row.leave_code === rules.selected.code && row.employment_id === input.employment_id
-				).length + priorTimeOff().length;
-			if (rule.lifetime_events != null && taken >= rule.lifetime_events)
+				),
+				...priorTimeOff()
+			]);
+			if (rule.lifetime_events != null && taken > rule.lifetime_events)
 				refuse(
-					`${rules.selected.code} is granted for ${rule.lifetime_events} events in a lifetime; this would be event ${taken + 1}.`
+					`${rules.selected.code} is granted for ${rule.lifetime_events} events in a lifetime; this would be event ${taken}.`
 				);
 			return true;
 		}
 		// An unmetered leave granted a fixed number of times in the employment (ID religious duty,
 		// once with the same employer): the events are counted, the days are not.
 		if (rule.availability === 'UNLIMITED' && rule.lifetime_events != null) {
-			const taken =
-				activeTimeOff(sameLeave).filter(
+			const taken = eventCount([
+				...activeTimeOff(sameLeave).filter(
 					(row) =>
 						row.leave_code === rules.selected.code && row.employment_id === input.employment_id
-				).length + priorTimeOff().length;
-			if (taken >= rule.lifetime_events)
+				),
+				...priorTimeOff(rules.company.id)
+			]);
+			if (taken > rule.lifetime_events)
 				refuse(
-					`${rules.selected.code} is granted for ${rule.lifetime_events} events in a lifetime; this would be event ${taken + 1}.`
+					`${rules.selected.code} is granted for ${rule.lifetime_events} events with this employer; this would be event ${taken}.`
 				);
 			return true;
 		}

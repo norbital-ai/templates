@@ -3239,3 +3239,46 @@ register({
 		}
 	]
 });
+
+for (const [opened, suffix] of [
+	['2026-05-01', '1'],
+	['2026-06-01', '2']
+] as const) {
+	register({
+		id: `CN-SH36-OPEN-${suffix}`,
+		profile: 'CN-shanghai',
+		description:
+			'An employer opened during the 2026 declaration window owes the social-insurance wage declaration by 25 June.',
+		citation: [
+			'Shanghai Tax Bureau Notice 2026 No.1 (https://shanghai.chinatax.gov.cn/zcfw/zcfgk/sbf/202604/t480144.html, read 2026-10-01): all participating employers declare during 1 May–25 June 2026. Annual occurrence is governed on the company opening date when it opens after 1 January.'
+		],
+		company: { ...SH_COMPANY, facts: FACTS, effective_range: { from: opened, to: null } },
+		inputs: [
+			...cnWeek(opened),
+			...hire('declaration', {
+				name: 'Synthetic declaration worker',
+				from: opened,
+				wages: [[20000, opened, null]],
+				si: 20000,
+				hf: { contribution_base: 20000, first_ever_account: false }
+			})
+		],
+		period: opened.slice(0, 7),
+		expected: [],
+		saved: [
+			{
+				collection: 'obligation_instances',
+				where: { company_id: '@company', duty_code: 'SI_BASE_DECLARATION_2026' },
+				rows: [
+					{
+						subject_kind: 'COMPANY',
+						trigger_ref: '2026',
+						triggered_on: opened,
+						due_on: '2026-06-25',
+						state: 'OPEN'
+					}
+				]
+			}
+		]
+	});
+}

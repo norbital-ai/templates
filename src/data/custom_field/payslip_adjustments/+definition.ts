@@ -12,6 +12,7 @@ const f = customField({
 				family: { kind: 'enum', values: ['WORK_DAY', 'CLAIM', 'ADHOC', 'LEAVE', 'LOAN_REPAYMENT'] },
 				source_id: { kind: 'text' },
 				component_code: { kind: 'text' },
+				reserved_line: { kind: 'enum', values: ['BASE'], optional: true },
 				label: { kind: 'text' },
 				bucket: {
 					kind: 'enum',

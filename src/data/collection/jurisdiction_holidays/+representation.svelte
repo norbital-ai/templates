@@ -5,7 +5,7 @@
 	 * over `published_at`.
 	 */
 	import { t } from '../../../lib/ui/t.js';
-	import { Field, Form } from '@norbital-ai/ui';
+	import { Field, Form, Section } from '@norbital-ai/ui';
 	import { Column, Grid, Inline } from '@norbital-ai/ui/layout';
 	import { RecordShell, type RecordView } from '@norbital-ai/ui';
 	import { bolt } from '$bolt';
@@ -61,37 +61,41 @@
 >
 	<Form of="jurisdiction_holidays" mode={view.mode} {record} {values}>
 		{#snippet children(form)}
-			<Grid gap="md" minimum="compact">
-				{#if record == null}
-					<Field name="company_id" label={t('component.company')} />
-				{/if}
-				<Field name="date" label={t('component.observed_on')} />
-				<Field name="kind" label={t('holiday_calendar.kind')} />
-				<Field name="given_to" label={t('holiday_calendar.given_to')} />
-				{@render coded(form, 'worksite', t('component.worksite'))}
-				{@render coded(form, 'religion', t('component.religion'))}
-				<Field name="applies_when" label={t('component.applies_when')} />
-				<Column span="all"><Field name="name" label={t('component.holiday')} /></Column>
-				<Field name="replaces" label={t('holiday_calendar.replaces')} />
-				<Column span="all">
-					<Field name="published_at">
-						{#snippet editor(field)}
-							<label class="text-sm">
-								<Inline as="span" gap="sm" align="start">
-									<input
-										type="checkbox"
-										checked={field.value != null}
-										disabled={field.disabled}
-										onchange={(event) =>
-											field.onChange(event.currentTarget.checked ? new Date().toISOString() : null)}
-									/>
-									{t('holiday_calendar.published')}
-								</Inline>
-							</label>
-						{/snippet}
-					</Field>
-				</Column>
-			</Grid>
+			<Section first name="jurisdiction_holidays" title={t('component.holiday')}>
+				<Grid gap="md" minimum="compact">
+					{#if record == null}
+						<Field name="company_id" label={t('component.company')} />
+					{/if}
+					<Field name="date" label={t('component.observed_on')} />
+					<Field name="kind" label={t('holiday_calendar.kind')} />
+					<Field name="given_to" label={t('holiday_calendar.given_to')} />
+					{@render coded(form, 'worksite', t('component.worksite'))}
+					{@render coded(form, 'religion', t('component.religion'))}
+					<Field name="applies_when" label={t('component.applies_when')} />
+					<Column span="all"><Field name="name" label={t('component.holiday')} /></Column>
+					<Field name="replaces" label={t('holiday_calendar.replaces')} />
+					<Column span="all">
+						<Field name="published_at">
+							{#snippet editor(field)}
+								<label class="text-sm">
+									<Inline as="span" gap="sm" align="start">
+										<input
+											type="checkbox"
+											checked={field.value != null}
+											disabled={field.disabled}
+											onchange={(event) =>
+												field.onChange(
+													event.currentTarget.checked ? new Date().toISOString() : null
+												)}
+										/>
+										{t('holiday_calendar.published')}
+									</Inline>
+								</label>
+							{/snippet}
+						</Field>
+					</Column>
+				</Grid>
+			</Section>
 		{/snippet}
 	</Form>
 </RecordShell>

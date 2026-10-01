@@ -73,5 +73,10 @@
 		<Column span="all"
 			><Field name="effective_range" label={t('component.effective_period')} /></Column
 		>
+		<Field
+			name="signed_contract_end"
+			label={t('component.signed_contract_end')}
+			help={t('component.signed_contract_end_hint')}
+		/>
 	</Grid>
 </Form>

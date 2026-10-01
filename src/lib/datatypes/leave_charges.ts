@@ -2,6 +2,8 @@
 export type LeaveCharge = {
 	readonly date: string;
 	readonly days: number;
+	/** Approved portion beyond the funded shared leave pool, frozen at approval. */
+	readonly unpaid_days?: number | null;
 	/** Actual scheduled hours consumed, for an hourly entitlement. */
 	readonly hours?: number | null;
 	readonly catalogue_id: string;
