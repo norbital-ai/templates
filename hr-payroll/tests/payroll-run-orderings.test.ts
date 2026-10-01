@@ -8,13 +8,15 @@
  *   (a) COMBINED — one REGULAR run pays the salary and the entry together;
  *   (b) EARLY    — an OFF_CYCLE run pays the entry first: its transform settles the salary early (an EARLY run at
  *                  the regular pay date) in the same act, then the REGULAR run pays everyone else and skips them;
- *   (c) AFTER    — the REGULAR run pays the salary, then an OFF_CYCLE run pays the entry.
+ *   (c) AFTER    — the REGULAR run pays the salary (and the slip is paid), then an OFF_CYCLE run pays the entry.
+ *
+ * PH also runs at a semi-monthly company: the first half is paid, and the off-cycle run in the second half settles
+ * the remaining half early; a PAY_PERIOD scheme (WTAX) bills the half the way a month scheme bills the month.
  *
  * Every scheme's employee and employer figure for the month, the tax, gross, net and employer cost, and the
  * company's remittances and company-assessed charges are identical to the cent in all three; the entry is paid
  * once and the salary once; the REGULAR run of (b) pays the person nothing. A colleague paid only by the REGULAR
- * run is identical too. A lineage whose law prices a payment on its own (a per-payment withholding) is listed in
- * `PER_PAYMENT` with its citation, and the test asserts exactly that documented difference instead.
+ * run is identical too. No lineage needs a documented difference: every scheme is one bill of its period.
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -156,23 +158,28 @@ const SG_MEDICAL = {
 	solely_aesthetic: false
 };
 
-/**
- * Where the law prices a payment on its own, so the month cannot be one bill for that scheme: the documented
- * difference is asserted in place of identity. `lineage:entry` → scheme codes and the citation.
- */
-const PER_PAYMENT = {};
-
 const REQUEST_ID = 'd0000000-0000-4000-8000-0000000ff001';
 
-function world(code, wage) {
+/**
+ * The cadences the gate pays: every lineage's monthly company, and PH at a semi-monthly one, where the off-cycle
+ * run in the second half settles the remaining half early (owner Rule 2) and the first half is already paid.
+ */
+const CADENCES = [
+	...LINEAGES.map((code) => ({ code, name: code, period: PERIOD, semi: false })),
+	{ code: 'PH', name: 'PH semi-monthly', period: '2026-03-2', semi: true }
+];
+
+function world(code, wage, semi = false) {
 	const setup = SETUP[code];
+	const cadence = semi ? { pay_frequency: 'SEMI_MONTHLY' } : {};
 	const tables = createStatutoryWorld({
 		code,
 		period: PERIOD,
 		...setup.world,
+		...(semi ? { payFrequency: 'SEMI_MONTHLY' } : {}),
 		people: [
-			{ key: 'P', wage, ...setup.person?.(wage) },
-			{ key: 'OTHER', wage: setup.wages[1], ...setup.person?.(setup.wages[1]) }
+			{ key: 'P', wage, ...cadence, ...setup.person?.(wage) },
+			{ key: 'OTHER', wage: setup.wages[1], ...cadence, ...setup.person?.(setup.wages[1]) }
 		]
 	});
 	if (setup.terms != null)
@@ -181,7 +188,7 @@ function world(code, wage) {
 }
 
 /** The selected entry, filed as the product files it: an approved, unsettled request paid in March. */
-function addEntry(tables, code, kind, wage) {
+function addEntry(tables, code, kind, wage, period = PERIOD) {
 	const catalogue = kind === 'claim' ? claimCatalogue(code) : adhocCatalogue(code);
 	const settingsId = settingsIdOn(code, EVENT);
 	const row = catalogue.find(
@@ -194,7 +201,7 @@ function addEntry(tables, code, kind, wage) {
 		employment_id: tables.employments[0].id,
 		catalogue_id: row.id,
 		amount,
-		pay_period: PERIOD,
+		pay_period: period,
 		payslip_id: null,
 		evidence_file: null,
 		as_adjustment_entry: false,
@@ -224,11 +231,11 @@ function addEntry(tables, code, kind, wage) {
 }
 
 /** One `payroll_runs.create` through the transform, stored the way the database would hold it. */
-async function run(tables, kind = 'REGULAR', sources = []) {
+async function run(tables, kind = 'REGULAR', sources = [], period = PERIOD, now = NOW) {
 	const [payload] = await runTransform(
 		payrollRuns,
-		[{ company_id: COMPANY_ID, period: PERIOD, kind, ...(sources.length > 0 ? { sources } : {}) }],
-		{ tables, now: NOW }
+		[{ company_id: COMPANY_ID, period, kind, ...(sources.length > 0 ? { sources } : {}) }],
+		{ tables, now }
 	);
 	storeRun(tables, payload);
 	return payload;
@@ -296,71 +303,87 @@ const flat = (side) =>
 		])
 	);
 
-for (const code of LINEAGES)
+/** A run's slips filed as paid on its pay date, the way the payslip write records a payment. */
+function pay(tables, payload) {
+	for (const slip of payload.payslips?.create ?? []) {
+		const stored = tables.payslips.find((row) => row.id === slip.id);
+		stored.status = 'PAID';
+		stored.paid_at = `${payload.pay_date}T00:00:00.000Z`;
+	}
+}
+
+for (const { code, name, period, semi } of CADENCES)
 	for (const kind of Object.keys(SETUP[code].entries).filter(
 		(entry) => SETUP[code].entries[entry] != null
 	))
 		for (const [index, wage] of SETUP[code].wages.entries())
-			test(`${code} × ${kind} ${SETUP[code].entries[kind]} × ${['low', 'middle', 'high'][index]} wage ${wage}: combined, early and after orderings pay one identical month`, async () => {
+			test(`${name} × ${kind} ${SETUP[code].entries[kind]} × ${['low', 'middle', 'high'][index]} wage ${wage}: combined, early and after orderings pay one identical month`, async () => {
+				/** A fresh world; at a semi-monthly company the first half is run and paid first. */
+				const start = async () => {
+					const tables = world(code, wage, semi);
+					if (semi) pay(tables, await run(tables, 'REGULAR', [], '2026-03-1'));
+					return tables;
+				};
 				// (a) one REGULAR run pays the salary and the entry.
-				const combined = world(code, wage);
-				const amount = addEntry(combined, code, kind, wage);
-				await run(combined);
+				const combined = await start();
+				const amount = addEntry(combined, code, kind, wage, period);
+				const combinedRun = await run(combined, 'REGULAR', [], period);
 
 				// (b) the off-cycle run first: it settles the salary early in the same act, then the REGULAR run.
-				const early = world(code, wage);
-				addEntry(early, code, kind, wage);
-				const offCycle = await run(early, 'OFF_CYCLE', [REQUEST_ID]);
+				const early = await start();
+				addEntry(early, code, kind, wage, period);
+				const offCycle = await run(early, 'OFF_CYCLE', [REQUEST_ID], period);
 				const settlement = offCycle.early_settlements?.create ?? [];
 				assert.equal(settlement.length, 1, 'the off-cycle run writes one EARLY run beside it');
 				assert.equal(settlement[0].kind, 'EARLY');
+				assert.equal(settlement[0].period, period, 'the remaining pay period is settled early');
 				assert.equal(settlement[0].sequence, offCycle.sequence - 1);
 				assert.deepEqual(employees(settlement[0]), [early.employments[0].id]);
 				assert.deepEqual(employees(offCycle), [early.employments[0].id]);
 				assert.equal(
 					settlement[0].pay_date,
-					combined.payroll_runs[0].pay_date,
+					combinedRun.pay_date,
 					'the early salary keeps the regular pay date'
 				);
-				const regularAfterEarly = await run(early);
+				const regularAfterEarly = await run(early, 'REGULAR', [], period);
 				assert.deepEqual(
 					employees(regularAfterEarly),
 					[early.employments[1].id],
 					'the REGULAR run skips the person the EARLY run settled'
 				);
 
-				// (c) the REGULAR run, then the off-cycle run: the salary is settled, so nothing is settled early.
-				const after = world(code, wage);
-				await run(after);
-				addEntry(after, code, kind, wage);
-				const late = await run(after, 'OFF_CYCLE', [REQUEST_ID]);
+				// (c) the REGULAR run, paid, then the off-cycle run: the salary is settled and is history now,
+				// so nothing is settled early and the paid slip is not counted twice.
+				const after = await start();
+				pay(after, await run(after, 'REGULAR', [], period));
+				addEntry(after, code, kind, wage, period);
+				const late = await run(after, 'OFF_CYCLE', [REQUEST_ID], period);
 				assert.equal(late.early_settlements, undefined);
 
 				const [a, b, c] = [month(combined), month(early), month(after)];
-				const documented = PER_PAYMENT[`${code}:${kind}`];
 				for (const [label, other] of [
 					['early', b],
 					['after', c]
 				]) {
-					const mine = flat(a.subject);
-					const theirs = flat(other.subject);
-					for (const scheme of documented?.schemes ?? []) {
-						for (const share of ['employee', 'employer']) {
-							delete mine[`${scheme}.${share}`];
-							delete theirs[`${scheme}.${share}`];
-						}
-					}
-					assert.deepEqual(theirs, mine, `${label}: every scheme of the month, to the cent`);
-					if (documented == null)
-						assert.deepEqual(
-							{ net: other.subject.net, deductions: other.subject.deductions },
-							{ net: a.subject.net, deductions: a.subject.deductions },
-							`${label}: the month's net and deductions`
-						);
 					assert.deepEqual(
-						{ gross: other.subject.gross, employerCost: other.subject.employerCost },
-						{ gross: a.subject.gross, employerCost: a.subject.employerCost },
-						`${label}: the month's gross and employer cost`
+						flat(other.subject),
+						flat(a.subject),
+						`${label}: every scheme of the month, tax included, to the cent`
+					);
+					assert.deepEqual(
+						{
+							gross: other.subject.gross,
+							net: other.subject.net,
+							deductions: other.subject.deductions,
+							employerCost: other.subject.employerCost
+						},
+						{
+							gross: a.subject.gross,
+							net: a.subject.net,
+							deductions: a.subject.deductions,
+							employerCost: a.subject.employerCost
+						},
+						`${label}: the month's gross, net, deductions and employer cost`
 					);
 					assert.equal(other.subject.salary, a.subject.salary, `${label}: the salary, once`);
 					assert.deepEqual(other.subject.entryLines, a.subject.entryLines, `${label}: the entry, once`);
@@ -370,7 +393,6 @@ for (const code of LINEAGES)
 				assert.equal(a.subject.entryLines.length, 1, 'the combined run pays the entry once');
 				if (!COMPUTED.test(SETUP[code].entries[kind]))
 					assert.deepEqual(a.subject.entryLines, [amount]);
-				documented?.assert?.(a, b, c);
 			});
 
 // ── Settled means locked, and the off-cycle entry rules ──
@@ -507,6 +529,30 @@ test("a leaver's separation payment is refused off-cycle: it goes in the FINAL r
 	);
 });
 
+test("a leaver's month is settled by their FINAL run, never early: the off-cycle run waits for it", async () => {
+	const tables = createStatutoryWorld({
+		code: 'MY',
+		period: PERIOD,
+		people: [
+			{ key: 'P', wage: 6_000, exit_date: '2026-03-20', exit_ground: 'RESIGNATION' },
+			{ key: 'OTHER', wage: 6_000 }
+		]
+	});
+	request(tables, adhocRow('MY', 'BONUS').id);
+	await assert.rejects(
+		run(tables, 'OFF_CYCLE', [REQUEST_ID]),
+		/P leaves in 2026-03: run their FINAL run first/
+	);
+	// The FINAL run pays what is due in the month, so the bonus is recorded after it here.
+	tables.adhoc_requests.length = 0;
+	const final = await run(tables, 'FINAL');
+	assert.deepEqual(employees(final), [tables.employments[0].id]);
+	request(tables, adhocRow('MY', 'BONUS').id);
+	const offCycle = await run(tables, 'OFF_CYCLE', [REQUEST_ID]);
+	assert.equal(offCycle.early_settlements, undefined);
+	assert.deepEqual(employees(offCycle), [tables.employments[0].id]);
+});
+
 test('a weekly company runs off-cycle only after the month’s last weekly run', async () => {
 	const tables = createStatutoryWorld({
 		code: 'MY',
@@ -546,4 +592,30 @@ test('an early settlement warns that overtime still to be worked is pushed into 
 		{ tables: closed, now: '2026-03-24T02:00:00.000Z' }
 	);
 	assert.doesNotMatch(late.early_settlements.create[0].warnings, /EARLY_SETTLEMENT_OVERTIME/);
+});
+
+test('PH semi-monthly: ₱200,000 bonus on ₱40,000 withholds the same WTAX in every ordering (RR 2-98 s.2.79(B)(3))', async () => {
+	// The second half's regular and supplementary compensation are one payroll period's: the off-cycle slip is
+	// withheld bill(half + bonus) − bill(half). Withheld on the bonus alone it was 27,389.00 for the month.
+	const wtax = async (order) => {
+		// The earlier figures' setting: both halves' slips still unpaid (the gate above pays them).
+		const tables = world('PH', 40_000, true);
+		await run(tables, 'REGULAR', [], '2026-03-1');
+		const add = () =>
+			request(tables, adhocRow('PH', 'bonus').id, { amount: 200_000, pay_period: '2026-03-2' });
+		if (order === 'combined') {
+			add();
+			await run(tables, 'REGULAR', [], '2026-03-2');
+		} else if (order === 'early') {
+			add();
+			await run(tables, 'OFF_CYCLE', [REQUEST_ID], '2026-03-2');
+			await run(tables, 'REGULAR', [], '2026-03-2');
+		} else {
+			await run(tables, 'REGULAR', [], '2026-03-2');
+			add();
+			await run(tables, 'OFF_CYCLE', [REQUEST_ID], '2026-03-2');
+		}
+		return month(tables).subject.schemes.WTAX.employee;
+	};
+	for (const order of ['combined', 'early', 'after']) assert.equal(await wtax(order), 31_784.9, order);
 });

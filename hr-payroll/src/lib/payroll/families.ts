@@ -711,6 +711,7 @@ function monthPriorOf(options: {
 		string,
 		{
 			accumulations: AccumulatedPayslip[];
+			earned: Map<string, number>;
 			charged: Map<
 				string,
 				{
@@ -727,9 +728,15 @@ function monthPriorOf(options: {
 		const period = options.periodByRun.get(payslip.payroll_run_id);
 		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
 		if (period == null || employeeId == null) continue;
-		const key = `${employeeId}:${period.slice(0, 7)}`;
+		// The month, and at a finer cadence the pay period itself (`YYYY-MM-2`): a PAY_PERIOD scheme
+		// bills the period as the month's schemes bill the month.
+		for (const key of new Set([`${employeeId}:${period.slice(0, 7)}`, `${employeeId}:${period}`]))
+			addPrior(key, payslip);
+	}
+	function addPrior(key: string, payslip: WorkspaceRow<'payslips'>) {
 		const entry = parts.get(key) ?? {
 			accumulations: [] as AccumulatedPayslip[],
+			earned: new Map<string, number>(),
 			charged: new Map<
 				string,
 				{
@@ -742,6 +749,8 @@ function monthPriorOf(options: {
 			>()
 		};
 		entry.accumulations.push(accumulateSettledPayslip(payslip, componentsByCode));
+		for (const [code, amount] of earnedLines(payslip))
+			entry.earned.set(code, (entry.earned.get(code) ?? 0) + amount);
 		for (const charge of payslip.statutory) {
 			const running = entry.charged.get(charge.scheme_code) ?? {
 				employee: 0,
@@ -763,7 +772,11 @@ function monthPriorOf(options: {
 	return new Map(
 		[...parts].map(([key, entry]) => [
 			key,
-			{ accumulation: sumAccumulations(entry.accumulations), charged: entry.charged }
+			{
+				accumulation: sumAccumulations(entry.accumulations),
+				earned: entry.earned,
+				charged: entry.charged
+			}
 		])
 	);
 }
@@ -859,18 +872,27 @@ function earnedYearToDate(options: {
 		const employeeId = options.employmentToEmployee.get(payslip.employment_id);
 		if (employeeId == null) continue;
 		const byCode = earned.get(employeeId) ?? new Map<string, number>();
-		for (const line of payslip.base)
-			byCode.set(line.component_code, (byCode.get(line.component_code) ?? 0) + line.amount);
-		for (const line of payslip.adjustments)
-			if (line.bucket === 'EARNING' || line.bucket === 'NON_WAGE_PAYMENT')
-				byCode.set(line.component_code, (byCode.get(line.component_code) ?? 0) + line.amount);
-			// Every unpaid day, absence or no-pay leave, under the reserved name: `BASIC - ABSENCE`
-			// is the basic actually earned (PH PD 851: a 13th month is a twelfth of it).
-			else if (line.bucket === 'ABSENCE')
-				byCode.set(ABSENCE, (byCode.get(ABSENCE) ?? 0) + line.amount);
+		for (const [code, amount] of earnedLines(payslip))
+			byCode.set(code, (byCode.get(code) ?? 0) + amount);
 		earned.set(employeeId, byCode);
 	}
 	return earned;
+}
+
+/** What one payslip earned, as `year.earned` counts it. */
+function earnedLines(payslip: WorkspaceRow<'payslips'>): [string, number][] {
+	return [
+		...payslip.base.map((line): [string, number] => [line.component_code, line.amount]),
+		...payslip.adjustments.flatMap((line): [string, number][] =>
+			line.bucket === 'EARNING' || line.bucket === 'NON_WAGE_PAYMENT'
+				? [[line.component_code, line.amount]]
+				: // Every unpaid day, absence or no-pay leave, under the reserved name: `BASIC - ABSENCE`
+					// is the basic actually earned (PH PD 851: a 13th month is a twelfth of it).
+					line.bucket === 'ABSENCE'
+					? [[ABSENCE, line.amount]]
+					: []
+		)
+	];
 }
 
 const ABSENCE = 'ABSENCE';
@@ -1301,6 +1323,10 @@ export function calculateFamilyAssessments(options: {
 				monthPrior: gathered.monthPrior.get(
 					`${run.measured.bundle.employment.employee_id}:${period.slice(0, 7)}`
 				),
+				periodPrior:
+					period === period.slice(0, 7)
+						? undefined
+						: gathered.monthPrior.get(`${run.measured.bundle.employment.employee_id}:${period}`),
 				history: run.measured.bundle.history,
 				company: gathered.company
 			})

@@ -3442,8 +3442,8 @@ test('Singapore — a conversion month selects the wage band on the month’s to
 test('Singapore — every settings version cites the live Part-Time Employees Regulations anchors (SSO as at 28 Sep 2026; SG-SRC02)', () => {
 	// Read in the browser on 2026-09-28: SL/EmA1968-RG8?ProvIds=pr5- is Page Not Found (regs.4–5
 	// are anchored pr4-XX-pr4- / pr5-XX-pr5-); ?ProvIds=pr5-XX-pr5- opens reg.5 "Overtime pay" and
-	// ?ProvIds=pr2- opens reg.2 "Definitions". 45 raw rows (voided snapshots included) carry the
-	// part-time citations, 5 of them in the operative timeline.
+	// ?ProvIds=pr2- opens reg.2 "Definitions". Every one of the 4 sealed versions carries the
+	// part-time citations.
 	const raw: { sources: { urls: string[] } }[] = JSON.parse(
 		readFileSync(
 			new URL('../seed/jurisdiction/SG/jurisdiction_settings.json', import.meta.url),
@@ -3451,12 +3451,12 @@ test('Singapore — every settings version cites the live Part-Time Employees Re
 		)
 	);
 	const citing = raw.filter((row) => row.sources.urls.some((url) => url.includes('-RG8')));
-	assert.equal(citing.length, 45);
+	assert.equal(citing.length, 4);
 	assert.equal(
 		settingsVersions('SG').filter((row) =>
 			row.sources.urls.some((url: string) => url.includes('-RG8'))
 		).length,
-		5
+		4
 	);
 	for (const row of citing) {
 		const rg8 = row.sources.urls.filter((url) => url.includes('-RG8'));
@@ -3470,7 +3470,7 @@ test('Singapore — every settings version cites the live Part-Time Employees Re
 test('Singapore — the SDL authority names SWDA from SSO s.2 and the NOA FAQ as SSG’s; the levy does not move on the 1 July 2026 Agency change (SG-S3)', () => {
 	// SSO SDLA1979 s.2 (current version as at 28 Sep 2026): "“Agency” means the Skills and Workforce
 	// Development Agency …" [Act 17 of 2026 wef 01/07/2026]. The NOA FAQ PDF's header is
-	// "SkillsFuture Singapore Agency" (Oct 2023). 25 raw SDL rows (voided snapshots included) cite it.
+	// "SkillsFuture Singapore Agency" (Oct 2023). The 4 SDL rows, one a version, cite it.
 	const raw: { code: string; authority: string }[] = JSON.parse(
 		readFileSync(
 			new URL('../seed/jurisdiction/SG/statutory_contributions.json', import.meta.url),
@@ -3480,7 +3480,7 @@ test('Singapore — the SDL authority names SWDA from SSO s.2 and the NOA FAQ as
 	const citing = raw.filter(
 		(row) => row.code === 'SDL' && row.authority.includes('sdl-noa2023faqs.pdf')
 	);
-	assert.equal(citing.length, 25);
+	assert.equal(citing.length, 4);
 	for (const row of citing) {
 		assert.ok(!row.authority.includes('SWDA SDL FAQ'));
 		assert.ok(

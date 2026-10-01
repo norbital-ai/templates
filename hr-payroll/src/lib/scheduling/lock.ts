@@ -94,7 +94,10 @@ export function lockStateForDate(
 ): DayLock {
 	// The runs of one period share a window (REGULAR, EARLY, OFF_CYCLE…): any that settled the person locks it.
 	const covering = windows.filter((window) => date >= window.start && date <= window.end);
-	const settled = covering.find((window) => window.settledFor.has(employmentId));
+	// An early settlement says where the change goes (the next period), so it answers first.
+	const settled =
+		covering.find((window) => window.early === true && window.settledFor.has(employmentId)) ??
+		covering.find((window) => window.settledFor.has(employmentId));
 	if (settled != null)
 		return {
 			kind: 'SETTLED',

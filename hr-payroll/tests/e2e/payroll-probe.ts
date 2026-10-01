@@ -50,8 +50,10 @@
  *     refused exit or terms change is a `refused` update.
  *
  * Several periods (capability plan H1): `history` runs before the event run, in order. Each step creates its own
- * `inputs`, runs its period, pays every slip of it (`PAID` at the run's pay date; `paid: false` leaves them unpaid)
- * and may pin its slips with `expected`. `event` inputs are created after the history, before the event run. Runs
+ * `inputs`, runs its period (a `kind` and `sources` make it an OFF_CYCLE or CORRECTION run), pays every slip of it
+ * (`PAID` at the run's pay date; `paid: false` leaves them unpaid) and may pin its slips with `expected`, and the
+ * slips of the EARLY run an OFF_CYCLE run writes beside it with `early`. `absent` names employments the event run
+ * must not pay. `event` inputs are created after the history, before the event run. Runs
  * are refs: `'@run:<period>'` for a history run, `'@run'` for the event run.
  *
  * Beyond the payslip (owner decision 2026-09-30: a saved refusal, duty instance or generated file counts as the
@@ -104,10 +106,16 @@ export type ProbeInput = {
 };
 export type ProbeHistoryRun = {
 	period: string;
+	/** The run kind; REGULAR when omitted. */
+	kind?: string;
+	/** OFF_CYCLE and CORRECTION: the selected requests, as `'@<ref>'`. */
+	sources?: readonly string[];
 	inputs?: readonly ProbeInput[];
 	/** false leaves the run's slips unpaid */
 	paid?: boolean;
 	expected?: readonly ProbeExpectation[];
+	/** The slips of the EARLY run an OFF_CYCLE run wrote beside it (its salary settled early); left unpaid. */
+	early?: readonly ProbeExpectation[];
 };
 /** The saved rows of `collection` matching `where`: exactly `rows`, each compared on the fields it lists. */
 export type SavedExpectation = { collection: string; where: Row; rows: readonly Row[] };
@@ -146,6 +154,8 @@ export type ProbeCase = {
 	exits?: readonly string[];
 	/** Run the `obligation_calendar` sweep before `saved`; default: `saved` pins `obligation_instances` */
 	sweep?: boolean;
+	/** Employment refs the event run must pay nothing (settled earlier in the period) */
+	absent?: readonly string[];
 };
 
 export const PROFILES = [
@@ -536,13 +546,23 @@ export async function runCase(host: Host, probe: ProbeCase) {
 	await apply(probe.inputs, 'case');
 	for (const step of probe.history ?? []) {
 		await apply(step.inputs ?? [], step.period);
-		const [saved] = await host
-			.act('payroll_runs.create', {
-				company_id: ids.get('company')!,
-				period: step.period
+		await host.act('payroll_runs.create', {
+			company_id: ids.get('company')!,
+			period: step.period,
+			...(step.kind === undefined ? {} : { kind: step.kind }),
+			...(step.sources === undefined ? {} : { sources: (await resolve([...step.sources])) as Json })
+		});
+		// The act may write more than one run (an OFF_CYCLE run's EARLY one): the step's is the latest of its kind.
+		const runId = (
+			await host.read('payroll_runs', {
+				where: {
+					company_id: { eq: ids.get('company')! },
+					period: { eq: step.period },
+					kind: { eq: step.kind ?? 'REGULAR' }
+				},
+				select: { id: true, sequence: true }
 			})
-			.then((records) => records.filter((r) => r.collection === 'payroll_runs'));
-		const runId = saved!.id as string;
+		).toSorted((a, b) => Number(b.sequence) - Number(a.sequence))[0]!.id as string;
 		ids.set(`run:${step.period}`, runId);
 		const slips = await host.read('payslips', {
 			where: { payroll_run_id: { eq: runId } },
@@ -561,6 +581,17 @@ export async function runCase(host: Host, probe: ProbeCase) {
 				});
 		}
 		results.push(...judgeSlips(slips, step.expected ?? [], `${step.period} `));
+		if (step.early !== undefined) {
+			const early = await host.read('payroll_runs', {
+				where: { early_for_id: { eq: runId } },
+				select: { id: true, kind: true }
+			});
+			const earlySlips = await host.read('payslips', {
+				where: { payroll_run_id: { in: early.map((run) => run.id as string) } },
+				select: SLIP_FIELDS
+			});
+			results.push(...judgeSlips(earlySlips, step.early, `${step.period} EARLY `));
+		}
 	}
 	await apply(probe.event ?? [], 'event');
 	if (probe.exits !== undefined)
@@ -624,6 +655,14 @@ export async function runCase(host: Host, probe: ProbeCase) {
 			select: SLIP_FIELDS
 		});
 		results.push(...judgeSlips(slips, probe.expected));
+		for (const ref of probe.absent ?? [])
+			results.push({
+				employment: `${ref} (absent)`,
+				actual: slips.map((slip) => slip.employment_id),
+				differences: slips.some((slip) => slip.employment_id === ids.get(ref))
+					? [`the event run paid ${ref}, whom an earlier run of the period settled`]
+					: []
+			});
 	}
 
 	if (

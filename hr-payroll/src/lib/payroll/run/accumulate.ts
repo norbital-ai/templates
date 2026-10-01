@@ -326,6 +326,8 @@ export function catalogueWords(
  */
 export type MonthPrior = {
 	readonly accumulation: AccumulatedPayslip;
+	/** component code → what these payslips earned, as `year.earned` counts it (`ABSENCE` the unpaid days). */
+	readonly earned?: ReadonlyMap<string, number> | undefined;
 	/** Ordinary charges and base. */
 	readonly charged: ReadonlyMap<
 		string,

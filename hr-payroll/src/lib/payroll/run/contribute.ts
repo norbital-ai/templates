@@ -305,6 +305,8 @@ type SchemeAssessment = {
 		{ readonly short?: number | null; readonly long?: number | null } | undefined;
 	/** The month's earlier instalments (semi-monthly, weekly): a MONTH scheme prices the month on their sum. */
 	readonly monthPrior?: MonthPrior | undefined;
+	/** This pay period's earlier payslips at a finer cadence: a PAY_PERIOD scheme prices the period on their sum. */
+	readonly periodPrior?: MonthPrior | undefined;
 	readonly monthlyContributionDays?:
 		| {
 				readonly employed: number;
@@ -1298,6 +1300,45 @@ function scaleAccumulation(input: AccumulatedPayslip, factor: number): Accumulat
 	};
 }
 
+/**
+ * A pay period priced with its earlier payslips (an off-cycle payment beside a half's salary): the year so far, the
+ * year's earnings and the month's earnings stop before them, because the bill counts them itself.
+ */
+function periodAssessment(input: SchemeAssessment): SchemeAssessment {
+	const prior = input.periodPrior;
+	if (prior == null) return input;
+	const less = (earned: ReadonlyMap<string, number>) =>
+		new Map([...earned].map(([code, amount]) => [code, amount - (prior.earned?.get(code) ?? 0)]));
+	const month = input.period.key.slice(0, 7);
+	return {
+		...input,
+		yearToDate: (code) => {
+			const year = input.yearToDate(code);
+			const charged = prior.charged.get(code);
+			return {
+				employee: year.employee - (charged?.employee ?? 0),
+				employer: year.employer - (charged?.employer ?? 0),
+				base: year.base - (charged?.base ?? 0),
+				ordinary: (year.ordinary ?? 0) - (charged?.ordinary ?? 0),
+				rebate: (year.rebate ?? 0) - (charged?.rebate ?? 0)
+			};
+		},
+		yearEarned: less(input.yearEarned),
+		yearQuantityPayments: new Map(
+			[...(input.yearQuantityPayments ?? [])].map(([code, payments]) => [
+				code,
+				payments.filter((payment) => payment.period !== input.period.key)
+			])
+		),
+		earnedByMonth: new Map(
+			[...(input.earnedByMonth ?? [])].map(([key, earned]) => [
+				key,
+				key === month ? less(earned) : earned
+			])
+		)
+	};
+}
+
 /** A monthly assessment reads history through the preceding month and projects whole months. */
 function monthlyAssessment(input: SchemeAssessment): SchemeAssessment {
 	const month = input.period.key.slice(0, 7);
@@ -1440,6 +1481,15 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 					!contribution.row.rules.some((rule) => rule.per_unit);
 		/** The scheme reads the month's wage: its own MONTH assessment, or a pay period that is the month. */
 		const monthBase = contribution.row.assessment_period !== 'PAY_PERIOD' || monthlyAssessed;
+		// At a finer cadence the pay period is the half or the week: a PAY_PERIOD scheme bills it the same way,
+		// `bill(period so far + this payslip) − bill(period so far)` (PH RR 2-98 s.2.79(B)(3)).
+		const periodBilled =
+			contribution.row.assessment_period === 'PAY_PERIOD' &&
+			input.period.instalments > 1 &&
+			input.periodPrior != null &&
+			!contribution.row.rules.some((rule) => rule.per_unit);
+		/** The scheme reads earlier payslips' wages with this one's. */
+		const pooled = monthBase || periodBilled;
 		const actualMonth = contribution.row.assessment_period === 'MONTH_TO_DATE';
 		const finalEmploymentPeriod =
 			input.person.employment.exit_date !== '' &&
@@ -1465,8 +1515,11 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			(input.period.monthlyOn === 'LAST' || finalEmploymentPeriod);
 		const deferred =
 			pricingMonth && !finalEmploymentPeriod && input.period.index < input.period.instalments;
-		const schemeInput =
-			monthBase ? monthlyAssessment(input) : input;
+		const schemeInput = periodBilled
+			? periodAssessment(input)
+			: monthBase
+				? monthlyAssessment(input)
+				: input;
 		// Actual receipts include premiums charged so far, not the full monthly estimate of a
 		// producer whose employer share is split across cut-offs. Keep its assessed base intact.
 		const schemeProduced =
@@ -1487,7 +1540,21 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 					)
 				: monthlyAssessed
 					? monthlyProduced
-					: produced;
+					: periodBilled
+						? new Map(
+								[...produced].map(([producerCode, value]) => {
+									const prior = input.periodPrior?.charged.get(producerCode);
+									return [
+										producerCode,
+										{
+											...value,
+											employee: value.employee + (prior?.employee ?? 0),
+											employer: value.employer + (prior?.employer ?? 0)
+										}
+									];
+								})
+							)
+						: produced;
 		const reliefs = reliefReads({
 			input: schemeInput,
 			contribution,
@@ -1503,7 +1570,8 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 		});
 		// The wage a month scheme reads: the month's instalments summed where the month is priced
 		// on what was paid, this instalment alone otherwise; and the month is then one period.
-		const monthPrior = truingUp || pricingMonth ? input.monthPrior : undefined;
+		const monthPrior =
+			truingUp || pricingMonth ? input.monthPrior : periodBilled ? input.periodPrior : undefined;
 		const scale = estimating ? (input.period.monthFactor ?? input.period.instalments) : 1;
 		const accumulation =
 			monthPrior == null
@@ -1511,7 +1579,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 				: sumAccumulations([monthPrior.accumulation, input.accumulation]);
 		const schemeEngine = engineFor(
 			schemeInput,
-			monthBase ? accumulation : input.accumulation,
+			pooled ? accumulation : input.accumulation,
 			contribution.row.id
 		);
 		const share = deferred
@@ -1519,7 +1587,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 			: estimating && input.period.monthlyOn === 'SPLIT'
 				? 1 / input.period.instalments
 				: 1;
-		const already = truingUp || pricingMonth ? monthPrior?.charged.get(code) : undefined;
+		const already = monthPrior?.charged.get(code);
 		const evaluated = assessedBase({
 			input: schemeInput,
 			contribution,
@@ -1928,7 +1996,7 @@ export function contribute(input: ContributeInput): ContributionCharge[] {
 								};
 								const engine = engineFor(
 									standingInput,
-									monthBase ? accumulation : input.accumulation,
+									pooled ? accumulation : input.accumulation,
 									contribution.row.id
 								);
 								const ownBase = assessedBase({

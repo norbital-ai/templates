@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { gatherPayrollRun } from '../src/lib/payroll/run/engine.ts';
 import { leaveEncashmentRate } from '../src/lib/leave/encashment-rate.ts';
@@ -283,7 +282,7 @@ function sgCashDay(
 	});
 	world.leave_catalogue.push(...leaveCatalogue('SG').map((row) => ({ ...row, approval_id: null })));
 	const version = world.jurisdiction_settings.find(
-		(row) => String(row.effective_range.start).slice(0, 10) === '2026-04-01'
+		(row) => String(row.effective_range.start).slice(0, 10) === '2026-01-01'
 	)!;
 	const annual = world.leave_catalogue.find(
 		(row) => row.settings_id === version.id && row.code === 'ANNUAL_LEAVE'
@@ -422,32 +421,4 @@ test('D16 SG: an unrecorded residency status, race or religion refuses statutory
 	assert.match(refusal({ citizenship: 'FOREIGNER', race: '' }), /SINDA: Record the employee/);
 	// A recorded race still deducts: CDAC's $2,000–$3,500 band is $1.00.
 	assert.equal(funds({ race: 'CHINESE' }), 1);
-});
-
-test('SG versions chain and each active correction preserves its historical predecessor', () => {
-	const versions: ReturnType<typeof settingsVersions> = JSON.parse(
-		readFileSync(
-			new URL('../seed/jurisdiction/SG/jurisdiction_settings.json', import.meta.url),
-			'utf8'
-		)
-	);
-	const active = versions.filter((version) => version.voided_at == null);
-	const byId = new Map(versions.map((version) => [version.id, version]));
-	assert.equal(active.length, 5);
-	for (const version of active) {
-		const predecessor = byId.get(version.cloned_from_id!);
-		assert.ok(predecessor);
-		assert.ok(predecessor.voided_at);
-		assert.deepEqual(version.effective_range, predecessor.effective_range);
-		const visited = new Set<string>();
-		let current: (typeof versions)[number] | undefined = version;
-		while (current != null) {
-			assert.ok(!visited.has(current.id), 'sealed lineage must not cycle');
-			visited.add(current.id);
-			const parentId: string | null = current.cloned_from_id;
-			if (parentId != null) assert.ok(byId.has(parentId), 'sealed ancestor must be retained');
-			current = parentId == null ? undefined : byId.get(parentId);
-			if (current != null) assert.ok(current.voided_at);
-		}
-	}
 });

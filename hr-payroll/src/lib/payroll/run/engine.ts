@@ -130,6 +130,12 @@ export type PreparedRun = {
 
 type Bundle = GatheredRun['bundles'][number];
 
+/** Whether the employment's exit falls inside its salary window: a FINAL run settles it. */
+const exitsInWindow = (bundle: Bundle): boolean => {
+	const exit = employmentDates(bundle.employment).exit;
+	return exit != null && exit >= bundle.window.salary.start && exit <= bundle.window.salary.end;
+};
+
 /** Whether a REGULAR run would settle wages for this bundle: a salary window, a deferral or arrears. */
 const settlesSalary = (bundle: Bundle): boolean =>
 	bundle.employedDays != null || bundle.deferral != null || bundle.arrearsFor != null;
@@ -160,15 +166,9 @@ function population(options: {
 	const { kind, bundles, settledHere } = options;
 	if (kind === 'REGULAR') return bundles.filter((b) => !settledHere.has(b.employment.id));
 	if (kind === 'FINAL') {
-		const leaving = bundles.filter((bundle) => {
-			const exit = employmentDates(bundle.employment).exit;
-			return (
-				!settledHere.has(bundle.employment.id) &&
-				exit != null &&
-				exit >= bundle.window.salary.start &&
-				exit <= bundle.window.salary.end
-			);
-		});
+		const leaving = bundles.filter(
+			(bundle) => !settledHere.has(bundle.employment.id) && exitsInWindow(bundle)
+		);
 		if (leaving.length === 0)
 			refuse(`No employment exits in ${options.period} that a run has not already settled.`);
 		return leaving;
@@ -185,8 +185,9 @@ function population(options: {
 		settlesSalary(bundle) &&
 		!settledHere.has(bundle.employment.id) &&
 		bundle.payRequests.some((request) => selected.has(request.id) && outstanding.has(request.id));
+	// A leaver's salary is settled by their FINAL run, which also pays what only a leaver is owed.
 	if (kind === 'EARLY')
-		return bundles.filter(unsettled).map((bundle) => ({
+		return bundles.filter((bundle) => unsettled(bundle) && !exitsInWindow(bundle)).map((bundle) => ({
 			...bundle,
 			payRequests: bundle.payRequests.filter((request) => !selected.has(request.id))
 		}));
@@ -200,6 +201,7 @@ function population(options: {
 		// A leaver's separation payment is final pay: it settles with the leaver's last salary.
 		const exit = employmentDates(request.bundle.employment).exit;
 		if (
+			kind === 'OFF_CYCLE' &&
 			'raised_by' in request.catalogueComponent &&
 			request.catalogueComponent.raised_by === 'SEPARATION' &&
 			exit != null &&
@@ -213,8 +215,11 @@ function population(options: {
 	if (kind === 'OFF_CYCLE')
 		for (const bundle of bundles.filter(unsettled))
 			refuse(
-				`${bundle.employment.employee_number}: ${options.period} salary is not settled yet. Settle it first ` +
-					'(an EARLY run), so the off-cycle payment is priced on the real month.'
+				exitsInWindow(bundle)
+					? `${bundle.employment.employee_number} leaves in ${options.period}: run their FINAL run first, then ` +
+							'the off-cycle run, so the off-cycle payment is priced on their final month.'
+					: `${bundle.employment.employee_number}: ${options.period} salary is not settled yet. Settle it first ` +
+							'(an EARLY run), so the off-cycle payment is priced on the real month.'
 			);
 	return bundles.flatMap((bundle) => {
 		const payRequests = bundle.payRequests
@@ -255,7 +260,7 @@ export function gatherPayrollRun(options: {
 	if (fault != null) refuse(fault);
 	// A weekly month is settled week by week, so no single run settles a person's month early: the
 	// off-cycle payment waits until the month's pay is whole (owner default).
-	if (kind === 'OFF_CYCLE' && company.pay_frequency === 'WEEKLY') {
+	if ((kind === 'OFF_CYCLE' || kind === 'EARLY') && company.pay_frequency === 'WEEKLY') {
 		const last = `${period.slice(0, 7)}-${weeklyInstalments(period).length}`;
 		if (
 			!world.payroll_runs.some(
@@ -583,7 +588,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		// same run to come out of, so its statutory and net would be priced on a negative payment.
 		const buckets = measured.adjustments.map((line) => line.bucket);
 		if (
-			(prepared.kind === 'OFF_CYCLE' || prepared.kind === 'CORRECTION') &&
+			prepared.kind === 'OFF_CYCLE' &&
 			buckets.some((bucket) => bucket === 'DEDUCTION' || bucket === 'ABSENCE') &&
 			!buckets.some((bucket) => bucket === 'EARNING' || bucket === 'NON_WAGE_PAYMENT')
 		)
