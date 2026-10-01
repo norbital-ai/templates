@@ -1,6 +1,10 @@
 import { messages } from '@norbital-ai/bolt';
 
 export default messages({
+	'component.section_map': 'Map location',
+	'component.section_basis': 'Basis and model',
+	'component.summary_pinned': 'Pinned',
+	'component.summary_not_set': 'Not set',
 	'models.communication_logs.label': 'Messages',
 	'models.communication_logs.singular': 'Message',
 	'models.job_assignments.label': 'Jobs',
@@ -149,5 +153,9 @@ export default messages({
 		'The import could not be confirmed; check the board before importing again.',
 	'app.field_ops_controller.site_handover': 'Site handover',
 	'component.conversation_to_latest': 'Latest',
-	'channels.field_ops_whatsapp.label': 'Field ops WhatsApp'
+	'channels.field_ops_whatsapp.label': 'Field ops WhatsApp',
+	'section.job': 'Job',
+	'section.progress': 'Progress',
+	'section.completion': 'Completion',
+	'section.finding': 'Finding'
 });

@@ -5,7 +5,7 @@
 	 */
 	import { bolt } from '$bolt';
 	import type { RecordView } from '@norbital-ai/ui';
-	import { Field, Form, format, RecordShell, useKinds } from '@norbital-ai/ui';
+	import { Field, Form, format, RecordShell, Section, useKinds } from '@norbital-ai/ui';
 	import { Grid, Stack } from '@norbital-ai/ui/layout';
 	import Icon from '@iconify/svelte';
 
@@ -41,21 +41,19 @@
 				/>
 				{open ? t('component.suspicion_open') : t('component.suspicion_resolved')}
 			</p>
-			<section>
-				<h4 class="text-xs font-medium text-muted-foreground">
-					{t('component.suspicion_judgement')}
-				</h4>
+			<Section first name="judgement" title={t('component.suspicion_judgement')}>
 				<p class="text-sm whitespace-pre-wrap break-words">{record.reason}</p>
-			</section>
-			<section>
-				<h4 class="text-xs font-medium text-muted-foreground">{t('component.suspicion_basis')}</h4>
+			</Section>
+			<Section
+				name="basis"
+				title={t('component.suspicion_basis')}
+				defaultOpen={false}
+				summary={record.basis || t('component.not_recorded')}
+			>
 				<p class="text-sm whitespace-pre-wrap break-words">{record.basis}</p>
-			</section>
+			</Section>
 			{#if !open}
-				<section>
-					<h4 class="text-xs font-medium text-muted-foreground">
-						{t('component.suspicion_resolution')}
-					</h4>
+				<Section name="resolution" title={t('component.suspicion_resolution')}>
 					<p class="text-sm whitespace-pre-wrap">
 						{record.resolution ?? t('component.suspicion_resolution_missing')}
 					</p>
@@ -68,13 +66,15 @@
 								}) || '—'
 						})}
 					</p>
-				</section>
+				</Section>
 			{:else}
-				<Form
-					of={{ action: 'suspicious_activity_logs.resolve' }}
-					id={record.id}
-					submit={t('component.suspicion_resolve')}
-				/>
+				<Section name="resolution" title={t('component.suspicion_resolution')}>
+					<Form
+						of={{ action: 'suspicious_activity_logs.resolve' }}
+						id={record.id}
+						submit={t('component.suspicion_resolve')}
+					/>
+				</Section>
 			{/if}
 		</Stack>
 	</RecordShell>
