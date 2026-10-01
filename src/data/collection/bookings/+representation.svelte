@@ -70,7 +70,9 @@
 				: null
 		)
 	);
-	let service = $state<Id<'services'> | null>(null);
+	let service = $state<Id<'services'> | null>(
+		untrack(() => (view.mode === 'create' ? (view.values.service ?? null) : null))
+	);
 	let preference = $state<'any' | 'preferred'>('any');
 	let helpers = $state<Id<'helpers'>[]>([]);
 	let from = $state(today);
@@ -178,15 +180,17 @@
 		<Stack gap="lg">
 			<Section first name="where" title={t('app.schedule.step_where')}>
 				<Grid minimum="card">
-					<Stack gap="xs">
-						<Label for="booking-customer">{t('component.customer')}</Label>
-						<Picker
-							id="booking-customer"
-							of="customers"
-							value={customer}
-							onChange={(id) => (customer = id)}
-						/>
-					</Stack>
+					{#if view.values.customer == null}
+						<Stack gap="xs">
+							<Label for="booking-customer">{t('component.customer')}</Label>
+							<Picker
+								id="booking-customer"
+								of="customers"
+								value={customer}
+								onChange={(id) => (customer = id)}
+							/>
+						</Stack>
+					{/if}
 					<Stack gap="xs">
 						<Label for="booking-service">{t('component.service')}</Label>
 						<Picker
