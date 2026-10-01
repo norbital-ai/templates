@@ -1,12 +1,37 @@
 <script lang="ts">
 	/** A helper's profile, with their upcoming visits, time off and warnings. */
 	import { bolt } from '$bolt';
-	import type { RecordView } from '@norbital-ai/ui';
+	import type { RecordSection, RecordView } from '@norbital-ai/ui';
 	import { RecordShell, Table } from '@norbital-ai/ui';
+	import { when } from '../../../lib/summary.js';
 
 	let { view }: { view: RecordView<'helpers'> } = $props();
 	const t = bolt.t;
 	const record = $derived(view.mode === 'update' ? view.record : null);
+	// who they are, what they do and when they work stay open (dispatch reads them); the sign-in account and the map
+	// pins fold away
+	const sections: RecordSection[] = [
+		{
+			name: 'helper',
+			title: t('models.helpers.singular'),
+			fields: ['name', 'phone', 'status', 'left_on', 'skills', 'home_area', 'warning_count']
+		},
+		{
+			name: 'availability',
+			title: t('section.availability'),
+			fields: ['work_days', 'day_start', 'day_end']
+		},
+		{
+			name: 'account_location',
+			title: t('section.account_location'),
+			fields: ['user', 'home_location', 'last_location', 'last_location_at'],
+			defaultOpen: false,
+			summary: (r) =>
+				r.last_location_at == null
+					? t('summary.no_location')
+					: t('summary.last_seen', { at: when(String(r.last_location_at)) })
+		}
+	];
 </script>
 
 {#snippet visits()}
@@ -41,12 +66,18 @@
 {/snippet}
 
 {#if record === null}
-	<RecordShell of="helpers" mode="create" values={view.mode === 'create' ? view.values : {}} />
+	<RecordShell
+		of="helpers"
+		mode="create"
+		values={view.mode === 'create' ? view.values : {}}
+		{sections}
+	/>
 {:else}
 	<RecordShell
 		of="helpers"
 		id={record.id}
 		title={record.name}
+		{sections}
 		tabs={[
 			{
 				name: 'visits',

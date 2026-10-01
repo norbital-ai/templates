@@ -1,6 +1,23 @@
 import { messages } from '@norbital-ai/bolt';
 
 export default messages({
+	'section.availability': 'Availability',
+	'section.account_location': 'Sign-in and location',
+	'section.map': 'Map location',
+	'section.notes': 'Notes',
+	'section.checks': 'Dispatch checks',
+	'section.completion': 'Completion',
+	'section.delivery': 'Delivery',
+	'summary.no_notes': 'No notes',
+	'summary.pinned': 'Pinned',
+	'summary.not_set': 'Not set',
+	'summary.last_seen': 'Last seen {at}',
+	'summary.no_location': 'No location yet',
+	'summary.completed': 'Completed {at}',
+	'summary.started': 'Started {at}',
+	'summary.not_started': 'Not started',
+	'summary.sent': 'Sent {at}',
+	'summary.not_sent': 'Not sent',
 	'app.helper.location_gate_title': 'Turn on location',
 	'app.helper.location_gate_body':
 		'Dispatch uses your position to keep customers updated on your arrival. Your day opens once location is on.',
@@ -164,6 +181,7 @@ export default messages({
 	'app.portal.verified': 'Verified',
 	'app.portal.verify_to_see': 'Verify your mobile number to see your bookings.',
 	'app.portal.notes': 'Anything we should know (optional)',
+	'app.portal.no_notes': 'No notes',
 	'app.portal.choose_time': 'Choose a time',
 	'app.portal.no_times':
 		'No times are open for this service in the next two weeks. Call us and we will fit you in.',

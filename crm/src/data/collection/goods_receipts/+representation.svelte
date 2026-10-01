@@ -10,6 +10,7 @@
 
 	let { view }: { view: RecordView<'goods_receipts'> } = $props();
 	const t = bolt.t;
+	const record = $derived(view.mode === 'update' ? view.record : null);
 </script>
 
 {#snippet lines()}
@@ -45,5 +46,17 @@
 	editors={{ purchase_order_id: parent }}
 	subtitle={['purchase_order_id', 'received_date']}
 	tabs={[{ name: 'lines', title: t('component.lines'), body: lines }]}
-	fields={['purchase_order_id', 'received_date', 'owner_id', 'note']}
+	sections={[
+		{
+			name: 'receipt',
+			title: t('section.receipt'),
+			fields: ['purchase_order_id', 'received_date', 'owner_id']
+		},
+		{
+			name: 'notes',
+			title: t('section.notes'),
+			fields: ['note'],
+			closed: record?.['note'] || t('section.no_notes')
+		}
+	]}
 />

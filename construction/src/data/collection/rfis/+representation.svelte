@@ -1,21 +1,31 @@
 <script lang="ts">
-	import { Column } from '@norbital-ai/ui/layout';
-	import { Field } from '@norbital-ai/ui';
+	import { bolt } from '$bolt';
+	import { Column, Grid } from '@norbital-ai/ui/layout';
+	import { Field, Section } from '@norbital-ai/ui';
 	import type { RecordView } from '@norbital-ai/ui';
 	import RecordForm from '../../../lib/record-form.svelte';
 	import RefField from '../../../lib/ref-field.svelte';
 	let { view }: { view: RecordView<'rfis'> } = $props();
+	const t = bolt.t;
 </script>
 
 <RecordForm {view} subtitle={['rfi_number', 'status']}>
-	<Field name="rfi_number" />
-	<Field name="title" />
-	<RefField name="project_id" ref="project" />
-	<Field name="status" />
-	<Field name="priority" />
-	<Field name="asked_by" />
-	<Field name="assigned_to" />
-	<Field name="due_date" />
-	<Column span="all"><Field name="question" /></Column>
-	<Column span="all"><Field name="answer" /></Column>
+	<Section first name="rfi" title={t('section.rfi')}>
+		<Grid minimum="compact">
+			<Field name="rfi_number" />
+			<Field name="title" />
+			<RefField name="project_id" ref="project" />
+			<Field name="status" />
+			<Field name="priority" />
+			<Field name="asked_by" />
+			<Field name="assigned_to" />
+			<Field name="due_date" />
+		</Grid>
+	</Section>
+	<Section name="question_and_answer" title={t('section.question_and_answer')}>
+		<Grid minimum="compact">
+			<Column span="all"><Field name="question" /></Column>
+			<Column span="all"><Field name="answer" /></Column>
+		</Grid>
+	</Section>
 </RecordForm>

@@ -13,6 +13,7 @@
 
 	let { view }: { view: RecordView<'quotes'> } = $props();
 	const t = bolt.t;
+	const record = $derived(view.mode === 'update' ? view.record : null);
 </script>
 
 {#snippet lines()}
@@ -68,25 +69,52 @@
 	subtitle={['account_id', 'status']}
 	tabs={[{ name: 'lines', title: t('component.lines'), body: lines }]}
 	editors={{ contact_id: contact }}
-	fields={[
-		'account_id',
-		'contact_id',
-		'title',
-		'status',
-		'currency',
-		'tax_inclusive',
-		'valid_until',
-		'payment_terms',
-		'shipping_terms',
-		'place_of_loading',
-		'place_of_delivery',
-		'packaging',
-		'shipping_mark',
-		'time_of_shipment',
-		'other_terms',
-		'owner_id',
-		'credit_acknowledged',
-		'cancel_reason',
-		'description'
+	sections={[
+		{
+			name: 'quote',
+			title: t('section.quote'),
+			fields: [
+				'account_id',
+				'contact_id',
+				'title',
+				'status',
+				'currency',
+				'tax_inclusive',
+				'valid_until',
+				'owner_id',
+				'credit_acknowledged'
+			]
+		},
+		{
+			name: 'trade_terms',
+			title: t('section.trade_terms'),
+			fields: [
+				'payment_terms',
+				'shipping_terms',
+				'place_of_loading',
+				'place_of_delivery',
+				'packaging',
+				'shipping_mark',
+				'time_of_shipment',
+				'other_terms'
+			],
+			closed: record?.['payment_terms'] || t('section.not_set')
+		},
+		{
+			name: 'notes',
+			title: t('section.notes'),
+			fields: ['description'],
+			closed: record?.['description'] || t('section.no_notes')
+		},
+		...(record
+			? [
+					{
+						name: 'cancellation',
+						title: t('section.cancellation'),
+						fields: ['cancel_reason'],
+						closed: record?.['cancel_reason'] || t('section.not_cancelled')
+					}
+				]
+			: [])
 	]}
 />

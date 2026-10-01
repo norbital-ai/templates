@@ -2,7 +2,7 @@
 	/** The dispatch thresholds the watches and the change rules read. */
 	import { bolt } from '$bolt';
 	import { AppShell, Center, Grid, Stack } from '@norbital-ai/ui/layout';
-	import { Field, Form, Label } from '@norbital-ai/ui';
+	import { Field, Form, Section } from '@norbital-ai/ui';
 	import { live } from '../../../lib/live.svelte.js';
 
 	const t = bolt.t;
@@ -28,8 +28,7 @@
 				onOutcome={(o) => (saved = o.kind === 'committed' ? t('app.configurations.saved') : null)}
 			>
 				<Stack gap="lg">
-					<Stack gap="sm">
-						<Label>{t('app.configurations.section_eta')}</Label>
+					<Section first name="eta" title={t('app.configurations.section_eta')}>
 						<Grid minimum="card">
 							<Field
 								name="eta_limit_minutes"
@@ -42,9 +41,8 @@
 								help={t('component.eta_check_lead_minutes_help')}
 							/>
 						</Grid>
-					</Stack>
-					<Stack gap="sm">
-						<Label>{t('app.configurations.section_shift')}</Label>
+					</Section>
+					<Section name="shift" title={t('app.configurations.section_shift')}>
 						<Grid minimum="card">
 							<Field
 								name="shift_check_lead_minutes"
@@ -57,9 +55,8 @@
 								help={t('component.shift_reply_minutes_help')}
 							/>
 						</Grid>
-					</Stack>
-					<Stack gap="sm">
-						<Label>{t('app.configurations.section_changes')}</Label>
+					</Section>
+					<Section name="changes" title={t('app.configurations.section_changes')}>
 						<Grid minimum="card">
 							<Field
 								name="free_change_hours"
@@ -67,7 +64,7 @@
 								help={t('component.free_change_hours_help')}
 							/>
 						</Grid>
-					</Stack>
+					</Section>
 					{#if saved}<p role="status" class="text-sm text-success">{saved}</p>{/if}
 				</Stack>
 			</Form>

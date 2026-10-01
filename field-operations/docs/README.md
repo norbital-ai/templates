@@ -61,8 +61,9 @@ dispatched; a job with an open suspicion shows it in the header's pill, its reas
 
 ![A job's record: status, contractor, times, value charged, summary and reported location](images/02-job-record.png)
 
-- **Record**: status, contractor, dispatch and completion times, value charged, the completion
-  summary and the reported location. Save with **Save**.
+- **Record**: **Progress** (status, contractor, dispatch and completion times) and **Completion**
+  (value charged, the completion summary) are open; **Reported location** starts collapsed,
+  showing the reported address. Save with **Save**.
 - **Job scope**: the site, title, kind of work, day and the full description.
 
 ![Variations on a job](images/03-job-variations.png)
@@ -98,7 +99,8 @@ and floor area. **New** adds a site.
 
 ![A site's record: upcoming jobs and activity history](images/07-site-record.png)
 
-A site's record has **Upcoming jobs** (from today on, plus any still open) and **Activity history**
+A site's record shows the site and its client, with the map pin and geocoded address folded into
+**Map location**. It has **Upcoming jobs** (from today on, plus any still open) and **Activity history**
 (jobs assigned or completed, with value charged, reported location and summary).
 
 ### Approvals
