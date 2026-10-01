@@ -16,6 +16,8 @@
 	import HolidaySettings from '../../../lib/ui/holiday-settings.svelte';
 	import { liveRows } from '../../../lib/ui/live.svelte.js';
 	import SchedulingSettings from '../../../lib/ui/scheduling-settings.svelte';
+	import CodeSelect from '../../../lib/ui/code-select.svelte';
+	import { CODED_FIELDS } from '../../../lib/coded-fields.js';
 
 	let { view }: { view: RecordView<'companies'> } = $props();
 	const record = $derived(
@@ -65,7 +67,17 @@
 							/>
 						{/snippet}
 					</Field>
-					<Field name="region" label={t('component.region')} help={t('component.region_hint')} />
+					<Field name="region" label={t('component.region')} help={t('component.region_hint')}>
+						{#snippet editor(field)}
+							<CodeSelect
+								settingsCode={String(form.get('settings_code') ?? '')}
+								wage="regions"
+								value={typeof field.value === 'string' ? field.value : null}
+								disabled={field.disabled}
+								onChange={(next) => field.onChange(next as never)}
+							/>
+						{/snippet}
+					</Field>
 					<Column span="all">
 						<Field
 							name="facts"
@@ -104,7 +116,17 @@
 						name="risk_class"
 						label={t('component.statutory_risk_class')}
 						help={t('component.risk_class_hint')}
-					/>
+					>
+						{#snippet editor(field)}
+							<CodeSelect
+								settingsCode={String(form.get('settings_code') ?? '')}
+								table={CODED_FIELDS.companies.risk_class}
+								value={typeof field.value === 'string' ? field.value : null}
+								disabled={field.disabled}
+								onChange={(next) => field.onChange(next as never)}
+							/>
+						{/snippet}
+					</Field>
 					<Column span="all"
 						><Field name="effective_range" label={t('component.effective_period')} /></Column
 					>

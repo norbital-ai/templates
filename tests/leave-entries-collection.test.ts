@@ -68,6 +68,13 @@ test('leave_balances and preview_leave answer from the same read', async () => {
 	);
 	assert.deepEqual(balances, leaveBalanceSummaries(leaveContext(), id(1), '2026-06-01'));
 	assert.equal(balances[0].available, 12);
+	assert.deepEqual(
+		await leaveEntries.bodies.queries.leave_balance_report(
+			{ company_id: id(3), as_of: { $d: '2026-06-01' } },
+			ctx
+		),
+		[{ employee_number: '', name: '', service_start: '2025-01-01', balances }]
+	);
 	const preview = await leaveEntries.bodies.queries.preview_leave(
 		{
 			employment_id: id(1),

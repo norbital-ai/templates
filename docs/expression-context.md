@@ -91,8 +91,8 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.solo_parent` | Solo-parent flag |
 | `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `employee.disabled` | Disability flag |
-| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -101,7 +101,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
-| `employment.risk_class` | The employment risk class, or empty |
+| `employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -287,8 +287,8 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employee.solo_parent` | Solo-parent flag |
 | `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
-| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -297,7 +297,7 @@ Open prefixes: `limits.<key>`, `year.<key>`, `person.company.facts.<key>`, `pers
 | `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
-| `person.employment.risk_class` | The employment risk class, or empty |
+| `person.employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `person.employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `person.employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -525,8 +525,8 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 | `person.employee.solo_parent` | Solo-parent flag |
 | `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
-| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -535,7 +535,7 @@ Open prefixes: `limits.<key>`, `day_facts.<key>`, `person.company.facts.<key>`, 
 | `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
-| `person.employment.risk_class` | The employment risk class, or empty |
+| `person.employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `person.employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `person.employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -763,8 +763,8 @@ Open prefixes: `produced.<key>`, `history.<key>`, `company.facts.<key>`, `year.<
 | `person.employee.solo_parent` | Solo-parent flag |
 | `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
-| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -773,7 +773,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `company.facts.<key>`, `year.<
 | `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
-| `person.employment.risk_class` | The employment risk class, or empty |
+| `person.employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `person.employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `person.employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -1064,8 +1064,8 @@ Open prefixes: `produced.<key>`, `history.<key>`, `company.facts.<key>`, `year.<
 | `person.employee.solo_parent` | Solo-parent flag |
 | `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
-| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -1074,7 +1074,7 @@ Open prefixes: `produced.<key>`, `history.<key>`, `company.facts.<key>`, `year.<
 | `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
-| `person.employment.risk_class` | The employment risk class, or empty |
+| `person.employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `person.employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `person.employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -1344,8 +1344,8 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.solo_parent` | Solo-parent flag |
 | `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `employee.disabled` | Disability flag |
-| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -1354,7 +1354,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
-| `employment.risk_class` | The employment risk class, or empty |
+| `employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -1549,8 +1549,8 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.solo_parent` | Solo-parent flag |
 | `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `employee.disabled` | Disability flag |
-| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -1559,7 +1559,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
-| `employment.risk_class` | The employment risk class, or empty |
+| `employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -1811,8 +1811,8 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.solo_parent` | Solo-parent flag |
 | `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `employee.disabled` | Disability flag |
-| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -1821,7 +1821,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
-| `employment.risk_class` | The employment risk class, or empty |
+| `employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -2124,8 +2124,8 @@ Open prefixes: `company.facts.<key>`, `totals.lines.<key>`, `totals.classes.<key
 | `person.employee.solo_parent` | Solo-parent flag |
 | `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
-| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -2134,7 +2134,7 @@ Open prefixes: `company.facts.<key>`, `totals.lines.<key>`, `totals.classes.<key
 | `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
-| `person.employment.risk_class` | The employment risk class, or empty |
+| `person.employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `person.employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `person.employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -2333,8 +2333,8 @@ Open prefixes: `case.facts.<key>`, `person.company.facts.<key>`, `person.facts.<
 | `person.employee.solo_parent` | Solo-parent flag |
 | `person.employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `person.employee.disabled` | Disability flag |
-| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `person.employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `person.employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `person.employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `person.employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `person.employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -2343,7 +2343,7 @@ Open prefixes: `case.facts.<key>`, `person.company.facts.<key>`, `person.facts.<
 | `person.employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `person.employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `person.employment.classification` | Work classification |
-| `person.employment.risk_class` | The employment risk class, or empty |
+| `person.employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `person.employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `person.employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `person.employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -2554,8 +2554,8 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.solo_parent` | Solo-parent flag |
 | `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `employee.disabled` | Disability flag |
-| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -2564,7 +2564,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
-| `employment.risk_class` | The employment risk class, or empty |
+| `employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |
@@ -2886,8 +2886,8 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.solo_parent` | Solo-parent flag |
 | `employee.receiving_pension` | Drawing a statutory pension while employed — outside compulsory insurance and owed the employer’s rate as wages (VN Law 41/2024 art.2(7)(a), Labour Code art.168(3)) |
 | `employee.disabled` | Disability flag |
-| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it |
-| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM) |
+| `employee.race` | Recorded race, upper-cased, as a self-help fund row reads it: a `RACE` code, or empty |
+| `employee.religion` | Recorded religion, upper-cased (SG MBMF reads ISLAM): a `RELIGION` code, or empty |
 | `employee.residency_months` | Whole calendar months since residency began, for a ladder that moves the month after an anniversary |
 | `employee.presence_recorded` | Whether any stay in the jurisdiction is recorded (`presence_periods`); false leaves a presence test to the declared residency and elections |
 | `employee.presence_days` | Days present in the jurisdiction in the rule date’s calendar year through the rule date, an entry or exit day whole (MY ITA 1967 s.7(1)(a), (1A); Sch.6 para 21(a)) |
@@ -2896,7 +2896,7 @@ Open prefixes: `company.facts.<key>`, `facts.<key>`, `period.leave_full_days.<ke
 | `employee.employment_days` | Days present on stays recorded `employment_exercised`, within the stint: the days the employment was exercised in the jurisdiction this calendar year through the rule date (MY ITA Sch.6 para 21(a), 22(a)) |
 | `employment.type` | PERMANENT \| CONTRACT \| PROBATION \| INTERN \| CONSULTANT \| PART_TIME \| APPRENTICE \| DOMESTIC |
 | `employment.classification` | Work classification |
-| `employment.risk_class` | The employment risk class, or empty |
+| `employment.risk_class` | The employment risk class: a `RISK_CLASS` code, or empty |
 | `employment.service_days` | Calendar days in the current stint through the rule date, capped at exit; not event-specific employment history |
 | `employment.service_days_before(date, months)` | Distinct days employed by this entity in the stated calendar-month window immediately before the event date; all same-entity stints are supplied by payroll, and missing history refuses |
 | `employment.service_months` | Completed months since the stint began; a leaver counts through the exit day |

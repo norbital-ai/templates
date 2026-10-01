@@ -32,6 +32,8 @@
 	import { createPayPeriodScope } from '../../../lib/ui/pay-period-scope.svelte.js';
 	import EmploymentMonth from '../../../lib/ui/roster/employment-month.svelte';
 	import FaceEnrollFlow from './face-enroll-flow.svelte';
+	import CodeSelect from '../../../lib/ui/code-select.svelte';
+	import { CODED_FIELDS } from '../../../lib/coded-fields.js';
 
 	let { view }: { view: RecordView<'employees'> } = $props();
 	const today = todayKey();
@@ -178,6 +180,21 @@
 	const byContract = $derived({ employment_id: { in: employmentIds } });
 </script>
 
+{#snippet coded(name: keyof typeof CODED_FIELDS.employees, label: string)}
+	<!-- A code of the lineage's table: the scope contract's, the one whose run reads it. -->
+	<Field {name} {label} help={t('component.race_religion_hint')}>
+		{#snippet editor(field)}
+			<CodeSelect
+				settingsCode={scopeCompany?.settings_code}
+				table={CODED_FIELDS.employees[name]}
+				value={typeof field.value === 'string' ? field.value : null}
+				disabled={field.disabled}
+				onChange={(next) => field.onChange(next as never)}
+			/>
+		{/snippet}
+	</Field>
+{/snippet}
+
 {#snippet person()}
 	<Form
 		of="employees"
@@ -204,12 +221,8 @@
 					<Field name="solo_parent" label={t('component.solo_parent')} />
 					<Field name="disabled" label={t('component.disabled')} />
 					<Field name="receiving_pension" label={t('component.receiving_pension')} />
-					<Field name="race" label={t('component.race')} help={t('component.race_religion_hint')} />
-					<Field
-						name="religion"
-						label={t('component.religion')}
-						help={t('component.race_religion_hint')}
-					/>
+					{@render coded('race', t('component.race'))}
+					{@render coded('religion', t('component.religion'))}
 				</Grid>
 			</FormSection>
 			<FormSection title={t('component.family_section')} hint={t('component.family_section_hint')}>

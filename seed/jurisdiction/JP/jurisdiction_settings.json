@@ -238,7 +238,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -793,8 +793,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -1325,7 +1326,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -1880,8 +1881,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -2412,7 +2414,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -2967,8 +2969,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -3499,7 +3502,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -4054,8 +4057,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -4586,7 +4590,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -5141,8 +5145,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -5673,7 +5678,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -6228,8 +6233,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -6760,7 +6766,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -7315,8 +7321,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -7847,7 +7854,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -8402,8 +8409,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -8934,7 +8942,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -9489,8 +9497,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -10021,7 +10030,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -10576,8 +10585,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -11108,7 +11118,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -11663,8 +11673,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -12195,7 +12206,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -12750,8 +12761,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -13282,7 +13294,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -13837,8 +13849,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -14369,7 +14382,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -14924,8 +14937,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -15456,7 +15470,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -16011,8 +16025,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -16543,7 +16558,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -17098,8 +17113,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -17630,7 +17646,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -18185,8 +18201,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -18717,7 +18734,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -19272,8 +19289,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -19804,7 +19822,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -20359,8 +20377,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -20891,7 +20910,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -21446,8 +21465,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -21978,7 +21998,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -22533,8 +22553,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -23065,7 +23086,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -23620,8 +23641,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -24152,7 +24174,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -24707,8 +24729,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -25239,7 +25262,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -25794,8 +25817,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -26326,7 +26350,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -26881,8 +26905,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -27413,7 +27438,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -27968,8 +27993,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -28500,7 +28526,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -29055,8 +29081,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -29587,7 +29614,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -30142,8 +30169,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -30674,7 +30702,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -31229,8 +31257,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -31761,7 +31790,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -32316,8 +32345,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -32848,7 +32878,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -33403,8 +33433,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -33935,7 +33966,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -34490,8 +34521,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -35022,7 +35054,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -35577,8 +35609,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [
@@ -36109,7 +36142,7 @@
 		},
 		"payroll": {
 			"vocabularies": {
-				"statutory_work_category": [],
+				"statutory_work_category": ["NON_MANUAL"],
 				"work_classification": ["LSA_COVERED", "SUPERVISORY_MANAGER"],
 				"pass_type": [],
 				"tax_residency": ["RESIDENT", "NON_RESIDENT"]
@@ -36664,8 +36697,9 @@
 				"key": "specific_mw_industry",
 				"type": "code",
 				"table": "SPECIFIC_MW",
+				"parent_fact": "region",
 				"label": "特定最低賃金の適用 (the specific minimum wage this establishment’s industry falls under)",
-				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture, or no specific floor applies."
+				"description": "最低賃金法 §15–§19 (https://laws.e-gov.go.jp/law/334AC0000000137): a prefecture’s 特定最低賃金 binds workers of the establishments of the industry it names; MHLW industry table (https://saiteichingin.mhlw.go.jp/table/page_indlist_nationallist.html). Record the determination code (JP-SFnnn) whose industry the establishment’s main business is in; unrecorded is none. The worksite’s region must be the determination’s prefecture."
 			}
 		],
 		"duty_types": [

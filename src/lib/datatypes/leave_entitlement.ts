@@ -33,6 +33,16 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	/** Carry unused current-year entitlement into the next leave year, expiring at its end. */
 	auto_carry_one_year: Schema.optionalKey(Schema.Boolean),
 	/**
+	 * Of an `auto_carry_one_year` row, the most unused days that carry, as a number or an expression
+	 * over the person on the source year's last day (a company cap an employee's terms may override:
+	 * `"carry_days" in terms.fact_keys ? terms.facts.carry_days : 5.0`). Absent is every unused day.
+	 */
+	carry_max_days: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Union([Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)), Schema.String])
+		)
+	),
+	/**
 	 * `HALF_MONTHS`: a calendar month counts as one once at least half its days are eligible (VN
 	 * Decree 145/2020 art.66(2): a part month worked or paid for half its working days is a month).
 	 */
@@ -102,6 +112,8 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 	 * 1 Dec 2021 has the year to 30 Nov 2022). The leave year keeps no pool. Absent is the leave year.
 	 */
 	child_years: Schema.optionalKey(Schema.NullOr(Schema.Boolean)),
+	/** Of a `child_years` row, who it holds for, over the person on the leave day; absent is everyone. */
+	child_years_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/**
 	 * A window measured back from the day rather than a leave year: the `days` may be taken in any
 	 * such span (TW hospitalised sickness: one year within two, `24`). Absent is the leave year.

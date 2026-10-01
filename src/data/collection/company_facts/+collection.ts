@@ -1,5 +1,6 @@
 import { collection } from '@norbital-ai/bolt';
 import { entityFactsFault, sealedLineages } from '../../../lib/entity-facts.js';
+import { factTables, lineageCodes } from '../../../lib/coded-fields.js';
 
 const companyFacts = collection('company_facts', {
 	read: { fields: 'all' },
@@ -29,6 +30,11 @@ companyFacts.transform(async (inputs, { existing, db, refuse }) => {
 	const codes = [...new Set(companies.map((row) => row.settings_code))];
 	const versions =
 		codes.length === 0 ? [] : (await db.read('jurisdiction_settings', sealedLineages(codes))).rows;
+	const codesOf = await lineageCodes(
+		db,
+		versions,
+		factTables(versions.flatMap((version) => version.facts ?? []))
+	);
 	return inputs.map((input, index) => {
 		const companyId = input.company_id ?? existing[index]?.company_id;
 		const code =
@@ -38,7 +44,7 @@ companyFacts.transform(async (inputs, { existing, db, refuse }) => {
 		const declared = versions
 			.filter((version) => version.code === code)
 			.flatMap((version) => version.facts);
-		const fault = entityFactsFault(code, facts, declared);
+		const fault = entityFactsFault(code, facts, declared, codesOf(code));
 		if (fault != null) refuse(fault, { field: 'facts' });
 		return existing[index] == null ? { ...input, facts } : input;
 	});

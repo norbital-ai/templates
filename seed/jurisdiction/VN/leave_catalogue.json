@@ -109,7 +109,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -181,13 +182,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -239,13 +248,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -297,13 +308,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -355,13 +368,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -413,13 +428,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -795,7 +812,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -867,13 +885,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -925,13 +951,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -983,13 +1011,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -1041,13 +1071,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -1099,13 +1131,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -1485,7 +1519,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -1562,13 +1597,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -1620,13 +1663,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -1678,13 +1723,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -1736,13 +1783,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -1794,13 +1843,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -2176,7 +2227,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -2248,13 +2300,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -2306,13 +2366,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -2364,13 +2426,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -2422,13 +2486,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -2480,13 +2546,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -2862,7 +2930,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -2934,13 +3003,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -2992,13 +3069,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -3050,13 +3129,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -3108,13 +3189,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -3166,13 +3249,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -3548,7 +3633,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -3620,13 +3706,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -3678,13 +3772,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -3736,13 +3832,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -3794,13 +3892,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -3852,13 +3952,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -4238,7 +4340,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -4315,13 +4418,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -4373,13 +4484,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -4431,13 +4544,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -4489,13 +4604,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -4547,13 +4664,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -4929,7 +5048,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -5001,13 +5121,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -5059,13 +5187,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -5117,13 +5247,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -5175,13 +5307,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -5233,13 +5367,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -5615,7 +5751,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -5687,13 +5824,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -5745,13 +5890,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -5803,13 +5950,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -5861,13 +6010,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -5919,13 +6070,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -6301,7 +6454,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -6373,13 +6527,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -6431,13 +6593,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -6489,13 +6653,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -6547,13 +6713,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -6605,13 +6773,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -6991,7 +7161,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -7068,13 +7239,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -7126,13 +7305,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -7184,13 +7365,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -7242,13 +7425,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -7300,13 +7485,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -7682,7 +7869,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -7754,13 +7942,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -7812,13 +8008,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -7870,13 +8068,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -7928,13 +8128,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -7986,13 +8188,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -8368,7 +8572,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -8440,13 +8645,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -8498,13 +8711,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -8556,13 +8771,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -8614,13 +8831,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -8672,13 +8891,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -9058,7 +9279,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -9135,13 +9357,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -9193,13 +9423,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -9251,13 +9483,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -9309,13 +9543,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -9367,13 +9603,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -9749,7 +9987,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -9821,13 +10060,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -9879,13 +10126,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -9937,13 +10186,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -9995,13 +10246,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -10053,13 +10306,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -10435,7 +10690,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -10507,13 +10763,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -10565,13 +10829,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -10623,13 +10889,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -10681,13 +10949,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -10739,13 +11009,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -11121,7 +11393,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -11193,13 +11466,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -11251,13 +11532,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -11309,13 +11592,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -11367,13 +11652,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -11425,13 +11712,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -11811,7 +12100,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -11888,13 +12178,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -11946,13 +12244,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -12004,13 +12304,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -12062,13 +12364,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -12120,13 +12424,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -12502,7 +12808,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -12574,13 +12881,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -12632,13 +12947,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -12690,13 +13007,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -12748,13 +13067,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -12806,13 +13127,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -13188,7 +13511,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -13260,13 +13584,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -13318,13 +13650,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -13376,13 +13710,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -13434,13 +13770,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -13492,13 +13830,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -13874,7 +14214,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -13946,13 +14287,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -14004,13 +14353,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -14062,13 +14413,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -14120,13 +14473,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -14178,13 +14533,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -14564,7 +14921,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -14641,13 +14999,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -14699,13 +15065,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -14757,13 +15125,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -14815,13 +15185,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -14873,13 +15245,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",
@@ -15255,7 +15629,8 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["BIRTH", "BIRTH_SURGERY", "MULTIPLE_BIRTH", "MULTIPLE_BIRTH_SURGERY"]
 			},
 			{
 				"key": "event_relationship",
@@ -15327,13 +15702,21 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": [
+					"BIRTH",
+					"BIRTH_SURGERY",
+					"MULTIPLE_BIRTH",
+					"MULTIPLE_BIRTH_SURGERY",
+					"PRETERM_BIRTH"
+				]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["WIFE"]
 			},
 			{
 				"key": "event_child_index",
@@ -15385,13 +15768,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["SELF"]
 			},
 			{
 				"key": "event_child_index",
@@ -15443,13 +15828,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -15501,13 +15888,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["PARENT", "PARENT_IN_LAW", "SPOUSE", "CHILD"]
 			},
 			{
 				"key": "event_child_index",
@@ -15559,13 +15948,15 @@
 				"key": "event_kind",
 				"type": "string",
 				"label": "Event",
-				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it"
+				"description": "Which event the leave answers to (a birth, a marriage, a death), as the rows of this leave name it",
+				"options": ["DEATH", "MARRIAGE"]
 			},
 			{
 				"key": "event_relationship",
 				"type": "string",
 				"label": "Whose event",
-				"description": "Whose event it is, where the grant turns on the relationship"
+				"description": "Whose event it is, where the grant turns on the relationship",
+				"options": ["GRANDPARENT", "SIBLING", "PARENT"]
 			},
 			{
 				"key": "event_child_index",

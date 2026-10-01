@@ -126,6 +126,160 @@
 		"values": {}
 	},
 	{
+		"id": "1be7b10d-c159-52d7-a030-f468276d38df",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RELIGION",
+		"code": "ISLAM",
+		"label": "Islam (THR on Idul Fitri)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "bed91eff-0527-591a-bc7d-fd0638629004",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RELIGION",
+		"code": "CHRISTIAN",
+		"label": "Kristen Protestan (THR on Natal)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b1ab4a99-a47c-540c-abb5-44a856835bb6",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RELIGION",
+		"code": "CATHOLIC",
+		"label": "Katolik (THR on Natal)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "223d8434-4083-50ad-8884-8dc92f1ea4b8",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RELIGION",
+		"code": "HINDU",
+		"label": "Hindu (THR on Nyepi)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "9001c927-2915-5cda-b2fd-0d643c3533df",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RELIGION",
+		"code": "BUDDHIST",
+		"label": "Buddha (THR on Waisak)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "5f4f38e9-5bac-50ad-8531-4fd0455bd9fc",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RELIGION",
+		"code": "CONFUCIAN",
+		"label": "Khonghucu (THR on Imlek)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "2ff3e4ca-c448-556e-b018-2c4c25693df4",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RISK_CLASS",
+		"code": "I",
+		"label": "Group I: very low risk (sangat rendah)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "0cf356dd-3f49-56f9-ada5-d893cc78e66a",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RISK_CLASS",
+		"code": "II",
+		"label": "Group II: low risk (rendah)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "77b5a608-0262-5bf4-a6ad-f2d64e4bbed1",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RISK_CLASS",
+		"code": "III",
+		"label": "Group III: medium risk (sedang)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "4f7e3c2f-0788-5264-b761-b6ad1d084d1a",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RISK_CLASS",
+		"code": "IV",
+		"label": "Group IV: high risk (tinggi)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "3a36cf75-d856-5452-9c85-a04de8210809",
+		"settings_id": "b49c0f36-6f6f-4436-84ba-302f2b5efa48",
+		"table": "RISK_CLASS",
+		"code": "V",
+		"label": "Group V: very high risk (sangat tinggi)",
+		"effective_range": {
+			"from": "2025-12-01",
+			"to": "2025-12-31"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
 		"id": "52506d3a-ced7-5485-906c-7f250cfe7a5c",
 		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
 		"table": "TERMINATION_GROUND",
@@ -252,6 +406,160 @@
 		"values": {}
 	},
 	{
+		"id": "5b740097-0b61-5b2f-8149-9540fb878270",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RELIGION",
+		"code": "ISLAM",
+		"label": "Islam (THR on Idul Fitri)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6b4f8980-3f2c-53be-8c3c-60dcae1fa5d0",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RELIGION",
+		"code": "CHRISTIAN",
+		"label": "Kristen Protestan (THR on Natal)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "45039c51-8c54-5179-af9c-4fdf94a58618",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RELIGION",
+		"code": "CATHOLIC",
+		"label": "Katolik (THR on Natal)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "74eef6c8-c912-5f94-9e50-5270eee7a3a4",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RELIGION",
+		"code": "HINDU",
+		"label": "Hindu (THR on Nyepi)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "b01f26e0-fa8c-5d0f-b478-1dc56155b923",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RELIGION",
+		"code": "BUDDHIST",
+		"label": "Buddha (THR on Waisak)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "e7c580f4-aa88-5601-902e-ce2d4d261a52",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RELIGION",
+		"code": "CONFUCIAN",
+		"label": "Khonghucu (THR on Imlek)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1be9f012-ba11-52a4-8d12-93269875bdeb",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RISK_CLASS",
+		"code": "I",
+		"label": "Group I: very low risk (sangat rendah)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "50f70e35-861b-5ac1-abde-48ea0c754b37",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RISK_CLASS",
+		"code": "II",
+		"label": "Group II: low risk (rendah)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "4e6c2a87-1641-549a-a6c6-de79a34e432e",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RISK_CLASS",
+		"code": "III",
+		"label": "Group III: medium risk (sedang)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "24c72a79-1d9a-5c10-92af-75bca74951ff",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RISK_CLASS",
+		"code": "IV",
+		"label": "Group IV: high risk (tinggi)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "888e8668-4ac4-5a13-81b2-de736b7a8140",
+		"settings_id": "2287c37a-12ab-464a-9721-122b74c9e39e",
+		"table": "RISK_CLASS",
+		"code": "V",
+		"label": "Group V: very high risk (sangat tinggi)",
+		"effective_range": {
+			"from": "2026-01-01",
+			"to": "2026-02-28"
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
 		"id": "84c9f71a-220f-50bd-9bdb-3f7fd7b6c9dc",
 		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
 		"table": "TERMINATION_GROUND",
@@ -369,6 +677,160 @@
 		"table": "TERMINATION_GROUND",
 		"code": "DEATH",
 		"label": "Death",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "7d77feaa-5cc1-5ca3-842c-e8d5f72927cc",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RELIGION",
+		"code": "ISLAM",
+		"label": "Islam (THR on Idul Fitri)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d4f78bee-42d6-5734-9376-06c93af76204",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RELIGION",
+		"code": "CHRISTIAN",
+		"label": "Kristen Protestan (THR on Natal)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "84b4d6d3-b997-522c-991b-e372a21f2625",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RELIGION",
+		"code": "CATHOLIC",
+		"label": "Katolik (THR on Natal)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "8279f433-28ae-585d-9843-b9e847219b77",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RELIGION",
+		"code": "HINDU",
+		"label": "Hindu (THR on Nyepi)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d76d9b25-98c3-525a-ab21-01c5b0133b1d",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RELIGION",
+		"code": "BUDDHIST",
+		"label": "Buddha (THR on Waisak)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "50d81718-acc9-552b-9d91-9a25b79f8550",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RELIGION",
+		"code": "CONFUCIAN",
+		"label": "Khonghucu (THR on Imlek)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "11e83051-b80b-56fc-964c-6710cd4d1a69",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RISK_CLASS",
+		"code": "I",
+		"label": "Group I: very low risk (sangat rendah)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "d54ac1b3-8ceb-5586-81d9-a8c809471e16",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RISK_CLASS",
+		"code": "II",
+		"label": "Group II: low risk (rendah)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "6bbee506-9a4e-595f-9a5d-99e0be12d529",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RISK_CLASS",
+		"code": "III",
+		"label": "Group III: medium risk (sedang)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "40b1e051-7830-52a0-abf8-c788bf1a8e81",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RISK_CLASS",
+		"code": "IV",
+		"label": "Group IV: high risk (tinggi)",
+		"effective_range": {
+			"from": "2026-03-01",
+			"to": null
+		},
+		"range_from": null,
+		"range_to": null,
+		"values": {}
+	},
+	{
+		"id": "1315f5b1-303a-5160-8dff-aaa7165be444",
+		"settings_id": "f5282c8e-2224-4714-afb7-7314a5bfe37d",
+		"table": "RISK_CLASS",
+		"code": "V",
+		"label": "Group V: very high risk (sangat tinggi)",
 		"effective_range": {
 			"from": "2026-03-01",
 			"to": null

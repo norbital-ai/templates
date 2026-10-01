@@ -1,5 +1,5 @@
 import { bolt } from '$bolt';
-import type { VocabularyField } from '../../datatypes/payroll_settings.js';
+import { VOCABULARY_DEFAULTS, type VocabularyField } from '../../datatypes/payroll_settings.js';
 import { settingsInForce } from '../../jurisdiction_settings.js';
 import { todayKey } from '../calendar.js';
 import { liveRows } from '../live.svelte.js';
@@ -7,7 +7,8 @@ import { inForceSettings } from '../settings-scope.js';
 
 /**
  * The classification codes (`payroll.vocabularies`) of the lineage's version in force on a day —
- * today where none is named — as options per terms field. Must be called during component
+ * today where none is named — as options per terms field (the model default where it declares
+ * none). Must be called during component
  * initialisation.
  */
 export function vocabularyOptions(
@@ -33,9 +34,15 @@ export function vocabularyOptions(
 				})
 			: null;
 	});
-	return (field: VocabularyField) =>
-		(
+	// A version declaring no codes for a field admits its model default (`vocabularyAdmits`).
+	return (field: VocabularyField) => {
+		const declared =
 			settingsInForce(versions.current ?? [], code() ?? '', on())?.payroll.vocabularies?.[field] ??
-			[]
-		).map((value) => ({ value, label: value }));
+			[];
+		const fallback = VOCABULARY_DEFAULTS[field];
+		return (declared.length === 0 && fallback != null ? [fallback] : declared).map((value) => ({
+			value,
+			label: value
+		}));
+	};
 }

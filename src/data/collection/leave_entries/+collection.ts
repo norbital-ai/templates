@@ -7,6 +7,8 @@ import { previewLeave, type PreviewLeaveInput } from '../../../lib/leave/preview
 import { leaveBalanceSummaries } from '../../../lib/leave/summary.js';
 import { plain } from '../../../lib/wire.js';
 import { readAll } from '../../../lib/reads.js';
+import { dateKey } from '../../../lib/iso-day.js';
+import { getErrorMessage } from '../../../lib/refuse.js';
 import { factValuesFault } from '../../../lib/declared-facts.js';
 import type { FactKey } from '../../../lib/datatypes/fact_keys.js';
 import { employmentCheckIssues, refuseChecks } from '../../../lib/checks.js';
@@ -49,6 +51,12 @@ const c = collection('leave_entries', {
 			description:
 				'Computes annual leave balances and reservations from effective catalogue rules and manual activity as the calling user.',
 			input: { employment_id: { kind: 'id', of: 'employments' }, as_of: { kind: 'date' } },
+			output: { kind: 'json' }
+		},
+		leave_balance_report: {
+			description:
+				'Computes every in-force employment of one company its leave_balances, as the calling user, for the balance export.',
+			input: { company_id: { kind: 'id', of: 'companies' }, as_of: { kind: 'date' } },
 			output: { kind: 'json' }
 		},
 		preview_leave: {
@@ -244,6 +252,53 @@ c.query('leave_balances', async (input, ctx) => {
 		employment_id,
 		as_of
 	);
+});
+
+/** `leave_balances` for a company's people in force on the date, from one read; a refusal names whose. */
+c.query('leave_balance_report', async (input, ctx) => {
+	const { company_id, as_of } = plain(input) as { company_id: string; as_of: string };
+	const employments = await readAll<{ id: string; employee_id: string; employee_number: string }>(
+		ctx,
+		'employments',
+		{ company_id: { eq: company_id }, approval_id: { isNull: true } },
+		undefined,
+		{ id: true, employee_id: true, employee_number: true }
+	);
+	const [context, employees] = await Promise.all([
+		readLeaveContext(
+			ctx,
+			employments.map((row) => row.id),
+			{ start: as_of, end: as_of }
+		),
+		readAll<{ id: string; name: string }>(
+			ctx,
+			'employees',
+			{ id: { in: [...new Set(employments.map((row) => row.employee_id))] } },
+			undefined,
+			{ id: true, name: true }
+		)
+	]);
+	return context.employments
+		.filter(
+			({ effective_range: range }) =>
+				range != null &&
+				dateKey(range.start) <= as_of &&
+				(range.end == null || dateKey(range.end) >= as_of)
+		)
+		.map((employment) => {
+			const number = employments.find((row) => row.id === employment.id)?.employee_number ?? '';
+			try {
+				return {
+					employee_number: number,
+					name: employees.find((row) => row.id === employment.employee_id)?.name ?? '',
+					service_start: dateKey(employment.effective_range!.start),
+					balances: leaveBalanceSummaries({ ...context, balanceRead: true }, employment.id, as_of)
+				};
+			} catch (error) {
+				return ctx.refuse(`${number}: ${getErrorMessage(error)}`);
+			}
+		})
+		.toSorted((a, b) => a.employee_number.localeCompare(b.employee_number));
 });
 
 c.query('preview_leave', async (input, ctx) =>

@@ -65,7 +65,7 @@ personFacts.transform(async (inputs, { existing, db, refuse }) => {
 				? (lineages.codesByEmployee.get(personId) ?? [])
 				: [lineages.codeByEmployment.get(String(employmentId)) ?? ''];
 		const fault =
-			lineagesFault(codes, facts, declarationsOf) ??
+			lineagesFault(codes, facts, declarationsOf, lineages.codesOf) ??
 			factScopeFault(codes.flatMap(declarationsOf) as FactKey[], facts, employmentId);
 		if (fault != null) refuse(fault, { field: 'facts' });
 		const keys = Object.keys(facts).toSorted();

@@ -232,7 +232,7 @@ test('rows of one key never overlap: not in dates, and on a band table not in ra
 	);
 });
 
-test('a code input names its table; its parent is another code input of the list', () => {
+test('a code input names its table; its parent is another code input of the list, or a record column', () => {
 	const decode = Schema.decodeUnknownSync(factKeysValueSchema);
 	assert.doesNotThrow(() =>
 		decode([
@@ -243,8 +243,16 @@ test('a code input names its table; its parent is another code input of the list
 	assert.throws(() => decode([{ key: 'sector', type: 'code' }]), /names the table/);
 	assert.throws(() => decode([{ key: 'n', type: 'number', table: 'SECTOR' }]), /belong to a code/);
 	assert.throws(
-		() => decode([{ key: 'sector', type: 'code', table: 'SECTOR', parent_fact: 'group' }]),
+		() =>
+			decode([
+				{ key: 'group', type: 'string' },
+				{ key: 'sector', type: 'code', table: 'SECTOR', parent_fact: 'group' }
+			]),
 		/parent input group is not a code input/
+	);
+	// naming no input of the list, the parent is the subject record's column (a worksite's region)
+	assert.doesNotThrow(() =>
+		decode([{ key: 'sector', type: 'code', table: 'SECTOR', parent_fact: 'region' }])
 	);
 	assert.doesNotThrow(() => Schema.decodeUnknownSync(referenceTablesSchema)(DECLARED));
 	assert.throws(

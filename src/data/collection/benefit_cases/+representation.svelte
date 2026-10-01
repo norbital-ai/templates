@@ -1,11 +1,15 @@
 <script lang="ts">
-	/** A benefit case, its facts rendered with the case type its employment's lineage declares. */
+	/**
+	 * A benefit case, its type, event kind and facts chosen from the case types its employment's
+	 * lineage declares.
+	 */
 	import { bolt } from '$bolt';
 	import { Field, Form, RecordShell, type RecordView } from '@norbital-ai/ui';
 	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import * as Predicate from 'effect/Predicate';
 	import BenefitCaseFactsField from '../../../lib/ui/leave/benefit-case-facts-field.svelte';
+	import CaseTypeSelect from '../../../lib/ui/leave/case-type-select.svelte';
 	import FormSection from '../../../lib/ui/form-section.svelte';
 	import { openCreated } from '../../../lib/ui/open-created.js';
 	import { createValues } from '../../../lib/ui/create-scope.js';
@@ -34,12 +38,35 @@
 					{#if record == null}
 						<Field name="employee_id" />
 						<Field name="employment_id" />
-						<Field name="case_type" />
+						<Field name="case_type">
+							{#snippet editor(field)}
+								<CaseTypeSelect
+									employmentId={text(form.get('employment_id'))}
+									day={text(form.get('application_on'))}
+									value={text(field.value)}
+									disabled={field.disabled}
+									onChange={(next) => field.onChange(next as never)}
+								/>
+							{/snippet}
+						</Field>
 						<Field name="case_reference" />
 						<Field name="application_on" />
 					{/if}
 					<Field name="expected_event_on" />
-					<Field name="event_kind" />
+					<Field name="event_kind">
+						{#snippet editor(field)}
+							<CaseTypeSelect
+								employmentId={text(form.get('employment_id') ?? record?.employment_id)}
+								day={text(form.get('event_on')) ??
+									text(form.get('expected_event_on')) ??
+									text(form.get('application_on') ?? record?.application_on)}
+								caseType={text(form.get('case_type') ?? record?.case_type)}
+								value={text(field.value)}
+								disabled={field.disabled}
+								onChange={(next) => field.onChange(next as never)}
+							/>
+						{/snippet}
+					</Field>
 					<Field name="event_on" />
 					<Field name="leave_from" />
 					<Field name="leave_through" />

@@ -1,5 +1,8 @@
 <script lang="ts">
-	/** A dated revision of one establishment, its facts rendered with the `worksite_facts` of the company's lineage. */
+	/**
+	 * A dated revision of one establishment, its facts rendered with the `worksite_facts` of the company's lineage; its
+	 * region is a place or region of the lineage's wage order, and a fact may sit under it (`parent_fact: region`).
+	 */
 	import { t } from '../../../lib/ui/t.js';
 	import { bolt } from '$bolt';
 	import { Field, Form } from '@norbital-ai/ui';
@@ -9,6 +12,7 @@
 	import { createValues, hrCreateScope } from '../../../lib/ui/create-scope.js';
 	import FormSection from '../../../lib/ui/form-section.svelte';
 	import { liveRows } from '../../../lib/ui/live.svelte.js';
+	import CodeSelect from '../../../lib/ui/code-select.svelte';
 
 	let { view }: { view: RecordView<'worksites'> } = $props();
 	const scopedCompanyId = hrCreateScope()?.companyId?.();
@@ -41,7 +45,17 @@
 						<Field name="code" label={t('component.code')} />
 					{/if}
 					<Field name="name" label={t('component.name')} />
-					<Field name="region" label={t('component.region')} />
+					<Field name="region" label={t('component.region')}>
+						{#snippet editor(field)}
+							<CodeSelect
+								settingsCode={settingsCodeOf(form.get('company_id') ?? record?.company_id)}
+								wage="sites"
+								value={typeof field.value === 'string' ? field.value : null}
+								disabled={field.disabled}
+								onChange={(next) => field.onChange(next as never)}
+							/>
+						{/snippet}
+					</Field>
 					<Column span="all">
 						<Field name="address" label={t('component.address')} />
 					</Column>
@@ -61,6 +75,7 @@
 									}}
 									settingsCode={settingsCodeOf(form.get('company_id') ?? record?.company_id)}
 									schema="worksite_facts"
+									parents={{ region: form.get('region') ?? record?.region ?? '' }}
 								/>
 							{/snippet}
 						</Field>

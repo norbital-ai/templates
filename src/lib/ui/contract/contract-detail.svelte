@@ -20,6 +20,8 @@
 	import ExitFactsRenderer from '../offboarding/exit-facts-renderer.svelte';
 	import { contractSeal } from './contract-seal.svelte.js';
 	import TermsFields from './terms-fields.svelte';
+	import CodeSelect from '../code-select.svelte';
+	import { live } from '../live.svelte.js';
 	import * as Predicate from 'effect/Predicate';
 
 	let {
@@ -63,6 +65,8 @@
 	);
 	const otherRevisions = $derived(revisions.filter((row) => row.id !== inForce?.id));
 	const text = (value: unknown) => (Predicate.isString(value) ? value : null);
+	// The departure ground is a `TERMINATION_GROUND` code of the version in force on the last day.
+	const company = live(() => bolt.get('companies', record.company_id, { settings_code: true }));
 </script>
 
 <Stack gap="md">
@@ -116,7 +120,20 @@
 				>
 				<Field name="prior_service_months" label={t('component.prior_service_months')} />
 				<!-- Why the stint ended; the separation catalogue bands read it. Blank while in service. -->
-				<Column span="all"><Field name="exit_ground" label={t('component.exit_ground')} /></Column>
+				<Column span="all"
+					><Field name="exit_ground" label={t('component.exit_ground')}>
+						{#snippet editor(field)}
+							<CodeSelect
+								settingsCode={company.current?.settings_code}
+								day={lastDay}
+								table="TERMINATION_GROUND"
+								value={text(field.value)}
+								disabled={field.disabled}
+								onChange={(next) => field.onChange(next as never)}
+							/>
+						{/snippet}
+					</Field></Column
+				>
 				<Column span="all"><Field name="comments" label={t('component.comments')} /></Column>
 				{#if lastDay != null}
 					<Column span="all">

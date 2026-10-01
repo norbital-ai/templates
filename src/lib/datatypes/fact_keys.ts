@@ -13,7 +13,11 @@ const factKeyShape = Schema.Struct({
 	type: Schema.Literals(['boolean', 'number', 'string', 'date', 'instant', 'code']),
 	/** A `code` input's table: the version's `tables` declaration its codes come from. */
 	table: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isPattern(/\S/)))),
-	/** A `code` input whose row must sit under the code another input of the same list holds. */
+	/**
+	 * A `code` input whose row must sit under the code another input of the same list holds, or,
+	 * naming no input of the list, the column of that name on the subject record (a worksite's
+	 * `region`).
+	 */
 	parent_fact: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isPattern(/\S/)))),
 	label: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	description: Schema.optionalKey(Schema.NullOr(Schema.String)),
@@ -103,6 +107,16 @@ export type CodeResolver = (
 	code: string
 ) => { readonly parent_code: string | null } | null;
 
+/** The value a `code` input's `parent_fact` names: another value of the list, else the subject's column. */
+export const parentOf = (
+	field: FactKey,
+	values: Readonly<Record<string, unknown>>,
+	parents?: Readonly<Record<string, unknown>>
+): unknown =>
+	field.parent_fact == null
+		? undefined
+		: (values[field.parent_fact] ?? parents?.[field.parent_fact]);
+
 /** Employer-bound instructions cannot silently become person-wide elections. */
 export function factScopeFault(
 	fields: readonly FactKey[],
@@ -130,12 +144,14 @@ export const holdsFactType = (type: FactKey['type'], value: unknown): boolean =>
 
 /**
  * One supplied value, shared by declaration defaults, collection writes and calculation. A `code`
- * value is checked against its table only where the caller passes `codes`.
+ * value is checked against its table only where the caller passes `codes`, and against `parent`
+ * (the value its `parent_fact` names) where that is known.
  */
 export function factValueFault(
 	field: FactKey,
 	value: unknown,
-	codes?: CodeResolver
+	codes?: CodeResolver,
+	parent?: unknown
 ): string | null {
 	const label = field.label?.trim() || field.key;
 	if (!holdsFactType(field.type, value))
@@ -160,6 +176,12 @@ export function factValueFault(
 		return `${label} must be one of: ${field.options.join(', ')}.`;
 	if (field.type === 'code' && codes != null && codes(field.table ?? '', String(value)) == null)
 		return `${label}: ${String(value)} is not a code of table ${field.table} in force on this date.`;
+	if (
+		codes != null &&
+		parent !== undefined &&
+		codes(field.table ?? '', String(value))?.parent_code !== parent
+	)
+		return `${label} ${String(value)} does not belong under ${field.parent_fact} ${String(parent)}.`;
 	return null;
 }
 
@@ -203,7 +225,7 @@ export const factKeysValueSchema = Schema.Array(factKeySchema).check(
 		for (const field of fields)
 			if (
 				field.parent_fact != null &&
-				!fields.some((parent) => parent.key === field.parent_fact && parent.type === 'code')
+				fields.some((parent) => parent.key === field.parent_fact && parent.type !== 'code')
 			)
 				return `${field.key}: its parent input ${field.parent_fact} is not a code input of this list.`;
 		return true;

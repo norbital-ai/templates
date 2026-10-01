@@ -976,12 +976,10 @@
 			},
 			{
 				"key": "thr_holiday_date",
-				"type": "string",
+				"type": "date",
 				"label": "Religious holiday the THR is judged against",
 				"description": "YYYY-MM-DD. Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends within the thirty days before the religious holiday keeps the THR; art.2(1) and art.5(4): a worker employed on the holiday is owed it; art.7(3): a PKWT that ends before the holiday is not. The religious holiday is the employee’s own (art.1(2): Idul Fitri for a Muslim, Natal for a Christian or Catholic, Nyepi for a Hindu, Waisak for a Buddhist, Imlek for a Confucian), on the date of the government’s joint ministerial decree (SKB) for its year: the first such holiday on or after the thirtieth day before the last day of work.",
-				"required_when": "employment.service_months >= 1",
-				"valid_when": "employment.exit_facts.thr_holiday_date.matches(\"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\")",
-				"validation_message": "Religious holiday the THR is judged against must be a date written YYYY-MM-DD."
+				"required_when": "employment.service_months >= 1"
 			}
 		],
 		"terms_facts": [
@@ -1307,6 +1305,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion; jurisdiction_holidays.religion, comma-separated): the religion whose own holiday dates the THR (Permenaker 6/2016 art.1(2)). Spelled as the THR authority names them.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "JKK work-risk group (companies.risk_class): PP 44/2015 art.16(1), groups I (very low) to V (very high).",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -3238,12 +3248,10 @@
 			},
 			{
 				"key": "thr_holiday_date",
-				"type": "string",
+				"type": "date",
 				"label": "Religious holiday the THR is judged against",
 				"description": "YYYY-MM-DD. Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends within the thirty days before the religious holiday keeps the THR; art.2(1) and art.5(4): a worker employed on the holiday is owed it; art.7(3): a PKWT that ends before the holiday is not. The religious holiday is the employee’s own (art.1(2): Idul Fitri for a Muslim, Natal for a Christian or Catholic, Nyepi for a Hindu, Waisak for a Buddhist, Imlek for a Confucian), on the date of the government’s joint ministerial decree (SKB) for its year: the first such holiday on or after the thirtieth day before the last day of work.",
-				"required_when": "employment.service_months >= 1",
-				"valid_when": "employment.exit_facts.thr_holiday_date.matches(\"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\")",
-				"validation_message": "Religious holiday the THR is judged against must be a date written YYYY-MM-DD."
+				"required_when": "employment.service_months >= 1"
 			}
 		],
 		"terms_facts": [
@@ -3569,6 +3577,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion; jurisdiction_holidays.religion, comma-separated): the religion whose own holiday dates the THR (Permenaker 6/2016 art.1(2)). Spelled as the THR authority names them.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "JKK work-risk group (companies.risk_class): PP 44/2015 art.16(1), groups I (very low) to V (very high).",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -5493,12 +5513,10 @@
 			},
 			{
 				"key": "thr_holiday_date",
-				"type": "string",
+				"type": "date",
 				"label": "Religious holiday the THR is judged against",
 				"description": "YYYY-MM-DD. Permenaker 6/2016 art.7(1): a PKWTT worker whose employment ends within the thirty days before the religious holiday keeps the THR; art.2(1) and art.5(4): a worker employed on the holiday is owed it; art.7(3): a PKWT that ends before the holiday is not. The religious holiday is the employee’s own (art.1(2): Idul Fitri for a Muslim, Natal for a Christian or Catholic, Nyepi for a Hindu, Waisak for a Buddhist, Imlek for a Confucian), on the date of the government’s joint ministerial decree (SKB) for its year: the first such holiday on or after the thirtieth day before the last day of work.",
-				"required_when": "employment.service_months >= 1",
-				"valid_when": "employment.exit_facts.thr_holiday_date.matches(\"^[0-9]{4}-[0-9]{2}-[0-9]{2}$\")",
-				"validation_message": "Religious holiday the THR is judged against must be a date written YYYY-MM-DD."
+				"required_when": "employment.service_months >= 1"
 			}
 		],
 		"terms_facts": [
@@ -5824,6 +5842,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion; jurisdiction_holidays.religion, comma-separated): the religion whose own holiday dates the THR (Permenaker 6/2016 art.1(2)). Spelled as the THR authority names them.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RISK_CLASS",
+				"label": "JKK work-risk group (companies.risk_class): PP 44/2015 art.16(1), groups I (very low) to V (very high).",
 				"keys": ["code"],
 				"columns": []
 			}

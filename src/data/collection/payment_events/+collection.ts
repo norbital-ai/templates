@@ -12,6 +12,7 @@ import {
 	resolveFactValues
 } from '../../../lib/declared-facts.js';
 import { entityFactsFault, evidenceFault } from '../../../lib/entity-facts.js';
+import { factTables, lineageCodes } from '../../../lib/coded-fields.js';
 import { evaluateBoolean, expressionEngine } from '../../../lib/expressions/evaluate.js';
 import {
 	assessPaymentWithholding,
@@ -598,7 +599,13 @@ c.transform(async (inputs, ctx) => {
 			approval_id: { isNull: true }
 		});
 		const declared = lineage.flatMap((version) => version.payment_facts ?? []);
-		const fault = entityFactsFault(payer.settings_code, facts, declared);
+		const codes = await lineageCodes(ctx.db, lineage, factTables(declared));
+		const fault = entityFactsFault(
+			payer.settings_code,
+			facts,
+			declared,
+			codes(payer.settings_code)
+		);
 		if (fault != null) refuse(fault, { field: 'facts' });
 		for (const row of evidence) {
 			const key = String(row.fact_key ?? '').trim();

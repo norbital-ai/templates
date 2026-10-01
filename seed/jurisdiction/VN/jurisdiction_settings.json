@@ -320,7 +320,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -1135,7 +1136,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -1950,7 +1952,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -2769,7 +2772,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -3586,7 +3590,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -4402,7 +4407,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -5218,7 +5224,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -6038,7 +6045,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -6856,7 +6864,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -7673,7 +7682,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -8490,7 +8500,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -9311,7 +9322,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -10134,7 +10146,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -10957,7 +10970,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -11784,7 +11798,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -12603,7 +12618,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -13427,7 +13443,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -14251,7 +14268,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -15079,7 +15097,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -15915,7 +15934,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -16972,7 +16992,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -18046,7 +18067,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",
@@ -19130,7 +19152,8 @@
 				"key": "prior_floor_region",
 				"type": "string",
 				"label": "Worksite region on 31 December 2025",
-				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower."
+				"description": "Decree 293/2025 art.5(5): the worksite's minimum-wage region under the prior order, read for an incumbent whose area was reclassified lower.",
+				"options": ["I", "II", "III", "IV"]
 			},
 			{
 				"key": "prior_floor_reclassified",

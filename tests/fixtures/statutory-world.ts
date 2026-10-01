@@ -49,11 +49,25 @@ export const LINEAGES = readdirSync(jurisdictionRoot, { withFileTypes: true })
 	.map((entry) => entry.name)
 	.sort() as readonly Lineage[];
 
-export type Lineage =
-	'MY' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID' | 'TH' | 'CN-shanghai' | 'CN-kunming' | 'JP';
+export type Lineage = 'MY' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID' | 'TH' | 'CN' | 'JP' | CnProfile;
+/**
+ * A China applicability profile: one city of the single `CN` lineage, told apart by the worksite its
+ * terms record (the city's `MINIMUM_WAGE.locality`) and the entity's registered region.
+ */
+export type CnProfile = 'CN-shanghai' | 'CN-kunming';
+const CN_PROFILES: Readonly<Record<CnProfile | 'CN', { worksite: string | null; region: string }>> =
+	{
+		// A test iterating the lineages places its CN worker in Shanghai.
+		CN: { worksite: 'SHANGHAI', region: 'SHANGHAI' },
+		'CN-shanghai': { worksite: 'SHANGHAI', region: 'SHANGHAI' },
+		// The Kunming fixture names no worksite unless the test does: an unplaced worker refuses.
+		'CN-kunming': { worksite: null, region: 'KUNMING' }
+	};
+/** The seeded lineage a code or profile reads: a China profile is the `CN` lineage. */
+export const lineageOf = (code: Lineage): Lineage => (code in CN_PROFILES ? 'CN' : code);
 
 function law(code: Lineage, file: string, options?: { optional: true }): any[] {
-	const rows = readLawFile(resolve(jurisdictionRoot, code, file), options);
+	const rows = readLawFile(resolve(jurisdictionRoot, lineageOf(code), file), options);
 	if (file === 'jurisdiction_settings') return rows.filter(isInForceCandidate);
 	const versions = new Set(law(code, 'jurisdiction_settings').map((row) => row.id));
 	return rows.filter((row) => versions.has(row.settings_id));
@@ -62,7 +76,7 @@ function law(code: Lineage, file: string, options?: { optional: true }): any[] {
 /** The operative timeline; voided snapshots remain in the raw seed for historical inspection. */
 export const settingsVersions = (code: Lineage) => law(code, 'jurisdiction_settings');
 export const settingsIdOn = (code: Lineage, day: string) =>
-	settingsInForce(settingsVersions(code), code, day)?.id ??
+	settingsInForce(settingsVersions(code), lineageOf(code), day)?.id ??
 	assert.fail(`No sealed ${code} settings on ${day}`);
 export const leaveCatalogue = (code: Lineage) => law(code, 'leave_catalogue');
 /** A catalogue row of the version in force: tests name law by code and day, never by a version's id (versions are reissued). */
@@ -498,8 +512,8 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 							: options.region
 						: code === 'PH'
 							? phWorksite
-							: code === 'CN-shanghai'
-								? 'SHANGHAI'
+							: code in CN_PROFILES
+								? CN_PROFILES[code as CnProfile | 'CN'].worksite
 								: null
 				: person.worksite,
 		// OSS KBLI 2020 62019 is other computer programming; no seeded ID sector order lists it.
@@ -533,12 +547,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		// VN, ID, TW, SG and CN refuse an unrecorded citizenship; synthetic cases there are citizens unless stated.
 		residency_status:
 			person.citizenship === undefined &&
-			(code === 'VN' ||
-				code === 'ID' ||
-				code === 'TW' ||
-				code === 'SG' ||
-				code === 'CN-shanghai' ||
-				code === 'CN-kunming')
+			(code === 'VN' || code === 'ID' || code === 'TW' || code === 'SG' || lineageOf(code) === 'CN')
 				? 'CITIZEN'
 				: (person.citizenship ?? null),
 		residency_since: person.residency_since ?? null,
@@ -559,8 +568,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				code === 'PH' ||
 				code === 'VN' ||
 				code === 'ID' ||
-				code === 'CN-shanghai' ||
-				code === 'CN-kunming')
+				lineageOf(code) === 'CN')
 				? code === 'TW' && person.citizenship === 'FOREIGNER'
 					? 'NON_RESIDENT'
 					: 'RESIDENT'
@@ -756,7 +764,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		companies: [
 			{
 				id: COMPANY_ID,
-				settings_code: options.settingsCode ?? code,
+				settings_code: options.settingsCode ?? lineageOf(code),
 				jurisdiction_code: jurisdictionCode,
 				name: `${code} fixture`,
 				registration_number: `${code}-0001`,
@@ -766,11 +774,13 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				// seeded salaries are built on (IVA-22), and the floor RA 9504's exemption reads.
 				region:
 					options.region === undefined
-						? code === 'PH'
-							? 'IV-A'
-							: code === 'ID'
-								? 'Provinsi DKI Jakarta'
-								: null
+						? code in CN_PROFILES
+							? CN_PROFILES[code as CnProfile | 'CN'].region
+							: code === 'PH'
+								? 'IV-A'
+								: code === 'ID'
+									? 'Provinsi DKI Jakarta'
+									: null
 						: options.region,
 				risk_class: options.riskClass ?? null,
 				// PH declares both establishment-size exemptions as required entity facts.
@@ -986,14 +996,14 @@ const pricedVersions = new Set<string>();
 // ponytail: counts a version through its leave rows even where it also differs elsewhere; compare
 // the version's other law to the run's when such a version is sealed.
 const recordPriced = (code: Lineage, prepared: ReturnType<typeof gatherPayrollRun>) => {
-	pricedVersions.add(`${code}:${String(prepared.configuration.jurisdiction.id)}`);
+	pricedVersions.add(`${lineageOf(code)}:${String(prepared.configuration.jurisdiction.id)}`);
 	const { start, end } = prepared.window.salary;
 	for (const { leave } of prepared.gathered.bundles)
 		for (const entry of leave.entries)
 			for (const charge of entry.charges) {
 				if (charge.date < start || charge.date > end) continue;
 				const row = leave.catalogues.find((row) => row.id === charge.catalogue_id);
-				if (row != null) pricedVersions.add(`${code}:${String(row.settings_id)}`);
+				if (row != null) pricedVersions.add(`${lineageOf(code)}:${String(row.settings_id)}`);
 			}
 };
 
@@ -1006,7 +1016,7 @@ const recordPriced = (code: Lineage, prepared: ReturnType<typeof gatherPayrollRu
  */
 export function assertEveryVersionPriced(code: Lineage): void {
 	const missing = settingsVersions(code)
-		.filter((version) => !pricedVersions.has(`${code}:${String(version.id)}`))
+		.filter((version) => !pricedVersions.has(`${lineageOf(code)}:${String(version.id)}`))
 		.map((version) => String(version.effective_range.start).slice(0, 10));
 	assert.deepEqual(
 		missing,

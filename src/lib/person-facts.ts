@@ -5,12 +5,13 @@
  */
 import type { TransformCtx } from '@norbital-ai/bolt';
 import { entityFactsFault, sealedLineages } from './entity-facts.js';
+import { factTables, lineageCodes, type CodedVersion } from './coded-fields.js';
 import { resolveFactValues } from './declared-facts.js';
 import { scalarFacts } from './payroll/run/eligibility.js';
 import { coversDate, readRange } from './payroll/run/effective.js';
 import { inclusiveDays, monthDay, type IsoDate } from './payroll/run/dates.js';
 import { dateKey } from './iso-day.js';
-import type { FactKey } from './datatypes/fact_keys.js';
+import type { CodeResolver, FactKey } from './datatypes/fact_keys.js';
 import * as Predicate from 'effect/Predicate';
 
 type Db = TransformCtx<'employments'>['db'];
@@ -22,19 +23,27 @@ export type HistoryKind = {
 	readonly facts: readonly FactKey[];
 };
 
-/** A person's lineage versions: each employment's settings code, and every sealed live version of those codes. */
+type LineageVersion = CodedVersion & {
+	readonly person_facts?: readonly object[] | null;
+	readonly history_kinds?: readonly HistoryKind[] | null;
+};
+
+/**
+ * A person's lineage versions: each employment's settings code, and every sealed live version of those codes and of
+ * `hiring` (the lineages of contracts written with the person); with `codesOf`, the codes of their declared `code`
+ * inputs' tables and of `tables` (`lineageCodes`).
+ */
 export async function personLineages(
 	db: Db,
-	employeeIds: readonly string[]
+	employeeIds: readonly string[],
+	tables: readonly string[] = [],
+	hiring: readonly string[] = []
 ): Promise<{
 	readonly codeByEmployment: ReadonlyMap<string, string>;
 	readonly employeeByEmployment: ReadonlyMap<string, string>;
 	readonly codesByEmployee: ReadonlyMap<string, readonly string[]>;
-	readonly versions: readonly {
-		readonly code: string;
-		readonly person_facts?: readonly object[] | null;
-		readonly history_kinds?: readonly HistoryKind[] | null;
-	}[];
+	readonly versions: readonly LineageVersion[];
+	readonly codesOf: (lineage: string) => CodeResolver;
 }> {
 	const employments =
 		employeeIds.length === 0
@@ -67,15 +76,24 @@ export async function personLineages(
 		if (code !== '' && !codes.includes(code)) codes.push(code);
 		codesByEmployee.set(String(row.employee_id), codes);
 	}
-	const codes = [...new Set(codeByEmployment.values())].filter((code) => code !== '');
+	const codes = [...new Set([...codeByEmployment.values(), ...hiring])].filter(
+		(code) => code !== ''
+	);
 	const versions =
-		codes.length === 0
-			? []
-			: ((await db.read('jurisdiction_settings', sealedLineages(codes))).rows as never[]);
+		codes.length === 0 ? [] : (await db.read('jurisdiction_settings', sealedLineages(codes))).rows;
 	const employeeByEmployment = new Map(
 		employments.map((row) => [String(row.id), String(row.employee_id)])
 	);
-	return { codeByEmployment, employeeByEmployment, codesByEmployee, versions };
+	const codesOf = await lineageCodes(db, versions, [
+		...tables,
+		...factTables(
+			versions.flatMap((version) => [
+				...(version.person_facts ?? []),
+				...(version.history_kinds ?? []).flatMap((kind) => kind.facts)
+			])
+		)
+	]);
+	return { codeByEmployment, employeeByEmployment, codesByEmployee, versions, codesOf };
 }
 
 /**
@@ -85,12 +103,15 @@ export async function personLineages(
 export function lineagesFault(
 	codes: readonly string[],
 	values: Readonly<Record<string, unknown>>,
-	declarationsOf: (code: string) => readonly object[]
+	declarationsOf: (code: string) => readonly object[],
+	codesOf?: (code: string) => CodeResolver
 ): string | null {
 	if (Object.keys(values).length === 0) return null;
 	if (codes.length === 0)
 		return 'Record an employment first: its settings lineage declares which facts a person carries.';
-	const faults = codes.map((code) => entityFactsFault(code, values, declarationsOf(code)));
+	const faults = codes.map((code) =>
+		entityFactsFault(code, values, declarationsOf(code), codesOf?.(code))
+	);
 	return faults.every((fault) => fault != null) ? faults[0]! : null;
 }
 

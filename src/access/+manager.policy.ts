@@ -56,7 +56,7 @@ export default policy({
 		leave_entries: {
 			read: true,
 			create: { where: { activity: { eq: 'TIME_OFF' } }, approval: LEAVE_APPROVAL },
-			queries: ['leave_balances', 'preview_leave']
+			queries: ['leave_balances', 'leave_balance_report', 'preview_leave']
 		},
 		claim_requests: { read: true, create: { where: OWN, approval: CLAIM_APPROVAL } },
 		adhoc_requests: { read: true }

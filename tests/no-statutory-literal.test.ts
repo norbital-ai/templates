@@ -41,7 +41,8 @@ const ENGINE = [
 
 /** Files outside the calculation, each with its reason. */
 const SKIPPED: Record<string, string> = {
-	'src/lib/payroll/run/export.ts': 'PDF/XLSX byte layout of computed lines: rows, columns, points'
+	'src/lib/payroll/run/export.ts': 'PDF/XLSX byte layout of computed lines: rows, columns, points',
+	'src/lib/leave/balance-report.ts': 'XLSX layout of computed leave balances: rows, columns, widths'
 };
 
 /** Magnitudes allowed anywhere, each with its reason. */

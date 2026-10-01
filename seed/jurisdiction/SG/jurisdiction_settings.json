@@ -651,6 +651,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -1424,6 +1436,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -2201,6 +2225,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -2976,6 +3012,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -3749,6 +3797,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -4528,6 +4588,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -5303,6 +5375,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -6082,6 +6166,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -6859,6 +6955,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -7634,6 +7742,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -8420,6 +8540,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -9202,6 +9334,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -9988,6 +10132,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -10770,6 +10926,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -11556,6 +11724,18 @@
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
 				"keys": ["code"],
 				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -12067,7 +12247,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -12345,6 +12525,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -12858,7 +13050,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -13136,6 +13328,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -13649,7 +13853,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -13927,6 +14131,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -14440,7 +14656,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -14718,6 +14934,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -15231,7 +15459,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -15509,6 +15737,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -16023,7 +16263,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -16301,6 +16541,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -16815,7 +17067,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -17093,6 +17345,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -17607,7 +17871,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -17885,6 +18149,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -18399,7 +18675,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -18677,6 +18953,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -19191,7 +19479,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -19469,6 +19757,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -19984,7 +20284,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -20262,6 +20562,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -20777,7 +21089,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -21055,6 +21367,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -21570,7 +21894,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -21848,6 +22172,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -22363,7 +22699,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -22641,6 +22977,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -23156,7 +23504,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -23434,6 +23782,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -23950,7 +24310,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -24228,6 +24588,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -24744,7 +25116,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -25022,6 +25394,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -25538,7 +25922,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -25816,6 +26200,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -26332,7 +26728,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -26610,6 +27006,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -27126,7 +27534,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -27404,6 +27812,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -27924,7 +28344,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -28202,6 +28622,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -28722,7 +29154,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -29000,6 +29432,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -29520,7 +29964,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -29798,6 +30242,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -30318,7 +30774,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -30596,6 +31052,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -31116,7 +31584,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -31394,6 +31862,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -31914,7 +32394,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -32192,6 +32672,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -32712,7 +33204,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -32990,6 +33482,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -33510,7 +34014,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -33788,6 +34292,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -34308,7 +34824,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -34586,6 +35102,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -35106,7 +35634,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -35384,6 +35912,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -35904,7 +36444,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -36182,6 +36722,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -36702,7 +37254,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -36980,6 +37532,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -37500,7 +38064,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -37778,6 +38342,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -38298,7 +38874,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -38576,6 +39152,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -39096,7 +39684,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -39374,6 +39962,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -39894,7 +40494,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -40172,6 +40772,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -40692,7 +41304,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -40970,6 +41582,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -41490,7 +42114,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -41768,6 +42392,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -42288,7 +42924,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -42566,6 +43202,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -43086,7 +43734,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -43364,6 +44012,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -43884,7 +44544,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -44169,6 +44829,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -44689,7 +45361,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -44974,6 +45646,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -45494,7 +46178,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -45779,6 +46463,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -46299,7 +46995,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -46584,6 +47280,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -47104,7 +47812,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -47389,6 +48097,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -47909,7 +48629,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -48194,6 +48914,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -48714,7 +49446,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -48999,6 +49731,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -49519,7 +50263,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -49804,6 +50548,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -50324,7 +51080,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -50609,6 +51365,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -51129,7 +51897,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -51414,6 +52182,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -51934,7 +52714,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -52219,6 +52999,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -52739,7 +53531,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -53024,6 +53816,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -53544,7 +54348,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -53829,6 +54633,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -54349,7 +55165,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -54634,6 +55450,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -55154,7 +55982,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -55439,6 +56267,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -55960,7 +56800,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -56245,6 +57085,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -56766,7 +57618,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -57051,6 +57903,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -57572,7 +58436,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -57857,6 +58721,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -58378,7 +59254,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -58663,6 +59539,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -59184,7 +60072,7 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
@@ -59469,6 +60357,18 @@
 			{
 				"name": "TERMINATION_GROUND",
 				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
 				"keys": ["code"],
 				"columns": []
 			}
@@ -60234,14 +61134,14 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
 			},
 			{
 				"key": "departure_on",
-				"type": "string",
+				"type": "date",
 				"label": "Departure from Singapore",
 				"description": "The day the employee leaves Singapore, where known: Form IR21 states it (Income Tax Act 1947 s.68(5)–(6); IRAS Form IR21). Record an ISO date (YYYY-MM-DD)."
 			}
@@ -60559,6 +61459,18 @@
 						"label": "MOM page the floor was transcribed from"
 					}
 				]
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -61522,14 +62434,14 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
 			},
 			{
 				"key": "departure_on",
-				"type": "string",
+				"type": "date",
 				"label": "Departure from Singapore",
 				"description": "The day the employee leaves Singapore, where known: Form IR21 states it (Income Tax Act 1947 s.68(5)–(6); IRAS Form IR21). Record an ISO date (YYYY-MM-DD)."
 			}
@@ -61847,6 +62759,18 @@
 						"label": "MOM page the floor was transcribed from"
 					}
 				]
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -62810,14 +63734,14 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
 			},
 			{
 				"key": "departure_on",
-				"type": "string",
+				"type": "date",
 				"label": "Departure from Singapore",
 				"description": "The day the employee leaves Singapore, where known: Form IR21 states it (Income Tax Act 1947 s.68(5)–(6); IRAS Form IR21). Record an ISO date (YYYY-MM-DD)."
 			}
@@ -63135,6 +64059,18 @@
 						"label": "MOM page the floor was transcribed from"
 					}
 				]
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -64098,14 +65034,14 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
 			},
 			{
 				"key": "departure_on",
-				"type": "string",
+				"type": "date",
 				"label": "Departure from Singapore",
 				"description": "The day the employee leaves Singapore, where known: Form IR21 states it (Income Tax Act 1947 s.68(5)–(6); IRAS Form IR21). Record an ISO date (YYYY-MM-DD)."
 			}
@@ -64423,6 +65359,18 @@
 						"label": "MOM page the floor was transcribed from"
 					}
 				]
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
@@ -65386,14 +66334,14 @@
 			},
 			{
 				"key": "clearance_awareness_on",
-				"type": "string",
+				"type": "date",
 				"label": "Tax-clearance awareness date",
 				"description": "The calendar day the employer first knew of the impending cessation or departure; IRAS requires withholding all monies due from that day. Record an ISO date (YYYY-MM-DD). This is distinct from the day IRAS received Form IR21, which starts the Employment Act s.24(2) 30-day limit.",
 				"required_when": "employee.citizenship != \"CITIZEN\" && (employee.citizenship != \"PERMANENT_RESIDENT\" || (\"leaving_singapore\" in employment.exit_fact_keys && employment.exit_facts.leaving_singapore == true))"
 			},
 			{
 				"key": "departure_on",
-				"type": "string",
+				"type": "date",
 				"label": "Departure from Singapore",
 				"description": "The day the employee leaves Singapore, where known: Form IR21 states it (Income Tax Act 1947 s.68(5)–(6); IRAS Form IR21). Record an ISO date (YYYY-MM-DD)."
 			}
@@ -65711,6 +66659,18 @@
 						"label": "MOM page the floor was transcribed from"
 					}
 				]
+			},
+			{
+				"name": "RACE",
+				"label": "Race as the NRIC states it (employees.race), in the ICA-sourced Myinfo RaceCode spelling (all 228 descriptions of GovTech’s MyInfoRaceCode list, github.com/GovTechSG/singpass-myinfo-oidc-helper src/types/generated/myinfo-race-code.ts, generated 2025-05-13, read 2026-10-01), plus TELEGU, the SINDA Rules 1992 r.2 spelling the SINDA rules also compare. CDAC, ECF and SINDA select by these codes; a race none of them names (MALAY, OTHERS, …) is deducted no race-based fund.",
+				"keys": ["code"],
+				"columns": []
+			},
+			{
+				"name": "RELIGION",
+				"label": "Religion (employees.religion): MBMF is deducted by religion (ISLAM). The law names no list; the recorded default is the Singapore Census of Population 2020 religion groups.",
+				"keys": ["code"],
+				"columns": []
 			}
 		],
 		"returns": [
