@@ -1,7 +1,7 @@
 <script lang="ts">
-	import ScopeGate from '../../../../lib/ui/ScopeGate.svelte';
-	import { t } from '../../../../lib/ui/t.js';
-	import { everyField } from '../../../../lib/every-field.js';
+	import ScopeGate from '../../../lib/ui/ScopeGate.svelte';
+	import { t } from '../../../lib/ui/t.js';
+	import { everyField } from '../../../lib/every-field.js';
 	/**
 	 * The roster board for one legal entity and one pay period (a month, a half or a week in the entity's grammar): every
 	 * employed person's days, the plan and the attendance side by side, drawn from one derivation (`buildRosterMonth`).
@@ -20,46 +20,46 @@
 	import { AppShell, Stack } from '@norbital-ai/ui/layout';
 	import { Alert, CustomView, EmptyState, Sheet, type ToolbarItem } from '@norbital-ai/ui';
 	import { openRecord, RecordShell } from '@norbital-ai/ui';
-	import { addDays, monthBounds, periodMonth } from '../../../../lib/payroll/run/dates.js';
-	import { resolveWindow } from '../../../../lib/payroll/run/period.js';
+	import { addDays, monthBounds, periodMonth } from '../../../lib/payroll/run/dates.js';
+	import { resolveWindow } from '../../../lib/payroll/run/period.js';
 	import {
 		holidayWorkedRows,
 		schedulingImportDays,
 		schedulingImportPayload
-	} from '../../../../data/collection/work_days/lib/import-workbook.js';
+	} from '../../../data/collection/work_days/lib/import-workbook.js';
 	import {
 		schedulingTemplateWorkbook,
 		XLSX_MEDIA_TYPE
-	} from '../../../../data/collection/work_days/lib/import-template.js';
-	import { resolveEmployment } from '../../../../lib/employment-contract.js';
-	import { dateKey, isSettledId } from '../../../../lib/iso-day.js';
+	} from '../../../data/collection/work_days/lib/import-template.js';
+	import { resolveEmployment } from '../../../lib/employment-contract.js';
+	import { dateKey, isSettledId } from '../../../lib/iso-day.js';
 	import {
 		lockMap,
 		payrollWindows,
 		sourceLockReason,
 		type SettlementClaim
-	} from '../../../../lib/scheduling/lock.js';
+	} from '../../../lib/scheduling/lock.js';
 	import {
 		observedDays,
 		observedHolidays,
 		overtimeEntitled
-	} from '../../../../lib/scheduling/work-limits.js';
+	} from '../../../lib/scheduling/work-limits.js';
 	import {
 		patternAnchor,
 		patternRosterCodeId,
 		termPatternRow
-	} from '../../../../lib/scheduling/work-pattern.js';
-	import { periodInCompanyGrammar, todayKey } from '../../../../lib/ui/calendar.js';
-	import CompanyScope from '../../../../lib/ui/CompanyScope.svelte';
-	import { companyScope } from '../../../../lib/ui/company-scope.svelte.js';
-	import { saveBlob } from '../../../../lib/ui/export-download.js';
-	import { liveRows } from '../../../../lib/ui/live.svelte.js';
-	import { monthSources } from '../../../../lib/ui/roster/month-sources.svelte.js';
-	import MonthPeriodPicker from '../../../../lib/ui/month-period-picker.svelte';
+	} from '../../../lib/scheduling/work-pattern.js';
+	import { periodInCompanyGrammar, todayKey } from '../../../lib/ui/calendar.js';
+	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
+	import { companyScope } from '../../../lib/ui/company-scope.svelte.js';
+	import { saveBlob } from '../../../lib/ui/export-download.js';
+	import { liveRows } from '../../../lib/ui/live.svelte.js';
+	import { monthSources } from '../../../lib/ui/roster/month-sources.svelte.js';
+	import MonthPeriodPicker from '../../../lib/ui/month-period-picker.svelte';
 	import RosterMonthBoard, {
 		type BoardCell
-	} from '../../../../lib/ui/roster/roster-month-board.svelte';
-	import { unresolvedClockOutEmploymentIds } from '../../../../lib/ui/roster/roster-month-board-filter.js';
+	} from '../../../lib/ui/roster/roster-month-board.svelte';
+	import { unresolvedClockOutEmploymentIds } from '../../../lib/ui/roster/roster-month-board-filter.js';
 	import {
 		buildRosterMonth,
 		employmentMonthEmptyReason,
@@ -71,8 +71,8 @@
 		monthDays,
 		personDayKey,
 		termCovers
-	} from '../../../../lib/ui/roster/roster-month.js';
-	import { runWorkbookImport } from '../../../../lib/ui/workbook-import.js';
+	} from '../../../lib/ui/roster/roster-month.js';
+	import { runWorkbookImport } from '../../../lib/ui/workbook-import.js';
 
 	const scope = companyScope();
 	const company = $derived(scope.company);
@@ -485,6 +485,7 @@
 			buildPayload: schedulingImportPayload,
 			importedCount: schedulingImportDays,
 			overwritten: (output) => output.overwritten,
+			warnings: (output) => output.warnings ?? [],
 			afterImport: warnHolidaysWithoutOvertime
 		});
 		importing = false;

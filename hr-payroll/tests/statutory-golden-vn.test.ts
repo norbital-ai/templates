@@ -3332,6 +3332,12 @@ test('Vietnam — a worker on a probation contract is outside UI from 2026 (Law 
 		assert.deepEqual(ui('VN-PROBATION'), [0, 0, 0], period);
 		// Control: the same wage on a labour contract, 1% / 1% of 20,000,000.
 		assert.deepEqual(ui('VN-PERMANENT'), [20_000_000, 200_000, 200_000], period);
+		// Labour Code art.168(3): outside UI only, so the employer's UI 1% of the 20,000,000 it would
+		// have insured, 200,000, is paid with the wage; SI and HI stay charged, so nothing more.
+		const equivalent = (key: string) =>
+			slips.get(key)!.base.find((row) => row.component_code === 'INSURANCE_EQUIVALENT')?.amount;
+		assert.equal(equivalent('VN-PROBATION'), 200_000, period);
+		assert.equal(equivalent('VN-PERMANENT'), undefined, period);
 	}
 });
 

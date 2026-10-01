@@ -256,6 +256,15 @@ const adhoc = (
 // Social security (TH-SS-01, -11, -12, -13)
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
+/** A statutory limit or day rule warns on the run, never refuses it (owner's rule, 2026-10-01). */
+function assertWarns(build: () => { readonly warnings: readonly string[] }, pattern: RegExp): void {
+	const { warnings } = build();
+	assert.ok(
+		warnings.some((line) => pattern.test(line)),
+		`no warning matches ${pattern}:\n${warnings.join('\n')}`
+	);
+}
+
 test('Thailand — s.33 contributions at the THB1,650 floor, the 15,000 / 17,500 ceilings and s.46 rounding', () => {
 	// January 2026: ceiling 17,500 (2026 base regulation), 5% each side (2565 rate regulation).
 	const january = assessStatutory(
@@ -1136,26 +1145,28 @@ test('Thailand — under-18 work needs a timed rest and cannot include overtime 
 			}
 		);
 	assert.equal(settle().slips.get('MINOR-REST')!.gross, 12_000);
-	assert.throws(
+	assertWarns(
 		() => settle(['2026-01-05', '13:01', '14:01', '18:00']),
 		/continuous 60-minute rest.*four hours/i
 	);
-	assert.throws(
+	assertWarns(
 		() => settle(['2026-01-05', '13:00', '13:30', '17:30']),
 		/continuous 60-minute rest.*four hours/i
 	);
 	assert.equal(settle(undefined, 'SPLIT_HOUR_REST').slips.get('MINOR-REST')!.gross, 12_000);
-	assert.throws(
+	assertWarns(
 		() => settle(undefined, 'SPLIT_LATE_HOUR_REST'),
 		/continuous 60-minute rest.*four hours/i
 	);
-	assert.throws(
+	assertWarns(
 		() => settle(undefined, 'SHORT_NO_REST'),
 		/continuous 60-minute rest on the Thai under-18 workday/i
 	);
-	assert.throws(() => settle(undefined, 'OVERTIME'), /cannot work overtime.*under 18/i);
-	assert.throws(() => settle(undefined, 'HOLIDAY'), /cannot work on a Thai holiday.*under 18/i);
-	assert.throws(
+	// Clocked overtime nobody approved is unpriced input, still refused; approved overtime for a minor
+	// is a day-rule warning.
+	assert.throws(() => settle(undefined, 'OVERTIME'), /only 0\.00 are approved for pay/i);
+	assert.throws(() => settle(undefined, 'HOLIDAY'), /only 0\.00 are approved for pay/i);
+	assertWarns(
 		() =>
 			buildStatutory({
 				code: TH,
@@ -1217,16 +1228,16 @@ test('Thailand — s.27 needs timed rest, prior agreement for split breaks and 2
 					];
 			}
 		);
-	assert.throws(
+	assertWarns(
 		() => run('NO_TIME'),
 		/over five consecutive hours without a timed Thai s\.27 break/i
 	);
-	assert.throws(() => run('LATE'), /over five consecutive hours without a timed Thai s\.27 break/i);
-	assert.throws(() => run('OVER_TWO'), /Thai s\.27 wage treatment for rest over two hours/i);
-	assert.throws(() => run('SPLIT'), /prior split-break agreement/i);
-	assert.throws(() => run('SPLIT', '2026-01-05T03:00:00.000Z'), /prior split-break agreement/i);
+	assertWarns(() => run('LATE'), /over five consecutive hours without a timed Thai s\.27 break/i);
+	assertWarns(() => run('OVER_TWO'), /Thai s\.27 wage treatment for rest over two hours/i);
+	assertWarns(() => run('SPLIT'), /prior split-break agreement/i);
+	assertWarns(() => run('SPLIT', '2026-01-05T03:00:00.000Z'), /prior split-break agreement/i);
 	assert.equal(run('SPLIT', '2026-01-04T05:00:00.000Z').slips.get('ADULT-REST')!.gross, 24_000);
-	assert.throws(() => run('SHORT_PRE_OT'), /timed 20-minute rest before Thai overtime/i);
+	assertWarns(() => run('SHORT_PRE_OT'), /timed 20-minute rest before Thai overtime/i);
 	assert.deepEqual(workLines(run('VALID_PRE_OT').slips.get('ADULT-REST')!), [
 		['2026-01-05', 'OT-1.5X', 3, 450]
 	]);
@@ -1281,8 +1292,8 @@ test('Thailand — under-18 night work requires prior written Director-General p
 					} as never);
 			}
 		);
-	assert.throws(() => run(null, null), /prior written Thai Director-General permission/i);
-	assert.throws(
+	assertWarns(() => run(null, null), /prior written Thai Director-General permission/i);
+	assertWarns(
 		() => run('2026-01-05T15:30:00.000Z', 'DG-123'),
 		/prior written Thai Director-General permission/i
 	);
@@ -1305,9 +1316,9 @@ test('Thailand — pregnancy status gates night, holiday and overtime work (LPA 
 				else punch(world, 'PREGNANT-WORK', '2026-01-05', '09:00', '21:00', 3);
 			}
 		);
-	assert.throws(() => run(null), /dated Thai pregnancy status/i);
-	assert.throws(() => run('PREGNANT'), /supported Thai s\.39\/1 role and health evidence/i);
-	assert.throws(
+	assertWarns(() => run(null), /dated Thai pregnancy status/i);
+	assertWarns(() => run('PREGNANT'), /supported Thai s\.39\/1 role and health evidence/i);
+	assertWarns(
 		() => run('PREGNANT', true),
 		/cannot perform Thai night or holiday work while pregnant/i
 	);
@@ -2293,9 +2304,9 @@ test('Thailand — hazardous work has a seven-hour day and 42-hour week, and no 
 				if (overtime === 'HOLIDAY') punch(world, 'HAZ', '2026-01-10', '09:00', '17:00', 7);
 			}
 		);
-	assert.throws(() => run(8, 'NONE'), /normal|hazardous|7 hour/i);
-	assert.throws(() => run(7, 'WEEKDAY'), /overtime or on a holiday in Thai hazardous work/i);
-	assert.throws(() => run(7, 'HOLIDAY'), /overtime or on a holiday in Thai hazardous work/i);
+	assertWarns(() => run(8, 'NONE'), /normal|hazardous|7 hour/i);
+	assertWarns(() => run(7, 'WEEKDAY'), /overtime or on a holiday in Thai hazardous work/i);
+	assertWarns(() => run(7, 'HOLIDAY'), /overtime or on a holiday in Thai hazardous work/i);
 	const slip = run(7, 'NONE').slips.get('HAZ')!;
 	assert.deepEqual(workLines(slip), []);
 	assert.equal(slip.gross, 21_000);
@@ -2326,9 +2337,15 @@ test('Thailand — inherited seven-day patterns cannot exceed the 48/42-hour nor
 				pattern.days = Array.from({ length: 7 }, () => ({ roster_code_id: day.id }));
 			}
 		);
-	assert.throws(() => run(8, false), /56\.00 normal hours.*48-hour limit "ordinary_normal_week"/);
-	assert.throws(() => run(7, true), /49\.00 normal hours.*42-hour limit "hazardous_normal_week"/);
-	assert.throws(() => run(6, false), /7 consecutive worked days.*weekly_holiday permits 6/);
+	// A statutory limit warns, never refuses (owner's rule, 2026-10-01).
+	const warned = (built: { readonly warnings: readonly string[] }, pattern: RegExp) =>
+		assert.ok(
+			built.warnings.some((line) => pattern.test(line)),
+			built.warnings.join('\n')
+		);
+	warned(run(8, false), /56\.00 normal hours.*48-hour limit "ordinary_normal_week"/);
+	warned(run(7, true), /49\.00 normal hours.*42-hour limit "hazardous_normal_week"/);
+	assertWarns(() => run(6, false), /more than 6 consecutive worked days.*weekly_holiday permits 6/);
 });
 
 test('Thailand — a nine-hour normal day needs prior agreement and a shorter day in the week (LPA s.23)', () => {
@@ -2379,8 +2396,8 @@ test('Thailand — a nine-hour normal day needs prior agreement and a shorter da
 	assert.deepEqual(workLines(run(null, 7).slips.get('REDISTRIBUTED')!), [
 		['2026-01-05', 'OT-1.5X', 1, 150]
 	]);
-	assert.throws(() => run('2026-01-05T03:00:00.000Z', 7), /prior worker agreement/);
-	assert.throws(() => run('2026-01-04T05:00:00.000Z', 8), /shorter-day hours to offset/);
+	assertWarns(() => run('2026-01-05T03:00:00.000Z', 7), /prior worker agreement/);
+	assertWarns(() => run('2026-01-04T05:00:00.000Z', 8), /shorter-day hours to offset/);
 });
 
 test('Thailand — a guard may agree a normal day above eight hours from 24 April 2026 only within the 48-hour week', () => {
@@ -2430,7 +2447,7 @@ test('Thailand — a guard may agree a normal day above eight hours from 24 Apri
 		workLines(run('MONTHLY', '2026-04-26T05:00:00.000Z').slips.get('GUARD-DAY')!),
 		[]
 	);
-	assert.throws(() => run('MONTHLY', '2026-04-27T03:00:00.000Z'), /prior worker agreement/);
+	assertWarns(() => run('MONTHLY', '2026-04-27T03:00:00.000Z'), /prior worker agreement/);
 	assert.deepEqual(workLines(run('HOURLY', '2026-04-26T05:00:00.000Z').slips.get('GUARD-DAY')!), [
 		['2026-04-27', 'GUARD_NORMAL_SUPPLEMENT', 4, 500]
 	]);
@@ -2521,8 +2538,8 @@ test('Thailand — each overtime or holiday-work occasion needs prior worker con
 				world.work_days.at(-1)!.overtime_consented_at = consent;
 			}
 		);
-	assert.throws(() => run(null), /worker’s prior consent/);
-	assert.throws(() => run('2026-01-05T10:00:00+07:00'), /worker’s prior consent/);
+	assertWarns(() => run(null), /worker’s prior consent/);
+	assertWarns(() => run('2026-01-05T10:00:00+07:00'), /worker’s prior consent/);
 	assert.deepEqual(workLines(run('2026-01-05T08:00:00+07:00').slips.get('CONSENT')!), [
 		['2026-01-05', 'OT-1.5X', 3, 450]
 	]);
@@ -2559,15 +2576,15 @@ test('Thailand — s.24–25 consent exceptions require a saved reason and apply
 		workLines(run('2026-01-10', 'HOLIDAY_HOTEL', 'hotel-licence-9').slips.get('EXCEPTION')!),
 		[['2026-01-10', 'HOL-1.0X', 8, 800]]
 	);
-	assert.throws(
+	assertWarns(
 		() => run('2026-01-05', 'HOLIDAY_HOTEL', 'hotel-licence-9'),
 		/holiday-work exception on an ordinary day/
 	);
-	assert.throws(
+	assertWarns(
 		() => run('2026-01-05', 'CONTINUOUS_DAMAGE_IF_STOPPED', null),
 		/needs evidence for the Thai consent exception/
 	);
-	assert.throws(() => run('2026-01-05', null, null, true), /worker’s prior consent/);
+	assertWarns(() => run('2026-01-05', null, null, true), /worker’s prior consent/);
 	assert.deepEqual(
 		workLines(run('2026-01-05', 'EMERGENCY', 'emergency-report-7').slips.get('EXCEPTION')!),
 		[['2026-01-05', 'OT-1.5X', 3, 450]]
@@ -2608,7 +2625,12 @@ test('Thailand — overtime and holiday work together cannot exceed 36 hours in 
 	// already accounted and each stays nine: 36, exactly at the ceiling. The fifth day's two clocked
 	// hours are one continuous span with no gap, so the provided 60 minutes come off — one hour
 	// net — and 36 + 1 = 37.00 crosses the 36-hour limit.
-	assert.throws(() => run([9, 9, 9, 9, 2]), /37\.00 overtime and holiday hours.*36-hour limit/);
+	// A statutory limit warns, never refuses (owner's rule, 2026-10-01).
+	const over = run([9, 9, 9, 9, 2]).warnings;
+	assert.ok(
+		over.some((line) => /37\.00 overtime and holiday hours.*36-hour limit/.test(line)),
+		over.join('\n')
+	);
 });
 
 test('Thailand — piece-rate severance pays wages earned on the last thirty workdays (LPA s.118(1))', () => {

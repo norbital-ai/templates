@@ -59,7 +59,9 @@ export function leaveBalanceSummaries(context: LeaveContext, employmentId: strin
 					window,
 					entitlement: entitlement.entitlement,
 					earned: entitlement.earned,
-					...summary
+					...summary,
+					// Forfeiture tests a missing record could not decide; the balance stands.
+					...(rules.warnings.size > 0 ? { warnings: [...rules.warnings] } : {})
 				}
 			];
 		});

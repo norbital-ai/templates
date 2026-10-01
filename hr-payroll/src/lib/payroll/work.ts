@@ -240,10 +240,6 @@ function monthsSpanned(span: PayRange): string[] {
 	return months;
 }
 
-function termsIdentity(terms: EmploymentBundle['terms'][number]): string {
-	return Predicate.isString(terms.id) && terms.id !== '' ? terms.id : termsSnapshotKey(terms);
-}
-
 export function termsAt(
 	bundle: EmploymentBundle,
 	date: IsoDate
@@ -450,6 +446,16 @@ function workContext(
 	}
 ) {
 	const { bundle, configuration, employed } = options;
+	/** Statutory limits the plan passed: warnings, never a refusal (owner's rule, 2026-10-01). */
+	const limitNotes: RunIssue[] = [];
+	const limitWarning = (message: string) =>
+		limitNotes.push({
+			code: 'STATUTORY_LIMIT_EXCEEDED',
+			severity: 'WARNING',
+			message,
+			collection: 'employments',
+			recordId: bundle.employment.id
+		});
 	const employmentForPerson = () =>
 		stint(bundle.employment, configuration.jurisdiction.exit_facts ?? []);
 	const attendance = bundle.attendance;
@@ -677,14 +683,14 @@ function workContext(
 		}
 		for (const [week, totals] of weeks) {
 			if (totals.redistributed > totals.shorter + 1e-9)
-				refuse(
+				limitWarning(
 					`${bundle.employment.employee_number} has ${totals.redistributed.toFixed(2)} redistributed normal hours above the normal day in the week of ${week}, but only ${totals.shorter.toFixed(2)} shorter-day hours to offset them.`
 				);
 			for (const limit of [...totals.limits.values()].toSorted(
 				(left, right) => left.max_hours - right.max_hours
 			))
 				if (totals.hours > limit.max_hours + 1e-9)
-					refuse(
+					limitWarning(
 						`${bundle.employment.employee_number} has ${totals.hours.toFixed(2)} normal hours in the week of ${week}, above the ${limit.max_hours}-hour limit "${limit.key}".`
 					);
 		}
@@ -724,9 +730,10 @@ function workContext(
 				if (run === 0) runStart = date;
 				run += 1;
 			}
-			if (run > restLimit.max_days && date >= complianceWindow.start)
-				refuse(
-					`${bundle.employment.employee_number} has ${run} consecutive worked days from ${runStart} through ${date}; ${restLimit.key} permits ${restLimit.max_days} before a REST day.`
+			// One warning a run, on the day it first passes the limit.
+			if (run === restLimit.max_days + 1 && date >= complianceWindow.start)
+				limitWarning(
+					`${bundle.employment.employee_number} has more than ${restLimit.max_days} consecutive worked days from ${runStart} (through ${date}); ${restLimit.key} permits ${restLimit.max_days} before a REST day.`
 				);
 		}
 	}
@@ -916,11 +923,10 @@ function workContext(
 				continue;
 			const judged = dayRuleContext(date, day);
 			if (judged == null) continue;
-			const broken = dayRules.find((rule) =>
+			for (const broken of dayRules.filter((rule) =>
 				evaluateBoolean(judged.engine, rule.when, judged.context)
-			);
-			if (broken != null)
-				refuse(
+			))
+				limitWarning(
 					`${bundle.employment.employee_number} ${broken.message} on ${date}${broken.authority ? ` (${broken.authority})` : ''}.`
 				);
 		}
@@ -1403,6 +1409,7 @@ function workContext(
 		return [...absent, ...unpaidHolidays];
 	};
 	return {
+		limitNotes,
 		attendance,
 		absentDaysIn,
 		wageDays,
@@ -1515,6 +1522,8 @@ function workAttendance(
 	}
 ) {
 	const { bundle, configuration, entryTotalByComponentId } = options;
+	/** Statutory limits the period passed: warnings, never a refusal (owner's rule, 2026-10-01). */
+	const limitNotes: RunIssue[] = [...options.work.limitNotes];
 	const {
 		attendance,
 		wageDays,
@@ -1607,9 +1616,13 @@ function workAttendance(
 					(entry.overtime_consented_at == null ||
 						!(Date.parse(entry.overtime_consented_at) < firstStart))
 				)
-					refuse(
-						`${bundle.employment.employee_number} needs the worker’s prior consent for overtime or holiday work on ${date}.`
-					);
+					limitNotes.push({
+						code: 'STATUTORY_LIMIT_EXCEEDED',
+						severity: 'WARNING',
+						message: `${bundle.employment.employee_number} needs the worker’s prior consent for overtime or holiday work on ${date}.`,
+						collection: 'employments',
+						recordId: bundle.employment.id
+					});
 			}
 			const week = weekStart(date);
 			weeklyHours.set(week, (weeklyHours.get(week) ?? 0) + premium);
@@ -1617,9 +1630,13 @@ function workAttendance(
 		for (const ceiling of combinedLimits)
 			for (const [week, worked] of weeklyHours)
 				if (worked > ceiling.max_hours + 1e-9)
-					refuse(
-						`${bundle.employment.employee_number} worked ${worked.toFixed(2)} overtime and holiday hours in the week of ${week}, above the ${ceiling.max_hours}-hour limit "${ceiling.key}".`
-					);
+					limitNotes.push({
+						code: 'STATUTORY_LIMIT_EXCEEDED',
+						severity: 'WARNING',
+						message: `${bundle.employment.employee_number} worked ${worked.toFixed(2)} overtime and holiday hours in the week of ${week}, above the ${ceiling.max_hours}-hour limit "${ceiling.key}".`,
+						collection: 'employments',
+						recordId: bundle.employment.id
+					});
 	}
 	// Overtime settles in the window the hours fall in: this employment's own attendance window.
 	const overtimeAttendance = attendance;
@@ -2202,6 +2219,7 @@ function workAttendance(
 	// grants an off-in-lieu day for it. Stated, never created.
 	const holidaysWithoutOvertime = holidaysWorked.filter((date) => !paymentEligibleOn(date));
 	const inLieuNotes: RunIssue[] = [
+		...limitNotes,
 		...holidaysWithoutOvertime.map((date) => ({
 			code: 'HOLIDAY_WORKED_NO_OVERTIME',
 			severity: 'WARNING' as const,
@@ -2440,7 +2458,9 @@ export function measureContractSegments(options: {
 			const nextTerms = date == null ? null : termsOn(date);
 			if (
 				nextTerms != null &&
-				termsIdentity(nextTerms) === termsIdentity(runTerms) &&
+				// The same row object, not the same id: a floor raised mid-period splits one row into
+				// dated pieces that share its id.
+				nextTerms === runTerms &&
 				(options.contractPeriod !== 'MONTH' || monthKey(date!) === monthKey(runStart))
 			)
 				continue;

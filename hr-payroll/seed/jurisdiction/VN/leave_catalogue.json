@@ -10,6 +10,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -28,7 +29,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -694,6 +696,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -712,7 +715,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -1378,6 +1382,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -1396,7 +1401,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2071,6 +2077,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -2089,7 +2096,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -2755,6 +2763,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -2773,7 +2782,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -3439,6 +3449,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -3457,7 +3468,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4123,6 +4135,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -4141,7 +4154,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -4816,6 +4830,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -4834,7 +4849,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -5500,6 +5516,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -5518,7 +5535,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6184,6 +6202,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -6202,7 +6221,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -6868,6 +6888,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -6886,7 +6907,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -7561,6 +7583,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -7579,7 +7602,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -8245,6 +8269,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -8263,7 +8288,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -8929,6 +8955,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -8947,7 +8974,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -9622,6 +9650,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -9640,7 +9669,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -10306,6 +10336,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -10324,7 +10355,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -10990,6 +11022,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -11008,7 +11041,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -11674,6 +11708,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -11692,7 +11727,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -12367,6 +12403,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -12385,7 +12422,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -13051,6 +13089,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -13069,7 +13108,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -13735,6 +13775,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -13753,7 +13794,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -14419,6 +14461,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -14437,7 +14480,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,
@@ -15112,6 +15156,7 @@
 			"availability": "UPFRONT",
 			"year_start_month": 1,
 			"proration": "HALF_MONTHS",
+			"rounding": "EXACT",
 			"bands": [
 				{
 					"eligibility": "employment.classification == \"ESPECIALLY_ARDUOUS\"",
@@ -15130,7 +15175,8 @@
 					"days": "12.0 + round(employment.service_months / 60.0, 1, 'DOWN')"
 				}
 			],
-			"month_counts_when": 0.5
+			"month_counts_when": 0.5,
+			"month_share_basis": "NORMAL_WORKING_DAYS"
 		},
 		"is_npl": false,
 		"can_encash": true,

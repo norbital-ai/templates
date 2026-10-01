@@ -581,14 +581,18 @@ const storedJuly = (sealed = new Set()) =>
 /** A written day's two figures; a figure the write did not key is stored empty, which is zero. */
 const splitOf = (payload) => [payload.approved_overtime_hours ?? 0, payload.incentive_hours ?? 0];
 
-test('an edit that pushes a later stored day over its limit is refused, naming that day', async () => {
+test('an edit that pushes a later stored day over its limit is written; statutory limits never refuse', async () => {
 	const stored = storedJuly();
 	const existing = (n) => stored[n - 1];
-	// Day 1 goes to 6: the month now passes 104 on the 30th, which still holds 4.
-	await assert.rejects(
-		writeDays(workDays, [{ approved_overtime_hours: 6 }], dbFor(RULES, stored), [existing(1)]),
-		/2026-07-30 would hold 4 h of approved overtime, above the 2 h left within the 104-hour limit "monthly_ot"/
+	// Day 1 goes to 6: the month now passes 104 on the 30th, which still holds 4 — a warning in the
+	// import, never a refusal of the write (owner's rule, 2026-10-01).
+	const [pushed] = await writeDays(
+		workDays,
+		[{ approved_overtime_hours: 6 }],
+		dbFor(RULES, stored),
+		[existing(1)]
 	);
+	assert.deepEqual(splitOf(pushed), [6, 0]);
 	// Lowering the 30th in the same write keeps the month within 104.
 	const out = await writeDays(
 		workDays,

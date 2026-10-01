@@ -151,6 +151,13 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 		Schema.NullOr(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })))
 	),
 	/**
+	 * Of a `HALF_MONTHS` proration, the days `month_counts_when` is a share of: the month's calendar
+	 * days (absent) or its normal working days on the roster (VN Decree 145/2020 art.66(2)).
+	 */
+	month_share_basis: Schema.optionalKey(
+		Schema.NullOr(Schema.Literals(['CALENDAR_DAYS', 'NORMAL_WORKING_DAYS']))
+	),
+	/**
 	 * Of an hourly row (`unit: HOUR`), the step the share of the shift's paid hours rounds to,
 	 * half up, and the least share an hour charges (`0.125`: an hour of an eight-hour day). Absent
 	 * is the exact share.

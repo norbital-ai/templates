@@ -1,8 +1,8 @@
 // @ts-nocheck -- executed directly by Node with --experimental-strip-types.
 /**
  * The `work_days` transform, one light case per guarantee: the attendance it accepts, the locks it holds (payroll,
- * leave, recorded attendance), month conformance to the pattern, and the statutory schedule gates (rest run, hour and
- * spread ceilings, breaks, overtime headroom, adjacent-day overlap). Ported from attendance-interval-refusals,
+ * leave, recorded attendance), month conformance to the pattern and the adjacent-day overlap; the statutory limits
+ * (rest run, hour and spread ceilings, breaks, overtime headroom) never refuse. Ported from attendance-interval-refusals,
  * attendance-freezes-roster, lock and workday-import-limits.
  */
 import assert from 'node:assert/strict';
@@ -362,34 +362,25 @@ const july = (plan) =>
 const sixOnOneOff = (work) => (n) => (n % 7 === 0 ? ['c-rest'] : work);
 const month = (plan, rules = NIHON) => writeDays(workDays, july(plan), rostered(rules));
 
-test('the weekly rest rule refuses a seventh consecutive worked day', async () => {
-	await assert.rejects(
-		month((n) => (n <= 7 || n % 7 !== 0 ? ['c-8'] : ['c-rest'])),
-		/2026-07-01 to 2026-07-13 would be 13 consecutive worked day\(s\).*allows 6/s
-	);
-	await month(sixOnOneOff(['c-8']));
+// Owner's rule (2026-10-01): a statutory limit never refuses a work day; the import returns it as a warning.
+test('the weekly rest rule does not refuse thirteen consecutive worked days', async () => {
+	const out = await month((n) => (n <= 7 || n % 7 !== 0 ? ['c-8'] : ['c-rest']));
+	assert.equal(out.length, 31);
 });
 
-test('a shift’s own hours, spread-over and granted break are schedule gates', async () => {
-	await assert.rejects(
-		month((n) => (n === 2 ? ['c-13'] : sixOnOneOff(['c-8'])(n))),
-		/13\.00 worked hours in the day, above the 12-hour limit "daily_total"/
-	);
-	await assert.rejects(
-		month((n) => (n === 3 ? ['c-long'] : sixOnOneOff(['c-8'])(n))),
-		/11\.00 spread-over hours in the day, above the 10-hour limit "spread_day"/
-	);
-	await assert.rejects(
-		month((n) => (n === 6 ? ['c-short-break'] : sixOnOneOff(['c-8'])(n))),
-		/grants 15 minutes of break, but the rules require 30/
-	);
+test('a shift’s own hours, spread-over and granted break do not refuse a work day', async () => {
+	await month((n) => (n === 2 ? ['c-13'] : sixOnOneOff(['c-8'])(n)));
+	await month((n) => (n === 3 ? ['c-long'] : sixOnOneOff(['c-8'])(n)));
+	await month((n) => (n === 6 ? ['c-short-break'] : sixOnOneOff(['c-8'])(n)));
 });
 
-test('approved overtime above the headroom is refused by name; the split keys the rest as incentive', async () => {
+test('approved overtime above the headroom is written as keyed; the split keys the rest as incentive', async () => {
 	const inputs = july((n) => (n === 2 ? ['c-9', 4] : sixOnOneOff(['c-8'])(n)));
-	await assert.rejects(
-		writeDays(workDays, inputs, rostered(NIHON)),
-		/2026-07-02 would hold 4 h .* above the 3 h left/
+	assert.equal(
+		(await writeDays(workDays, inputs, rostered(NIHON))).find(
+			(row) => row.work_date === '2026-07-02'
+		).approved_overtime_hours,
+		4
 	);
 	const facts = new Map(CODES.map((code) => [code.id, rosterCodeFacts(code.variant)]));
 	const split = splitPlannedOvertime({
@@ -474,6 +465,14 @@ test('an unrostered month refuses a single REST-into-WORK cell, and a whole-mont
 		july((n) => (n === 4 ? ['c-8'] : n === 5 ? ['c-rest'] : sixOnOneOff(['c-8'])(n))).map(
 			({ approved_overtime_hours: _, ...day }) => day
 		),
+		patterned()
+	);
+	// so is one planning a week or more that leaves the rest blank (leave not yet entered, a leaver's last days)
+	await writeDays(
+		workDays,
+		july((n) => (n === 4 ? ['c-8'] : n === 5 ? ['c-rest'] : sixOnOneOff(['c-8'])(n)))
+			.slice(0, 20)
+			.map(({ approved_overtime_hours: _, ...day }) => day),
 		patterned()
 	);
 });

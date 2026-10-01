@@ -75,9 +75,14 @@ test('Malaysia and Singapore — a rest day worked for exactly half the normal h
 	// rate × the column multiple. That is at or above the statutory floor: the s.60(3)(b) half-day
 	// and s.60D(3)(a) day awards on monthly wage ÷ 26 floor them (s.60I(2), s.7); a termless person
 	// floors at nothing. So 4 rest-day hours are 800, not s.60(3)(b)(i)'s half day of 400.
-	assert.deepEqual(price('MY', restDay(4)), [['RESTDAY-OT-2.0X', 4, 800]]);
-	assert.deepEqual(price('MY', restDay(4.5)), [['RESTDAY-OT-2.0X', 4.5, 900]]);
-	assert.deepEqual(price('MY', restDay(10)), [['RESTDAY-OT-2.0X', 10, 2000]]);
+	// Rest-day hours within the normal day are rest-day pay (EPF wages, EA s.60A(3)); only the hours
+	// beyond it are overtime.
+	assert.deepEqual(price('MY', restDay(4)), [['RESTDAY-2.0X', 4, 800]]);
+	assert.deepEqual(price('MY', restDay(4.5)), [['RESTDAY-2.0X', 4.5, 900]]);
+	assert.deepEqual(price('MY', restDay(10)), [
+		['RESTDAY-2.0X', 8, 1600],
+		['RESTDAY-OT-2.0X', 2, 400]
+	]);
 	assert.deepEqual(price('MY', holiday(10)), [
 		['HOLIDAY-2.0X', 8, 1600],
 		['HOLIDAY-OT-3.0X', 2, 600]

@@ -101,7 +101,9 @@ const lastDayOf = (range: unknown) => {
 
 /**
  * One contract per employee and entity on any date; every referenced contract is frozen; departure closes the range
- * once (an end not yet passed may only move earlier) and only its notes stay writable after; a paid final payroll fixes the departure inputs; a referenced contract
+ * (an end not yet passed may move earlier; any end may move later or be withdrawn until a payslip settles it) and only
+ * its notes stay writable after; a departure deletes the rosters and work days after its last day in the same write,
+ * refused while a payslip has consumed one; a paid final payroll fixes the departure inputs; a referenced contract
  * is never deleted (the delete guard reads the same references).
  */
 employments.transform(async (inputs, { existing, db, refuse, today }) => {
@@ -143,6 +145,31 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 			dateKey(next.end) < dateKey(was.end)
 		);
 	};
+	// How a write moves the last day: set or earlier truncates the plan after it; later or withdrawn re-opens the
+	// days after the old one. Either is refused while a payroll has consumed a day it releases.
+	const moves = inputs.map((_, index) => {
+		const stored = existing[index];
+		if (stored == null || '$delete' in inputs[index]!) return null;
+		const was = lastDayOf(stored.effective_range);
+		const next = lastDayOf(candidates[index]!.effective_range);
+		if (was === next) return null;
+		return next != null && (was == null || next < was)
+			? { id: stored.id, truncates: true as const, exit: next }
+			: { id: stored.id, truncates: false as const, was: was! };
+	});
+	// A set end moved later or withdrawn, start unchanged: a departure corrected, not a contract reopened.
+	const extendsEnd = (index: number) => {
+		const move = moves[index];
+		return (
+			move != null &&
+			!move.truncates &&
+			dateKey(readRange(existing[index]!.effective_range)?.start) ===
+				dateKey(readRange(candidates[index]!.effective_range)?.start)
+		);
+	};
+	const moved = moves.flatMap((move) => (move == null ? [] : [move.id]));
+	const truncating = moves.flatMap((move) => (move?.truncates ? [move] : []));
+	const firstExit = truncating.map((move) => move.exit).toSorted()[0] ?? '';
 	const declared = candidates.filter(
 		(row, index) => !('$delete' in inputs[index]!) && Object.keys(row.exit_facts ?? {}).length > 0
 	);
@@ -172,7 +199,8 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 		const closed = lastDayOf(stored.effective_range) != null;
 		const free = changed.every(
 			(key) =>
-				DEPARTURE_NOTES.has(key) || (key === 'effective_range' && (!closed || shortens(index)))
+				DEPARTURE_NOTES.has(key) ||
+				(key === 'effective_range' && (!closed || shortens(index) || extendsEnd(index)))
 		);
 		return changed.length > 0 && !free ? [stored.id] : [];
 	});
@@ -198,7 +226,7 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 	];
 	// One wave: the entities whose law judges departures, paid finals, the person's other contracts, and what
 	// references the contracts being changed; then the lineages of those entities.
-	const [companies, paid, others, references] = await Promise.all([
+	const [companies, paid, others, references, slips, planned, rostered] = await Promise.all([
 		entityIds.length === 0
 			? []
 			: db
@@ -220,8 +248,68 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 						all: true
 					})
 					.then((page) => page.rows),
-		contractReferences(db, changing)
+		contractReferences(db, changing),
+		moved.length === 0
+			? []
+			: db
+					.read('payslips', {
+						where: { employment_id: { in: moved as Id<'employments'>[] } },
+						all: true
+					})
+					.then((page) => page.rows),
+		truncating.length === 0
+			? []
+			: db
+					.read('work_days', {
+						where: {
+							employment_id: { in: truncating.map((move) => move.id) as Id<'employments'>[] },
+							work_date: { gt: firstExit as `${number}-${number}-${number}` }
+						},
+						all: true
+					})
+					.then((page) => page.rows),
+		truncating.length === 0
+			? []
+			: db
+					.read('rosters', {
+						where: {
+							employment_id: { in: truncating.map((move) => move.id) as Id<'employments'>[] },
+							period: { gt: firstExit.slice(0, 7) }
+						},
+						all: true
+					})
+					.then((page) => page.rows)
 	]);
+	// The first payslip that consumed a day the move releases: past a new last day, or through an old one.
+	const consumed = moves.flatMap((move) => {
+		if (move == null) return [];
+		const mine = slips.filter((slip) => slip.employment_id === move.id);
+		const through = (slip: (typeof slips)[number]) => dateKey(String(slip.terms_through));
+		const slip = move.truncates
+			? (mine.find((row) => through(row) > move.exit) ??
+				mine.find((row) =>
+					planned.some(
+						(day) =>
+							day.payslip_id === row.id &&
+							day.employment_id === move.id &&
+							dateKey(String(day.work_date)) > move.exit
+					)
+				))
+			: mine.find((row) => through(row) >= move.was);
+		return slip == null ? [] : [{ move, slip }];
+	});
+	if (consumed.length > 0) {
+		const [{ move, slip }] = consumed as [(typeof consumed)[number]];
+		const run = await db.get('payroll_runs', slip.payroll_run_id as Id<'payroll_runs'>);
+		const named = `Payslip ${slip.id} in the ${run?.period ?? ''} ${run?.kind ?? ''} payroll run #${run?.sequence ?? ''} took this contract into account through ${dateKey(String(slip.terms_through))}`;
+		const paidSlip = slip.status === 'PAID';
+		refuse(
+			move.truncates
+				? `${named}, after the new last day ${move.exit}. ${paidSlip ? `It is paid, so it is kept: record a last day on or after ${dateKey(String(slip.terms_through))}, and recover any overpayment in a later correction run.` : 'Delete that unpaid run first, then record the departure; the next run recalculates it.'}`
+				: `${named}, so it settled the departure on ${move.was}. ${paidSlip ? 'It is paid, so the departure stands: create a new contract for a rehire.' : 'Delete that unpaid run first, then move or withdraw the departure.'}`,
+			{ field: 'effective_range' }
+		);
+	}
 	const codes = [...new Set(companies.map((row) => row.settings_code))];
 	const versions =
 		codes.length === 0 ? [] : (await db.read('jurisdiction_settings', sealedLineages(codes))).rows;
@@ -404,17 +492,37 @@ employments.transform(async (inputs, { existing, db, refuse, today }) => {
 			!('$delete' in input) &&
 			lastDayOf(stored.effective_range) != null &&
 			changedKeys(index).includes('effective_range') &&
-			!shortens(index)
+			!shortens(index) &&
+			!extendsEnd(index)
 		)
-			// A passed end never moves and a set end never extends; a rehire is a new contract.
+			// A start never moves and a passed end never moves earlier; a rehire is a new contract.
 			refuse(
-				'A closed contract cannot be reopened or extended; an end not yet passed may only move earlier. Create a new contract for a rehire.',
+				'A closed contract keeps its start, and a passed end never moves earlier; an end may move later or be withdrawn until payroll settles it. Create a new contract for a rehire.',
 				{ field: 'effective_range' }
 			);
 		if (changing.includes(stored.id)) {
 			const fault = contractReferenceFault(references, stored.id);
 			if (fault != null) refuse(fault);
 		}
-		return input;
+		const move = moves[index];
+		if (move == null || '$delete' in input) return input;
+		// A departure takes the plan after its last day with it, in the same write: no orphan rostered day survives
+		// it (the guard above refused any day a payroll consumed). A withdrawn one is no longer due for settlement.
+		if (!move.truncates)
+			return lastDayOf(candidates[index]!.effective_range) == null &&
+				stored.encashment_due_on != null
+				? { ...input, encashment_due_on: null }
+				: input;
+		const days = planned.flatMap((day) =>
+			day.employment_id === move.id && dateKey(String(day.work_date)) > move.exit ? [day.id] : []
+		);
+		const months = rostered.flatMap((roster) =>
+			roster.employment_id === move.id && roster.period > move.exit.slice(0, 7) ? [roster.id] : []
+		);
+		return {
+			...input,
+			...(days.length === 0 ? {} : { work_days: { delete: days } }),
+			...(months.length === 0 ? {} : { rosters: { delete: months } })
+		};
 	});
 });

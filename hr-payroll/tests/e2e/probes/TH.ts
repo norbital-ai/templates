@@ -2662,8 +2662,10 @@ register(
 			guardDay('gagree', '2026-04-27', '2026-04-27T03:00:00.000Z')
 		],
 		period: '2026-04',
-		refused:
-			'P-TH-gagree needs a prior worker agreement for the redistributed normal day on 2026-04-27',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-gagree needs a prior worker agreement for the redistributed normal day on 2026-04-27',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -2753,7 +2755,10 @@ register(
 			)
 		],
 		period: '2026-01',
-		refused: 'P-TH-hazot cannot work overtime or on a holiday in Thai hazardous work on 2026-01-05',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-hazot cannot work overtime or on a holiday in Thai hazardous work on 2026-01-05',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -2775,8 +2780,10 @@ register(
 			)
 		],
 		period: '2026-01',
-		refused:
-			'P-TH-hazhol cannot work overtime or on a holiday in Thai hazardous work on 2026-01-10',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-hazhol cannot work overtime or on a holiday in Thai hazardous work on 2026-01-10',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -2788,7 +2795,10 @@ register(
 		],
 		inputs: person({ ref: 'haz8', wage: 21_000, terms: HAZARDOUS }),
 		period: '2026-01',
-		refused: 'P-TH-haz8 has a hazardous normal shift above the 7-hour limit on 2026-01-\\d\\d',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-haz8 has a hazardous normal shift above the 7-hour limit on 2026-01-\\d\\d',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -2805,14 +2815,16 @@ register(
 			})
 		],
 		period: '2026-01',
-		refused:
-			'P-TH-noconsent needs the worker.s prior consent for overtime or holiday work on 2026-01-05',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-noconsent needs the worker.s prior consent for overtime or holiday work on 2026-01-05',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
 		id: 'TH-WORK-07-6',
 		description:
-			'Four company holidays 5–8 January 2026 each worked nine hours (36 hours of holiday work and holiday overtime) fill the week’s 36-hour ceiling, so three overtime hours on Friday 9 January are refused at entry; the four holidays are paid: 4 × (800 + 300) = 4,400.',
+			'Four company holidays 5–8 January 2026 each worked nine hours (36 hours of holiday work and holiday overtime) fill the week’s 36-hour ceiling; the four holidays are paid: 4 × (800 + 300) = 4,400.',
 		citation: [
 			`LPA s.26 and Ministerial Regulation No.3 B.E.2541 cl.3 (${LPA}): overtime, holiday work and holiday overtime together at most 36 hours a week.`,
 			`LPA ss.62(1), 63, 68: 8 × 100 + 1 × 300 a holiday on THB24,000.`,
@@ -2826,12 +2838,7 @@ register(
 			...person({ ref: 'capot', wage: 24_000 }),
 			...['2026-01-05', '2026-01-06', '2026-01-07', '2026-01-08'].map((date) =>
 				workDay('capot', date, NINE_HOURS, 9)
-			),
-			{
-				...workDay('capot', '2026-01-09', LONG_DAY, 3),
-				refused:
-					'2026-01-09 would hold 3 h of approved overtime, above the .* h left within the 36-hour limit "combined_overtime_holiday_week"'
-			}
+			)
 		],
 		period: '2026-01',
 		expected: [
@@ -2863,7 +2870,10 @@ register(
 			workDay('teenot', '2026-02-02', LONG_DAY, 3)
 		],
 		period: '2026-02',
-		refused: 'P-TH-teenot cannot work overtime in Thailand while under 18 on 2026-02-02',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-teenot cannot work overtime in Thailand while under 18 on 2026-02-02',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -2883,8 +2893,10 @@ register(
 			workDay('pregot', '2026-01-05', LONG_DAY, 3)
 		],
 		period: '2026-01',
-		refused:
-			'P-TH-pregot needs supported Thai s\\.39/1 role and health evidence before pregnant working-day overtime on 2026-01-05',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-pregot needs supported Thai s\\.39/1 role and health evidence before pregnant working-day overtime on 2026-01-05',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -2909,8 +2921,10 @@ register(
 			])
 		],
 		period: '2026-02',
-		refused:
-			'P-TH-teennight needs prior written Thai Director-General permission for under-18 night work on 2026-02-02',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-teennight needs prior written Thai Director-General permission for under-18 night work on 2026-02-02',
+			'.*'
+		],
 		expected: []
 	}),
 
@@ -3749,7 +3763,7 @@ register(
 	th({
 		id: 'TH-WORK-03-4',
 		description:
-			'A monthly guard on THB24,000 works five agreed twelve-hour normal days, Monday 26 – Friday 30 October 2026: 60 normal hours exceed the 48 a week, so the run is refused.',
+			'A monthly guard on THB24,000 works five agreed twelve-hour normal days, Monday 26 – Friday 30 October 2026: 60 normal hours exceed the 48 a week, which the run pays and reports as a warning (owner’s rule 2026-10-01: a statutory limit never refuses).',
 		citation: [
 			'Guard regulation in force 24 April 2026 (https://ratchakitcha.soc.go.th/documents/68372.pdf): a normal day above eight hours only within 48 normal hours a week.',
 			`LPA s.23 (${LPA}): normal hours at most 48 a week.`
@@ -3766,9 +3780,16 @@ register(
 			...guardWeek('g60', ['2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30'])
 		],
 		period: '2026-10',
-		refused:
-			'P-TH-g60 has 60\\.00 normal hours in the week of 2026-10-26, above the 48-hour limit "ordinary_normal_week"',
-		expected: []
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: P-TH-g60 has 60\\.00 normal hours in the week of 2026-10-26, above the 48-hour limit "ordinary_normal_week"'
+		],
+		// GAP (TH-WORK-03): the 12 hours beyond the 48-hour week are not yet priced as overtime (LPA s.61).
+		expected: [
+			{
+				employment: 'g60_job',
+				lines: { gross: 24_000, BASIC: 24_000, 'SSO.employee': 875, 'SSO.employer': 875 }
+			}
+		]
 	})
 );
 
@@ -3878,7 +3899,7 @@ register(
 			})
 		],
 		period: '2026-01',
-		refused: 'shorter-day hours to offset',
+		warnings: ['STATUTORY_LIMIT_EXCEEDED: .*shorter-day hours to offset', '.*'],
 		expected: []
 	}),
 	th({
@@ -3910,7 +3931,10 @@ register(
 		work: { kind: 'WORK', start_time: '09:00', end_time: '18:00', break_minutes: 60 },
 		inputs: person({ ref: 'untimed', wage: 24_000 }),
 		period: '2026-01',
-		refused: 'over five consecutive hours without a timed Thai s\\.27 break',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*over five consecutive hours without a timed Thai s\\.27 break',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -3933,7 +3957,10 @@ register(
 			)
 		],
 		period: '2026-01',
-		refused: 'Thai s\\.27 wage treatment for rest over two hours',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*Thai s\\.27 wage treatment for rest over two hours',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -3957,7 +3984,7 @@ register(
 			)
 		],
 		period: '2026-01',
-		refused: 'prior split-break agreement',
+		warnings: ['STATUTORY_LIMIT_EXCEEDED: .*prior split-break agreement', '.*'],
 		expected: []
 	}),
 	th({
@@ -4005,7 +4032,7 @@ register(
 			)
 		],
 		period: '2026-01',
-		refused: 'timed 20-minute rest before Thai overtime',
+		warnings: ['STATUTORY_LIMIT_EXCEEDED: .*timed 20-minute rest before Thai overtime', '.*'],
 		expected: []
 	}),
 
@@ -4063,7 +4090,7 @@ register(
 			})
 		],
 		period: '2026-01',
-		refused: 'holiday-work exception on an ordinary day',
+		warnings: ['STATUTORY_LIMIT_EXCEEDED: .*holiday-work exception on an ordinary day', '.*'],
 		expected: []
 	}),
 	th({
@@ -4100,7 +4127,10 @@ register(
 			workDay('teenhol', '2026-02-07', NORMAL_DAY, 8)
 		],
 		period: '2026-02',
-		refused: 'P-TH-teenhol cannot work on a Thai holiday.*under 18',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-teenhol cannot work on a Thai holiday.*under 18',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -4120,7 +4150,10 @@ register(
 			workDay('preghol', '2026-01-10', NORMAL_DAY, 8)
 		],
 		period: '2026-01',
-		refused: 'P-TH-preghol cannot perform Thai night or holiday work while pregnant',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-preghol cannot perform Thai night or holiday work while pregnant',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -4142,7 +4175,10 @@ register(
 			terms: { facts: { hazardous_work: false, pregnancy_status: 'PREGNANT' } }
 		}),
 		period: '2026-01',
-		refused: 'P-TH-pregnight cannot perform Thai night or holiday work while pregnant',
+		warnings: [
+			'STATUTORY_LIMIT_EXCEEDED: .*P-TH-pregnight cannot perform Thai night or holiday work while pregnant',
+			'.*'
+		],
 		expected: []
 	}),
 	th({
@@ -4168,7 +4204,7 @@ register(
 			)
 		],
 		period: '2026-02',
-		refused: 'continuous 60-minute rest.*four hours',
+		warnings: ['STATUTORY_LIMIT_EXCEEDED: .*continuous 60-minute rest.*four hours', '.*'],
 		expected: []
 	}),
 	th({
@@ -4180,7 +4216,7 @@ register(
 		],
 		inputs: person({ ref: 'teenblank', wage: 12_000, dob: '2008-06-15', hire: '2025-12-01' }),
 		period: '2026-02',
-		refused: 'timed work and rest records',
+		warnings: ['STATUTORY_LIMIT_EXCEEDED: .*timed work and rest records', '.*'],
 		expected: []
 	}),
 

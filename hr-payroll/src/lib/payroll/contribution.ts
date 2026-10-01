@@ -972,8 +972,10 @@ function* floorTerms(
  * 最低工資法 §5 (`wages.substitutes_below`): a covered contract agreed below the floor has the floor
  * as its wage, so every bundle's terms row below the floor of a version in force during the
  * employed days is re-rated to it in the contract's own unit (the rate × floor ÷ pay, each in the
- * floor's unit) before anything is measured, and the run warns. The highest floor the row meets in
- * the period is the one it is raised to.
+ * floor's unit) before anything is measured, and the run warns. The floor replaces the term only
+ * for the work it governs: the row is split at the edges of each version segment it breaks, so a
+ * floor raised mid-period prices only the days from its effective date and the row's own proration
+ * prices each piece. A raise reaching the end of the employed days runs on to the row's own end.
  * ponytail: judged without the measured month, so a version combining this with
  * `weekly_daily_hourly_alternative` refuses a daily contract; measure first if one ever does.
  */
@@ -997,20 +999,32 @@ function raiseFloors(
 	const issues: RunIssue[] = [];
 	const raised = bundles.map((bundle) => {
 		if (bundle.employedDays == null) return bundle;
-		const rates = new Map<string, number>();
+		const employed = bundle.employedDays;
+		// Per terms row, the dated spans whose floor it breaks, in date order.
+		const rates = new Map<string, { start: IsoDate; end: IsoDate; rate: number }[]>();
 		// Only a version whose floor substitutes itself is judged here; the rest are judged measured.
-		const segments = versionSegments(configuration, bundle.employedDays).filter(
+		const segments = versionSegments(configuration, employed).filter(
 			(segment) => segment.configuration.jurisdiction.work_rules.wages?.substitutes_below === true
 		);
-		for (const { segment, term, against, during } of floorTerms(bundle, segments, undefined)) {
+		for (const { segment, term, against, during, start, end } of floorTerms(
+			bundle,
+			segments,
+			undefined
+		)) {
 			if (against.paid <= 0) continue;
 			if (cents(against.paid) >= cents(against.floor)) continue;
 			const base = term.base_salary ?? 0;
 			// The floor restated in the contract's unit, up to the cent so it meets the floor.
 			const rate =
 				Math.ceil(Math.round((base * against.floor * 10_000) / against.paid) / 100) / 100;
-			if (rate <= (rates.get(term.id) ?? base)) continue;
-			rates.set(term.id, rate);
+			const spans = rates.get(term.id) ?? [];
+			const previous = spans.at(-1);
+			// A later version restating the same floor extends the span; it is not a second raise.
+			if (previous?.rate === rate && addDays(previous.end, 1) === start) {
+				previous.end = end;
+				continue;
+			}
+			rates.set(term.id, [...spans, { start, end, rate }]);
 			issues.push({
 				code: 'MINIMUM_WAGE_BELOW',
 				severity: 'WARNING',
@@ -1023,12 +1037,32 @@ function raiseFloors(
 			});
 		}
 		if (rates.size === 0) return bundle;
-		const lift = (term: EmploymentBundle['terms'][number]) =>
-			rates.has(term.id) ? { ...term, base_salary: rates.get(term.id)! } : term;
+		// Each raised span becomes its own dated piece of the row (same id); the days outside it keep
+		// the agreed rate.
+		const split = (term: EmploymentBundle['terms'][number]) => {
+			const spans = rates.get(term.id);
+			if (spans == null) return [term];
+			const range = readRange(term.effective_range)!;
+			const last = range.end == null ? null : dateKey(range.end);
+			const pieces: EmploymentBundle['terms'][number][] = [];
+			const piece = (from: IsoDate, to: IsoDate | null, base_salary = term.base_salary) =>
+				pieces.push({ ...term, base_salary, effective_range: { from, to } });
+			let from = dateKey(range.start);
+			for (const span of spans) {
+				if (span.start > from) piece(from, addDays(span.start, -1));
+				const to = span.end === employed.end ? last : span.end;
+				piece(span.start, to, span.rate);
+				if (to == null) return pieces;
+				from = addDays(to, 1);
+			}
+			if (last == null || from <= last) piece(from, last);
+			return pieces;
+		};
+		const { salary } = bundle.window;
 		return {
 			...bundle,
-			terms: bundle.terms.map(lift),
-			termsHistory: bundle.termsHistory.map(lift)
+			terms: effectiveWithin(bundle.terms.flatMap(split), salary.start, salary.end),
+			termsHistory: bundle.termsHistory.flatMap(split)
 		};
 	});
 	return { bundles: raised, issues };

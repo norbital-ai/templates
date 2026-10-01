@@ -4,18 +4,18 @@
 	 * agreement, and what its plan still has to recover. A repayment is recovered whole by the one payslip it links, and counts once that slip is
 	 * paid: a draft has paid nobody.
 	 */
-	import ScopeGate from '../../../../lib/ui/ScopeGate.svelte';
-	import { t } from '../../../../lib/ui/t.js';
+	import ScopeGate from '../../../lib/ui/ScopeGate.svelte';
+	import { t } from '../../../lib/ui/t.js';
 	import type { Id } from '@norbital-ai/bolt';
 	import { bolt } from '$bolt';
 	import { AppShell } from '@norbital-ai/ui/layout';
 	import { Table } from '@norbital-ai/ui';
-	import { repaymentProgress } from '../../../../lib/loan-schedule.js';
-	import CompanyScope from '../../../../lib/ui/CompanyScope.svelte';
-	import { companyScope, employmentNames } from '../../../../lib/ui/company-scope.svelte.js';
-	import { formatNumeric } from '../../../../lib/ui/display-formatters.js';
-	import { liveRows } from '../../../../lib/ui/live.svelte.js';
-	import { decodeNumber } from '../../../../lib/wire.js';
+	import { repaymentProgress } from '../../../lib/loan-schedule.js';
+	import CompanyScope from '../../../lib/ui/CompanyScope.svelte';
+	import { companyScope, employmentNames } from '../../../lib/ui/company-scope.svelte.js';
+	import { formatNumeric } from '../../../lib/ui/display-formatters.js';
+	import { liveRows } from '../../../lib/ui/live.svelte.js';
+	import { decodeNumber } from '../../../lib/wire.js';
 
 	const scope = companyScope();
 	const person = employmentNames(() => scope.id);
@@ -67,7 +67,7 @@
 {#snippet progressCell({ row }: { row: LoanRow })}{progress(row)}{/snippet}
 
 <AppShell
-	icon="lucide:hand-coins"
+	icon="lucide:landmark"
 	title={t('app.loans.title')}
 	description={t('app.loans.description')}
 >

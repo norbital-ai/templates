@@ -76,10 +76,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -978,10 +985,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -1891,10 +1905,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -2815,10 +2836,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -3739,10 +3767,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -4663,10 +4698,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -5566,10 +5608,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -6480,10 +6529,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -7405,10 +7461,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -8330,10 +8393,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -9255,10 +9325,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -10159,10 +10236,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -11074,10 +11158,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -12000,10 +12091,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -12926,10 +13024,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -13852,10 +13957,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -14797,10 +14909,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -15753,10 +15872,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -16720,10 +16846,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -17687,10 +17820,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -18654,10 +18794,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -19619,10 +19766,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -20584,10 +20738,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -21560,10 +21721,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -22547,10 +22715,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -23534,10 +23709,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -24528,10 +24710,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -25765,10 +25954,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -27002,10 +27198,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -28250,10 +28453,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -29509,10 +29719,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",
@@ -30768,10 +30985,17 @@
 					"funnel_above_hours": "limits.daily_total"
 				},
 				{
+					"label": "RESTDAY-2.0X",
+					"line": "REST_DAY_WORK",
+					"when": "day_type == \"REST_DAY\"",
+					"take_hours": "normal_hours",
+					"price_amount": "(hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? hours * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)))"
+				},
+				{
 					"label": "RESTDAY-OT-2.0X",
 					"when": "day_type == \"REST_DAY\"",
-					"take_hours": "overtime_hours",
-					"price_amount": "((hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 > (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0)) ? (hours - hours_beyond_normal) * round(ordinary_hour, 0.01, 'HALF_UP') * 2.0 : (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) * (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? (hours_from_start_fraction <= 0.5 ? 1.0 : 2.0) : (hours_from_start_fraction <= 0.5 ? 0.5 : 1.0))) + hours_beyond_normal * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
+					"take_hours": "hours_beyond_normal",
+					"price_amount": "hours * (round(ordinary_hour, 0.01, 'HALF_UP') > (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0) ? round(ordinary_hour, 0.01, 'HALF_UP') : (normal_hours > 0.0 ? (person.terms.pay_frequency in [\"DAILY\", \"HOURLY\"] ? day_wage : (person.terms.pay_frequency == \"WEEKLY\" ? person.terms.basic_salary / 6.0 + person.terms.fixed_allowances / 26.0 : person.terms.monthly_wage / 26.0)) / normal_hours : 0.0)) * 2.0"
 				},
 				{
 					"label": "HOLIDAY-2.0X",

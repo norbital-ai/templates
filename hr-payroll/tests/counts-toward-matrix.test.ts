@@ -147,7 +147,9 @@ const MATRIX: Record<string, Record<string, readonly string[]>> = {
 		CHRISTMAS_GIFT: ['WTAX.GIFT'],
 		// SSS IRR Rule 12 s.6(ii), (xii): commissions are compensation; Circular 460 p.2: fund salary
 		// includes pay on a commission basis. Not PhilHealth's basic salary nor the 13th-month basic.
-		COMMISSION: [...PH_WAGES, 'WTAX.ORDINARY'],
+		// RR 11-2018 s.2.79(B)(3) Step 1: commission is supplementary compensation — taxed, but outside
+		// the regular compensation that selects the withholding rung (Step 3).
+		COMMISSION: [...PH_WAGES, 'WTAX.SUPPLEMENTARY'],
 		DEPENDANT_MEDICAL_ALLOWANCE: [...PH_WAGES, 'WTAX.DEP_MEDICAL'],
 		LAUNDRY_ALLOWANCE: [...PH_WAGES, 'WTAX.LAUNDRY'],
 		MEDICAL_ASSISTANCE: ['WTAX.MEDICAL'],

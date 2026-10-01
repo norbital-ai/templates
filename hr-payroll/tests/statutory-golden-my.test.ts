@@ -974,7 +974,9 @@ test('Malaysia — s.59(1): of two rest days in a week only the last is the rest
 	assert.deepEqual(workLines(slips.get('SAT-4')!), [
 		// Company term (5-day week): earlier rest-day work at 2.0x, above the EA s.60A(3) 1.5x floor.
 		['2026-08-08', 'EARLIER-REST-2.0X', 4, 123.04],
-		['2026-08-09', 'RESTDAY-OT-2.0X', 4, 123.04]
+		// Sunday's 4 h are within the normal 8, so s.60(3)(b) rest-day pay, not s.60A(3) overtime:
+		// RESTDAY-2.0X on REST_DAY_WORK.
+		['2026-08-09', 'RESTDAY-2.0X', 4, 123.04]
 	]);
 	assert.deepEqual(
 		workLines(slips.get('SAT-10')!),
@@ -1114,7 +1116,8 @@ test('MY — the last rest day keeps its 2.0× rate; earlier rest-day work is pr
 		},
 		(world) => punch(world, 'SUN-4', '2026-08-09', '09:00', '13:00')
 	);
-	assert.deepEqual(workLines(slips.get('SUN-4')!), [['2026-08-09', 'RESTDAY-OT-2.0X', 4, 123.04]]);
+	// 4 h within the normal 8: s.60(3)(b) rest-day pay (RESTDAY-2.0X), not s.60A(3) overtime.
+	assert.deepEqual(workLines(slips.get('SUN-4')!), [['2026-08-09', 'RESTDAY-2.0X', 4, 123.04]]);
 	const saturday = buildStatutory(
 		{
 			code: 'MY',
@@ -1208,16 +1211,21 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 	// 10.5 h × 2.0 = 279.93 (100.00 + 62.50). Holidays: 8 h × 2.0 = 213.28 (two days 200.00), 2 h
 	// beyond × 3.0 = 79.98 (75.00). A scheduled day's shift grants an hour and takes it as a gap
 	// (09:00–20:00 punched as two intervals is ten hours worked with nothing left to deduct).
+	// EA s.60A(3): only the hours beyond the normal hours are overtime. Rest-day work within the
+	// normal 8 is s.60(3)(a)/(b) pay (RESTDAY-2.0X, REST_DAY_WORK); s.60(3)(c) hours beyond it stay
+	// overtime (RESTDAY-OT-2.0X). Sun 18's 10.5 h split: 8 × 13.33 × 2 = 213.28 within, 2.5 × 13.33 ×
+	// 2 = 66.65 beyond (s.60(3)(c) floor 2.5 × 2 × 12.50 = 62.50); 213.28 + 66.65 = 279.93 as before.
 	assert.deepEqual(workLines(slips.get('MY-EA')!), [
 		['2026-01-01', 'HOLIDAY-2.0X', 8, 213.28],
-		['2026-01-04', 'RESTDAY-OT-2.0X', 4, 106.64],
+		['2026-01-04', 'RESTDAY-2.0X', 4, 106.64],
 		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 39.99],
 		// Company term (5-day week): earlier rest-day work at 2.0x, above the EA s.60A(3) 1.5x floor.
 		['2026-01-10', 'EARLIER-REST-2.0X', 4, 106.64],
-		['2026-01-11', 'RESTDAY-OT-2.0X', 6.5, 173.29],
+		['2026-01-11', 'RESTDAY-2.0X', 6.5, 173.29],
 		['2026-01-14', 'HOLIDAY-2.0X', 8, 213.28],
 		['2026-01-14', 'HOLIDAY-OT-3.0X', 2, 79.98],
-		['2026-01-18', 'RESTDAY-OT-2.0X', 10.5, 279.93]
+		['2026-01-18', 'RESTDAY-2.0X', 8, 213.28],
+		['2026-01-18', 'RESTDAY-OT-2.0X', 2.5, 66.65]
 	]);
 	assert.equal(
 		slips.get('MY-EA')!.gross,
@@ -1228,10 +1236,14 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 	// overtime out of wages, Act 4 and Act 800 take it in, HRD Corp levies basic and fixed
 	// allowances only. The two holiday awards within the normal hours are not overtime (EA
 	// s.60A(3)(b), s.60A(4) proviso) and are EPF wages (KWSP Employer FAQ 21): they settle on
-	// HOLIDAY_WORK (`DAY_PAY`), so EPF is 2,600 + 213.28 + 213.28 = 3,026.56 while HRDF stays on 2,600.
+	// HOLIDAY_WORK (`DAY_PAY`). Rest-day pay within the normal hours is not overtime either (EA
+	// s.60A(3); EPF Act s.2 excludes only "overtime payment"): it settles on REST_DAY_WORK
+	// (`DAY_PAY`). EPF = 2,600 + holidays 213.28 + 213.28 + rest days 106.64 (Sun 4) + 173.29
+	// (Sun 11) + 213.28 (Sun 18 within 8 h) = 3,519.77; Sun 18's 66.65 beyond, Mon 5's 39.99 and
+	// Sat 10's 106.64 are overtime and stay out. HRDF stays on 2,600.
 	const charge = (code: string) =>
 		slips.get('MY-EA')!.statutory.find((row) => row.scheme_code === code)!;
-	assert.equal(charge('EPF').base_amount, 3026.56);
+	assert.equal(charge('EPF').base_amount, 3519.77);
 	assert.equal(charge('HRDF').base_amount, 2600);
 	assert.equal(
 		charge('SOCSO').base_amount,
@@ -1266,13 +1278,16 @@ test('Malaysia — overtime, rest-day and holiday work at the s.60I ordinary rat
 	// customer hour 5,200 ÷ 195 = 26.67 — each above the statutory 200.00 a day and 25.00 an hour.
 	assert.deepEqual(workLines(slips.get('MY-MANUAL')!), [
 		['2026-01-01', 'HOLIDAY-2.0X', 8, 426.72],
-		['2026-01-04', 'RESTDAY-OT-2.0X', 4, 213.36],
+		['2026-01-04', 'RESTDAY-2.0X', 4, 213.36],
 		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 80.01],
 		['2026-01-10', 'EARLIER-REST-2.0X', 4, 213.36] /* company 2.0x; EA s.60A(3) floor 1.5x */,
-		['2026-01-11', 'RESTDAY-OT-2.0X', 6.5, 346.71],
+		['2026-01-11', 'RESTDAY-2.0X', 6.5, 346.71],
 		['2026-01-14', 'HOLIDAY-2.0X', 8, 426.72],
 		['2026-01-14', 'HOLIDAY-OT-3.0X', 2, 160.02],
-		['2026-01-18', 'RESTDAY-OT-2.0X', 10.5, 560.07]
+		// Sun 18: 8 × 26.67 × 2 = 426.72 within the normal hours, 2.5 × 26.67 × 2 = 133.35 beyond
+		// (560.07 together).
+		['2026-01-18', 'RESTDAY-2.0X', 8, 426.72],
+		['2026-01-18', 'RESTDAY-OT-2.0X', 2.5, 133.35]
 	]);
 });
 
@@ -1466,7 +1481,9 @@ test('MY — a short rest day or holiday is lifted to the Act’s day awards (EA
 	// Sunday 20 Sep, 09:00–20:00: the rest day has no shift to grant a break, so EA s.60A(1)(a)'s
 	// thirty minutes after five continuous hours comes off — 10.5 h worked: column 8 × 15.38 × 2 =
 	// 246.08 over s.60(3)(b)(ii)'s 115.38; the 2.5 h beyond at the greater hour, 2.5 × 15.38 × 2 =
-	// 76.90 over s.60(3)(c)'s 72.12 — 322.98, the column price.
+	// 76.90 over s.60(3)(c)'s 72.12 — 322.98, the column price. EA s.60A(3): only the 2.5 h beyond
+	// the normal hours are overtime, so the 8 h settle on REST_DAY_WORK (RESTDAY-2.0X, 246.08) and
+	// the 2.5 h on OVERTIME (RESTDAY-OT-2.0X, 76.90); the 1 h Sunday is within the normal hours too.
 	// Hari Malaysia, Wed 16 Sep, 10:00–12:00: the column is the one hour worked — the shift's hour
 	// punched as a gap 10:30–11:30 — × 15.38 × 2 = 30.76; s.60D(3)(a)(i) two days' wages 2 ×
 	// 115.3846 = 230.77 "regardless that the period of work done on that day is less than the normal
@@ -1488,9 +1505,10 @@ test('MY — a short rest day or holiday is lifted to the Act’s day awards (EA
 		}
 	);
 	assert.deepEqual(workLines(slips.get('N-3000')!), [
-		['2026-09-06', 'RESTDAY-OT-2.0X', 1, 57.69],
+		['2026-09-06', 'RESTDAY-2.0X', 1, 57.69],
 		['2026-09-16', 'HOLIDAY-2.0X', 1, 230.77],
-		['2026-09-20', 'RESTDAY-OT-2.0X', 10.5, 322.98]
+		['2026-09-20', 'RESTDAY-2.0X', 8, 246.08],
+		['2026-09-20', 'RESTDAY-OT-2.0X', 2.5, 76.9]
 	]);
 });
 
@@ -1857,11 +1875,11 @@ test('Malaysia — the normal day is at most nine hours under the s.60A(1) provi
 	// EA s.60A(1)(a)'s thirty minutes after five continuous hours comes off: 6.5 h worked, still
 	// beyond half of eight — two days' wages = 200; the four-hour punch owes no break.
 	// The lineage's company term (Nihon Pigment's contract, owner-approved 2026-09-23) prices every rest-day hour at 2.0
-	// (`RESTDAY-OT-2.0X`); the s.60(3)(a) day awards floor it (s.60I(2)), and here they are the
-	// greater, so the amounts are the Act's.
+	// (`RESTDAY-2.0X` within the normal hours, s.60A(3)); the s.60(3)(a) day awards floor it
+	// (s.60I(2)), and here they are the greater, so the amounts are the Act's.
 	assert.deepEqual(workLines(slips.get('MY-DAILY')!), [
-		['2026-01-04', 'RESTDAY-OT-2.0X', 4, 100],
-		['2026-01-11', 'RESTDAY-OT-2.0X', 6.5, 200]
+		['2026-01-04', 'RESTDAY-2.0X', 4, 100],
+		['2026-01-11', 'RESTDAY-2.0X', 6.5, 200]
 	]);
 });
 
@@ -3485,15 +3503,17 @@ test('Malaysia — a travelling contract allowance is outside the s.60I ordinary
 	// 6.5 × 13.33 × 2 = 173.29 (≥ 110.00). Overtime: the s.60I hour 13.75 is the greater, 41.25.
 	assert.deepEqual(workLines(slips.get('MY-TRAVEL')!), [
 		['2026-01-01', 'HOLIDAY-2.0X', 8, 220],
-		['2026-01-04', 'RESTDAY-OT-2.0X', 4, 106.64],
+		['2026-01-04', 'RESTDAY-2.0X', 4, 106.64],
 		['2026-01-05', 'WORKDAY-OT-1.5X', 2, 41.25],
-		['2026-01-11', 'RESTDAY-OT-2.0X', 6.5, 173.29]
+		['2026-01-11', 'RESTDAY-2.0X', 6.5, 173.29]
 	]);
 	// EPF s.2 and KWSP FAQ Q11: the travelling allowance is no EPF wage either; the meal allowance
-	// is. The 220 holiday award within the normal hours is an EPF wage (KWSP Employer FAQ 21):
-	// 2,860 + 220 = 3,080.
+	// is. The 220 holiday award within the normal hours is an EPF wage (KWSP Employer FAQ 21), and
+	// so is rest-day pay within the normal hours (EA s.60A(3): not overtime; EPF Act s.2 excludes
+	// only "overtime payment"): 2,860 + 220 + 106.64 (Sun 4, 4 h) + 173.29 (Sun 11, 6.5 h) =
+	// 3,359.93. Mon 5's 41.25 is overtime and stays out.
 	const epf = slips.get('MY-TRAVEL')!.statutory.find((row) => row.scheme_code === 'EPF')!;
-	assert.equal(epf.base_amount, 3080);
+	assert.equal(epf.base_amount, 3359.93);
 });
 
 test('Malaysia — seed-bank data gaps refuse naming the employee and the field, never price silently (F22)', () => {

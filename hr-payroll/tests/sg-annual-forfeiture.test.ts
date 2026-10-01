@@ -161,7 +161,7 @@ test('SG annual forfeiture requires dated absence evidence and refuses an unsett
 	);
 });
 
-test('SG final annual balance refuses an unrecorded working day instead of treating it as worked', async () => {
+test('SG final annual balance forfeits nothing for an unrecorded working day and names it', async () => {
 	const world = forfeitureWorld(0);
 	world.work_days.find((row) => row.work_date === `${YEAR}-06-02`)!.worked_intervals = null;
 	const { context, rules } = await savedAnnual(world);
@@ -169,10 +169,46 @@ test('SG final annual balance refuses an unrecorded working day instead of treat
 		context.absences?.some((row) => row.work_date === `${YEAR}-06-02`),
 		false
 	);
-	assert.throws(
-		() => rules.entitlementAt({ start: `${YEAR}-01-01`, end: `${YEAR}-12-31` }, `${YEAR}-12-31`),
-		new RegExp(`dated attendance or leave evidence on ${YEAR}-06-02`)
+	assert.equal(
+		rules.entitlementAt({ start: `${YEAR}-01-01`, end: `${YEAR}-12-31` }, `${YEAR}-12-31`).earned,
+		7
 	);
+	assert.match([...rules.warnings][0]!, new RegExp(`1 working day\\(s\\) from ${YEAR}-06-02`));
+});
+
+test('SG annual balance renders when the carry year predates the attendance the workspace holds', async () => {
+	// The sample seed: hired before 2025, attendance only December 2025 to February 2026.
+	const world = createStatutoryWorld({
+		code: 'SG',
+		period: `${YEAR}-10`,
+		people: [{ key: 'SG-ANNUAL', wage: 3000, hire_date: '2023-03-01' }]
+	});
+	world.leave_catalogue.push(...leaveCatalogue('SG').map((row) => ({ ...row, approval_id: null })));
+	const employmentId = world.employments[0]!.id;
+	for (let day = Date.UTC(2025, 11, 1); day <= Date.UTC(2026, 1, 28); day += 86_400_000) {
+		const date = new Date(day);
+		if (date.getUTCDay() === 0 || date.getUTCDay() === 6) continue;
+		const iso = date.toISOString().slice(0, 10);
+		world.work_days.push({
+			id: id(1000 + world.work_days.length),
+			employment_id: employmentId,
+			work_date: iso,
+			shift_definition_id: world.shift_definitions[0]!.id,
+			worked_intervals: [{ start: `${iso}T09:00:00.000Z`, end: `${iso}T17:00:00.000Z` }],
+			facts: {},
+			approval_id: null
+		});
+	}
+	const asOf = `${YEAR}-10-01`;
+	const { context } = await savedAnnual(world, asOf);
+	const annualRow = (read) =>
+		leaveBalanceSummaries(read, employmentId, asOf).find((row) => row.code === 'ANNUAL_LEAVE');
+	// Neither the read nor a write path refuses: no dated evidence is no proof of absence.
+	for (const read of [context, { ...context, balanceRead: true }]) {
+		const row = annualRow(read);
+		assert.ok(row != null && row.earned > 0);
+		assert.match(row.warnings?.join('\n') ?? '', /no dated attendance or leave evidence/);
+	}
 });
 
 test('SG final annual balance refuses a short worked interval without a partial-day decision', async () => {
