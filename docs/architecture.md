@@ -22,7 +22,7 @@ The first committed reference seals the contract: while any employee event, term
 names it, it cannot be edited, reassigned, reopened or deleted, and a held (provisionally
 committed) reference guards it the same way. There is no separate seal log; a contract whose every consumer has been removed is editable
 again. Consumed term dates are read off the consumers (`work_days.work_date`, approved Leave charges,
-`payslips.terms_through`). Departure closes `effective_range.end` once. `exit_reason` and `comments` record the cause and supporting notes; the contract transform governs subsequent corrections. Closing
+`payslips.terms_through`). Departure closes `effective_range.end` once. `exit_ground` (a `TERMINATION_GROUND` code) and `comments` record the cause and supporting notes; the contract transform governs subsequent corrections. Closing
 the range raises the leaver's encashment, held for review ([leave.md](leave.md#encashment-on-departure));
 eligible separation catalogue rows also generate held ad hoc requests. No automatic carry-forward is created.
 
@@ -221,7 +221,7 @@ The `person` root: `employee.gender`, `age`, `age_months`, `citizenship`, `marit
 `spouse_status`, `dependents_count`, `solo_parent`, `race`, `religion`, `residency_months`,
 `disabled`, `receiving_pension`, `birth_date`, `age_on(date)`, `age_months_on(date)`;
 `employment.type`, `classification`, `risk_class`, `service_days`, `service_months`,
-`service_years`, `service_start`, `exit_date`, `open_ended`, `contract_months`, `exit_reason`,
+`service_years`, `service_start`, `exit_date`, `open_ended`, `contract_months`, `exit_ground`,
 `absent_days_12m`; `terms.basic_salary`,
 `monthly_basic`, `fixed_allowances`, `monthly_wage`, `statutory_wages`, `workman`,
 `statutory_work_category`, `department`, `payroll_group`, `paid_rest_days`, `grade`, `ordinary_hours_per_week`,
@@ -241,8 +241,7 @@ supplies the keys — a scheme row declares the election keys it reads (`electio
 and a settings version the entity facts (`facts`), so a write refuses an undeclared key and the
 fact editors offer the declared type's control. Every other member is refused at write when the
 site does not declare it, as is a wrong result type; nothing is discovered at payroll. The
-functions: `round_cent`, `truncate_cent`, `up_5_cents`, `round_unit`, `floor_unit`, `up_to_unit`,
-`bracket`, `ladder` and `progressive` on every site; `minimum_wage(region)` on `person`,
+functions: `round(value, step, 'MODE')`, `bracket`, `ladder` and `progressive` on every site; `minimum_wage(region)` on `person`,
 `assessment` and `scheme`; `leave.days(code)` on `entry`; `code('X')` on `assessment`;
 `annual_exempt(amount, earned_before, cap)` on `assessment` and `scheme`.
 
@@ -475,7 +474,7 @@ the observed part of the day. Payable overtime is exact to the half hour the sch
 clock-derived premium stays exact to the minute the punches were made in: no statute states a
 coarser unit, so 1.99 h of premium pays 1.99 h. There is no automatic one-hour minimum; a jurisdiction that
 pays "each hour or part thereof" (Singapore's rest day, s.37(3)(c)(ii)) rounds in its own band with
-`up_to_unit(hours)`. A version's `WEEK NORMAL_HOURS` limit (Singapore's 44, s.38(1)) is read by
+`round(hours, 1, 'UP')`. A version's `WEEK NORMAL_HOURS` limit (Singapore's 44, s.38(1)) is read by
 payroll: normal-day hours past it in a Monday-to-Sunday week are overtime of the day they fall on —
 a scheduled ordinary day nobody clocked counts its normal hours in that running sum (silence is
 presence for the week as for the wage), and a week whose excess falls on such days is reported
@@ -551,7 +550,7 @@ the unconditional limits and a person against the applicable ones, and payroll r
 the consecutive-work-days limit's `suspended_by_leave` lets an approved day of the named codes break a run of worked
 days the way a rest day does (MY s.59(1A)); `average {days, rest_days, when}` admits the averaging
 arm (VN art.111(1): four rest days a month where the work cannot rest weekly). Overtime is derived
-to the minute (`roundMinute`), and `payroll.final_pay_due_days` raises `FINAL_PAY_LATE` on a run
+to the minute (`roundMinute`), and `payroll.final_pay_deadlines` raises `FINAL_PAY_LATE` on a run
 whose pay date falls after a leaver's final pay is due. The night premium's two adds are figures or
 expressions over the same day context (PH art.86: 10% of the hour's own rate, so the add follows
 the day type), and on a shiftless day the first `normal_hours` night hours are the ordinary ones.
@@ -627,8 +626,8 @@ declaration order; the first `when` that holds governs. A year-end reckoning is 
 guarded by `period.last_of_year`, charging the annual scale less the year's withholding; a rung may
 charge a negative employee amount, which settles through net as a refund, the payslip prints it as
 one, and a relief read of a scheme in its refund month is floored at zero. Base transforms, reliefs,
-household shares, rounding, thresholds and annualisation use registered helpers (`round_cent`, `round_unit`,
-`bracket`, `ladder`, `progressive`, `up_to_unit`, …) or a plain expression inside a rule; a
+household shares, rounding, thresholds and annualisation use registered helpers (`round(value, step, 'MODE')`,
+`bracket`, `ladder`, `progressive`, …) or a plain expression inside a rule; a
 progressive rung is just `when base > x && base <= y`, `employee: constant + (base - x) * rate`. A
 rule that names `produced.<code>.employee|employee_this_period|employer` declares its dependency: the engine reads the
 mentions from the compiled expression, computes the producers first (ties by code), and refuses an

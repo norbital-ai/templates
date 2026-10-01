@@ -5,9 +5,8 @@ import { group } from '@norbital-ai/bolt';
  * scopes by jurisdiction lineage. `capabilities.apps: ['hr_controller']` reaches every app under this group.
  */
 export default group('hr_controller', {
-	label: 'HR Controller',
-	description:
-		'Everything the HR team runs for one legal entity: people and their engagements, the roster and the attendance behind a pay period, leave, loans, the requests raised against the pay catalogue, and the payroll runs that settle them.',
+	label: 'app.hr_controller.title',
+	description: 'app.hr_controller.description',
 	icon: 'lucide:briefcase-business',
 	defaultChild: 'people'
 });

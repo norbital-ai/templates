@@ -21,7 +21,7 @@ packages or deploy an environment.
 | Daily encashment timer                        | Pass            | A due schedule is seeded before host activation. The production timer creates and settles the occurrence without `automations.start`; one held leave entry is created.                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Departure review completion                   | Pass            | HR rejection removes the held request; later catch-up runs skip the completed departure instead of raising it again.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | Encashment monetary consistency               | Pass            | `leave-payroll-family.test.ts`: MYR, VND and IDR pay lines match captured totals at currency precision; negative and non-finite rates are refused.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Dated wage history and stored rates           | Pass            | `reference-wages.test.ts`: the preceding complete period (MYR 2,310 / 21 days = 110) and the latest received/matured month (TWD 30,000 / 30 = 1,000) price cash-out and the work context; the consumed record is pinned for capture; missing, ambiguous and future-dated periods refuse by name. No sealed profile declares `ordinary_rate_reference` yet.                                                                                                                                                                                                                                                                                    |
+| Dated wage history and stored rates           | Pass            | `reference-wages.test.ts` (`src/lib/payroll/history.ts`): the preceding complete period (MYR 2,310 / 21 days = 110) and the latest received/matured month (TWD 30,000 / 30 = 1,000) price cash-out and the work context; the consumed record is pinned for capture; missing, ambiguous and future-dated periods refuse by name. No sealed profile declares `ordinary_rate_reference` yet.                                                                                                                                                                                                                                                     |
 | Monthly drift timer                           | Pass            | `statutory-drift.test.ts`: every lineage's research call starts before any answers, carries `web_read`, its sources and its version rows; changes make one unsealed draft, none make no draft; a failing lineage leaves the others reporting. Model responses are synthetic.                                                                                                                                                                                                                                                                                                                                                                  |
 | Bolt scheduled dispatch and retention         | Pass            | `automations-automations.integration.test.ts`: 11 tests, including occurrence identity, earlier outcomes and retention after real queue cleanup.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | Bolt unit suite                               | Pass with skips | 918 passed; two skipped                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -70,9 +70,9 @@ reads the full monthly insurance assessment; per-period withholding reads the ac
 Monthly claims remain current-month claims when a run key includes a cut-off suffix.
 
 `monthly-contribution-cadence.test.ts` compares twelve successive monthly payrolls with all three
-semi-monthly cut-off policies for SG, VN, MY, MY-nihon, ID and TW. Singapore includes the $8,000 ordinary
+semi-monthly cut-off policies for SG, VN, MY, ID and TW. Singapore includes the $8,000 ordinary
 wage ceiling and $6,000 additional-wage ceiling on a $10,000 monthly salary. PH cases exercise
-minimum SSS and PhilHealth amounts and the regular/MPF salary-credit split. MY and MY-nihon also
+minimum SSS and PhilHealth amounts and the regular/MPF salary-credit split. MY also
 compare four- and five-week payroll months with one monthly assessment. Their catalogue schemes
 now declare monthly assessment. Sources: [CPF Board](https://www.cpf.gov.sg/service/article/what-is-the-additional-wage-aw-ceiling),
 [KWSP](https://www.kwsp.gov.my/en/member/savings/mandatory-contribution) and
@@ -125,7 +125,7 @@ covered wages and NT$35 employer levy. Coverage is independent of calendar-day s
 [fund example](https://www.bli.gov.tw/0110180.html).
 Deferred joiners, mid-month coverage changes and departure-bonus insurance remain open under C08.
 
-Malaysia and MY-nihon regression cases now cover:
+Malaysia (MY, the former Nihon fork since 2026-09-30) regression cases now cover:
 
 - First contribution liability across employers, separate from current-employer registration.
   SOCSO changes category at first liability age 55; EIS excludes first liability age 57 or above.
@@ -200,7 +200,7 @@ conversion-date salary, delayed payment, Vietnam's prior-month salary and workin
 Taiwan's original carried-leave salary. Mixed carried and current-year credit is valued separately.
 Unsupported profiles, wage frequencies and missing allowance classifications stop calculation.
 
-MY and MY-nihon weekly cases pay MYR165.25 for 1.5 days at MYR601 weekly basic and MYR260
+MY weekly cases pay MYR165.25 for 1.5 days at MYR601 weekly basic and MYR260
 qualifying monthly allowance: `(601 / 6 + 260 / 26) × 1.5`. Delayed payment retains the original
 rate after both amounts change. Weekly ordinary-rate tests check the same unit conversion.
 A separate payroll regression pays MYR59.27 of a MYR260 monthly allowance for 29 June–5 July,
@@ -252,7 +252,7 @@ failed on the `UI26` rule's own geolocation and clipboard examples. These failur
 that the entire shared checkout passed its gates. The affected files were outside this change.
 
 The six-jurisdiction legal review remains incomplete. Separate leave valuation now has independent
-expected amounts for monthly salary cases in SG, MY, PH, VN and TW, plus MY and MY-nihon weekly pay. Indonesia cash-out,
+expected amounts for monthly salary cases in SG, MY, PH, VN and TW, plus MY weekly pay. Indonesia cash-out,
 other wage frequencies and unclassified allowances stop pending an evidenced profile. Final-pay
 timing, tax-clearance holds, statutory working-time controls and current legal instruments remain
 subject to C01–C08. Passing automation tests does not close those items.

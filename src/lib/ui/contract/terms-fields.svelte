@@ -162,6 +162,7 @@
 			<!-- TH Minimum Wage Notice 14: the worksite and sector the daily rate is read at -->
 			<Field name="worksite" label={t('component.worksite')} />
 			<Field name="worksite_sector" label={t('component.worksite_sector')} />
+			<Field name="worksite_id" label={t('component.worksite_site')} />
 			<!-- The jurisdiction inputs the lineage declares for contract terms (`terms_facts`) -->
 			<Column span="all">
 				<Field

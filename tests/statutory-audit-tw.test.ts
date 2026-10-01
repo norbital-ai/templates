@@ -528,7 +528,7 @@ const severanceRun = (
 				citizenship: 'CITIZEN',
 				hire_date: person.hire,
 				exit_date: person.exit,
-				exit_reason: person.reason ?? 'REDUNDANCY'
+				exit_ground: person.reason ?? 'REDUNDANCY'
 			}))
 		},
 		(world) => {

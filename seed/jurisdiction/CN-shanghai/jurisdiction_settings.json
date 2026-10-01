@@ -40,6 +40,11 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "21.75",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"normal_hours": "8.0",
 			"bands": [
@@ -100,6 +105,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"wages": {
 				"by_region": {
@@ -250,7 +256,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -346,6 +352,96 @@
 				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"checks": [
+			{
+				"code": "HOURLY_MINIMUM_WAGE",
+				"at": "TERMS_CHANGE",
+				"when": "employment.type == \"PART_TIME\" && after.pay_frequency == \"HOURLY\" && after.basic_salary < 25.0",
+				"severity": "REFUSE",
+				"message": "A non-full-time hourly rate below the CNY25 Shanghai hourly minimum wage is refused.",
+				"authority": "沪人社规〔2025〕10号 from 1 July 2025: CNY25 an hour for non-full-time workers (https://rsj.sh.gov.cn/tgzfl_17732/20250714/t0035_1434097.html; register CN-SH01.hourly-floor)"
+			},
+			{
+				"code": "DAMAGE_DEDUCTION_LIMIT",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"EMPLOYEE_DAMAGE_DEDUCTION\" && (deduction.amount * 5.0 > deduction.gross || deduction.net - deduction.amount < wage_floor)",
+				"severity": "REFUSE",
+				"message": "An employee-damage deduction may take at most 20% of the month's wage and must leave at least the city monthly minimum wage.",
+				"authority": "劳部发〔1994〕489号 art.16 (每月扣除的部分不得超过劳动者当月工资的20%; 扣除后的剩余工资部分低于当地月最低工资标准, 则按最低工资标准支付); 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html), the same rule. The month’s wage is gross pay; the remainder is net pay after this deduction (recorded default, register CN-SH04.employee-damage-20pct)"
+			},
+			{
+				"code": "PART_TIME_SETTLEMENT_CYCLE",
+				"at": "PAYSLIP",
+				"when": "employment.type == \"PART_TIME\" && company.pay_frequency == \"MONTHLY\"",
+				"severity": "REFUSE",
+				"message": "A non-full-time worker's pay is settled at least every 15 days; a monthly payroll cannot pay a part-time contract.",
+				"authority": "Labour Contract Law art.72 (非全日制用工劳动报酬结算支付周期最长不得超过十五日); 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html). Recorded default: a semi-monthly or weekly payroll settles within the cycle (register CN-SH02.part-time-15-day)"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "HF_WORKER_ACCOUNT",
+				"label": "Housing-fund account opened or transferred for a hire",
+				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.10–14: the unit opens or transfers the new worker’s account within 30 days of hire (register CN-SH42.worker-account)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(trigger.date, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre account or transfer reference",
+						"required": true
+					}
+				]
+			},
+			{
+				"code": "HF_ACCOUNT_SEALING",
+				"label": "Housing-fund account transferred or sealed for a leaver",
+				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.36, 38–42: a leaver’s account is transferred or sealed within 30 days of the exit, the worker told first (register CN-SH42.exit-transfer-sealing)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(employment.exit_date, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre transfer or sealing reference",
+						"required": true
+					}
+				]
+			},
+			{
+				"code": "HF_REMITTANCE",
+				"label": "Housing-fund shares remitted for the run",
+				"authority": "Housing Provident Fund Regulation art.19 (https://www.gov.cn/zhengce/content/202608/content_7078477.htm) and 上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.16–21: both shares remitted within five days after payday (register CN-SH43.remittance-five-days)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(run.pay_date, 5)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre remittance reference",
+						"required": true
+					}
+				]
+			}
 		]
 	},
 	{
@@ -389,6 +485,11 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "21.75",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"normal_hours": "8.0",
 			"bands": [
@@ -449,6 +550,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"wages": {
 				"by_region": {
@@ -617,7 +719,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -712,6 +814,121 @@
 				"owner": "Payroll",
 				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"checks": [
+			{
+				"code": "HOURLY_MINIMUM_WAGE",
+				"at": "TERMS_CHANGE",
+				"when": "employment.type == \"PART_TIME\" && after.pay_frequency == \"HOURLY\" && after.basic_salary < 25.0",
+				"severity": "REFUSE",
+				"message": "A non-full-time hourly rate below the CNY25 Shanghai hourly minimum wage is refused.",
+				"authority": "沪人社规〔2025〕10号 from 1 July 2025: CNY25 an hour for non-full-time workers (https://rsj.sh.gov.cn/tgzfl_17732/20250714/t0035_1434097.html; register CN-SH01.hourly-floor)"
+			},
+			{
+				"code": "DAMAGE_DEDUCTION_LIMIT",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"EMPLOYEE_DAMAGE_DEDUCTION\" && (deduction.amount * 5.0 > deduction.gross || deduction.net - deduction.amount < wage_floor)",
+				"severity": "REFUSE",
+				"message": "An employee-damage deduction may take at most 20% of the month's wage and must leave at least the city monthly minimum wage.",
+				"authority": "劳部发〔1994〕489号 art.16 (每月扣除的部分不得超过劳动者当月工资的20%; 扣除后的剩余工资部分低于当地月最低工资标准, 则按最低工资标准支付); 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html), the same rule. The month’s wage is gross pay; the remainder is net pay after this deduction (recorded default, register CN-SH04.employee-damage-20pct)"
+			},
+			{
+				"code": "PART_TIME_SETTLEMENT_CYCLE",
+				"at": "PAYSLIP",
+				"when": "employment.type == \"PART_TIME\" && company.pay_frequency == \"MONTHLY\"",
+				"severity": "REFUSE",
+				"message": "A non-full-time worker's pay is settled at least every 15 days; a monthly payroll cannot pay a part-time contract.",
+				"authority": "Labour Contract Law art.72 (非全日制用工劳动报酬结算支付周期最长不得超过十五日); 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html). Recorded default: a semi-monthly or weekly payroll settles within the cycle (register CN-SH02.part-time-15-day)"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "HF_WORKER_ACCOUNT",
+				"label": "Housing-fund account opened or transferred for a hire",
+				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.10–14: the unit opens or transfers the new worker’s account within 30 days of hire (register CN-SH42.worker-account)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(trigger.date, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre account or transfer reference",
+						"required": true
+					}
+				]
+			},
+			{
+				"code": "HF_ACCOUNT_SEALING",
+				"label": "Housing-fund account transferred or sealed for a leaver",
+				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.36, 38–42: a leaver’s account is transferred or sealed within 30 days of the exit, the worker told first (register CN-SH42.exit-transfer-sealing)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(employment.exit_date, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre transfer or sealing reference",
+						"required": true
+					}
+				]
+			},
+			{
+				"code": "HF_REMITTANCE",
+				"label": "Housing-fund shares remitted for the run",
+				"authority": "Housing Provident Fund Regulation art.19 (https://www.gov.cn/zhengce/content/202608/content_7078477.htm) and 上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.16–21: both shares remitted within five days after payday (register CN-SH43.remittance-five-days)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(run.pay_date, 5)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre remittance reference",
+						"required": true
+					}
+				]
+			},
+			{
+				"code": "SI_BASE_DECLARATION_2026",
+				"label": "2026 social-insurance base declaration",
+				"authority": "Shanghai Tax Bureau 2026 Notice No. 1 (issuer copy of 24 April 2026, https://shanghai.chinatax.gov.cn/zcfw/zcfgk/sbf/202604/t480144.html): between 1 May and 25 June 2026 the unit declares each insured worker’s 2025 wage total ÷ months employed (a 2026 hire: the first full month’s wage) and keeps each worker’s signed, stamped confirmation (register CN-SH36)",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "add_days(add_months(period.start, 5), 24)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Declaration acknowledgement",
+						"required": true
+					},
+					{
+						"key": "confirmations_kept",
+						"type": "boolean",
+						"label": "Each worker’s signed confirmation stamped and kept",
+						"required": true
+					}
+				]
 			}
 		]
 	},
@@ -756,6 +973,11 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "21.75",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"normal_hours": "8.0",
 			"bands": [
@@ -816,6 +1038,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"wages": {
 				"by_region": {
@@ -984,7 +1207,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -1079,6 +1302,96 @@
 				"owner": "Payroll",
 				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"checks": [
+			{
+				"code": "HOURLY_MINIMUM_WAGE",
+				"at": "TERMS_CHANGE",
+				"when": "employment.type == \"PART_TIME\" && after.pay_frequency == \"HOURLY\" && after.basic_salary < 25.0",
+				"severity": "REFUSE",
+				"message": "A non-full-time hourly rate below the CNY25 Shanghai hourly minimum wage is refused.",
+				"authority": "沪人社规〔2025〕10号 from 1 July 2025: CNY25 an hour for non-full-time workers (https://rsj.sh.gov.cn/tgzfl_17732/20250714/t0035_1434097.html; register CN-SH01.hourly-floor)"
+			},
+			{
+				"code": "DAMAGE_DEDUCTION_LIMIT",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"EMPLOYEE_DAMAGE_DEDUCTION\" && (deduction.amount * 5.0 > deduction.gross || deduction.net - deduction.amount < wage_floor)",
+				"severity": "REFUSE",
+				"message": "An employee-damage deduction may take at most 20% of the month's wage and must leave at least the city monthly minimum wage.",
+				"authority": "劳部发〔1994〕489号 art.16 (每月扣除的部分不得超过劳动者当月工资的20%; 扣除后的剩余工资部分低于当地月最低工资标准, 则按最低工资标准支付); 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html), the same rule. The month’s wage is gross pay; the remainder is net pay after this deduction (recorded default, register CN-SH04.employee-damage-20pct)"
+			},
+			{
+				"code": "PART_TIME_SETTLEMENT_CYCLE",
+				"at": "PAYSLIP",
+				"when": "employment.type == \"PART_TIME\" && company.pay_frequency == \"MONTHLY\"",
+				"severity": "REFUSE",
+				"message": "A non-full-time worker's pay is settled at least every 15 days; a monthly payroll cannot pay a part-time contract.",
+				"authority": "Labour Contract Law art.72 (非全日制用工劳动报酬结算支付周期最长不得超过十五日); 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html). Recorded default: a semi-monthly or weekly payroll settles within the cycle (register CN-SH02.part-time-15-day)"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "HF_WORKER_ACCOUNT",
+				"label": "Housing-fund account opened or transferred for a hire",
+				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.10–14: the unit opens or transfers the new worker’s account within 30 days of hire (register CN-SH42.worker-account)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(trigger.date, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre account or transfer reference",
+						"required": true
+					}
+				]
+			},
+			{
+				"code": "HF_ACCOUNT_SEALING",
+				"label": "Housing-fund account transferred or sealed for a leaver",
+				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.36, 38–42: a leaver’s account is transferred or sealed within 30 days of the exit, the worker told first (register CN-SH42.exit-transfer-sealing)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(employment.exit_date, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre transfer or sealing reference",
+						"required": true
+					}
+				]
+			},
+			{
+				"code": "HF_REMITTANCE",
+				"label": "Housing-fund shares remitted for the run",
+				"authority": "Housing Provident Fund Regulation art.19 (https://www.gov.cn/zhengce/content/202608/content_7078477.htm) and 上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.16–21: both shares remitted within five days after payday (register CN-SH43.remittance-five-days)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(run.pay_date, 5)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre remittance reference",
+						"required": true
+					}
+				]
 			}
 		]
 	},
@@ -1123,6 +1436,11 @@
 				"days": 21.75
 			},
 			"ordinary_divisor_days": "21.75",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "terms.working_days_per_week * 52.0 / 12.0",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"normal_hours": "8.0",
 			"bands": [
@@ -1183,6 +1501,7 @@
 				}
 			],
 			"breaks": [],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "PUBLIC_HOLIDAY",
 			"wages": {
 				"by_region": {
@@ -1351,7 +1670,7 @@
 					"ART_87",
 					"REG_6"
 				],
-				"required_when": "employment.exit_reason != \"\""
+				"required_when": "employment.exit_ground != \"\""
 			},
 			{
 				"key": "notice_days_given",
@@ -1446,6 +1765,96 @@
 				"owner": "Payroll",
 				"authority": "STA 2018 No.61 https://www.chinatax.gov.cn/n810219/n810744/n3752930/n3752974/c3963396/content.html",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"checks": [
+			{
+				"code": "HOURLY_MINIMUM_WAGE",
+				"at": "TERMS_CHANGE",
+				"when": "employment.type == \"PART_TIME\" && after.pay_frequency == \"HOURLY\" && after.basic_salary < 25.0",
+				"severity": "REFUSE",
+				"message": "A non-full-time hourly rate below the CNY25 Shanghai hourly minimum wage is refused.",
+				"authority": "沪人社规〔2025〕10号 from 1 July 2025: CNY25 an hour for non-full-time workers (https://rsj.sh.gov.cn/tgzfl_17732/20250714/t0035_1434097.html; register CN-SH01.hourly-floor)"
+			},
+			{
+				"code": "DAMAGE_DEDUCTION_LIMIT",
+				"at": "DEDUCTION",
+				"when": "deduction.code == \"EMPLOYEE_DAMAGE_DEDUCTION\" && (deduction.amount * 5.0 > deduction.gross || deduction.net - deduction.amount < wage_floor)",
+				"severity": "REFUSE",
+				"message": "An employee-damage deduction may take at most 20% of the month's wage and must leave at least the city monthly minimum wage.",
+				"authority": "劳部发〔1994〕489号 art.16 (每月扣除的部分不得超过劳动者当月工资的20%; 扣除后的剩余工资部分低于当地月最低工资标准, 则按最低工资标准支付); 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html), the same rule. The month’s wage is gross pay; the remainder is net pay after this deduction (recorded default, register CN-SH04.employee-damage-20pct)"
+			},
+			{
+				"code": "PART_TIME_SETTLEMENT_CYCLE",
+				"at": "PAYSLIP",
+				"when": "employment.type == \"PART_TIME\" && company.pay_frequency == \"MONTHLY\"",
+				"severity": "REFUSE",
+				"message": "A non-full-time worker's pay is settled at least every 15 days; a monthly payroll cannot pay a part-time contract.",
+				"authority": "Labour Contract Law art.72 (非全日制用工劳动报酬结算支付周期最长不得超过十五日); 上海市企业工资支付办法 (the 2016 measure to 31 July 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260412/t0035_1439868.html; 沪人社规〔2026〕10号 from 1 August 2026, https://rsj.sh.gov.cn/tgzfl_17732/20260731/t0035_1442850.html). Recorded default: a semi-monthly or weekly payroll settles within the cycle (register CN-SH02.part-time-15-day)"
+			}
+		],
+		"duty_types": [
+			{
+				"code": "HF_WORKER_ACCOUNT",
+				"label": "Housing-fund account opened or transferred for a hire",
+				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.10–14: the unit opens or transfers the new worker’s account within 30 days of hire (register CN-SH42.worker-account)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(trigger.date, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre account or transfer reference",
+						"required": true
+					}
+				]
+			},
+			{
+				"code": "HF_ACCOUNT_SEALING",
+				"label": "Housing-fund account transferred or sealed for a leaver",
+				"authority": "上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.36, 38–42: a leaver’s account is transferred or sealed within 30 days of the exit, the worker told first (register CN-SH42.exit-transfer-sealing)",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "EXIT"
+				},
+				"due": "add_days(employment.exit_date, 30)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre transfer or sealing reference",
+						"required": true
+					}
+				]
+			},
+			{
+				"code": "HF_REMITTANCE",
+				"label": "Housing-fund shares remitted for the run",
+				"authority": "Housing Provident Fund Regulation art.19 (https://www.gov.cn/zhengce/content/202608/content_7078477.htm) and 上海市住房公积金缴存管理办法 (沪公积金管委会〔2023〕3号, https://www.shanghai.gov.cn/qyzfgjjsjzc/20240927/2c95b2e3e9a542c2a32af7eddf25048a.html) arts.16–21: both shares remitted within five days after payday (register CN-SH43.remittance-five-days)",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED"
+				},
+				"due": "add_days(run.pay_date, 5)",
+				"evidence": [
+					{
+						"key": "reference",
+						"type": "string",
+						"label": "Centre remittance reference",
+						"required": true
+					}
+				]
 			}
 		]
 	}

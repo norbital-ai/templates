@@ -11,6 +11,7 @@
  */
 
 import { DEDUCTION_TOTAL_KEYS } from '../statutory-deductions.js';
+import { REGISTERED_FUNCTIONS } from './functions/index.js';
 
 export type ExpressionSite =
 	| 'entity'
@@ -21,9 +22,20 @@ export type ExpressionSite =
 	| 'scheme'
 	| 'leave_day'
 	| 'rest_break'
-	| 'payment';
-/** What an expression returns: a boolean, or a number in the unit its field is named for. */
-export type ExpressionType = 'boolean' | 'money' | 'hours' | 'minutes' | 'days' | 'number';
+	| 'payment'
+	| 'rate'
+	| 'obligation'
+	| 'filing'
+	| 'case'
+	| 'check'
+	| 'order'
+	| 'derived_line';
+/**
+ * What an expression returns: a boolean, a number in the unit its field is named for, a
+ * `YYYY-MM-DD` date, or a text-or-number cell (a return column).
+ */
+export type ExpressionType =
+	'boolean' | 'money' | 'hours' | 'minutes' | 'days' | 'number' | 'date' | 'text';
 
 type ContextField = {
 	readonly path: string;
@@ -53,6 +65,11 @@ export type ExpressionContext = {
  * this list, prefixed where the site is not the root's own subject.
  */
 const PERSON_ROOT_FIELDS: readonly ContextField[] = [
+	{
+		path: 'history.slips|days|leave|terms|external(window)',
+		description:
+			'The person’s saved past: `history.slips|days|leave|terms|external(window)` over a window built by `months_before`, `days_before`, `year_of` or `span`'
+	},
 	{ path: 'employee.gender', description: 'Recorded gender' },
 	{ path: 'employee.age', description: 'Completed years on the rule date' },
 	{
@@ -77,6 +94,23 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Completed years on that day — a scheme whose cover turns on a birthday (PH SSS s.9(a) at first coverage, TW 勞保 at sixty-five) reads the age on the day that matters'
 	},
 	{ path: 'employee.citizenship', description: 'Residency standing from the effective terms' },
+	{
+		path: 'employee.facts.<key>',
+		description:
+			'A person input the version declares in `person_facts`, from the revision in force on the rule date (an employment’s row over the personal one), defaults filled'
+	},
+	{ path: 'employee.fact_keys', description: 'The person-fact keys a revision actually records' },
+	{
+		path: 'worksite.code',
+		description:
+			'The establishment the terms name (the day’s own on a work day), its revision in force on the rule date; empty where none'
+	},
+	{ path: 'worksite.region', description: 'That worksite’s region, or empty' },
+	{
+		path: 'worksite.facts.<key>',
+		description:
+			'A worksite input the version declares in `worksite_facts` (an industry, a project)'
+	},
 	{ path: 'employee.marital_status', description: 'Marital status' },
 	{ path: 'employee.spouse_status', description: 'NONE | WITHOUT_INCOME | WITH_INCOME' },
 	{
@@ -120,9 +154,9 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Consecutive days in the previous calendar year of a stay running unbroken into this one, else 0 (MY ITA s.7(1)(b))'
 	},
 	{
-		path: 'employee.presence_years_90',
+		path: 'employee.presence_days_in(years_back)',
 		description:
-			'Of the four calendar years before the rule date’s, those with 90 or more days present (MY ITA s.7(1)(c)(ii))'
+			'Days present in the calendar year that many years before the rule date’s, counted as `presence_days` (1 is the previous year; 0 where none is recorded) — MY ITA s.7(1)(c)(ii) counts the preceding years with 90 or more'
 	},
 	{
 		path: 'employee.employment_days',
@@ -210,9 +244,8 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 			'Calendar days of a fixed-term contract, first day to last inclusive (LHDN MTD Specification 2026 D(a) note: a foreign employee on a contract of 182 days or more is withheld at resident MTD); 0 where open-ended'
 	},
 	{
-		path: 'employment.exit_reason',
-		description:
-			'RESIGNATION | DISMISSAL | REDUNDANCY | RETRENCHMENT | UNILATERAL | RETIREMENT | END_OF_CONTRACT | MUTUAL | DEATH, or empty'
+		path: 'employment.exit_ground',
+		description: 'The recorded termination ground: a `TERMINATION_GROUND` table code, or empty'
 	},
 	{
 		path: 'employment.exit_facts.<key>',
@@ -585,6 +618,7 @@ const PERSON_ROOT_FIELDS: readonly ContextField[] = [
 ];
 
 const PERSON_BLANK = {
+	history: {},
 	employee: {
 		gender: '',
 		age: 0,
@@ -603,9 +637,12 @@ const PERSON_BLANK = {
 		presence_recorded: false,
 		presence_days: 0,
 		presence_linked_days: 0,
-		presence_years_90: 0,
-		employment_days: 0
+		presence_by_years_back: {},
+		employment_days: 0,
+		facts: {},
+		fact_keys: []
 	},
+	worksite: { code: '', region: '', facts: {} },
 	employment: {
 		type: '',
 		classification: '',
@@ -623,7 +660,7 @@ const PERSON_BLANK = {
 		open_ended: true,
 		contract_months: 0,
 		contract_days: 0,
-		exit_reason: '',
+		exit_ground: '',
 		exit_facts: {},
 		exit_fact_keys: [],
 		absent_days_12m: 0,
@@ -789,7 +826,10 @@ const yearFields = (prefix: string): ContextField[] =>
 
 const SCHEME_FIELDS: readonly ContextField[] = [
 	{ path: 'code', description: 'The scheme code' },
-	{ path: 'assessment_period', description: 'PAY_PERIOD | MONTH | MONTH_TO_DATE' },
+	{
+		path: 'assessment_period',
+		description: 'PAY_PERIOD | MONTH | MONTH_TO_DATE | QUARTER | YEAR'
+	},
 	{
 		path: 'registration_status',
 		description:
@@ -845,22 +885,22 @@ const SCHEME_FIELDS: readonly ContextField[] = [
 			'Sum of registered eligible dependant counts over the tax year’s twelve months; required for an authorised annual finalisation (VN Decree 253/2026 art.48)'
 	},
 	{
-		path: 'trailing_3m.base',
+		path: 'trailing_short.base',
 		description:
-			'Average paid wages in the last three calendar months of this employment, across tax years (ID PP 44/2015 art.19(4))'
+			'Average paid wages over the last payroll.trailing_wage_short_months calendar months of this employment, across tax years, for piece work (ID PP 44/2015 art.19(4): 3)'
 	},
 	{
-		path: 'trailing_3m.months',
-		description: 'Months of this employment in the three-month lookback'
+		path: 'trailing_short.months',
+		description: 'Months of this employment in the short lookback'
 	},
 	{
-		path: 'trailing_12m.base',
+		path: 'trailing_long.base',
 		description:
-			'Average paid wages in the last twelve calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5))'
+			'Average paid wages over the last payroll.trailing_wage_long_months calendar months of this employment, across tax years, for weather-dependent piece work (ID PP 44/2015 art.19(5): 12)'
 	},
 	{
-		path: 'trailing_12m.months',
-		description: 'Months of this employment in the twelve-month lookback'
+		path: 'trailing_long.months',
+		description: 'Months of this employment in the long lookback'
 	},
 	{
 		path: 'projection.payslips_remaining',
@@ -888,9 +928,14 @@ const SCHEME_FIELDS: readonly ContextField[] = [
 			'Keys explicitly recorded on the effective statutory declaration. Test membership to distinguish a missing input from a declared zero, false or empty value.'
 	},
 	{
-		path: 'child_claims.<class>',
+		path: 'child_claims.<class>.full',
 		description:
-			'Declared eligible children for this tax year and relief class: full count plus half the shared count; zero without a declaration. Independent of family records.'
+			'Declared children for this tax year and relief class claimed in whole; zero without a declaration. Independent of family records.'
+	},
+	{
+		path: 'child_claims.<class>.half',
+		description:
+			'Declared children for this tax year and relief class whose relief is shared with another claimant; the rule states the share. Zero without a declaration.'
 	},
 	{
 		path: 'deductions.<category>',
@@ -1011,25 +1056,8 @@ const HISTORY_FIELDS: readonly ContextField[] = [
 	}
 ];
 
-/** Representative evaluated limits for compile-time and previews; the builders supply the real ones. */
-const LIMITS_BLANK = {
-	daily_total: 11,
-	normal_day: 8,
-	spread_day: 10,
-	weekly_total: 45,
-	monthly_ot: 104,
-	quarter_ot: 138,
-	year_ot: 200
-};
-
 /** The functions every site carries but the assessment site's own. */
 const COMMON_FUNCTIONS: readonly ExpressionFunction[] = [
-	{ path: 'round_cent(value)', description: 'Round to the nearest cent' },
-	{ path: 'truncate_cent(value)', description: 'Truncate to the cent' },
-	{ path: 'up_5_cents(value)', description: 'Round up to the next five cents' },
-	{ path: 'round_unit(value)', description: 'Round to the nearest whole unit' },
-	{ path: 'floor_unit(value)', description: 'Floor to the whole unit' },
-	{ path: 'up_to_unit(value)', description: 'Round up to the whole unit' },
 	{ path: 'bracket(base, up_to, step)', description: 'Round a figure up to the next bracket' },
 	{ path: 'ladder(base, grades)', description: 'Step a figure up to the next grade in a table' },
 	{
@@ -1124,15 +1152,21 @@ const CATALOGUE_WORD_FIELDS: readonly ContextField[] = [
 ];
 
 const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
-	const functions: ExpressionFunction[] = [...COMMON_FUNCTIONS];
+	const functions: ExpressionFunction[] = [
+		...COMMON_FUNCTIONS,
+		...REGISTERED_FUNCTIONS.flatMap((entry) =>
+			entry.doc != null && (entry.sites == null || entry.sites.includes(site)) ? [entry.doc] : []
+		)
+	];
 	if (site === 'person' || site === 'entry' || site === 'assessment' || site === 'scheme')
 		functions.push(MINIMUM_WAGE);
 	if (site === 'assessment') functions.push(...CODE_FUNCTIONS, EARNED_AVERAGE);
+	if (site === 'derived_line') functions.push(...CODE_FUNCTIONS);
 	if (site === 'assessment' || site === 'scheme')
 		functions.push(DAYS_UNDER, {
-			path: 'coverage_days_30(since, age)',
+			path: 'coverage_days(since, age, month_days)',
 			description:
-				'Covered days in the assessment month on a thirty-day calendar, starting no earlier than employment and registration. Continuing coverage runs to day 30; termination uses its actual day capped at 30. A positive age ends coverage before that birthday; 0 applies no age limit.'
+				'Covered days in the assessment month on a fixed calendar of month_days days, starting no earlier than employment and registration. Continuing coverage runs to day month_days whatever the month’s length; a termination uses its actual day, and a join its actual day, each capped at month_days. A positive age ends coverage before that birthday; 0 applies no age limit.'
 		});
 	if (site === 'assessment' || site === 'scheme')
 		functions.push(
@@ -1158,6 +1192,12 @@ const functionsFor = (site: ExpressionSite): readonly ExpressionFunction[] => {
 					'Current leave cash-out exempt within an annual day limit, after days paid earlier in the tax year. Each entry retains its own rate.'
 			}
 		);
+	if (site === 'work_day')
+		functions.push({
+			path: 'run_hours_before_rest(minutes)',
+			description:
+				'Hours worked before the day’s first rest of at least `minutes` (a double, `60.0`); the whole day where none — read by `day_rules` and `overtime_consent`'
+		});
 	if (site === 'entry')
 		functions.push({
 			path: 'leave.days(code)',
@@ -1196,6 +1236,8 @@ const PERSON_CONTEXT: ExpressionContext = {
 		'period.leave_days',
 		'period.leave_pay',
 		'employment.exit_facts',
+		'employee.facts',
+		'worksite.facts',
 		'terms.facts',
 		'event.case.facts'
 	],
@@ -1238,6 +1280,8 @@ const REST_BREAK_CONTEXT: ExpressionContext = {
 		'period.leave_days',
 		'period.leave_pay',
 		'employment.exit_facts',
+		'employee.facts',
+		'worksite.facts',
 		'terms.facts'
 	],
 	functions: functionsFor('person'),
@@ -1264,14 +1308,19 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 				'Which charged day of the event, from 1, counting this day: across every entry of the code naming the same event date, else this entry’s (VN Labour Code art.99(3): the first 14 working days of a stoppage)'
 		},
 		{
-			path: 'leave.agreed_fraction',
-			description:
-				'The share of the day wage the parties agreed for this entry, 0 when none was recorded (VN Labour Code art.99(2), (3))'
-		},
-		{
 			path: 'leave.taken(code)',
 			description:
 				'The days of that leave code charged in the leave year before this day, across every entry (TW 勞工請假規則 §4(3): thirty half-paid 普通傷病假 days a year, hospitalised or not)'
+		},
+		{
+			path: 'leave.facts.<key>',
+			description:
+				'An event or state input the catalogue row declares in `event_facts`, as the entry records it, defaults filled'
+		},
+		{
+			path: 'leave.episode_id',
+			description:
+				'The entry that opened this leave’s episode (`leave_entries.episode_id`), the entry itself when it opens one'
 		}
 	],
 	bare: ['wage_floor'],
@@ -1282,7 +1331,10 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 		'period.leave_days',
 		'period.leave_pay',
 		'employment.exit_facts',
-		'terms.facts'
+		'employee.facts',
+		'worksite.facts',
+		'terms.facts',
+		'leave.facts'
 	],
 	functions: functionsFor('person'),
 	blank: {
@@ -1292,8 +1344,9 @@ const LEAVE_DAY_CONTEXT: ExpressionContext = {
 			day_index: 1,
 			days: 1,
 			event_day: 1,
-			agreed_fraction: 0,
-			year_taken: {}
+			year_taken: {},
+			facts: {},
+			episode_id: ''
 		}
 	}
 };
@@ -1368,6 +1421,8 @@ const ENTRY_CONTEXT: ExpressionContext = {
 		'person.period.leave_days',
 		'person.period.leave_pay',
 		'person.employment.exit_facts',
+		'person.employee.facts',
+		'person.worksite.facts',
 		'person.terms.facts',
 		'entry.facts'
 	],
@@ -1391,7 +1446,7 @@ const ENTRY_CONTEXT: ExpressionContext = {
 			captures: { remaining: 0 }
 		},
 		rates: { ordinary_day: 0, ordinary_hour: 0 },
-		limits: structuredClone(LIMITS_BLANK),
+		limits: {},
 		period: structuredClone(PERIOD_BLANK),
 		year: { start: '', end: '', months_employed: 0, earned: { BASIC: 0, ABSENCE: 0 } },
 		leave: {}
@@ -1492,10 +1547,6 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 			['longest_rest_minutes', 'The longest single timed rest between work spans'],
 			['longest_run_hours', 'The longest unbroken work span'],
 			[
-				'run_hours_before_first_hour_rest',
-				'Hours worked before the first rest of 60 minutes or more; the whole day where none'
-			],
-			[
 				'rest_before_overtime_minutes',
 				'Minutes between the end of the normal hours and the first overtime hour, 0 without overtime'
 			],
@@ -1522,7 +1573,6 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'rest_minutes_total',
 		'longest_rest_minutes',
 		'longest_run_hours',
-		'run_hours_before_first_hour_rest',
 		'rest_before_overtime_minutes',
 		'shift_hours',
 		'shift_start_at',
@@ -1558,6 +1608,8 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		'person.period.leave_days',
 		'person.period.leave_pay',
 		'person.employment.exit_facts',
+		'person.employee.facts',
+		'person.worksite.facts',
 		'person.terms.facts'
 	],
 	functions: functionsFor('work_day'),
@@ -1583,7 +1635,7 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		ordinary_hour: 25.5,
 		day_wage: 204,
 		hours: 4,
-		limits: structuredClone(LIMITS_BLANK),
+		limits: {},
 		holiday: { kind: '', name: '', prior_day_present: true },
 		day_facts: {},
 		day_fact_keys: [],
@@ -1597,7 +1649,6 @@ const WORK_DAY_CONTEXT: ExpressionContext = {
 		rest_minutes_total: 60,
 		longest_rest_minutes: 60,
 		longest_run_hours: 4,
-		run_hours_before_first_hour_rest: 4,
 		rest_before_overtime_minutes: 0,
 		shift_hours: 9,
 		shift_start_at: '',
@@ -1642,6 +1693,17 @@ const PAYMENT_CONTEXT: ExpressionContext = {
 		settlement: { tax_residency: '', facts: {}, fact_keys: [] }
 	}
 };
+
+/** The entity on the scheme and assessment sites (E7): its declared facts and its tax year. */
+const COMPANY_FIELDS: readonly ContextField[] = [
+	{
+		path: 'company.facts.<key>',
+		description: 'The entity’s declared inputs (the same values as `person.company.facts`)'
+	},
+	{ path: 'company.year.from', description: 'The tax year’s first day, `YYYY-MM-DD`' },
+	{ path: 'company.year.to', description: 'The tax year’s last day, `YYYY-MM-DD`' }
+];
+const COMPANY_BLANK = () => ({ facts: {}, year: { from: '', to: '' } });
 
 /** The reserved lines: engine money, magnitudes with the sign written in the formula. */
 const RESERVED_LINES: readonly ContextField[] = [
@@ -1689,6 +1751,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		...schemeFields('scheme.'),
 		...producedFields('produced.<code>.'),
 		...HISTORY_FIELDS,
+		...COMPANY_FIELDS,
 		...RESERVED_LINES,
 		...CATALOGUE_WORD_FIELDS
 	],
@@ -1696,6 +1759,7 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 	open: [
 		'produced',
 		'history',
+		'company.facts',
 		'year',
 		'scheme.elections',
 		'scheme.child_claims',
@@ -1706,10 +1770,13 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 		'person.period.leave_days',
 		'person.period.leave_pay',
 		'person.employment.exit_facts',
+		'person.employee.facts',
+		'person.worksite.facts',
 		'person.terms.facts'
 	],
 	functions: functionsFor('assessment'),
 	blank: {
+		company: COMPANY_BLANK(),
 		person: personBlank(),
 		period: structuredClone(PERIOD_BLANK),
 		year: {
@@ -1732,8 +1799,8 @@ const ASSESSMENT_CONTEXT: ExpressionContext = {
 			last_year: { base: 0, employee: 0, employer: 0 },
 			first_year: 0,
 			dependent_months: 0,
-			trailing_3m: { base: 0, months: 0 },
-			trailing_12m: { base: 0, months: 0 },
+			trailing_short: { base: 0, months: 0 },
+			trailing_long: { base: 0, months: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',
@@ -1787,6 +1854,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		...schemeFields('scheme.'),
 		...producedFields('produced.<code>.'),
 		...HISTORY_FIELDS,
+		...COMPANY_FIELDS,
 		{ path: 'base', description: 'The result of the scheme’s `assessed_on` formula' },
 		{
 			path: 'scheme.deduction',
@@ -1803,6 +1871,7 @@ const SCHEME_CONTEXT: ExpressionContext = {
 	open: [
 		'produced',
 		'history',
+		'company.facts',
 		'year',
 		'scheme.elections',
 		'scheme.child_claims',
@@ -1813,10 +1882,13 @@ const SCHEME_CONTEXT: ExpressionContext = {
 		'person.period.leave_days',
 		'person.period.leave_pay',
 		'person.employment.exit_facts',
+		'person.employee.facts',
+		'person.worksite.facts',
 		'person.terms.facts'
 	],
 	functions: functionsFor('scheme'),
 	blank: {
+		company: COMPANY_BLANK(),
 		person: personBlank(),
 		period: structuredClone(PERIOD_BLANK),
 		year: {
@@ -1840,8 +1912,8 @@ const SCHEME_CONTEXT: ExpressionContext = {
 			last_year: { base: 0, employee: 0, employer: 0 },
 			first_year: 0,
 			dependent_months: 0,
-			trailing_3m: { base: 0, months: 0 },
-			trailing_12m: { base: 0, months: 0 },
+			trailing_short: { base: 0, months: 0 },
+			trailing_long: { base: 0, months: 0 },
 			projection: { payslips_remaining: 1, future_equivalents: 0 },
 			rate_override: 0,
 			since: '',
@@ -1868,6 +1940,557 @@ const SCHEME_CONTEXT: ExpressionContext = {
 	}
 };
 
+/** The person site's open prefixes, carried by the sites that read the person flat. */
+const PERSON_OPEN = [
+	'company.facts',
+	'facts',
+	'period.leave_full_days',
+	'period.leave_days',
+	'period.leave_pay',
+	'employment.exit_facts',
+	'employee.facts',
+	'worksite.facts',
+	'terms.facts'
+] as const;
+
+/** The person site's prefixes under `person.`, for the sites that carry the person as a root. */
+const PERSON_OPEN_UNDER = [
+	'person.company.facts',
+	'person.facts',
+	'person.period.leave_full_days',
+	'person.period.leave_days',
+	'person.period.leave_pay',
+	'person.employment.exit_facts',
+	'person.employee.facts',
+	'person.worksite.facts',
+	'person.terms.facts'
+] as const;
+
+/**
+ * The rate site: the person on the rate's date, plus the contract's recurring pay by class — what
+ * `work_rules.ordinary_rate`, `leave_pay_reference`, `encashment_reference` and `proration` state
+ * the ordinary hour, the ordinary day and a leave day's pay from.
+ */
+const RATE_CONTEXT: ExpressionContext = {
+	site: 'rate',
+	description: 'The person on the rate’s date and the contract’s recurring pay by class.',
+	fields: [
+		...PERSON_ROOT_FIELDS,
+		{
+			path: 'contract.classes.<class>',
+			description:
+				'The contract’s recurring monthly amount of one component class in force on the rate’s date; 0 where the contract carries none'
+		},
+		{
+			path: 'rate.date',
+			description: 'The rate’s date `YYYY-MM-DD`: the rule date, or a cash-out’s event date'
+		},
+		{
+			path: 'rate.boundary',
+			description:
+				'A leave cash-out’s boundary `YYYY-MM-DD`: the day after the leave year ends, or the exit; empty otherwise'
+		}
+	],
+	bare: ['wage_floor'],
+	open: [...PERSON_OPEN, 'contract.classes'],
+	functions: functionsFor('rate'),
+	blank: { ...personBlank(), contract: { classes: {} }, rate: { date: '', boundary: '' } }
+};
+
+/**
+ * The obligation site: one duty instance — its trigger and what the trigger carries — for a duty
+ * type's `due` (a `YYYY-MM-DD` date), `amount`, `late_charge` and `trigger.when`. Every root is
+ * present on every trigger, blank where the trigger has none (`lib/obligations/materialise.ts`
+ * builds it). `obligation.*` is the instance itself, read by `late_charge`.
+ */
+const OBLIGATION_CONTEXT: ExpressionContext = {
+	site: 'obligation',
+	description:
+		'One duty instance: its trigger and what the trigger carries. Write money literals as doubles (`2.0`): a double member times an int literal has no overload.',
+	fields: [
+		{
+			path: 'trigger.on',
+			description:
+				'RUN_FINALISED | PERIOD_CLOSE | HIRE | EXIT | FACT_CHANGE | CALENDAR | CASE_EVENT'
+		},
+		{
+			path: 'trigger.date',
+			description:
+				'The event day `YYYY-MM-DD`: the pay date, service start, exit day, revision start or occurrence start'
+		},
+		{
+			path: 'trigger.ref',
+			description:
+				'The event’s identity under its subject: run period, calendar occurrence, revision id, exit day'
+		},
+		{
+			path: 'period.start',
+			description: 'The run’s wage month start, or the occurrence’s first day; empty otherwise'
+		},
+		{
+			path: 'period.end',
+			description: 'The run’s wage month end, or the occurrence’s last day; empty otherwise'
+		},
+		{ path: 'company.settings_code', description: 'Jurisdiction settings lineage' },
+		{ path: 'company.region', description: 'Registered payroll region' },
+		{ path: 'company.pay_frequency', description: 'MONTHLY | SEMI_MONTHLY | WEEKLY' },
+		{ path: 'company.headcount', description: 'Employments in force on `trigger.date`' },
+		{
+			path: 'company.facts.<key>',
+			description: 'Declared entity input (the revision’s on FACT_CHANGE)'
+		},
+		{ path: 'employment.service_start', description: 'HIRE / EXIT: the service start day' },
+		{ path: 'employment.exit_date', description: 'EXIT: the last day of employment' },
+		{
+			path: 'employment.exit_ground',
+			description: 'EXIT: the recorded termination ground (a `TERMINATION_GROUND` code)'
+		},
+		{
+			path: 'employment.exit_facts.<key>',
+			description: 'EXIT: the departure inputs the version declares'
+		},
+		{ path: 'worksite.code', description: 'WORKSITE subject: the worksite’s code' },
+		{ path: 'worksite.region', description: 'WORKSITE subject: the worksite’s region' },
+		{
+			path: 'worksite.facts.<key>',
+			description: 'WORKSITE subject: the worksite’s declared facts'
+		},
+		{ path: 'run.period', description: 'RUN_FINALISED: the run’s period' },
+		{ path: 'run.pay_date', description: 'RUN_FINALISED: the run’s pay date' },
+		{ path: 'run.headcount', description: 'RUN_FINALISED: payslips the run settled' },
+		{ path: 'run.gross', description: 'RUN_FINALISED: the run’s gross pay' },
+		{ path: 'run.net', description: 'RUN_FINALISED: the run’s net pay' },
+		{ path: 'run.employer_cost', description: 'RUN_FINALISED: the run’s employer cost' },
+		{
+			path: 'run.kind',
+			description: 'RUN_FINALISED: REGULAR | OFF_CYCLE | FINAL | CORRECTION'
+		},
+		{
+			path: 'run.sequence',
+			description: 'RUN_FINALISED: the run’s place among its period’s runs, from 1'
+		},
+		{
+			path: 'run.pay_due_date',
+			description: 'RUN_FINALISED: the day the run’s wages fall due `YYYY-MM-DD`; empty where none'
+		},
+		{
+			path: 'run.withheld.<code>',
+			description:
+				'RUN_FINALISED: what the run withheld for third parties under that loan catalogue code'
+		},
+		{
+			path: 'run.remittances.<scheme>',
+			description: 'RUN_FINALISED: the amount payable to one scheme'
+		},
+		{ path: 'case.type', description: 'CASE subject: the case type’s code' },
+		{ path: 'case.facts.<key>', description: 'CASE subject: the case’s declared facts' },
+		{ path: 'event.facts.<key>', description: 'The triggering record’s own declared facts' },
+		{ path: 'obligation.due_on', description: '`late_charge`: the instance’s due day' },
+		{ path: 'obligation.amount_due', description: '`late_charge`: the money the instance owes' },
+		{
+			path: 'obligation.days_late',
+			description: '`late_charge`: calendar days past `due_on`, 0 while on time'
+		}
+	],
+	bare: [],
+	open: [
+		'company.facts',
+		'employment.exit_facts',
+		'worksite.facts',
+		'run.remittances',
+		'run.withheld',
+		'case.facts',
+		'event.facts'
+	],
+	functions: functionsFor('obligation'),
+	blank: {
+		trigger: { on: '', date: '', ref: '' },
+		period: { start: '', end: '' },
+		company: { settings_code: '', region: '', pay_frequency: '', headcount: 0, facts: {} },
+		employment: { service_start: '', exit_date: '', exit_ground: '', exit_facts: {} },
+		worksite: { code: '', region: '', facts: {} },
+		run: {
+			period: '',
+			pay_date: '',
+			headcount: 0,
+			gross: 0,
+			net: 0,
+			employer_cost: 0,
+			remittances: {},
+			kind: 'REGULAR',
+			sequence: 1,
+			pay_due_date: '',
+			withheld: {}
+		},
+		case: { type: '', facts: {} },
+		event: { facts: {} },
+		obligation: { due_on: '', amount_due: 0, days_late: 0 }
+	}
+};
+
+/** The money maps of one settled payslip, or of the row's payslips summed. */
+const SLIP_MONEY = (prefix: string, what: string): ContextField[] => [
+	{ path: `${prefix}gross`, description: `Gross pay of ${what}` },
+	{ path: `${prefix}net`, description: `Net pay of ${what}` },
+	{
+		path: `${prefix}lines.<code>`,
+		description: `The signed total of one catalogue code on ${what}`
+	},
+	{
+		path: `${prefix}classes.<class>`,
+		description: `The signed total of one component class on ${what}`
+	},
+	{ path: `${prefix}base.<scheme>`, description: `The assessed base of one scheme on ${what}` },
+	{
+		path: `${prefix}employee.<scheme>`,
+		description: `The employee share of one scheme on ${what}`
+	},
+	{ path: `${prefix}employer.<scheme>`, description: `The employer share of one scheme on ${what}` }
+];
+const SLIP_BLANK = () => ({
+	gross: 0,
+	net: 0,
+	lines: {},
+	classes: {},
+	base: {},
+	employee: {},
+	employer: {}
+});
+const SLIP_OPEN = ['lines', 'classes', 'base', 'employee', 'employer'] as const;
+
+/**
+ * The filing site: one row of a return or bank file — the person, the payslips the row covers and
+ * their sums — for `returns[].columns[].value` and `population`.
+ */
+const FILING_CONTEXT: ExpressionContext = {
+	site: 'filing',
+	description:
+		'One row of a return or bank file: the person, the settled payslips it covers, their sums.',
+	fields: [
+		{ path: 'filing.code', description: 'The return’s code' },
+		{
+			path: 'filing.period',
+			description: 'The period the return covers: `YYYY-MM`, `YYYY-Qn`, or the year'
+		},
+		{ path: 'filing.year', description: 'The calendar or tax year the return covers' },
+		{ path: 'filing.pay_date', description: 'The governing run’s pay day `YYYY-MM-DD`' },
+		{
+			path: 'filing.rows',
+			description: 'Detail rows the file carries; on header and trailer records, the file’s count'
+		},
+		...[
+			'employee_id',
+			'employment_id',
+			'employee_number',
+			'name',
+			'identity_number',
+			'identity_type',
+			'nationality',
+			'designation',
+			'department',
+			'gender',
+			'birth_date',
+			'hire_date',
+			'last_day',
+			'departure_on'
+		].map((key) => ({
+			path: `payee.${key}`,
+			description:
+				key === 'identity_type'
+					? 'The declared `identity_patterns` type the identity number matches'
+					: `The row’s ${key.replaceAll('_', ' ')} as its latest settled payslip names it`
+		})),
+		{ path: 'payer.code', description: 'The entity’s originator bank code on the run' },
+		{ path: 'payer.account', description: 'The entity’s originator account number' },
+		{ path: 'payer.holder', description: 'The originator account holder’s name' },
+		{ path: 'payer.bank_name', description: 'The originator bank’s name' },
+		{ path: 'row.index', description: 'The row’s position in the file, from 1' },
+		{ path: 'company.settings_code', description: 'Jurisdiction settings lineage' },
+		{ path: 'company.name', description: 'The employing entity’s legal name' },
+		{ path: 'company.facts.<key>', description: 'Declared entity input (registration numbers)' },
+		...personFields('person.'),
+		{ path: 'bank.code', description: 'The payee’s bank code; empty where none is recorded' },
+		{ path: 'bank.account', description: 'The payee’s account number' },
+		{ path: 'bank.holder', description: 'The account holder’s name' },
+		...SLIP_MONEY('totals.', 'the row’s payslips summed'),
+		{ path: 'totals.slips', description: 'How many payslips the row covers' },
+		{
+			path: 'slips',
+			description:
+				'The row’s payslips, oldest first, each `{period, pay_date, gross, net, lines, classes, base, employee, employer}` — `sum(slips.map(s, s.employee.CODE))`'
+		}
+	],
+	bare: ['slips'],
+	open: ['company.facts', ...SLIP_OPEN.map((key) => `totals.${key}`), ...PERSON_OPEN_UNDER],
+	functions: functionsFor('filing'),
+	blank: {
+		filing: { code: '', period: '', year: 2026, pay_date: '', rows: 0 },
+		payee: {
+			employee_id: '',
+			employment_id: '',
+			employee_number: '',
+			name: '',
+			identity_number: '',
+			identity_type: '',
+			nationality: '',
+			designation: '',
+			department: '',
+			gender: '',
+			birth_date: '',
+			hire_date: '',
+			last_day: '',
+			departure_on: ''
+		},
+		payer: { code: '', account: '', holder: '', bank_name: '' },
+		row: { index: 1 },
+		company: { settings_code: '', name: '', facts: {} },
+		person: personBlank(),
+		bank: { code: '', account: '', holder: '' },
+		totals: { ...SLIP_BLANK(), slips: 0 },
+		slips: []
+	}
+};
+
+/**
+ * The case site: one benefit case on one phase — its facts, the phase's days and the person's
+ * contribution credits and earnings — for `case_types[].phases[].days`, `award` and
+ * `qualifications`.
+ */
+const CASE_CONTEXT: ExpressionContext = {
+	site: 'case',
+	description:
+		'One benefit case on one phase: its facts, the phase’s days, the credits and earnings behind it.',
+	fields: [
+		...personFields('person.'),
+		{ path: 'case.kind', description: 'The case type’s code' },
+		{ path: 'case.event_on', description: 'The `YYYY-MM-DD` day of the event the case is for' },
+		{ path: 'case.started_on', description: 'The first day of the case' },
+		{ path: 'case.ended_on', description: 'The last day of the case; empty while it runs' },
+		{ path: 'case.facts.<key>', description: 'Inputs the case type declares, as recorded' },
+		{ path: 'case.event_kind', description: 'The recorded event kind; empty before the event' },
+		{ path: 'case.event_month', description: 'The event’s month, 1–12; 0 before the event' },
+		{ path: 'case.application_on', description: 'The application day `YYYY-MM-DD`' },
+		{
+			path: 'case.evidenced',
+			description:
+				"The fact keys whose `fact_evidence` the declaration accepts — `'k' in case.evidenced`"
+		},
+		{ path: 'case.award', description: 'The actual award recorded; 0 until recorded' },
+		{
+			path: 'case.salary',
+			description: 'The monthly salary the case’s pay replaces; 0 where the caller has none'
+		},
+		{ path: 'case.premiums', description: 'The employee’s premium shares over the case, summed' },
+		{ path: 'phase.code', description: 'The phase’s code' },
+		{ path: 'phase.index', description: 'Which phase of the case, from 1' },
+		{ path: 'phase.start', description: 'The phase’s first day' },
+		{ path: 'phase.end', description: 'The phase’s last day' },
+		{ path: 'phase.days', description: 'Calendar days of the phase' },
+		{
+			path: 'phase.day_index',
+			description: 'Which day of the phase is priced, from 1; 0 for a whole award'
+		},
+		{
+			path: 'phase.award',
+			description: 'The phase’s award, already priced (`wage` and later read it)'
+		},
+		{ path: 'phase.wage', description: 'The phase’s full wage, already priced' },
+		{
+			path: 'phase.employer_pays',
+			description: 'What the employer pays for the phase, already priced (`reimbursable` reads it)'
+		},
+		{
+			path: 'credits',
+			description:
+				'The person’s contribution credits before the event, oldest first, each `{period, amount, paid_on}` — `sum(credits.map(c, c.amount).top(6))`'
+		},
+		{
+			path: 'earnings',
+			description:
+				'The person’s monthly earnings before the event, oldest first, each `{period, amount}`'
+		},
+		{
+			path: 'previous',
+			description:
+				'The person’s earlier cases, oldest first, each `{kind, started_on, ended_on, days}` — `previous.filter(p, p.kind == case.kind).size()`'
+		}
+	],
+	bare: ['credits', 'earnings', 'previous'],
+	open: ['case.facts', ...PERSON_OPEN_UNDER],
+	functions: functionsFor('case'),
+	blank: {
+		person: personBlank(),
+		case: {
+			kind: '',
+			event_on: '',
+			started_on: '',
+			ended_on: '',
+			facts: {},
+			event_kind: '',
+			event_month: 0,
+			application_on: '',
+			evidenced: [],
+			award: 0,
+			salary: 0,
+			premiums: 0
+		},
+		phase: {
+			code: '',
+			index: 1,
+			start: '',
+			end: '',
+			days: 0,
+			day_index: 0,
+			award: 0,
+			wage: 0,
+			employer_pays: 0
+		},
+		credits: [],
+		earnings: [],
+		previous: []
+	}
+};
+
+/**
+ * The check site (E9): the person on the stage's rule date, flat, with the stage's own roots —
+ * `lib/checks.ts` `checkContext` builds it. Absent roots read blank, never fail.
+ */
+const CHECK_CONTEXT: ExpressionContext = {
+	site: 'check',
+	description:
+		'One lifecycle stage of one employment: the person that day and what the stage carries.',
+	fields: [
+		...PERSON_ROOT_FIELDS,
+		{
+			path: 'check.at',
+			description: 'EMPLOYMENT_START | TERMS_CHANGE | EXIT | PAYSLIP | LEAVE_ENTRY | DEDUCTION'
+		},
+		{ path: 'check.date', description: 'The stage’s rule date `YYYY-MM-DD`' },
+		{
+			path: 'obligations.open',
+			description: "The duty codes still OPEN on the subject — `'X' in obligations.open`"
+		},
+		...PERSON_ROOT_FIELDS.filter((field) => field.path.startsWith('terms.')).flatMap((field) => [
+			{
+				path: `before.${field.path.slice(6)}`,
+				description: `TERMS_CHANGE: the terms in force the day before — ${field.description}`
+			},
+			{
+				path: `after.${field.path.slice(6)}`,
+				description: `TERMS_CHANGE: the terms as they will be written — ${field.description}`
+			}
+		]),
+		{ path: 'deduction.code', description: 'DEDUCTION: the deduction’s catalogue code' },
+		{ path: 'deduction.amount', description: 'DEDUCTION: the line’s amount' },
+		{ path: 'deduction.gross', description: 'DEDUCTION: the payslip’s gross pay' },
+		{ path: 'deduction.net', description: 'DEDUCTION: net pay before this line' },
+		{
+			path: 'deduction.total',
+			description: 'DEDUCTION: every deduction of the payslip, this one included'
+		},
+		{ path: 'leave.code', description: 'LEAVE_ENTRY: the leave catalogue code' },
+		{ path: 'leave.from', description: 'LEAVE_ENTRY: the entry’s first day' },
+		{ path: 'leave.to', description: 'LEAVE_ENTRY: the entry’s last day' },
+		{ path: 'leave.days', description: 'LEAVE_ENTRY: the days it charges' },
+		{ path: 'leave.facts.<key>', description: 'LEAVE_ENTRY: the entry’s declared event facts' },
+		{ path: 'payslip.gross', description: 'PAYSLIP: gross pay' },
+		{ path: 'payslip.net', description: 'PAYSLIP: net pay' },
+		{ path: 'payslip.deductions', description: 'PAYSLIP: every deduction, summed' },
+		{
+			path: 'payslip.lines.<code>',
+			description: 'PAYSLIP: the signed total of one catalogue code'
+		},
+		{ path: 'payslip.pay_date', description: 'PAYSLIP: the run’s pay date `YYYY-MM-DD`' }
+	],
+	bare: ['wage_floor'],
+	open: [...PERSON_OPEN, 'before.facts', 'after.facts', 'leave.facts', 'payslip.lines'],
+	functions: functionsFor('check'),
+	blank: {
+		...personBlank(),
+		check: { at: '', date: '' },
+		obligations: { open: [] },
+		before: structuredClone(PERSON_BLANK.terms),
+		after: structuredClone(PERSON_BLANK.terms),
+		deduction: { code: '', amount: 0, gross: 0, net: 0, total: 0 },
+		leave: { code: '', from: '', to: '', days: 0, facts: {} },
+		payslip: { gross: 0, net: 0, deductions: 0, lines: {}, pay_date: '' }
+	}
+};
+
+/**
+ * The order site (L6): one deduction order on one payslip — `loans.recovery_rule`, evaluated by
+ * `settleWithOrders` in `lib/payroll/loan.ts`. Money members are doubles: write `0.25`, `2200.0`.
+ */
+const ORDER_CONTEXT: ExpressionContext = {
+	site: 'order',
+	description:
+		'One deduction order on one payslip. Money members are doubles: write literals as `0.25`, `2200.0`.',
+	fields: [
+		{ path: 'payment.gross', description: 'The payslip’s gross pay' },
+		{
+			path: 'payment.net',
+			description: 'Net pay left after every non-order deduction and every higher-priority order'
+		},
+		{
+			path: 'payment.disposable',
+			description: 'Gross less the employee’s statutory contributions'
+		},
+		{ path: 'payment.final', description: 'Whether this is the contract’s last payslip' },
+		{ path: 'order.principal', description: 'The order’s principal' },
+		{ path: 'order.recovered', description: 'What earlier payslips recovered under it' },
+		{ path: 'order.balance', description: 'What is still owed' },
+		{ path: 'order.priority', description: 'The order’s priority; a lower number is taken first' },
+		{ path: 'order.creditor', description: 'EMPLOYER | THIRD_PARTY' },
+		{ path: 'order.authority', description: 'Who issued the order, and its reference' },
+		{ path: 'wage_floor', description: 'The period’s minimum wage' }
+	],
+	bare: ['wage_floor'],
+	open: [],
+	functions: functionsFor('order'),
+	blank: {
+		payment: { gross: 0, net: 0, disposable: 0, final: false },
+		order: {
+			principal: 0,
+			recovered: 0,
+			balance: 0,
+			priority: 0,
+			creditor: 'EMPLOYER',
+			authority: ''
+		},
+		wage_floor: 0
+	}
+};
+
+/**
+ * The derived-line site (E6): the person, flat, with this payslip's lines so far — for
+ * `work_rules.derived_lines[].amount` and `.when`, evaluated by `deriveLines` in `run/accumulate.ts`
+ * after every work, leave and money line.
+ */
+const DERIVED_LINE_CONTEXT: ExpressionContext = {
+	site: 'derived_line',
+	description:
+		'A line the period’s totals decide: the person, this payslip’s lines so far and the period’s day facts.',
+	fields: [
+		...PERSON_ROOT_FIELDS,
+		...RESERVED_LINES.map((field) => ({
+			...field,
+			description: `${field.description} — this payslip so far, earlier derived lines included`
+		})),
+		{
+			path: 'day_facts.<key>',
+			description: 'The period total of one declared numeric `work_day_facts` input'
+		}
+	],
+	bare: ['wage_floor', ...RESERVED_LINES.map((field) => field.path)],
+	open: [...PERSON_OPEN, 'day_facts'],
+	functions: functionsFor('derived_line'),
+	blank: {
+		...personBlank(),
+		...Object.fromEntries(RESERVED_LINES.map((field) => [field.path, 0])),
+		day_facts: {}
+	}
+};
+
 export const EXPRESSION_CONTEXTS: Readonly<Record<ExpressionSite, ExpressionContext>> = {
 	entity: ENTITY_CONTEXT,
 	person: PERSON_CONTEXT,
@@ -1877,12 +2500,20 @@ export const EXPRESSION_CONTEXTS: Readonly<Record<ExpressionSite, ExpressionCont
 	scheme: SCHEME_CONTEXT,
 	leave_day: LEAVE_DAY_CONTEXT,
 	rest_break: REST_BREAK_CONTEXT,
-	payment: PAYMENT_CONTEXT
+	payment: PAYMENT_CONTEXT,
+	rate: RATE_CONTEXT,
+	obligation: OBLIGATION_CONTEXT,
+	filing: FILING_CONTEXT,
+	case: CASE_CONTEXT,
+	check: CHECK_CONTEXT,
+	order: ORDER_CONTEXT,
+	derived_line: DERIVED_LINE_CONTEXT
 };
 
 const MENTION_CACHE_CAP = 50_000;
 const mentionPatterns = new Map<string, RegExp>();
 const mentionKeys = new Map<string, readonly string[]>();
+const NO_KEYS: readonly string[] = Object.freeze([]);
 
 /**
  * Every open key an expression names under one prefix, as the compiler and builders fill them.
@@ -1895,7 +2526,9 @@ export function openKeyMentions(
 	expression: string | null | undefined,
 	prefix: string
 ): readonly string[] {
-	if (expression == null) return [];
+	// No `<prefix>.` in the text, no key: most of a ladder names none, and the cache key alone
+	// copies the whole expression.
+	if (expression == null || !expression.includes(`${prefix}.`)) return NO_KEYS;
 	const cacheKey = `${prefix}\u0000${expression}`;
 	const cached = mentionKeys.get(cacheKey);
 	if (cached !== undefined) return cached;

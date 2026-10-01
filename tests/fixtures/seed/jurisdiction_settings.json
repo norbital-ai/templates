@@ -60,6 +60,7 @@
 			],
 			"breaks": [],
 			"authority": "Public fixture: ordinary-day overtime at 1.5x (Employment Act 1955 s.60A(3)(a) shape)",
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "REST_DAY",
 			"wages": {
 				"by_region": {}

@@ -6,8 +6,15 @@ const condition = Schema.String.check(Schema.isPattern(/\S/));
 
 const factKeyShape = Schema.Struct({
 	key: Schema.String.check(Schema.isPattern(/^[A-Za-z_][A-Za-z0-9_]*$/)),
-	/** `date` is an ISO calendar day (`YYYY-MM-DD`), `instant` a UTC ISO instant. */
-	type: Schema.Literals(['boolean', 'number', 'string', 'date', 'instant']),
+	/**
+	 * `date` is an ISO calendar day (`YYYY-MM-DD`), `instant` a UTC ISO instant, `code` the code of
+	 * a `reference_rows` row of `table`, in force on the fact's date.
+	 */
+	type: Schema.Literals(['boolean', 'number', 'string', 'date', 'instant', 'code']),
+	/** A `code` input's table: the version's `tables` declaration its codes come from. */
+	table: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isPattern(/\S/)))),
+	/** A `code` input whose row must sit under the code another input of the same list holds. */
+	parent_fact: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isPattern(/\S/)))),
 	label: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	description: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/** A supplied employee election applies only to a named employment. */
@@ -57,11 +64,20 @@ const factKeyShape = Schema.Struct({
 		Schema.NullOr(
 			Schema.Struct({
 				kind: Schema.Literals(['REFERENCE', 'FILE', 'REFERENCE_AND_FILE']),
-				when: Schema.optionalKey(Schema.NullOr(condition))
+				when: Schema.optionalKey(Schema.NullOr(condition)),
+				/** The document type demanded: a code of the version's `DOCUMENT_TABLE` rows. */
+				document: Schema.optionalKey(Schema.NullOr(Schema.String.check(Schema.isPattern(/\S/)))),
+				/** How many days a received document stays valid, the day received counted. */
+				valid_days: Schema.optionalKey(
+					Schema.NullOr(Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)))
+				)
 			})
 		)
 	)
 });
+
+/** The table whose rows are the document types an evidence declaration may demand. */
+export const DOCUMENT_TABLE = 'DOCUMENT_TYPE';
 
 /**
  * One declaration as stored. `default_value` and `options` are `json` columns (a scalar union the field language
@@ -77,6 +93,15 @@ export const factScalar = (value: unknown): string | number | boolean | undefine
 	Predicate.isString(value) || Predicate.isNumber(value) || Predicate.isBoolean(value)
 		? value
 		: undefined;
+
+/**
+ * A `code` value's row in force on the caller's date, or null where the table carries no such code
+ * then. The caller binds the date and the rows (`referenceCodes`), so the checks stay pure.
+ */
+export type CodeResolver = (
+	table: string,
+	code: string
+) => { readonly parent_code: string | null } | null;
 
 /** Employer-bound instructions cannot silently become person-wide elections. */
 export function factScopeFault(
@@ -96,14 +121,22 @@ const FACT_TYPE: Readonly<Record<FactKey['type'], (value: unknown) => boolean>> 
 	number: Predicate.isNumber,
 	string: Predicate.isString,
 	date: (value) => Predicate.isString(value) && isCalendarDate(value),
-	instant: (value) => Predicate.isString(value) && isUtcIsoInstant(value)
+	instant: (value) => Predicate.isString(value) && isUtcIsoInstant(value),
+	code: Predicate.isString
 };
 /** Whether `value` is of a fact key's declared `type`. */
 export const holdsFactType = (type: FactKey['type'], value: unknown): boolean =>
 	FACT_TYPE[type](value);
 
-/** One supplied value, shared by declaration defaults, collection writes and calculation. */
-export function factValueFault(field: FactKey, value: unknown): string | null {
+/**
+ * One supplied value, shared by declaration defaults, collection writes and calculation. A `code`
+ * value is checked against its table only where the caller passes `codes`.
+ */
+export function factValueFault(
+	field: FactKey,
+	value: unknown,
+	codes?: CodeResolver
+): string | null {
 	const label = field.label?.trim() || field.key;
 	if (!holdsFactType(field.type, value))
 		return field.type === 'date' || field.type === 'instant'
@@ -125,6 +158,8 @@ export function factValueFault(field: FactKey, value: unknown): string | null {
 		return `${label} must contain at least ${field.min_length} characters.`;
 	if (field.options != null && !field.options.some((option) => option === value))
 		return `${label} must be one of: ${field.options.join(', ')}.`;
+	if (field.type === 'code' && codes != null && codes(field.table ?? '', String(value)) == null)
+		return `${label}: ${String(value)} is not a code of table ${field.table} in force on this date.`;
 	return null;
 }
 
@@ -139,6 +174,10 @@ export const factKeySchema = factKeyShape.check(
 			return `${field.key}: minimum length requires a string field.`;
 		if (field.minimum != null && field.maximum != null && field.minimum > field.maximum)
 			return `${field.key}: minimum cannot exceed maximum.`;
+		if (field.type === 'code' && field.table == null)
+			return `${field.key}: a code input names the table its codes come from.`;
+		if (field.type !== 'code' && (field.table != null || field.parent_fact != null))
+			return `${field.key}: a table and a parent input belong to a code input.`;
 		if (field.required && field.default_value != null)
 			return `${field.key}: choose a required declaration or a statutory default.`;
 		if (field.required && field.required_when != null)
@@ -158,11 +197,17 @@ export const factKeySchema = factKeyShape.check(
 );
 
 export const factKeysValueSchema = Schema.Array(factKeySchema).check(
-	Schema.makeFilter(
-		(fields) =>
-			new Set(fields.map((field) => field.key)).size === fields.length ||
-			'Each fact key must be declared once.'
-	)
+	Schema.makeFilter((fields) => {
+		if (new Set(fields.map((field) => field.key)).size !== fields.length)
+			return 'Each fact key must be declared once.';
+		for (const field of fields)
+			if (
+				field.parent_fact != null &&
+				!fields.some((parent) => parent.key === field.parent_fact && parent.type === 'code')
+			)
+				return `${field.key}: its parent input ${field.parent_fact} is not a code input of this list.`;
+		return true;
+	})
 );
 
 /** The value's Standard Schema view: the check `+definition.ts` runs on every write. */

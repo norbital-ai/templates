@@ -54,8 +54,10 @@ async function approve(
 			reference: `BIRTH-${number}`,
 			from_date: '2026-06-08',
 			to_date: '2026-06-08',
-			event_kind: 'BIRTH',
-			event_date: '2026-06-08',
+			facts: {
+				event_kind: 'BIRTH',
+				event_date: '2026-06-08'
+			},
 			...fields
 		},
 		id(number)
@@ -88,9 +90,11 @@ for (const [kind, hire, deduction] of [
 			gender: 'FEMALE',
 			hire_date: hire
 		});
-		const original = await approve(world, { event_kind: kind });
+		const original = await approve(world, {
+			facts: { event_kind: kind, event_date: '2026-06-08' }
+		});
 		const { prepared, slip } = price(world);
-		assert.equal(prepared.gathered.bundles[0]!.leave.entries[0]!.event_kind, kind);
+		assert.equal(prepared.gathered.bundles[0]!.leave.entries[0]!.facts?.event_kind, kind);
 		assert.equal(
 			slip.adjustments.find((line) => line.component_code === 'MATERNITY_LEAVE')?.amount ?? 0,
 			deduction
@@ -105,8 +109,10 @@ for (const [kind, hire, deduction] of [
 				reversal_of_id: original.id,
 				effective_on: '2026-06-09',
 				reason: 'Corrected event',
-				event_kind: null,
-				event_date: null
+				facts: {
+					event_kind: null,
+					event_date: null
+				}
 			},
 			2
 		);
@@ -131,9 +137,11 @@ for (const citizenship of ['CITIZEN', 'FOREIGNER']) {
 				{ child_birthdate: '2026-06-08', citizenship }
 			]
 		});
-		await approve(world, { event_child_index: 3 });
+		await approve(world, {
+			facts: { event_kind: 'BIRTH', event_date: '2026-06-08', event_child_index: 3 }
+		});
 		const { prepared, slip } = price(world);
-		assert.equal(prepared.gathered.bundles[0]!.leave.entries[0]!.event_child_index, 3);
+		assert.equal(prepared.gathered.bundles[0]!.leave.entries[0]!.facts?.event_child_index, 3);
 		assert.equal(
 			slip.adjustments.find((line) => line.component_code === 'MATERNITY_LEAVE')?.amount ?? 0,
 			citizenship === 'CITIZEN' ? 0 : 100
@@ -191,7 +199,9 @@ for (const filtered of ['expired', 'not-born'] as const) {
 			const children = world.employees[0]!.children as Array<{ effective_range: unknown }>;
 			children[0]!.effective_range = { start: '2010-01-01', end: '2025-12-31' };
 		}
-		await approve(world, { event_child_index: 4 });
+		await approve(world, {
+			facts: { event_kind: 'BIRTH', event_date: '2026-06-08', event_child_index: 4 }
+		});
 		assert.equal(price(world).slip.gross, 2_200);
 	});
 }
@@ -242,8 +252,10 @@ test('a paid TW half-pay correction restores the frozen deduction in the followi
 			effective_on: '2026-07-01',
 			due_on: '2026-07-01',
 			reason: 'Correct paid leave',
-			event_kind: null,
-			event_date: null
+			facts: {
+				event_kind: null,
+				event_date: null
+			}
 		},
 		2
 	);
@@ -295,7 +307,10 @@ test('payroll reads event relationship, personal registration and company revisi
 			{ ...fact, id: id(201 + index * 2), effective_range: { start: '2026-06-10', end: null } }
 		);
 	}
-	await approve(world, { to_date: '2026-06-10', event_relationship: 'SELF' });
+	await approve(world, {
+		to_date: '2026-06-10',
+		facts: { event_kind: 'BIRTH', event_date: '2026-06-08', event_relationship: 'SELF' }
+	});
 	const { prepared, slip } = price(world);
 	assert.deepEqual(
 		Object.values(prepared.gathered.bundles[0]!.leave.deductionShare!),

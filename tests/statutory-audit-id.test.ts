@@ -303,7 +303,7 @@ function leaver(hire: string, facts: Record<string, string | number | boolean>) 
 				wage: 10_000_000,
 				hire_date: hire,
 				exit_date: '2026-01-31',
-				exit_reason: 'DISMISSAL'
+				exit_ground: 'DISMISSAL'
 			}
 		]),
 		(w) => {
@@ -503,7 +503,7 @@ test('ID audit — a daily wage is ×21 (five-day week) before the 1/173 hour (P
 					id_foreign_prior_work_reviewed_on: '2026-01-01',
 					id_foreign_prior_work_reference: 'FIXTURE-NO-PRIOR-WORK',
 					exit_date: '2026-03-31',
-					exit_reason: 'END_OF_CONTRACT'
+					exit_ground: 'END_OF_CONTRACT'
 				}
 			],
 			'II',

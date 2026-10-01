@@ -22,14 +22,14 @@ const matchesNothing = (where: object): boolean =>
 
 /**
  * The page a whole-row read takes of a collection whose history grows with every run and whose rows carry large
- * `custom` values, so one company's rows outgrow one crossing's 4 MiB answer. Measured on MY-nihon's first run
+ * `custom` values, so one company's rows outgrow one crossing's 4 MiB answer. Measured on the Nihon company's first run
  * (84 people): a payslip is 10–23 KB of JSON (its `statutory` lines 16 KB), 1.6 MB a run, and the run's own
  * `calculation_trace` repeats every person's scheme inputs; a second run's unpaged whole-row reads crossed 4 MiB.
  * ponytail: a single run row past 4 MiB (a trace of several hundred people) still refuses; split the trace per slip then.
  */
 const WIDE_ROWS: Partial<Record<CollectionName, number>> = {
 	payroll_runs: 1,
-	payslips: 50,
+	payslips: 200,
 	leave_entries: 1000,
 	work_days: 1000
 };

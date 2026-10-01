@@ -2,6 +2,7 @@ import { collection, type Id } from '@norbital-ai/bolt';
 import { PlainDate } from '@norbital-ai/std/date';
 import { dedupeHolidayRows, type HolidayImportRow } from '../../../lib/holiday-rows.js';
 import { formatNamedList } from '../../../lib/period.js';
+import { compileEligibility } from '../../../lib/payroll/run/eligibility.js';
 
 /** Holidays. A holiday a payroll run captured is history (the delete guard). */
 const holidays = collection('jurisdiction_holidays', {
@@ -17,6 +18,7 @@ const holidays = collection('jurisdiction_holidays', {
 				'given_to',
 				'worksite',
 				'religion',
+				'applies_when',
 				'source',
 				'published_at'
 			]
@@ -33,6 +35,7 @@ const holidays = collection('jurisdiction_holidays', {
 				'given_to',
 				'worksite',
 				'religion',
+				'applies_when',
 				'source',
 				'published_at'
 			]
@@ -85,7 +88,7 @@ export default holidays;
 const IDENTITY = ['company_id', 'date', 'worksite'] as const;
 
 /**
- * A holiday needs an entity, a day and a name; retracting one (unpublish, or moving its day or entity) is refused while
+ * A holiday needs an entity, a day and a name, and its `applies_when` must compile as a person condition; retracting one (unpublish, or moving its day or entity) is refused while
  * a payroll run captured it, and so is deleting it.
  */
 holidays.transform(async (inputs, { existing, db, refuse }) => {
@@ -124,6 +127,9 @@ holidays.transform(async (inputs, { existing, db, refuse }) => {
 		}
 		if (!(input.name ?? stored?.name ?? '').trim())
 			refuse('A holiday needs a name.', { field: 'name' });
+		// A person condition is evaluated on every person-day that reads the calendar: refused here, not there.
+		const fault = compileEligibility(input.applies_when);
+		if (fault != null) refuse(`Applies when: ${fault}`, { field: 'applies_when' });
 		// A blank worksite is the whole company, stored as null so the key sees one company-wide row a day.
 		const row =
 			input.worksite != null && !input.worksite.trim() ? { ...input, worksite: null } : input;

@@ -10,7 +10,7 @@ import {
 } from './kit.ts';
 import { settingsVersions } from '../fixtures/statutory-world.ts';
 
-const MY_JAN_2026 = settingsVersions('MY-nihon').find(
+const MY_JAN_2026 = settingsVersions('MY').find(
 	(row) => row.voided_at == null && String(row.effective_range.start).startsWith('2025-12')
 )!.id;
 const EMPLOYMENT = 'c02333ba-9a22-5a05-807b-f4e2e8234cfd';

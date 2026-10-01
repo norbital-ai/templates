@@ -125,7 +125,8 @@ export const HR_CONTROLLER_APPS = [
 	'hr_controller/events/leave',
 	'hr_controller/events/work',
 	'hr_controller/events/claims',
-	'hr_controller/events/loans'
+	'hr_controller/events/loans',
+	'hr_controller/compliance'
 ] as const;
 
 /** Today's per-member budget: 600 collection calls a minute, 100 agent turns an hour. */

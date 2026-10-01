@@ -5,7 +5,7 @@ export default model({
 	icon: 'lucide:link',
 	// ponytail: a join row has no text of its own; a constant names it until the payslip graph copies the period's reference
 	label: 'title',
-	computed: { title: { kind: 'text', expr: 'Wage period' } },
 	fields: {},
+	computed: { title: { kind: 'text', expr: 'Wage period' } },
 	unique: [{ fields: ['payslip_id', 'wage_period_id'] }]
 });

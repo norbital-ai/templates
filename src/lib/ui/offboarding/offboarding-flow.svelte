@@ -17,19 +17,11 @@
 	import { todayKey } from '../calendar.js';
 	import FormSection from '../form-section.svelte';
 	import ExitFactsRenderer from './exit-facts-renderer.svelte';
-
-	const EXIT_REASONS = [
-		'RESIGNATION',
-		'DISMISSAL',
-		'REDUNDANCY',
-		'RETRENCHMENT',
-		'UNILATERAL',
-		'RETIREMENT',
-		'END_OF_CONTRACT',
-		'MUTUAL',
-		'DEATH'
-	] as const;
-	type ExitReason = (typeof EXIT_REASONS)[number];
+	import { settingsInForce } from '../../jurisdiction_settings.js';
+	import { coversDate } from '../../payroll/run/effective.js';
+	import type { IsoDate } from '../../payroll/run/dates.js';
+	import { live, liveRows } from '../live.svelte.js';
+	import { inForceSettings } from '../settings-scope.js';
 
 	let {
 		employment,
@@ -49,12 +41,47 @@
 	const endDay = $derived(employment.range_end ?? null);
 
 	let lastDay = $state<string | null>(todayKey());
-	let exitReason = $state<ExitReason | null>(null);
+	let exitGround = $state<string | null>(null);
 	let note = $state('');
 	let exitFacts = $state<{ readonly [key: string]: string | number | boolean }>({});
 	let stepError = $state<string | null>(null);
 	let submitting = $state(false);
 
+	// The grounds a departure may record: the `TERMINATION_GROUND` rows in force on the last day.
+	const company = live(() => bolt.get('companies', employment.company_id, { settings_code: true }));
+	const settingsCode = $derived(company.current?.settings_code);
+	const versions = liveRows(() =>
+		settingsCode && lastDay
+			? bolt.read('jurisdiction_settings', {
+					select: {
+						code: true,
+						sealed_at: true,
+						voided_at: true,
+						approval_id: true,
+						effective_range: true
+					},
+					where: inForceSettings(settingsCode, lastDay),
+					all: true
+				})
+			: null
+	);
+	const version = $derived(
+		settingsInForce(versions.current ?? [], settingsCode ?? '', lastDay ?? '')
+	);
+	const grounds = liveRows<{ code: string; label: string | null; effective_range: unknown }>(() =>
+		version == null
+			? null
+			: bolt.read('reference_rows', {
+					where: { settings_id: { eq: version.id }, table: { eq: 'TERMINATION_GROUND' } } as never,
+					select: { code: true, label: true, effective_range: true },
+					all: true
+				})
+	);
+	const groundOptions = $derived(
+		(grounds.current ?? [])
+			.filter((row) => lastDay != null && coversDate(row.effective_range, lastDay as IsoDate))
+			.map((row) => ({ value: row.code, label: row.label ?? row.code }))
+	);
 	const lastDayValid = $derived(
 		lastDay != null && lastDay >= startDay && (endDay == null || lastDay <= endDay)
 	);
@@ -71,12 +98,12 @@
 					onChange={(next) => (lastDay = next)}
 				/>
 			</Labelled>
-			<Labelled label={t('component.exit_reason')} class="text-sm font-medium">
+			<Labelled label={t('component.exit_ground')} class="text-sm font-medium">
 				<Combobox
 					clearable
-					options={EXIT_REASONS.map((reason) => ({ value: reason, label: reason }))}
-					value={exitReason}
-					onChange={(next) => (exitReason = next)}
+					options={groundOptions}
+					value={exitGround}
+					onChange={(next) => (exitGround = next)}
 				/>
 			</Labelled>
 			<Labelled label={t('offboarding.note')} class="text-sm font-medium">
@@ -122,7 +149,7 @@
 						target: employment.id,
 						set: {
 							effective_range: { from: startDay, to: PlainDate(lastDay) },
-							exit_reason: exitReason,
+							exit_ground: exitGround,
 							exit_facts: exitFacts,
 							comments: note.trim() === '' ? null : note.trim()
 						}

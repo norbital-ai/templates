@@ -14,7 +14,7 @@ import { plainRows } from '../lib/wire.js';
  */
 const late_arrival_notice = automation({
 	description:
-		'Finds the rostered shifts whose fifteen-minute mark has passed with no clock-in and reminds the production manager, once per person-day. A day covered by approved leave is never a late arrival.',
+		'Finds the rostered shifts whose company grace (fifteen minutes by default) has passed with no clock-in and reminds the production manager, once per person-day. A day covered by approved leave is never a late arrival.',
 	on: [
 		{ cron: '0 0 * * *' },
 		{ created: 'work_days' },
@@ -37,7 +37,7 @@ late_arrival_notice.run(async (_input, ctx) => {
 	const [companies, versions, shifts, employments] = await Promise.all([
 		ctx.read('companies', {
 			where: settled,
-			select: { name: true, settings_code: true },
+			select: { name: true, settings_code: true, late_arrival_grace_minutes: true },
 			all: true
 		}),
 		ctx.read('jurisdiction_settings', {

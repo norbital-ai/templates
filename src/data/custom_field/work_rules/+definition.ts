@@ -32,7 +32,22 @@ const f = customField({
 			},
 			proration_contractual: { kind: 'bool', optional: true },
 			ordinary_divisor_days: { kind: 'text' },
-			daily_month_days: { kind: 'text', optional: true },
+			ordinary_rate: {
+				kind: 'object',
+				optional: true,
+				fields: { hour: { kind: 'text' }, day: { kind: 'text' } }
+			},
+			rate_conversions: {
+				kind: 'object',
+				optional: true,
+				fields: {
+					weekly_to_monthly: { kind: 'text' },
+					daily_to_monthly: { kind: 'text' },
+					hourly_to_monthly: { kind: 'text' }
+				}
+			},
+			hourly_rate: { kind: 'text', optional: true },
+			hourly_rate_excluded: { kind: 'text', optional: true },
 			ordinary_rate_reference: {
 				kind: 'object',
 				optional: true,
@@ -80,6 +95,19 @@ const f = customField({
 						price_amount: { kind: 'text' },
 						component: { kind: 'text', optional: true },
 						funnel_above_hours: { kind: 'text', optional: true }
+					}
+				}
+			},
+			derived_lines: {
+				kind: 'list',
+				optional: true,
+				of: {
+					kind: 'object',
+					fields: {
+						code: { kind: 'text' },
+						when: { kind: 'text', optional: true },
+						amount: { kind: 'text' },
+						component: { kind: 'enum', values: ['BASE', 'DAY_PAY'], optional: true }
 					}
 				}
 			},
@@ -135,7 +163,8 @@ const f = customField({
 					from: { kind: 'text' },
 					to: { kind: 'text' },
 					ordinary_add: { kind: 'json' },
-					overtime_add: { kind: 'json' }
+					overtime_add: { kind: 'json' },
+					when: { kind: 'text', optional: true }
 				}
 			},
 			time_off_in_lieu: {
@@ -148,6 +177,7 @@ const f = customField({
 					authority: { kind: 'text' }
 				}
 			},
+			overtime_unit_hours: { kind: 'number' },
 			holiday_rest_precedence: {
 				kind: 'enum',
 				values: ['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE']

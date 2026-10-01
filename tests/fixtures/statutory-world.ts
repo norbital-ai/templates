@@ -50,7 +50,7 @@ export const LINEAGES = readdirSync(jurisdictionRoot, { withFileTypes: true })
 	.sort() as readonly Lineage[];
 
 export type Lineage =
-	'MY' | 'MY-nihon' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID' | 'TH' | 'CN-shanghai' | 'CN-kunming';
+	'MY' | 'PH' | 'SG' | 'VN' | 'TW' | 'ID' | 'TH' | 'CN-shanghai' | 'CN-kunming' | 'JP';
 
 function law(code: Lineage, file: string, options?: { optional: true }): any[] {
 	const rows = readLawFile(resolve(jurisdictionRoot, code, file), options);
@@ -111,7 +111,7 @@ function termsFacts(
 					prior_floor_reclassified:
 						person.prior_floor_reclassified === undefined ? false : person.prior_floor_reclassified
 				}
-			: code === 'MY' || code === 'MY-nihon'
+			: code === 'MY'
 				? {
 						worksite_state:
 							person.worksite_state === undefined ? 'KUALA_LUMPUR' : person.worksite_state
@@ -215,8 +215,8 @@ export type Person = {
 	readonly th_pregnancy_status?: 'PREGNANT' | 'NOT_PREGNANT' | null;
 	/** The last employed day; the fixture closes the employment and its terms on it. */
 	readonly exit_date?: string;
-	/** `employments.exit_reason`, the separation bands' gate. */
-	readonly exit_reason?: string;
+	/** `employments.exit_ground`, the separation bands' gate. */
+	readonly exit_ground?: string;
 	/**
 	 * Per-scheme registration: a code mapped to `NOT_REGISTERED`, a flat rate override, or the
 	 * employment's declared elections under that scheme (e.g. `shg_opt_out`).
@@ -344,9 +344,9 @@ function exitFactsFor(
 	code: Lineage,
 	person: Person
 ): { exit_facts?: Record<string, string | number | boolean> } {
-	const reason = person.exit_reason;
+	const reason = person.exit_ground;
 	const facts: Record<string, string | number | boolean> = {};
-	if (code === 'MY' || code === 'MY-nihon') {
+	if (code === 'MY') {
 		facts.notice_termination_party =
 			reason === 'RESIGNATION'
 				? 'EMPLOYEE'
@@ -389,7 +389,7 @@ function exitFactsFor(
 		if (['DISMISSAL', 'REDUNDANCY', 'RETRENCHMENT', 'UNILATERAL'].includes(reason ?? ''))
 			facts.final_pay_not_possible = false;
 	}
-	if ((code === 'MY' || code === 'MY-nihon' || code === 'SG') && reason === 'DISMISSAL')
+	if ((code === 'MY' || code === 'SG') && reason === 'DISMISSAL')
 		facts.misconduct_dismissal = false;
 	return Object.keys(facts).length === 0 ? {} : { exit_facts: facts };
 }
@@ -406,7 +406,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		(_, index) => ({
 			key: `PAD-${index}`,
 			// Thailand's Notice 14 blocks a token wage: 12,000 is Bangkok's THB400 × 30.
-			wage: code === 'TH' ? 12_000 : code === 'MY' || code === 'MY-nihon' ? 1_700 : 1,
+			wage: code === 'TH' ? 12_000 : code === 'MY' ? 1_700 : 1,
 			citizenship: 'CITIZEN'
 		})
 	);
@@ -458,8 +458,8 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		employee_number: person.key,
 		bank: null,
 		effective_range: { start: person.hire_date ?? '2015-01-01', end: person.exit_date ?? null },
-		exit_reason: person.exit_reason ?? null,
-		...(person.exit_reason == null ? {} : exitFactsFor(code, person)),
+		exit_ground: person.exit_ground ?? null,
+		...(person.exit_ground == null ? {} : exitFactsFor(code, person)),
 		approval_id: null
 	}));
 
@@ -555,7 +555,6 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 		tax_residency:
 			person.tax_residency === undefined &&
 			(code === 'MY' ||
-				code === 'MY-nihon' ||
 				code === 'TW' ||
 				code === 'PH' ||
 				code === 'VN' ||
@@ -664,7 +663,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 									sdl_student_class: 'NONE'
 								}
 							: {}),
-						...((code === 'MY' || code === 'MY-nihon') && person.citizenship === 'FOREIGNER'
+						...(code === 'MY' && person.citizenship === 'FOREIGNER'
 							? scheme.code === 'EIS'
 								? { mykas_resident: false }
 								: scheme.code === 'EPF' || scheme.code === 'EPF_NON_CITIZEN'
@@ -776,7 +775,7 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				risk_class: options.riskClass ?? null,
 				// PH declares both establishment-size exemptions as required entity facts.
 				facts:
-					code === 'MY' || code === 'MY-nihon'
+					code === 'MY'
 						? {
 								hrd_scope: 'PART_I',
 								hrd_registration_class:
@@ -815,6 +814,8 @@ export function createStatutoryWorld(options: WorldOptions): PayrollWorld {
 				: [],
 		jurisdiction_settings: versions,
 		statutory_contributions: schemes,
+		// The version's `tables` rows (`band('EPF_PART_F', …)`, `TERMINATION_GROUND`): the reset loads them too.
+		reference_rows: law(code, 'reference_rows', { optional: true }),
 		loan_catalogue: [],
 		claim_catalogue: claimCatalogue(code),
 		allowance_catalogue: allowanceCatalogue(code),
@@ -1084,7 +1085,12 @@ function keyClockOverruns(prepared: PreparedRun): void {
 	for (const bundle of prepared.gathered.bundles) {
 		const punched = bundle.workDays.filter((entry) => entry.worked_intervals != null);
 		if (punched.length === 0) continue;
-		const configuration = atWorksite(prepared.configuration, bundle.termsHistory);
+		const configuration = atWorksite(
+			prepared.configuration,
+			bundle.termsHistory,
+			bundle.workDays,
+			bundle.employee
+		);
 		const work = prepareWorkContext({
 			bundle,
 			configuration,
@@ -1126,6 +1132,7 @@ function keyClockOverruns(prepared: PreparedRun): void {
 		if (planned.size === 0) continue;
 		const limits = applicableLimits(configuration.limits, work.subject);
 		const split = splitPlannedOvertime({
+			unitHours: configuration.work.overtime_unit_hours,
 			days: [...work.schedule.values()].map((day) => ({
 				date: day.date,
 				kind: day.restDay ? 'REST' : day.shift != null ? 'WORK' : 'OFF',

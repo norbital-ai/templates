@@ -58,10 +58,6 @@
 			</span>
 		</Stack>
 		<Stack gap="xs" class="text-xs">
-			<span class="text-muted-foreground">{t('component.final_pay_due_days')}</span>
-			<span class="text-sm">{current?.final_pay_due_days ?? '—'}</span>
-		</Stack>
-		<Stack gap="xs" class="text-xs">
 			<span class="text-muted-foreground">{t('component.holiday_in_npl_unpaid')}</span>
 			<span class="text-sm"
 				>{current?.holiday_in_no_pay_leave_unpaid ? t('common.yes') : t('common.no')}</span
@@ -122,24 +118,6 @@
 				{disabled}
 				onchange={(event) =>
 					emit({ ...current, allowance_npl_prorates: event.currentTarget.checked })}
-			/>
-		</Labelled>
-		<Labelled label={t('component.final_pay_due_days')} class="text-xs" muted>
-			<Input
-				class="h-8"
-				type="number"
-				min="1"
-				step="1"
-				value={current.final_pay_due_days ?? ''}
-				{disabled}
-				oninput={(event) =>
-					emit({
-						...current,
-						final_pay_due_days:
-							event.currentTarget.value.trim() === ''
-								? null
-								: Math.max(1, Math.trunc(Number(event.currentTarget.value)) || 1)
-					})}
 			/>
 		</Labelled>
 		<Labelled label={t('component.holiday_in_npl_unpaid')} class="text-xs" muted>

@@ -5,7 +5,27 @@ import {
 	type CompanyFactRevision
 } from '../../../lib/declared-facts.js';
 import type { FactKey } from '../../../lib/datatypes/fact_keys.js';
-import { isEligible, personContext, scalarFacts, type PersonContext } from './eligibility.js';
+import {
+	DATED,
+	isEligible,
+	personContext,
+	scalarFacts,
+	type DatedCompany,
+	type DatedEmployee,
+	type PersonContext,
+	type PersonInput
+} from './eligibility.js';
+import { personCondition } from '../../scheduled/entries.js';
+import {
+	referenceCodes,
+	referenceRowOf,
+	referenceTables,
+	type ReferenceRow,
+	type TableLookup
+} from '../../../lib/expressions/functions/tables.js';
+import type { ReferenceTable } from '../../../lib/datatypes/reference_tables.js';
+import { worksiteOn } from '../../../data/collection/worksites/lib/in-force.js';
+import { resolvePersonFacts } from '../../../lib/person-facts.js';
 import type { HolidaySnapshot } from '../../../lib/datatypes/holiday_snapshots.js';
 /**
  * Resolve the governing settings and family definitions once for the run. Holidays publish
@@ -23,13 +43,21 @@ import { prepareContributionCatalogue } from '../contribution.js';
 import { prepareLeaveCatalogue } from '../../leave/payroll.js';
 import { daysBetween, monthBounds, monthKey, type IsoDate } from './dates.js';
 import {
+	conditionOf,
 	resolveHolidayInputs,
 	resolveHolidays,
 	type HolidayRow,
 	type PreparedHolidayInput
 } from '../../../lib/holiday-calendar.js';
 import { coversDate, effectiveOn, live, overlapsRange, readRange } from './effective.js';
-import { settingsInForce } from '../../../lib/jurisdiction_settings.js';
+import {
+	composeOverlay,
+	overlayInForce,
+	overlayTables,
+	settingsInForce,
+	type LineageOverlay,
+	type OverlayHit
+} from '../../../lib/jurisdiction_settings.js';
 import type { PayrollWindow } from './period.js';
 import { dateKey } from '../../../lib/iso-day.js';
 
@@ -84,6 +112,32 @@ export type ShiftPattern = Omit<WorkspaceRow<'shift_patterns'>, 'pattern'> & {
 	readonly pattern: WorkPattern;
 };
 type CatalogueLeave = WorkspaceRow<'leave_catalogue'>;
+type Worksite = WorkspaceRow<'worksites'>;
+type StoredReferenceRow = ReferenceRow & { readonly settings_id: unknown };
+
+/** What one day of an employment reads that a locality overlay can replace (`atWorksite`). */
+export type DayConfiguration = Pick<
+	Configuration,
+	| 'jurisdiction'
+	| 'work'
+	| 'holidayRestPrecedence'
+	| 'lastRestDayOnly'
+	| 'limits'
+	| 'breaks'
+	| 'nightPremium'
+	| 'catalogueLeaves'
+>;
+
+/** The rows the base version's overlays (`jurisdiction.overlays`) read; absent where it declares none. */
+export type OverlaySource = {
+	/** The day the run picked its version on; an employment's top-level fields are this day's. */
+	readonly asOf: IsoDate;
+	readonly declarations: readonly LineageOverlay[];
+	/** Every live version of the declared overlay lineages. */
+	readonly versions: readonly Jurisdiction[];
+	/** Each overlay version's own leave rows, which replace the base's by code. */
+	readonly leaves: ReadonlyMap<string, readonly CatalogueLeave[]>;
+};
 export type ContributionRule = WorkspaceRow<'statutory_contributions'>['rules'][number];
 type StatutoryContribution = WorkspaceRow<'statutory_contributions'>;
 
@@ -94,7 +148,7 @@ export type ContributionConfig = {
 };
 
 export type Configuration = {
-	readonly company: Company;
+	readonly company: Company & { readonly [DATED]?: DatedCompany };
 	/** Raw declarations, before this run's defaults; historical cash-out uses its own version. */
 	readonly recordedCompanyFacts: Company['facts'];
 	/** Dated revisions of the entity facts, newest scope last; the run reads the one in force per day. */
@@ -143,6 +197,16 @@ export type Configuration = {
 	 * code is what carries the class across (`contractAllowanceClass`).
 	 */
 	readonly allowanceCodeById: ReadonlyMap<string, string>;
+	/** The company's worksite revisions, so an employment's days are placed (`atWorksite`). */
+	readonly worksites: readonly Worksite[];
+	/** Every live reference row, by the version that owns it. */
+	readonly referenceRows: ReadonlyMap<string, readonly StoredReferenceRow[]>;
+	readonly overlay?: OverlaySource | undefined;
+	/**
+	 * One day as this employment reads it, set by `atWorksite` where the version declares overlays:
+	 * a day at a routed worksite reads the overlay's work rules and leave rows; others the base's.
+	 */
+	readonly onDay?: ((day: IsoDate) => DayConfiguration) | undefined;
 };
 
 /**
@@ -213,6 +277,16 @@ export function pickConfiguration(options: {
 	].toSorted((a, b) =>
 		a.code === b.code ? a.id.localeCompare(b.id) : a.code.localeCompare(b.code)
 	) as readonly CatalogueComponent[];
+	const referenceRows = Map.groupBy(
+		live(world.reference_rows ?? []).map(referenceRowOf) as StoredReferenceRow[],
+		(row) => String(row.settings_id)
+	);
+	const worksites = live(world.worksites ?? []).filter((row) => row.company_id === company.id);
+	const declarations = (jurisdiction.overlays ?? []) as readonly LineageOverlay[];
+	const overlayCodes = new Set(declarations.map((overlay) => overlay.lineage));
+	const overlayVersions = live(world.jurisdiction_settings).filter((row) =>
+		overlayCodes.has(row.code)
+	);
 	const holidayRows = ofCompany(world.jurisdiction_holidays, company.id).filter((row) => {
 		const day = dateKey(row.date);
 		return row.published_at != null && day >= windowStart && day <= windowEnd;
@@ -240,7 +314,8 @@ export function pickConfiguration(options: {
 			...company,
 			// The revision in force on the run's governing date prices the whole run; the current
 			// company row remains the standing record when no revision covers it.
-			facts: resolveCompanyFacts(jurisdiction.facts ?? [], company, { asOf, revisions })
+			facts: resolveCompanyFacts(jurisdiction.facts ?? [], company, { asOf, revisions }),
+			[DATED]: datedCompany(versionRows, code, referenceRows, worksites)
 		},
 		jurisdiction,
 		lineageVersions: versionRows,
@@ -248,6 +323,19 @@ export function pickConfiguration(options: {
 		contributions: prepareContributionCatalogue(world, jurisdiction.id),
 		catalogueLeaves: prepareLeaveCatalogue(world, jurisdiction.id),
 		allowanceCodeById: money.allowanceCodeById,
+		worksites,
+		referenceRows,
+		overlay:
+			declarations.length === 0
+				? undefined
+				: {
+						asOf,
+						declarations,
+						versions: overlayVersions,
+						leaves: new Map(
+							overlayVersions.map((row) => [row.id, prepareLeaveCatalogue(world, row.id)])
+						)
+					},
 		catalogueComponents,
 		shiftById: new Map(shiftRows.map((row) => [row.id, row])),
 		patternById: new Map(patternRows.map((row) => [row.id, row as ShiftPattern])),
@@ -261,6 +349,83 @@ export function pickConfiguration(options: {
 				? [{ date: dateKey(row.date), religion: row.religion! }]
 				: []
 		)
+	};
+}
+
+/**
+ * What the entity's person contexts read on their own dates: the lineage's table rows through the
+ * version in force (`table()`), and the revision of a named worksite in force (`worksite.*`).
+ */
+export function datedCompany(
+	versions: readonly (Parameters<typeof settingsInForce>[0][number] & {
+		readonly tables?: unknown;
+	})[],
+	code: string,
+	rows: ReadonlyMap<string, readonly StoredReferenceRow[]>,
+	sites: readonly Worksite[]
+): DatedCompany {
+	const lookups = new Map<string, TableLookup | undefined>();
+	return {
+		tables: (asOf) => {
+			if (lookups.has(asOf)) return lookups.get(asOf);
+			const version = settingsInForce(versions, code, asOf);
+			const declared = (version?.tables ?? []) as readonly ReferenceTable[];
+			const lookup =
+				version == null || declared.length === 0
+					? undefined
+					: referenceTables(declared, rows.get(version.id) ?? [])(asOf);
+			lookups.set(asOf, lookup);
+			return lookup;
+		},
+		worksite: (id, asOf) => {
+			const revision = worksiteOn(sites, id, asOf);
+			if (revision == null)
+				refuse(
+					`Worksite ${sites.find((row) => row.id === id)?.code ?? id} has no revision in force on ${asOf}.`
+				);
+			return revision;
+		}
+	};
+}
+
+/**
+ * The run's world with each person's dated facts (`employee.facts.*`) bound to their employee row:
+ * the revision in force on a context's date, an employment's row over the personal one, against the
+ * version in force that day. A lineage that declares no person facts leaves the world as read.
+ */
+export function withDatedPeople(configuration: Configuration, world: PayrollWorld): PayrollWorld {
+	const code = configuration.jurisdiction.code;
+	const versions = configuration.lineageVersions;
+	if (!versions.some((version) => (version.person_facts ?? []).length > 0)) return world;
+	const rowsByEmployee = Map.groupBy(live(world.person_facts ?? []), (row) =>
+		String(row.employee_id)
+	);
+	return {
+		...world,
+		employees: world.employees.map((employee) => {
+			const rows = (rowsByEmployee.get(employee.id) ?? []).map((row) => ({
+				...row,
+				employment_id: row.employment_id == null ? null : String(row.employment_id)
+			}));
+			const resolved = new Map<string, ReturnType<NonNullable<DatedEmployee['facts']>>>();
+			const dated: DatedEmployee = {
+				facts: (asOf, employmentId) => {
+					const key = `${asOf}:${employmentId ?? ''}`;
+					const known = resolved.get(key);
+					if (known != null) return known;
+					const fields = (settingsInForce(versions, code, asOf)?.person_facts ??
+						[]) as readonly FactKey[];
+					const facts = resolvePersonFacts(fields, rows, {
+						asOf: asOf as IsoDate,
+						employmentId: employmentId ?? '',
+						scope: `${employee.name}: person facts on ${asOf}`
+					});
+					resolved.set(key, facts);
+					return facts;
+				}
+			};
+			return { ...employee, [DATED]: dated };
+		})
 	};
 }
 
@@ -294,6 +459,15 @@ export function withDeclaredFacts(
 			(row) => `${row.subject.collection}:${row.subject.id}:${row.fact_key}`
 		)
 	);
+	// A `code` input names a row of its table in force on the day, under its parent's code.
+	const tableRows = Map.groupBy(live(world.reference_rows ?? []).map(referenceRowOf), (row) =>
+		String(row.settings_id)
+	);
+	const codesOn = (day: string) =>
+		referenceCodes(
+			tableRows.get((settingsInForce(versions, code, day) ?? configuration.jurisdiction).id) ?? [],
+			day
+		);
 	const employments = new Map(
 		live(world.employments)
 			.filter((row) => row.company_id === configuration.company.id)
@@ -326,7 +500,7 @@ export function withDeclaredFacts(
 						employment: {
 							service_start: dateKey(range?.start),
 							exit_date: range?.end == null ? null : dateKey(range.end),
-							exit_reason: employment.exit_reason
+							exit_ground: employment.exit_ground
 						},
 						terms:
 							(termsByEmployment.get(employmentId) ?? []).find((terms) =>
@@ -336,8 +510,13 @@ export function withDeclaredFacts(
 						asOf: day
 					}))
 				);
-			requireFactValues(fields, raw, scope, when, (key) =>
-				evidence.has(`${collection}:${row.id}:${key}`)
+			requireFactValues(
+				fields,
+				raw,
+				scope,
+				when,
+				(key) => evidence.has(`${collection}:${row.id}:${key}`),
+				codesOn(day)
 			);
 		}
 		return {
@@ -371,22 +550,150 @@ export function withDeclaredFacts(
 }
 
 /**
- * The configuration as one employment observes it: the company's holidays plus the local days of
- * the worksite its terms record on each date (PH RA 12271, Navotas). Unchanged when no row is local.
+ * The configuration as one employment observes it, day by day, at the worksite each date places it
+ * (a work day's own worksite over its terms'):
+ *
+ * - the company's holidays plus the local days of that worksite (PH RA 12271, Navotas): a local row
+ *   names the terms' recorded worksite text or the worksite revision's region; a row with
+ *   `applies_when` (a religion's own day) reaches the days `employee` meets it;
+ * - where the version declares overlays, a day whose `when` holds reads the overlay version's work
+ *   rules, leave rows and tables (`onDay`, and `table()` through the company's dated inputs). The
+ *   top-level fields are the run's pick day's; schemes are always the base's.
+ *
+ * Unchanged when no row is local or conditioned and nothing is overlaid.
  */
 export function atWorksite<T extends Configuration>(
 	configuration: T,
-	terms: readonly Pick<WorkspaceRow<'employment_terms'>, 'effective_range' | 'worksite'>[]
+	terms: readonly WorkspaceRow<'employment_terms'>[],
+	workDays: readonly Pick<WorkspaceRow<'work_days'>, 'work_date' | 'worksite_id'>[] = [],
+	/** Whose `applies_when` holidays (a religion's own day) to read; none reaches nobody. */
+	employee: PersonInput['employee'] = null
 ): T {
-	if (!configuration.holidayRows.some((row) => row.worksite?.trim())) return configuration;
-	const holidays = resolveHolidays(
-		configuration.holidayRows,
-		configuration.company.id,
-		configuration.holidayWindow.start,
-		configuration.holidayWindow.end,
-		(date) => terms.find((term) => coversDate(term.effective_range, date))?.worksite
+	const overlay = configuration.overlay;
+	const local = configuration.holidayRows.some(
+		(row) => row.worksite?.trim() || conditionOf(row) != null
 	);
-	return { ...configuration, holidays };
+	if (overlay == null && !local) return configuration;
+	const termsOn = (date: string) => terms.find((term) => coversDate(term.effective_range, date));
+	const dayWorksite = new Map(
+		workDays.flatMap((day) =>
+			day.worksite_id == null ? [] : [[dateKey(day.work_date), String(day.worksite_id)] as const]
+		)
+	);
+	const siteOn = (date: string) => {
+		const id = dayWorksite.get(date) ?? termsOn(date)?.worksite_id;
+		return id == null ? null : worksiteOn(configuration.worksites, id, date);
+	};
+	const holidays = local
+		? resolveHolidays(
+				configuration.holidayRows,
+				configuration.company.id,
+				configuration.holidayWindow.start,
+				configuration.holidayWindow.end,
+				(date) => termsOn(date)?.worksite?.trim() || siteOn(date)?.region?.trim() || undefined,
+				personCondition((date) =>
+					personContext({
+						employee,
+						employment: { service_start: '', exit_date: null },
+						terms: termsOn(date) ?? null,
+						company: configuration.company,
+						asOf: date
+					})
+				)
+			)
+		: configuration.holidays;
+	if (overlay == null) return { ...configuration, holidays };
+
+	// ponytail: one CEL evaluation per employment-day; memoise by worksite revision if a large
+	// roster makes it show in the run profile.
+	const hits = new Map<string, OverlayHit<Jurisdiction> | null>();
+	const hitOn = (date: string) => {
+		if (hits.has(date)) return hits.get(date)!;
+		const row = termsOn(date);
+		const site = siteOn(date);
+		const person =
+			row == null
+				? null
+				: personContext({
+						employee: null,
+						employment: { service_start: '', exit_date: null },
+						// the day's placed worksite, or none: an unplaced day reads an empty `worksite.*`
+						terms: { ...row, worksite_id: site == null ? null : String(site.id) },
+						company: configuration.company,
+						asOf: date
+					});
+		const hit =
+			person == null
+				? null
+				: overlayInForce(overlay.declarations, overlay.versions, date, (when) =>
+						isEligible(when, person)
+					);
+		hits.set(date, hit);
+		return hit;
+	};
+	const base: DayConfiguration = {
+		jurisdiction: configuration.jurisdiction,
+		work: configuration.work,
+		holidayRestPrecedence: configuration.holidayRestPrecedence,
+		lastRestDayOnly: configuration.lastRestDayOnly,
+		limits: configuration.limits,
+		breaks: configuration.breaks,
+		nightPremium: configuration.nightPremium,
+		catalogueLeaves: configuration.catalogueLeaves
+	};
+	const views = new Map<string, DayConfiguration>();
+	const onDay = (date: IsoDate): DayConfiguration => {
+		const hit = hitOn(date);
+		if (hit == null) return base;
+		const known = views.get(hit.version.id);
+		if (known != null) return known;
+		const jurisdiction = composeOverlay(configuration.jurisdiction, hit);
+		const leaves = overlay.leaves.get(hit.version.id) ?? [];
+		const replaced = new Set(leaves.map((row) => row.code));
+		const view: DayConfiguration = {
+			jurisdiction,
+			...prepareWorkCatalogue(jurisdiction),
+			catalogueLeaves: [
+				...configuration.catalogueLeaves.filter((row) => !replaced.has(row.code)),
+				...leaves
+			]
+		};
+		views.set(hit.version.id, view);
+		return view;
+	};
+	// `table()` on an overlay day: the base version in force's tables, those the overlay declares replaced.
+	const dated = configuration.company[DATED];
+	const lookups = new Map<string, TableLookup | undefined>();
+	const tables = (asOf: string): TableLookup | undefined => {
+		const hit = hitOn(asOf);
+		if (hit == null || dated == null) return dated?.tables(asOf);
+		if (lookups.has(asOf)) return lookups.get(asOf);
+		const version =
+			settingsInForce(configuration.lineageVersions, configuration.jurisdiction.code, asOf) ??
+			configuration.jurisdiction;
+		const own = (hit.version.tables ?? []) as readonly ReferenceTable[];
+		const replaced = new Set(own.map((table) => table.name));
+		const declared = overlayTables((version.tables ?? []) as readonly ReferenceTable[], own);
+		const rows = [
+			...(configuration.referenceRows.get(version.id) ?? []).filter(
+				(row) => !replaced.has(row.table)
+			),
+			...(configuration.referenceRows.get(hit.version.id) ?? [])
+		];
+		const lookup = declared.length === 0 ? undefined : referenceTables(declared, rows)(asOf);
+		lookups.set(asOf, lookup);
+		return lookup;
+	};
+	return {
+		...configuration,
+		...onDay(overlay.asOf),
+		holidays,
+		onDay,
+		company:
+			dated == null
+				? configuration.company
+				: { ...configuration.company, [DATED]: { ...dated, tables } }
+	};
 }
 
 /**
@@ -454,6 +761,14 @@ export function configurationSnapshot(
 			date,
 			observation: configuration.holidays.get(date) ?? null
 		})),
+		// The overlay versions a day can route to govern its arithmetic like the base does.
+		...(configuration.overlay == null
+			? {}
+			: {
+					overlays: configuration.overlay.versions
+						.map((row) => [row.code, row.id, row.effective_range])
+						.toSorted((left, right) => String(left[1]).localeCompare(String(right[1])))
+				}),
 		// Local days reach only their worksite, so they are identity apart from the dates above.
 		...(configuration.holidaySnapshots.some((row) => row.worksite != null)
 			? { local_holidays: configuration.holidaySnapshots.filter((row) => row.worksite != null) }

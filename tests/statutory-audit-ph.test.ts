@@ -60,9 +60,9 @@ const owed = (book, key: string, code: string): [number, number] => {
 
 test('PH audit — all six mandatory schemes assess liability despite missing registration', () => {
 	const versions = settingsVersions('PH');
-	assert.equal(versions.length, 7);
 	const schemes = contributionSchemes('PH');
-	assert.equal(schemes.length, 42);
+	// SSS, SSS_EC, SSS_MPF, PHIC, HDMF and WTAX on every version
+	assert.equal(schemes.length, versions.length * 6);
 	for (const scheme of schemes)
 		assert.equal(scheme.unregistered_action, 'ASSESS', scheme.settings_id);
 	const run = (wage: number, unregistered: readonly string[]) =>
@@ -590,7 +590,7 @@ test('PH audit 2026-01: retirement pay is 22.5 days a year, six months counting 
 		age,
 		hire_date: hire,
 		exit_date: '2026-01-31',
-		exit_reason: reason
+		exit_ground: reason
 	});
 	const people = [
 		leaver('RET-10Y8M', '2015-06-01', 'RETIREMENT', 62),
@@ -611,13 +611,13 @@ test('PH audit 2026-01: retirement pay is 22.5 days a year, six months counting 
 		for (const [index, person] of people.entries()) {
 			const employment = world.employments.find((row) => row.employee_number === person.key)!;
 			// Labor Code art.298: the authorised cause, recorded on the departure.
-			if (person.exit_reason === 'REDUNDANCY')
+			if (person.exit_ground === 'REDUNDANCY')
 				employment.exit_facts = { termination_cause: 'REDUNDANCY' };
 			world.adhoc_requests!.push({
 				id: `a2000000-0000-4000-8000-00000000000${index}`,
 				employment_id: employment.id,
 				catalogue_id:
-					rows[person.exit_reason === 'REDUNDANCY' ? 'SEPARATION_PAY' : 'RETIREMENT_PAY'].id,
+					rows[person.exit_ground === 'REDUNDANCY' ? 'SEPARATION_PAY' : 'RETIREMENT_PAY'].id,
 				amount: 0,
 				event_date: '2026-01-31',
 				pay_period: '2026-01',
@@ -732,9 +732,14 @@ test('PH audit: NCR and IV-A wage-order floors are the daily rate × 313 ÷ 12 o
 			'IV-A-RETAIL-SMALL': f(508)
 		}
 	};
+	// A version of a regional order elsewhere carries the NCR and IV-A floors of the one before it.
 	for (const version of settingsVersions('PH')) {
 		const start = String(version.effective_range.start).slice(0, 10);
-		for (const [region, floor] of Object.entries(expected[start]!))
+		const since = Object.keys(expected)
+			.filter((day) => day <= start)
+			.sort()
+			.at(-1)!;
+		for (const [region, floor] of Object.entries(expected[since as keyof typeof expected]))
 			assert.equal(version.work_rules.wages.by_region[region], floor, `${start} ${region}`);
 	}
 });

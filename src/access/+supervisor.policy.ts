@@ -16,6 +16,7 @@ export default policy({
 	grants: {
 		companies: { read: true },
 		company_facts: { read: true },
+		worksites: { read: true },
 		shift_definitions: { read: true },
 		shift_patterns: { read: true },
 		leave_catalogue: { read: true },
@@ -26,6 +27,8 @@ export default policy({
 		employments: { read: true },
 		employment_terms: { read: true },
 		employment_statutory_facts: { read: true },
+		person_facts: { read: true },
+		employment_history: { read: true },
 		employment_wage_periods: { read: true },
 		presence_periods: { read: true },
 		payment_holds: { read: true },

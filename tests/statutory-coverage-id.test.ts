@@ -36,16 +36,20 @@ test('ID: a worker past one year needs a dated company wage-scale grade and basi
 	const [scaleFile] = world.fact_evidence!.splice(0, 1);
 	assert.throws(build, /reference counts only once its evidence \(file\) is recorded/);
 	world.fact_evidence!.unshift(scaleFile!);
+	// PP 36/2021 arts.21(1), 79(1): a missing or future-dated scale record warns, it does not refuse.
+	const warned = () =>
+		build().warnings.some((line) => /record the dated company wage structure/.test(line));
+	assert.equal(warned(), false);
 	delete facts.wage_scale_reference;
-	assert.throws(build, /record the dated company wage structure/);
+	assert.equal(warned(), true);
 	facts.wage_scale_reference = 'FIXTURE-SCALE';
 	facts.wage_scale_effective_on = '2026-02-01';
-	assert.throws(build, /record the dated company wage structure/);
+	assert.equal(warned(), true);
 	facts.wage_scale_effective_on = '2025-01-01';
 	facts.wage_scale_notice_on = '2026-02-01';
-	assert.throws(build, /record the dated company wage structure/);
+	assert.equal(warned(), true);
 	facts.wage_scale_notice_on = '2025-01-01';
-	assert.doesNotThrow(build);
+	assert.equal(warned(), false);
 
 	const firstYear = createStatutoryWorld({
 		code: 'ID',
@@ -101,7 +105,7 @@ test('ID: hourly pay is part-time only and meets the sector-aware monthly floor 
 					wage,
 					hire_date: '2026-01-01',
 					exit_date: '2026-03-31',
-					exit_reason: 'END_OF_CONTRACT',
+					exit_ground: 'END_OF_CONTRACT',
 					citizenship: 'FOREIGNER',
 					tax_residency: 'NON_RESIDENT',
 					id_foreign_prior_indonesia_work: 'NONE',
@@ -673,7 +677,7 @@ function separationAmounts(options: {
 					wage: options.wage ?? 10_000_000,
 					hire_date: '2022-01-31',
 					exit_date: '2026-01-31',
-					exit_reason: options.reason ?? 'DISMISSAL'
+					exit_ground: options.reason ?? 'DISMISSAL'
 				}
 			]
 		},
@@ -864,7 +868,7 @@ test('ID fixed-term compensation remains separate from permanent termination ben
 				wage: 10_000_000,
 				hire_date: '2022-01-31',
 				exit_date: '2026-01-31',
-				exit_reason: employment_type === 'CONTRACT' ? 'END_OF_CONTRACT' : 'REDUNDANCY'
+				exit_ground: employment_type === 'CONTRACT' ? 'END_OF_CONTRACT' : 'REDUNDANCY'
 			}))
 		},
 		(world) => {

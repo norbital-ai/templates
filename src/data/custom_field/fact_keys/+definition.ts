@@ -12,7 +12,12 @@ const f = customField({
 			kind: 'object',
 			fields: {
 				key: { kind: 'text' },
-				type: { kind: 'enum', values: ['boolean', 'number', 'string', 'date', 'instant'] },
+				type: {
+					kind: 'enum',
+					values: ['boolean', 'number', 'string', 'date', 'instant', 'code']
+				},
+				table: { kind: 'text', optional: true },
+				parent_fact: { kind: 'text', optional: true },
 				label: { kind: 'text', optional: true },
 				description: { kind: 'text', optional: true },
 				scope: { kind: 'enum', values: ['EMPLOYMENT'], optional: true },
@@ -37,7 +42,9 @@ const f = customField({
 					optional: true,
 					fields: {
 						kind: { kind: 'enum', values: ['REFERENCE', 'FILE', 'REFERENCE_AND_FILE'] },
-						when: { kind: 'text', optional: true }
+						when: { kind: 'text', optional: true },
+						document: { kind: 'text', optional: true },
+						valid_days: { kind: 'int', min: 1, optional: true }
 					}
 				}
 			}

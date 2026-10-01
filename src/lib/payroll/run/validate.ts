@@ -21,6 +21,9 @@ import { paysOn } from './period.js';
 import { rosterCodeKind, workWindow } from '../../../lib/scheduling/roster-code.js';
 import type { RosterCodeVariant } from '../../../lib/datatypes/roster_code_variant.js';
 import { getErrorMessage } from '../../refuse.js';
+import { checkContext, checkIssues, type CheckRoots } from '../../checks.js';
+import { checksOf, type CheckStage } from '../../datatypes/checks.js';
+import type { PersonContext } from './eligibility.js';
 
 type IssueSeverity = 'BLOCKER' | 'WARNING';
 
@@ -233,8 +236,9 @@ export function validateDailyWorkLimit(options: {
 /**
  * A day whose clock ran past the hours planned for pay.
  *
- * Payroll pays the planned entries, not the clock, and planned hours are keyed in half-hour steps,
- * so a clock reading a minute or two past the shift is not a reconciliation failure. Historical
+ * Payroll pays the planned entries, not the clock, and planned hours are keyed in steps of
+ * `work_rules.overtime_unit_hours`, so clock hours past the plan below one step are not a
+ * reconciliation failure. Historical
  * months contain many such days, and refusing the whole run over them hides every other settlement.
  * The issue is a warning that names the person, the date and both figures.
  */
@@ -243,13 +247,15 @@ export function validateUnplannedOvertime(options: {
 	readonly days: readonly DailyOvertime[];
 	/** The planned overtime keyed on each work day, by its id. */
 	readonly plannedByWorkDayId: ReadonlyMap<string, number>;
+	/** `work_rules.overtime_unit_hours`: unplanned hours below one step are not reported. */
+	readonly unitHours: number;
 }): RunIssue[] {
 	return options.days
 		.filter((day) => day.dayType === 'ORDINARY')
 		.flatMap((day) => {
 			const planned = options.plannedByWorkDayId.get(day.workDayId) ?? 0;
 			const unplanned = Math.max(0, day.totalWorkHours - day.normalHours) - planned;
-			if (unplanned < 0.5 - 1e-9) return [];
+			if (unplanned <= 1e-9 || unplanned < options.unitHours - 1e-9) return [];
 			return [
 				{
 					code: 'UNPLANNED_OVERTIME' as const,
@@ -618,6 +624,47 @@ export function validateRosteredExpectations(options: {
 		}
 	}
 	return issues;
+}
+
+/**
+ * The version's stored checks at a run stage (PAYSLIP, DEDUCTION), each over one person as the run priced them:
+ * the run's side of `lib/checks.ts`. The engine calls it with the settled figures in `roots`, on the
+ * employment's own configuration (`atWorksite`), so an overlay day reads the overlay's checks.
+ */
+export function validateChecks(options: {
+	readonly configuration: Configuration;
+	readonly at: Extract<CheckStage, 'PAYSLIP' | 'DEDUCTION'>;
+	readonly date: string;
+	readonly subjects: readonly {
+		readonly employeeNumber: string;
+		readonly employmentId: string;
+		readonly person: PersonContext;
+		readonly roots?: CheckRoots | undefined;
+		/** The duty codes OPEN on this employment. */
+		readonly open?: readonly string[] | undefined;
+	}[];
+}): RunIssue[] {
+	// An overlay version's checks replace the base's by code on the days it governs (`atWorksite`'s `onDay`).
+	const checks = checksOf(
+		(options.configuration.onDay?.(options.date) ?? options.configuration).jurisdiction
+	);
+	if (!checks.some((check) => check.at === options.at)) return [];
+	return options.subjects.flatMap((subject) =>
+		checkIssues({
+			checks,
+			at: options.at,
+			context: checkContext({
+				at: options.at,
+				date: options.date,
+				person: subject.person,
+				open: subject.open,
+				roots: subject.roots
+			}),
+			subject: subject.employeeNumber,
+			collection: 'employments',
+			recordId: subject.employmentId
+		})
+	);
 }
 
 /** How many issues a failure message spells out before it starts counting. */

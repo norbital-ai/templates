@@ -33,6 +33,18 @@ test('a captured holiday cannot be unpublished, moved or deleted; an uncaptured 
 	await one({ $delete: true }, {});
 });
 
+test('an applies_when that does not compile as a person condition is refused; a valid one is kept', async () => {
+	const one = (applies_when) =>
+		transform(holidays, [{ ...holiday, id: undefined, applies_when }], {
+			existing: [undefined],
+			tables: {}
+		});
+	await assert.rejects(one('employee.religion =='), /Applies when:/);
+	await assert.rejects(one('employee.religion'), /Applies when:/);
+	const [row] = await one("employee.religion == 'HINDU'");
+	assert.equal(row.applies_when, "employee.religion == 'HINDU'");
+});
+
 test('one row per entity, day and worksite: two cities keep their own day on one date; blank is company-wide', async () => {
 	// RA 7669 s.1 (San Juan) and Proclamation 1186 (Las Piñas) both fall on 27 March 2026.
 	const model = (await import('../src/data/model/jurisdiction_holidays/+model.ts')).default;

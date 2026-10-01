@@ -78,7 +78,7 @@ test('a settled run exports its bank file, a payslip per employment and both wor
 	// The net of the payslip `public-month.test.ts` pins plus the 100 bonus, to the cent, as text.
 	assert.match(
 		rows[1],
-		/^PAYMENT,2026-01-31,PF0001,Public Fixture Employee,MBBEMYKL,Maybank,512345678901,3861.00,MYR,/
+		/^PAYMENT,2026-01-31,PF0001,Public Fixture Employee,MBBEMYKL,Maybank,512345678901,3861.00,MYR,2026-01-PF0001$/
 	);
 	const pdf = file(artefacts[1].files[0]);
 	assert.equal(pdf.mime, 'application/pdf');

@@ -24,7 +24,8 @@ const f = customField({
 			allowance_npl_prorates: { kind: 'bool' },
 			payment_occasion_scheme: { kind: 'text', optional: true },
 			separation_wage_average_months: { kind: 'int', min: 1, optional: true },
-			final_pay_due_days: { kind: 'int', min: 1, optional: true },
+			trailing_wage_short_months: { kind: 'int', min: 1, optional: true },
+			trailing_wage_long_months: { kind: 'int', min: 1, optional: true },
 			final_pay_deadlines: {
 				kind: 'list',
 				optional: true,
@@ -136,6 +137,7 @@ const f = customField({
 			special_holiday_unworked_unpaid: { kind: 'bool', optional: true },
 			regular_holiday_prior_workday: { kind: 'bool', optional: true },
 			short_day_half_hours: { kind: 'number', optional: true },
+			short_day_fraction: { kind: 'number', optional: true },
 			worksite_coverage: {
 				kind: 'object',
 				optional: true,
@@ -152,8 +154,6 @@ const f = customField({
 						}
 					},
 					uncovered_message: { kind: 'text', optional: true },
-					refuse_when: { kind: 'text', optional: true },
-					refuse_message: { kind: 'text', optional: true },
 					spans: {
 						kind: 'list',
 						of: {
@@ -313,26 +313,49 @@ const f = customField({
 							fields: { award: { kind: 'text' }, differential: { kind: 'text' } }
 						},
 						min_event_on: { kind: 'text' },
-						credit_scheme: { kind: 'text' },
-						credit_cap: { kind: 'number' },
-						credit_window: {
+						credits: {
 							kind: 'object',
+							optional: true,
 							fields: {
+								scheme: { kind: 'text' },
+								cap: { kind: 'number' },
 								months: { kind: 'int', min: 1 },
-								ends_months_before_event: { kind: 'text' }
+								closes_months_before_event: { kind: 'text' }
 							}
 						},
-						credit_min_count: { kind: 'int', min: 0 },
-						credit_top_count: { kind: 'int', min: 1 },
-						daily_divisor: { kind: 'number' },
-						days: { kind: 'text' },
+						earnings: {
+							kind: 'object',
+							optional: true,
+							fields: { months: { kind: 'int', min: 1 } }
+						},
+						phases: {
+							kind: 'list',
+							of: {
+								kind: 'object',
+								fields: {
+									code: { kind: 'text' },
+									days: { kind: 'text' },
+									award: { kind: 'text' },
+									wage: { kind: 'text', optional: true },
+									employer_pays: { kind: 'text' },
+									reimbursable: { kind: 'text' }
+								}
+							}
+						},
 						min_days_after_event: { kind: 'int', min: 0 },
-						advance_due_days: { kind: 'int', min: 0 },
-						full_pay_days_divisor: { kind: 'number' },
+						advance_due: { kind: 'text', optional: true },
 						premium_schemes: { kind: 'list', of: { kind: 'text' } },
 						differential_exemption_facts: { kind: 'list', of: { kind: 'text' } },
 						authority: { kind: 'text' }
 					}
+				}
+			},
+			pay_calendar: {
+				kind: 'list',
+				optional: true,
+				of: {
+					kind: 'object',
+					fields: { cadence: { kind: 'text' }, due: { kind: 'text' }, authority: { kind: 'text' } }
 				}
 			},
 			vocabularies: {

@@ -12,6 +12,7 @@ import companies from '../data/model/companies/+model.ts';
 import company_facts from '../data/model/company_facts/+model.ts';
 import contribution_statement_months from '../data/model/contribution_statement_months/+model.ts';
 import employees from '../data/model/employees/+model.ts';
+import employment_history from '../data/model/employment_history/+model.ts';
 import employment_statutory_facts from '../data/model/employment_statutory_facts/+model.ts';
 import employment_terms from '../data/model/employment_terms/+model.ts';
 import employment_wage_periods from '../data/model/employment_wage_periods/+model.ts';
@@ -25,6 +26,7 @@ import loan_catalogue from '../data/model/loan_catalogue/+model.ts';
 import loan_repayments from '../data/model/loan_repayments/+model.ts';
 import loans from '../data/model/loans/+model.ts';
 import noncontract_settlements from '../data/model/noncontract_settlements/+model.ts';
+import obligation_instances from '../data/model/obligation_instances/+model.ts';
 import payable_tranches from '../data/model/payable_tranches/+model.ts';
 import payment_allocations from '../data/model/payment_allocations/+model.ts';
 import payment_events from '../data/model/payment_events/+model.ts';
@@ -32,12 +34,15 @@ import payment_holds from '../data/model/payment_holds/+model.ts';
 import payroll_runs from '../data/model/payroll_runs/+model.ts';
 import payslip_wage_periods from '../data/model/payslip_wage_periods/+model.ts';
 import payslips from '../data/model/payslips/+model.ts';
+import person_facts from '../data/model/person_facts/+model.ts';
 import presence_periods from '../data/model/presence_periods/+model.ts';
+import reference_rows from '../data/model/reference_rows/+model.ts';
 import rosters from '../data/model/rosters/+model.ts';
 import shift_definitions from '../data/model/shift_definitions/+model.ts';
 import shift_patterns from '../data/model/shift_patterns/+model.ts';
 import statutory_contributions from '../data/model/statutory_contributions/+model.ts';
 import work_days from '../data/model/work_days/+model.ts';
+import worksites from '../data/model/worksites/+model.ts';
 import relationships from '../data/+relationship.ts';
 
 type Declared = { readonly fields: object; readonly computed?: object };
@@ -56,6 +61,7 @@ const MODELS: { readonly [collection: string]: Declared } = {
 	company_facts,
 	contribution_statement_months,
 	employees,
+	employment_history,
 	employment_statutory_facts,
 	employment_terms,
 	employment_wage_periods,
@@ -69,6 +75,7 @@ const MODELS: { readonly [collection: string]: Declared } = {
 	loan_repayments,
 	loans,
 	noncontract_settlements,
+	obligation_instances,
 	payable_tranches,
 	payment_allocations,
 	payment_events,
@@ -76,11 +83,14 @@ const MODELS: { readonly [collection: string]: Declared } = {
 	payroll_runs,
 	payslip_wage_periods,
 	payslips,
+	person_facts,
 	presence_periods,
+	reference_rows,
 	rosters,
 	shift_definitions,
 	shift_patterns,
 	statutory_contributions,
+	worksites,
 	work_days
 };
 const SYSTEM = ['revision', 'approval_id', 'created_at', 'updated_at', 'created_by', 'updated_by'];

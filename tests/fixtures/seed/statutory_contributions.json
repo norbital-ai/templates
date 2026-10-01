@@ -12,8 +12,8 @@
 		"rules": [
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 11.0 / 100.0)",
-				"employer": "round_cent((base) * 13.0 / 100.0)"
+				"employee": "round((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 11.0 / 100.0, 0.01, 'HALF_UP')",
+				"employer": "round((base) * 13.0 / 100.0, 0.01, 'HALF_UP')"
 			}
 		],
 		"assessed_on": "BASE + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",
@@ -32,8 +32,8 @@
 		"rules": [
 			{
 				"when": "(((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) > 0.0",
-				"employee": "round_cent((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0)",
-				"employer": "round_cent((base) * 5.0 / 100.0)"
+				"employee": "round((((base) - 0.0 > 0.0 ? (base) - 0.0 : 0.0)) * 5.0 / 100.0, 0.01, 'HALF_UP')",
+				"employer": "round((base) * 5.0 / 100.0, 0.01, 'HALF_UP')"
 			}
 		],
 		"assessed_on": "BASE + ALLOWANCES + ENCASHMENT - ABSENCE - NO_PAY_LEAVE",

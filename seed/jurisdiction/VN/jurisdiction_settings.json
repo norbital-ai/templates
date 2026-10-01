@@ -19,6 +19,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -146,6 +151,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -210,10 +216,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -293,14 +298,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -799,6 +804,14 @@
 				"owner": "Management / designation decision",
 				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -822,6 +835,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -949,6 +967,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -1013,10 +1032,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -1095,14 +1113,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -1602,6 +1620,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -1624,6 +1650,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -1751,6 +1782,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -1815,10 +1847,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -1897,14 +1928,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -2404,6 +2435,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -2426,6 +2465,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -2553,6 +2597,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -2617,10 +2662,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -2703,14 +2747,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -3210,6 +3254,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -3232,6 +3284,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -3359,6 +3416,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -3423,10 +3481,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -3507,14 +3564,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -4014,6 +4071,14 @@
 				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -4036,6 +4101,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -4163,6 +4233,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -4227,10 +4298,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -4310,14 +4380,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -4817,6 +4887,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -4839,6 +4917,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -4966,6 +5049,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -5030,10 +5114,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -5113,14 +5196,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -5620,6 +5703,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -5642,6 +5733,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -5769,6 +5865,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -5833,10 +5930,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -5920,14 +6016,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -6427,6 +6523,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -6449,6 +6553,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -6576,6 +6685,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -6641,10 +6751,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -6725,14 +6834,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -7232,6 +7341,14 @@
 				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -7254,6 +7371,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -7381,6 +7503,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -7446,10 +7569,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -7529,14 +7651,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -8035,6 +8157,14 @@
 				"owner": "Management / designation decision or service contract",
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
 			}
 		]
 	},
@@ -8058,6 +8188,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -8185,6 +8320,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -8250,10 +8386,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -8333,14 +8468,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -8840,6 +8975,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -8862,6 +9005,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -8989,6 +9137,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -9054,10 +9203,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -9141,14 +9289,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -9648,6 +9796,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -9670,6 +9826,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -9797,6 +9958,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -9868,10 +10030,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -9951,14 +10112,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -10458,6 +10619,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -10480,6 +10649,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -10607,6 +10781,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -10678,10 +10853,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -10761,14 +10935,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -11268,6 +11442,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -11290,6 +11472,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -11417,6 +11604,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -11488,10 +11676,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -11575,14 +11762,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -12082,6 +12269,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -12104,6 +12299,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -12231,6 +12431,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -12297,10 +12498,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -12381,14 +12581,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -12888,6 +13088,14 @@
 				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -12910,6 +13118,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -13037,6 +13250,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -13109,10 +13323,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -13192,14 +13405,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -13699,6 +13912,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -13721,6 +13942,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -13848,6 +14074,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -13920,10 +14147,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -14003,14 +14229,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -14510,6 +14736,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -14532,6 +14766,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -14659,6 +14898,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -14731,10 +14971,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -14818,14 +15057,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -15325,6 +15564,14 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
 		]
 	},
 	{
@@ -15347,6 +15594,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -15474,6 +15726,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -15541,10 +15794,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -15626,6 +15878,13 @@
 				"label": "Approved reduced occupational accident rate",
 				"default_value": false,
 				"description": "Decree 58/2020/NĐ-CP art.4(1): the occupational accident and disease fund rate is 0.5% of the salary; the reduced 0.3% applies only to an employer the Ministry approved on application (art.4(1)(b), art.5). Unrecorded is the 0.5% rate."
+			},
+			{
+				"key": "pit_quarterly_filer",
+				"type": "boolean",
+				"label": "Declares salary PIT quarterly (quarterly VAT filer)",
+				"default_value": false,
+				"description": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) with Decree 126/2020/NĐ-CP arts.8(1), 9: a payer eligible to declare VAT quarterly may declare salary PIT quarterly; unrecorded is the monthly return by the 20th. From 1 July 2026 (Circular 89/2026/TT-BTC art.22(1)(a)(a.1)) every salary payer declares quarterly and this input is not read."
 			}
 		],
 		"exit_facts": [
@@ -15634,14 +15893,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -15663,6 +15922,20 @@
 				"type": "boolean",
 				"label": "Area reclassified lower in 2026",
 				"description": "True only when the same worksite was assigned a lower 2026 region by the decree."
+			},
+			{
+				"key": "probation_class",
+				"type": "string",
+				"label": "Probation job class (Labour Code art.25)",
+				"options": ["ENTERPRISE_MANAGER", "COLLEGE_OR_ABOVE", "INTERMEDIATE_OR_TECHNICAL", "OTHER"],
+				"description": "Labour Code 45/2019/QH14 art.25: probation at most 180 days for an enterprise manager (Law on Enterprises, Law on State Capital), 60 days for a job needing college-level or higher qualifications, 30 days for intermediate-level, technical-worker or clerical jobs, 6 working days for any other job. Record it on probation terms."
+			},
+			{
+				"key": "probation_job_wage",
+				"type": "number",
+				"minimum": 0,
+				"label": "Wage of the job on probation",
+				"description": "Labour Code 45/2019/QH14 art.26: the probation wage is at least 85% of the wage of that job. Record the job’s agreed wage on probation terms."
 			}
 		],
 		"payment_facts": [
@@ -16141,6 +16414,216 @@
 				"authority": "Decree 13/2023/NĐ-CP arts.28, 43(2) (https://xaydungchinhsach.chinhphu.vn/toan-van-nghi-dinh-13-2023-nd-cp-bao-ve-du-lieu-ca-nhan-119230516104357809.htm)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SI_HI_UI_REGISTRATION",
+				"label": "Compulsory SI, HI and UI registration",
+				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 38/2013/QH13 art.44 (UI registered with SI). Owner rule 2026-10-01: raised on every hire and due 30 days after the first day of service (Civil Code art.147: a period counted from a day starts the next day); a hire outside compulsory SI (a contract under one month, a foreigner excluded by art.2(2)) is WAIVED with that reason.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "vss_receipt_reference",
+						"type": "string",
+						"label": "Vietnam Social Security receipt number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SI_HI_UI_MONTHLY_REMITTANCE",
+				"label": "SI, HI and UI remittance for the contribution month",
+				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 38/2013/QH13 art.57. Raised by the first run of each wage month; due the last day of the following month.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.sequence == 1"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Bank transfer reference to Vietnam Social Security",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "UNION_FEE_REMITTANCE",
+				"label": "Trade union fee (2%) for the contribution month",
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 191/2013/NĐ-CP arts.5–6. Raised by the first run of each wage month; due the last day of the following month.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.sequence == 1"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Union fee transfer reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_ANNUAL_FINALISATION",
+				"label": "Annual PIT finalisation (05/QTT-TNCN)",
+				"authority": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "string(int(period.start.substring(0, 4)) + 1) + '-03-31'",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_USE_REPORT",
+				"label": "Labour-change report (Form 01/PLI): half-year before 5 June, year before 5 December",
+				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf. Owner rule 2026-10-01: “trước ngày 05” (before the 5th) is read as due by the 4th of June and of December; the initial declaration on starting operations is not raised here.",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "MONTH",
+					"when": "period.start.substring(5, 7) == '06' || period.start.substring(5, 7) == '12'"
+				},
+				"due": "period.start.substring(0, 8) + '04'",
+				"evidence": [
+					{
+						"key": "portal_receipt_reference",
+						"type": "string",
+						"label": "National Public Service Portal receipt number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_WITHHOLDING_DECLARATION",
+				"label": "Monthly salary PIT return (05/KK-TNCN, pre-July 2026 form)",
+				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly). A monthly filer unless the entity records pit_quarterly_filer; a tax period before 1 July 2026 keeps this form even when filed after it (Tax Administration Law 108/2025/QH15 art.100(1)).",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "MONTH",
+					"when": "!(has(company.facts.pit_quarterly_filer) && company.facts.pit_quarterly_filer)"
+				},
+				"due": "add_months(period.start, 1).substring(0, 8) + '20'",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_WITHHOLDING_DECLARATION_QUARTERLY",
+				"label": "Quarterly salary PIT return for a quarterly VAT filer (05/KK-TNCN, pre-July 2026 form)",
+				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly). Only where the entity records pit_quarterly_filer (Decree 126/2020/NĐ-CP art.9: eligible to declare VAT quarterly).",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "QUARTER",
+					"when": "has(company.facts.pit_quarterly_filer) && company.facts.pit_quarterly_filer"
+				},
+				"due": "month_end(add_months(period.start, 3))",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "FIXED_TERM_OVER_36_MONTHS_TERMS_CHANGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && !employment.open_ended && employment.exit_date >= add_months(employment.service_start, 36)",
+				"message": "a fixed-term labour contract (CONTRACT) runs at most 36 months; a longer term is an indefinite contract (PERMANENT).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.20(1)(b)"
+			},
+			{
+				"code": "FIXED_TERM_OVER_36_MONTHS_EXIT",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && !employment.open_ended && employment.exit_date >= add_months(employment.service_start, 36)",
+				"message": "a fixed-term labour contract (CONTRACT) runs at most 36 months; a longer term is an indefinite contract (PERMANENT).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.20(1)(b)"
+			},
+			{
+				"code": "PROBATION_TOO_LONG_TERMS_CHANGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
+				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
+			},
+			{
+				"code": "PROBATION_TOO_LONG_EXIT",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
+				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
+			},
+			{
+				"code": "PROBATION_WAGE_BELOW_85",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && has(terms.facts.probation_job_wage) && double(terms.basic_salary) * 100.0 < double(terms.facts.probation_job_wage) * 85.0",
+				"message": "the probation wage is below 85% of the wage of the job.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.26"
+			},
+			{
+				"code": "MINOR_UNDER_15_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employee.age < 15 && terms.ordinary_hours_per_week > 20",
+				"message": "a worker under 15 works at most 4 hours a day and 20 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			},
+			{
+				"code": "MINOR_15_TO_18_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employee.age >= 15 && employee.age < 18 && terms.ordinary_hours_per_week > 40",
+				"message": "a worker aged 15 to under 18 works at most 8 hours a day and 40 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			}
 		]
 	},
 	{
@@ -16163,6 +16646,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -16290,6 +16778,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -16363,10 +16852,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -16447,6 +16935,13 @@
 				"label": "Approved reduced occupational accident rate",
 				"default_value": false,
 				"description": "Decree 58/2020/NĐ-CP art.4(1): the occupational accident and disease fund rate is 0.5% of the salary; the reduced 0.3% applies only to an employer the Ministry approved on application (art.4(1)(b), art.5). Unrecorded is the 0.5% rate."
+			},
+			{
+				"key": "pit_quarterly_filer",
+				"type": "boolean",
+				"label": "Declares salary PIT quarterly (quarterly VAT filer)",
+				"default_value": false,
+				"description": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) with Decree 126/2020/NĐ-CP arts.8(1), 9: a payer eligible to declare VAT quarterly may declare salary PIT quarterly; unrecorded is the monthly return by the 20th. From 1 July 2026 (Circular 89/2026/TT-BTC art.22(1)(a)(a.1)) every salary payer declares quarterly and this input is not read."
 			}
 		],
 		"exit_facts": [
@@ -16455,14 +16950,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -16484,6 +16979,20 @@
 				"type": "boolean",
 				"label": "Area reclassified lower in 2026",
 				"description": "True only when the same worksite was assigned a lower 2026 region by the decree."
+			},
+			{
+				"key": "probation_class",
+				"type": "string",
+				"label": "Probation job class (Labour Code art.25)",
+				"options": ["ENTERPRISE_MANAGER", "COLLEGE_OR_ABOVE", "INTERMEDIATE_OR_TECHNICAL", "OTHER"],
+				"description": "Labour Code 45/2019/QH14 art.25: probation at most 180 days for an enterprise manager (Law on Enterprises, Law on State Capital), 60 days for a job needing college-level or higher qualifications, 30 days for intermediate-level, technical-worker or clerical jobs, 6 working days for any other job. Record it on probation terms."
+			},
+			{
+				"key": "probation_job_wage",
+				"type": "number",
+				"minimum": 0,
+				"label": "Wage of the job on probation",
+				"description": "Labour Code 45/2019/QH14 art.26: the probation wage is at least 85% of the wage of that job. Record the job’s agreed wage on probation terms."
 			}
 		],
 		"payment_facts": [
@@ -16962,6 +17471,216 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SI_HI_UI_REGISTRATION",
+				"label": "Compulsory SI, HI and UI registration",
+				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 74/2025/QH15 art.32(1): UI registration is made together with the compulsory SI registration https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm. Owner rule 2026-10-01: raised on every hire and due 30 days after the first day of service (Civil Code art.147: a period counted from a day starts the next day); a hire outside compulsory SI (a contract under one month, a foreigner excluded by art.2(2)) is WAIVED with that reason.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "vss_receipt_reference",
+						"type": "string",
+						"label": "Vietnam Social Security receipt number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SI_HI_UI_MONTHLY_REMITTANCE",
+				"label": "SI, HI and UI remittance for the contribution month",
+				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 74/2025/QH15 art.33(2)–(3): UI is paid at the time SI is paid https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm. Raised by the first run of each wage month; due the last day of the following month.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.sequence == 1"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Bank transfer reference to Vietnam Social Security",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "UNION_FEE_REMITTANCE",
+				"label": "Trade union fee (2%) for the contribution month",
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 191/2013/NĐ-CP arts.5–6. Raised by the first run of each wage month; due the last day of the following month.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.sequence == 1"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Union fee transfer reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_ANNUAL_FINALISATION",
+				"label": "Annual PIT finalisation (05/QTT-TNCN)",
+				"authority": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "string(int(period.start.substring(0, 4)) + 1) + '-03-31'",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_USE_REPORT",
+				"label": "Labour-change report (Form 01/PLI): half-year before 5 June, year before 5 December",
+				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf. Owner rule 2026-10-01: “trước ngày 05” (before the 5th) is read as due by the 4th of June and of December; the initial declaration on starting operations is not raised here.",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "MONTH",
+					"when": "period.start.substring(5, 7) == '06' || period.start.substring(5, 7) == '12'"
+				},
+				"due": "period.start.substring(0, 8) + '04'",
+				"evidence": [
+					{
+						"key": "portal_receipt_reference",
+						"type": "string",
+						"label": "National Public Service Portal receipt number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_WITHHOLDING_DECLARATION",
+				"label": "Monthly salary PIT return (05/KK-TNCN, pre-July 2026 form)",
+				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly). A monthly filer unless the entity records pit_quarterly_filer; a tax period before 1 July 2026 keeps this form even when filed after it (Tax Administration Law 108/2025/QH15 art.100(1)).",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "MONTH",
+					"when": "!(has(company.facts.pit_quarterly_filer) && company.facts.pit_quarterly_filer)"
+				},
+				"due": "add_months(period.start, 1).substring(0, 8) + '20'",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_WITHHOLDING_DECLARATION_QUARTERLY",
+				"label": "Quarterly salary PIT return for a quarterly VAT filer (05/KK-TNCN, pre-July 2026 form)",
+				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly). Only where the entity records pit_quarterly_filer (Decree 126/2020/NĐ-CP art.9: eligible to declare VAT quarterly).",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "QUARTER",
+					"when": "has(company.facts.pit_quarterly_filer) && company.facts.pit_quarterly_filer"
+				},
+				"due": "month_end(add_months(period.start, 3))",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "FIXED_TERM_OVER_36_MONTHS_TERMS_CHANGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && !employment.open_ended && employment.exit_date >= add_months(employment.service_start, 36)",
+				"message": "a fixed-term labour contract (CONTRACT) runs at most 36 months; a longer term is an indefinite contract (PERMANENT).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.20(1)(b)"
+			},
+			{
+				"code": "FIXED_TERM_OVER_36_MONTHS_EXIT",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && !employment.open_ended && employment.exit_date >= add_months(employment.service_start, 36)",
+				"message": "a fixed-term labour contract (CONTRACT) runs at most 36 months; a longer term is an indefinite contract (PERMANENT).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.20(1)(b)"
+			},
+			{
+				"code": "PROBATION_TOO_LONG_TERMS_CHANGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
+				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
+			},
+			{
+				"code": "PROBATION_TOO_LONG_EXIT",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
+				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
+			},
+			{
+				"code": "PROBATION_WAGE_BELOW_85",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && has(terms.facts.probation_job_wage) && double(terms.basic_salary) * 100.0 < double(terms.facts.probation_job_wage) * 85.0",
+				"message": "the probation wage is below 85% of the wage of the job.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.26"
+			},
+			{
+				"code": "MINOR_UNDER_15_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employee.age < 15 && terms.ordinary_hours_per_week > 20",
+				"message": "a worker under 15 works at most 4 hours a day and 20 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			},
+			{
+				"code": "MINOR_15_TO_18_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employee.age >= 15 && employee.age < 18 && terms.ordinary_hours_per_week > 40",
+				"message": "a worker aged 15 to under 18 works at most 8 hours a day and 40 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			}
 		]
 	},
 	{
@@ -16984,6 +17703,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -17111,6 +17835,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -17184,10 +17909,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -17285,6 +18009,13 @@
 				"maximum": 20,
 				"label": "Union fee reduction by decision (%)",
 				"description": "Decree 105/2026/NĐ-CP art.12: after an art.13 suspension ends, an enterprise or cooperative that must still cut its workforce by the art.12(1) threshold may be granted a reduction of at most 20% of the 2% fee (art.12(3)), by month and for at most 6 months (art.12(2)(a)), by decision of the Confederation or the provincial federation. Record the decided percentage only for those months; unrecorded is 0. https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/4/105-ndcp.signed.pdf"
+			},
+			{
+				"key": "pit_quarterly_filer",
+				"type": "boolean",
+				"label": "Declares salary PIT quarterly (quarterly VAT filer)",
+				"default_value": false,
+				"description": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) with Decree 126/2020/NĐ-CP arts.8(1), 9: a payer eligible to declare VAT quarterly may declare salary PIT quarterly; unrecorded is the monthly return by the 20th. From 1 July 2026 (Circular 89/2026/TT-BTC art.22(1)(a)(a.1)) every salary payer declares quarterly and this input is not read."
 			}
 		],
 		"exit_facts": [
@@ -17293,14 +18024,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -17322,6 +18053,20 @@
 				"type": "boolean",
 				"label": "Area reclassified lower in 2026",
 				"description": "True only when the same worksite was assigned a lower 2026 region by the decree."
+			},
+			{
+				"key": "probation_class",
+				"type": "string",
+				"label": "Probation job class (Labour Code art.25)",
+				"options": ["ENTERPRISE_MANAGER", "COLLEGE_OR_ABOVE", "INTERMEDIATE_OR_TECHNICAL", "OTHER"],
+				"description": "Labour Code 45/2019/QH14 art.25: probation at most 180 days for an enterprise manager (Law on Enterprises, Law on State Capital), 60 days for a job needing college-level or higher qualifications, 30 days for intermediate-level, technical-worker or clerical jobs, 6 working days for any other job. Record it on probation terms."
+			},
+			{
+				"key": "probation_job_wage",
+				"type": "number",
+				"minimum": 0,
+				"label": "Wage of the job on probation",
+				"description": "Labour Code 45/2019/QH14 art.26: the probation wage is at least 85% of the wage of that job. Record the job’s agreed wage on probation terms."
 			}
 		],
 		"payment_facts": [
@@ -17800,6 +18545,216 @@
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
 			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SI_HI_UI_REGISTRATION",
+				"label": "Compulsory SI, HI and UI registration",
+				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 74/2025/QH15 art.32(1): UI registration is made together with the compulsory SI registration https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm. Owner rule 2026-10-01: raised on every hire and due 30 days after the first day of service (Civil Code art.147: a period counted from a day starts the next day); a hire outside compulsory SI (a contract under one month, a foreigner excluded by art.2(2)) is WAIVED with that reason.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "vss_receipt_reference",
+						"type": "string",
+						"label": "Vietnam Social Security receipt number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SI_HI_UI_MONTHLY_REMITTANCE",
+				"label": "SI, HI and UI remittance for the contribution month",
+				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 74/2025/QH15 art.33(2)–(3): UI is paid at the time SI is paid https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm. Raised by the first run of each wage month; due the last day of the following month.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.sequence == 1"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Bank transfer reference to Vietnam Social Security",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "UNION_FEE_REMITTANCE",
+				"label": "Trade union fee (2%) for the contribution month",
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 105/2026/NĐ-CP art.4 https://vanban.chinhphu.vn/?docid=217500&pageid=27160. Raised by the first run of each wage month; due the last day of the following month.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.sequence == 1"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Union fee transfer reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_ANNUAL_FINALISATION",
+				"label": "Annual PIT finalisation (05/QTT-TNCN)",
+				"authority": "Law 38/2019/QH14 art.44(2)(a): an organisation's annual finalisation by the last day of the third month after the calendar year; Decree 126/2020/NĐ-CP art.8(6)(d): finalisation on behalf of an employee on a contract of three months or more who authorises it",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "string(int(period.start.substring(0, 4)) + 1) + '-03-31'",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_USE_REPORT",
+				"label": "Labour-change report (Form 01/PLI): half-year before 5 June, year before 5 December",
+				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf. Owner rule 2026-10-01: “trước ngày 05” (before the 5th) is read as due by the 4th of June and of December; the initial declaration on starting operations is not raised here.",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "MONTH",
+					"when": "period.start.substring(5, 7) == '06' || period.start.substring(5, 7) == '12'"
+				},
+				"due": "period.start.substring(0, 8) + '04'",
+				"evidence": [
+					{
+						"key": "portal_receipt_reference",
+						"type": "string",
+						"label": "National Public Service Portal receipt number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_WITHHOLDING_DECLARATION",
+				"label": "Monthly salary PIT return (05/KK-TNCN, pre-July 2026 form)",
+				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly). A monthly filer unless the entity records pit_quarterly_filer; a tax period before 1 July 2026 keeps this form even when filed after it (Tax Administration Law 108/2025/QH15 art.100(1)).",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "MONTH",
+					"when": "!(has(company.facts.pit_quarterly_filer) && company.facts.pit_quarterly_filer)"
+				},
+				"due": "add_months(period.start, 1).substring(0, 8) + '20'",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_WITHHOLDING_DECLARATION_QUARTERLY",
+				"label": "Quarterly salary PIT return for a quarterly VAT filer (05/KK-TNCN, pre-July 2026 form)",
+				"authority": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) (monthly by the 20th of the next month; quarterly by the last day of the first month of the next quarter), art.55(1) (payment by the filing deadline), art.59 (late-payment interest 0.03% a day); Decree 126/2020/NĐ-CP arts.8(1), 9 (monthly, or quarterly for an employer eligible to file VAT quarterly). Only where the entity records pit_quarterly_filer (Decree 126/2020/NĐ-CP art.9: eligible to declare VAT quarterly).",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "QUARTER",
+					"when": "has(company.facts.pit_quarterly_filer) && company.facts.pit_quarterly_filer"
+				},
+				"due": "month_end(add_months(period.start, 3))",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "FIXED_TERM_OVER_36_MONTHS_TERMS_CHANGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && !employment.open_ended && employment.exit_date >= add_months(employment.service_start, 36)",
+				"message": "a fixed-term labour contract (CONTRACT) runs at most 36 months; a longer term is an indefinite contract (PERMANENT).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.20(1)(b)"
+			},
+			{
+				"code": "FIXED_TERM_OVER_36_MONTHS_EXIT",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && !employment.open_ended && employment.exit_date >= add_months(employment.service_start, 36)",
+				"message": "a fixed-term labour contract (CONTRACT) runs at most 36 months; a longer term is an indefinite contract (PERMANENT).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.20(1)(b)"
+			},
+			{
+				"code": "PROBATION_TOO_LONG_TERMS_CHANGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
+				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
+			},
+			{
+				"code": "PROBATION_TOO_LONG_EXIT",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
+				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
+			},
+			{
+				"code": "PROBATION_WAGE_BELOW_85",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && has(terms.facts.probation_job_wage) && double(terms.basic_salary) * 100.0 < double(terms.facts.probation_job_wage) * 85.0",
+				"message": "the probation wage is below 85% of the wage of the job.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.26"
+			},
+			{
+				"code": "MINOR_UNDER_15_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employee.age < 15 && terms.ordinary_hours_per_week > 20",
+				"message": "a worker under 15 works at most 4 hours a day and 20 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			},
+			{
+				"code": "MINOR_15_TO_18_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employee.age >= 15 && employee.age < 18 && terms.ordinary_hours_per_week > 40",
+				"message": "a worker aged 15 to under 18 works at most 8 hours a day and 40 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			}
 		]
 	},
 	{
@@ -17822,6 +18777,11 @@
 			},
 			"proration_contractual": true,
 			"ordinary_divisor_days": "period.working_days",
+			"rate_conversions": {
+				"weekly_to_monthly": "52.0 / 12.0",
+				"daily_to_monthly": "period.working_days",
+				"hourly_to_monthly": "terms.ordinary_hours_per_week * 52.0 / 12.0"
+			},
 			"overtime_when": "",
 			"bands": [
 				{
@@ -17949,6 +18909,7 @@
 					"counts_as_worked_time": false
 				}
 			],
+			"overtime_unit_hours": 0.5,
 			"holiday_rest_precedence": "SUBSTITUTE",
 			"night_premium": {
 				"from": "22:00",
@@ -18022,10 +18983,9 @@
 				"assessment_period": "MONTH",
 				"basis_statutory_codes": ["SI", "HI", "UI", "PIT"]
 			},
-			"final_pay_due_days": 14,
 			"final_pay_deadlines": [
 				{
-					"when": "employment.exit_reason in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
+					"when": "employment.exit_ground in [\"REDUNDANCY\", \"RETRENCHMENT\"] || (\"final_settlement_extended\" in employment.exit_fact_keys && employment.exit_facts.final_settlement_extended == true)",
 					"days": 30,
 					"basis": "EVENT_DATE",
 					"authority": "Labour Code 2019 art.48(1)(a)–(d): up to 30 days where the employer ceases operating, restructures or changes technology or for economic reasons (art.34(11)), merges, divides or is sold, or is hit by disaster or epidemic"
@@ -18133,6 +19093,13 @@
 				"maximum": 20,
 				"label": "Union fee reduction by decision (%)",
 				"description": "Decree 105/2026/NĐ-CP art.12: after an art.13 suspension ends, an enterprise or cooperative that must still cut its workforce by the art.12(1) threshold may be granted a reduction of at most 20% of the 2% fee (art.12(3)), by month and for at most 6 months (art.12(2)(a)), by decision of the Confederation or the provincial federation. Record the decided percentage only for those months; unrecorded is 0. https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/4/105-ndcp.signed.pdf"
+			},
+			{
+				"key": "pit_quarterly_filer",
+				"type": "boolean",
+				"label": "Declares salary PIT quarterly (quarterly VAT filer)",
+				"default_value": false,
+				"description": "Law on Tax Administration 38/2019/QH14 art.44(1)(a)–(b) with Decree 126/2020/NĐ-CP arts.8(1), 9: a payer eligible to declare VAT quarterly may declare salary PIT quarterly; unrecorded is the monthly return by the 20th. From 1 July 2026 (Circular 89/2026/TT-BTC art.22(1)(a)(a.1)) every salary payer declares quarterly and this input is not read."
 			}
 		],
 		"exit_facts": [
@@ -18141,14 +19108,14 @@
 				"type": "boolean",
 				"label": "Qualifies for a pension on leaving",
 				"description": "Labour Code 2019 art.46(1): no severance allowance where the employee qualifies for a pension under the social insurance law (Law 41/2024/QH15 art.64).",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
+				"required_when": "employment.service_months >= 12 && employment.exit_ground in [\"RESIGNATION\", \"END_OF_CONTRACT\", \"MUTUAL\", \"DEATH\", \"UNILATERAL\"]"
 			},
 			{
 				"key": "absent_five_days",
 				"type": "boolean",
 				"label": "Dismissed for five days' unexcused absence",
 				"description": "Labour Code 2019 art.36(1)(e): the employer ended the contract after five consecutive working days absent without good reason; art.46(1) owes no severance allowance.",
-				"required_when": "employment.service_months >= 12 && employment.exit_reason == \"UNILATERAL\""
+				"required_when": "employment.service_months >= 12 && employment.exit_ground == \"UNILATERAL\""
 			},
 			{
 				"key": "final_settlement_extended",
@@ -18170,6 +19137,20 @@
 				"type": "boolean",
 				"label": "Area reclassified lower in 2026",
 				"description": "True only when the same worksite was assigned a lower 2026 region by the decree."
+			},
+			{
+				"key": "probation_class",
+				"type": "string",
+				"label": "Probation job class (Labour Code art.25)",
+				"options": ["ENTERPRISE_MANAGER", "COLLEGE_OR_ABOVE", "INTERMEDIATE_OR_TECHNICAL", "OTHER"],
+				"description": "Labour Code 45/2019/QH14 art.25: probation at most 180 days for an enterprise manager (Law on Enterprises, Law on State Capital), 60 days for a job needing college-level or higher qualifications, 30 days for intermediate-level, technical-worker or clerical jobs, 6 working days for any other job. Record it on probation terms."
+			},
+			{
+				"key": "probation_job_wage",
+				"type": "number",
+				"minimum": 0,
+				"label": "Wage of the job on probation",
+				"description": "Labour Code 45/2019/QH14 art.26: the probation wage is at least 85% of the wage of that job. Record the job’s agreed wage on probation terms."
 			}
 		],
 		"payment_facts": [
@@ -18647,6 +19628,194 @@
 				"owner": "Management / designation decision or service contract",
 				"authority": "Law on Personal Data Protection 91/2025/QH15 arts.33(2), 38(2)–(3) (https://bocongan.gov.vn/chinh-sach-phap-luat/co-so-du-lieu-van-ban/luat-bao-ve-du-lieu-ca-nhan-1753688803)",
 				"status": "EXTERNAL"
+			}
+		],
+		"tables": [
+			{
+				"name": "TERMINATION_GROUND",
+				"label": "Termination grounds: why a contract ended (employments.exit_ground)",
+				"keys": ["code"],
+				"columns": []
+			}
+		],
+		"duty_types": [
+			{
+				"code": "SI_HI_UI_REGISTRATION",
+				"label": "Compulsory SI, HI and UI registration",
+				"authority": "Law on Social Insurance 41/2024/QH15 arts.13(1), 28(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law on Employment 74/2025/QH15 art.32(1): UI registration is made together with the compulsory SI registration https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm. Owner rule 2026-10-01: raised on every hire and due 30 days after the first day of service (Civil Code art.147: a period counted from a day starts the next day); a hire outside compulsory SI (a contract under one month, a foreigner excluded by art.2(2)) is WAIVED with that reason.",
+				"subject": "EMPLOYMENT",
+				"trigger": {
+					"on": "HIRE"
+				},
+				"due": "add_days(employment.service_start, 30)",
+				"evidence": [
+					{
+						"key": "vss_receipt_reference",
+						"type": "string",
+						"label": "Vietnam Social Security receipt number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "SI_HI_UI_MONTHLY_REMITTANCE",
+				"label": "SI, HI and UI remittance for the contribution month",
+				"authority": "Law 41/2024/QH15 arts.13(4), 34(4)(a), 40(1) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-so-41-2024-qh15-bao-hiem-xa-hoi-119240723163650489.htm; Law 74/2025/QH15 art.33(2)–(3): UI is paid at the time SI is paid https://xaydungchinhsach.chinhphu.vn/toan-van-luat-viec-lam-119250711173403835.htm. Raised by the first run of each wage month; due the last day of the following month.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.sequence == 1"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Bank transfer reference to Vietnam Social Security",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "UNION_FEE_REMITTANCE",
+				"label": "Trade union fee (2%) for the contribution month",
+				"authority": "Law on Trade Unions 50/2024/QH15 art.29(1)(b), (2) https://xaydungchinhsach.chinhphu.vn/toan-van-luat-cong-doan-119241217155547243.htm; Decree 105/2026/NĐ-CP art.4 https://vanban.chinhphu.vn/?docid=217500&pageid=27160. Raised by the first run of each wage month; due the last day of the following month.",
+				"subject": "RUN",
+				"trigger": {
+					"on": "RUN_FINALISED",
+					"when": "run.sequence == 1"
+				},
+				"due": "month_end(add_months(period.start, 1))",
+				"evidence": [
+					{
+						"key": "payment_reference",
+						"type": "string",
+						"label": "Union fee transfer reference",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_ANNUAL_FINALISATION",
+				"label": "Annual PIT finalisation (05/QTT-TNCN)",
+				"authority": "Circular 89/2026/TT-BTC art.22(1)(a)(a.2) (the salary payer finalises for itself and for each individual who authorises it, whether or not tax was withheld) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf (signed text p.49); Decree 252/2026/NĐ-CP art.10(5)(a): a finalisation return is due by the last day of the third month after the tax period ends https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf, Government transcription https://xaydungchinhsach.chinhphu.vn/quy-dinh-thoi-han-nop-ho-so-khai-thue-119260703120801722.htm; Decree 253/2026/NĐ-CP arts.51, 68 (finalisation on behalf of authorising employees) https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/253m-ndcp.signed.pdf",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "YEAR"
+				},
+				"due": "string(int(period.start.substring(0, 4)) + 1) + '-03-31'",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "LABOUR_USE_REPORT",
+				"label": "Labour-change report (Form 01/PLI): half-year before 5 June, year before 5 December",
+				"authority": "Labour Code 2019 art.12(2) https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf; Decree 145/2020/NĐ-CP art.4(1)–(2) https://datafiles.chinhphu.vn/cpp/files/vbpq/2020/12/145.signed.pdf. Owner rule 2026-10-01: “trước ngày 05” (before the 5th) is read as due by the 4th of June and of December; the initial declaration on starting operations is not raised here.",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "MONTH",
+					"when": "period.start.substring(5, 7) == '06' || period.start.substring(5, 7) == '12'"
+				},
+				"due": "period.start.substring(0, 8) + '04'",
+				"evidence": [
+					{
+						"key": "portal_receipt_reference",
+						"type": "string",
+						"label": "National Public Service Portal receipt number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			},
+			{
+				"code": "PIT_WITHHOLDING_DECLARATION",
+				"label": "Quarterly salary PIT return (05/KK-TNCN, Circular 89/2026 form)",
+				"authority": "Circular 89/2026/TT-BTC art.22(1)(a)(a.1) (in force 1 July 2026): the salary payer declares the tax withheld quarterly https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/89-btc.signed.pdf (signed text p.49); Decree 252/2026/NĐ-CP art.10(3): a quarterly return is due by the last day of the first month of the following quarter https://datafiles.chinhphu.vn/cpp/files/vbpq/2026/7/252-ndcp.signed.pdf, Government transcription https://xaydungchinhsach.chinhphu.vn/quy-dinh-thoi-han-nop-ho-so-khai-thue-119260703120801722.htm; Law on Tax Administration 108/2025/QH15 art.12(8) (deadlines set by the Government), art.14(1) (payment by the filing deadline), art.16(2)(a) (late-payment interest 0.03% a day) https://vanban.chinhphu.vn/?pageid=27160&docid=216541&classid=1&orggroupid=1. Corrected 2026-09-28: this version offered monthly filing by the 20th, which Circular 89/2026 removed for salary returns.",
+				"subject": "COMPANY",
+				"trigger": {
+					"on": "CALENDAR",
+					"every": "QUARTER"
+				},
+				"due": "month_end(add_months(period.start, 3))",
+				"evidence": [
+					{
+						"key": "tax_receipt_reference",
+						"type": "string",
+						"label": "Tax authority acceptance notice number",
+						"required": true,
+						"min_length": 1
+					}
+				]
+			}
+		],
+		"checks": [
+			{
+				"code": "FIXED_TERM_OVER_36_MONTHS_TERMS_CHANGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && !employment.open_ended && employment.exit_date >= add_months(employment.service_start, 36)",
+				"message": "a fixed-term labour contract (CONTRACT) runs at most 36 months; a longer term is an indefinite contract (PERMANENT).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.20(1)(b)"
+			},
+			{
+				"code": "FIXED_TERM_OVER_36_MONTHS_EXIT",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.type == \"CONTRACT\" && !employment.open_ended && employment.exit_date >= add_months(employment.service_start, 36)",
+				"message": "a fixed-term labour contract (CONTRACT) runs at most 36 months; a longer term is an indefinite contract (PERMANENT).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.20(1)(b)"
+			},
+			{
+				"code": "PROBATION_TOO_LONG_TERMS_CHANGE",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
+				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
+			},
+			{
+				"code": "PROBATION_TOO_LONG_EXIT",
+				"at": "EXIT",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && employment.exit_date != \"\" && has(terms.facts.probation_class) && terms.facts.probation_class in {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30} && employment.exit_date >= add_days(employment.service_start, {\"ENTERPRISE_MANAGER\": 180, \"COLLEGE_OR_ABOVE\": 60, \"INTERMEDIATE_OR_TECHNICAL\": 30}[terms.facts.probation_class])",
+				"message": "the probation is longer than its job class allows (180 days enterprise manager, 60 college level or above, 30 intermediate, technical or clerical).",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.25(1)–(3); the 6-working-day art.25(4) class is not checked here"
+			},
+			{
+				"code": "PROBATION_WAGE_BELOW_85",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employment.type == \"PROBATION\" && has(terms.facts.probation_job_wage) && double(terms.basic_salary) * 100.0 < double(terms.facts.probation_job_wage) * 85.0",
+				"message": "the probation wage is below 85% of the wage of the job.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.26"
+			},
+			{
+				"code": "MINOR_UNDER_15_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employee.age < 15 && terms.ordinary_hours_per_week > 20",
+				"message": "a worker under 15 works at most 4 hours a day and 20 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
+			},
+			{
+				"code": "MINOR_15_TO_18_HOURS",
+				"at": "TERMS_CHANGE",
+				"severity": "REFUSE",
+				"when": "employee.age >= 15 && employee.age < 18 && terms.ordinary_hours_per_week > 40",
+				"message": "a worker aged 15 to under 18 works at most 8 hours a day and 40 hours a week.",
+				"authority": "Labour Code 45/2019/QH14 (Official Gazette 993+994, https://congbaocdn.chinhphu.vn/CongBaoCP/VanBan/2019/11/30232/29070-1-2019993-99445-2019-qh14.pdf) art.146(1)"
 			}
 		]
 	}

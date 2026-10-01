@@ -16,7 +16,7 @@ import { testWorkspace } from '@norbital-ai/bolt/test';
 const root = `${process.cwd()}/`;
 const built = (file: string) => readFileSync(`${root}.norbital/artifact/${file}`, 'utf8');
 
-/** Two SG entities, the MY-nihon plant and the ID and PH companies of the bank's norbital_hr tree. */
+/** Two SG entities, the MY plant and the ID and PH companies of the bank's norbital_hr tree. */
 export const NORBITAL_SG = '0cc7cdd4-848b-598e-8e4c-b8769c97f12b';
 export const NIHON_MY = 'e7b313fc-e947-5b78-8066-97bea6644915';
 export const OPS_PH = 'c09a2dc4-94bd-5d1c-adb7-e46a4f7cbe3f';
@@ -36,7 +36,7 @@ export async function recordNihonBirthDates(t: Awaited<ReturnType<typeof workspa
 		['0962001f-ec98-4e28-a243-10948e062eaa', '2026-01-12']
 	] as const)
 		await t.db.write({
-			text: 'UPDATE leave_entries SET event_kind = $1, event_date = $2 WHERE id = $3',
+			text: "UPDATE leave_entries SET facts = coalesce(facts, '{}'::jsonb) || jsonb_build_object('event_kind', $1::text, 'event_date', $2::text) WHERE id = $3",
 			params: ['BIRTH', date, id]
 		});
 }

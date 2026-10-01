@@ -8,6 +8,12 @@ import { Schema } from 'effect';
  * MONTHLY with proration releases earned annual leave at month end. A service
  * tier is `employment.service_months >= 24`; a grade tier is `terms.grade == "M1"`.
  */
+/** A stored rounding step: the multiple a figure rounds to, and the direction. */
+const stepRounding = Schema.Struct({
+	step: Schema.Finite.check(Schema.isGreaterThan(0)),
+	mode: Schema.Literals(['UP', 'DOWN', 'HALF_UP'])
+});
+
 export const leaveEntitlementValueSchema = Schema.Struct({
 	/**
 	 * `PER_EVENT` is a grant per occurrence rather than per year: every entry is its own pool of
@@ -116,6 +122,47 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 		Schema.NullOr(Schema.Literals(['HALF_DAY', 'WHOLE_DAY', 'WHOLE_DAY_DOWN', 'EXACT']))
 	),
 	/**
+	 * How a grant the `scale` moved rounds, in days: `{ step: 0.5, mode: 'UP' }` is up to the half
+	 * day, never below the hours owed. Absent is the exact figure.
+	 */
+	scaled_rounding: Schema.optionalKey(Schema.NullOr(stepRounding)),
+	/** How an hourly grant (`requires_hourly_for_part_time`) rounds, in hours. Absent is exact. */
+	hour_rounding: Schema.optionalKey(Schema.NullOr(stepRounding)),
+	/**
+	 * Of a `requires_hourly_for_part_time` row, the weekly hours below which the contract is
+	 * part-time (SG Part-Time Employees Regulations reg.2(1): `35`), and the daily and weekly hours
+	 * a declared ABSENT similar full-time employee is deemed to work (reg.2(2): `8` and `44`). A
+	 * declared comparator must itself work at least `part_time_below_hours`. Required by that flag.
+	 */
+	part_time_hours: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({
+				part_time_below_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
+				comparator_weekly_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
+				comparator_daily_hours: Schema.Finite.check(Schema.isGreaterThan(0))
+			})
+		)
+	),
+	/**
+	 * Of a `HALF_MONTHS` proration, the share of a calendar month's days that must be eligible for
+	 * the month to count (VN Decree 145/2020 art.66(2): `0.5`). Required by that proration.
+	 */
+	month_counts_when: Schema.optionalKey(
+		Schema.NullOr(Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })))
+	),
+	/**
+	 * Of an hourly row (`unit: HOUR`), the step the share of the shift's paid hours rounds to,
+	 * half up, and the least share an hour charges (`0.125`: an hour of an eight-hour day). Absent
+	 * is the exact share.
+	 */
+	hour_share_step: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })).check(
+				Schema.isGreaterThan(0)
+			)
+		)
+	),
+	/**
 	 * The fewest days a prorated grant rounds to, however short the service in the leave year (SG
 	 * CDCA s.12B(1)(i): 2 days for less than 5 months served in the relevant period). Absent is none.
 	 */
@@ -176,7 +223,7 @@ export const leaveEntitlementValueSchema = Schema.Struct({
 		Schema.Struct({
 			/** One CEL expression over the person context (`payroll_runs/lib/eligibility.ts`); '' is everyone. */
 			eligibility: Schema.String,
-			/** The grant, or a number over the person: a seniority ladder with no top (VN art.114: `12.0 + floor_unit(employment.service_months / 60.0)`). */
+			/** The grant, or a number over the person: a seniority ladder with no top (VN art.114: `12.0 + round(employment.service_months / 60.0, 1, 'DOWN')`). */
 			days: Schema.Union([Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0)), Schema.String])
 		})
 	)

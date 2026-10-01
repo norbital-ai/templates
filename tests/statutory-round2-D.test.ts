@@ -250,7 +250,7 @@ test('SG round 2 — s.88(1)(c)/(4A): an employer that gives time off pays no ho
 });
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
-// MY / MY-nihon — the s.60A(7) daily limit counts worked hours (s.60A(9)).
+// MY — the s.60A(7) daily limit counts worked hours (s.60A(9)).
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 test('MY round 2 — s.60A(7): twelve hours of work a day are twelve worked hours, breaks excluded', () => {
@@ -260,7 +260,7 @@ test('MY round 2 — s.60A(7): twelve hours of work a day are twelve worked hour
 	//   09:00–21:30 is 12.5 clock hours less 1 hour = 11.5 worked → no breach (a clock reading
 	//   of 12 less the break, 11, reported it);
 	//   09:00–22:30 is 13.5 − 1 = 12.5 worked → breach.
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const { warnings } = buildStatutory(
 			{
 				code,
@@ -383,6 +383,66 @@ test('PH round 2 — Handbook ch.2 §D: the daily-paid are paid an unworked regu
 	);
 });
 
+test('PH round 2 — Labor Code art.94: unpaid leave the workday before costs a monthly salary the unworked regular holiday too', () => {
+	// ₱30,450 on the 261 factor is ₱1,400 a day (30,450 × 12 ÷ 261). Friday 28 August 2026 is
+	// unpaid leave with no work-day row; Monday 31 August a regular holiday, not worked (Saturday
+	// and Sunday are rest days, §D.3). M-NPL loses both days: 30,450 − 2 × 1,400 = 27,650.
+	// M-PRESENT is silent on Friday (present): the holiday stays paid, 30,450.
+	const settings = settingsIdOn('PH', '2026-08-28');
+	const unpaid = leaveCatalogue('PH').find(
+		(row) => row.settings_id === settings && row.code === 'UNPAID_LEAVE'
+	)!;
+	const { slips } = buildStatutory(
+		{
+			// The September run's attendance window, 21 August – 20 September, holds both days.
+			code: 'PH',
+			period: '2026-09',
+			people: [
+				{ key: 'M-NPL', wage: 30_450 },
+				{ key: 'M-PRESENT', wage: 30_450 }
+			]
+		},
+		(world) => {
+			world.jurisdiction_holidays.push(holiday('2026-08-31', 'National Heroes Day'));
+			world.leave_catalogue.push(unpaid);
+			const employment = world.employments.find((row) => row.employee_number === 'M-NPL')!;
+			const term = world.employment_terms.find((row) => row.employment_id === employment.id)!;
+			world.leave_entries.push({
+				id: 'e1000000-0000-4000-8000-0000000npl28',
+				employment_id: employment.id,
+				catalogue_id: unpaid.id,
+				leave_code: 'UNPAID_LEAVE',
+				reference: 'NPL-28',
+				from_date: '2026-08-28',
+				to_date: '2026-08-28',
+				half_day_start: false,
+				half_day_end: false,
+				days: 1,
+				effective_on: '2026-08-28',
+				reason: 'Personal matter, unpaid',
+				allocations: [],
+				charges: [
+					{
+						date: '2026-08-28',
+						days: 1,
+						catalogue_id: unpaid.id,
+						employment_term_id: term.id,
+						holiday_id: null,
+						shift_definition_id: null,
+						work_day_id: null
+					}
+				],
+				approval_id: null,
+				payslip_id: null
+			});
+		}
+	);
+	assert.deepEqual(
+		['M-NPL', 'M-PRESENT'].map((key) => slips.get(key)!.gross),
+		[27_650, 30_450]
+	);
+});
+
 test('PH round 2 — RA 10361 s.24: a kasambahay in NCR is held to NCR-DW-06, ₱7,800 a month, not the establishment order', () => {
 	// NCR-DW-06 s.1: ₱7,800 a month from 7 February 2026 (the 1 April 2026 version carries it).
 	// DW-7500 is below it and refuses; DW-7800 meets it despite being below the establishment floor.
@@ -424,7 +484,7 @@ test('PH round 2 — Labor Code arts.298–299: the authorised cause chooses one
 				wage: 30_000,
 				hire_date: '2020-08-01',
 				exit_date: '2026-01-31',
-				exit_reason: key === 'LSD' ? 'REDUNDANCY' : 'RETRENCHMENT'
+				exit_ground: key === 'LSD' ? 'REDUNDANCY' : 'RETRENCHMENT'
 			}))
 		},
 		(world) => {
@@ -551,7 +611,7 @@ test('MY round 2 — a part-timer’s annual and sick leave are reg.7–8’s ow
 	// reg.7(1): 6 days under two years, 8 from two to under five, 11 from five; reg.8(1): 10,
 	// 13, 15. The windows are calendar years; a 1 January hire has whole years.
 	const week = { hours: 20, days: 5 };
-	for (const code of ['MY', 'MY-nihon'] as const) {
+	for (const code of ['MY'] as const) {
 		const id = settingsVersions(code).find(
 			(row) => row.voided_at == null && String(row.effective_range.start).startsWith('2026-07')
 		)!.id;

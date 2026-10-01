@@ -79,8 +79,8 @@ const band = (when: string, employee: string, employer: string): Band => ({
 const percent = (when: string, employee: number, employer: number): Band =>
 	band(
 		when,
-		`round_cent(base * ${employee}.0 / 100.0)`,
-		`round_cent(base * ${employer}.0 / 100.0)`
+		`round(base * ${employee}.0 / 100.0, 0.01, 'HALF_UP')`,
+		`round(base * ${employer}.0 / 100.0, 0.01, 'HALF_UP')`
 	);
 
 /** Two closed bands and an open terminal one, in the declaration order the engine reads. */
@@ -211,7 +211,7 @@ test('registration status does not erase a version-declared liability or its req
 });
 
 test('thirty-day insurance coverage preserves gaps, month-end continuation and terminated February cover', () => {
-	const scheme = schemeOf('COVER', [band('true', 'coverage_days_30(scheme.since, 0)', '0.0')]);
+	const scheme = schemeOf('COVER', [band('true', 'coverage_days(scheme.since, 0, 30)', '0.0')]);
 	for (const [month, ranges, expected] of [
 		['2026-01', [{ start: '2026-01-01', end: '2026-01-15' }], 15],
 		[
@@ -243,6 +243,32 @@ test('thirty-day insurance coverage preserves gaps, month-end continuation and t
 			coverageByScheme: new Map([['id-COVER', ranges]])
 		});
 		assert.equal(result[0]!.employee, expected, `${month}: ${JSON.stringify(ranges)}`);
+	}
+});
+
+test('coverage_days takes its month length from the rule: 31 counts the 31st, 28 caps continuing and late joins', () => {
+	for (const [monthDays, month, ranges, expected] of [
+		[31, '2026-01', [{ start: '2026-01-01', end: null }], 31],
+		[31, '2026-01', [{ start: '2026-01-31', end: null }], 1],
+		[31, '2026-02', [{ start: '2026-02-01', end: null }], 31],
+		[28, '2026-01', [{ start: '2026-01-01', end: '2026-01-15' }], 15],
+		[28, '2026-01', [{ start: '2026-01-01', end: null }], 28],
+		[28, '2026-01', [{ start: '2026-01-30', end: null }], 1],
+		[28, '2026-01', [{ start: '2026-01-10', end: '2026-01-31' }], 19]
+	] as const) {
+		const scheme = schemeOf('COVER', [
+			band('true', `coverage_days(scheme.since, 0, ${monthDays})`, '0.0')
+		]);
+		const result = charge([scheme], 100, {
+			period: {
+				...PERIOD,
+				key: month,
+				start: `${month}-01`,
+				end: `${month}-${month.endsWith('02') ? '28' : '31'}`
+			},
+			coverageByScheme: new Map([['id-COVER', ranges]])
+		});
+		assert.equal(result[0]!.employee, expected, `${monthDays}/${month}: ${JSON.stringify(ranges)}`);
 	}
 });
 
@@ -334,8 +360,8 @@ test('a wage exactly on a boundary belongs to the band that ends there, not the 
 test('the rule chosen is the one whose money is charged, so a boundary is money', () => {
 	assert.deepEqual(selectRule(LADDER, { base: 4800 }, engine), {
 		when: 'base > 3000.0 && base <= 4800.0',
-		employee: 'round_cent(base * 3.0 / 100.0)',
-		employer: 'round_cent(base * 4.0 / 100.0)'
+		employee: "round(base * 3.0 / 100.0, 0.01, 'HALF_UP')",
+		employer: "round(base * 4.0 / 100.0, 0.01, 'HALF_UP')"
 	});
 	assert.equal(charge([schemeOf('PUB', LADDER)], 4800)[0]!.employee, 144);
 	assert.equal(charge([schemeOf('PUB', LADDER)], 4800.01)[0]!.employee, 240, '5% of 4,800.01');
@@ -504,7 +530,7 @@ test('a household scheme bills the share per insured head, rounded per head', ()
 	const excess = `(${household} - 1.0)`;
 	const heads = `(1.0 + (${excess} > 0.0 ? (${excess} < 3.0 ? ${excess} : 3.0) : 0.0))`;
 	const nhi = schemeOf('NHI', [
-		band('base >= 0.0', `round_cent(base * 5.0 / 100.0 * (${heads}))`, '0.0')
+		band('base >= 0.0', `round(base * 5.0 / 100.0 * (${heads}), 0.01, 'HALF_UP')`, '0.0')
 	]);
 	const single = charge([nhi], 1000, { person: SINGLE })[0]!;
 	assert.equal(single.employee, 50, 'one head at 5%');
@@ -514,7 +540,11 @@ test('a household scheme bills the share per insured head, rounded per head', ()
 
 test('a paired-share scheme rounds the total, floors the employee and gives the remainder away', () => {
 	const cpf = schemeOf('CPF', [
-		band('base >= 0.0', 'floor_unit(12.0)', 'round_unit(12.0 + 12.5) - floor_unit(12.0)')
+		band(
+			'base >= 0.0',
+			'round(12.0, 1, "DOWN")',
+			'round(12.0 + 12.5, 1, "HALF_UP") - round(12.0, 1, "DOWN")'
+		)
 	]);
 	const [row] = charge([cpf], 1000);
 	assert.equal(row!.employee, 12, 'floored to the dollar');
@@ -530,7 +560,7 @@ test('an annual scale projects, relieves, scales and spreads', () => {
 	const tax_RULES = [
 		band(
 			'true',
-			`truncate_cent(${difference} > 0.0 ? ${difference} / (scheme.projection.payslips_remaining > 1.0 ? scheme.projection.payslips_remaining : 1.0) : 0.0)`,
+			`round(${difference} > 0.0 ? ${difference} / (scheme.projection.payslips_remaining > 1.0 ? scheme.projection.payslips_remaining : 1.0) : 0.0, 0.01, 'TRUNCATE')`,
 			'0.0'
 		)
 	];
@@ -685,47 +715,6 @@ test('the calculation trace keeps each selected line and the reads a charge made
 	assert.deepEqual(charges[1]!.reads, [{ code: 'FUND', employee_amount: 100, employer_amount: 0 }]);
 });
 
-test('a directed instalment is added after the ladder and carried apart', () => {
-	// Form CP38 names one employee, an amount and a run of months; it is a fact of the employment
-	// under its scheme, never a formula's business.
-	const pcb = schemeOf('PCB', [band('base >= 0.0', 'round_cent(100.0)', '0.0')]);
-	const fact = {
-		kind: 'REGISTERED' as const,
-		reference_number: 'SG22974731000',
-		rate_override: null,
-		instalments: [
-			{ amount: 1115, from: '2026-01', to: '2026-01', reference: 'direction-1' },
-			{ amount: 1114.18, from: '2026-02', to: '2026-02', reference: 'direction-2' }
-		]
-	};
-	const charges = charge([pcb], 3000, {
-		facts: new Map([[pcb.row.id, fact]]),
-		period: { ...PERIOD, key: '2026-01' }
-	});
-	assert.equal(charges[0]!.employee, 1215, 'the ladder share plus January direction');
-	assert.equal(charges[0]!.directed, 1115);
-	assert.equal(charges[0]!.employer, 0);
-	// A period no direction covers adds nothing.
-	const february = charge([pcb], 3000, {
-		facts: new Map([[pcb.row.id, fact]]),
-		period: { ...PERIOD, key: '2026-03' }
-	});
-	assert.equal(february[0]!.employee, 100);
-	assert.equal(february[0]!.directed, 0);
-	const secondHalf = charge([pcb], 3000, {
-		facts: new Map([[pcb.row.id, fact]]),
-		period: { ...PERIOD, key: '2026-01-2', index: 2, instalments: 2 },
-		monthPrior: {
-			accumulation: accumulationOf(3000),
-			charged: new Map([
-				['PCB', { base: 3000, ordinary: 3000, employee: 100, employer: 0, directed: 1115 }]
-			])
-		}
-	});
-	assert.equal(secondHalf[0]!.directed, 0, 'the monthly direction was already collected');
-	assert.equal(secondHalf[0]!.employee, 100, 'only this half’s ordinary withholding remains');
-});
-
 test('a declared election reads the fact’s value, or the type’s empty value when the fact holds none', () => {
 	// PTKP is a string election: a married woman is TK/0 unless her fact says KI. A fact without
 	// the election reads '' — never null, never 0 — so a comparison against a code is simply false.
@@ -796,19 +785,27 @@ test('a scheme registered since a day reads the day and the completed months on 
 test('a formula may read produced.<code> of a scheme already charged', () => {
 	// An employer premium taxed as the employee's income: the base of one scheme reads the charge
 	// of another, so the formula is evaluated inside the ordered loop.
-	const jkk = schemeOf('JKK', [band('true', '0.0', 'round_cent(base * 1.0 / 100.0)')]);
-	const tax = schemeOf('TAX', [band('true', 'round_cent(base * 10.0 / 100.0)', '0.0')], {
-		assessed_on: 'BASE + produced.JKK.employer'
-	});
+	const jkk = schemeOf('JKK', [band('true', '0.0', 'round(base * 1.0 / 100.0, 0.01, "HALF_UP")')]);
+	const tax = schemeOf(
+		'TAX',
+		[band('true', 'round(base * 10.0 / 100.0, 0.01, "HALF_UP")', '0.0')],
+		{
+			assessed_on: 'BASE + produced.JKK.employer'
+		}
+	);
 	const [, row] = charge([jkk, tax], 1000);
 	assert.equal(row!.base, 1010, 'the salary plus the employer premium');
 	assert.equal(row!.employee, 101);
 });
 
 test('a company-assessed scheme is charged once on the run, and its employee expression must be 0.0', () => {
-	const levy = schemeOf('LEVY', [band('true', '0.0', 'round_cent(base * 2.0 / 100.0)')], {
-		assessment_scope: 'COMPANY'
-	});
+	const levy = schemeOf(
+		'LEVY',
+		[band('true', '0.0', 'round(base * 2.0 / 100.0, 0.01, "HALF_UP")')],
+		{
+			assessment_scope: 'COMPANY'
+		}
+	);
 	const company = (contributions: readonly ContributionConfig[]) =>
 		contributeCompany({
 			accumulation: accumulationOf(3000),
@@ -845,7 +842,13 @@ test('a company-assessed scheme is charged once on the run, and its employee exp
 test('the company context sums every payslip and reads the entity roots', () => {
 	const levy = schemeOf(
 		'LEVY',
-		[band('true', '0.0', 'round_cent((base + person.company.headcount * 10.0) * 1.0 / 100.0)')],
+		[
+			band(
+				'true',
+				'0.0',
+				'round((base + person.company.headcount * 10.0) * 1.0 / 100.0, 0.01, "HALF_UP")'
+			)
+		],
 		{ assessment_scope: 'COMPANY' }
 	);
 	const charges = contributeCompany({

@@ -1042,6 +1042,42 @@ test('Singapore — s.20A(2): a day of five contracted hours or fewer counts as 
 	);
 });
 
+test('LIT-3 — a short day weighs the version’s stored short_day_fraction, not a built-in half', () => {
+	// February 2026 with four-hour Fridays (6, 13, 20, 27). A joiner on Wednesday the 18th works
+	// 18, 19, 23–26 whole and 20, 27 short. Seeded 0.5 (s.20A(2)): month 16 + 4 × 0.5 = 18, joiner
+	// 6 + 2 × 0.5 = 7; 3,300 × 7 ÷ 18 = 1,283.33. Stored 0.25 (an engine probe, not SG law):
+	// month 16 + 4 × 0.25 = 17, joiner 6.5; 3,300 × 6.5 ÷ 17 = 1,261.76.
+	const SHORT = 'c0000000-0000-4000-8000-0000000000da';
+	const basic = (fraction: number | null) => {
+		const { slips } = buildStatutory(
+			{
+				code: 'SG',
+				period: '2026-02',
+				people: [{ key: 'SG-JOINER', wage: 3300, hire_date: '2026-02-18', citizenship: 'CITIZEN' }]
+			},
+			(world) => {
+				world.shift_definitions.push({
+					...world.shift_definitions[0]!,
+					id: SHORT,
+					code: 'SHORT',
+					name: 'Short Friday',
+					variant: { kind: 'WORK', start_time: '09:00', end_time: '13:00', break_minutes: 0 }
+				});
+				world.shift_patterns[0]!.pattern.days[4] = { roster_code_id: SHORT };
+				if (fraction != null)
+					for (const version of world.jurisdiction_settings)
+						version.payroll.short_day_fraction = fraction;
+			}
+		);
+		return slips
+			.get('SG-JOINER')!
+			.proration.filter((row) => row.component_code === 'BASIC')
+			.map((row) => [row.days, row.denominator, row.prorated_amount]);
+	};
+	assert.deepEqual(basic(null), [[7, 18, 1283.33]]);
+	assert.deepEqual(basic(0.25), [[6.5, 17, 1261.76]]);
+});
+
 test('Singapore — the 72-hour month is also counted with rest-day and holiday work beyond the normal day', () => {
 	// MOM on s.38(5): work on a rest day or public holiday beyond the normal daily hours is inside
 	// the 72 hours. Seventy ordinary overtime hours plus four rest-day hours beyond the normal
@@ -2002,7 +2038,7 @@ test('Singapore — a mid-month leaver: s.20A final month, unused leave paid at 
 					citizenship: 'CITIZEN',
 					race: 'CHINESE',
 					exit_date: '2026-03-13',
-					exit_reason: 'RESIGNATION'
+					exit_ground: 'RESIGNATION'
 				}
 			]
 		},
@@ -2313,7 +2349,7 @@ test('Singapore — a leaver’s AW ceiling is reckoned on the actual OW to cess
 						wage: 8000,
 						age: 30,
 						citizenship: 'CITIZEN',
-						...(exit == null ? {} : { exit_date: exit, exit_reason: 'RESIGNATION' })
+						...(exit == null ? {} : { exit_date: exit, exit_ground: 'RESIGNATION' })
 					}
 				]
 			},
@@ -2380,7 +2416,7 @@ test('Singapore — a one-day final month falls to the employer-only CPF band; a
 				citizenship: 'CITIZEN',
 				race: 'CHINESE',
 				exit_date: '2026-03-02',
-				exit_reason: 'RESIGNATION'
+				exit_ground: 'RESIGNATION'
 			},
 			{
 				key: 'SG-NO-DAY',
@@ -2389,7 +2425,7 @@ test('Singapore — a one-day final month falls to the employer-only CPF band; a
 				citizenship: 'CITIZEN',
 				race: 'CHINESE',
 				exit_date: '2026-03-01',
-				exit_reason: 'RESIGNATION'
+				exit_ground: 'RESIGNATION'
 			}
 		]
 	});
@@ -2623,7 +2659,7 @@ test('Singapore — every sealed version: a joiner and a resigning leaver with a
 						race: 'CHINESE',
 						hire_date: '2020-01-01',
 						exit_date: c.exit,
-						exit_reason: 'RESIGNATION'
+						exit_ground: 'RESIGNATION'
 					},
 					{
 						key: 'SG-JOINER',
@@ -2780,7 +2816,7 @@ test('Singapore — a retrenched employee is paid no statutory retrenchment bene
 				race: 'CHINESE',
 				hire_date: '2019-01-01',
 				exit_date: '2026-09-15',
-				exit_reason: 'RETRENCHMENT'
+				exit_ground: 'RETRENCHMENT'
 			}
 		]
 	});

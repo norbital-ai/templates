@@ -96,10 +96,10 @@ const UTC_ISO_INSTANT = /^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):(\d{2})(\.\d{1,3})
 
 /** A real calendar day `YYYY-MM-DD`. */
 export function isCalendarDate(value: string): boolean {
-	return (
-		CALENDAR_DATE.test(value) &&
-		new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value
-	);
+	if (!CALENDAR_DATE.test(value)) return false;
+	const day = new Date(`${value}T00:00:00.000Z`);
+	// 2026-13-01 is an Invalid Date, whose toISOString throws
+	return !Number.isNaN(day.getTime()) && day.toISOString().slice(0, 10) === value;
 }
 
 /** A 24-hour clock time `HH:MM`. */

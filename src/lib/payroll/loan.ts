@@ -18,12 +18,14 @@ export type LoanRepayment = WorkspaceRow<'loan_repayments'>;
 import type { PayCadence } from '../../lib/payroll/run/period.js';
 import { dateKey } from '../iso-day.js';
 import { monthBounds, shiftPeriod } from '../../lib/payroll/run/dates.js';
-import { cents } from '../../lib/payroll/run/rounding.js';
+import { cents, currencyFractionDigits, roundMoney } from '../../lib/payroll/run/rounding.js';
 import { isEligible, type PersonContext } from '../../lib/payroll/run/eligibility.js';
 import { employmentDates } from '../../lib/payroll/run/settlement.js';
-import type { Settlement } from '../../lib/payroll/run/settle.js';
+import { settle, type Settlement } from '../../lib/payroll/run/settle.js';
 import type { PayrollWorld } from './world.js';
-import { live } from '../../lib/payroll/run/effective.js';
+import { live, readRange } from '../../lib/payroll/run/effective.js';
+import { evaluateNumber, expressionEngine } from '../expressions/evaluate.js';
+import { windowMinimumWage } from './contribution.js';
 import {
 	settlementBucket,
 	type MeasuredAdjustment,
@@ -104,11 +106,14 @@ export function validateLoanRecoveries(options: {
 	for (const bundle of options.bundles) {
 		// A deferred joining period produces no payslip, so it recovers nothing and blocks nothing.
 		if (bundle.deferral != null) continue;
-		const owed = new Set(
-			bundle.loanRepayments
-				.filter((repayment) => repayment.payslip_id == null)
-				.map((repayment) => repayment.loan_id)
-		);
+		const owed = new Set([
+			...bundle.loanRepayments
+				.filter((repayment) => repayment.payslip_id == null && !isOrder(loanOf(bundle, repayment)))
+				.map((repayment) => repayment.loan_id),
+			...bundle.loans
+				.filter((loan) => isOrder(loan) && orderBalance(loan, bundle.loanRepayments) > 0)
+				.map((loan) => loan.id)
+		]);
 		for (const loan of bundle.loans)
 			if (owed.has(loan.id) && loanRecoveryComponent(loan, currentByCode) == null)
 				issues.push(loanComponentMissingIssue(bundle.employment.employee_number, loan));
@@ -117,6 +122,8 @@ export function validateLoanRecoveries(options: {
 		// warning: what to do with the balance is the operator's call, not the run's.
 		if (isFinalPayslip(bundle))
 			for (const loan of bundle.loans) {
+				// An order's final payslip is its `on_exit`; what it leaves owed is said at settlement.
+				if (isOrder(loan)) continue;
 				const remaining = bundle.loanRepayments.filter(
 					(repayment) => repayment.loan_id === loan.id && repayment.payslip_id == null
 				);
@@ -150,10 +157,8 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 	);
 	/** One repayment entry per agreement per payslip; the earliest outstanding is the one taken. */
 	const takenLoanIds = new Set<string>();
-	for (const repayment of dueRepayments) {
-		if (repayment.payslip_id != null) continue;
-		// Present by construction: the bundle's repayments are gathered from these very loans.
-		const loan = loanById.get(repayment.loan_id)!;
+	/** The pay line an agreement recovers under on this payslip, or null where this person is not offered it. */
+	const recoveryLine = (loan: PreparedLoan): LoanComponent | null => {
 		const component = loanRecoveryComponent(loan, currentByCode);
 		// Unreachable: `validateLoanRecoveries` refuses the run before it is measured. Stated as a
 		// throw rather than a skip because skipping is the defect — a recovery that silently pays
@@ -162,7 +167,7 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 			throw new Error(
 				loanComponentMissingIssue(options.bundle.employment.employee_number, loan).message
 			);
-		if (!isEligible(component.eligibility, options.subject)) continue;
+		if (!isEligible(component.eligibility, options.subject)) return null;
 		/**
 		 * A government loan is not settled out of a final salary.
 		 *
@@ -171,7 +176,52 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		 * takes money the employer has no claim on. An employer loan is the opposite — the
 		 * agreement ends with the employment — so only `GOVERNMENT` is exempt, and it stays owed.
 		 */
-		if (component.loan_type === 'GOVERNMENT' && isFinalPayslip(options.bundle)) continue;
+		if (component.loan_type === 'GOVERNMENT' && isFinalPayslip(options.bundle)) return null;
+		if (component.destination !== 'NET' || component.direction !== 'SUBTRACT')
+			refuse(
+				`${options.bundle.employment.employee_number}: ${component.code} must recover from net pay (NET / SUBTRACT), preserving gross wages and deduction limits.`
+			);
+		if (
+			options.configuration.jurisdiction.payroll.deduction_ceiling?.approved_loan_extension?.codes.includes(
+				component.code
+			) &&
+			!loan.approval_reference?.trim()
+		)
+			refuse(
+				`${options.bundle.employment.employee_number}: ${component.code} requires the authority's written permission in the loan approval reference before payroll recovery.`
+			);
+		return component;
+	};
+	/**
+	 * A rule-recovered order: one line per payslip while it is in force and owed, priced at nothing here.
+	 * Its amount needs the net pay the rest of the payslip leaves, so `settleWithOrders` prices it.
+	 */
+	for (const loan of options.bundle.loans) {
+		if (!isOrder(loan)) continue;
+		const range = readRange(loan.effective_range);
+		const window = options.bundle.window.salary;
+		if (range == null || dateKey(range.start) > window.end) continue;
+		if (dateKey(range.end) !== '' && dateKey(range.end) < window.start) continue;
+		if (orderBalance(loan, options.bundle.loanRepayments) <= 0) continue;
+		if (loan.on_exit === 'NONE' && isFinalPayslip(options.bundle)) continue;
+		const component = recoveryLine(loan);
+		if (component == null) continue;
+		recoveries.push({
+			input: { family: 'LOAN_REPAYMENT', id: loan.id },
+			catalogueComponent: component,
+			bucket: settlementBucket(component.destination, component.direction),
+			label: component.code,
+			amount: 0,
+			quantity: null,
+			rate: null,
+			statutoryRuleKey: null
+		});
+	}
+	for (const repayment of dueRepayments) {
+		if (repayment.payslip_id != null) continue;
+		// Present by construction: the bundle's repayments are gathered from these very loans.
+		const loan = loanById.get(repayment.loan_id)!;
+		if (isOrder(loan)) continue;
 		const due = dateKey(repayment.due_date) || repayment.due_date.slice(0, 10);
 		/**
 		 * Due by now, not due exactly now — and one instalment to a payslip, whole.
@@ -191,10 +241,8 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 		 */
 		if (due > options.bundle.window.salary.end) continue;
 		if (takenLoanIds.has(repayment.loan_id)) continue;
-		if (component.destination !== 'NET' || component.direction !== 'SUBTRACT')
-			refuse(
-				`${options.bundle.employment.employee_number}: ${component.code} must recover from net pay (NET / SUBTRACT), preserving gross wages and deduction limits.`
-			);
+		const component = recoveryLine(loan);
+		if (component == null) continue;
 		const advance = options.configuration.jurisdiction.payroll.deduction_ceiling?.advance_recovery;
 		if (advance?.codes.includes(component.code)) {
 			if (advance.first_full_period) {
@@ -229,15 +277,6 @@ export function measureLoanRecoveries(options: MeasureRecoveryOptions): Measured
 					`${options.bundle.employment.employee_number}: ${component.code} advance recovery exceeds ${advance.months} months from its first instalment (${first}). Revise the recovery arrangement before payroll.`
 				);
 		}
-		if (
-			options.configuration.jurisdiction.payroll.deduction_ceiling?.approved_loan_extension?.codes.includes(
-				component.code
-			) &&
-			!loan.approval_reference?.trim()
-		)
-			refuse(
-				`${options.bundle.employment.employee_number}: ${component.code} requires the authority's written permission in the loan approval reference before payroll recovery.`
-			);
 		takenLoanIds.add(repayment.loan_id);
 		const amount = cents(repayment.amount_due);
 		recoveries.push({
@@ -373,3 +412,227 @@ const loanComponent = (row: WorkspaceRow<'loan_catalogue'>): LoanComponent => ({
 	direction: row.direction,
 	definition: { source: 'ENTRY' as const }
 });
+
+// ── deduction orders ────────────────────────────────────────────────────────────────────────
+
+/** An agreement recovered by its stored `recovery_rule`, not by a schedule of repayments. */
+export const isOrder = (loan: Pick<Loan, 'recovery_rule'> | undefined): boolean =>
+	(loan?.recovery_rule ?? '').trim() !== '';
+
+const loanOf = (bundle: Pick<EmploymentBundle, 'loans'>, repayment: LoanRepayment) =>
+	bundle.loans.find((loan) => loan.id === repayment.loan_id);
+
+/** What an order still owes: its principal less every repayment a payslip holds. An unlinked row is a released draft's. */
+export function orderBalance(
+	loan: Pick<Loan, 'id' | 'principal'>,
+	repayments: readonly Pick<LoanRepayment, 'loan_id' | 'payslip_id' | 'amount_due'>[]
+): number {
+	const recovered = repayments.reduce(
+		(total, row) =>
+			total +
+			(row.loan_id === loan.id && row.payslip_id != null ? decodeNumber(row.amount_due) : 0),
+		0
+	);
+	return Math.max(0, cents(decodeNumber(loan.principal) - recovered));
+}
+
+type SettleOptions = Parameters<typeof settle>[0];
+
+/**
+ * SETTLE for a payslip that carries rule-recovered orders.
+ *
+ * An order's amount is a stored expression over the net pay the rest of the payslip leaves, so the
+ * payslip is settled once without its orders; then, lowest `priority` first, each order withholds
+ * `min(balance, rule, net left)` floored to the minor unit, and what it took is gone for the next.
+ * `on_exit: BALANCE` replaces the rule on the final payslip with the whole balance. The payslip is then
+ * settled again with the orders in, so the deduction ceiling judges them like any recovery. With no
+ * order on the payslip this is `settle` itself.
+ */
+export function settleWithOrders(
+	options: SettleOptions & {
+		readonly bundle: EmploymentBundle;
+		readonly configuration: Configuration;
+	}
+): { readonly settlement: Settlement; readonly issues: readonly RunIssue[] } {
+	const { bundle, configuration, ...settleOptions } = options;
+	const orders = new Map<string, (typeof bundle.loans)[number]>(
+		bundle.loans.filter(isOrder).map((loan) => [loan.id, loan])
+	);
+	const isOrderLine = (item: MeasuredAdjustment) =>
+		item.input.family === 'LOAN_REPAYMENT' && orders.has(item.input.id);
+	const lines = settleOptions.adjustments.filter(isOrderLine);
+	if (lines.length === 0) return { settlement: settle(settleOptions), issues: [] };
+
+	const first = settle({
+		...settleOptions,
+		adjustments: settleOptions.adjustments.filter((item) => !isOrderLine(item))
+	});
+	const scale = 10 ** currencyFractionDigits(settleOptions.currency);
+	const floorMinor = (value: number) => roundMoney(value * scale, 'FLOOR_UNIT') / scale;
+	const statutory = settleOptions.charges.reduce((total, charge) => total + charge.employee, 0);
+	const final = settleOptions.finalPay === true;
+	let floor: number | undefined;
+	const wageFloor = () =>
+		(floor ??= windowMinimumWage(
+			configuration,
+			bundle.employedDays ?? bundle.window.salary,
+			bundle.termsHistory,
+			bundle.employment.employee_number
+		));
+	let left = first.net;
+	const taken: MeasuredAdjustment[] = [];
+	const issues: RunIssue[] = [];
+	const ordered = lines.toSorted((a, b) => {
+		const x = orders.get(a.input.id)!;
+		const y = orders.get(b.input.id)!;
+		return (
+			(x.priority ?? 0) - (y.priority ?? 0) ||
+			dateKey(x.effective_from).localeCompare(dateKey(y.effective_from)) ||
+			x.id.localeCompare(y.id)
+		);
+	});
+	for (const line of ordered) {
+		const loan = orders.get(line.input.id)!;
+		const principal = cents(decodeNumber(loan.principal));
+		const balance = orderBalance(loan, bundle.loanRepayments);
+		const rule = loan.recovery_rule!.trim();
+		const wanted =
+			final && loan.on_exit === 'BALANCE'
+				? balance
+				: evaluateNumber(expressionEngine, rule, {
+						payment: {
+							gross: first.gross,
+							net: left,
+							disposable: cents(first.gross - statutory),
+							final
+						},
+						order: {
+							principal,
+							recovered: cents(principal - balance),
+							balance,
+							priority: loan.priority ?? 0,
+							creditor: loan.creditor ?? 'EMPLOYER',
+							authority: loan.authority ?? ''
+						},
+						wage_floor: rule.includes('wage_floor') ? wageFloor() : 0
+					});
+		const amount = floorMinor(Math.min(balance, Math.max(0, wanted), left));
+		left = cents(left - amount, settleOptions.currency);
+		if (amount > 0) taken.push({ ...line, amount });
+		if (final && balance - amount > 0)
+			issues.push({
+				code: 'ORDER_OUTSTANDING_AT_EXIT',
+				severity: 'WARNING',
+				message:
+					`${bundle.employment.employee_number} leaves this period owing ${cents(balance - amount)} ` +
+					`under ${loan.reference ?? loan.id}${loan.authority ? ` (${loan.authority})` : ''}; ` +
+					'this final payslip withheld what the order allows. Notify the creditor of the balance.',
+				collection: 'loans',
+				recordId: loan.id
+			});
+	}
+	const second = settle({ ...settleOptions, adjustments: [...first.adjustments, ...taken] });
+	return {
+		settlement: {
+			...second,
+			shortfalls: [...first.shortfalls, ...second.shortfalls],
+			ceilingExcess: Math.max(first.ceilingExcess, second.ceilingExcess)
+		},
+		issues
+	};
+}
+
+/** A repayment the run writes under its payslip: what one order withheld. */
+export type OrderRepaymentCreate = {
+	readonly loan_id: string;
+	readonly employment_id: string;
+	readonly due_date: string;
+	readonly amount_due: number;
+	readonly sequence: number;
+};
+
+/**
+ * The loan captures of one settled payslip.
+ *
+ * `link` is every repayment the payslip holds: the scheduled ones it recovered, and an order's unlinked
+ * row that a deleted draft left with exactly this period's day and amount (a recompute of the same
+ * inputs). `create` is the repayment each other order line records. `stale` is every other unlinked
+ * row of an order: no payslip holds it and payroll never reads it, so the run removes it.
+ */
+export function loanCaptures(options: {
+	readonly bundle: EmploymentBundle;
+	readonly settlement: Pick<Settlement, 'adjustments'>;
+	/** The repayment ids MEASURE read (`captured.loanRepayments`). */
+	readonly captured: readonly string[];
+}): {
+	readonly link: readonly string[];
+	readonly create: readonly OrderRepaymentCreate[];
+	readonly stale: readonly string[];
+} {
+	const { bundle } = options;
+	const orderIds = new Set<string>(bundle.loans.filter(isOrder).map((loan) => loan.id));
+	const recovered = new Map(
+		options.settlement.adjustments
+			.filter((row) => row.input.family === 'LOAN_REPAYMENT')
+			.map((row) => [row.input.id, row.amount])
+	);
+	const link = options.captured.filter((id) => recovered.has(id) && !orderIds.has(id));
+	const create: OrderRepaymentCreate[] = [];
+	const due = bundle.window.salary.end;
+	const reused = new Set<string>();
+	for (const loanId of orderIds) {
+		const amount = recovered.get(loanId);
+		if (amount == null || amount <= 0) continue;
+		const rows = bundle.loanRepayments.filter((row) => row.loan_id === loanId);
+		const again = rows.find(
+			(row) =>
+				row.payslip_id == null &&
+				dateKey(row.due_date) === due &&
+				cents(decodeNumber(row.amount_due)) === amount
+		);
+		if (again != null) {
+			reused.add(again.id);
+			link.push(again.id);
+			continue;
+		}
+		create.push({
+			loan_id: loanId,
+			employment_id: bundle.employment.id,
+			due_date: due,
+			amount_due: amount,
+			sequence: Math.max(0, ...rows.map((row) => row.sequence)) + 1
+		});
+	}
+	const stale = bundle.loanRepayments
+		.filter((row) => orderIds.has(row.loan_id) && row.payslip_id == null && !reused.has(row.id))
+		.map((row) => row.id);
+	return { link, create, stale };
+}
+
+/**
+ * What a run withheld for third parties, by the loan catalogue code it was withheld under: the amount a
+ * remittance duty (`duty_types`, trigger RUN_FINALISED) owes each creditor, read as `run.withheld.<code>`.
+ * ponytail: keyed by catalogue code, so two courts under one code share one duty; key by `authority` if a
+ * lineage needs one instance per creditor.
+ */
+export function thirdPartyWithheld(
+	loans: readonly Pick<Loan, 'id' | 'creditor'>[],
+	repayments: readonly Pick<LoanRepayment, 'id' | 'loan_id'>[],
+	adjustments: readonly Pick<MeasuredAdjustment, 'input' | 'amount' | 'catalogueComponent'>[]
+): Readonly<Record<string, number>> {
+	const owed = new Set(
+		loans.filter((loan) => loan.creditor === 'THIRD_PARTY').map((loan) => loan.id)
+	);
+	// An order's line names its loan; a scheduled recovery's names its repayment.
+	const thirdParty = new Set<string>([
+		...owed,
+		...repayments.filter((row) => owed.has(row.loan_id)).map((row) => row.id)
+	]);
+	const withheld: Record<string, number> = {};
+	for (const row of adjustments) {
+		if (row.input.family !== 'LOAN_REPAYMENT' || !thirdParty.has(row.input.id)) continue;
+		const code = row.catalogueComponent.code;
+		withheld[code] = cents((withheld[code] ?? 0) + row.amount);
+	}
+	return withheld;
+}

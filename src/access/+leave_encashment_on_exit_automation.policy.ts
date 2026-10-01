@@ -15,6 +15,7 @@ export default policy({
 		employees: { read: true },
 		companies: { read: true },
 		company_facts: { read: true },
+		worksites: { read: true },
 		payment_holds: { read: true, create: true },
 		employment_terms: { read: true },
 		jurisdiction_settings: { read: true },
@@ -28,6 +29,8 @@ export default policy({
 		leave_entries: { read: true, create: { approval: [HR_LEAVE_TIME_OFF, HR_LEAVE_MANUAL] } },
 		statutory_contributions: { read: true },
 		employment_statutory_facts: { read: true },
+		person_facts: { read: true },
+		employment_history: { read: true },
 		adhoc_catalogue: { read: true },
 		adhoc_requests: { read: true, create: { approval: SEPARATION_APPROVAL } }
 	},

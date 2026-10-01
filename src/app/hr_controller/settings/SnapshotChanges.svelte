@@ -20,7 +20,6 @@
 		type CollectionDiff,
 		type LeafChange
 	} from '../../../lib/snapshot_diff.js';
-	import { snapshotId } from './jurisdiction-scope.svelte.js';
 	import * as Predicate from 'effect/Predicate';
 
 	type Version = {
@@ -31,12 +30,11 @@
 	};
 
 	type Props = {
-		code: string;
 		versions: readonly Version[];
 		selectedVersion: Version | null;
 	};
 
-	let { code, versions, selectedVersion }: Props = $props();
+	let { versions, selectedVersion }: Props = $props();
 
 	let baseVersionId = $state<Id<'jurisdiction_settings'> | null>(null);
 	let compareVersionId = $state<Id<'jurisdiction_settings'> | null>(null);
@@ -56,10 +54,10 @@
 	const baseChoice = $derived(baseVersion?.id ?? null);
 	const compareChoice = $derived(compareVersion?.id ?? null);
 	const snapshotChoices = $derived(
-		versions.map((version, offset) => ({
+		versions.map((version) => ({
 			value: version.id,
-			label: snapshotId(code, versions, offset),
-			description: formatSettingsRange(version.effective_range)
+			label: formatSettingsRange(version.effective_range),
+			description: version.name
 		}))
 	);
 

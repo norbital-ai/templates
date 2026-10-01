@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { Field, Form, RecordShell, type RecordView } from '@norbital-ai/ui';
-	import { Column, Grid, Stack } from '@norbital-ai/ui/layout';
+	import { bolt } from '$bolt';
+	import { Column, Grid } from '@norbital-ai/ui/layout';
 	import type { Id } from '@norbital-ai/bolt';
 	import BenefitCaseFactsField from '../../../lib/ui/leave/benefit-case-facts-field.svelte';
 	import FormSection from '../../../lib/ui/form-section.svelte';
@@ -11,37 +12,33 @@
 	const record = $derived(view.mode === 'update' ? view.record : null);
 </script>
 
-<RecordShell
-	of="benefit_case_cutoffs"
-	mode={view.mode}
-	{...record == null ? {} : { id: record.id }}
->
-	{#if record == null}
+{#if record == null}
+	<RecordShell of="benefit_case_cutoffs" mode="create">
 		<Form
 			of="benefit_case_cutoffs"
 			mode="create"
 			values={createValues(view)}
-			submit="Record benefit cutoff evidence"
+			submit={bolt.t('component.benefit_cutoff_record')}
 			onOutcome={openCreated(view)}
 		>
 			{#snippet children(form)}
 				<FormSection
 					first
-					title="Benefit cutoff"
-					hint="Pin each leave slice and its sourced employee premium shares. A projected share must be checked against the actual payroll assessment before settlement."
+					title={bolt.t('component.benefit_cutoff')}
+					hint={bolt.t('component.benefit_cutoff_hint')}
 				>
 					<Grid gap="sm" minimum="compact">
-						<Field name="benefit_case_plan_id" label="Frozen benefit pay plan" />
-						<Field name="cutoff_reference" label="Cutoff reference" />
-						<Field name="payroll_period" label="Payroll period" />
-						<Field name="salary_window" label="Salary window" />
-						<Field name="leave_slice" label="Benefit leave slice" />
-						<Field name="pay_on" label="Scheduled payday" />
-						<Field name="premium_basis" label="Premium evidence basis" />
-						<Field name="premium_reference" label="Premium source reference" />
-						<Field name="premium_file" label="Premium source file" />
+						<Field name="benefit_case_plan_id" />
+						<Field name="cutoff_reference" />
+						<Field name="payroll_period" />
+						<Field name="salary_window" />
+						<Field name="leave_slice" />
+						<Field name="pay_on" />
+						<Field name="premium_basis" />
+						<Field name="premium_reference" />
+						<Field name="premium_file" />
 						<Column span="all">
-							<Field name="premium_shares" label="Employee premium shares">
+							<Field name="premium_shares">
 								{#snippet editor(field)}
 									<BenefitCaseFactsField
 										view={{
@@ -62,21 +59,12 @@
 				</FormSection>
 			{/snippet}
 		</Form>
-	{:else}
-		<Stack gap="sm" class="text-sm">
-			<p>
-				{record.cutoff_reference} · {record.payroll_period} · scheduled pay {String(record.pay_on)}
-			</p>
-			<p>Salary and leave periods are frozen on this cutoff evidence row.</p>
-			<p>
-				Employee shares: {Object.entries(record.premium_shares ?? {})
-					.map(([code, amount]) => `${code} ${amount}`)
-					.join(', ')} ({record.premium_basis}).
-			</p>
-			<p class="text-muted-foreground">
-				Evidence row only. The pay run must verify the complete leave partition and actual premium
-				assessment before pricing.
-			</p>
-		</Stack>
-	{/if}
-</RecordShell>
+	</RecordShell>
+{:else}
+	<!-- a stored cutoff is evidence, read as stored -->
+	<RecordShell
+		of="benefit_case_cutoffs"
+		id={record.id}
+		hint={bolt.t('component.benefit_cutoff_note')}
+	/>
+{/if}

@@ -23,6 +23,13 @@ import {
 	validateRosteredExpectations,
 	type RunIssue
 } from './validate.js';
+import { dutyBlockIssues } from '../../checks.js';
+import { dutyTypesOf } from '../../obligations/materialise.js';
+import { entityFactsOwed, owedIssues, type OwedInput } from '../../facts-owed.js';
+import { referenceCodes } from '../../expressions/functions/tables.js';
+import { settingsInForce } from '../../jurisdiction_settings.js';
+import { live } from './effective.js';
+import type { PayrollWorld } from '../world.js';
 
 /**
  * Every blocking issue this run can be refused on without building it.
@@ -36,6 +43,8 @@ import {
  *   called, so it costs nothing at all;
  * - **open clocks**, read directly over the attendance window rather than out of a gathered
  *   bundle. This is the one that was actually refusing builds and leaving drafts behind.
+ * - **declared facts owed** (`facts-owed.ts`, with `world`) and **duties that block a run** (`openDuties`),
+ *   whose verdicts the build would reach one refusal at a time.
  *
  * Everything else the engine validates — overtime ceilings, daily work limits, pay-calendar cadences
  * — needs per-employment measurement to know, and stays where the measurement is.
@@ -47,6 +56,7 @@ export function payrollRunPrecheck(options: {
 	readonly bundles: readonly Pick<
 		EmploymentBundle,
 		| 'employment'
+		| 'employee'
 		| 'termsHistory'
 		| 'workDays'
 		| 'rosters'
@@ -54,8 +64,29 @@ export function payrollRunPrecheck(options: {
 		| 'employedDays'
 		| 'deferral'
 	>[];
+	/**
+	 * The duty codes OPEN on this run's company or on an earlier run of it (`obligation_instances`, state OPEN): a
+	 * duty type that `blocks: RUN` refuses the run while one is open.
+	 */
+	readonly openDuties?: readonly string[] | undefined;
+	/**
+	 * The run's world: every declared fact the build would refuse on (`facts-owed.ts`) refuses the run here, all at
+	 * once, the list the facts-owed page shows.
+	 */
+	readonly world?: PayrollWorld | undefined;
 }): RunIssue[] {
 	const issues: RunIssue[] = validateConfiguration(options.configuration);
+	if (options.world != null) issues.push(...owedIssues(entityFactsOwed(owedInput(options))));
+	issues.push(
+		...dutyBlockIssues({
+			duties: dutyTypesOf(options.configuration.jurisdiction),
+			block: 'RUN',
+			open: options.openDuties ?? [],
+			subject: options.configuration.company.name,
+			collection: 'companies',
+			recordId: options.configuration.company.id
+		})
+	);
 	if (options.bundles.length === 0) return issues;
 	// Re-shaped into the bundles `validateOpenWorkDays` reads, rather than reimplementing what an
 	// unclosed interval is. The rule and its sentence live in one place, and this is only a second
@@ -121,11 +152,53 @@ export function payrollRunPrecheck(options: {
 					shift_definition_id: day.shift_definition_id
 				})),
 				holidayDates: new Set(
-					atWorksite(options.configuration, bundle.termsHistory).holidays.keys()
+					atWorksite(
+						options.configuration,
+						bundle.termsHistory,
+						bundle.workDays,
+						bundle.employee
+					).holidays.keys()
 				)
 			})),
 			...rosteredWorkCodeMaps([...options.configuration.shiftById.values()])
 		})
 	);
 	return blockers(issues);
+}
+
+/** The run's world as the facts-owed list reads it: the company's live employments, their people and terms. */
+function owedInput(options: {
+	readonly configuration: Configuration;
+	readonly window: PayrollWindow;
+	readonly world?: PayrollWorld | undefined;
+}): OwedInput {
+	const { configuration, world } = options;
+	const code = configuration.jurisdiction.code;
+	const versionOn = (day: string) => settingsInForce(configuration.lineageVersions, code, day);
+	const employments = live(world?.employments ?? []).filter(
+		(row) => row.company_id === configuration.company.id
+	);
+	const ids = new Set(employments.map((row) => row.id));
+	const people = new Set(employments.map((row) => row.employee_id));
+	return {
+		asOf: options.window.salary.end,
+		window: options.window.salary,
+		versionOn,
+		company: configuration.company,
+		companyFactRevisions: configuration.companyFactRevisions,
+		employments,
+		employees: live(world?.employees ?? []).filter((row) => people.has(row.id)),
+		terms: live(world?.employment_terms ?? []).filter((row) => ids.has(row.employment_id)),
+		personFacts: live(world?.person_facts ?? []).filter((row) => people.has(row.employee_id)),
+		evidence: new Set(
+			live(world?.fact_evidence ?? []).map(
+				(row) => `${row.subject.collection}:${row.subject.id}:${row.fact_key}`
+			)
+		),
+		codesOn: (day) =>
+			referenceCodes(
+				configuration.referenceRows.get((versionOn(day) ?? configuration.jurisdiction).id) ?? [],
+				day
+			)
+	};
 }

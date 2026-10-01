@@ -20,18 +20,18 @@
 
 	type StatusKind = Value['kind'];
 
-	const KIND_OPTIONS: { value: StatusKind; label: string; description: string }[] = [
+	const KIND_OPTIONS: { value: StatusKind; label: string; description: string }[] = $derived([
 		{
 			value: 'REGISTERED',
-			label: 'Registered',
-			description: 'Has a reference number with the authority'
+			label: t('statutory_status.registered'),
+			description: t('statutory_status.registered_hint')
 		},
 		{
 			value: 'NOT_REGISTERED',
-			label: 'Not registered',
-			description: 'Exempt or out of scope — a reason is required'
+			label: t('statutory_status.not_registered'),
+			description: t('statutory_status.not_registered_hint')
 		}
-	];
+	]);
 
 	let {
 		view,
@@ -54,9 +54,10 @@
 	const current = $derived(view.value ?? null);
 	const summary = $derived.by(() => {
 		if (current === null) return '—';
-		if (current.kind === 'NOT_REGISTERED') return `Not registered — ${current.reason}`;
+		if (current.kind === 'NOT_REGISTERED')
+			return `${t('statutory_status.not_registered')} — ${current.reason}`;
 		const override = current.rate_override == null ? '' : ` @ ${current.rate_override}`;
-		return `Registered ${current.reference_number}${override}`;
+		return `${t('statutory_status.registered')} ${current.reference_number}${override}`;
 	});
 
 	function emit(next: Value | null): void {
@@ -65,13 +66,13 @@
 
 	type Opening = NonNullable<Extract<Value, { kind: 'REGISTERED' }>['opening']>[number];
 	type ChildClaim = NonNullable<Extract<Value, { kind: 'REGISTERED' }>['child_claims']>[number];
-	const CHILD_CLASSES = [
-		{ value: 'UNDER_18', label: 'Under 18 during the tax year' },
-		{ value: 'STUDYING', label: 'Adult in qualifying full-time education' },
-		{ value: 'TERTIARY', label: 'Adult in qualifying higher education' },
-		{ value: 'DISABLED', label: 'Certified disabled child' },
-		{ value: 'DISABLED_TERTIARY', label: 'Disabled adult in qualifying higher education' }
-	];
+	const CHILD_CLASSES = $derived([
+		{ value: 'UNDER_18', label: t('statutory_status.child_under_18') },
+		{ value: 'STUDYING', label: t('statutory_status.child_studying') },
+		{ value: 'TERTIARY', label: t('statutory_status.child_tertiary') },
+		{ value: 'DISABLED', label: t('statutory_status.child_disabled') },
+		{ value: 'DISABLED_TERTIARY', label: t('statutory_status.child_disabled_tertiary') }
+	]);
 	/**
 	 * The registered arm with one row of a list — the instalments or the earlier-employer openings —
 	 * replaced, or the list without it.
@@ -148,7 +149,7 @@
 		gap="sm"
 		minimum="compact"
 	>
-		<Labelled label="Status" class="text-sm font-medium">
+		<Labelled label={t('statutory_status.status')} class="text-sm font-medium">
 			<Combobox
 				class="w-64 max-w-full"
 				size="sm"
@@ -160,7 +161,7 @@
 			/>
 		</Labelled>
 		{#if current?.kind === 'REGISTERED'}
-			<Labelled label="Reference number" class="text-sm font-medium">
+			<Labelled label={t('statutory_status.reference_number')} class="text-sm font-medium">
 				<Input
 					value={current.reference_number}
 					{disabled}
@@ -168,7 +169,7 @@
 					oninput={(event) => emit({ ...current, reference_number: event.currentTarget.value })}
 				/>
 			</Labelled>
-			<Labelled label="Rate override (blank = use the band)" class="text-sm font-medium">
+			<Labelled label={t('statutory_status.rate_override')} class="text-sm font-medium">
 				<Input
 					type="number"
 					min="0"
@@ -252,7 +253,7 @@
 						remove={(index) => editChildClaim(index, null)}
 					>
 						{#snippet row(row, index)}
-							<Labelled label="Tax year">
+							<Labelled label={t('statutory_status.tax_year')}>
 								<Input
 									value={row.year}
 									{disabled}
@@ -261,7 +262,7 @@
 									oninput={(event) => editChildClaim(index, { year: event.currentTarget.value })}
 								/>
 							</Labelled>
-							<Labelled label="Relief category">
+							<Labelled label={t('statutory_status.relief_category')}>
 								<Combobox
 									class="w-64 max-w-full"
 									size="sm"
@@ -273,7 +274,7 @@
 									}}
 								/>
 							</Labelled>
-							<Labelled label="Children claimed at 100%">
+							<Labelled label={t('statutory_status.children_full')}>
 								<Input
 									type="number"
 									min="0"
@@ -284,7 +285,7 @@
 										editChildClaim(index, { full_count: numberOr(event.currentTarget.value) })}
 								/>
 							</Labelled>
-							<Labelled label="Children claimed at 50%">
+							<Labelled label={t('statutory_status.children_half')}>
 								<Input
 									type="number"
 									min="0"
@@ -295,7 +296,7 @@
 										editChildClaim(index, { half_count: numberOr(event.currentTarget.value) })}
 								/>
 							</Labelled>
-							<Labelled label="Declaration reference">
+							<Labelled label={t('statutory_status.declaration_reference')}>
 								<Input
 									value={row.reference}
 									{disabled}
@@ -428,7 +429,7 @@
 										editOpening(index, { employer: numberOr(event.currentTarget.value) })}
 								/>
 							</Labelled>
-							<Labelled label="Prior-employer rebatable payments">
+							<Labelled label={t('statutory_status.prior_rebatable')}>
 								<Input
 									type="number"
 									min="0"
@@ -479,9 +480,9 @@
 									value={row.payroll_frequency ?? ''}
 									{disabled}
 									options={[
-										{ value: 'MONTHLY', label: 'Monthly' },
-										{ value: 'SEMI_MONTHLY', label: 'Semi-monthly' },
-										{ value: 'WEEKLY', label: 'Weekly' }
+										{ value: 'MONTHLY', label: t('statutory_status.monthly') },
+										{ value: 'SEMI_MONTHLY', label: t('statutory_status.semi_monthly') },
+										{ value: 'WEEKLY', label: t('statutory_status.weekly') }
 									]}
 									onChange={(value) => {
 										if (value === 'MONTHLY' || value === 'SEMI_MONTHLY' || value === 'WEEKLY')
@@ -604,7 +605,7 @@
 				</details>
 			</Column>
 		{:else if current?.kind === 'NOT_REGISTERED'}
-			<Labelled label="Reason" class="text-sm font-medium">
+			<Labelled label={t('statutory_status.reason')} class="text-sm font-medium">
 				<Input
 					value={current.reason}
 					{disabled}
@@ -612,7 +613,7 @@
 					oninput={(event) => emit({ ...current, reason: event.currentTarget.value })}
 				/>
 			</Labelled>
-			<Labelled label="Declaration reference" class="text-sm font-medium">
+			<Labelled label={t('statutory_status.declaration_reference')} class="text-sm font-medium">
 				<Input
 					value={current.declaration_reference ?? ''}
 					{disabled}

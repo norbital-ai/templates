@@ -556,7 +556,8 @@
 				codeById,
 				observed,
 				limits,
-				cutoffDay
+				cutoffDay,
+				unitHours: rules?.overtime_unit_hours
 			}),
 			holiday: observed.holidays.has(date),
 			entitled:
@@ -914,7 +915,7 @@
 					type="number"
 					min="0"
 					max="24"
-					step="0.5"
+					step={settingsVersion?.work_rules?.overtime_unit_hours ?? 'any'}
 					class="w-28"
 					aria-label={t('roster.day_sheet_planned_overtime')}
 					value={draftOvertime ?? ''}
@@ -965,13 +966,10 @@
 			{/if}
 		</FormSection>
 		{#if consentRequired}
-			<FormSection
-				title="Overtime consent"
-				hint="The worker’s prior consent to this overtime or holiday-work occasion, unless the day records its exception. Use a UTC timestamp."
-			>
+			<FormSection title={t('roster.consent_title')} hint={t('roster.consent_hint')}>
 				{#if planWritable}
 					<Stack as="label" gap="xs" class="text-xs">
-						<span>Worker consent (YYYY-MM-DDTHH:mm:ss.sssZ)</span>
+						<span>{t('roster.consent_input')}</span>
 						<Input
 							type="text"
 							value={draftConsent}
@@ -980,7 +978,7 @@
 					</Stack>
 				{:else}
 					{@render fieldRow(
-						'Worker consent',
+						t('roster.consent_worker'),
 						record?.overtime_consented_at == null ? '—' : String(record.overtime_consented_at)
 					)}
 				{/if}

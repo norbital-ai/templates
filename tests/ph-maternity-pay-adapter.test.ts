@@ -48,8 +48,10 @@ const entries = spans.map(([from, through], index) => ({
 	employment_id: 'employment-1',
 	leave_code: 'MATERNITY_LEAVE',
 	approval_id: null,
-	event_kind: 'BIRTH',
-	event_date: '2026-10-05',
+	facts: {
+		event_kind: 'BIRTH',
+		event_date: '2026-10-05'
+	},
 	charges: daysBetween(from, through).map((date) => ({ date, days: 1 }))
 }));
 const cutoffs = spans.map(([start, end], index) => ({
@@ -207,7 +209,14 @@ test('PH saved case adapter refuses unsupported wage evidence, paid overlap and 
 		() =>
 			planPhMaternityPayslips({
 				...saved,
-				entries: [...entries, { ...entries[0], id: 'other-event', event_date: '2026-10-06' }]
+				entries: [
+					...entries,
+					{
+						...entries[0],
+						id: 'other-event',
+						facts: { ...entries[0].facts, event_date: '2026-10-06' }
+					}
+				]
 			}),
 		/Every benefit leave charge in the case span/
 	);

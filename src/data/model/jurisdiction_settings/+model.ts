@@ -37,8 +37,34 @@ export default model({
 		payment_facts: { kind: 'custom', of: 'fact_keys', default: [] },
 		/** Jurisdiction inputs recorded on the obligation a payment settles (`settlement.facts.<key>`). */
 		settlement_facts: { kind: 'custom', of: 'fact_keys', default: [] },
+		/** Inputs recorded on a dated worksite revision (`worksites.facts`, `worksite.facts.<key>`): an industry classification, a project. */
+		worksite_facts: { kind: 'custom', of: 'fact_keys', default: [] },
+		/** Jurisdiction inputs recorded on a dated person revision (`person_facts.facts`, `employee.facts.<key>`). */
+		person_facts: { kind: 'custom', of: 'fact_keys', default: [] },
+		/** The kinds of prior history a person carries (`employment_history.kind`), each with its declared facts. */
+		history_kinds: { kind: 'custom', of: 'history_kinds', default: [] },
+		/**
+		 * The tables this version's rows fill (`reference_rows`): option lists a `code` input picks from
+		 * and statutory tables `table()`, `band()` and `bands()` read.
+		 */
+		tables: { kind: 'custom', of: 'reference_tables', default: [] },
+		/**
+		 * Locality overlays (`lineage_overlays`): on a day `when` holds over the placed worksite, the
+		 * named lineage's version in force replaces the listed work-rule parts, its leave rows by code and
+		 * its tables by name. Schemes stay with this version. `[]` when none.
+		 */
+		overlays: { kind: 'custom', of: 'lineage_overlays', default: [] },
 		/** Employer duties outside the calculation; `[]` when none (set by the transform). */
 		obligations: { kind: 'custom', of: 'obligations' },
+		/** The employer duties this version declares (the obligation ledger); `[]` when none. */
+		duty_types: { kind: 'custom', of: 'duty_types', default: [] },
+		/** What refuses or warns at a lifecycle stage (E9); `[]` when none. */
+		checks: { kind: 'custom', of: 'checks', default: [] },
+		/**
+		 * Declared statutory returns and bank files (`returns`): cadence, population, every column as an
+		 * expression over the filing site, the record layout and the duty the file evidences. `[]` when none.
+		 */
+		returns: { kind: 'custom', of: 'returns', default: [] },
 		/** What this version changes against its predecessor, in the operator's words. */
 		change_summary: { kind: 'text', optional: true },
 		effective_range: { kind: 'period', of: 'date' }

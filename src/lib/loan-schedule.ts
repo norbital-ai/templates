@@ -25,7 +25,7 @@ export type LoanRepaymentDraft = {
  * principal. One cent of rounding is not an imbalance; a cent more than that is. Exactly the
  * tolerance is accepted — the comparison is `>`.
  */
-const LOAN_SCHEDULE_TOLERANCE = 0.01;
+export const LOAN_SCHEDULE_TOLERANCE = 0.01;
 
 export function loanScheduleTotal(rows: readonly { readonly amount_due?: unknown }[]): number {
 	return rows.reduce((total, row) => total + decodeNumber(row.amount_due), 0);
@@ -330,9 +330,11 @@ type RepaymentProgress = {
  */
 export function repaymentProgress(
 	repayments: readonly { readonly amount_due?: unknown }[],
-	recoveredAmount: number
+	recoveredAmount: number,
+	/** A rule-recovered order's principal: its rows are what was withheld, not a plan that sums to it. */
+	orderPrincipal?: number
 ): RepaymentProgress | null {
-	const principal = loanScheduleTotal(repayments);
+	const principal = orderPrincipal ?? loanScheduleTotal(repayments);
 	if (!Number.isFinite(principal) || principal < 0) return null;
 	const outstandingAmount = Math.max(0, principal - recoveredAmount);
 	let covered = 0;

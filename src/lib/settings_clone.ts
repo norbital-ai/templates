@@ -20,7 +20,8 @@ const FAMILIES = [
 	'loan_catalogue',
 	'claim_catalogue',
 	'adhoc_catalogue',
-	'allowance_catalogue'
+	'allowance_catalogue',
+	'reference_rows'
 ] as const;
 type Family = (typeof FAMILIES)[number];
 
@@ -48,6 +49,8 @@ export type SettingsVersionTree = Readonly<{
 	claimCatalogue: readonly Row<'claim_catalogue'>[];
 	adhocCatalogue: readonly Row<'adhoc_catalogue'>[];
 	allowanceCatalogue: readonly Row<'allowance_catalogue'>[];
+	/** The version's table rows: option lists and statutory tables (`tables` declares them). */
+	referenceRows: readonly Row<'reference_rows'>[];
 }>;
 
 /** The nested write that creates a draft: the root and every child row created under it. */
@@ -70,7 +73,7 @@ export async function readSettingsVersionTree(
 		where: { settings_id: { eq: source.id }, approval_id: { isNull: true } },
 		all: true
 	} as const;
-	const [schemes, leave, loan, claim, adhoc, allowance] = await Promise.all([
+	const [schemes, leave, loan, claim, adhoc, allowance, reference] = await Promise.all([
 		ctx.read('statutory_contributions', {
 			...under,
 			select: everyField('statutory_contributions')
@@ -79,7 +82,8 @@ export async function readSettingsVersionTree(
 		ctx.read('loan_catalogue', { ...under, select: everyField('loan_catalogue') }),
 		ctx.read('claim_catalogue', { ...under, select: everyField('claim_catalogue') }),
 		ctx.read('adhoc_catalogue', { ...under, select: everyField('adhoc_catalogue') }),
-		ctx.read('allowance_catalogue', { ...under, select: everyField('allowance_catalogue') })
+		ctx.read('allowance_catalogue', { ...under, select: everyField('allowance_catalogue') }),
+		ctx.read('reference_rows', { ...under, select: everyField('reference_rows') })
 	]);
 	return {
 		source,
@@ -88,7 +92,8 @@ export async function readSettingsVersionTree(
 		loanCatalogue: loan.rows,
 		claimCatalogue: claim.rows,
 		adhocCatalogue: adhoc.rows,
-		allowanceCatalogue: allowance.rows
+		allowanceCatalogue: allowance.rows,
+		referenceRows: reference.rows
 	};
 }
 
@@ -119,7 +124,8 @@ export function settingsDraftWrite(
 		loan_catalogue: tree.loanCatalogue,
 		claim_catalogue: tree.claimCatalogue,
 		adhoc_catalogue: tree.adhocCatalogue,
-		allowance_catalogue: tree.allowanceCatalogue
+		allowance_catalogue: tree.allowanceCatalogue,
+		reference_rows: tree.referenceRows
 	};
 	const write = {
 		...root,

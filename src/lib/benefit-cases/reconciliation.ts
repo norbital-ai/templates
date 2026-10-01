@@ -1,10 +1,12 @@
 import type { Decimal } from '@norbital-ai/std/decimal';
-import type { BenefitCaseType } from '../datatypes/payroll_settings.js';
+import type { BenefitCaseType } from '../datatypes/case_types.js';
 import { dateKey, isCalendarDate } from '../iso-day.js';
-import { addDays, daysBetween } from '../payroll/run/dates.js';
+import { daysBetween } from '../payroll/run/dates.js';
 import { refuse } from '../refuse.js';
 import { decodeNumber } from '../wire.js';
+import { leaveEventOf } from '../leave/activity-fields.js';
 import {
+	advanceDue,
 	caseFactsFault,
 	caseSite,
 	claimStatuses,
@@ -29,8 +31,8 @@ type Entry = {
 	readonly approval_id?: string | null;
 	readonly as_adjustment_entry?: boolean | null;
 	readonly reversal_of_id?: string | null;
-	readonly event_kind?: string | null;
-	readonly event_date?: string | null;
+	/** The entry's declared event facts (`leaveEventOf`). */
+	readonly facts?: Readonly<Record<string, unknown>> | null;
 	readonly charges?: readonly { readonly date: string; readonly days: number }[] | null;
 	readonly payslip_id?: string | null;
 };
@@ -66,10 +68,10 @@ function completeSpan(
 	site: ReturnType<typeof caseSite>,
 	expected: readonly string[]
 ): boolean {
-	const eventDay = site.event.date;
+	const eventDay = site.case.event_on;
 	if (
 		eventDay === '' ||
-		!type.event_kinds.includes(site.event.kind) ||
+		!type.event_kinds.includes(site.case.event_kind) ||
 		caseFactsFault(type, caseRow) != null ||
 		Object.values(claimStatuses(type, site)).some(
 			(status) => status === 'DOCUMENT_MISSING_OR_OUTSIDE_EVENT'
@@ -105,7 +107,9 @@ export function reconcileBenefitCase(input: {
 	const application = dateKey(caseRow.application_on);
 	if (!isCalendarDate(asOf) || !isCalendarDate(application))
 		refuse('Benefit reconciliation needs a real as-of and application date.');
-	const due = addDays(application, type.advance_due_days);
+	const site = caseSite(type, caseRow, input.evidence);
+	// A case type that advances nothing has no advance deadline: its award is paid by the scheme.
+	const due = advanceDue(type, site);
 	const award = caseRow.award_amount == null ? null : decodeNumber(caseRow.award_amount);
 	const role = (row: Movement) =>
 		type.movement_kinds.find((kind) => kind.code === row.kind) ?? null;
@@ -125,12 +129,15 @@ export function reconcileBenefitCase(input: {
 			})
 			.reduce((total, row) => total + Math.round(decodeNumber(row.amount) * 100), 0) / 100;
 	const advance = sum('EMPLOYEE_PAYMENT', type.components.award, asOf);
-	const advanceByDue = sum('EMPLOYEE_PAYMENT', type.components.award, due < asOf ? due : asOf);
+	const advanceByDue = sum(
+		'EMPLOYEE_PAYMENT',
+		type.components.award,
+		due !== '' && due < asOf ? due : asOf
+	);
 	const reimbursement = sum('EMPLOYER_RECEIPT', type.components.award, asOf);
 	const differential = sum('EMPLOYEE_PAYMENT', type.components.differential, asOf);
 	const reversed = reversedIds(input.entries);
-	const site = caseSite(type, caseRow, input.evidence);
-	const eventDay = site.event.date;
+	const eventDay = site.case.event_on;
 	const from = dateKey(caseRow.leave_from);
 	const through = dateKey(caseRow.leave_through);
 	const matched = input.entries.filter(
@@ -140,8 +147,8 @@ export function reconcileBenefitCase(input: {
 			row.approval_id == null &&
 			!row.as_adjustment_entry &&
 			!reversed.has(row.id) &&
-			row.event_kind === caseRow.event_kind &&
-			dateKey(row.event_date) === eventDay &&
+			leaveEventOf(row).kind === caseRow.event_kind &&
+			leaveEventOf(row).date === eventDay &&
 			eventDay !== ''
 	);
 	const charges = matched.flatMap((row) => row.charges ?? []);
@@ -186,18 +193,20 @@ export function reconcileBenefitCase(input: {
 			wage_basis: 'UNASSESSED'
 		},
 		award: {
-			advance_due_on: due,
+			advance_due_on: due === '' ? null : due,
 			award_amount: award,
 			advance_paid: advance,
 			advance_paid_by_due: advanceByDue,
 			advance_status:
-				award == null
-					? 'AWARD_NOT_RECORDED'
-					: advanceByDue >= award
-						? 'PROVEN_BY_DUE_DATE'
-						: asOf > due
-							? 'NOT_PROVEN_BY_DUE_DATE'
-							: 'PENDING',
+				due === ''
+					? 'NO_ADVANCE_DECLARED'
+					: award == null
+						? 'AWARD_NOT_RECORDED'
+						: advanceByDue >= award
+							? 'PROVEN_BY_DUE_DATE'
+							: asOf > due
+								? 'NOT_PROVEN_BY_DUE_DATE'
+								: 'PENDING',
 			reimbursement_received_by_employer: reimbursement,
 			reimbursement_status:
 				award != null && reimbursement > Math.min(award, advance)

@@ -13,24 +13,25 @@ import type {
 } from '../payroll/family.js';
 import type { LeaveActivity } from './pending.js';
 import { activeTimeOff } from './activity.js';
-import { leaveActivityOf, normaliseLeaveDays } from './activity-fields.js';
+import { leaveActivityOf, leaveEventOf, normaliseLeaveDays } from './activity-fields.js';
 import type { LeaveContext } from './context.js';
 import { coversDate, live, overlapsRange, readRange } from '../../lib/payroll/run/effective.js';
 import {
 	evaluateNumberOver,
 	isEligible,
-	personContext
+	personContext,
+	scalarFacts
 } from '../../lib/payroll/run/eligibility.js';
 import { daysBetween, inclusiveDays } from '../../lib/payroll/run/dates.js';
 import type { Configuration } from '../../lib/payroll/run/configuration.js';
 import { encashmentCode } from './codes.js';
 import { cents } from '../../lib/payroll/run/rounding.js';
 import { personFactsForVersion } from '../payroll/facts.js';
-import { resolveCompanyFacts } from '../declared-facts.js';
+import { resolveCompanyFacts, resolveFactValues } from '../declared-facts.js';
+import type { FactKey } from '../datatypes/fact_keys.js';
 import { settingsInForce } from '../jurisdiction_settings.js';
 import { personWageFloor } from '../payroll/contribution.js';
 import type { WorkspaceRow } from '../rows.js';
-import { decodeNumber } from '../wire.js';
 import { dateKey } from '../iso-day.js';
 import { unsupportedHourlyLeave } from './hourly-requirement.js';
 import { hourlyLeaveBasis } from './hourly-requirement.js';
@@ -44,6 +45,13 @@ type LeaveCapture = {
 	readonly leave_entry_id: string;
 	readonly charges: readonly LeaveCharge[];
 	readonly gross_amount: MoneyValue;
+	/**
+	 * A pinned entry's last day its pinning run's window reached: a later window prices the entry's
+	 * days after it, without moving the pin. Absent is settled whole.
+	 */
+	readonly through?: string | undefined;
+	/** This slip priced the days of an entry an earlier slip pinned: it does not pin it again. */
+	readonly continued?: boolean | undefined;
 };
 
 export type SettledLeaveCapture = LeaveCapture & { readonly pay_items: readonly LeavePayItem[] };
@@ -170,6 +178,14 @@ export function prepareLeavePayroll(options: {
 	const payslipById = new Map<string, (typeof payslipRows)[number]>(
 		payslipRows.map((row) => [row.id, row])
 	);
+	// The window a pin's run reached: an entry longer than it (a maternity leave across months) is
+	// priced for its later days by the later runs, each for the days inside its own window.
+	const runOfSlip = new Map<string, string>(
+		live(world.payslips).map((row) => [row.id, row.payroll_run_id])
+	);
+	const runThrough = new Map<string, string>(
+		world.payroll_runs.map((row) => [row.id, dateKey(row.attendance_to)])
+	);
 	const entriesByEmployment = Map.groupBy(entries, (row) => row.employment_id);
 	const result = new Map<string, GatheredLeave>();
 	for (const employment of options.employments) {
@@ -187,6 +203,7 @@ export function prepareLeavePayroll(options: {
 					charges: entry.charges,
 					pay_items,
 					gross_amount: leaveCaptureAmount(pay_items, payslip?.currency ?? options.currency),
+					through: runThrough.get(runOfSlip.get(entry.payslip_id) ?? '') || undefined,
 					// Paid is this person's own slip, read only where a reversal negates it.
 					paid: payslip?.paid_at != null
 				}
@@ -333,13 +350,14 @@ export function withLeaveDeductionEligibility(
 	);
 	const timeOff = activeTimeOff(gathered.entries);
 	for (const entry of timeOff) {
-		if (entry.event_date == null) continue;
+		const eventDate = leaveEventOf(entry).date;
+		if (eventDate == null) continue;
 		const dates = timeOff
 			.filter(
 				(row) =>
 					row.employment_id === entry.employment_id &&
 					row.leave_code === entry.leave_code &&
-					dateKey(row.event_date) === dateKey(entry.event_date)
+					leaveEventOf(row).date === eventDate
 			)
 			.flatMap((row) => row.charges.map((charge) => charge.date));
 		for (const charge of entry.charges) {
@@ -355,6 +373,7 @@ export function withLeaveDeductionEligibility(
 		}
 	}
 	for (const entry of timeOff) {
+		const event = leaveEventOf(entry);
 		if (
 			gathered.catalogues.find((row) => row.id === entry.catalogue_id)?.requires_no_pay_origin ===
 			true
@@ -365,7 +384,7 @@ export function withLeaveDeductionEligibility(
 				refuse(`${entry.leave_code} without an employee request needs its pay basis assessed.`);
 		}
 		if (
-			entry.event_date == null &&
+			event.date == null &&
 			entry.charges.some(
 				(charge) =>
 					gathered.catalogues.find((row) => row.id === charge.catalogue_id)?.entitlement
@@ -401,15 +420,15 @@ export function withLeaveDeductionEligibility(
 			.filter(
 				(row) =>
 					row.id === entry.id ||
-					(entry.event_date != null &&
+					(event.date != null &&
 						row.leave_code === entry.leave_code &&
-						row.event_date === entry.event_date)
+						leaveEventOf(row).date === event.date)
 			)
 			.flatMap((row) => row.charges);
 		// The leave opens on the event's first charged day: an event filed one entry per period keeps
 		// counting `day_index` / `month_index` across them (TH LPA s.59: wages for the first 60 days).
 		const opening = eventCharges.map((charge) => charge.date).toSorted()[0] ?? '';
-		if (calendarEntitlement && entry.event_date != null) {
+		if (calendarEntitlement && event.date != null) {
 			const dates = eventCharges.map((charge) => charge.date);
 			const closing = dates.toSorted().at(-1)!;
 			const chargedDates = new Set(dates);
@@ -431,16 +450,16 @@ export function withLeaveDeductionEligibility(
 				(row) => row.settings_id === version?.id && row.code === catalogue.code
 			);
 			if (datedCatalogue?.entitlement.requires_wife_prior_living_biological_children === true) {
-				if (entry.event_relationship !== 'WIFE')
+				if (event.relationship !== 'WIFE')
 					refuse(
 						`${datedCatalogue.name} requires the birth event to identify the employee’s wife.`
 					);
 				if (!entry.reference.trim() || entry.certificate_file == null)
 					refuse(`${datedCatalogue.name} requires its birth evidence and supporting reference.`);
 				if (
-					['BIRTH', 'BIRTH_SURGERY', 'PRETERM_BIRTH'].includes(entry.event_kind ?? '') &&
-					(!Number.isInteger(entry.event_wife_prior_living_biological_children) ||
-						(entry.event_wife_prior_living_biological_children ?? -1) < 0)
+					['BIRTH', 'BIRTH_SURGERY', 'PRETERM_BIRTH'].includes(event.kind ?? '') &&
+					(!Number.isInteger(event.wife_prior_living_biological_children) ||
+						(event.wife_prior_living_biological_children ?? -1) < 0)
 				)
 					refuse(
 						`${datedCatalogue.name} requires the wife’s prior living biological child count on the birth date.`
@@ -454,11 +473,11 @@ export function withLeaveDeductionEligibility(
 				refuse('Approved leave has no effective captured employment terms.');
 			const person = personContext({
 				event: {
-					kind: entry.event_kind,
-					relationship: entry.event_relationship,
-					child_index: entry.event_child_index,
-					wife_prior_living_biological_children: entry.event_wife_prior_living_biological_children,
-					date: entry.event_date
+					kind: event.kind,
+					relationship: event.relationship,
+					child_index: event.child_index,
+					wife_prior_living_biological_children: event.wife_prior_living_biological_children,
+					date: event.date
 				},
 				employee: options.employee,
 				employment: stint(options.employment, version?.exit_facts ?? []),
@@ -519,8 +538,16 @@ export function withLeaveDeductionEligibility(
 						event_day: eventCharges
 							.filter((row) => row.date <= charge.date)
 							.reduce((sum, row) => sum + row.days, 0),
-						agreed_fraction: decodeNumber(entry.agreed_pay_fraction ?? 0),
-						year_taken: yearTaken
+						year_taken: yearTaken,
+						// The event or state the entry records, as its catalogue row declares it.
+						facts: resolveFactValues(
+							(catalogue.event_facts ?? []) as readonly FactKey[],
+							scalarFacts(entry.facts),
+							`${catalogue.code} on ${charge.date}`,
+							false
+						),
+						// The entry that opened the episode, the entry itself when it opens one.
+						episode_id: String(entry.episode_id ?? entry.id)
 					}
 				});
 				share = 1 - Math.min(1, Math.max(0, paid));
@@ -543,6 +570,7 @@ export function leavePayrollInputs(options: {
 		readonly leave_entry_id: string;
 		/** Whether the payslip that froze this capture had been paid. */
 		readonly paid?: boolean | undefined;
+		readonly through?: string | undefined;
 	}[];
 	/** Money-only callers (hasLeavePayment) do not judge whether a time-off entry straddles. */
 	readonly monetaryOnly?: boolean | undefined;
@@ -554,24 +582,27 @@ export function leavePayrollInputs(options: {
 		)
 	);
 	const settled = new Set(options.captures.map((row) => row.leave_entry_id));
+	const through = new Map(options.captures.map((row) => [row.leave_entry_id, row.through]));
+	// A time-off entry is charged and priced for the days inside each window. The first slip to
+	// price any of its days pins it, so it is locked from then on; a later window prices its own
+	// days of the pinned entry and leaves the pin where it is.
+	// ponytail: a reversal negates the pinning slip's lines only; a later window's lines for the
+	// same entry need their own correction until reversals read every slip that priced it.
 	const timeOff = options.monetaryOnly
 		? []
 		: activeTimeOff(approved).flatMap((entry) => {
-				if (settled.has(entry.id)) return [];
+				const after = through.get(entry.id);
+				if (settled.has(entry.id) && after == null) return [];
 				const charges = entry.charges.filter(
-					(row) => row.date >= options.salaryWindow.start && row.date <= options.salaryWindow.end
+					(row) =>
+						row.date >= options.salaryWindow.start &&
+						row.date <= options.salaryWindow.end &&
+						(after == null || row.date > after)
 				);
 				if (charges.length === 0) return [];
-				if (charges.length !== entry.charges.length)
-					refuse(
-						`Approved ${entry.leave_code} leave straddles the payroll window ` +
-							`${options.salaryWindow.start}–${options.salaryWindow.end}. A time-off entry ` +
-							'settles whole in the period that contains all of its days; split the leave ' +
-							'into one entry per period.'
-					);
 				if (new Set(charges.map((row) => row.date)).size !== charges.length)
 					refuse('Approved leave has duplicate charges for one date.');
-				return [{ entry, charges }];
+				return [{ entry, charges, continued: settled.has(entry.id) }];
 			});
 	const monetary = approved.flatMap((entry) => {
 		if (settled.has(entry.id) || reversed.has(entry.id)) return [];
@@ -620,7 +651,11 @@ export function leaveCoverage(
 	includesDate: (date: string) => boolean = () => true
 ) {
 	const days: Record<string, number> = {};
-	const byCode: Record<string, number> = {};
+	// Every code of the lineage reads 0 until charged: `period.leave_days.<CODE>` names a code the
+	// window may not have (compile fills a mentioned key with 0, so the run does too).
+	const byCode: Record<string, number> = Object.fromEntries(
+		prepared.catalogues.map((row) => [row.code, 0])
+	);
 	const datesByCode = new Map<string, Map<string, number>>();
 	const seen = new Set<string>();
 	const add = (entryId: string, charge: LeaveCharge) => {
@@ -644,9 +679,9 @@ export function leaveCoverage(
 	for (const entry of activeTimeOff(prepared.entries))
 		for (const charge of entry.charges) add(entry.id, charge);
 	const fullDaysByCode = Object.fromEntries(
-		[...datesByCode].map(([code, dates]) => [
+		Object.keys(byCode).map((code) => [
 			code,
-			[...dates.values()].filter((days) => days >= 1).length
+			[...(datesByCode.get(code)?.values() ?? [])].filter((days) => days >= 1).length
 		])
 	);
 	return { days, byCode, fullDaysByCode };
@@ -740,19 +775,21 @@ export function calculateLeavePayroll(options: {
 	const add = (
 		entryId: string,
 		charges: readonly LeaveCharge[],
-		items: readonly LeavePayItem[]
+		items: readonly LeavePayItem[],
+		continued = false
 	) => {
 		captures.push({
 			leave_entry_id: entryId,
 			charges,
 			pay_items: items,
-			gross_amount: leaveCaptureAmount(items, currency)
+			gross_amount: leaveCaptureAmount(items, currency),
+			...(continued ? { continued } : {})
 		});
 	};
 	// Round cumulative deductions per dated salary basis. Independently rounded days can exceed
 	// the prorated salary when an entire pay period is unpaid. Each capture retains its allocated share.
 	const deductionTotals = new Map<string, number>();
-	for (const { entry, charges } of selected.timeOff.toSorted(
+	for (const { entry, charges, continued } of selected.timeOff.toSorted(
 		(a, b) =>
 			(a.charges[0]?.date ?? '').localeCompare(b.charges[0]?.date ?? '') ||
 			a.entry.id.localeCompare(b.entry.id)
@@ -801,7 +838,7 @@ export function calculateLeavePayroll(options: {
 				rate
 			});
 		}
-		add(entry.id, charges, items);
+		add(entry.id, charges, items, continued);
 	}
 	for (const { entry } of options.includeMonetary === false ? [] : selected.monetary) {
 		const activity = leaveActivityOf(entry);

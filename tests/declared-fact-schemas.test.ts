@@ -161,12 +161,9 @@ test('a version’s subject schemas compile at their sites; evidence stays off a
 		}),
 		/requested payment requirement/
 	);
-	// An entity fact's evidence is recorded on its dated revision; a departure has no subject row.
+	// An entity fact's evidence is recorded on its dated revision; a departure's on its employment.
 	await write({ facts: [{ key: 'registered', type: 'boolean', evidence: { kind: 'FILE' } }] });
-	await assert.rejects(
-		write({ exit_facts: [{ key: 'registered', type: 'boolean', evidence: { kind: 'FILE' } }] }),
-		/evidence is declared on entity, terms, work-day, payment and settlement inputs/
-	);
+	await write({ exit_facts: [{ key: 'registered', type: 'boolean', evidence: { kind: 'FILE' } }] });
 });
 
 const sealedTest = (terms_facts) => ({

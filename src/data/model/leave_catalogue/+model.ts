@@ -8,7 +8,7 @@ export default model({
 	description:
 		'One leave definition: eligibility, computed entitlement, whether a day is unpaid, whether it may be encashed and the evidence it demands. Manual entries decide carry-forward and encashment.',
 	icon: 'lucide:calendar-days',
-	label: ['code', 'name'],
+	label: 'name',
 	fields: {
 		code: { kind: 'text' },
 		name: { kind: 'text' },
@@ -33,7 +33,14 @@ export default model({
 		encash_on_exit: { kind: 'bool', default: false },
 		/** From this many charged days a certificate is required. */
 		evidence_after_days: { kind: 'int', min: 0, optional: true },
-		entitlement: { kind: 'custom', of: 'leave_entitlement' }
+		entitlement: { kind: 'custom', of: 'leave_entitlement' },
+		/** What an entry of this leave records about its event or state (`leave_entries.facts`, `leave.facts.<key>`). */
+		event_facts: { kind: 'custom', of: 'fact_keys', default: [] },
+		/**
+		 * A leave-year-end conversion: `scheduled_entries` raises the unused balance of each leave year
+		 * as a held ENCASHMENT on the year's last day; `due` is the legal pay day (`leave_year.end`).
+		 */
+		schedule: { kind: 'custom', of: 'catalogue_schedule', optional: true }
 	},
 	unique: [{ fields: ['settings_id', 'code'] }],
 	search: { text: ['code', 'name'] }

@@ -103,7 +103,7 @@ type Employment = {
 	readonly company_id: string;
 	readonly employee_id: string;
 	readonly effective_range: unknown;
-	readonly exit_reason: string | null;
+	readonly exit_ground: string | null;
 	readonly exit_facts: Record<string, unknown> | null;
 };
 type Run = { readonly id: string; readonly company_id: string; readonly period: string };
@@ -722,7 +722,7 @@ c.transform(async (inputs, ctx) => {
 						employment: {
 							service_start: dateKey(readRange(employment.effective_range)?.start),
 							exit_date: exit,
-							exit_reason: employment.exit_reason,
+							exit_ground: employment.exit_ground,
 							exit_facts: employment.exit_facts
 						},
 						terms: term ?? null,

@@ -444,7 +444,18 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 	const named = [...(roster ?? []), ...(attendance ?? []), ...(overtime ?? [])];
 	for (const row of named) contractFor(row);
 
-	// ── a roster is whole: every employed day of the month, for every person the sheet names ──
+	const onLeave = (employmentId: string, date: string) =>
+		leaveRows.rows.some(
+			(request) =>
+				String(request.employment_id) === employmentId &&
+				leaveCoverage(
+					{ ...request, from_date: day(request.from_date), to_date: day(request.to_date) },
+					date
+				).fullDay
+		);
+
+	// ── a roster is whole: every employed day of the month, for every person the sheet names; a day
+	// approved full-day leave owns may stay blank ──
 	if (roster !== undefined) {
 		const stated = new Set(roster.map((row) => `${row.employee_number}\t${row.work_date}`));
 		const gaps: string[] = [];
@@ -453,8 +464,10 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 			const missing: string[] = [];
 			for (let date = bounds.start; date <= bounds.end; date = addDays(date, 1))
 				if (
-					own.some((contract) => coversDate(contract.effective_range, date)) &&
-					!stated.has(`${number}\t${date}`)
+					!stated.has(`${number}\t${date}`) &&
+					own.some(
+						(contract) => coversDate(contract.effective_range, date) && !onLeave(contract.id, date)
+					)
 				)
 					missing.push(date);
 			if (missing.length > 0)
@@ -752,7 +765,8 @@ export async function importMonth(payload: MonthImport, ctx: Ctx) {
 					};
 				}),
 				limits,
-				cutoffDay
+				cutoffDay,
+				unitHours: rules?.overtime_unit_hours
 			});
 			for (const date of monthDates) {
 				const at = personDayKey(employmentId, date);

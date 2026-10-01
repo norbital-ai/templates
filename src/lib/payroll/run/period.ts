@@ -538,8 +538,17 @@ export function taxYearFirstPeriod(period: string, taxYearStartMonth: number): s
 	return `${taxYearOf(period, taxYearStartMonth)}-${String(start).padStart(2, '0')}`;
 }
 
+export const RUN_KINDS = ['REGULAR', 'OFF_CYCLE', 'FINAL', 'CORRECTION'] as const;
+export type RunKind = (typeof RUN_KINDS)[number];
+
+type RunKey = {
+	readonly period: string;
+	readonly kind?: string | null;
+	readonly sequence?: number | null;
+};
+
 /**
- * One company has one run per period, and periods are created in order.
+ * One company has one REGULAR run per period, and periods are created in order.
  *
  * A standing draft no longer blocks the next period. It used to: an unsettled January refused a
  * February run outright, so a month waiting on one person's correction froze the next month's
@@ -551,12 +560,18 @@ export function taxYearFirstPeriod(period: string, taxYearStartMonth: number): s
  * A period the company skipped is still refused, because the skip is the fault: creating March
  * while February was never run leaves February's wages, attendance and entries unconsumed with
  * nothing that will ever pick them up.
+ *
+ * FINAL, OFF_CYCLE and CORRECTION runs stand beside the REGULAR one of their period, any number of
+ * them, but never behind a later period: a run slotted under a later one would change history the
+ * later run already read. That is also why a correction is a new line in a later run, never an edit.
  */
 export function assertPayrollPeriodAvailable(
-	runs: readonly { readonly period: string }[],
-	period: string
+	runs: readonly RunKey[],
+	period: string,
+	kind: RunKind = 'REGULAR'
 ): void {
-	if (runs.some((run) => run.period === period))
+	const regular = runs.filter((run) => (run.kind ?? 'REGULAR') === 'REGULAR');
+	if (kind === 'REGULAR' && regular.some((run) => run.period === period))
 		refuse(
 			`Payroll ${period} already exists. Delete its draft to replace it, or settle later approved entries in the next payroll period.`
 		);
@@ -566,11 +581,15 @@ export function assertPayrollPeriodAvailable(
 			`Payroll ${later.period} already exists. Record corrections in the next payroll period.`
 		);
 	const previous = previousPeriod(period);
-	if (runs.length > 0 && !runs.some((run) => run.period === previous))
+	if (regular.some((run) => run.period < period) && !regular.some((run) => run.period === previous))
 		refuse(
 			`Payroll ${previous} was never run. Run it first, or ${period} would leave its wages, attendance and entries unconsumed.`
 		);
 }
+
+/** The sequence a new run of `period` takes: one past the highest standing one. */
+export const nextRunSequence = (runs: readonly RunKey[], period: string): number =>
+	Math.max(0, ...runs.filter((run) => run.period === period).map((run) => run.sequence ?? 1)) + 1;
 
 /** The period a run of `period` stands on, in the same grammar: the prior month, or the prior half. */
 export function previousPeriod(period: string): string {
@@ -585,16 +604,17 @@ export function previousPeriod(period: string): string {
  *
  * Deleting a run releases every source it captured. Doing that to a run with a later run standing
  * on top of it would release rows the later run has already read and priced, so the later run's
- * payslips would cite inputs that are free again — and nothing downstream would notice. The order
- * was documented and unchecked; this is the check.
+ * payslips would cite inputs that are free again — and nothing downstream would notice. Within a
+ * period the later run is the higher sequence, which read this one as month-to-date history.
  */
-export function assertPayrollRunDeletable(
-	runs: readonly { readonly period: string }[],
-	period: string
-): void {
-	const later = runs.find((run) => run.period > period);
+export function assertPayrollRunDeletable(runs: readonly RunKey[], run: RunKey): void {
+	const later = runs.find(
+		(other) =>
+			other.period > run.period ||
+			(other.period === run.period && (other.sequence ?? 1) > (run.sequence ?? 1))
+	);
 	if (later)
 		refuse(
-			`Payroll ${later.period} was run after ${period}. Delete payrolls newest first, or ${later.period} would cite inputs this delete releases.`
+			`Payroll ${later.period} #${later.sequence ?? 1} was run after ${run.period} #${run.sequence ?? 1}. Delete payrolls newest first, or the later run would cite inputs this delete releases.`
 		);
 }

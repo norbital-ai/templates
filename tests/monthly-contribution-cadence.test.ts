@@ -201,7 +201,7 @@ for (const cutoff of ['FIRST', 'SPLIT', 'LAST'])
 					}
 				});
 
-for (const code of ['MY', 'MY-nihon'] as const)
+for (const code of ['MY'] as const)
 	for (const period of ['2026-02', '2026-05'])
 		test(`${code} weekly wages use one monthly statutory assessment in ${period}`, () => {
 			const weeks = weeklyInstalments(period);
@@ -253,7 +253,7 @@ for (const code of ['MY', 'MY-nihon'] as const)
 					);
 		});
 
-for (const code of ['SG', 'VN', 'MY', 'MY-nihon', 'ID', 'TW'] as const)
+for (const code of ['SG', 'VN', 'MY', 'ID', 'TW'] as const)
 	for (const cutoff of ['FIRST', 'SPLIT', 'LAST'])
 		test(`${code} ${cutoff} cut-offs reconcile to monthly assessments throughout the year`, () => {
 			const wage =
@@ -274,7 +274,7 @@ for (const code of ['SG', 'VN', 'MY', 'MY-nihon', 'ID', 'TW'] as const)
 						? 'Provinsi DKI Jakarta'
 						: code === 'TW'
 							? 'Taiwan'
-							: code === 'MY' || code === 'MY-nihon'
+							: code === 'MY'
 								? 'Malaysia'
 								: 'I',
 				riskClass: code === 'TW' ? '1' : 'II',
@@ -308,7 +308,7 @@ for (const code of ['SG', 'VN', 'MY', 'MY-nihon', 'ID', 'TW'] as const)
 						? 'Provinsi DKI Jakarta'
 						: code === 'TW'
 							? 'Taiwan'
-							: code === 'MY' || code === 'MY-nihon'
+							: code === 'MY'
 								? 'Malaysia'
 								: 'I',
 				riskClass: code === 'TW' ? '1' : 'II',

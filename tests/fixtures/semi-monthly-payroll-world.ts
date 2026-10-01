@@ -66,8 +66,8 @@ export function createSemiMonthlyPayrollWorld(): PayrollWorld {
 		rules: [
 			{
 				when: 'base >= 0.0',
-				employee: 'round_cent(base * 11.0 / 100.0)',
-				employer: 'round_cent(base * 13.0 / 100.0)'
+				employee: 'round(base * 11.0 / 100.0, 0.01, "HALF_UP")',
+				employer: 'round(base * 13.0 / 100.0, 0.01, "HALF_UP")'
 			}
 		],
 		approval_id: null

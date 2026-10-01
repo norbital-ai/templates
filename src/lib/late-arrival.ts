@@ -5,14 +5,19 @@ import { settingsInForce } from './jurisdiction_settings.js';
 import { leaveCoverage } from './scheduling/leave-coverage.js';
 import { workWindow } from './scheduling/roster-code.js';
 import { offsetMinutesAt } from './timezone.js';
+import { decodeNumber } from './wire.js';
 
-/** Minutes after a shift's start before its missing clock-in is a late arrival. */
-export const GRACE_MINUTES = 15;
 /** How long after its start a shift is still reminded about: a missed wake or two, never yesterday's night shift. */
 export const LOOKBACK_MINUTES = 6 * 60;
 
 // Rows as the run reads them: ids, days and instants arrive as the wire's strings.
-type Company = { readonly id: string; readonly name: string; readonly settings_code: string };
+type Company = {
+	readonly id: string;
+	readonly name: string;
+	readonly settings_code: string;
+	/** Company policy: minutes after a shift's start before its missing clock-in is a late arrival. */
+	readonly late_arrival_grace_minutes: unknown;
+};
 type Version = {
 	readonly id: string;
 	readonly code: string;
@@ -80,7 +85,7 @@ export function companyZones(world: Pick<LateArrivalWorld, 'companies' | 'versio
 
 /**
  * The reminders due now, and the next instant one can fall due. A planned WORK day whose start plus the grace
- * has passed within the lookback, with no clock-in and no full-day time off, is one reminder keyed by person
+ * (the company's policy) has passed within the lookback, with no clock-in and no full-day time off, is one reminder keyed by person
  * and day (so a re-run writes nothing twice); a later such start is the next wake.
  */
 export function lateArrivals(
@@ -120,7 +125,7 @@ export function lateArrivals(
 		);
 		if (excused) continue;
 		const start = wallInstant(workDate, window.start_time, zone);
-		const late = start + GRACE_MINUTES * 60_000;
+		const late = start + decodeNumber(company.late_arrival_grace_minutes) * 60_000;
 		if (late > now.getTime()) {
 			next = next == null ? late : Math.min(next, late);
 			continue;

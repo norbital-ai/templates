@@ -9,7 +9,7 @@ import {
 	latestDueMonthNormalRate,
 	previousWagePeriodOrdinaryRate,
 	type ReferenceWagePeriod
-} from '../src/lib/payroll/reference-wages.ts';
+} from '../src/lib/payroll/history.ts';
 
 const id = (n: number) => `a2000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const PERIOD_ID = id(900);

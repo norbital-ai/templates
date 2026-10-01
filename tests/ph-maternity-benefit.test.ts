@@ -38,19 +38,22 @@ test('PH SSS maternity uses three paid months before the contingency semester an
 	assert.deepEqual(result.qualifying_window, { from: '2025-07', through: '2026-06' });
 	assert.equal(result.window_closes_on, '2026-07-01');
 	assert.equal(result.paid_months, 3);
-	assert.equal(result.contribution_qualified, true);
-	assert.equal(result.total_credit, 45_000);
-	assert.equal(result.daily_credit, 250);
+	// (20,000 + 15,000 + 10,000) ÷ 180 = 250 a day × 105 days, priced by the phase's stored award.
+	assert.deepEqual(
+		result.phases.map((phase) => [phase.code, phase.days, phase.award]),
+		[['MATERNITY', 105, 26_250]]
+	);
 	assert.equal(result.candidate_benefit, 26_250);
 	assert.equal(
 		candidate([...history, { ...history[0]!, coverage_month: '2025-06' }]).candidate_benefit,
 		26_250
 	);
-	assert.equal(
-		candidate(history.map((row, i) => (i === 2 ? { ...row, paid_on: '2026-07-01' } : row)))
-			.contribution_qualified,
-		false
+	// A month paid on the close does not count: two paid months are short of the stored three.
+	const short = candidate(
+		history.map((row, i) => (i === 2 ? { ...row, paid_on: '2026-07-01' } : row))
 	);
+	assert.equal(short.paid_months, 2);
+	assert.equal(short.candidate_benefit, 0);
 });
 
 test('PH case SSS candidate reads saved member history and refuses unproved solo-parent extension', async () => {
@@ -112,7 +115,7 @@ test('PH benefit distinguishes 105, 120 and 60 days and caps at six regular MSCs
 		i < 7 ? { ...row, credited_amount: 20_000 - 2_000 * i, paid_on: '2026-06-30' } : row
 	);
 	const documented = [soloParentFile()];
-	assert.equal(candidate(history).total_credit, 90_000);
+	// The six highest of seven: 20,000 + 18,000 + … + 10,000 = 90,000 ÷ 180 × 105.
 	assert.equal(candidate(history).candidate_benefit, 52_500);
 	assert.equal(
 		candidate(history, birth('BIRTH', SOLO_PARENT_ID), documented).candidate_benefit,

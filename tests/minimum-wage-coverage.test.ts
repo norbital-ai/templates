@@ -30,9 +30,10 @@ const accumulationOf = (base: number) => {
 
 const FLOORED = {
 	when: 'base >= 0.0',
-	employee: 'round_cent((base < person.wage_floor ? person.wage_floor : base) * 1.0 / 100.0)',
+	employee:
+		'round((base < person.wage_floor ? person.wage_floor : base) * 1.0 / 100.0, 0.01, "HALF_UP")',
 	employer:
-		'round_cent((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base) * 4.0 / 100.0)'
+		'round((base > 20.0 * minimum_wage(person.company.region) ? 20.0 * minimum_wage(person.company.region) : base) * 4.0 / 100.0, 0.01, "HALF_UP")'
 };
 const scheme = {
 	row: {
@@ -492,6 +493,7 @@ test('PH daily apprentice at exactly 75% of each NCR floor has no rounding warni
 				{ key: 'ORDINARY', wage: exact, pay_frequency: 'DAILY', employment_type: 'PERMANENT' }
 			]
 		});
+		// December 2025 spans four versions with one NCR floor: one warning each, not one a version.
 		assert.deepEqual(
 			result.warnings
 				.filter((warning) => warning.startsWith('MINIMUM_WAGE_BELOW:'))

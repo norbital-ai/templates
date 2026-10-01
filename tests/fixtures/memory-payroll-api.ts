@@ -11,6 +11,8 @@ export type PayrollWorld = {
 	readonly payment_holds?: PayrollRow[];
 	readonly jurisdiction_settings: PayrollRow[];
 	readonly statutory_contributions: PayrollRow[];
+	/** A version's `tables` rows; a world that states none has no table rows. */
+	readonly reference_rows?: PayrollRow[];
 	readonly loan_catalogue: PayrollRow[];
 	readonly claim_catalogue: PayrollRow[];
 	/** The ad hoc classes; a world that states none has no one-off pay. */
@@ -47,6 +49,7 @@ const COLLECTIONS = [
 	'company_facts',
 	'jurisdiction_settings',
 	'statutory_contributions',
+	'reference_rows',
 	'loan_catalogue',
 	'claim_catalogue',
 	'adhoc_catalogue',

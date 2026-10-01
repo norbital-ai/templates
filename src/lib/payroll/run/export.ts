@@ -6,12 +6,16 @@
 
 import type ExcelJS from 'exceljs';
 import { Effect, Number as EffectNumber } from 'effect';
-import { bySchemeListing, schemeLabel } from '../../../lib/payroll/scheme-label.js';
 import {
-	IDENTITY_OUTPUT_IDS,
-	identityRow,
+	bySchemeListing,
+	schemeGroup,
+	schemeLabel,
+	type SchemeListing
+} from '../../../lib/payroll/scheme-label.js';
+import {
 	outputGroups,
 	workbookRows,
+	type ReportContribution,
 	type ReportLine,
 	type ReportPayslip,
 	catalogueGroups,
@@ -55,189 +59,314 @@ const THIN_BORDER = { style: 'thin', color: { argb: 'FFB8B5A8' } } as const;
 const INFOTECH_NAVY = 'FF17365D';
 const INFOTECH_LIGHT_BLUE = 'FFD9EAF7';
 
-const HUMAN_HEADERS: Readonly<Record<string, string>> = {
-	eid: 'Employee ID',
-	ic_no: 'Identification No.',
-	basic_salary: 'Basic Salary',
-	gross_salary: 'Gross Salary',
-	net_salary: 'Net Salary',
-	incentive_ot: 'OT Incentive',
-	loan_recovery: 'Loan Recovery',
-	epf_employee: 'EPF (Employee)',
-	epf_employer: 'EPF (Employer)',
-	socso_employee: 'SOCSO (Employee)',
-	socso_employer: 'SOCSO (Employer)',
-	eis_employee: 'EIS (Employee)',
-	eis_employer: 'EIS (Employer)',
-	tax_employee: 'PCB / Tax',
-	companyCost: 'Company cost',
-	unfundedContributions: 'Contribution shortfall',
-	fundingReceived: 'Funding received',
-	fundingOutstanding: 'Funding outstanding',
-	// Spelled out because the id cannot be: `15x` beside `1x`, `2x` and `3x` reads as fifteen times
-	// the rate on a document a payroll clerk signs off. It means one and a half.
-	att_ot_15x_hours: 'ATT OT 1.5X Hours',
-	att_normal_hours: 'Normal Hours',
-	att_actual_hours: 'Actual Hours',
-	att_shift_codes: 'Shift Codes'
-};
-
-/**
- * The tokens that are acronyms rather than words, named rather than guessed at by length.
- *
- * The fallback used to uppercase any word of three letters or fewer, on the theory that short
- * tokens are acronyms. `pay`, `day` and `no` are three letters and are not, so the salary listing a
- * payroll clerk reads printed `Back PAY Payment`, `NO PAY Leave` and `Last DAY`. Length cannot tell
- * `pcb` from `pay`; only a list can, so this is the list.
- *
- * A token ending in `x` after digits — `1x`, `2x` — is an overtime multiple and stays uppercase, so
- * `att_ot_1x_hours` still reads `ATT OT 1X Hours` as the customer's workbook has it.
- */
-const HEADER_ACRONYMS: ReadonlySet<string> = new Set([
-	'att',
-	'aws',
-	'cp38',
-	'cpf',
-	'ee',
-	'eid',
-	'eis',
-	'epf',
-	'fw',
-	'hrdf',
-	'ic',
-	'npl',
-	'ot',
-	'pcb',
-	'sdl',
-	'socso'
-]);
-
-const OVERTIME_MULTIPLE = /^\d+x$/;
-
-/** A catalogue code: upper snake, and the label the owner asked for is the code itself. */
-const CATALOGUE_CODE = /^[A-Z][A-Z0-9_]*$/;
-
-function humanHeader(outputId: string): string {
-	// A catalogue column is headed by its own code, verbatim. Title-casing it would invent a second
-	// name for a component that already has one, and the reconciliation is done against the code.
-	if (CATALOGUE_CODE.test(outputId)) return outputId;
-	// A per-band overtime column: `OVERTIME:OT-1.5X` reads as `OT 1.5X`, its funnel as `OT INCENTIVE 1.5X`.
-	const band = /^(OVERTIME|INCENTIVE):OT-(.+)$/.exec(outputId);
-	if (band !== null) return band[1] === 'INCENTIVE' ? `OT INCENTIVE ${band[2]}` : `OT ${band[2]}`;
-	return (
-		HUMAN_HEADERS[outputId] ??
-		outputId
-			.split('_')
-			.map((word) =>
-				HEADER_ACRONYMS.has(word) || OVERTIME_MULTIPLE.test(word)
-					? word.toUpperCase()
-					: `${word[0]!.toUpperCase()}${word.slice(1)}`
-			)
-			.join(' ')
-	);
-}
-
 type WorkbookSheet = {
 	/** The worksheet name — one sheet per period. */
 	readonly period: string;
 	readonly payDate?: string | undefined;
-	/** The entity's own named layout; the catalogue matrix is written whatever it says. */
-	readonly layout?: 'MATRIX' | 'VENDOR' | undefined;
+	/** The legal entity's name: the salary listing's masthead. */
+	readonly company?: string | undefined;
 	readonly payslips: readonly ReportPayslip[];
+	/** The run's bank payments, where the export loaded them: the workbook's Bank sheet. */
+	readonly bank?:
+		| readonly {
+				readonly employeeNumber: string;
+				readonly currency: string;
+				readonly net: number;
+				readonly bank: BankAccount;
+		  }[]
+		| undefined;
 };
 
 /**
- * The payroll workbook: one worksheet per period, an identity block, then one column per output id
- * in the order the customer's own workbook reads — earnings and absence, gross, what is paid or
- * recovered after gross, net, the statutory charges, the totals and their bases, attendance.
+ * Where a settled line sits on the salary listing and the sign it prints with. A line outside gross
+ * and net (an employer cost, an information line) is on the Lines sheet, not here.
  */
+const LISTING_PLACE: Readonly<
+	Record<string, { readonly afterGross: boolean; readonly sign: 1 | -1 }>
+> = {
+	EARNING: { afterGross: false, sign: 1 },
+	ABSENCE: { afterGross: false, sign: -1 },
+	NON_WAGE_PAYMENT: { afterGross: true, sign: 1 },
+	DEDUCTION: { afterGross: true, sign: -1 }
+};
+const LISTING_BUCKETS = ['EARNING', 'ABSENCE', 'NON_WAGE_PAYMENT', 'DEDUCTION'];
+/** Pay order inside a bucket; an unranked family follows these, and leave (encashment) comes last. */
+const LISTING_FAMILIES = [
+	'BASE',
+	'ALLOWANCE',
+	OVERTIME_LINE,
+	INCENTIVE_LINE,
+	'WORK_DAY',
+	'ADHOC',
+	'CLAIM',
+	'LOAN_REPAYMENT'
+];
+const listingRank = (line: ReportLine): number => {
+	const key =
+		line.family === 'WORK_DAY' &&
+		(line.componentCode === OVERTIME_LINE || line.componentCode === INCENTIVE_LINE)
+			? line.componentCode
+			: line.family;
+	const family = LISTING_FAMILIES.indexOf(key);
+	return (
+		LISTING_BUCKETS.indexOf(line.bucket) * 100 +
+		(family !== -1 ? family : line.family === 'LEAVE' ? 99 : 50)
+	);
+};
+
+type ListingColumn = {
+	readonly band: string;
+	readonly header: string;
+	readonly width: number;
+	readonly money: boolean;
+	readonly value: (payslip: ReportPayslip) => string | number | Date | null;
+};
+
+const LISTING_MONEY = '#,##0.00;-#,##0.00';
+const LISTING_DATE = 'yyyy-mm-dd';
+const LISTING_HEADER_ROW = 4;
+/** Designation through name stay on screen; the rest of the identity block scrolls. */
+const LISTING_FROZEN_COLUMNS = 5;
+const LISTING_SECTION_INDEX = 1;
+const LISTING_NAME_INDEX = 4;
+
+const listingDay = (value: string | null) =>
+	value == null || value === '' ? null : new Date(`${value}T00:00:00Z`);
+const identity = (header: string, width: number, value: ListingColumn['value']): ListingColumn => ({
+	band: 'Employee',
+	header,
+	width,
+	money: false,
+	value
+});
+const money = (band: string, header: string, value: ListingColumn['value']): ListingColumn => ({
+	band,
+	header,
+	width: EffectNumber.clamp({ minimum: 12, maximum: 18 })(header.length + 2),
+	money: true,
+	value
+});
+
+/** The listing's column for a scheme: a scheme folded into a group is headed by that group. */
+const listingName = (charge: SchemeListing) =>
+	charge.listing_group == null ? schemeLabel(charge) : (charge.label ?? schemeGroup(charge));
+
 /**
- * The one vendor-shaped sheet: the salary listing with its own masthead rows, section band and freeze.
- *
- * This layout is the customer's own workbook, kept as its own entry so the generic matrix below
- * stays a single-layout function — the band places the header row differently and the identity
- * block is eight columns wide.
+ * The salary listing's columns, derived from what these payslips settled: identity, the earnings in
+ * pay order down to gross, what is paid or recovered after gross down to net, each share of every
+ * scheme charged, each scheme's base, and what the period cost the entity.
  */
-function vendorSalaryListingSheet(
-	workbook: ExcelJS.Workbook,
-	sheet: WorkbookSheet,
-	rows: readonly Record<string, string | number | null>[],
-	groups: readonly { readonly name: string; readonly outputIds: readonly string[] }[]
-): void {
-	const columns = groups.flatMap((group) => [...group.outputIds]);
-	const identityColumnCount = IDENTITY_OUTPUT_IDS.length;
-	const cleanName = `${sheet.period} Salary Listing`.slice(0, 31);
-	const clean = workbook.addWorksheet(cleanName, {
-		views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: 5 }],
+function listingColumns(payslips: readonly ReportPayslip[]): ListingColumn[] {
+	const lineColumns = (band: string, afterGross: boolean) => {
+		const first = new Map<string, ReportLine>();
+		for (const line of payslips.flatMap((payslip) => payslip.lines))
+			if (LISTING_PLACE[line.bucket]?.afterGross === afterGross && !first.has(line.componentCode))
+				first.set(line.componentCode, line);
+		return [...first.values()]
+			.toSorted(
+				(a, b) => listingRank(a) - listingRank(b) || a.componentCode.localeCompare(b.componentCode)
+			)
+			.map((column) =>
+				money(band, column.componentName, (payslip) =>
+					payslip.lines.reduce((sum, line) => {
+						const place = LISTING_PLACE[line.bucket];
+						return line.componentCode === column.componentCode && place?.afterGross === afterGross
+							? sum + place.sign * line.amount
+							: sum;
+					}, 0)
+				)
+			);
+	};
+	const charges = payslips.flatMap((payslip) => [...payslip.contributions.values()]);
+	const schemes = new Map<string, ReportContribution>();
+	for (const charge of charges.toSorted(bySchemeListing))
+		if (!schemes.has(schemeGroup(charge))) schemes.set(schemeGroup(charge), charge);
+	const charged = (test: (charge: ReportContribution) => boolean) =>
+		[...schemes].filter(([group]) =>
+			charges.some((charge) => schemeGroup(charge) === group && test(charge))
+		);
+	const inGroup = (
+		payslip: ReportPayslip,
+		group: string,
+		of: (charge: ReportContribution) => number
+	) =>
+		[...payslip.contributions.values()]
+			.filter((charge) => schemeGroup(charge) === group)
+			.reduce((sum, charge) => sum + of(charge), 0);
+	const share = (band: string, role: 'employee' | 'employer') =>
+		charged((charge) => charge[role] !== 0).map(([group, charge]) =>
+			money(band, listingName(charge), (payslip) => inGroup(payslip, group, (c) => c[role]))
+		);
+	return [
+		identity('Designation', 24, (payslip) => payslip.designation),
+		identity('Section', 16, (payslip) => payslip.section),
+		identity('Group', 12, (payslip) => payslip.group),
+		identity('Employee no.', 14, (payslip) => payslip.employeeNumber),
+		identity('Name', 32, (payslip) => payslip.employeeName),
+		identity('Identity no.', 18, (payslip) => payslip.identityNumber),
+		identity('Hire date', 12, (payslip) => listingDay(payslip.hireDate)),
+		identity('Last day', 12, (payslip) => listingDay(payslip.lastDay)),
+		...lineColumns('Earnings', false),
+		money('Gross', 'Gross', (payslip) => payslip.gross),
+		...lineColumns('Additions & deductions', true),
+		money('Net', 'Net', (payslip) => payslip.net),
+		...share('Employee statutory', 'employee'),
+		...share('Employer statutory', 'employer'),
+		...charged((charge) => charge.employee !== 0 || charge.employer !== 0).map(([group, charge]) =>
+			money('Reference bases', `${listingName(charge)} base`, (payslip) =>
+				inGroup(payslip, group, (c) => c.base)
+			)
+		),
+		money('Total', 'Total expenses', (payslip) => payslip.gross + employerShare(payslip))
+	];
+}
+
+/** `2026-01` → `JAN 2026`; a semi-monthly half keeps its part (`JAN 2026 - PART 1`). */
+function listingMonth(period: string): string {
+	const match = /^(\d{4})-(\d{2})(?:-(\d))?$/.exec(period);
+	if (match == null) return period.toUpperCase();
+	const month = new Date(`${match[1]}-${match[2]}-01T00:00:00Z`)
+		.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' })
+		.toUpperCase();
+	return `${month} ${match[1]}${match[3] == null ? '' : ` - PART ${match[3]}`}`;
+}
+
+const byListing = (a: ReportPayslip, b: ReportPayslip) =>
+	// A person with no recorded section sorts after every section, not before it.
+	(a.section == null ? 1 : 0) - (b.section == null ? 1 : 0) ||
+	(a.section ?? '').localeCompare(b.section ?? '') ||
+	(a.group ?? '').localeCompare(b.group ?? '') ||
+	a.employeeNumber.localeCompare(b.employeeNumber);
+
+/**
+ * The salary listing: one row per employee by section, then group, a subtotal under each section
+ * and a grand total, in the columns `listingColumns` derives. The masthead is the entity and the
+ * month, then the column bands, then the headers, all frozen with designation through name.
+ */
+function addSalaryListingSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void {
+	const columns = listingColumns(sheet.payslips);
+	const worksheet = workbook.addWorksheet(`${sheet.period} Salary listing`.slice(0, 31), {
+		views: [
+			{
+				state: 'frozen',
+				xSplit: LISTING_FROZEN_COLUMNS,
+				ySplit: LISTING_HEADER_ROW,
+				showGridLines: false
+			}
+		],
 		pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 }
 	});
-	clean.properties.defaultRowHeight = 20;
-	clean.columns = columns.map((outputId) => ({
-		key: outputId,
-		width: EffectNumber.clamp({ minimum: 12, maximum: 24 })(humanHeader(outputId).length + 2)
-	}));
-	clean.mergeCells(1, 1, 1, columns.length);
-	clean.getCell(1, 1).value = 'SALARY LISTING';
-	clean.getCell(1, 1).font = { bold: true, size: 16, color: { argb: 'FFFFFFFF' } };
-	clean.getCell(1, 1).fill = fill(INFOTECH_NAVY);
-	clean.getCell(1, 1).alignment = { horizontal: 'center', vertical: 'middle' };
-	clean.getRow(1).height = 28;
-	clean.mergeCells(2, 1, 2, columns.length);
-	clean.getCell(2, 1).value =
-		`Salary month: ${sheet.period}${sheet.payDate ? `   ·   Pay date: ${sheet.payDate}` : ''}`;
-	clean.getCell(2, 1).font = { bold: true, color: { argb: INFOTECH_NAVY } };
-	clean.getCell(2, 1).alignment = { horizontal: 'center' };
+	worksheet.columns = columns.map((column) => ({ width: column.width }));
+	const width = columns.length;
+	const masthead = (row: number, text: string, font: Partial<ExcelJS.Font>) => {
+		worksheet.mergeCells(row, 1, row, width);
+		worksheet.getCell(row, 1).value = text;
+		worksheet.getCell(row, 1).font = font;
+	};
+	masthead(1, sheet.company ?? '', { bold: true, size: 14, color: { argb: INFOTECH_NAVY } });
+	masthead(2, `STAFF SALARY LISTING - ${listingMonth(sheet.period)}`, {
+		bold: true,
+		color: { argb: INFOTECH_NAVY }
+	});
 
-	let cleanColumn = 1;
-	for (const group of groups) {
-		const from = cleanColumn;
-		const to = from + group.outputIds.length - 1;
-		clean.getCell(4, from).value = group.name;
-		if (from < to) clean.mergeCells(4, from, 4, to);
-		for (let position = from; position <= to; position += 1) {
-			const cell = clean.getCell(4, position);
+	for (let from = 0; from < width;) {
+		let to = from;
+		while (to + 1 < width && columns[to + 1]!.band === columns[from]!.band) to += 1;
+		if (from < to) worksheet.mergeCells(3, from + 1, 3, to + 1);
+		worksheet.getCell(3, from + 1).value = columns[from]!.band;
+		for (let index = from; index <= to; index += 1) {
+			const cell = worksheet.getCell(3, index + 1);
 			cell.fill = fill(INFOTECH_LIGHT_BLUE);
 			cell.font = { bold: true, color: { argb: INFOTECH_NAVY } };
 			cell.alignment = { horizontal: 'center', vertical: 'middle' };
 			cell.border = { top: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
 		}
-		cleanColumn = to + 1;
+		from = to + 1;
 	}
-	for (const [index, outputId] of columns.entries()) {
-		const cell = clean.getCell(5, index + 1);
-		cell.value = humanHeader(outputId);
+	const header = worksheet.getRow(LISTING_HEADER_ROW);
+	header.height = 32;
+	for (const [index, column] of columns.entries()) {
+		const cell = header.getCell(index + 1);
+		cell.value = column.header;
 		cell.fill = fill(INFOTECH_NAVY);
 		cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-		cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-		cell.border = { top: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
+		cell.alignment = {
+			horizontal: column.money ? 'right' : 'left',
+			vertical: 'middle',
+			wrapText: true
+		};
+		cell.border = { right: THIN_BORDER };
 	}
-	clean.getRow(5).height = 34;
-	for (const row of rows) clean.addRow(cents(row));
-	const firstDataRow = 6;
-	const lastDataRow = firstDataRow + rows.length - 1;
-	if (rows.length > 0) {
-		const total = clean.addRow({ eid: 'TOTAL' });
-		total.font = { bold: true, color: { argb: INFOTECH_NAVY } };
-		total.fill = fill(INFOTECH_LIGHT_BLUE);
-		for (let position = identityColumnCount + 1; position <= clean.columnCount; position += 1) {
-			const outputId = columns[position - 1]!;
-			if (outputId == null) continue;
-			if (outputId === 'remark' || outputId === 'att_shift_codes') continue;
-			total.getCell(position).value = {
-				formula: `SUM(${clean.getColumn(position).letter}${firstDataRow}:${clean.getColumn(position).letter}${lastDataRow})`
-			};
-		}
-	}
-	for (let rowNumber = firstDataRow; rowNumber <= clean.rowCount; rowNumber += 1) {
-		const dataRow = clean.getRow(rowNumber);
-		for (let position = 1; position <= clean.columnCount; position += 1) {
-			const cell = dataRow.getCell(position);
+
+	const round = (value: number) => Math.round(value * 100) / 100;
+	const formatRow = (row: ExcelJS.Row) => {
+		for (const [index, column] of columns.entries()) {
+			const cell = row.getCell(index + 1);
+			if (column.money) cell.numFmt = LISTING_MONEY;
+			else if (cell.value instanceof Date) cell.numFmt = LISTING_DATE;
 			cell.border = { bottom: THIN_BORDER, right: THIN_BORDER };
-			if (position > identityColumnCount && !Predicate.isString(cell.value))
-				cell.numFmt = NUMERIC_FORMAT;
 		}
+	};
+	/** A subtotal over rows `from`–`to`; SUBTOTAL skips the section subtotals inside a grand total's range. */
+	const totalRow = (
+		label: string,
+		section: string | null,
+		from: number,
+		to: number,
+		payslips: readonly ReportPayslip[]
+	) => {
+		const row = worksheet.addRow(
+			columns.map((column, index) => {
+				if (!column.money)
+					return index === LISTING_NAME_INDEX
+						? label
+						: index === LISTING_SECTION_INDEX
+							? section
+							: null;
+				const letter = worksheet.getColumn(index + 1).letter;
+				return {
+					formula: `SUBTOTAL(9,${letter}${from}:${letter}${to})`,
+					result: round(
+						payslips.reduce((sum, payslip) => sum + round(column.value(payslip) as number), 0)
+					)
+				};
+			})
+		);
+		formatRow(row);
+		row.font = { bold: true, color: { argb: INFOTECH_NAVY } };
+		for (let index = 1; index <= width; index += 1) {
+			row.getCell(index).fill = fill(INFOTECH_LIGHT_BLUE);
+			row.getCell(index).border = { top: THIN_BORDER, bottom: THIN_BORDER, right: THIN_BORDER };
+		}
+		return row;
+	};
+
+	const sorted = sheet.payslips.toSorted(byListing);
+	const firstRow = LISTING_HEADER_ROW + 1;
+	for (const [section, members] of Map.groupBy(sorted, (payslip) => payslip.section)) {
+		const from = worksheet.rowCount + 1;
+		for (const payslip of members)
+			formatRow(
+				worksheet.addRow(
+					columns.map((column) => {
+						const value = column.value(payslip);
+						return Predicate.isNumber(value) ? round(value) : value;
+					})
+				)
+			);
+		totalRow(
+			`Subtotal: ${section ?? 'No section'} (${members.length})`,
+			section,
+			from,
+			worksheet.rowCount,
+			members
+		);
 	}
-	clean.autoFilter = { from: { row: 5, column: 1 }, to: { row: 5, column: clean.columnCount } };
+	if (sorted.length > 0) {
+		const total = totalRow(`TOTAL (${sorted.length})`, null, firstRow, worksheet.rowCount, sorted);
+		total.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+		for (let index = 1; index <= width; index += 1) total.getCell(index).fill = fill(INFOTECH_NAVY);
+	}
 }
 
 /** Paint one section's columns: numeric format where it is not the identity block, its colour, alignment and group level. */
@@ -282,42 +411,299 @@ function styleSectionBand(
 }
 
 /**
- * The workbook for one export: one matrix worksheet per period, plus the vendor listing where it applies.
- *
- * ────────────────────────────────────────────────────────────────────────────────────────────────
- * THE MASTHEAD READS THE WAY A PAYROLL CLERK READS IT.
- *
- * Row 1 is the section band — Identity, Earnings, Gross, Statutory … — merged over the columns it
- * groups; row 2 is the column headers, one per catalogue code or derived output. Both rows are
- * frozen together as one two-line masthead, and the machine-readable contract (the acceptance
- * test, the parity manifests) reads its output ids from `HEADER_ROW`.
- *
- * The band leaves column A empty on purpose. Every reader of this file that walks rows — the
- * acceptance test included — identifies a payslip row by its employee number, and a blank there is
- * how the band says "I am not a payslip".
- * ────────────────────────────────────────────────────────────────────────────────────────────────
+ * The payroll workbook: per period the salary listing, then the Summary, the catalogue matrix (row 1
+ * its section band, row 2 one header per output id, which is what machine readers key on), and the
+ * Lines, Statutory and Bank sheets.
  */
 function buildPayrollWorkbook(excel: Excel, sheets: readonly WorkbookSheet[]): ExcelJS.Workbook {
 	const workbook = new excel.Workbook();
 	workbook.creator = 'Norbital';
 	workbook.subject = 'Payroll calculation report';
 
-	for (const sheet of sheets) {
-		/**
-		 * Every period gets the catalogue matrix, and the entity's named layout decides whether the
-		 * vendor listing is written beside it.
-		 *
-		 * The layout used to be inferred — the vendor listing appeared when every payslip in the
-		 * period happened to be in MYR — so one employer's Malaysian entity and its Singaporean one
-		 * received differently shaped files with no way to say otherwise. It is now
-		 * `companies.workbook_layout`, and the matrix is unconditional: whatever the layout, one
-		 * column per catalogue component, grouped by category, is always in the file.
-		 */
-		addMatrixSheet(workbook, sheet);
-		if (sheet.layout === 'VENDOR') addVendorSheet(workbook, sheet);
-	}
+	// The salary listing is what the file is opened for, so it is the first sheet of every period.
+	for (const sheet of sheets) addSalaryListingSheet(workbook, sheet);
+	addSummarySheet(workbook, sheets);
+	// The catalogue matrix, one column per component under its code, stays beside it for reconciliation.
+	for (const sheet of sheets) addMatrixSheet(workbook, sheet);
+	addLinesSheet(workbook, sheets);
+	addStatutorySheet(workbook, sheets);
+	addBankSheet(workbook, sheets);
 
 	return workbook;
+}
+
+type TableColumn = {
+	readonly header: string;
+	readonly key: string;
+	readonly width: number;
+	/** Money: two decimals, and summed on the TOTAL row. */
+	readonly money?: boolean | undefined;
+};
+
+/**
+ * One purpose-built sheet: a frozen, filtered header row, money columns formatted, and — where
+ * `totals` — a TOTAL row summing every money column over the rows above it.
+ */
+function addTableSheet(
+	workbook: ExcelJS.Workbook,
+	name: string,
+	columns: readonly TableColumn[],
+	rows: readonly Record<string, string | number | null>[],
+	totals: boolean
+): void {
+	const worksheet = workbook.addWorksheet(name.slice(0, 31), {
+		views: [{ state: 'frozen', ySplit: 1 }]
+	});
+	worksheet.columns = columns.map(({ header, key, width }) => ({ header, key, width }));
+	for (const row of rows) worksheet.addRow(cents(row));
+	const header = worksheet.getRow(1);
+	header.font = { bold: true, color: { argb: 'FFF7F7F4' } };
+	header.fill = fill('FF26251E');
+	header.height = 22;
+	header.alignment = { vertical: 'middle' };
+	for (const [index, column] of columns.entries())
+		if (column.money === true) {
+			worksheet.getColumn(index + 1).numFmt = NUMERIC_FORMAT;
+			header.getCell(index + 1).alignment = { vertical: 'middle', horizontal: 'right' };
+		}
+	worksheet.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: columns.length } };
+	if (!totals || rows.length === 0) return;
+	const total = worksheet.addRow({ [columns[0]!.key]: 'TOTAL' });
+	total.font = { bold: true };
+	for (const [index, column] of columns.entries()) {
+		if (column.money !== true) continue;
+		const letter = worksheet.getColumn(index + 1).letter;
+		total.getCell(index + 1).value = { formula: `SUM(${letter}2:${letter}${rows.length + 1})` };
+		total.getCell(index + 1).border = { top: THIN_BORDER };
+	}
+}
+
+const employeeShare = (payslip: ReportPayslip) =>
+	[...payslip.contributions.values()].reduce((sum, charge) => sum + charge.employee, 0);
+const employerShare = (payslip: ReportPayslip) =>
+	[...payslip.contributions.values()].reduce((sum, charge) => sum + charge.employer, 0);
+const sumOf = (payslips: readonly ReportPayslip[], of: (payslip: ReportPayslip) => number) =>
+	payslips.reduce((sum, payslip) => sum + of(payslip), 0);
+
+/** Summary: one row per run — headcount, gross, deductions, net, both statutory shares and cost. */
+function addSummarySheet(workbook: ExcelJS.Workbook, sheets: readonly WorkbookSheet[]): void {
+	addTableSheet(
+		workbook,
+		'Summary',
+		[
+			{ header: 'Period', key: 'period', width: 12 },
+			{ header: 'Pay date', key: 'pay_date', width: 12 },
+			{ header: 'Currency', key: 'currency', width: 10 },
+			{ header: 'Employees', key: 'employees', width: 11 },
+			{ header: 'Gross', key: 'gross', width: 16, money: true },
+			{ header: 'Deductions', key: 'deductions', width: 16, money: true },
+			{ header: 'Net pay', key: 'net', width: 16, money: true },
+			{ header: 'Statutory (employee)', key: 'employee', width: 20, money: true },
+			{ header: 'Statutory (employer)', key: 'employer', width: 20, money: true },
+			{ header: 'Employer cost', key: 'cost', width: 16, money: true }
+		],
+		sheets.flatMap((sheet) =>
+			[...Map.groupBy(sheet.payslips, (payslip) => payslip.currency)].map(
+				([currency, payslips]) => ({
+					period: sheet.period,
+					pay_date: sheet.payDate ?? '',
+					currency,
+					employees: payslips.length,
+					gross: sumOf(payslips, (payslip) => payslip.gross),
+					deductions: -sumOf(payslips, (payslip) => payslip.totalDeductions),
+					net: sumOf(payslips, (payslip) => payslip.net),
+					employee: -sumOf(payslips, employeeShare),
+					employer: sumOf(payslips, employerShare),
+					cost: sumOf(payslips, (payslip) => payslip.employerCost)
+				})
+			)
+		),
+		true
+	);
+}
+
+/** The payslip view's sections, by the bucket a line settled in, and the sign it prints with. */
+const LINE_SECTIONS: Readonly<Record<string, { readonly section: string; readonly sign: 1 | -1 }>> =
+	{
+		EARNING: { section: 'Earnings', sign: 1 },
+		ABSENCE: { section: 'Earnings', sign: -1 },
+		DEDUCTION: { section: 'Deductions', sign: -1 },
+		NON_WAGE_PAYMENT: { section: 'Reimbursements', sign: 1 },
+		EMPLOYER_COST: { section: 'Employer contributions', sign: 1 },
+		INFORMATION: { section: 'Information', sign: 1 }
+	};
+
+/** Lines: every payslip line of every employee, one row each, signed as the payslip prints it. */
+function addLinesSheet(workbook: ExcelJS.Workbook, sheets: readonly WorkbookSheet[]): void {
+	const rows = sheets.flatMap((sheet) =>
+		sheet.payslips.flatMap((payslip) => {
+			const who = {
+				period: sheet.period,
+				employee_number: payslip.employeeNumber,
+				employee_name: payslip.employeeName,
+				currency: payslip.currency
+			};
+			const schemes = [...payslip.contributions.values()].toSorted(bySchemeListing);
+			return [
+				...groupedLines(payslip).map((line) => {
+					const place = LINE_SECTIONS[line.bucket] ?? LINE_SECTIONS.INFORMATION!;
+					return {
+						...who,
+						section: place.section,
+						line: lineName(line),
+						detail: line.detail ?? '',
+						quantity: line.quantity,
+						amount: place.sign * line.amount
+					};
+				}),
+				...schemes.flatMap((charge) =>
+					charge.employee === 0
+						? []
+						: [
+								{
+									...who,
+									section: 'Deductions',
+									line: schemeLabel(charge),
+									detail: '',
+									quantity: null,
+									amount: -charge.employee
+								}
+							]
+				),
+				...schemes.flatMap((charge) =>
+					charge.employer === 0
+						? []
+						: [
+								{
+									...who,
+									section: 'Employer contributions',
+									line: schemeLabel(charge),
+									detail: '',
+									quantity: null,
+									amount: charge.employer
+								}
+							]
+				)
+			];
+		})
+	);
+	addTableSheet(
+		workbook,
+		'Lines',
+		[
+			{ header: 'Period', key: 'period', width: 12 },
+			{ header: 'Employee number', key: 'employee_number', width: 18 },
+			{ header: 'Name', key: 'employee_name', width: 30 },
+			{ header: 'Currency', key: 'currency', width: 10 },
+			{ header: 'Section', key: 'section', width: 24 },
+			{ header: 'Line', key: 'line', width: 32 },
+			{ header: 'Working', key: 'detail', width: 22 },
+			{ header: 'Quantity', key: 'quantity', width: 11 },
+			{ header: 'Amount', key: 'amount', width: 16, money: true }
+		],
+		rows,
+		false
+	);
+}
+
+/** Statutory: one row per period and scheme — headcount, wage base, both shares and their sum. */
+function addStatutorySheet(workbook: ExcelJS.Workbook, sheets: readonly WorkbookSheet[]): void {
+	const rows = sheets.flatMap((sheet) => {
+		type Total = {
+			readonly charge: ReportContribution;
+			readonly currency: string;
+			readonly employees: number;
+			readonly base: number;
+			readonly employee: number;
+			readonly employer: number;
+		};
+		const byScheme = new Map<string, Total>();
+		for (const payslip of sheet.payslips)
+			for (const charge of payslip.contributions.values()) {
+				if (charge.employee === 0 && charge.employer === 0) continue;
+				const key = `${payslip.currency}\u0000${charge.scheme_code}`;
+				const found = byScheme.get(key) ?? {
+					charge,
+					currency: payslip.currency,
+					employees: 0,
+					base: 0,
+					employee: 0,
+					employer: 0
+				};
+				byScheme.set(key, {
+					...found,
+					employees: found.employees + 1,
+					base: found.base + charge.base,
+					employee: found.employee + charge.employee,
+					employer: found.employer + charge.employer
+				});
+			}
+		return [...byScheme.values()]
+			.toSorted((a, b) => bySchemeListing(a.charge, b.charge))
+			.map((entry) => ({
+				period: sheet.period,
+				scheme: schemeLabel(entry.charge),
+				currency: entry.currency,
+				employees: entry.employees,
+				base: entry.base,
+				employee: entry.employee,
+				employer: entry.employer,
+				total: entry.employee + entry.employer
+			}));
+	});
+	addTableSheet(
+		workbook,
+		'Statutory',
+		[
+			{ header: 'Period', key: 'period', width: 12 },
+			{ header: 'Scheme', key: 'scheme', width: 28 },
+			{ header: 'Currency', key: 'currency', width: 10 },
+			{ header: 'Employees', key: 'employees', width: 11 },
+			{ header: 'Wage base', key: 'base', width: 16, money: true },
+			{ header: 'Employee', key: 'employee', width: 16, money: true },
+			{ header: 'Employer', key: 'employer', width: 16, money: true },
+			{ header: 'Total', key: 'total', width: 16, money: true }
+		],
+		rows,
+		true
+	);
+}
+
+/** Bank: the payments the bank file carries, one per paid payslip with a destination. */
+function addBankSheet(workbook: ExcelJS.Workbook, sheets: readonly WorkbookSheet[]): void {
+	const rows = sheets.flatMap((sheet) =>
+		(sheet.bank ?? []).map((payment) => ({
+			period: sheet.period,
+			pay_date: sheet.payDate ?? '',
+			employee_number: payment.employeeNumber,
+			beneficiary: payment.bank.account_name,
+			bank: payment.bank.bank_name,
+			bank_code: payment.bank.bank_code,
+			account_number: payment.bank.account_number,
+			currency: payment.currency,
+			amount: payment.net,
+			reference: `${sheet.period}-${payment.employeeNumber}`
+		}))
+	);
+	if (rows.length === 0) return;
+	addTableSheet(
+		workbook,
+		'Bank',
+		[
+			{ header: 'Period', key: 'period', width: 12 },
+			{ header: 'Pay date', key: 'pay_date', width: 12 },
+			{ header: 'Employee number', key: 'employee_number', width: 18 },
+			{ header: 'Beneficiary', key: 'beneficiary', width: 30 },
+			{ header: 'Bank', key: 'bank', width: 24 },
+			{ header: 'Bank code', key: 'bank_code', width: 14 },
+			{ header: 'Account number', key: 'account_number', width: 20 },
+			{ header: 'Currency', key: 'currency', width: 10 },
+			{ header: 'Amount', key: 'amount', width: 16, money: true },
+			{ header: 'Reference', key: 'reference', width: 22 }
+		],
+		rows,
+		true
+	);
 }
 
 /**
@@ -328,51 +714,34 @@ function addPeriodSheet(
 	workbook: ExcelJS.Workbook,
 	sheet: WorkbookSheet,
 	rows: readonly Record<string, string | number | null>[],
-	groups: readonly { readonly name: string; readonly outputIds: readonly string[] }[],
-	vendor: boolean,
-	identityColumnCount: number
+	groups: readonly { readonly name: string; readonly outputIds: readonly string[] }[]
 ): ExcelJS.Worksheet {
-	// The vendor layout's machine-readable half sits beside the catalogue matrix, so the two cannot
-	// take the same sheet name. The matrix keeps the bare period, which is what every reader of this
-	// file already looks for.
-	const worksheet = workbook.addWorksheet(
-		vendor ? `${sheet.period} Vendor`.slice(0, 31) : sheet.period,
-		{
-			// The identity block and the two masthead rows stay put when the reader scrolls into the
-			// statutory columns: a number no one can put a name to is worthless.
-			views: [{ state: 'frozen', xSplit: identityColumnCount, ySplit: vendor ? 1 : HEADER_ROW }]
-		}
-	);
-	if (vendor) worksheet.state = 'veryHidden';
+	const worksheet = workbook.addWorksheet(sheet.period, {
+		// The identity block and the two masthead rows stay put when the reader scrolls into the
+		// statutory columns: a number no one can put a name to is worthless.
+		views: [{ state: 'frozen', xSplit: IDENTITY_COLUMNS.length, ySplit: HEADER_ROW }]
+	});
 	worksheet.properties.defaultRowHeight = 20;
 	// A collapsed column group summarises into the column on its right — which is what makes
 	// collapsing Earnings leave Gross showing, and collapsing the post-gross block leave Net.
 	worksheet.properties.outlineProperties = { summaryBelow: false, summaryRight: true };
-	worksheet.columns = vendor
-		? groups
-				.flatMap((group) => [...group.outputIds])
-				.map((outputId) => ({
-					header: outputId,
-					key: outputId,
-					width: EffectNumber.clamp({ minimum: 13, maximum: 28 })(outputId.length + 3)
-				}))
-		: [
-				...IDENTITY_COLUMNS,
-				...groups.flatMap((group) =>
-					group.outputIds.map((outputId) => ({
-						header: outputId,
-						key: outputId,
-						width: EffectNumber.clamp({ minimum: 13, maximum: 28 })(outputId.length + 3)
-					}))
-				)
-			];
+	worksheet.columns = [
+		...IDENTITY_COLUMNS,
+		...groups.flatMap((group) =>
+			group.outputIds.map((outputId) => ({
+				header: outputId,
+				key: outputId,
+				width: EffectNumber.clamp({ minimum: 13, maximum: 28 })(outputId.length + 3)
+			}))
+		)
+	];
 
 	// Column styling first: exceljs pushes a column style onto the cells that exist, so the
 	// masthead rows are styled after this, and the data rows inherit it as they are added.
-	let column = vendor ? 1 : IDENTITY_COLUMNS.length + 1;
-	const bands: { readonly section: string; readonly from: number; readonly to: number }[] = vendor
-		? []
-		: [{ section: IDENTITY_SECTION_NAME, from: 1, to: IDENTITY_COLUMNS.length }];
+	let column = IDENTITY_COLUMNS.length + 1;
+	const bands: { readonly section: string; readonly from: number; readonly to: number }[] = [
+		{ section: IDENTITY_SECTION_NAME, from: 1, to: IDENTITY_COLUMNS.length }
+	];
 	for (const [index, group] of groups.entries()) {
 		const from = column;
 		const to = column + group.outputIds.length - 1;
@@ -395,33 +764,25 @@ function addPeriodSheet(
 
 	for (const [index, payslip] of sheet.payslips.entries())
 		worksheet.addRow(
-			cents(
-				vendor
-					? rows[index]!
-					: {
-							employee_number: payslip.employeeNumber,
-							employee_name: payslip.employeeName,
-							currency: payslip.currency,
-							...rows[index]
-						}
-			)
+			cents({
+				employee_number: payslip.employeeNumber,
+				employee_name: payslip.employeeName,
+				currency: payslip.currency,
+				...rows[index]
+			})
 		);
-	// `columns` wrote the headers on row 1. The matrix's band goes above them, so everything moves
-	// down one; the vendor layout's machine-readable half has no band and keeps its ids on row 1.
-	const headerRow = vendor ? 1 : HEADER_ROW;
-	if (!vendor) {
-		worksheet.insertRow(SECTION_BAND_ROW, []);
-		styleSectionBand(worksheet, bands);
-	}
+	// `columns` wrote the headers on row 1. The band goes above them, so everything moves down one.
+	worksheet.insertRow(SECTION_BAND_ROW, []);
+	styleSectionBand(worksheet, bands);
 
-	const header = worksheet.getRow(headerRow);
+	const header = worksheet.getRow(HEADER_ROW);
 	header.font = { bold: true, color: { argb: 'FFF7F7F4' } };
 	header.fill = fill('FF26251E');
 	header.alignment = { vertical: 'middle', horizontal: 'left', wrapText: false };
 	header.height = 22;
 	worksheet.autoFilter = {
-		from: { row: headerRow, column: 1 },
-		to: { row: headerRow, column: worksheet.columnCount }
+		from: { row: HEADER_ROW, column: 1 },
+		to: { row: HEADER_ROW, column: worksheet.columnCount }
 	};
 	return worksheet;
 }
@@ -439,7 +800,7 @@ function buildCatalogueWorkbook(excel: Excel, sheets: readonly WorkbookSheet[]):
 		const groups = catalogueGroups(sheet.payslips);
 		if (groups.length === 0) continue;
 		const rows = catalogueRows(sheet.payslips, groups);
-		const worksheet = addPeriodSheet(workbook, sheet, rows, groups, false, IDENTITY_COLUMNS.length);
+		const worksheet = addPeriodSheet(workbook, sheet, rows, groups);
 		const firstDataRow = HEADER_ROW + 1;
 		const lastDataRow = HEADER_ROW + rows.length;
 		const total = worksheet.addRow({ employee_number: 'TOTAL' });
@@ -468,23 +829,6 @@ export function catalogueEntriesXlsx(sheets: readonly WorkbookSheet[]) {
 	return xlsxBytes((excel) => buildCatalogueWorkbook(excel, sheets));
 }
 
-/** The customer's own workbook on a period: visible vendor listing plus the hidden matrix behind it. */
-function addVendorSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void {
-	// The listing's money columns are the catalogue's, same as the matrix sheet's. What the layout
-	// still owns is the arrangement: an eight-column identity block, the masthead, the totals row.
-	const money = workbookRows(sheet.payslips);
-	const groups = [
-		{ name: IDENTITY_SECTION_NAME, unit: 'MONEY' as const, outputIds: [...IDENTITY_OUTPUT_IDS] },
-		...outputGroups(sheet.payslips, money)
-	];
-	const rows = sheet.payslips.map((payslip, index) => ({
-		...identityRow(payslip),
-		...money[index]
-	}));
-	vendorSalaryListingSheet(workbook, sheet, rows, groups);
-	addPeriodSheet(workbook, sheet, rows, groups, true, IDENTITY_OUTPUT_IDS.length);
-}
-
 /**
  * The generic one-sheet-per-period export for a jurisdiction with no workbook of its own.
  *
@@ -493,14 +837,7 @@ function addVendorSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void 
  */
 function addMatrixSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void {
 	const rows = workbookRows(sheet.payslips);
-	addPeriodSheet(
-		workbook,
-		sheet,
-		rows,
-		outputGroups(sheet.payslips, rows),
-		false,
-		IDENTITY_COLUMNS.length
-	);
+	addPeriodSheet(workbook, sheet, rows, outputGroups(sheet.payslips, rows));
 }
 
 /**
@@ -511,6 +848,15 @@ function addMatrixSheet(workbook: ExcelJS.Workbook, sheet: WorkbookSheet): void 
  */
 export function payrollReportXlsx(sheets: readonly WorkbookSheet[]) {
 	return xlsxBytes((excel) => buildPayrollWorkbook(excel, sheets));
+}
+
+/** A declared return's records as one plain sheet, cell for cell. */
+export function tableXlsx(name: string, table: readonly (readonly (string | number)[])[]) {
+	return xlsxBytes((excel) => {
+		const workbook = new excel.Workbook();
+		workbook.addWorksheet(name.slice(0, 31)).addRows(table.map((row) => [...row]));
+		return workbook;
+	});
 }
 
 type Excel = typeof import('exceljs/dist/exceljs.bare.min.js').default;
@@ -542,7 +888,8 @@ type BankAccount = {
 };
 
 type BankPayment = {
-	readonly payrollRunId: string;
+	/** The run's period: with the employee number, the payment's reference. */
+	readonly period: string;
 	readonly paymentDate: string;
 	readonly employeeNumber: string;
 	readonly currency: string;
@@ -575,7 +922,7 @@ export function bankFileRows(payments: readonly BankPayment[]): (string | number
 			payment.bank.account_number,
 			payment.net.toFixed(2),
 			payment.currency,
-			`${payment.payrollRunId}:${payment.employeeNumber}`
+			`${payment.period}-${payment.employeeNumber}`
 		])
 	];
 }
@@ -611,7 +958,7 @@ function textPdf(lines: readonly string[]): string {
 		);
 		objectBodies.set(streamId, `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`);
 	}
-	objectBodies.set(fontId, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+	objectBodies.set(fontId, '<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>');
 
 	let body = '%PDF-1.4\n';
 	const offsets: number[] = [0];
@@ -626,8 +973,15 @@ function textPdf(lines: readonly string[]): string {
 	return `${body}trailer\n<< /Size ${fontId + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`;
 }
 
-/** A bucket that takes money off the payslip: printed with its minus sign, never as a bare magnitude. */
-const SUBTRACTS: ReadonlySet<string> = new Set(['ABSENCE', 'DEDUCTION']);
+/** Money as a payslip prints it: two decimals, thousands grouped, a real minus. */
+const figure = (amount: number) => {
+	const text = Math.abs(amount).toLocaleString('en-US', {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2
+	});
+	return amount < 0 && Math.round(amount * 100) !== 0 ? `-${text}` : text;
+};
+const QTY = (value: number) => value.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 /** A band's overtime or incentive line: the one family whose quantity is overtime hours. */
 const isOvertime = (line: ReportLine) =>
@@ -636,11 +990,50 @@ const isOvertime = (line: ReportLine) =>
 
 type DayRange = { readonly start: string; readonly end: string };
 
+/** The payslip's name for a line: its catalogue name, and the band it was priced on where it has one. */
+export const lineName = (line: ReportLine) =>
+	`${line.componentName}${line.label && line.label !== line.componentCode && line.label !== line.componentName ? ` ${line.label}` : ''}`;
+
 /**
- * One payslip, as a page, carrying the particulars an itemised pay slip states (EA 1968 s.96;
- * S 148/2016 reg.9, Third Schedule items 1, 3–11): employer and employee names, the salary period's
- * first and last days, every line itemised with deductions signed, overtime hours and pay, the
- * overtime period where it differs from the salary period, net pay and the date it is paid.
+ * A payslip's lines as a reader adds them up: one per bucket and name, amounts and quantities
+ * summed (thirty-one unpaid days are one line of 31), in settlement order.
+ */
+export function groupedLines(payslip: ReportPayslip): readonly ReportLine[] {
+	const groups = new Map<string, ReportLine>();
+	for (const line of payslip.lines) {
+		const key = `${line.bucket}\u0000${lineName(line)}`;
+		const found = groups.get(key);
+		groups.set(
+			key,
+			found == null
+				? line
+				: {
+						...found,
+						amount: found.amount + line.amount,
+						quantity:
+							found.quantity == null && line.quantity == null
+								? null
+								: (found.quantity ?? 0) + (line.quantity ?? 0)
+					}
+		);
+	}
+	return [...groups.values()];
+}
+
+const WIDTH = 78;
+const row = (label: string, detail: string, amount: string) =>
+	`  ${label.slice(0, 38).padEnd(38)} ${detail.slice(0, 22).padStart(22)} ${amount.padStart(14)}`;
+const total = (label: string, amount: string) =>
+	`${label.padEnd(WIDTH - 15)}${amount.padStart(15)}`;
+const rule = '-'.repeat(WIDTH);
+
+/**
+ * One payslip, as a page, in the payslip view's sections: Earnings → Gross, Deductions (employee
+ * statutory shares, then recoveries) → Total deductions, Reimbursements → Net pay, Employer
+ * contributions → Employer cost. It carries the particulars an itemised pay slip states (EA 1968
+ * s.96; S 148/2016 reg.9, Third Schedule items 1, 3–11): employer and employee names, the salary
+ * period's first and last days, every line itemised with deductions signed, overtime hours and pay,
+ * the overtime period where it differs from the salary period, net pay and the date it is paid.
  */
 export function payslipPdf(options: {
 	readonly employer: string;
@@ -651,25 +1044,72 @@ export function payslipPdf(options: {
 	readonly payslip: ReportPayslip;
 }): string {
 	const { payslip } = options;
-	const money = (amount: number) => `${amount.toFixed(2)} ${payslip.currency}`;
+	const money = (amount: number) => `${figure(amount)} ${payslip.currency}`;
+	const lines = (bucket: string, sign: 1 | -1) =>
+		groupedLines(payslip)
+			.filter((line) => line.bucket === bucket)
+			.map((line) =>
+				row(
+					lineName(line),
+					line.detail ?? (line.quantity == null ? '' : QTY(line.quantity)),
+					figure(sign * line.amount)
+				)
+			);
+	const section = (title: string, body: readonly string[], closing?: string) =>
+		body.length === 0 && closing == null
+			? []
+			: ['', title, ...body, ...(closing == null ? [] : [rule, closing])];
+	const schemes = [...payslip.contributions.values()].toSorted(bySchemeListing);
 	const overtime = payslip.lines.filter(isOvertime);
 	const differs =
 		options.overtimePeriod.start !== options.salaryPeriod.start ||
 		options.overtimePeriod.end !== options.salaryPeriod.end;
 	return textPdf([
 		'PAYSLIP',
+		rule,
 		`Employer: ${options.employer}`,
 		`Employee: ${payslip.employeeName} (${payslip.employeeNumber})`,
+		...(payslip.designation == null ? [] : [`Designation: ${payslip.designation}`]),
 		`Period: ${options.period}`,
 		`Salary period: ${options.salaryPeriod.start} to ${options.salaryPeriod.end}`,
 		`Pay date: ${options.payDate}`,
-		'',
-		'Line | Amount | Currency',
-		...payslip.lines.map(
-			(line) =>
-				`${line.componentName}${line.label && line.label !== line.componentCode ? ` ${line.label}` : ''} | ` +
-				`${(SUBTRACTS.has(line.bucket) ? -line.amount : line.amount).toFixed(2)} | ${payslip.currency}`
+		`Currency: ${payslip.currency}`,
+		...section(
+			'EARNINGS',
+			[...lines('EARNING', 1), ...lines('ABSENCE', -1)],
+			total('Gross', figure(payslip.gross))
 		),
+		...section(
+			'DEDUCTIONS',
+			[
+				...schemes
+					.filter((amounts) => amounts.employee !== 0)
+					.map((amounts) =>
+						row(schemeLabel(amounts), `on ${figure(amounts.base)}`, figure(-amounts.employee))
+					),
+				...lines('DEDUCTION', -1)
+			],
+			total('Total deductions', figure(-payslip.totalDeductions))
+		),
+		...section('REIMBURSEMENTS', lines('NON_WAGE_PAYMENT', 1)),
+		'',
+		rule,
+		total('Net pay', money(payslip.net)),
+		`Paid ${options.payDate}`,
+		rule,
+		...section(
+			'EMPLOYER CONTRIBUTIONS (not deducted)',
+			[
+				...schemes
+					.filter((amounts) => amounts.employer !== 0)
+					.map((amounts) =>
+						row(schemeLabel(amounts), `on ${figure(amounts.base)}`, figure(amounts.employer))
+					),
+				...lines('EMPLOYER_COST', 1)
+			],
+			total('Employer cost', money(payslip.employerCost))
+		),
+		...section('INFORMATION', lines('INFORMATION', 1)),
 		...(overtime.length === 0
 			? []
 			: [
@@ -677,28 +1117,16 @@ export function payslipPdf(options: {
 					...(differs
 						? [`Overtime period: ${options.overtimePeriod.start} to ${options.overtimePeriod.end}`]
 						: []),
-					`Overtime hours: ${overtime.reduce((total, line) => total + (line.quantity ?? 0), 0).toFixed(2)}`,
-					`Overtime pay: ${money(overtime.reduce((total, line) => total + line.amount, 0))} paid ${options.payDate}`
+					`Overtime hours: ${overtime.reduce((sum, line) => sum + (line.quantity ?? 0), 0).toFixed(2)}`,
+					`Overtime pay: ${money(overtime.reduce((sum, line) => sum + line.amount, 0))} paid ${options.payDate}`
 				]),
-		'',
-		'Statutory | Employee | Employer',
-		...[...payslip.contributions.values()]
-			.toSorted(bySchemeListing)
-			.map(
-				(amounts) =>
-					`${schemeLabel(amounts)} | ${(-amounts.employee).toFixed(2)} | ${amounts.employer.toFixed(2)}`
-			),
-		'',
-		`Gross: ${money(payslip.gross)}`,
-		`Total deductions: ${money(-payslip.totalDeductions)}`,
-		`Net pay: ${money(payslip.net)} paid ${options.payDate}`,
 		...(payslip.unfundedContributions > 0
 			? [
+					'',
 					`Contribution shortfall: ${money(payslip.unfundedContributions)}`,
 					`Funding received: ${money(payslip.fundingReceived)}`,
 					`Funding outstanding: ${money(Math.max(0, payslip.unfundedContributions - payslip.fundingReceived))}`
 				]
-			: []),
-		`Company cost: ${money(payslip.employerCost)}`
+			: [])
 	]);
 }

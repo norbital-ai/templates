@@ -86,6 +86,8 @@ export function prepareAllowanceSteps(
 						terms,
 						children: bundle.children,
 						company: configuration.company,
+						// The salary window's leave, so a class's band can read what leave takes from it.
+						period: options.leavePeriod?.() ?? null,
 						facts: personFacts(
 							configuration.contributions,
 							factStatusesOn(

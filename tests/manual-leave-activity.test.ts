@@ -240,6 +240,59 @@ test('a collapsed cross-month range retains half-day charges, holiday evidence a
 	);
 });
 
+test('an entry across windows is priced per window; the first slip pins it and later windows price the rest', () => {
+	const context = facts();
+	const row = approve(context, timeOff('2026-01-29', '2026-02-03'));
+	const dates = (charges: readonly { readonly date: string }[]) => charges.map((c) => c.date);
+	const jan = leavePayrollInputs({
+		entries: context.entries,
+		salaryWindow: { start: '2026-01-01', end: '2026-01-31' },
+		dueThrough: '2026-01-31',
+		captures: []
+	});
+	const all = dates(row.charges);
+	assert.ok(all.some((d) => d < '2026-02-01') && all.some((d) => d >= '2026-02-01'));
+	assert.deepEqual(
+		dates(jan.timeOff[0]!.charges),
+		all.filter((d) => d < '2026-02-01')
+	);
+	assert.equal(jan.timeOff[0]!.continued, false);
+	const pinned = (through?: string) => [
+		{ leave_entry_id: row.id, charges: row.charges, through, paid: true }
+	];
+	const feb = leavePayrollInputs({
+		entries: context.entries,
+		salaryWindow: { start: '2026-02-01', end: '2026-02-28' },
+		dueThrough: '2026-02-28',
+		captures: pinned('2026-01-31')
+	});
+	assert.deepEqual(
+		dates(feb.timeOff[0]!.charges),
+		all.filter((d) => d >= '2026-02-01')
+	);
+	assert.equal(feb.timeOff[0]!.continued, true);
+	// A second run of January prices nothing the pin already settled.
+	assert.equal(
+		leavePayrollInputs({
+			entries: context.entries,
+			salaryWindow: { start: '2026-01-01', end: '2026-01-31' },
+			dueThrough: '2026-01-31',
+			captures: pinned('2026-01-31')
+		}).timeOff.length,
+		0
+	);
+	// A pin whose run is unknown settled the entry whole.
+	assert.equal(
+		leavePayrollInputs({
+			entries: context.entries,
+			salaryWindow: { start: '2026-02-01', end: '2026-02-28' },
+			dueThrough: '2026-02-28',
+			captures: pinned()
+		}).timeOff.length,
+		0
+	);
+});
+
 test('opposite half-days can be approved separately, but overlapping or duplicate activity refuses', () => {
 	const context = facts();
 	approve(context, {

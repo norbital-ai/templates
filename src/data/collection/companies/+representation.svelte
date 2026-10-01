@@ -88,6 +88,10 @@
 						</Field>
 					</Column>
 					<Field name="pay_cutoff_day" label={t('component.attendance_cutoff_day')} />
+					<Field
+						name="late_arrival_grace_minutes"
+						label={t('component.late_arrival_grace_minutes')}
+					/>
 					<Field name="pay_frequency" label={t('component.pay_frequency')} />
 					<Field name="workbook_layout" label={t('component.workbook_layout')} />
 					<Column span="all"

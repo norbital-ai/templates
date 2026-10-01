@@ -95,7 +95,7 @@ test('Taiwan — a last-day February exit completes the pension month but LI cha
 				citizenship: 'CITIZEN',
 				hire_date: '2020-01-01',
 				exit_date: '2026-02-28',
-				exit_reason: 'RESIGNATION'
+				exit_ground: 'RESIGNATION'
 			}
 		]
 	});
@@ -2039,7 +2039,7 @@ test('Taiwan — 資遣費 is 退職所得: 6% resident / 18% non-resident on th
 		citizenship: 'CITIZEN',
 		hire_date: hire,
 		exit_date: exit,
-		exit_reason: 'REDUNDANCY',
+		exit_ground: 'REDUNDANCY',
 		...(residency != null ? { tax_residency: residency } : {})
 	});
 	// The off-boarding asks for the class; the band prices it from the wage, and `SEVERANCE_TAX`
@@ -2251,7 +2251,7 @@ test('Taiwan — a mid-month leaver: final pay, unused 特別休假 paid out, fi
 					citizenship: 'CITIZEN',
 					hire_date: '2020-01-01',
 					exit_date: '2026-01-15',
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					registrations: {
 						INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 					}
@@ -2474,7 +2474,7 @@ test('Taiwan — 資遣費: the new system caps at six months and retained old-s
 				citizenship: 'CITIZEN',
 				hire_date: person.hire,
 				exit_date: '2026-01-31',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				...('old' in person ? { registrations: { LABOR_PENSION: RETAINED_OLD_PENSION } } : {})
 			}))
 		},
@@ -2585,7 +2585,7 @@ test('Taiwan — 舊制退休金: 45-base cap, half-year rounding and job-caused
 				citizenship: 'CITIZEN',
 				hire_date: person.hire,
 				exit_date: '2026-01-31',
-				exit_reason: 'RETIREMENT',
+				exit_ground: 'RETIREMENT',
 				...('old' in person ? { registrations: { LABOR_PENSION: RETAINED_OLD_PENSION } } : {})
 			}))
 		},
@@ -2736,7 +2736,7 @@ test('Taiwan — §16 notice by cause and service: 10 / 20 / 30 days on §11, th
 				citizenship: 'CITIZEN',
 				hire_date: person.hire,
 				exit_date: '2026-01-31',
-				exit_reason: person.reason
+				exit_ground: person.reason
 			}))
 		},
 		(world) => {
@@ -2804,7 +2804,7 @@ test('Taiwan — §13: no §11 or §20 termination inside the §59 medical perio
 						citizenship: 'CITIZEN',
 						hire_date: '2023-02-01',
 						exit_date: '2026-01-31',
-						exit_reason: reason
+						exit_ground: reason
 					}
 				]
 			},
@@ -3179,44 +3179,47 @@ test('Taiwan — PR nonprofessional EI exclusion needs dated classification and 
 });
 
 for (const period of ['2025-12', '2026-01'])
-	test(`Taiwan ${period} — a later PR grant with a declared old-pension election refuses until the six-month window is verified`, () => {
-		// BLI transition guide §6: https://www.bli.gov.tw/en/0010369.html.
-		// A grant after the 2019 commencement starts an individual six-month election window.
-		assert.throws(
-			() =>
-				buildStatutory({
-					code: 'TW',
-					period,
-					riskClass: '1',
-					companyFacts: { pension_reserve_rate: 6 },
-					people: [
-						{
-							key: 'TW-LATER-PR-OLD',
-							wage: 40_000,
-							citizenship: 'PERMANENT_RESIDENT',
-							residency_since: '2024-03-01',
-							pass_type: 'OTHER',
-							hire_date: '2017-01-01',
-							registrations: {
-								EI: {
-									kind: 'NOT_REGISTERED',
-									declaration_reference: 'FIXTURE-PR-NONPROFESSIONAL-NONSPOUSE-BLI-CLASS',
-									elections: { pr_nonprofessional_excluded: true }
-								},
-								LABOR_PENSION: {
-									kind: 'NOT_REGISTERED',
-									declaration_reference: 'FIXTURE-2024-PR-GRANT-WRITTEN-ELECTION',
-									elections: {
-										pr_old_transition_class: 'FOREIGN_NONPROFESSIONAL_2019',
-										pr_old_election_on: '2024-08-31'
-									}
-								}
-							}
-						}
-					]
-				}),
-			/NOT_REGISTERED does not establish an old-system/
-		);
+	test(`Taiwan ${period} — a later PR grant opens a six-month old-pension election for a worker serving the unit before 2019-05-17`, () => {
+		// 勞工退休金條例 §8-1(1)(3), (2) (https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=N0030020&flno=8-1):
+		// a PR granted after the 2019 amendment applies the Act from the grant day; one already serving the same
+		// unit before 2019-05-17 may elect the LSA system in writing 於適用本條例之日起六個月內. Grant 2024-03-01:
+		// an election on 2024-08-31 is inside, on 2024-09-01 outside (default: before add_months(grant, 6)).
+		// §56(1) reserve 40,000 × 6% = 2,400.
+		const person = (electedOn: string) => ({
+			key: 'TW-LATER-PR-OLD',
+			wage: 40_000,
+			citizenship: 'PERMANENT_RESIDENT',
+			residency_since: '2024-03-01',
+			pass_type: 'OTHER',
+			hire_date: '2017-01-01',
+			registrations: {
+				EI: {
+					kind: 'NOT_REGISTERED',
+					declaration_reference: 'FIXTURE-PR-NONPROFESSIONAL-NONSPOUSE-BLI-CLASS',
+					elections: { pr_nonprofessional_excluded: true }
+				},
+				LABOR_PENSION: {
+					kind: 'NOT_REGISTERED',
+					declaration_reference: 'FIXTURE-2024-PR-GRANT-WRITTEN-ELECTION',
+					elections: {
+						pr_old_transition_class: 'FOREIGN_LATER_PR_GRANT',
+						pr_old_election_on: electedOn
+					}
+				}
+			}
+		});
+		const run = (electedOn: string) =>
+			buildStatutory({
+				code: 'TW',
+				period,
+				riskClass: '1',
+				companyFacts: { pension_reserve_rate: 6 },
+				people: [person(electedOn)]
+			});
+		const slip = run('2024-08-31').slips.get('TW-LATER-PR-OLD')!;
+		assert.equal(charge(slip, 'LABOR_PENSION_RESERVE')[2], 2400);
+		assert.equal(charge(slip, 'LABOR_PENSION')?.[2] ?? 0, 0);
+		assert.throws(() => run('2024-09-01'), /NOT_REGISTERED does not establish an old-system/);
 	});
 
 for (const period of ['2025-12', '2026-01'])
@@ -3311,7 +3314,7 @@ test('Taiwan — a leaver: final wages are due on the last day (勞基法施行�
 				citizenship: 'CITIZEN',
 				hire_date: '2020-01-01',
 				exit_date: '2026-01-15',
-				exit_reason: 'RESIGNATION',
+				exit_ground: 'RESIGNATION',
 				registrations: {
 					INCOME_TAX: { kind: 'REGISTERED', elections: { five_percent_withholding: true } }
 				}
@@ -3763,7 +3766,7 @@ test('Taiwan — §59(2) proviso: forty months of 平均工資 at once; §59(3) 
 				(r) => r.code === `OCC_DISABILITY_G${String(index + 1).padStart(2, '0')}`
 			)!;
 			assert.ok(
-				row.bands[0]!.amount.startsWith(`round_unit(${day}.0 * `),
+				row.bands[0]!.amount.startsWith(`round(${day}.0 * `),
 				`${version.id} G${index + 1}`
 			);
 		});
@@ -3797,7 +3800,7 @@ test('Taiwan — §59(4) an occupational death: five months’ funeral costs and
 				citizenship: 'CITIZEN',
 				hire_date: '2020-01-01',
 				exit_date: '2026-04-15',
-				exit_reason: 'DEATH'
+				exit_ground: 'DEATH'
 			}))
 		},
 		(world) => {
@@ -3828,13 +3831,13 @@ test('Taiwan — §16(2) paid job-search leave follows the notice ground: §11, 
 	// 前項預告後，為另謀工作得於工作時間請假外出…請假期間之工資照給. §16(1) is the notice of a §11 or §13-proviso
 	// termination; §20 applies §16. A redundancy with no ground stated is read as §11 (as SEVERANCE_PAY
 	// reads it); a §14 resignation, a §12 dismissal (OTHER) or an unexited worker gets none.
-	const person = (exit_reason: string, facts: Record<string, string> = {}, exit = '2026-06-30') =>
+	const person = (exit_ground: string, facts: Record<string, string> = {}, exit = '2026-06-30') =>
 		personContext({
 			employee: null,
 			employment: {
 				service_start: '2020-01-01',
 				exit_date: exit,
-				exit_reason,
+				exit_ground,
 				exit_facts: { notice_days_given: 30, ...facts }
 			},
 			terms: null,
@@ -3874,7 +3877,7 @@ test('Taiwan — §16(2) job-search leave is capped at two working days a week a
 	context.employments[0] = {
 		...context.employments[0]!,
 		effective_range: { start: '2020-01-01', end: '2026-06-30' },
-		exit_reason: 'REDUNDANCY',
+		exit_ground: 'REDUNDANCY',
 		exit_facts: { lsa_termination_ground: 'ARTICLE_11', notice_days_given: 30 }
 	};
 	const seeded = leaveCatalogue('TW').find((r) => r.code === 'JOB_SEARCH_LEAVE')!;
@@ -3928,7 +3931,7 @@ test('Taiwan — §16(2) job-search leave is capped at two working days a week a
 			employment: {
 				service_start: start,
 				exit_date: '2026-06-30',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				exit_facts: facts
 			},
 			terms: null,
@@ -3958,7 +3961,7 @@ test('Taiwan — §16(2) job-search leave is capped at two working days a week a
 	unnoticed.employments[0] = {
 		...unnoticed.employments[0]!,
 		effective_range: { start: '2020-01-01', end: '2026-06-30' },
-		exit_reason: 'REDUNDANCY',
+		exit_ground: 'REDUNDANCY',
 		exit_facts: { lsa_termination_ground: 'ARTICLE_11' }
 	};
 	unnoticed.catalogues.push({ ...seeded, id: leaveId(90), settings_id: leaveId(6) } as never);

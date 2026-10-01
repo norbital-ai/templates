@@ -209,7 +209,9 @@ test('Singapore — every sealed version maps the IR8A items and the MUIS MBMF a
 		// Every MBMF Schedule rung the version charges has its allocation.
 		const rungs = contributionSchemes('SG')
 			.find((scheme) => scheme.settings_id === row.id && scheme.code === 'MBMF')
-			.rules.flatMap((rule) => /^round_cent\(([\d.]+)\)$/.exec(rule.employee)?.[1] ?? [])
+			.rules.flatMap(
+				(rule) => /^round\(([\d.]+), 0\.01, 'HALF_UP'\)$/.exec(rule.employee)?.[1] ?? []
+			)
 			.map(Number);
 		assert.deepEqual(
 			rungs.toSorted((a, b) => a - b),

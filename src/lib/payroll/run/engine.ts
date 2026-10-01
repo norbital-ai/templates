@@ -26,21 +26,34 @@ import { live } from './effective.js';
 import { daysBetween, periodHalf } from './dates.js';
 import { coversDate } from './effective.js';
 import { employmentDates } from './settlement.js';
-import { isEligible, personContext } from './eligibility.js';
-import { pickConfiguration, withDeclaredFacts, type Configuration } from './configuration.js';
+import { personContext } from './eligibility.js';
+import {
+	atWorksite,
+	pickConfiguration,
+	withDatedPeople,
+	withDeclaredFacts,
+	type Configuration
+} from './configuration.js';
 import { gatherRun, type GatheredRun } from './gather.js';
 import {
 	periodGrammarFault,
 	resolveWindow,
 	weeklyInstalments,
-	type PayrollWindow
+	type PayrollWindow,
+	type RunKind
 } from './period.js';
+import { calendarDueDate, payCalendarOf } from '../../datatypes/pay_calendar.js';
 import { payrollRunGraph, type PendingPayslip } from './graph.js';
-import { settle } from './settle.js';
 import { cents, roundMoney } from './rounding.js';
-import { isFinalPayslip, loanShortfallIssues } from '../../../lib/payroll/loan.js';
+import {
+	isFinalPayslip,
+	loanCaptures,
+	loanShortfallIssues,
+	settleWithOrders
+} from '../../../lib/payroll/loan.js';
 import {
 	finalPayIssues,
+	measuredPeriod,
 	minimumWageIssues,
 	raiseToMinimumWage,
 	windowMinimumWage
@@ -48,10 +61,14 @@ import {
 import {
 	blockers,
 	describeIssues,
+	validateChecks,
 	validateConfiguration,
 	validatePayCalendar,
 	type RunIssue
 } from './validate.js';
+import { checksOf } from '../../datatypes/checks.js';
+import { stint } from '../../employment-contract.js';
+import type { MeasuredEmployment } from '../family.js';
 
 /**
  * The engine/build identity stamped on every run this code produces.
@@ -61,7 +78,7 @@ import {
  * change and leave nothing on the run to explain the difference. Bump this when the payroll
  * algorithm changes in a way a settled payslip's reader would need to know.
  */
-export const CALCULATION_VERSION = '2026-09-my-results-wage-top-up' as const;
+export const CALCULATION_VERSION = '2026-09-run-kinds' as const;
 
 /** What one build produced, and what the run's transform returns alongside its own columns. */
 type PayrollRunGraph = {
@@ -103,36 +120,169 @@ type PayrollRunGraph = {
  */
 export type PreparedRun = {
 	readonly period: string;
+	readonly kind: RunKind;
 	readonly window: PayrollWindow;
 	readonly configuration: Configuration;
 	readonly gathered: GatheredRun;
+	/** `scheme:rounding` → what earlier runs of the month already reported to remit. */
+	readonly remitted: ReadonlyMap<string, { readonly accrued: number; readonly payable: number }>;
 };
+
+type Bundle = GatheredRun['bundles'][number];
+
+/**
+ * Who a run of `kind` pays, from everyone the gather measured.
+ *
+ * - REGULAR: everyone, less those a FINAL run of the period has already settled.
+ * - FINAL: the employments whose exit falls in their window, not yet settled in the period.
+ * - OFF_CYCLE and CORRECTION: only the selected outstanding requests (a CORRECTION's are ad hoc
+ *   lines), paid now whatever their pay period, with no wages, attendance, leave or recovery beside
+ *   them — which is what lets them pay someone who has already left.
+ *
+ * Headcount stays the gather's: who the company employs does not change with who a run pays.
+ */
+function population(options: {
+	readonly kind: RunKind;
+	readonly sources: readonly string[];
+	readonly period: string;
+	readonly bundles: readonly Bundle[];
+	readonly settledHere: ReadonlySet<string>;
+}): Bundle[] {
+	const { kind, bundles, settledHere } = options;
+	if (kind === 'REGULAR') return bundles.filter((b) => !settledHere.has(b.employment.id));
+	if (kind === 'FINAL') {
+		const leaving = bundles.filter((bundle) => {
+			const exit = employmentDates(bundle.employment).exit;
+			return (
+				!settledHere.has(bundle.employment.id) &&
+				exit != null &&
+				exit >= bundle.window.salary.start &&
+				exit <= bundle.window.salary.end
+			);
+		});
+		if (leaving.length === 0)
+			refuse(`No employment exits in ${options.period} that a run has not already settled.`);
+		return leaving;
+	}
+	const selected = new Set(options.sources);
+	if (selected.size === 0) refuse(`A ${kind} run pays only the requests it selects; select one.`);
+	const outstanding = new Map(
+		bundles.flatMap((bundle) =>
+			bundle.payRequests
+				.filter((request) => request.approval_id == null && !request.captured)
+				.map((request) => [request.id, request] as const)
+		)
+	);
+	for (const id of selected) {
+		const request = outstanding.get(id);
+		if (request == null)
+			refuse(`Request ${id} is not an outstanding, approved claim or ad hoc request here.`);
+		if (kind === 'CORRECTION' && request.family !== 'ADHOC')
+			refuse(`A correction pays ad hoc lines only; request ${id} is a ${request.family}.`);
+	}
+	return bundles.flatMap((bundle) => {
+		const payRequests = bundle.payRequests
+			.filter((request) => selected.has(request.id))
+			.map((request) => ({ ...request, pay_period: options.period }));
+		if (payRequests.length === 0) return [];
+		return [
+			{
+				...bundle,
+				payRequests,
+				employedDays: null,
+				wageDays: null,
+				arrearsFor: null,
+				deferral: null,
+				workDays: [],
+				loanRepayments: [],
+				leave: { ...bundle.leave, entries: [] }
+			}
+		];
+	});
+}
 
 export function gatherPayrollRun(options: {
 	readonly world: PayrollWorld;
 	readonly companyId: string;
 	readonly period: string;
 	readonly payDueDate?: string | undefined;
+	readonly kind?: RunKind | undefined;
+	readonly sources?: readonly string[] | undefined;
 }): PreparedRun {
-	const { world, companyId, period, payDueDate } = options;
+	const { world, companyId, period } = options;
+	const kind = options.kind ?? 'REGULAR';
 	const company = live(world.companies).find((row) => row.id === companyId);
 	if (!company) refuse(`Company ${companyId} does not exist.`);
 	// The wrong grammar (months at a monthly company, halves at a semi-monthly one) is refused
 	// here, naming the company's frequency, before a window is resolved.
 	const fault = periodGrammarFault(period, company);
 	if (fault != null) refuse(fault);
-	const window = resolveWindow(period, company, payDueDate);
-	const configuration = pickConfiguration({ world, companyId, window });
+	let window = resolveWindow(period, company, options.payDueDate);
+	let configuration = pickConfiguration({ world, companyId, window });
+	// No stated due date: the version's pay calendar dates the wages, and the law is picked again
+	// on the dated window, since a rule may select on when wages become payable.
+	const payDueDate =
+		options.payDueDate ??
+		calendarDueDate({
+			calendar: payCalendarOf(configuration.jurisdiction.payroll),
+			cadence: window.payFrequency,
+			period: window.salary,
+			run: { period, pay_date: window.payDate },
+			company: { settings_code: company.settings_code, pay_frequency: company.pay_frequency }
+		});
+	if (payDueDate !== options.payDueDate) {
+		window = resolveWindow(period, company, payDueDate);
+		configuration = pickConfiguration({ world, companyId, window });
+	}
+	const gathered = gatherRun({
+		world: withDatedPeople(configuration, withDeclaredFacts(configuration, world, window)),
+		configuration,
+		window,
+		payDueDate
+	});
+	const month = period.slice(0, 7);
+	const runsHere = world.payroll_runs.filter(
+		(run) => run.company_id === companyId && run.period.slice(0, 7) === month
+	);
+	// The runs that settle a person's period whole: a REGULAR or FINAL slip is not paid twice.
+	const settling = new Set(
+		runsHere
+			.filter(
+				(run) => run.period === period && ['REGULAR', 'FINAL'].includes(run.kind ?? 'REGULAR')
+			)
+			.map((run) => run.id)
+	);
+	const remitted = new Map<string, { accrued: number; payable: number }>();
+	for (const run of runsHere)
+		for (const row of run.company_remittances ?? []) {
+			if (row.month !== month) continue;
+			const key = `${row.scheme_code}:${row.remittance_rounding}`;
+			const sum = remitted.get(key) ?? { accrued: 0, payable: 0 };
+			remitted.set(key, {
+				accrued: sum.accrued + row.accrued_amount,
+				payable: sum.payable + row.payable_amount
+			});
+		}
 	return {
 		period,
+		kind,
 		window,
 		configuration,
-		gathered: gatherRun({
-			world: withDeclaredFacts(configuration, world, window),
-			configuration,
-			window,
-			payDueDate
-		})
+		remitted,
+		gathered: {
+			...gathered,
+			bundles: population({
+				kind,
+				sources: options.sources ?? [],
+				period,
+				bundles: gathered.bundles,
+				settledHere: new Set(
+					world.payslips
+						.filter((slip) => settling.has(slip.payroll_run_id))
+						.map((slip) => slip.employment_id)
+				)
+			})
+		}
 	};
 }
 
@@ -141,14 +291,10 @@ type CoverageSpan = 'SALARY' | 'ATTENDANCE' | 'ARREARS' | 'SERVICE_AFTER_EXIT';
 /**
  * The version's territorial reach (`payroll.worksite_coverage`). Each day of the declared spans
  * must place the person, by the terms row in force that day, at a value the version covers; a
- * listed `refused` value names the profile that governs it instead. `refuse_when` is judged over
- * every salary-window terms row. A lineage that declares none has no territorial guard.
+ * listed `refused` value names the profile that governs it instead. A lineage that declares none has no
+ * territorial guard; a rule over the person (a territory another profile governs) is a stored PAYSLIP check.
  */
-function assertWorksiteCoverage(
-	configuration: Configuration,
-	gathered: GatheredRun,
-	asOf: string
-): void {
+function assertWorksiteCoverage(configuration: Configuration, gathered: GatheredRun): void {
 	const coverage = configuration.jurisdiction.payroll.worksite_coverage;
 	if (coverage == null) return;
 	const covered = new Set(
@@ -168,6 +314,10 @@ function assertWorksiteCoverage(
 	for (const bundle of gathered.bundles) {
 		const who = bundle.employment.employee_number;
 		const { hire, exit } = employmentDates(bundle.employment);
+		// A day an overlay routes is covered by the overlay lineage, not refused (E8).
+		const seen = atWorksite(configuration, bundle.termsHistory, bundle.workDays, bundle.employee);
+		const routed = (day: string) =>
+			seen.onDay != null && seen.onDay(day).jurisdiction !== configuration.jurisdiction;
 		const employed = (span: { readonly start: string; readonly end: string } | null | undefined) =>
 			span == null
 				? []
@@ -186,6 +336,7 @@ function assertWorksiteCoverage(
 		for (const [span, days] of checked) {
 			if (!spans.has(span)) continue;
 			for (const day of days) {
+				if (routed(day)) continue;
 				const value = valueOn(bundle.termsHistory, day);
 				const elsewhere = coverage.refused?.find((row) => row.values.includes(value));
 				if (elsewhere != null) refuse(`${who}: ${fill(elsewhere.message, value, day)}`);
@@ -203,31 +354,98 @@ function assertWorksiteCoverage(
 				);
 			}
 		}
-		if (
-			(coverage.refuse_when ?? '') === '' ||
-			bundle.employedDays == null ||
-			bundle.deferral != null
-		)
-			continue;
-		for (const terms of bundle.terms.length === 0 ? [null] : bundle.terms)
-			if (
-				isEligible(
-					coverage.refuse_when,
-					personContext({
-						employee: null,
-						employment: { service_start: hire, exit_date: exit },
-						terms,
-						company: {
-							...configuration.company,
-							headcount: gathered.headcount,
-							headcount_citizens: gathered.headcountCitizens
-						},
-						asOf
-					})
-				)
-			)
-				refuse(`${who}: ${coverage.refuse_message ?? coverage.authority}`);
 	}
+}
+
+/**
+ * The version's stored checks at the run's own stages (E9) over one settled payslip: PAYSLIP once, on
+ * the salary window's end (a leaver's last day), and DEDUCTION once per deduction line. Read on the
+ * employment's own configuration, so a day an overlay governs reads the overlay's checks.
+ */
+function runChecks(options: {
+	readonly configuration: Configuration;
+	readonly gathered: GatheredRun;
+	readonly measured: MeasuredEmployment;
+	readonly settlement: ReturnType<typeof settleWithOrders>['settlement'];
+	readonly payDate: string;
+}): RunIssue[] {
+	const { bundle } = options.measured;
+	const configuration = atWorksite(
+		options.configuration,
+		bundle.termsHistory,
+		bundle.workDays,
+		bundle.employee
+	);
+	const { exit } = employmentDates(bundle.employment);
+	const salaryEnd = bundle.window.salary.end;
+	const date = exit != null && exit < salaryEnd ? exit : salaryEnd;
+	const stages = checksOf((configuration.onDay?.(date) ?? configuration).jurisdiction);
+	if (!stages.some((check) => check.at === 'PAYSLIP' || check.at === 'DEDUCTION')) return [];
+	const person = personContext({
+		employee: bundle.employee,
+		employment: stint(bundle.employment, configuration.jurisdiction.exit_facts ?? []),
+		terms: bundle.termsHistory.find((row) => coversDate(row.effective_range, date)) ?? null,
+		children: bundle.children,
+		presence: bundle.presence,
+		// The slip's own measured week and period, as its contribution stage reads them.
+		week: options.measured.week,
+		period: measuredPeriod(options.measured),
+		company: {
+			...configuration.company,
+			headcount: options.gathered.headcount,
+			headcount_citizens: options.gathered.headcountCitizens
+		},
+		asOf: date
+	});
+	const { settlement } = options;
+	const lines: Record<string, number> = {};
+	for (const line of [...settlement.base, ...settlement.adjustments])
+		lines[line.catalogueComponent.code] = (lines[line.catalogueComponent.code] ?? 0) + line.amount;
+	const subject = {
+		employeeNumber: bundle.employment.employee_number,
+		employmentId: bundle.employment.id,
+		person
+	};
+	const deductions = settlement.adjustments.filter((line) => line.bucket === 'DEDUCTION');
+	return [
+		...validateChecks({
+			configuration,
+			at: 'PAYSLIP',
+			date,
+			subjects: [
+				{
+					...subject,
+					roots: {
+						payslip: {
+							gross: settlement.gross,
+							net: settlement.net,
+							deductions: settlement.totalDeductions,
+							lines,
+							pay_date: options.payDate
+						}
+					}
+				}
+			]
+		}),
+		...validateChecks({
+			configuration,
+			at: 'DEDUCTION',
+			date,
+			subjects: deductions.map((line) => ({
+				...subject,
+				roots: {
+					deduction: {
+						code: line.catalogueComponent.code,
+						amount: line.amount,
+						gross: settlement.gross,
+						// Net pay as it stands without this line.
+						net: settlement.net + line.amount,
+						total: settlement.totalDeductions
+					}
+				}
+			}))
+		})
+	];
 }
 
 /**
@@ -241,7 +459,7 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 	// 2 — VALIDATE
 	const issues: RunIssue[] = validateConfiguration(configuration);
 	if (blockers(issues).length > 0) refuse(describeIssues(blockers(issues)));
-	assertWorksiteCoverage(configuration, prepared.gathered, window.salary.end);
+	assertWorksiteCoverage(configuration, prepared.gathered);
 	// A floor that substitutes itself for the agreed wage (TW 最低工資法 §5) re-rates the terms
 	// before anything is measured, so pay, proration and every rate derived from it read the floor.
 	const raised = raiseToMinimumWage(configuration, prepared.gathered.bundles);
@@ -311,7 +529,8 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 		//
 		// A recovery the guard dropped is not carried anywhere: its repayment row stays unlinked
 		// and the next run recovers it whole.
-		const settlement = settle({
+		// Rule-recovered deduction orders (L6) settle after the rest of the payslip; with none it is `settle`.
+		const { settlement, issues: orderIssues } = settleWithOrders({
 			base: measured.base,
 			adjustments: measured.adjustments,
 			charges,
@@ -319,13 +538,19 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			employeeNumber: employment.employee_number,
 			ceiling: configuration.jurisdiction.payroll.deduction_ceiling,
 			monthPrior: gathered.monthPrior.get(`${employment.employee_id}:${period.slice(0, 7)}`),
-			finalPay: isFinalPayslip(measured.bundle)
+			finalPay: isFinalPayslip(measured.bundle),
+			bundle: measured.bundle,
+			configuration
 		});
-		const recovered = new Set(
-			settlement.adjustments
-				.filter((row) => row.input.family === 'LOAN_REPAYMENT')
-				.map((row) => row.input.id)
+		issues.push(...orderIssues);
+		issues.push(
+			...runChecks({ configuration, gathered, measured, settlement, payDate: window.payDate })
 		);
+		const loans = loanCaptures({
+			bundle: measured.bundle,
+			settlement,
+			captured: measured.captured.loanRepayments
+		});
 		if (settlement.unfundedContributions > 0)
 			issues.push({
 				code: 'STATUTORY_FUNDING_REQUIRED',
@@ -382,10 +607,8 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 			// The captured inputs: every source the run read, whether or not it produced money. The
 			// pins are the settlement lock, so zero-value sources ride with the payslip too — except a
 			// repayment the guard dropped, which no slip recovered.
-			captured: {
-				...measured.captured,
-				loanRepayments: measured.captured.loanRepayments.filter((id) => recovered.has(id))
-			}
+			captured: { ...measured.captured, loanRepayments: loans.link },
+			orderRepayments: loans.create
 		});
 	}
 
@@ -428,19 +651,27 @@ export function buildPayrollRun(prepared: PreparedRun): PayrollRunGraph {
 						0
 					);
 					const accrued = cents(prior[rounding] + current, currency);
-					if (accrued === 0) return [];
 					if (accrued < 0)
 						refuse(
 							`${row.code}: a negative employer-month balance requires refund reconciliation.`
 						);
+					// A month closed by more than one run (a FINAL beside the REGULAR) reports each
+					// run's increment, so the month's rows sum to one remittance of the whole month.
+					const reported = prepared.remitted.get(`${row.code}:${rounding}`) ?? {
+						accrued: 0,
+						payable: 0
+					};
+					const payable = rounding === 'NONE' ? accrued : roundMoney(accrued, 'FLOOR_UNIT');
+					const increment = cents(accrued - reported.accrued, currency);
+					if (increment === 0) return [];
 					return [
 						{
 							scheme_code: row.code,
 							month: period.slice(0, 7),
 							currency,
 							remittance_rounding: rounding,
-							accrued_amount: accrued,
-							payable_amount: rounding === 'NONE' ? accrued : roundMoney(accrued, 'FLOOR_UNIT')
+							accrued_amount: increment,
+							payable_amount: cents(payable - reported.payable, currency)
 						}
 					];
 				});

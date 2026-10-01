@@ -48,7 +48,7 @@ test('departure inputs keep typed values and enforce final-day validity before c
 			key: 'pension_offset_claimed',
 			type: 'boolean',
 			valid_when:
-				'!employment.exit_facts.pension_offset_claimed || employment.exit_reason == "RETIREMENT"',
+				'!employment.exit_facts.pension_offset_claimed || employment.exit_ground == "RETIREMENT"',
 			validation_message: 'Pension offset requires retirement.'
 		}
 	] as const;
@@ -57,7 +57,7 @@ test('departure inputs keep typed values and enforce final-day validity before c
 		employment: {
 			service_start: '2020-01-01',
 			exit_date: '2026-06-30',
-			exit_reason: 'RESIGNATION'
+			exit_ground: 'RESIGNATION'
 		},
 		terms: null,
 		asOf: '2026-06-30'

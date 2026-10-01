@@ -53,15 +53,12 @@ export default model({
 		available_from: { kind: 'date', optional: true },
 		expires_on: { kind: 'date', optional: true },
 		reason: { kind: 'text', optional: true },
-		/** The event a PER_EVENT leave answers to: what, to whom, which child (1-based) and when. */
-		event_kind: { kind: 'text', optional: true },
-		event_relationship: { kind: 'text', optional: true },
-		event_child_index: { kind: 'int', min: 1, optional: true },
-		/** Wife's earlier living biological children at this birth (VN Decree 168/2026 art.2(1)(b)). */
-		event_wife_prior_living_biological_children: { kind: 'int', min: 0, optional: true },
-		event_date: { kind: 'date', optional: true },
-		/** Stoppage paid at an agreed share of the day wage (VN Labour Code art.99(2), (3)): 0.7 is 70%. */
-		agreed_pay_fraction: { kind: 'decimal', scale: 4, min: 0, max: 1, optional: true },
+		/**
+		 * The event or state facts the catalogue row declares in `event_facts` (`leave.facts.<key>`): a
+		 * per-event leave's event (`event_kind`, `event_relationship`, `event_child_index`, `event_date`, …,
+		 * read by `leaveEventOf`), an agreed day-wage share.
+		 */
+		facts: { kind: 'custom', of: 'entity_facts', default: {} },
 		/** The activity and the day it turns on, composed by the planner. */
 		summary: { kind: 'text', optional: true }
 	},

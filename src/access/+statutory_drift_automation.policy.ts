@@ -9,6 +9,7 @@ export default policy({
 		statutory_contributions: { read: true, create: true },
 		leave_catalogue: { read: true, create: true },
 		loan_catalogue: { read: true, create: true },
+		reference_rows: { read: true, create: true },
 		claim_catalogue: { read: true, create: true },
 		adhoc_catalogue: { read: true, create: true },
 		allowance_catalogue: { read: true, create: true }

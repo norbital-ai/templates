@@ -12,7 +12,7 @@ import * as Predicate from 'effect/Predicate';
  * OVERTIME classes and INCENTIVE, and state the ceilings schedules respect. Every money decision is
  * an expression compiled at write time, named for what it returns (`_when` boolean, `_hours`,
  * `_minutes`, `_days`, `_amount` money): `proration` (the month's denominator),
- * `ordinary_divisor_days`, `overtime_when` (empty is everyone), `bands` (price the day in order,
+ * `ordinary_divisor_days`, `ordinary_rate` (the premium base), `overtime_when` (empty is everyone), `bands` (price the day in order,
  * incentive hours on each band's INCENTIVE line), `limits` (applied when schedules are written;
  * readable as `limits.<key>`), `breaks` (what the law owes) and `wages` (minimum wage by region).
  */
@@ -149,7 +149,7 @@ const workRateBandValueSchema = Schema.Struct({
 	/**
 	 * Inert: nothing reads it. It once named the day limit above which planned OT became incentive;
 	 * every overtime limit now splits (`splitsOvertime`). Kept, and still compiled, only because
-	 * sealed versions (MY-nihon, VN) store it.
+	 * sealed versions (MY, VN) store it.
 	 */
 	funnel_above_hours: Schema.optionalKey(Schema.NullOr(cel))
 });
@@ -219,11 +219,38 @@ export const workRulesValueSchema = Schema.Struct({
 	 */
 	ordinary_divisor_days: cel,
 	/**
-	 * Days over the person a daily wage is taken to a month by before `ordinary_divisor_days`
-	 * prices its hour (ID PP 35/2021 art.33(1)(b): × 21 on a five-day week, × 25 on a six-day
-	 * one, then 1/173). Absent or empty is the day over its normal hours.
+	 * E5: the ordinary hour and the ordinary day — the base every overtime band, night premium and
+	 * `day_wage` award multiplies — as money over the `rate` site: the person on the rate's date and
+	 * `contract.classes.<class>`, the contract's recurring allowances by component code and by each
+	 * class they count toward. A premium base that leaves allowances out names only the classes it
+	 * keeps (JP LSA art.37(5): family, commuting and housing allowances are outside it); a daily wage
+	 * taken to a month first is the expression's own (ID PP 35/2021 art.33(1)(b): daily × 21 or 25,
+	 * then 1/173). Absent is the contract's wage over `ordinary_divisor_days` and the normal day.
 	 */
-	daily_month_days: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	ordinary_rate: Schema.optionalKey(Schema.NullOr(Schema.Struct({ hour: cel, day: cel }))),
+	/**
+	 * What one stated unit of a weekly, daily or hourly wage is as a month: a factor over the person
+	 * on the rate's own week (`terms.working_days_per_week`, `terms.ordinary_hours_per_week`), e.g.
+	 * `52.0 / 12.0` a week. The weeks in a month are a statutory choice (SSS Circular 2014-002:
+	 * weekly × 52 ÷ 12), not the calendar's 365 ÷ 7 ÷ 12. Absent refuses a non-monthly wage.
+	 */
+	rate_conversions: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Struct({ weekly_to_monthly: cel, daily_to_monthly: cel, hourly_to_monthly: cel })
+		)
+	),
+	/**
+	 * The gross hourly rate an hourly leave charge withholds, money over the person on the charge
+	 * date: `terms.basic_salary` in its cadence, `terms.fixed_allowances` the gross-rate allowances
+	 * (SG EA s.2: 12 × monthly ÷ (52 × weekly hours)). Absent refuses hourly leave deductions.
+	 */
+	hourly_rate: Schema.optionalKey(Schema.NullOr(Schema.String)),
+	/**
+	 * The hourly amount of the allowances a leave class excludes, over the person whose
+	 * `terms.fixed_allowances` are those allowances; a day charge is it × the normal daily hours.
+	 * Absent refuses a leave class that excludes an allowance.
+	 */
+	hourly_rate_excluded: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	/** A statutory ordinary rate taken from approved dated wage history instead of the current contract. */
 	ordinary_rate_reference: Schema.optionalKey(
 		Schema.NullOr(
@@ -316,6 +343,25 @@ export const workRulesValueSchema = Schema.Struct({
 	),
 	part_time_comparator_when: Schema.optionalKey(Schema.NullOr(Schema.String)),
 	bands: Schema.Array(workRateBandValueSchema),
+	/**
+	 * E6: pay lines the period's totals decide (a minimum-wage top-up, a guaranteed minimum, a
+	 * per-output premium), in order, each read after every work, leave and money line and after the
+	 * derived lines before it (`deriveLines`, run/accumulate.ts). `amount` is money and `when` a
+	 * boolean over the `derived_line` site; `component` is the reserved line fed (BASE default, or
+	 * DAY_PAY). Codes are unique and must not repeat another Work line's code.
+	 */
+	derived_lines: Schema.optionalKey(
+		Schema.NullOr(
+			Schema.Array(
+				Schema.Struct({
+					code: Schema.String.check(Schema.isMinLength(1)),
+					when: Schema.optionalKey(Schema.NullOr(Schema.String)),
+					amount: Schema.String.check(Schema.isMinLength(1)),
+					component: Schema.optionalKey(Schema.NullOr(Schema.Literals(['BASE', 'DAY_PAY'])))
+				})
+			)
+		)
+	),
 	limits: Schema.Array(Schema.Union([workLimitValueSchema, workRestLimitValueSchema])),
 	breaks: Schema.Array(workBreakValueSchema),
 	/** Region → monthly minimum wage in the version's currency, and who the order covers. */
@@ -342,6 +388,13 @@ export const workRulesValueSchema = Schema.Struct({
 			})
 		)
 	),
+	/**
+	 * The step planned overtime and incentive hours are keyed in, in hours: a direct write and an import
+	 * refuse a figure off the step, a binding limit floors the approved hours to it, and clock hours past
+	 * the plan below one step are not reported (`UNPLANNED_OVERTIME`). Where the law states no unit, the
+	 * recorded default is 0.5.
+	 */
+	overtime_unit_hours: Schema.Finite.check(Schema.isGreaterThan(0)),
 	holiday_rest_precedence: Schema.Literals(['PUBLIC_HOLIDAY', 'REST_DAY', 'SUBSTITUTE']),
 	/**
 	 * Whether planned hours beyond the limits may be kept as incentive hours; false refuses them at
@@ -388,6 +441,23 @@ export const workRulesValueSchema = Schema.Struct({
 	)
 }).check(
 	Schema.makeFilter((rules) => {
+		if (rules.ordinary_rate != null && rules.ordinary_rate_reference != null)
+			return 'Ordinary rate: state ordinary_rate or ordinary_rate_reference, not both.';
+		const derivedCodes = (rules.derived_lines ?? []).map((line) => line.code);
+		const workCodes = new Set([
+			'BASIC',
+			'ABSENCE',
+			'NIGHT_PREMIUM',
+			'NIGHT_WAGE',
+			'MINIMUM_WAGE_TOP_UP',
+			'OVERTIME',
+			'INCENTIVE',
+			...rules.bands.map((band) => band.label)
+		]);
+		if (new Set(derivedCodes).size !== derivedCodes.length)
+			return 'Derived lines: each code is declared once.';
+		const takenCode = derivedCodes.find((code) => workCodes.has(code));
+		if (takenCode != null) return `Derived line ${takenCode}: the code is another Work line's.`;
 		if (rules.last_rest_day_only != null && rules.earlier_rest_day_work != null)
 			return 'Rest days: set last_rest_day_only or earlier_rest_day_work, not both.';
 		if (
@@ -440,9 +510,28 @@ export const workRulesValueSchema = Schema.Struct({
 				? null
 				: faultIn(rules.encashment.day_amount, 'person', 'money', 'Leave cash-out daily pay'),
 			faultIn(rules.ordinary_divisor_days, 'person', 'days', 'Ordinary divisor'),
-			(rules.daily_month_days ?? '').trim() === ''
+			...(['hour', 'day'] as const).map((key) =>
+				rules.ordinary_rate == null
+					? null
+					: faultIn(rules.ordinary_rate[key], 'rate', 'money', `Ordinary rate ${key}`)
+			),
+			...(rules.derived_lines ?? []).flatMap((line, index) => [
+				faultIn(line.amount, 'derived_line', 'money', `derived_lines[${index}].amount`),
+				(line.when ?? '').trim() === ''
+					? null
+					: faultIn(line.when ?? '', 'derived_line', 'boolean', `derived_lines[${index}].when`)
+			]),
+			...(['weekly_to_monthly', 'daily_to_monthly', 'hourly_to_monthly'] as const).map((key) =>
+				rules.rate_conversions == null
+					? null
+					: faultIn(rules.rate_conversions[key], 'person', 'number', `Rate conversion ${key}`)
+			),
+			(rules.hourly_rate ?? '').trim() === ''
 				? null
-				: faultIn(rules.daily_month_days ?? '', 'person', 'days', 'Daily wage month'),
+				: faultIn(rules.hourly_rate ?? '', 'person', 'money', 'Hourly rate'),
+			(rules.hourly_rate_excluded ?? '').trim() === ''
+				? null
+				: faultIn(rules.hourly_rate_excluded ?? '', 'person', 'money', 'Hourly excluded rate'),
 			faultIn(rules.overtime_when, 'person', 'boolean', 'Overtime eligibility'),
 			(rules.part_time_comparator_when ?? '').trim() === ''
 				? null

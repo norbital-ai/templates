@@ -566,6 +566,8 @@ test('every sealed version of `ID` is priced by a golden here', () => {
 const HOUSE_ALLOWANCE_ID = 'a1a1a1a1-0000-4000-8000-000000000001';
 const THR_ID = '6905cf49-a5ed-5833-ad3d-d08074b60c4e';
 
+const PKWT_START = '2024-03-01';
+
 test('Indonesia — THR is a twelfth of the monthly wage per completed month, whole after a year', () => {
 	const world = createStatutoryWorld({
 		...idWorld('2026-03'),
@@ -585,22 +587,27 @@ test('Indonesia — THR is a twelfth of the monthly wage per completed month, wh
 			// 21 March) is owed the THR (art.7(1)); a PKWT that ends *before* the holiday is not
 			// (art.7(3)); one that ends on or after it was employed on the day and is (art.2(1)).
 			{ key: 'ID-PERM-25MAR', wage: 10_000_000, exit_date: '2026-03-25' },
+			// A PKWT lasts at most five years (PP 35/2021 art.8, check PKWT_TERM_OVER_FIVE_YEARS), so
+			// these contracts start two years before, not on the fixture's 2015 default.
 			{
 				key: 'ID-PKWT-31MAR',
 				wage: 10_000_000,
 				employment_type: 'CONTRACT',
+				hire_date: PKWT_START,
 				exit_date: '2026-03-31'
 			},
 			{
 				key: 'ID-PKWT-21MAR',
 				wage: 10_000_000,
 				employment_type: 'CONTRACT',
+				hire_date: PKWT_START,
 				exit_date: '2026-03-21'
 			},
 			{
 				key: 'ID-PKWT-10MAR',
 				wage: 10_000_000,
 				employment_type: 'CONTRACT',
+				hire_date: PKWT_START,
 				exit_date: '2026-03-10'
 			}
 		]
@@ -1201,7 +1208,7 @@ test('Indonesia — efficiency or closure because of losses is half the pesangon
 		wage: 10_000_000,
 		hire_date: '2021-12-15',
 		exit_date: '2026-01-31',
-		exit_reason: reason
+		exit_ground: reason
 	});
 	const { slips } = buildStatutory(
 		{
@@ -1635,7 +1642,7 @@ test('Indonesia — a resigner on 15 June: final pay, untaken leave as UPH, and 
 				wage: 10_000_000,
 				hire_date: '2021-01-04',
 				exit_date: '2026-06-15',
-				exit_reason: 'RESIGNATION'
+				exit_ground: 'RESIGNATION'
 			}
 		]),
 		(world) => {
@@ -1758,7 +1765,7 @@ test('Indonesia — final pay falls due on the agreed payday of the exit period 
 					wage: 10_000_000,
 					hire_date: '2021-01-04',
 					exit_date: '2026-06-15',
-					exit_reason: 'RESIGNATION',
+					exit_ground: 'RESIGNATION',
 					pay_frequency: payFrequency
 				}
 			]),
@@ -2043,14 +2050,14 @@ test('Indonesia — PP 68/2009 art.4: the 15% and 25% severance bands', () => {
 				wage: 50_000_000,
 				hire_date: '2016-01-04',
 				exit_date: '2026-01-31',
-				exit_reason: 'REDUNDANCY'
+				exit_ground: 'REDUNDANCY'
 			},
 			{
 				key: 'ID-SEV-20M',
 				wage: 20_000_000,
 				hire_date: '2016-01-04',
 				exit_date: '2026-01-31',
-				exit_reason: 'REDUNDANCY'
+				exit_ground: 'REDUNDANCY'
 			}
 		]),
 		(world) => {
@@ -2083,7 +2090,7 @@ test('Indonesia — PP 68/2009 art.2(2): a later severance payment in the same y
 					wage: 10_000_000,
 					hire_date: '2021-12-15',
 					exit_date: '2026-03-31',
-					exit_reason: 'REDUNDANCY'
+					exit_ground: 'REDUNDANCY'
 				}
 			]),
 			(world) => {
@@ -2134,7 +2141,7 @@ test('Indonesia — PP 68/2009 art.2(2): a part paid in the next calendar year j
 				wage: 10_000_000,
 				hire_date: '2021-12-15',
 				exit_date: '2026-01-31',
-				exit_reason: 'REDUNDANCY'
+				exit_ground: 'REDUNDANCY'
 			}
 		]),
 		(world) => {
@@ -2188,7 +2195,7 @@ test('Indonesia — PP 68/2009 art.6: a part paid in the third calendar year is 
 					wage: 25_000_000,
 					hire_date: '2021-11-01',
 					exit_date: '2025-12-31',
-					exit_reason: 'REDUNDANCY',
+					exit_ground: 'REDUNDANCY',
 					registrations: {
 						PPH21_FINAL_SEVERANCE: { kind: 'REGISTERED', elections: { no_tax_id: noTaxId } }
 					}
@@ -2247,7 +2254,7 @@ test('Indonesia — a non-resident’s severance is PPh 26 at 20% of gross, not 
 				wage: 30_000_000,
 				hire_date: '2021-01-04',
 				exit_date: '2026-04-30',
-				exit_reason: 'REDUNDANCY',
+				exit_ground: 'REDUNDANCY',
 				tax_residency: 'NON_RESIDENT',
 				citizenship: 'FOREIGNER'
 			}
@@ -2430,7 +2437,7 @@ test('Indonesia — PKWT profile: the art.15 compensation at the end of a one-ye
 				employment_type: 'CONTRACT',
 				hire_date: '2025-07-01',
 				exit_date: '2026-06-30',
-				exit_reason: 'CONTRACT_END'
+				exit_ground: 'CONTRACT_END'
 			},
 			{
 				key: 'ID-PKWT-TKA',
@@ -2439,7 +2446,7 @@ test('Indonesia — PKWT profile: the art.15 compensation at the end of a one-ye
 				citizenship: 'FOREIGNER',
 				hire_date: '2025-07-01',
 				exit_date: '2026-06-30',
-				exit_reason: 'CONTRACT_END'
+				exit_ground: 'CONTRACT_END'
 			}
 		]),
 		(world) => {
@@ -2807,6 +2814,69 @@ test('Indonesia — piece-rate BPJS uses three paid months, or twelve for weathe
 				`${key} ${code}`
 			);
 	}
+});
+
+test("Indonesia — the piece-rate trailing windows are the version's payroll.trailing_wage_{short,long}_months (ID-62; LIT-4)", () => {
+	// Same history as above: Feb–Oct 2025 4,000,000, Nov 5,000,000, Dec 6,000,000, Jan 2026 7,000,000.
+	const months = Object.fromEntries(
+		Array.from({ length: 9 }, (_, index) => [
+			`2025-${String(index + 2).padStart(2, '0')}`,
+			4_000_000
+		])
+	);
+	Object.assign(months, { '2025-11': 5_000_000, '2025-12': 6_000_000, '2026-01': 7_000_000 });
+	const build = (weather: boolean, short: number | null, long: number | null) => {
+		const key = weather ? 'ID-PIECE-WEATHER' : 'ID-PIECE';
+		return {
+			key,
+			slips: buildStatutory(
+				{
+					code: 'ID',
+					period: '2026-02',
+					region: 'Provinsi DKI Jakarta',
+					riskClass: 'II',
+					people: [
+						{
+							key,
+							wage: 8_000_000,
+							hire_date: '2025-02-01',
+							statutory_work_category: 'PIECE_RATE',
+							weather_dependent_piece: weather
+						}
+					]
+				},
+				(world) => {
+					priorWages(world, key, months);
+					for (const row of world.jurisdiction_settings) {
+						const payroll = row.payroll as Record<string, unknown>;
+						delete payroll.trailing_wage_short_months;
+						delete payroll.trailing_wage_long_months;
+						if (short != null) payroll.trailing_wage_short_months = short;
+						if (long != null) payroll.trailing_wage_long_months = long;
+					}
+				}
+			).slips
+		};
+	};
+	// Short window 2: (Dec 6,000,000 + Jan 7,000,000) / 2 = 6,500,000.
+	// Long window 6: (Aug 4 + Sep 4 + Oct 4 + Nov 5 + Dec 6 + Jan 7) × 1,000,000 / 6 = 5,000,000.
+	for (const [weather, expected] of [
+		[false, 6_500_000],
+		[true, 5_000_000]
+	] as const) {
+		const { key, slips } = build(weather, 2, 6);
+		for (const code of ['JHT', 'JKK', 'JKM'])
+			assert.equal(
+				slips.get(key)!.statutory.find((row) => row.scheme_code === code)?.base_amount,
+				expected,
+				`${key} ${code}`
+			);
+	}
+	// A version that states no window stops the run rather than guessing one.
+	assert.throws(
+		() => build(false, null, 12),
+		/scheme\.trailing_short requires payroll\.trailing_wage_short_months/
+	);
 });
 
 test('Indonesia — a worksite without its KBLI sector code refuses naming the employee and the field (F22)', () => {

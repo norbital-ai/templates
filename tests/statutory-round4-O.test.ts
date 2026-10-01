@@ -37,7 +37,7 @@ const MY_PERIODS = ['2025-12', '2026-01', '2026-06', '2026-09', '2028-07', '2031
 // ─── 1. EPF Third Schedule Part F ────────────────────────────────────────────────────────────────
 
 test('MY Part F: the total rounds up to the ringgit once, the employee share stays at 2% — every version, both lineages', () => {
-	for (const code of ['MY', 'MY-nihon']) {
+	for (const code of ['MY']) {
 		for (const period of MY_PERIODS) {
 			const book = assessStatutory({
 				code,
@@ -74,7 +74,7 @@ test('MY Part F: the total rounds up to the ringgit once, the employee share sta
 });
 
 test('MY Part F: semi-monthly shares reconcile to one rounded monthly assessment', () => {
-	for (const code of ['MY', 'MY-nihon']) {
+	for (const code of ['MY']) {
 		const world = createStatutoryWorld({
 			code,
 			period: '2026-01-1',
@@ -140,7 +140,7 @@ const loan = (code: string, amount: number) => ({
 });
 
 test('MY EA s.24(8): EPF, SOCSO, EIS and PCB are s.24(2)(d) deductions under the section and count toward the half — every version, both lineages', () => {
-	for (const code of ['MY', 'MY-nihon']) {
+	for (const code of ['MY']) {
 		for (const version of settingsVersions(code)) {
 			const ceiling = version.payroll.deduction_ceiling;
 			assert.equal(ceiling.share, 0.5, code);

@@ -154,7 +154,7 @@ const occasions = (
 				citizenship: 'CITIZEN',
 				hire_date: `${previous}-01`,
 				exit_date: payDay,
-				exit_reason: 'END_OF_CONTRACT',
+				exit_ground: 'END_OF_CONTRACT',
 				registrations: {
 					PIT: {
 						kind: 'REGISTERED',
@@ -656,7 +656,7 @@ test('VN July PIT withholds 10% on a wage paid after a long contract ends', () =
 						citizenship: 'CITIZEN',
 						hire_date: '2025-01-01',
 						exit_date: `${period}-21`,
-						exit_reason: 'RESIGNATION',
+						exit_ground: 'RESIGNATION',
 						registrations: {
 							PIT: {
 								kind: 'REGISTERED',
